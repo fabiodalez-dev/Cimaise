@@ -1,0 +1,32 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Modifica categoria — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Modifica categoria</h1>
+  </div>
+  <div class="card p-6">
+    <form method="post" action="/admin/categories/{{ item.id }}" class="space-y-4">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+        <input class="form-input" type="text" name="name" value="{{ item.name }}" required>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+        <input class="form-input" type="text" name="slug" value="{{ item.slug }}">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
+        <input class="form-input" type="number" name="sort_order" value="{{ item.sort_order }}">
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button class="btn-primary" type="submit">Aggiorna</button>
+        <a class="btn-secondary" href="/admin/categories">Annulla</a>
+        <form method="post" action="/admin/categories/{{ item.id }}/delete" class="inline ml-auto" onsubmit="return confirm('Eliminare questa categoria?');">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="btn-secondary text-red-700" type="submit">Elimina</button>
+        </form>
+      </div>
+    </form>
+  </div>
+{% endblock %}

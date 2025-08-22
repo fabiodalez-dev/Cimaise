@@ -1,0 +1,150 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Nuovo album — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Nuovo album</h1>
+  </div>
+  <form id="album-form" method="post" action="/admin/albums">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 card p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Titolo</label>
+          <input class="form-input" type="text" name="title" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+          <input class="form-input" type="text" name="slug" placeholder="(auto se vuoto)">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Excerpt</label>
+          <textarea class="form-input" name="excerpt" rows="4"></textarea>
+        </div>
+      </div>
+      <div class="card p-6 space-y-4">
+        <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Categorie</label>
+        <select name="categories[]" id="album-categories" class="form-input" multiple required>
+          {% for c in categories %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Data scatto</label>
+          <input class="form-input" type="date" name="shoot_date">
+        </div>
+        <div class="flex items-center gap-2">
+          <input class="h-4 w-4" type="checkbox" name="show_date" id="show_date" checked>
+          <label class="text-sm text-gray-700" for="show_date">Mostra data</label>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tag</label>
+          <select class="form-input" name="tags[]" id="album-tags" multiple>
+            {% for t in tags %}
+              <option value="{{ t.id }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
+          <input class="form-input" type="number" name="sort_order" value="0">
+        </div>
+        <div class="flex items-center gap-2">
+          <input class="h-4 w-4" type="checkbox" name="is_published" id="pub">
+          <label class="text-sm text-gray-700" for="pub">Pubblica subito</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-5 mt-6">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+        <div class="flex items-center gap-2">
+          <label class="text-sm text-gray-700">Ordina:</label>
+          <select id="sort-images" class="form-input text-sm py-1.5">
+            <option value="manual">Manuale</option>
+            <option value="created_newest">Data (più recenti)</option>
+            <option value="created_oldest">Data (più vecchie)</option>
+            <option value="id_asc">ID crescente</option>
+            <option value="id_desc">ID decrescente</option>
+          </select>
+          <button id="save-order" class="btn-secondary btn-sm" type="button" disabled>Salva ordine</button>
+        </div>
+      </div>
+      <div id="uploader" class="w-full border-2 border-dashed rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer flex items-center justify-center min-h-[260px]">
+        <input id="file-input" type="file" multiple class="hidden" accept="image/*">
+        <div class="text-center text-gray-600">
+          <i class="fa-regular fa-images mb-2" style="font-size:38px"></i>
+          <div class="text-base">Trascina qui le immagini o clicca per selezionarle</div>
+          <div class="text-sm text-gray-500 mt-1">L’album verrà creato automaticamente al primo caricamento</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-3 pt-6">
+      <button class="btn-primary" type="submit">Salva</button>
+      <a class="btn-secondary" href="/admin/albums">Annulla</a>
+    </div>
+  </form>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  <script>
+    new TomSelect('#album-tags',{plugins:['remove_button'],create:false,placeholder:'Seleziona tag...'});
+    new TomSelect('#album-categories',{plugins:['remove_button'],create:false,placeholder:'Seleziona categorie...'});
+
+    // Create-first-then-upload flow
+    let createdAlbumId = null;
+    const form = document.getElementById('album-form');
+    const uploader = document.getElementById('uploader');
+    const input = document.getElementById('file-input');
+    const csrf = form.querySelector('input[name="csrf"]').value;
+
+    function gatherFormData(){
+      const fd = new URLSearchParams();
+      new FormData(form).forEach((v,k)=>{ if(k!=='csrf') fd.append(k, typeof v === 'string' ? v : String(v)); });
+      return fd.toString();
+    }
+    async function ensureAlbumId(){
+      if (createdAlbumId) return createdAlbumId;
+      const body = gatherFormData();
+      const res = await fetch(form.action, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'X-CSRF-Token': csrf, 'Accept':'application/json' }, body });
+      const data = await res.json();
+      if (!data || !data.id) throw new Error('Creazione album fallita');
+      createdAlbumId = data.id;
+      return createdAlbumId;
+    }
+    uploader.addEventListener('click', ()=> { input.click(); });
+    ['dragover','dragleave'].forEach(ev=>uploader.addEventListener(ev, e=>{ e.preventDefault(); uploader.classList.toggle('bg-gray-100', ev==='dragover'); }));
+    uploader.addEventListener('drop', async e=>{
+      e.preventDefault(); uploader.classList.remove('bg-gray-100');
+      if (!e.dataTransfer) return; const files = Array.from(e.dataTransfer.files);
+      await uploadFiles(files);
+    });
+    input.addEventListener('change', async ()=>{ await uploadFiles(Array.from(input.files||[])); input.value=''; });
+
+    async function uploadFiles(files){
+      if (!files.length) return;
+      // basic validation: require title and at least one category before auto-create
+      const titleEl = form.querySelector('input[name="title"]');
+      const catsEl = document.getElementById('album-categories');
+      const hasTitle = titleEl && titleEl.value.trim().length > 0;
+      const hasCat = catsEl && Array.from(catsEl.selectedOptions).length > 0;
+      if (!hasTitle || !hasCat) {
+        alert('Inserisci almeno Titolo e una Categoria prima di caricare immagini.');
+        return;
+      }
+      const id = await ensureAlbumId();
+      for (const f of files){
+        const fd = new FormData(); fd.append('file', f);
+        await fetch(`/admin/albums/${id}/upload`, { method:'POST', headers:{ 'X-CSRF-Token': csrf, 'Accept':'application/json' }, body: fd });
+      }
+      // Redirect to edit to manage ordering and details
+      window.location.href = `/admin/albums/${id}/edit`;
+    }
+  </script>
+  <style>
+    .ts-dropdown { z-index: 9999; background-color: #fff; }
+    .ts-wrapper { z-index: 50; }
+  </style>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Nuova pellicola — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-4"><h1 class="text-2xl font-bold text-gray-900">Nuova pellicola</h1></div>
+  <form method="post" action="/admin/films">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Brand</label><input class="form-input" type="text" name="brand" required></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Nome</label><input class="form-input" type="text" name="name" required></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">ISO</label><input class="form-input" type="number" name="iso"></div>
+      <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Formato</label>
+        <select name="format" class="form-input">
+          <option value="35mm">35mm</option><option value="120">120</option><option value="4x5">4x5</option><option value="8x10">8x10</option><option value="other">other</option>
+        </select>
+      </div>
+      <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+        <select name="type" class="form-input">
+          <option value="bw">B/W</option><option value="color_negative">C-41</option><option value="color_reversal">E-6</option>
+        </select>
+      </div>
+    </div>
+    <div class="mt-3 flex gap-3"><button class="btn-primary">Salva</button> <a class="btn-secondary" href="/admin/films">Annulla</a></div>
+  </form>
+{% endblock %}

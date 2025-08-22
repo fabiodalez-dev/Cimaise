@@ -1,0 +1,69 @@
+<article class="album-card group cursor-pointer" data-album-id="{{ album.id }}">
+  <a href="/album/{{ album.slug }}" class="block">
+    <div class="aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm">
+      {% if album.cover %}
+        <picture>
+          {% set variants_avif = [] %}
+          {% set variants_webp = [] %}
+          {% set variants_jpg = [] %}
+          {% for variant in album.cover.variants %}
+            {% if variant.format == 'avif' %}
+              {% set variants_avif = variants_avif|merge(['/public' ~ variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+            {% elseif variant.format == 'webp' %}
+              {% set variants_webp = variants_webp|merge(['/public' ~ variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+            {% elseif variant.format == 'jpg' %}
+              {% set variants_jpg = variants_jpg|merge(['/public' ~ variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+            {% endif %}
+          {% endfor %}
+          
+          {% if variants_avif %}
+            <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 90vw">
+          {% endif %}
+          {% if variants_webp %}
+            <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 90vw">
+          {% endif %}
+          
+          <img src="/public{{ album.cover.variants[0].path ?? album.cover.original_path }}" 
+               alt="{{ album.cover.alt_text|e }}" 
+               width="{{ album.cover.width }}" 
+               height="{{ album.cover.height }}"
+               loading="lazy" 
+               decoding="async"
+               class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+        </picture>
+      {% else %}
+        <div class="w-full h-full bg-neutral-200 flex items-center justify-center">
+          <span class="text-neutral-400 text-sm">No cover</span>
+        </div>
+      {% endif %}
+    </div>
+    
+    <div class="pt-3 pb-2">
+      <h3 class="text-lg font-medium text-black group-hover:text-neutral-700 transition-colors">
+        {{ album.title|e }}
+      </h3>
+      
+      <div class="flex flex-wrap items-center gap-1 mt-1 text-sm text-neutral-600">
+        <span class="category">{{ album.category_name|e }}</span>
+        
+        {% if album.tags %}
+          <span class="text-neutral-400">•</span>
+          {% for tag in album.tags %}
+            <span class="tag">#{{ tag.name|e }}</span>{% if not loop.last %},{% endif %}
+          {% endfor %}
+        {% endif %}
+        
+        {% if album.shoot_date %}
+          <span class="text-neutral-400">•</span>
+          <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('Y') }}</time>
+        {% endif %}
+      </div>
+      
+      {% if album.excerpt %}
+        <p class="mt-2 text-sm text-neutral-600 line-clamp-2">
+          {{ album.excerpt|e }}
+        </p>
+      {% endif %}
+    </div>
+  </a>
+</article>

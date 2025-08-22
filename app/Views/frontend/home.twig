@@ -1,0 +1,134 @@
+{% extends "frontend/_layout.twig" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Hero section -->
+    <div class="text-center py-12 md:py-20">
+        <h1 class="text-4xl md:text-6xl font-light text-black mb-6">
+            Portfolio
+        </h1>
+        <p class="text-lg md:text-xl text-neutral-600 max-w-2xl mx-auto leading-relaxed">
+            A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.
+        </p>
+    </div>
+
+    <!-- Albums grid -->
+    <div id="albums-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for album in albums %}
+            {% include "frontend/_album_card.twig" %}
+        {% endfor %}
+    </div>
+    
+    {% if albums|length == 0 %}
+    <div class="text-center py-20">
+        <h2 class="text-2xl font-light text-neutral-600 mb-4">No albums yet</h2>
+        <p class="text-neutral-500">Check back soon for new work.</p>
+    </div>
+    {% endif %}
+    
+    <!-- Load more -->
+    <div class="text-center mt-12">
+        <button id="load-more" class="bg-black text-white px-6 py-3 hover:bg-neutral-800 transition-colors" data-page="2">
+            Load More
+        </button>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+// AJAX load more functionality
+document.getElementById('load-more')?.addEventListener('click', async function() {
+    const button = this;
+    const page = parseInt(button.dataset.page);
+    
+    button.textContent = 'Loading...';
+    button.disabled = true;
+    
+    try {
+        const response = await fetch(`/api/albums?page=${page}`);
+        const data = await response.json();
+        
+        if (data.itemsHtml.trim()) {
+            const grid = document.getElementById('albums-grid');
+            grid.insertAdjacentHTML('beforeend', data.itemsHtml);
+            
+            // Animate new items
+            const newItems = grid.querySelectorAll('.album-card:nth-last-child(-n+' + data.pagination.per_page + ')');
+            gsap.from(newItems, {
+                opacity: 0,
+                y: 30,
+                duration: 0.8,
+                stagger: 0.1
+            });
+            
+            // Update button
+            if (data.pagination.has_next) {
+                button.dataset.page = page + 1;
+                button.textContent = 'Load More';
+                button.disabled = false;
+            } else {
+                button.style.display = 'none';
+            }
+        } else {
+            button.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Failed to load more albums:', error);
+        button.textContent = 'Error loading';
+        button.disabled = false;
+    }
+});
+
+// Apply filters functionality
+document.getElementById('apply-filters')?.addEventListener('click', async function() {
+    const process = document.getElementById('filter-process').value;
+    const sort = document.getElementById('filter-sort').value;
+    const search = document.getElementById('filter-search').value;
+    
+    const params = new URLSearchParams();
+    if (process) params.set('process', process);
+    if (sort) params.set('sort', sort);
+    if (search) {
+        params.set('camera', search);
+        params.set('film', search);
+    }
+    
+    try {
+        const response = await fetch(`/api/albums?${params}`);
+        const data = await response.json();
+        
+        const grid = document.getElementById('albums-grid');
+        grid.innerHTML = data.itemsHtml;
+        
+        // Animate filtered results
+        gsap.from('.album-card', {
+            opacity: 0,
+            y: 20,
+            duration: 0.6,
+            stagger: 0.05
+        });
+        
+        // Update load more button
+        const loadMore = document.getElementById('load-more');
+        if (data.pagination.has_next) {
+            loadMore.dataset.page = 2;
+            loadMore.style.display = 'block';
+        } else {
+            loadMore.style.display = 'none';
+        }
+        
+    } catch (error) {
+        console.error('Failed to apply filters:', error);
+    }
+});
+
+// Clear filters
+document.getElementById('clear-filters')?.addEventListener('click', function() {
+    document.getElementById('filter-process').value = '';
+    document.getElementById('filter-sort').value = 'published_desc';
+    document.getElementById('filter-search').value = '';
+    document.getElementById('apply-filters').click();
+});
+{% endblock %}

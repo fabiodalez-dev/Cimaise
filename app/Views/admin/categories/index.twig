@@ -1,0 +1,139 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Categories — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Categories</h1>
+      <p class="text-gray-600 mt-1">Gerarchia e ordinamento con drag & drop</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 card p-6">
+      <h2 class="text-lg font-medium text-gray-900 mb-3">Organizza</h2>
+      <style>
+        .droplist { min-height: 12px; border-left: 2px dashed #e5e7eb; padding-left: 0.5rem; }
+        .sortable-ghost { opacity: .5; }
+      </style>
+      <ul id="cat-root" class="space-y-2 droplist">
+        {% macro render_nodes(parent, byParent) %}
+          {% set children = byParent[parent|default(0)]|default([]) %}
+          {% for c in children %}
+            <li class="border rounded p-3" data-id="{{ c.id }}">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 cursor-move"><i class="fas fa-grip-vertical text-gray-400"></i><span class="font-medium">{{ c.name }}</span><code class="text-xs text-gray-500">/{{ c.slug }}</code></div>
+                <div class="flex items-center gap-2">
+                  <button class="text-gray-600 hover:text-black" data-edit="{{ c.id }}" type="button" title="Modifica"><i class="fas fa-edit"></i></button>
+                  <form method="post" action="/admin/categories/{{ c.id }}/delete" onsubmit="return confirm('Eliminare questa categoria?');">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <button class="text-red-600 hover:text-red-800" title="Elimina"><i class="fas fa-trash"></i></button>
+                  </form>
+                </div>
+              </div>
+              <ul class="ml-6 mt-2 space-y-2 droplist">
+                {{ _self.render_nodes(c.id, byParent) }}
+              </ul>
+            </li>
+          {% endfor %}
+        {% endmacro %}
+
+        {{ _self.render_nodes(0, byParent) }}
+      </ul>
+      <div class="text-sm text-gray-500 mt-3">Trascina per ordinare e annidare. I cambi vengono salvati automaticamente.</div>
+    </div>
+
+    <div class="card p-6">
+      <h2 class="text-lg font-medium text-gray-900 mb-3">Dettagli</h2>
+      <form id="cat-form" method="post" action="/admin/categories" class="space-y-4">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="id" id="cat-id" value="">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+          <input class="form-input" type="text" name="name" id="cat-name" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+          <input class="form-input" type="text" name="slug" id="cat-slug" placeholder="(auto se vuoto)">
+        </div>
+        <div class="flex gap-2">
+          <button class="btn-primary" type="submit">Salva</button>
+          <button id="cat-reset" class="btn-secondary" type="button">Nuova</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script>
+    let csrfToken = '{{ csrf }}';
+    function initSortables() {
+      document.querySelectorAll('#cat-root, #cat-root ul').forEach(el => {
+        if (el.dataset.sortableInited) return;
+        new Sortable(el, {
+          group: { name: 'cats', pull: true, put: true },
+          animation: 150,
+          fallbackOnBody: true,
+          forceFallback: true,
+          swapThreshold: 0.65,
+          handle: '.fa-grip-vertical',
+          ghostClass: 'sortable-ghost',
+          onEnd: () => { initSortables(); debounceSave(); }
+        });
+        el.dataset.sortableInited = '1';
+      });
+    }
+    const debounceSave = debounce(saveTree, 200);
+    function debounce(fn, ms){ let t; return (...args) => { clearTimeout(t); t=setTimeout(()=>fn.apply(null,args), ms); } }
+    function readTree(ul){
+      const out = [];
+      ul.querySelectorAll(':scope > li').forEach(li => {
+        const node = { id: parseInt(li.dataset.id, 10) || 0, children: [] };
+        const child = li.querySelector(':scope > ul');
+        if (child) node.children = readTree(child);
+        out.push(node);
+      });
+      return out;
+    }
+    async function saveTree(){
+      const root = document.getElementById('cat-root');
+      const tree = readTree(root);
+      const res = await fetch('/admin/categories/reorder', { method:'POST', headers: { 'Content-Type':'application/json', 'X-CSRF-Token': csrfToken, 'Accept':'application/json' }, body: JSON.stringify({ tree }) });
+      const newToken = res.headers.get('X-CSRF-Token'); if (newToken) { csrfToken = newToken; document.querySelectorAll('input[name="csrf"]').forEach(i=>i.value=newToken); }
+    }
+    // Inline edit: fetch JSON details for a category
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-edit]');
+      if (!btn) return;
+      e.preventDefault();
+      const id = btn.getAttribute('data-edit');
+      const res = await fetch('/admin/api/category/'+id, { headers: { 'Accept':'application/json' } });
+      if (!res.ok) return;
+      const data = await res.json();
+      document.getElementById('cat-id').value = data.id;
+      document.getElementById('cat-name').value = data.name || '';
+      document.getElementById('cat-slug').value = data.slug || '';
+      const form = document.getElementById('cat-form');
+      form.action = '/admin/categories/'+id;
+    });
+    document.getElementById('cat-reset').addEventListener('click', () => {
+      document.getElementById('cat-id').value = '';
+      document.getElementById('cat-name').value = '';
+      document.getElementById('cat-slug').value = '';
+      const form = document.getElementById('cat-form');
+      form.action = '/admin/categories';
+    });
+    // AJAX submit for create/update to prevent CSRF rotation issues
+    document.getElementById('cat-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.currentTarget;
+      const fd = new URLSearchParams();
+      fd.set('name', document.getElementById('cat-name').value || '');
+      fd.set('slug', document.getElementById('cat-slug').value || '');
+      const res = await fetch(form.action, { method:'POST', headers: { 'Content-Type':'application/x-www-form-urlencoded', 'X-CSRF-Token': csrfToken, 'Accept':'text/html' }, body: fd.toString() });
+      const newToken = res.headers.get('X-CSRF-Token'); if (newToken) csrfToken = newToken;
+      // Simplest: refresh to reflect structure changes and updated CSRF
+      location.reload();
+    });
+    initSortables();
+  </script>
+{% endblock %}

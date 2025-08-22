@@ -1,0 +1,73 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Tags — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Tags</h1>
+      <p class="text-gray-600 mt-1">Label and categorize your photos with tags</p>
+    </div>
+    <a href="/admin/tags/create" class="btn-primary">
+      <i class="fas fa-plus mr-2"></i>New Tag
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="overflow-x-auto">
+      <table class="min-w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for t in items %}
+          <tr class="table-row">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 mr-3">
+                  #{{ t.name }}
+                </span>
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <code class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">{{ t.slug }}</code>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                {{ t.usage_count ?? 0 }} albums
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <div class="flex items-center justify-end space-x-3">
+                <a href="/admin/tags/{{ t.id }}/edit" class="text-gray-600 hover:text-black transition-colors">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <form method="post" action="/admin/tags/{{ t.id }}/delete" class="inline" onsubmit="return confirm('Delete this tag? This will remove it from all albums.')">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if items|length == 0 %}
+      <div class="text-center py-12">
+        <i class="fas fa-tags text-4xl text-gray-300 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No tags yet</h3>
+        <p class="text-gray-600 mb-6">Create tags to label and organize your photos.</p>
+        <a href="/admin/tags/create" class="btn-primary">
+          <i class="fas fa-plus mr-2"></i>Create Tag
+        </a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

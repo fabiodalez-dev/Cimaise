@@ -1,0 +1,93 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Films — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Films</h1>
+      <p class="text-gray-600 mt-1">Manage film stocks and their characteristics</p>
+    </div>
+    <a href="/admin/films/create" class="btn-primary">
+      <i class="fas fa-plus mr-2"></i>New Film
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="overflow-x-auto">
+      <table class="min-w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ISO</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Format</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for f in items %}
+          <tr class="table-row">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm font-medium text-gray-900">{{ f.brand }}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-900">{{ f.name }}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                ISO {{ f.iso }}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="text-sm text-gray-600">{{ f.format }}</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              {% if f.type == 'color_negative' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                  Color Negative
+                </span>
+              {% elseif f.type == 'color_reversal' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                  Color Reversal
+                </span>
+              {% elseif f.type == 'bw' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                  Black & White
+                </span>
+              {% else %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  {{ f.type }}
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <div class="flex items-center justify-end space-x-3">
+                <a href="/admin/films/{{ f.id }}/edit" class="text-gray-600 hover:text-black transition-colors">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <form method="post" action="/admin/films/{{ f.id }}/delete" class="inline" onsubmit="return confirm('Delete this film?')">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if items|length == 0 %}
+      <div class="text-center py-12">
+        <i class="fas fa-film text-4xl text-gray-300 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No films yet</h3>
+        <p class="text-gray-600 mb-6">Add film stocks to track your analog photography.</p>
+        <a href="/admin/films/create" class="btn-primary">
+          <i class="fas fa-plus mr-2"></i>Add Film
+        </a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

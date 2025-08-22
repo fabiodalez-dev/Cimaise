@@ -1,0 +1,155 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Albums — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8 flex-wrap gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Albums</h1>
+      <p class="text-gray-600 mt-1">Manage your photo albums and collections</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="inline-flex rounded overflow-hidden border border-gray-300">
+        <a href="?order=manual" class="px-3 py-2 text-sm {{ order_mode=='manual' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">Manual order</a>
+        <a href="?order=date" class="px-3 py-2 text-sm {{ order_mode=='date' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">Date order</a>
+      </div>
+      <a href="/admin/albums/create" class="btn-primary">
+        <i class="fas fa-plus mr-2"></i>New Album
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="overflow-x-auto">
+      <table class="min-w-full" id="albums-table" data-endpoint="/admin/albums/reorder" data-csrf="{{ csrf }}" data-order="{{ order_mode }}">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cover</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200" id="albums-tbody">
+          {% for a in items %}
+          <tr class="table-row cursor-move" data-id="{{ a.id }}" title="Trascina per riordinare">
+            <td class="px-6 py-4 whitespace-nowrap">
+              {% if a.cover_path %}
+                <img src="{{ a.cover_path|replace({'/public':''}) }}" alt="" class="w-14 h-10 object-cover rounded border border-gray-200">
+              {% else %}
+                <div class="w-14 h-10 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
+                  <i class="fas fa-image text-gray-400 text-sm"></i>
+                </div>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm font-medium text-gray-900">
+                <a href="/admin/albums/{{ a.id }}/edit" class="hover:text-black">{{ a.title }}</a>
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="text-sm text-gray-600">{{ a.category }}</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              {% if a.is_published %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                  Published
+                </span>
+              {% else %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                  Draft
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <code class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">{{ a.slug }}</code>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <div class="flex items-center justify-end space-x-2">
+                <a href="/admin/albums/{{ a.id }}/edit" class="text-gray-600 hover:text-black">
+                  <i class="fas fa-edit"></i>
+                </a>
+                {% if a.is_published %}
+                  <form method="post" action="/admin/albums/{{ a.id }}/unpublish" class="inline">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <button type="submit" class="text-yellow-600 hover:text-yellow-800" title="Unpublish">
+                      <i class="fas fa-eye-slash"></i>
+                    </button>
+                  </form>
+                {% else %}
+                  <form method="post" action="/admin/albums/{{ a.id }}/publish" class="inline">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <button type="submit" class="text-green-600 hover:text-green-800" title="Publish">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </form>
+                {% endif %}
+                <form method="post" action="/admin/albums/{{ a.id }}/delete" class="inline" onsubmit="return confirm('Delete this album?')">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <button type="submit" class="text-red-600 hover:text-red-800" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if items|length == 0 %}
+      <div class="text-center py-12">
+        <i class="fas fa-images text-4xl text-gray-300 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No albums yet</h3>
+        <p class="text-gray-600 mb-6">Get started by creating your first album.</p>
+        <a href="/admin/albums/create" class="btn-primary">
+          <i class="fas fa-plus mr-2"></i>Create Album
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script>
+    (function(){
+      const tbody = document.getElementById('albums-tbody');
+      const table = document.getElementById('albums-table');
+      if (!tbody || !table) return;
+      const mode = table.dataset.order || 'manual';
+      if (mode === 'manual') {
+        new Sortable(tbody, { animation: 150, draggable: 'tr' });
+        async function saveOrder(){
+          const ids = Array.from(tbody.querySelectorAll('tr[data-id]')).map(tr=>tr.getAttribute('data-id'));
+          await fetch(table.dataset.endpoint, { method:'POST', headers:{ 'Content-Type':'application/json', 'X-CSRF-Token': table.dataset.csrf, 'Accept':'application/json' }, body: JSON.stringify({ order: ids }) });
+        }
+        tbody.addEventListener('dragend', () => setTimeout(saveOrder, 50));
+      }
+    })();
+  </script>
+
+  {% if pagination.pages > 1 %}
+    <div class="flex items-center justify-between mt-6">
+      <div class="text-sm text-gray-700">
+        Showing {{ (pagination.page - 1) * pagination.per_page + 1 }} to {{ min(pagination.page * pagination.per_page, pagination.total) }} of {{ pagination.total }} results
+      </div>
+      <div class="flex space-x-1">
+        {% if pagination.has_prev %}
+          <a href="?page={{ pagination.page - 1 }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">Previous</a>
+        {% endif %}
+        
+        {% for p in range(max(1, pagination.page - 2), min(pagination.pages, pagination.page + 2) + 1) %}
+          {% if p == pagination.page %}
+            <span class="px-3 py-2 text-sm bg-black text-white rounded">{{ p }}</span>
+          {% else %}
+            <a href="?page={{ p }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+          <a href="?page={{ pagination.page + 1 }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">Next</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

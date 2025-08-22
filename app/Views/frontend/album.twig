@@ -1,0 +1,207 @@
+{% extends "frontend/_layout.twig" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Album header -->
+    <div class="max-w-4xl mx-auto text-center pb-12">
+        <div class="mb-4">
+            <a href="/category/{{ album.category_slug }}" class="text-sm text-neutral-600 hover:text-black transition-colors">
+                {{ album.category_name|e }}
+            </a>
+        </div>
+        
+        <h1 class="text-3xl md:text-4xl font-light text-black mb-6">
+            {{ album.title|e }}
+        </h1>
+        
+        {% if album.excerpt %}
+        <p class="text-lg text-neutral-600 leading-relaxed mb-6">
+            {{ album.excerpt|e }}
+        </p>
+        {% endif %}
+        
+        <div class="flex flex-wrap justify-center gap-4 text-sm text-neutral-500 mb-6">
+            {% if album.shoot_date %}
+            <div class="flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('F Y') }}</time>
+            </div>
+            {% endif %}
+            
+            <div class="flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                {{ album.images_count }} {{ album.images_count == 1 ? 'image' : 'images' }}
+            </div>
+        </div>
+        
+        {% if album.tags %}
+        <div class="flex flex-wrap justify-center gap-2">
+            {% for tag in album.tags %}
+            <a href="/tag/{{ tag.slug }}" class="text-xs text-neutral-500 hover:text-black border border-neutral-200 rounded px-2 py-1 transition-colors">
+                #{{ tag.name|e }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Album body -->
+    {% if album.body %}
+    <div class="max-w-3xl mx-auto prose prose-neutral mb-12">
+        {{ album.body|raw }}
+    </div>
+    {% endif %}
+    
+    <!-- Images gallery -->
+    <div id="images-gallery" class="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+        {% for image in images %}
+            {% include "frontend/_image_item.twig" %}
+        {% endfor %}
+    </div>
+    
+    {% if images|length == 0 %}
+    <div class="text-center py-20">
+        <h2 class="text-2xl font-light text-neutral-600 mb-4">No images in this album yet</h2>
+        <p class="text-neutral-500">Images will appear here once uploaded.</p>
+    </div>
+    {% endif %}
+    
+    <!-- Image filters (if multiple formats/processes) -->
+    {% set processes = images|map(i => i.process)|unique|filter %}
+    {% set cameras = images|map(i => i.custom_camera ?: (i.exif_display.camera ?? null))|unique|filter %}
+    {% if processes|length > 1 or cameras|length > 1 %}
+    <div class="mt-8 p-4 bg-neutral-50 rounded">
+        <h3 class="text-sm font-medium mb-3">Filter images:</h3>
+        <div class="flex flex-wrap gap-4 text-sm">
+            {% if processes|length > 1 %}
+            <div class="flex items-center space-x-2">
+                <label>Process:</label>
+                <select id="image-filter-process" class="border border-neutral-300 rounded px-2 py-1 text-xs">
+                    <option value="">All</option>
+                    {% for process in processes %}
+                    <option value="{{ process }}">{{ process|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            
+            {% if cameras|length > 1 %}
+            <div class="flex items-center space-x-2">
+                <label>Camera:</label>
+                <select id="image-filter-camera" class="border border-neutral-300 rounded px-2 py-1 text-xs">
+                    <option value="">All</option>
+                    {% for camera in cameras %}
+                    <option value="{{ camera }}">{{ camera }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            
+            <button id="apply-image-filters" class="bg-black text-white px-3 py-1 text-xs rounded hover:bg-neutral-800">
+                Apply
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Related albums -->
+{% if related_albums|length > 0 %}
+<section class="border-t border-neutral-200 mt-16 pt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-light text-center mb-12">More from {{ album.category_name|e }}</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for related in related_albums %}
+                {% include "frontend/_album_card.twig" with {'album': related} %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+// Image filtering
+document.getElementById('apply-image-filters')?.addEventListener('click', async function() {
+    const albumId = {{ album.id }};
+    const process = document.getElementById('image-filter-process')?.value || '';
+    const camera = document.getElementById('image-filter-camera')?.value || '';
+    
+    const params = new URLSearchParams();
+    if (process) params.set('process', process);
+    if (camera) params.set('camera', camera);
+    
+    try {
+        const response = await fetch(`/api/album/${albumId}/images?${params}`);
+        const data = await response.json();
+        
+        const gallery = document.getElementById('images-gallery');
+        gallery.innerHTML = data.itemsHtml;
+        
+        // Animate filtered results
+        gsap.from('.image-item', {
+            opacity: 0,
+            y: 20,
+            duration: 0.6,
+            stagger: 0.03
+        });
+        
+    } catch (error) {
+        console.error('Failed to filter images:', error);
+    }
+});
+
+// Enhanced lightbox with metadata
+function openLightbox(imageId) {
+    const imageItem = document.querySelector(`[data-image-id="${imageId}"]`);
+    if (!imageItem) return;
+    
+    const dataScript = imageItem.querySelector('.image-data');
+    if (!dataScript) return;
+    
+    const imageData = JSON.parse(dataScript.textContent);
+    
+    // Build caption with metadata
+    let caption = '';
+    if (imageData.caption) {
+        caption += `<div class="mb-2">${imageData.caption}</div>`;
+    }
+    
+    if (imageData.metadata && Object.keys(imageData.metadata).length > 0) {
+        const metadata = [];
+        if (imageData.metadata.camera) metadata.push(imageData.metadata.camera);
+        if (imageData.metadata.lens) metadata.push(imageData.metadata.lens);
+        if (imageData.metadata.aperture) metadata.push(imageData.metadata.aperture);
+        if (imageData.metadata.shutter) metadata.push(imageData.metadata.shutter);
+        if (imageData.metadata.iso) metadata.push(imageData.metadata.iso);
+        if (imageData.metadata.film) metadata.push(imageData.metadata.film);
+        
+        if (metadata.length > 0) {
+            caption += `<div class="text-xs text-neutral-400 mt-2">${metadata.join(' • ')}</div>`;
+        }
+    }
+    
+    const items = [{
+        src: imageData.src,
+        width: imageData.width,
+        height: imageData.height,
+        alt: imageData.alt,
+        caption: caption
+    }];
+    
+    const lightbox = new PhotoSwipe({
+        dataSource: items,
+        index: 0,
+        showHideAnimationType: 'fade'
+    });
+    
+    lightbox.init();
+}
+{% endblock %}

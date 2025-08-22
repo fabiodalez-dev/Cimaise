@@ -1,0 +1,237 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Modifica album — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Modifica album</h1>
+    <a class="btn-secondary" href="/admin/settings">Impostazioni immagini</a>
+  </div>
+
+  <form method="post" action="/admin/albums/{{ item.id }}" class="mb-6">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 card p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Titolo</label>
+          <input class="form-input" type="text" name="title" value="{{ item.title }}" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+          <input class="form-input" type="text" name="slug" value="{{ item.slug }}">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Excerpt</label>
+          <textarea class="form-input" name="excerpt" rows="4">{{ item.excerpt }}</textarea>
+        </div>
+      </div>
+      <div class="card p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Categorie</label>
+          <select name="categories[]" id="album-categories" class="form-input" multiple required>
+            {% set selectedCats = categoryIds|default([item.category_id]) %}
+            {% for c in categories %}
+              <option value="{{ c.id }}" {% if c.id in selectedCats %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Data scatto</label>
+          <input class="form-input" type="date" name="shoot_date" value="{{ item.shoot_date }}">
+        </div>
+        <div class="flex items-center gap-2">
+          <input class="h-4 w-4" type="checkbox" name="show_date" id="show_date" {% if item.show_date %}checked{% endif %}>
+          <label class="text-sm text-gray-700" for="show_date">Mostra data</label>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tag</label>
+          <select class="form-input" name="tags[]" id="album-tags" multiple>
+            {% for t in tags %}
+              <option value="{{ t.id }}" {% if t.id in tagIds %}selected{% endif %}>{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
+          <input class="form-input" type="number" name="sort_order" value="{{ item.sort_order }}">
+        </div>
+        <div class="flex items-center gap-2">
+          <input class="h-4 w-4" type="checkbox" name="is_published" id="pub" {% if item.is_published %}checked{% endif %}>
+          <label class="text-sm text-gray-700" for="pub">Pubblicato</label>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3 pt-4">
+      <button class="btn-primary" type="submit">Aggiorna</button>
+      <a class="btn-secondary" href="/admin/albums">Annulla</a>
+      <form method="post" action="/admin/albums/{{ item.id }}/delete" class="inline ml-auto" onsubmit="return confirm('Eliminare questo album?');">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn-secondary text-red-700" type="submit">Elimina</button>
+      </form>
+    </div>
+  </form>
+
+  <div class="card p-5">
+    <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+      <div class="flex items-center gap-2">
+        <label class="text-sm text-gray-700">Ordina:</label>
+        <select id="sort-images" class="form-input text-sm py-1.5">
+          <option value="manual">Manuale</option>
+          <option value="created_newest">Data (più recenti)</option>
+          <option value="created_oldest">Data (più vecchie)</option>
+          <option value="id_asc">ID crescente</option>
+          <option value="id_desc">ID decrescente</option>
+        </select>
+        <button id="save-order" class="btn-secondary btn-sm">Salva ordine</button>
+      </div>
+    </div>
+    <div class="flex items-stretch gap-3">
+      <div class="flex-1">
+        <div id="uploader" role="button" class="w-full border-2 border-dashed rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer flex items-center justify-center min-h-[280px] text-gray-600"
+             data-endpoint="/admin/albums/{{ item.id }}/upload" data-csrf="{{ csrf }}">
+          <input id="file-input" type="file" multiple class="hidden" accept="image/*">
+          <div class="text-center">
+            <i class="fa-regular fa-images mb-2" style="font-size:38px"></i>
+            <div class="text-base">Trascina qui le immagini o clicca per selezionarle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if images %}
+      <div class="flex items-center justify-between mb-2">
+        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" id="select-all"> Seleziona tutto</label>
+        <button id="bulk-delete" class="btn-secondary btn-sm" disabled>Elimina selezionate</button>
+      </div>
+      <div id="images-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3" data-reorder-endpoint="/admin/albums/{{ item.id }}/images/reorder" data-csrf="{{ csrf }}">
+        {% for img in images %}
+          <div class="border rounded overflow-hidden" data-id="{{ img.id }}" data-created="{{ img.created_at }}" data-sort="{{ img.sort_order }}">
+            <div class="aspect-square overflow-hidden bg-gray-100 relative">
+              <img src="{{ img.preview_path|replace({'/public':''}) }}" class="w-full h-full object-cover" alt="">
+              <input type="checkbox" class="absolute top-2 left-2 w-4 h-4 bg-white rounded border" data-select-id="{{ img.id }}">
+            </div>
+            <div class="p-2 flex items-center justify-between text-sm">
+              <button type="button" data-cover-id="{{ img.id }}" class="px-2 py-1 rounded border {{ item.cover_image_id == img.id ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 text-gray-700' }}">Cover</button>
+              <button type="button" data-delete-id="{{ img.id }}" class="px-2 py-1 rounded border border-red-300 text-red-700"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="text-gray-500 text-sm mt-2">Trascina per riordinare oppure usa il selettore per ordinare per data/ID; clicca “Salva ordine” per persistere.</div>
+    {% else %}
+      <p class="text-gray-500">Nessuna immagine in questo album.</p>
+    {% endif %}
+  </div>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script>
+    // TomSelects
+    const tagSelect = new TomSelect('#album-tags',{
+      plugins:['remove_button'],create:false,placeholder:'Seleziona tag...',
+      valueField:'id',labelField:'name',searchField:'name',
+      load: (q, cb) => { fetch('/admin/api/tags?q='+encodeURIComponent(q||''),{headers:{'Accept':'application/json'}}).then(r=>r.json()).then(cb).catch(()=>cb()); }
+    });
+    new TomSelect('#album-categories',{plugins:['remove_button'],create:false,placeholder:'Seleziona categorie...'});
+
+    // Sortable grid
+    const grid = document.getElementById('images-grid');
+    if (grid) {
+      new Sortable(grid, { animation: 150, draggable: '[data-id]' });
+    }
+
+    // Sort helpers
+    function sortGridBy(mode){
+      if (!grid) return;
+      const cards = Array.from(grid.children);
+      const parseDate = (s) => new Date(s || '1970-01-01T00:00:00Z').getTime();
+      cards.sort((a,b) => {
+        switch(mode){
+          case 'created_newest': return parseDate(b.dataset.created) - parseDate(a.dataset.created);
+          case 'created_oldest': return parseDate(a.dataset.created) - parseDate(b.dataset.created);
+          case 'id_asc': return (parseInt(a.dataset.id,10)||0) - (parseInt(b.dataset.id,10)||0);
+          case 'id_desc': return (parseInt(b.dataset.id,10)||0) - (parseInt(a.dataset.id,10)||0);
+          default: return 0;
+        }
+      });
+      cards.forEach(c => grid.appendChild(c));
+    }
+    document.getElementById('sort-images')?.addEventListener('change', (e)=>{
+      sortGridBy(e.target.value);
+    });
+    document.getElementById('save-order')?.addEventListener('click', async (e)=>{
+      e.preventDefault(); if (!grid) return;
+      const ids = Array.from(grid.querySelectorAll('[data-id]')).map(el=>el.getAttribute('data-id'));
+      await fetch(grid.dataset.reorderEndpoint, {
+        method:'POST', headers:{ 'Content-Type':'application/json', 'X-CSRF-Token': grid.dataset.csrf, 'Accept':'application/json' },
+        body: JSON.stringify({ order: ids })
+      });
+    });
+
+    // Upload area: click & DnD multiple
+    const uploader = document.getElementById('uploader');
+    const input = document.getElementById('file-input');
+    if (uploader && input){
+      uploader.addEventListener('click', ()=> input.click());
+      ['dragover','dragleave'].forEach(ev=>uploader.addEventListener(ev, e=>{ e.preventDefault(); uploader.classList.toggle('bg-gray-50', ev==='dragover'); }));
+      uploader.addEventListener('drop', async e=>{ e.preventDefault(); uploader.classList.remove('bg-gray-50'); await uploadFiles(Array.from(e.dataTransfer.files)); });
+      input.addEventListener('change', async ()=>{ await uploadFiles(Array.from(input.files||[])); input.value=''; });
+      async function uploadFiles(files){
+        for (const f of files){
+          const fd = new FormData(); fd.append('file', f);
+          await fetch(uploader.dataset.endpoint, { method:'POST', headers:{ 'X-CSRF-Token': uploader.dataset.csrf, 'Accept':'application/json' }, body: fd });
+        }
+        location.reload();
+      }
+    }
+
+    // Cover + Delete actions
+    document.querySelectorAll('[data-cover-id]')?.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const imageId = btn.getAttribute('data-cover-id');
+        await fetch(`/admin/albums/{{ item.id }}/cover/${imageId}`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
+        location.reload();
+      });
+    });
+    document.querySelectorAll('[data-delete-id]')?.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if(!confirm('Eliminare questa immagine?')) return;
+        const imageId = btn.getAttribute('data-delete-id');
+        const res = await fetch(`/admin/albums/{{ item.id }}/images/${imageId}/delete`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
+        if (res.ok) {
+          const card = btn.closest('[data-id]');
+          card?.parentNode?.removeChild(card);
+          if (window.showToast) showToast('Immagine eliminata', 'success');
+        } else {
+          if (window.showToast) showToast('Errore eliminazione', 'error');
+        }
+      });
+    });
+
+    // Bulk selection & delete
+    const selectAll = document.getElementById('select-all');
+    const bulkBtn = document.getElementById('bulk-delete');
+    function getSelectedIds(){
+      return Array.from(document.querySelectorAll('[data-select-id]:checked')).map(cb=>cb.getAttribute('data-select-id'));
+    }
+    function updateBulk(){ const any = getSelectedIds().length>0; if (bulkBtn) bulkBtn.disabled = !any; }
+    selectAll?.addEventListener('change', ()=>{
+      document.querySelectorAll('[data-select-id]').forEach(cb=>{ cb.checked = selectAll.checked; });
+      updateBulk();
+    });
+    document.querySelectorAll('[data-select-id]').forEach(cb=>cb.addEventListener('change', updateBulk));
+    bulkBtn?.addEventListener('click', async ()=>{
+      const ids = getSelectedIds(); if (!ids.length) return; if (!confirm('Eliminare le immagini selezionate?')) return;
+      const res = await fetch('/admin/albums/{{ item.id }}/images/bulk-delete', { method:'POST', headers:{ 'Content-Type':'application/json','X-CSRF-Token':'{{ csrf }}','Accept':'application/json' }, body: JSON.stringify({ ids })});
+      if (res.ok) {
+        ids.forEach(id=>{ const el = document.querySelector(`[data-id="${id}"]`); el?.parentNode?.removeChild(el); });
+        if (window.showToast) showToast('Immagini eliminate', 'success');
+      } else {
+        if (window.showToast) showToast('Errore eliminazione', 'error');
+      }
+    });
+  </script>
+  <style>
+    .ts-dropdown { z-index: 9999; background-color: #fff; }
+    .ts-wrapper { z-index: 50; }
+  </style>
+{% endblock %}

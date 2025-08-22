@@ -1,0 +1,95 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Dashboard — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <p class="text-gray-600 mt-1">Benvenuto! User ID: {{ userId }}</p>
+    </div>
+    <a href="/admin/albums/create" class="btn-primary"><i class="fas fa-plus mr-2"></i>Nuovo Album</a>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/albums">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900">Albums</h3>
+          <p class="text-gray-600 text-sm">Gestisci progetti e immagini</p>
+        </div>
+        <i class="fas fa-images text-2xl text-gray-400"></i>
+      </div>
+    </a>
+    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/categories">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900">Categorie</h3>
+          <p class="text-gray-600 text-sm">Organizza gli album</p>
+        </div>
+        <i class="fas fa-folder-open text-2xl text-gray-400"></i>
+      </div>
+    </a>
+    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/tags">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900">Tag</h3>
+          <p class="text-gray-600 text-sm">Classifica e filtra</p>
+        </div>
+        <i class="fas fa-hashtag text-2xl text-gray-400"></i>
+      </div>
+    </a>
+    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/cameras">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900">Cameras</h3>
+          <p class="text-gray-600 text-sm">Lookup fotocamere</p>
+        </div>
+        <i class="fas fa-camera text-2xl text-gray-400"></i>
+      </div>
+    </a>
+    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/lenses">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900">Lenses</h3>
+          <p class="text-gray-600 text-sm">Lookup lenti</p>
+        </div>
+        <i class="fas fa-eye text-2xl text-gray-400"></i>
+      </div>
+    </a>
+    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/films">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900">Films</h3>
+          <p class="text-gray-600 text-sm">Lookup pellicole</p>
+        </div>
+        <i class="fas fa-film text-2xl text-gray-400"></i>
+      </div>
+    </a>
+    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/developers">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900">Developers</h3>
+          <p class="text-gray-600 text-sm">Lookup sviluppi</p>
+        </div>
+        <i class="fas fa-flask text-2xl text-gray-400"></i>
+      </div>
+    </a>
+    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/labs">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900">Labs</h3>
+          <p class="text-gray-600 text-sm">Lookup laboratori</p>
+        </div>
+        <i class="fas fa-industry text-2xl text-gray-400"></i>
+      </div>
+    </a>
+    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/commands">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900">Strumenti</h3>
+          <p class="text-gray-600 text-sm">Migrations, seeding, sitemap</p>
+        </div>
+        <i class="fas fa-wrench text-2xl text-gray-400"></i>
+      </div>
+    </a>
+  </div>
+{% endblock %}

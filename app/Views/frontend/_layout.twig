@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title|e }}</title>
+    
+    {% if meta_description %}
+    <meta name="description" content="{{ meta_description|e }}">
+    {% endif %}
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="{{ page_title|e }}">
+    {% if meta_description %}
+    <meta property="og:description" content="{{ meta_description|e }}">
+    {% endif %}
+    {% if meta_image %}
+    <meta property="og:image" content="{{ absolute_url(meta_image) }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    {% endif %}
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ absolute_url(current_url) }}">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom styles -->
+    <style>
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="min-h-full bg-white text-black font-sans antialiased">
+    
+    <!-- Header -->
+    <header class="border-b border-neutral-200 sticky top-0 bg-white/90 backdrop-blur z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-8">
+                    <h1 class="text-xl font-semibold">
+                        <a href="/" class="hover:text-neutral-700 transition-colors">Portfolio</a>
+                    </h1>
+                    
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="/" class="text-sm hover:text-neutral-700 transition-colors">Home</a>
+                        {% for category in categories|default([]) %}
+                        <a href="/category/{{ category.slug }}" class="text-sm hover:text-neutral-700 transition-colors">
+                            {{ category.name|e }}
+                        </a>
+                        {% endfor %}
+                    </nav>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- Search/filters toggle -->
+                    <button id="filters-toggle" class="text-sm hover:text-neutral-700 transition-colors">
+                        Filters
+                    </button>
+                    
+                    <!-- Mobile menu toggle -->
+                    <button id="mobile-menu-toggle" class="md:hidden">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden border-t border-neutral-200 bg-white">
+            <div class="px-4 py-4 space-y-3">
+                <a href="/" class="block text-sm hover:text-neutral-700 transition-colors">Home</a>
+                {% for category in categories|default([]) %}
+                <a href="/category/{{ category.slug }}" class="block text-sm hover:text-neutral-700 transition-colors">
+                    {{ category.name|e }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Filters panel -->
+        <div id="filters-panel" class="hidden border-t border-neutral-200 bg-neutral-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex flex-wrap gap-4 items-center text-sm">
+                    <div class="flex items-center space-x-2">
+                        <label class="font-medium">Process:</label>
+                        <select id="filter-process" class="border border-neutral-300 rounded px-2 py-1 text-xs">
+                            <option value="">All</option>
+                            <option value="analog">Analog</option>
+                            <option value="digital">Digital</option>
+                            <option value="hybrid">Hybrid</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <label class="font-medium">Sort:</label>
+                        <select id="filter-sort" class="border border-neutral-300 rounded px-2 py-1 text-xs">
+                            <option value="published_desc">Latest</option>
+                            <option value="published_asc">Oldest</option>
+                            <option value="title_asc">Title A-Z</option>
+                            <option value="title_desc">Title Z-A</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="filter-search" placeholder="Search camera, film..." 
+                               class="border border-neutral-300 rounded px-2 py-1 text-xs w-48">
+                    </div>
+                    
+                    <button id="apply-filters" class="bg-black text-white px-3 py-1 text-xs rounded hover:bg-neutral-800 transition-colors">
+                        Apply
+                    </button>
+                    
+                    <button id="clear-filters" class="text-neutral-600 hover:text-black px-2 py-1 text-xs">
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-neutral-200 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="text-sm text-neutral-600">
+                    © {{ "now"|date("Y") }} Portfolio. All rights reserved.
+                </div>
+                
+                {% if tags|default([])|length > 0 %}
+                <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
+                    {% for tag in tags|slice(0, 10) %}
+                    <a href="/tag/{{ tag.slug }}" class="text-xs text-neutral-500 hover:text-black border border-neutral-200 rounded px-2 py-1 transition-colors">
+                        #{{ tag.name|e }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </footer>
+
+    <!-- PhotoSwipe lightbox -->
+    <link href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.2/dist/photoswipe.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/photoswipe@5.4.2/dist/photoswipe.min.js"></script>
+    
+    <!-- GSAP -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/ScrollTrigger.min.js"></script>
+    
+    <!-- App JS -->
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-toggle')?.addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+        
+        // Filters toggle
+        document.getElementById('filters-toggle')?.addEventListener('click', function() {
+            const panel = document.getElementById('filters-panel');
+            panel.classList.toggle('hidden');
+        });
+        
+        // Smooth animations
+        gsap.registerPlugin(ScrollTrigger);
+        
+        // Animate elements on scroll
+        gsap.utils.toArray('.album-card, .image-item').forEach(el => {
+            gsap.from(el, {
+                opacity: 0,
+                y: 20,
+                duration: 0.6,
+                scrollTrigger: {
+                    trigger: el,
+                    start: "top 90%",
+                    end: "bottom 10%",
+                    toggleActions: "play none none none"
+                }
+            });
+        });
+        
+        // Header scroll behavior
+        let lastScroll = 0;
+        const header = document.querySelector('header');
+        
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            
+            if (currentScroll > lastScroll && currentScroll > 100) {
+                header.style.transform = 'translateY(-100%)';
+            } else {
+                header.style.transform = 'translateY(0)';
+            }
+            
+            lastScroll = currentScroll;
+        });
+        
+        // Lightbox function
+        function openLightbox(imageId) {
+            const imageItem = document.querySelector(`[data-image-id="${imageId}"]`);
+            if (!imageItem) return;
+            
+            const dataScript = imageItem.querySelector('.image-data');
+            if (!dataScript) return;
+            
+            const imageData = JSON.parse(dataScript.textContent);
+            
+            // Create PhotoSwipe gallery
+            const items = [{
+                src: imageData.src,
+                width: imageData.width,
+                height: imageData.height,
+                alt: imageData.alt,
+                caption: imageData.caption
+            }];
+            
+            const lightbox = new PhotoSwipe({
+                dataSource: items,
+                index: 0,
+                showHideAnimationType: 'fade'
+            });
+            
+            lightbox.init();
+        }
+        
+        {% block scripts %}{% endblock %}
+    </script>
+</body>
+</html>

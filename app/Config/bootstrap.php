@@ -1,0 +1,43 @@
+<?php
+declare(strict_types=1);
+
+use App\Support\Database;
+use Dotenv\Dotenv;
+
+if (!function_exists('envv')) {
+    function envv(string $key, $default = null) {
+        if (array_key_exists($key, $_ENV)) return $_ENV[$key];
+        if (array_key_exists($key, $_SERVER)) return $_SERVER[$key];
+        $v = getenv($key);
+        return $v !== false ? $v : $default;
+    }
+}
+
+$root = dirname(__DIR__, 2);
+
+if (file_exists($root . '/.env')) {
+    Dotenv::createImmutable($root)->safeLoad();
+}
+
+date_default_timezone_set(envv('APP_TIMEZONE', 'UTC'));
+
+// Support both MySQL and SQLite
+$connection = (string)envv('DB_CONNECTION', 'mysql');
+if ($connection === 'sqlite') {
+    $dbPath = (string)envv('DB_DATABASE', dirname(__DIR__, 1) . '/storage/database.sqlite');
+    $db = new Database(database: $dbPath, isSqlite: true);
+} else {
+    $db = new Database(
+        host: (string)envv('DB_HOST', '127.0.0.1'),
+        port: (int)envv('DB_PORT', 3306),
+        database: (string)envv('DB_DATABASE', 'photocms'),
+        username: (string)envv('DB_USERNAME', 'root'),
+        password: (string)envv('DB_PASSWORD', ''),
+        charset: (string)envv('DB_CHARSET', 'utf8mb4'),
+        collation: (string)envv('DB_COLLATION', 'utf8mb4_unicode_ci'),
+    );
+}
+
+return [
+    'db' => $db,
+];
