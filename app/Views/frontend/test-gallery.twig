@@ -1,0 +1,394 @@
+{% extends "frontend/_layout.twig" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Gallery header -->
+    <div class="max-w-4xl mx-auto text-center pb-12">
+        <div class="mb-4">
+            <a href="#" class="text-sm text-neutral-600 hover:text-black transition-colors">
+                {{ album.category.name|e }}
+            </a>
+        </div>
+        
+        <h1 class="text-3xl md:text-4xl font-light text-black mb-6">
+            {{ album.title|e }}
+        </h1>
+        
+        <p class="text-lg text-neutral-600 leading-relaxed mb-6">
+            {{ album.excerpt|e }}
+        </p>
+        
+        <div class="flex flex-wrap justify-center gap-4 text-sm text-neutral-500 mb-6">
+            <div class="flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('F Y') }}</time>
+            </div>
+            
+            <div class="flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                {{ album.location }}
+            </div>
+            
+            <div class="flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                {{ images|length }} {{ images|length == 1 ? 'image' : 'images' }}
+            </div>
+            
+            <div class="flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                {{ album.photographer }}
+            </div>
+        </div>
+        
+        <div class="flex flex-wrap justify-center gap-2">
+            {% for tag in album.tags %}
+            <span class="text-xs text-neutral-500 border border-neutral-200 rounded px-2 py-1">
+                #{{ tag.name|e }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Album body -->
+    <div class="max-w-3xl mx-auto prose prose-neutral mb-12">
+        {{ album.body|raw }}
+    </div>
+    
+    <!-- Equipment used -->
+    <div class="max-w-4xl mx-auto mb-8 p-4 bg-neutral-50 rounded-lg">
+        <h3 class="text-sm font-medium mb-3 text-center">Equipment Used</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-neutral-600">
+            <div>
+                <div class="font-medium mb-1">Cameras</div>
+                <div class="space-y-1">
+                    {% for camera in album.equipment.cameras %}
+                        <div>{{ camera }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <div class="font-medium mb-1">Lenses</div>
+                <div class="space-y-1">
+                    {% for lens in album.equipment.lenses %}
+                        <div>{{ lens }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <div class="font-medium mb-1">Film Stock</div>
+                <div class="space-y-1">
+                    {% for film in album.equipment.film %}
+                        <div>{{ film }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Template selector with icons -->
+    {% if available_templates|length > 0 %}
+    <div class="mb-8">
+        <h3 class="text-sm font-medium text-center mb-4">Scegli Template</h3>
+        <div class="flex flex-wrap justify-center gap-3">
+            {% for template in available_templates %}
+                <a href="/test-gallery?template={{ template.id }}" 
+                   class="flex flex-col items-center p-3 rounded-lg border transition-all hover:shadow-md {% if template.id == current_template_id %}bg-blue-50 border-blue-300 text-blue-800{% else %}bg-white border-neutral-200 hover:border-neutral-300 text-neutral-700{% endif %}"
+                   title="{{ template.name }}">
+                    
+                    {# Template layout icons #}
+                    {% if template.settings.layout == 'grid' %}
+                        {% if template.settings.masonry %}
+                            <svg class="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M3 3h6v6H3V3zm8 0h6v10h-6V3zm-8 8h6v10H3V11zm8 6h6v4h-6v-4z"/>
+                            </svg>
+                        {% else %}
+                            <svg class="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M3 3h6v6H3V3zm8 0h6v6h-6V3zm-8 8h6v6H3v-6zm8 0h6v6h-6v-6z"/>
+                            </svg>
+                        {% endif %}
+                    {% elseif template.settings.layout == 'slideshow' %}
+                        <svg class="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M10 8v8l5-4-5-4zm9-5H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                        </svg>
+                    {% elseif template.settings.layout == 'fullscreen' %}
+                        <svg class="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                        </svg>
+                    {% else %}
+                        <svg class="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M3 3h6v6H3V3zm8 0h6v6h-6V3zm-8 8h6v6H3v-6zm8 0h6v6h-6v-6z"/>
+                        </svg>
+                    {% endif %}
+                    
+                    <div class="text-xs font-medium text-center leading-tight">{{ template.name }}</div>
+                    
+                    {# Columns indicator #}
+                    {% if template.settings.columns.desktop is defined %}
+                        <div class="text-xs text-neutral-400 mt-1 flex items-center gap-1">
+                            <i class="fas fa-desktop" style="width: 8px;"></i>{{ template.settings.columns.desktop }}
+                            <i class="fas fa-tablet-alt ml-1" style="width: 8px;"></i>{{ template.settings.columns.tablet }}  
+                            <i class="fas fa-mobile-alt ml-1" style="width: 8px;"></i>{{ template.settings.columns.mobile }}
+                        </div>
+                    {% else %}
+                        <div class="text-xs text-neutral-400 mt-1">{{ template.settings.columns|default(3) }} col</div>
+                    {% endif %}
+                </a>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-4 text-center">
+            <div class="inline-block bg-white border border-neutral-200 rounded px-3 py-2 text-xs">
+                <strong>Corrente:</strong> {{ template_name }} 
+                <span class="text-neutral-500">
+                    ({{ template_settings.layout|default('grid')|title }}{% if template_settings.masonry %} + Masonry{% endif %})
+                </span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Images gallery -->
+    {% set layout = template_settings.layout|default('grid') %}
+    {% set masonry = template_settings.masonry|default(false) %}
+    
+    {# Handle both old integer format and new responsive object format #}
+    {% if template_settings.columns.desktop is defined %}
+        {% set desktop_cols = template_settings.columns.desktop %}
+        {% set tablet_cols = template_settings.columns.tablet %}
+        {% set mobile_cols = template_settings.columns.mobile %}
+    {% else %}
+        {% set desktop_cols = template_settings.columns|default(3) %}
+        {% set tablet_cols = (desktop_cols > 2) ? 2 : desktop_cols %}
+        {% set mobile_cols = (desktop_cols > 2) ? 1 : desktop_cols %}
+    {% endif %}
+    
+    {% if layout == 'slideshow' %}
+        <div id="images-gallery" class="max-w-4xl mx-auto">
+            <div class="swiper gallery-swiper">
+                <div class="swiper-wrapper">
+                    {% for image in images %}
+                        <div class="swiper-slide">
+                            <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer" 
+                                 data-image-id="{{ image.id }}" 
+                                 onclick="openLightbox('{{ image.id }}')">
+                                <img src="{{ image.url }}" 
+                                     alt="{{ image.alt|default('Test image')|e }}" 
+                                     class="w-full h-full object-cover">
+                                <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+    {% elseif layout == 'fullscreen' %}
+        <div id="images-gallery" class="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {% for image in images %}
+                <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative" 
+                     data-image-id="{{ image.id }}" 
+                     onclick="openLightbox('{{ image.id }}')">
+                    <img src="{{ image.url }}" 
+                         alt="{{ image.alt|e }}" 
+                         class="w-full h-full object-cover">
+                    
+                    <!-- Image overlay with metadata -->
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 flex items-end">
+                        <div class="p-3 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
+                            <div class="text-sm font-medium mb-1">{{ image.caption|e }}</div>
+                            <div class="text-xs text-neutral-300">{{ image.camera }} • {{ image.lens }}</div>
+                            <div class="text-xs text-neutral-300">{{ image.settings }}</div>
+                        </div>
+                    </div>
+                    
+                    <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+                </div>
+            {% endfor %}
+        </div>
+    {% elseif masonry %}
+        <div id="images-gallery" class="masonry-grid" style="column-count: {{ desktop_cols }};">
+            {% for image in images %}
+                <div class="masonry-item">
+                    <div class="image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative" 
+                         data-image-id="{{ image.id }}" 
+                         onclick="openLightbox('{{ image.id }}')">
+                        <img src="{{ image.url }}" 
+                             alt="{{ image.alt|e }}" 
+                             class="w-full h-auto object-cover">
+                        
+                        <!-- Image overlay with metadata -->
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 flex items-end">
+                            <div class="p-3 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
+                                <div class="text-sm font-medium mb-1">{{ image.caption|e }}</div>
+                                <div class="text-xs text-neutral-300">{{ image.camera }} • {{ image.lens }}</div>
+                                <div class="text-xs text-neutral-300">{{ image.settings }}</div>
+                            </div>
+                        </div>
+                        
+                        <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        {# Generate responsive grid classes #}
+        {% set mobile_class = 'grid-cols-' ~ mobile_cols %}
+        {% set tablet_class = 'md:grid-cols-' ~ tablet_cols %}  
+        {% set desktop_class = 'lg:grid-cols-' ~ desktop_cols %}
+        
+        <div id="images-gallery" class="grid {{ mobile_class }} {{ tablet_class }} {{ desktop_class }} gap-4">
+            {% for image in images %}
+                <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative" 
+                     data-image-id="{{ image.id }}" 
+                     onclick="openLightbox('{{ image.id }}')">
+                    <img src="{{ image.url }}" 
+                         alt="{{ image.alt|e }}" 
+                         class="w-full h-full object-cover">
+                    
+                    <!-- Image overlay with metadata -->
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 flex items-end">
+                        <div class="p-3 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
+                            <div class="text-sm font-medium mb-1">{{ image.caption|e }}</div>
+                            <div class="text-xs text-neutral-300">{{ image.camera }} • {{ image.lens }}</div>
+                            <div class="text-xs text-neutral-300">{{ image.settings }}</div>
+                        </div>
+                    </div>
+                    
+                    <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    {% if images|length == 0 %}
+    <div class="text-center py-20">
+        <h2 class="text-2xl font-light text-neutral-600 mb-4">No test images available</h2>
+        <p class="text-neutral-500">Test images will appear here.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Template settings
+const templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
+const layout = templateSettings.layout || 'grid';
+const masonry = templateSettings.masonry || false;
+
+// Initialize layout-specific features
+if (layout === 'slideshow') {
+    // Initialize Swiper if available
+    if (typeof Swiper !== 'undefined') {
+        new Swiper('.gallery-swiper', {
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+            },
+            loop: templateSettings.photoswipe?.loop || true,
+            autoplay: {
+                delay: 5000,
+                disableOnInteraction: false,
+            },
+            effect: 'fade',
+            fadeEffect: {
+                crossFade: true
+            },
+        });
+    }
+}
+
+// Enhanced lightbox with metadata and template settings
+function openLightbox(imageId) {
+    const imageItem = document.querySelector(`[data-image-id="${imageId}"]`);
+    if (!imageItem) return;
+    
+    const dataScript = imageItem.querySelector('.image-data');
+    if (!dataScript) return;
+    
+    const imageData = JSON.parse(dataScript.textContent);
+    
+    // Build caption with metadata
+    let caption = '';
+    if (imageData.caption) {
+        caption += `<div class="mb-2">${imageData.caption}</div>`;
+    }
+    
+    if (imageData.camera || imageData.lens || imageData.settings) {
+        const metadata = [];
+        if (imageData.camera) metadata.push(imageData.camera);
+        if (imageData.lens) metadata.push(imageData.lens);
+        if (imageData.settings) metadata.push(imageData.settings);
+        
+        if (metadata.length > 0) {
+            caption += `<div class="text-xs text-neutral-400 mt-2">${metadata.join(' • ')}</div>`;
+        }
+    }
+    
+    const items = [{
+        src: imageData.url,
+        width: imageData.width || 800,
+        height: imageData.height || 600,
+        alt: imageData.alt,
+        caption: caption
+    }];
+    
+    // Use template-specific PhotoSwipe settings
+    const photoswipeSettings = templateSettings.photoswipe || {};
+    const lightboxOptions = {
+        dataSource: items,
+        index: 0,
+        showHideAnimationType: 'fade',
+        loop: photoswipeSettings.loop !== false,
+        zoom: photoswipeSettings.zoom !== false,
+        counter: photoswipeSettings.counter !== false,
+        arrowKeys: photoswipeSettings.arrowKeys !== false,
+        escKey: photoswipeSettings.escKey !== false,
+        bgOpacity: photoswipeSettings.bgOpacity || 0.8,
+        spacing: photoswipeSettings.spacing || 0.12,
+        allowPanToNext: photoswipeSettings.allowPanToNext || false
+    };
+    
+    if (typeof PhotoSwipe !== 'undefined') {
+        const lightbox = new PhotoSwipe(lightboxOptions);
+        lightbox.init();
+    }
+}
+</script>
+
+{% if masonry %}
+<style>
+/* Masonry responsive adjustments */
+.masonry-grid {
+    column-count: {{ desktop_cols }};
+}
+@media (max-width: 1023px) {
+    .masonry-grid {
+        column-count: {{ tablet_cols }} !important;
+    }
+}
+@media (max-width: 767px) {
+    .masonry-grid {
+        column-count: {{ mobile_cols }} !important;
+    }
+}
+</style>
+{% endif %}
+{% endblock %}

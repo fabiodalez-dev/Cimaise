@@ -50,12 +50,76 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
-          <input class="form-input" type="number" name="sort_order" value="{{ item.sort_order }}">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Template</label>
+          <select class="form-input" name="template_id">
+            <option value="">Seleziona un template...</option>
+            {% for template in templates %}
+              <option value="{{ template.id }}" {% if template.id == item.template_id %}selected{% endif %}>{{ template.name }}</option>
+            {% endfor %}
+          </select>
         </div>
-        <div class="flex items-center gap-2">
-          <input class="h-4 w-4" type="checkbox" name="is_published" id="pub" {% if item.is_published %}checked{% endif %}>
-          <label class="text-sm text-gray-700" for="pub">Pubblicato</label>
+        
+        <!-- Equipment Section -->
+        <div class="border-t pt-4 mt-4">
+          <h3 class="text-sm font-medium text-gray-900 mb-3">Equipment</h3>
+          
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Cameras</label>
+              <select class="form-input" name="cameras[]" id="album-cameras" multiple>
+                {% for camera in cameras %}
+                  <option value="{{ camera.id }}" {% if camera.id in cameraIds %}selected{% endif %}>{{ camera.make }} {{ camera.model }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Lenses</label>
+              <select class="form-input" name="lenses[]" id="album-lenses" multiple>
+                {% for lens in lenses %}
+                  <option value="{{ lens.id }}" {% if lens.id in lensIds %}selected{% endif %}>{{ lens.brand }} {{ lens.model }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Films</label>
+              <select class="form-input" name="films[]" id="album-films" multiple>
+                {% for film in films %}
+                  <option value="{{ film.id }}" {% if film.id in filmIds %}selected{% endif %}>{{ film.brand }} {{ film.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Developers</label>
+              <select class="form-input" name="developers[]" id="album-developers" multiple>
+                {% for developer in developers %}
+                  <option value="{{ developer.id }}" {% if developer.id in developerIds %}selected{% endif %}>{{ developer.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Labs</label>
+              <select class="form-input" name="labs[]" id="album-labs" multiple>
+                {% for lab in labs %}
+                  <option value="{{ lab.id }}" {% if lab.id in labIds %}selected{% endif %}>{{ lab.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="border-t pt-4 mt-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
+            <input class="form-input" type="number" name="sort_order" value="{{ item.sort_order }}">
+          </div>
+          <div class="flex items-center gap-2 mt-3">
+            <input class="h-4 w-4" type="checkbox" name="is_published" id="pub" {% if item.is_published %}checked{% endif %}>
+            <label class="text-sm text-gray-700" for="pub">Pubblicato</label>
+          </div>
         </div>
       </div>
     </div>
@@ -132,6 +196,11 @@
       load: (q, cb) => { fetch('/admin/api/tags?q='+encodeURIComponent(q||''),{headers:{'Accept':'application/json'}}).then(r=>r.json()).then(cb).catch(()=>cb()); }
     });
     new TomSelect('#album-categories',{plugins:['remove_button'],create:false,placeholder:'Seleziona categorie...'});
+    new TomSelect('#album-cameras',{plugins:['remove_button'],create:false,placeholder:'Seleziona cameras...'});
+    new TomSelect('#album-lenses',{plugins:['remove_button'],create:false,placeholder:'Seleziona lenses...'});
+    new TomSelect('#album-films',{plugins:['remove_button'],create:false,placeholder:'Seleziona films...'});
+    new TomSelect('#album-developers',{plugins:['remove_button'],create:false,placeholder:'Seleziona developers...'});
+    new TomSelect('#album-labs',{plugins:['remove_button'],create:false,placeholder:'Seleziona labs...'});
 
     // Sortable grid
     const grid = document.getElementById('images-grid');
@@ -231,7 +300,120 @@
     });
   </script>
   <style>
-    .ts-dropdown { z-index: 9999; background-color: #fff; }
-    .ts-wrapper { z-index: 50; }
+    /* TomSelect wrapper - no z-index, natural stacking */
+    .ts-wrapper {
+      position: relative !important;
+      background-color: #ffffff !important;
+      border-radius: 0.375rem !important;
+      width: 100% !important;
+      display: block !important;
+    }
+    
+    .ts-wrapper .ts-control {
+      background-color: #ffffff !important;
+      border: 1px solid #d1d5db !important;
+      position: relative !important;
+      width: 100% !important;
+      min-height: 38px !important;
+    }
+    
+    /* Only the dropdown should have high z-index */
+    .ts-dropdown { 
+      z-index: 99999 !important; 
+      background-color: #ffffff !important; 
+      border: 1px solid #d1d5db !important;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+      position: absolute !important;
+      top: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      border-radius: 0.375rem !important;
+      margin-top: 1px !important;
+    }
+    
+    .ts-dropdown-content {
+      z-index: 99999 !important;
+      background-color: #ffffff !important;
+      max-height: 200px !important;
+      overflow-y: auto !important;
+      width: 100% !important;
+    }
+    
+    .ts-dropdown .option {
+      background-color: #ffffff !important;
+      color: #374151 !important;
+      padding: 8px 12px !important;
+      cursor: pointer !important;
+      border: none !important;
+      width: 100% !important;
+      display: block !important;
+      box-sizing: border-box !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    
+    .ts-dropdown .option:hover,
+    .ts-dropdown .option.active {
+      background-color: #f3f4f6 !important;
+      color: #111827 !important;
+    }
+    
+    .ts-dropdown .option.selected {
+      background-color: #3b82f6 !important;
+      color: #ffffff !important;
+    }
+    
+    /* Equipment section specific - no z-index for wrappers */
+    #album-cameras + .ts-wrapper,
+    #album-lenses + .ts-wrapper,
+    #album-films + .ts-wrapper, 
+    #album-developers + .ts-wrapper,
+    #album-labs + .ts-wrapper {
+      background-color: #ffffff !important;
+      width: 100% !important;
+    }
+    
+    /* Only dropdowns get high z-index */
+    #album-cameras + .ts-wrapper .ts-dropdown,
+    #album-lenses + .ts-wrapper .ts-dropdown,
+    #album-films + .ts-wrapper .ts-dropdown,
+    #album-developers + .ts-wrapper .ts-dropdown,
+    #album-labs + .ts-wrapper .ts-dropdown {
+      z-index: 99999 !important;
+      position: absolute !important;
+      width: 100% !important;
+    }
+    
+    /* Equipment section normal stacking */
+    .border-t.pt-4.mt-4 {
+      position: relative !important;
+      background-color: #ffffff !important;
+    }
+    
+    /* Full width for all TomSelect elements */
+    .ts-wrapper,
+    .ts-wrapper .ts-control,
+    .ts-wrapper input {
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    
+    /* Additional ID-based targeting for full width */
+    #album-cameras-ts-dropdown,
+    #album-lenses-ts-dropdown,
+    #album-films-ts-dropdown,
+    #album-developers-ts-dropdown,
+    #album-labs-ts-dropdown {
+      z-index: 99999 !important;
+      background-color: #ffffff !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 0.375rem !important;
+      position: absolute !important;
+      width: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+    }
   </style>
 {% endblock %}

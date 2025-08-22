@@ -58,11 +58,61 @@
     {% endif %}
     
     <!-- Images gallery -->
-    <div id="images-gallery" class="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
-        {% for image in images %}
-            {% include "frontend/_image_item.twig" %}
-        {% endfor %}
-    </div>
+    {% set layout = template_settings.layout|default('grid') %}
+    {% set masonry = template_settings.masonry|default(false) %}
+    
+    {# Handle both old integer format and new responsive object format #}
+    {% if template_settings.columns.desktop is defined %}
+        {% set desktop_cols = template_settings.columns.desktop %}
+        {% set tablet_cols = template_settings.columns.tablet %}
+        {% set mobile_cols = template_settings.columns.mobile %}
+    {% else %}
+        {% set desktop_cols = template_settings.columns|default(3) %}
+        {% set tablet_cols = (desktop_cols > 2) ? 2 : desktop_cols %}
+        {% set mobile_cols = (desktop_cols > 2) ? 1 : desktop_cols %}
+    {% endif %}
+    
+    {% if layout == 'slideshow' %}
+        <div id="images-gallery" class="max-w-4xl mx-auto">
+            <div class="swiper gallery-swiper">
+                <div class="swiper-wrapper">
+                    {% for image in images %}
+                        <div class="swiper-slide">
+                            {% include "frontend/_image_item.twig" %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+    {% elseif layout == 'fullscreen' %}
+        <div id="images-gallery" class="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {% for image in images %}
+                {% include "frontend/_image_item.twig" %}
+            {% endfor %}
+        </div>
+    {% elseif masonry %}
+        <div id="images-gallery" class="masonry-grid" style="column-count: {{ desktop_cols }};">
+            {% for image in images %}
+                <div class="masonry-item">
+                    {% include "frontend/_image_item.twig" %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        {# Generate responsive grid classes #}
+        {% set mobile_class = 'grid-cols-' ~ mobile_cols %}
+        {% set tablet_class = 'md:grid-cols-' ~ tablet_cols %}  
+        {% set desktop_class = 'lg:grid-cols-' ~ desktop_cols %}
+        
+        <div id="images-gallery" class="grid {{ mobile_class }} {{ tablet_class }} {{ desktop_class }} gap-4">
+            {% for image in images %}
+                {% include "frontend/_image_item.twig" %}
+            {% endfor %}
+        </div>
+    {% endif %}
     
     {% if images|length == 0 %}
     <div class="text-center py-20">
@@ -128,6 +178,39 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+// Template settings
+const templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
+const layout = templateSettings.layout || 'grid';
+const masonry = templateSettings.masonry || false;
+
+// Initialize layout-specific features
+if (layout === 'slideshow') {
+    // Initialize Swiper if available
+    if (typeof Swiper !== 'undefined') {
+        new Swiper('.gallery-swiper', {
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+            },
+            loop: templateSettings.photoswipe?.loop || true,
+            autoplay: {
+                delay: 5000,
+                disableOnInteraction: false,
+            },
+            effect: 'fade',
+            fadeEffect: {
+                crossFade: true
+            },
+        });
+    }
+}
+// Note: Masonry is handled with pure CSS columns now
+
 // Image filtering
 document.getElementById('apply-image-filters')?.addEventListener('click', async function() {
     const albumId = {{ album.id }};
@@ -145,20 +228,24 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
         const gallery = document.getElementById('images-gallery');
         gallery.innerHTML = data.itemsHtml;
         
+        // Masonry is handled with CSS, no need to reinitialize
+        
         // Animate filtered results
-        gsap.from('.image-item', {
-            opacity: 0,
-            y: 20,
-            duration: 0.6,
-            stagger: 0.03
-        });
+        if (typeof gsap !== 'undefined') {
+            gsap.from('.image-item', {
+                opacity: 0,
+                y: 20,
+                duration: 0.6,
+                stagger: 0.03
+            });
+        }
         
     } catch (error) {
         console.error('Failed to filter images:', error);
     }
 });
 
-// Enhanced lightbox with metadata
+// Enhanced lightbox with metadata and template settings
 function openLightbox(imageId) {
     const imageItem = document.querySelector(`[data-image-id="${imageId}"]`);
     if (!imageItem) return;
@@ -196,12 +283,45 @@ function openLightbox(imageId) {
         caption: caption
     }];
     
-    const lightbox = new PhotoSwipe({
+    // Use template-specific PhotoSwipe settings
+    const photoswipeSettings = templateSettings.photoswipe || {};
+    const lightboxOptions = {
         dataSource: items,
         index: 0,
-        showHideAnimationType: 'fade'
-    });
+        showHideAnimationType: 'fade',
+        loop: photoswipeSettings.loop !== false,
+        zoom: photoswipeSettings.zoom !== false,
+        counter: photoswipeSettings.counter !== false,
+        arrowKeys: photoswipeSettings.arrowKeys !== false,
+        escKey: photoswipeSettings.escKey !== false,
+        bgOpacity: photoswipeSettings.bgOpacity || 0.8,
+        spacing: photoswipeSettings.spacing || 0.12,
+        allowPanToNext: photoswipeSettings.allowPanToNext || false
+    };
     
-    lightbox.init();
+    if (typeof PhotoSwipe !== 'undefined') {
+        const lightbox = new PhotoSwipe(lightboxOptions);
+        lightbox.init();
+    }
 }
+</script>
+
+{% if masonry %}
+<style>
+/* Masonry responsive adjustments */
+.masonry-grid {
+    column-count: {{ desktop_cols }};
+}
+@media (max-width: 1023px) {
+    .masonry-grid {
+        column-count: {{ tablet_cols }} !important;
+    }
+}
+@media (max-width: 767px) {
+    .masonry-grid {
+        column-count: {{ mobile_cols }} !important;
+    }
+}
+</style>
+{% endif %}
 {% endblock %}
