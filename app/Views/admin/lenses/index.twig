@@ -1,0 +1,96 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Lenses — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Lenses</h1>
+      <p class="text-gray-600 mt-1">Manage your lens collection and optics</p>
+    </div>
+    <a href="/admin/lenses/create" class="btn-primary">
+      <i class="fas fa-plus mr-2"></i>New Lens
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="overflow-x-auto">
+      <table class="min-w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Focal Length</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aperture</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for l in items %}
+          <tr class="table-row">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm font-medium text-gray-900">{{ l.brand }}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-900">{{ l.model }}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                {% if l.focal_min %}{{ l.focal_min }}{% endif %}{% if l.focal_max and l.focal_max != l.focal_min %}–{{ l.focal_max }}{% endif %}mm
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="text-sm text-gray-600">
+                {% if l.aperture_min %}f/{{ l.aperture_min }}{% else %}—{% endif %}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              {% if l.focal_min and l.focal_max and l.focal_max != l.focal_min %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                  Zoom
+                </span>
+              {% elseif l.focal_min and l.focal_min <= 35 %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                  Wide
+                </span>
+              {% elseif l.focal_min and l.focal_min >= 85 %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                  Telephoto
+                </span>
+              {% else %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                  Standard
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <div class="flex items-center justify-end space-x-3">
+                <a href="/admin/lenses/{{ l.id }}/edit" class="text-gray-600 hover:text-black transition-colors">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <form method="post" action="/admin/lenses/{{ l.id }}/delete" class="inline" onsubmit="return confirm('Delete this lens?')">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if items|length == 0 %}
+      <div class="text-center py-12">
+        <i class="fas fa-camera-retro text-4xl text-gray-300 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No lenses yet</h3>
+        <p class="text-gray-600 mb-6">Add lenses to track your photography optics.</p>
+        <a href="/admin/lenses/create" class="btn-primary">
+          <i class="fas fa-plus mr-2"></i>Add Lens
+        </a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
+

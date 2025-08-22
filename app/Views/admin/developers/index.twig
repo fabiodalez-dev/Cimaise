@@ -1,0 +1,90 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Developers — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Developers</h1>
+      <p class="text-gray-600 mt-1">Manage film developers and their processes</p>
+    </div>
+    <a href="/admin/developers/create" class="btn-primary">
+      <i class="fas fa-plus mr-2"></i>New Developer
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="overflow-x-auto">
+      <table class="min-w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Process</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for d in items %}
+          <tr class="table-row">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm font-medium text-gray-900">{{ d.name }}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              {% if d.process == 'C-41' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                  C-41
+                </span>
+              {% elseif d.process == 'E-6' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                  E-6
+                </span>
+              {% elseif d.process == 'D-76' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                  D-76
+                </span>
+              {% elseif d.process == 'Rodinal' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                  Rodinal
+                </span>
+              {% else %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  {{ d.process }}
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4">
+              <div class="text-sm text-gray-600 max-w-xs truncate">
+                {{ d.notes|default('—') }}
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <div class="flex items-center justify-end space-x-3">
+                <a href="/admin/developers/{{ d.id }}/edit" class="text-gray-600 hover:text-black transition-colors">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <form method="post" action="/admin/developers/{{ d.id }}/delete" class="inline" onsubmit="return confirm('Delete this developer?')">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if items|length == 0 %}
+      <div class="text-center py-12">
+        <i class="fas fa-flask text-4xl text-gray-300 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No developers yet</h3>
+        <p class="text-gray-600 mb-6">Add film developers to track your processing methods.</p>
+        <a href="/admin/developers/create" class="btn-primary">
+          <i class="fas fa-plus mr-2"></i>Add Developer
+        </a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
+

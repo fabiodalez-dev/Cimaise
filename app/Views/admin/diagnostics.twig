@@ -1,0 +1,120 @@
+{% extends "admin/_layout.twig" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-2xl font-semibold text-gray-900">System Diagnostics</h1>
+        <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+            Refresh
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% for key, diagnostic in diagnostics %}
+        <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">
+                        {{ diagnostic.name }}
+                    </h3>
+                    
+                    <div class="flex items-center mb-3">
+                        {% if diagnostic.status == 'ok' %}
+                        <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-green-700 font-medium">{{ diagnostic.value }}</span>
+                        {% elseif diagnostic.status == 'warning' %}
+                        <svg class="w-5 h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-yellow-700 font-medium">{{ diagnostic.value }}</span>
+                        {% elseif diagnostic.status == 'error' %}
+                        <svg class="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-red-700 font-medium">{{ diagnostic.value }}</span>
+                        {% else %}
+                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-blue-700 font-medium">{{ diagnostic.value }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <p class="text-gray-600 text-sm mb-4">
+                        {{ diagnostic.message }}
+                    </p>
+                    
+                    {% if diagnostic.details %}
+                    <div class="bg-gray-50 rounded p-3">
+                        <h4 class="text-sm font-medium text-gray-800 mb-2">Details</h4>
+                        <dl class="text-sm space-y-1">
+                            {% for key, value in diagnostic.details %}
+                            <div class="flex justify-between">
+                                <dt class="text-gray-600">{{ key }}:</dt>
+                                <dd class="text-gray-900 font-mono text-xs">{{ value }}</dd>
+                            </div>
+                            {% endfor %}
+                        </dl>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 class="text-lg font-medium text-blue-900 mb-2">System Requirements</h3>
+        <p class="text-blue-800 text-sm mb-4">
+            For optimal performance, ensure your system meets these requirements:
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <h4 class="font-medium text-blue-900 mb-2">Minimum Requirements</h4>
+                <ul class="text-blue-800 space-y-1">
+                    <li>• PHP 8.2+</li>
+                    <li>• MySQL 8.0+ or MariaDB 10.6+</li>
+                    <li>• 128MB memory limit</li>
+                    <li>• Extensions: PDO, pdo_mysql, mbstring, json, fileinfo</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-medium text-blue-900 mb-2">Recommended</h4>
+                <ul class="text-blue-800 space-y-1">
+                    <li>• 256MB+ memory limit</li>
+                    <li>• GD or ImageMagick extension</li>
+                    <li>• EXIF extension for metadata</li>
+                    <li>• Writable storage directories</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-2">CLI Commands</h3>
+        <p class="text-gray-600 text-sm mb-4">
+            Useful commands for maintenance and troubleshooting:
+        </p>
+        
+        <div class="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm space-y-2 overflow-x-auto">
+            <div># Generate image variants</div>
+            <div>php bin/console images:generate --missing</div>
+            <div></div>
+            <div># Build sitemap</div>
+            <div>php bin/console sitemap:build --base-url https://yourdomain.com</div>
+            <div></div>
+            <div># Run diagnostics</div>
+            <div>php bin/console diagnostics</div>
+            <div></div>
+            <div># Create admin user</div>
+            <div>php bin/console user:create admin@example.com</div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

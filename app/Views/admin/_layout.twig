@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Admin — photoCMS{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    .sidebar-link { 
+      display: flex; 
+      align-items: center; 
+      padding: 12px 16px; 
+      color: #374151; 
+      text-decoration: none;
+      transition: all 0.2s;
+      margin-bottom: 4px;
+      border-radius: 6px;
+    }
+    .sidebar-link:hover { 
+      background-color: #f3f4f6; 
+      color: #000; 
+    }
+    .sidebar-link.active { 
+      background-color: #000; 
+      color: #fff; 
+    }
+    .sidebar-link i { 
+      width: 20px; 
+      margin-right: 12px; 
+      text-align: center; 
+    }
+    .btn-primary { 
+      background-color: #000; 
+      color: #fff; 
+      padding: 8px 24px; 
+      border-radius: 6px; 
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: background-color 0.2s;
+    }
+    .btn-primary:hover { 
+      background-color: #374151; 
+    }
+    .btn-secondary { 
+      background-color: #e5e7eb; 
+      color: #374151; 
+      padding: 8px 24px; 
+      border-radius: 6px; 
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: background-color 0.2s;
+    }
+    .btn-secondary:hover { 
+      background-color: #d1d5db; 
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
+    .card { 
+      background-color: #fff; 
+      border-radius: 8px; 
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); 
+      border: 1px solid #e5e7eb; 
+    }
+    .form-input { 
+      width: 100%; 
+      padding: 12px; 
+      border: 1px solid #d1d5db; 
+      border-radius: 6px; 
+      transition: all 0.2s;
+    }
+    .form-input:focus { 
+      outline: none; 
+      border-color: #000; 
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1); 
+    }
+    .table-row:hover { 
+      background-color: #f9fafb; 
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <!-- Header -->
+  <nav class="bg-white border-b border-gray-200 fixed w-full z-30 top-0">
+    <div class="px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <i class="fas fa-camera text-2xl text-black mr-3"></i>
+          <h1 class="text-xl font-semibold text-black">photoCMS</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span class="text-sm text-gray-600">Admin Panel</span>
+          <a href="/admin/logout" class="text-gray-600 hover:text-black transition-colors">
+            <i class="fas fa-sign-out-alt"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="flex h-screen pt-16">
+    <!-- Sidebar -->
+    <div class="w-64 bg-white border-r border-gray-200 fixed h-full overflow-y-auto">
+      <div class="p-6">
+        <!-- Main Navigation -->
+        <div class="mb-8">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">NAVIGATION</p>
+          <div class="space-y-1">
+            <a href="/admin" class="sidebar-link">
+              <i class="fas fa-tachometer-alt"></i>Dashboard
+            </a>
+            <a href="/admin/albums" class="sidebar-link">
+              <i class="fas fa-images"></i>Albums
+            </a>
+            <a href="/admin/categories" class="sidebar-link">
+              <i class="fas fa-folder"></i>Categories
+            </a>
+            <a href="/admin/tags" class="sidebar-link">
+              <i class="fas fa-tags"></i>Tags
+            </a>
+          </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="mb-8">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">METADATA</p>
+          <div class="space-y-1">
+            <a href="/admin/cameras" class="sidebar-link">
+              <i class="fas fa-camera"></i>Cameras
+            </a>
+            <a href="/admin/lenses" class="sidebar-link">
+              <i class="fas fa-circle-dot"></i>Lenses
+            </a>
+            <a href="/admin/films" class="sidebar-link">
+              <i class="fas fa-film"></i>Films
+            </a>
+            <a href="/admin/developers" class="sidebar-link">
+              <i class="fas fa-flask"></i>Developers
+            </a>
+            <a href="/admin/labs" class="sidebar-link">
+              <i class="fas fa-microscope"></i>Labs
+            </a>
+          </div>
+        </div>
+
+        <!-- System -->
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">SYSTEM</p>
+          <div class="space-y-1">
+            <a href="/admin/settings" class="sidebar-link">
+              <i class="fas fa-cog"></i>Settings
+            </a>
+            <a href="/admin/commands" class="sidebar-link">
+              <i class="fas fa-terminal"></i>Commands
+            </a>
+            <a href="/admin/diagnostics" class="sidebar-link">
+              <i class="fas fa-stethoscope"></i>Diagnostics
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 ml-64">
+      <main class="p-8">
+        {% if flash.success %}
+          <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+            {{ flash.success }}
+          </div>
+        {% endif %}
+        
+        {% if flash.error %}
+          <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+            {{ flash.error }}
+          </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast" class="fixed top-20 right-6 z-50 hidden">
+    <div id="toast-inner" class="px-4 py-3 rounded shadow text-sm"></div>
+  </div>
+
+  <script>
+    // Highlight active sidebar link
+    document.addEventListener('DOMContentLoaded', function() {
+      const currentPath = window.location.pathname;
+      const links = document.querySelectorAll('.sidebar-link');
+      
+      links.forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+          link.classList.add('active');
+        }
+      });
+    });
+
+    // Simple toast helper
+    window.showToast = function(msg, type){
+      const box = document.getElementById('toast');
+      const inner = document.getElementById('toast-inner');
+      inner.textContent = msg;
+      inner.className = 'px-4 py-3 rounded shadow text-sm ' + (type==='error' ? 'bg-red-600 text-white' : 'bg-black text-white');
+      box.classList.remove('hidden');
+      setTimeout(()=>{ box.classList.add('hidden'); }, 2000);
+    }
+  </script>
+</body>
+</html>

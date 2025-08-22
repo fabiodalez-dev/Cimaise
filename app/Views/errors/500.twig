@@ -1,0 +1,13 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Errore — 500{% endblock %}
+{% block content %}
+  <div class="text-center py-5">
+    <h1 class="display-6">Errore interno</h1>
+    <p class="lead">Si è verificato un problema. Riprova più tardi.</p>
+    {% if message %}
+      <pre class="text-start bg-light p-3 border rounded small">{{ message }}</pre>
+    {% endif %}
+    <a class="btn btn-dark" href="/admin">Torna alla dashboard</a>
+  </div>
+{% endblock %}
+

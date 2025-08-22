@@ -1,0 +1,53 @@
+{% extends "frontend/_layout.twig" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Category header -->
+    <div class="text-center py-12">
+        <h1 class="text-3xl md:text-4xl font-light text-black mb-6">
+            {{ category.name|e }}
+        </h1>
+        <p class="text-lg text-neutral-600">
+            {{ albums|length }} {{ albums|length == 1 ? 'album' : 'albums' }} in this category
+        </p>
+    </div>
+
+    <!-- Albums grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for album in albums %}
+            {% include "frontend/_album_card.twig" %}
+        {% endfor %}
+    </div>
+    
+    {% if albums|length == 0 %}
+    <div class="text-center py-20">
+        <h2 class="text-2xl font-light text-neutral-600 mb-4">No albums in this category yet</h2>
+        <p class="text-neutral-500">
+            <a href="/" class="hover:text-black transition-colors">Browse all albums</a>
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Other categories -->
+{% if categories|length > 1 %}
+<section class="border-t border-neutral-200 mt-16 pt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-light text-center mb-12">Other Categories</h2>
+        
+        <div class="flex flex-wrap justify-center gap-4">
+            {% for cat in categories %}
+                {% if cat.slug != category.slug %}
+                <a href="/category/{{ cat.slug }}" 
+                   class="text-sm text-neutral-600 hover:text-black border border-neutral-200 rounded px-4 py-2 transition-colors">
+                    {{ cat.name|e }}
+                </a>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

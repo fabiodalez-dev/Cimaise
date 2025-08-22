@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login — photoCMS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+  <div class="max-w-md w-full space-y-8">
+    <div class="text-center">
+      <i class="fas fa-camera text-4xl text-black mb-4"></i>
+      <h2 class="text-3xl font-bold text-gray-900">photoCMS</h2>
+      <p class="mt-2 text-sm text-gray-600">Admin Panel</p>
+    </div>
+
+    {% if error %}
+      <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post" action="/admin/login" class="mt-8 space-y-6">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      
+      <div class="space-y-4">
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-envelope text-gray-400"></i>
+            </div>
+            <input 
+              id="email" 
+              name="email" 
+              type="email" 
+              required 
+              autofocus
+              class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              placeholder="admin@photocms.local"
+            >
+          </div>
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-lock text-gray-400"></i>
+            </div>
+            <input 
+              id="password" 
+              name="password" 
+              type="password" 
+              required
+              class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              placeholder="••••••••"
+            >
+          </div>
+        </div>
+      </div>
+
+      <button 
+        type="submit"
+        class="w-full bg-black hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+      >
+        <i class="fas fa-sign-in-alt mr-2"></i>
+        Login
+      </button>
+    </form>
+
+    <div class="text-center text-xs text-gray-500 mt-8">
+      photoCMS Admin Panel
+    </div>
+  </div>
+</body>
+</html>

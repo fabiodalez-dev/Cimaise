@@ -1,0 +1,157 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Settings — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
+      <p class="text-gray-600 mt-1">Configure your photoCMS installation</p>
+    </div>
+  </div>
+
+  <form method="post" action="/admin/settings" class="space-y-8">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Image Formats -->
+      <div class="card">
+        <div class="p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-image mr-3 text-gray-600"></i>
+            Image Formats
+          </h3>
+          
+          <div class="space-y-4 mb-6">
+            <label class="flex items-center">
+              <input type="checkbox" name="fmt_avif" id="fmt_avif" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['image.formats'].avif %}checked{% endif %}>
+              <span class="ml-3 text-sm text-gray-700">
+                <strong>AVIF</strong> - Modern format with excellent compression
+              </span>
+            </label>
+            
+            <label class="flex items-center">
+              <input type="checkbox" name="fmt_webp" id="fmt_webp" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['image.formats'].webp %}checked{% endif %}>
+              <span class="ml-3 text-sm text-gray-700">
+                <strong>WebP</strong> - Good compression with wide support
+              </span>
+            </label>
+            
+            <label class="flex items-center">
+              <input type="checkbox" name="fmt_jpg" id="fmt_jpg" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['image.formats'].jpg %}checked{% endif %}>
+              <span class="ml-3 text-sm text-gray-700">
+                <strong>JPEG</strong> - Universal compatibility
+              </span>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">AVIF Quality</label>
+              <input type="number" name="q_avif" min="1" max="100" value="{{ settings['image.quality'].avif }}" class="form-input">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">WebP Quality</label>
+              <input type="number" name="q_webp" min="1" max="100" value="{{ settings['image.quality'].webp }}" class="form-input">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">JPEG Quality</label>
+              <input type="number" name="q_jpg" min="1" max="100" value="{{ settings['image.quality'].jpg }}" class="form-input">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Breakpoints & Preview -->
+      <div class="card">
+        <div class="p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-desktop mr-3 text-gray-600"></i>
+            Breakpoints & Preview
+          </h3>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Preview Width (px)</label>
+              <input type="number" name="preview_w" value="{{ settings['image.preview'].width }}" class="form-input">
+              <p class="text-xs text-gray-500 mt-1">Width for image previews in admin</p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Responsive Breakpoints</label>
+              <textarea name="breakpoints" rows="6" class="form-input font-mono text-sm">{{ settings['image.breakpoints']|json_encode(constant('JSON_PRETTY_PRINT')) }}</textarea>
+              <p class="text-xs text-gray-500 mt-1">JSON format: {"xs":480,"sm":768,"md":1024}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Site Settings -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-globe mr-3 text-gray-600"></i>
+          Site Configuration
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Site Title</label>
+            <input type="text" name="site_title" value="{{ settings['site.title'] ?? 'photoCMS' }}" class="form-input">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Site Description</label>
+            <input type="text" name="site_description" value="{{ settings['site.description'] ?? 'Professional Photography Portfolio' }}" class="form-input">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Copyright Notice</label>
+            <input type="text" name="site_copyright" value="{{ settings['site.copyright'] ?? '© 2024 Photography Portfolio' }}" class="form-input">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+            <input type="email" name="site_email" value="{{ settings['site.email'] ?? '' }}" class="form-input">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Settings -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-tachometer-alt mr-3 text-gray-600"></i>
+          Performance
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Items per Page</label>
+            <input type="number" name="pagination_limit" value="{{ settings['pagination.limit'] ?? 12 }}" class="form-input" min="1" max="100">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Cache TTL (hours)</label>
+            <input type="number" name="cache_ttl" value="{{ settings['cache.ttl'] ?? 24 }}" class="form-input" min="1" max="168">
+          </div>
+          
+          <div>
+            <label class="flex items-center pt-8">
+              <input type="checkbox" name="enable_compression" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['performance.compression'] %}checked{% endif %}>
+              <span class="ml-3 text-sm text-gray-700">Enable Gzip Compression</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save Button -->
+    <div class="flex justify-end">
+      <button type="submit" class="btn-primary">
+        <i class="fas fa-save mr-2"></i>
+        Save Settings
+      </button>
+    </div>
+  </form>
+{% endblock %}
