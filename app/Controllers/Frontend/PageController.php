@@ -72,9 +72,11 @@ class PageController
         $pdo = $this->db->pdo();
         
         $stmt = $pdo->prepare('
-            SELECT a.*, c.name as category_name, c.slug as category_slug
+            SELECT a.*, c.name as category_name, c.slug as category_slug,
+                   t.name as template_name, t.slug as template_slug, t.settings as template_settings, t.libs as template_libs
             FROM albums a 
             JOIN categories c ON c.id = a.category_id 
+            LEFT JOIN templates t ON t.id = a.template_id
             WHERE a.slug = :slug AND a.is_published = 1
         ');
         $stmt->execute([':slug' => $slug]);
@@ -126,10 +128,22 @@ class PageController
             $related = $this->enrichAlbum($related);
         }
         
+        // Process template settings
+        $templateSettings = null;
+        $templateLibs = [];
+        if ($album['template_settings']) {
+            $templateSettings = json_decode($album['template_settings'], true) ?: null;
+        }
+        if ($album['template_libs']) {
+            $templateLibs = json_decode($album['template_libs'], true) ?: [];
+        }
+        
         return $this->view->render($response, 'frontend/album.twig', [
             'album' => $album,
             'images' => $images,
             'related_albums' => $relatedAlbums,
+            'template_settings' => $templateSettings,
+            'template_libs' => $templateLibs,
             'page_title' => $album['title'] . ' - Portfolio',
             'meta_description' => $album['excerpt'] ?: 'Photography album: ' . $album['title'],
             'meta_image' => $album['cover']['variants'][0]['path'] ?? null

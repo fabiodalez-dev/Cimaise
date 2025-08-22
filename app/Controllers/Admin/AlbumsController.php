@@ -63,9 +63,31 @@ class AlbumsController
         $pdo = $this->db->pdo();
         $cats = $pdo->query('SELECT id, name FROM categories ORDER BY sort_order, name')->fetchAll();
         $tags = $pdo->query('SELECT id, name FROM tags ORDER BY name')->fetchAll();
+        
+        // Load templates if table exists
+        $templates = [];
+        try {
+            $templates = $pdo->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
+        } catch (\Throwable $e) {
+            // Templates table doesn't exist yet, continue without templates
+        }
+        
+        // Load equipment data
+        $cameras = $pdo->query('SELECT id, make, model FROM cameras ORDER BY make, model')->fetchAll();
+        $lenses = $pdo->query('SELECT id, brand, model FROM lenses ORDER BY brand, model')->fetchAll();
+        $films = $pdo->query('SELECT id, brand, name FROM films ORDER BY brand, name')->fetchAll();
+        $developers = $pdo->query('SELECT id, name FROM developers ORDER BY name')->fetchAll();
+        $labs = $pdo->query('SELECT id, name FROM labs ORDER BY name')->fetchAll();
+        
         return $this->view->render($response, 'admin/albums/create.twig', [
             'categories' => $cats,
             'tags' => $tags,
+            'templates' => $templates,
+            'cameras' => $cameras,
+            'lenses' => $lenses,
+            'films' => $films,
+            'developers' => $developers,
+            'labs' => $labs,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -82,7 +104,14 @@ class AlbumsController
         $show_date = isset($d['show_date']) ? 1 : 0;
         $is_published = isset($d['is_published']) ? 1 : 0;
         $sort_order = (int)($d['sort_order'] ?? 0);
+        $template_id = (int)($d['template_id'] ?? 0) ?: null;
         $tagIds = array_map('intval', (array)($d['tags'] ?? []));
+        $cameraIds = array_map('intval', (array)($d['cameras'] ?? []));
+        $lensIds = array_map('intval', (array)($d['lenses'] ?? []));
+        $filmIds = array_map('intval', (array)($d['films'] ?? []));
+        $developerIds = array_map('intval', (array)($d['developers'] ?? []));
+        $labIds = array_map('intval', (array)($d['labs'] ?? []));
+        
         if ($title === '' || $category_id <= 0) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Titolo e categoria sono obbligatori'];
             return $response->withHeader('Location', '/admin/albums/create')->withStatus(302);
@@ -90,9 +119,16 @@ class AlbumsController
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
         $published_at = $is_published ? date('Y-m-d H:i:s') : null;
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, shoot_date, show_date, is_published, published_at, sort_order) VALUES(:t,:s,:c,:e,:sd,:sh,:p,:pa,:o)');
+        // Try with template_id first, fallback without it if column doesn't exist
         try {
+            $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, shoot_date, show_date, is_published, published_at, sort_order, template_id) VALUES(:t,:s,:c,:e,:sd,:sh,:p,:pa,:o,:ti)');
+            $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id]);
+        } catch (\Throwable $e) {
+            // Fallback for old DB schema without template_id column
+            $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, shoot_date, show_date, is_published, published_at, sort_order) VALUES(:t,:s,:c,:e,:sd,:sh,:p,:pa,:o)');
             $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order]);
+        }
+        try {
             $albumId = (int)$pdo->lastInsertId();
             // sync categories (pivot)
             if ($category_id > 0 || !empty($categoryIds)) {
@@ -110,6 +146,46 @@ class AlbumsController
                 foreach (array_unique($tagIds) as $tid) {
                     $tagStmt->execute([':a'=>$albumId, ':t'=>$tid]);
                 }
+            }
+            
+            // Store equipment associations
+            try {
+                if ($cameraIds) {
+                    $cameraStmt = $pdo->prepare('INSERT IGNORE INTO album_camera(album_id, camera_id) VALUES (:a, :c)');
+                    foreach (array_unique($cameraIds) as $cid) {
+                        $cameraStmt->execute([':a'=>$albumId, ':c'=>$cid]);
+                    }
+                }
+                
+                if ($lensIds) {
+                    $lensStmt = $pdo->prepare('INSERT IGNORE INTO album_lens(album_id, lens_id) VALUES (:a, :l)');
+                    foreach (array_unique($lensIds) as $lid) {
+                        $lensStmt->execute([':a'=>$albumId, ':l'=>$lid]);
+                    }
+                }
+                
+                if ($filmIds) {
+                    $filmStmt = $pdo->prepare('INSERT IGNORE INTO album_film(album_id, film_id) VALUES (:a, :f)');
+                    foreach (array_unique($filmIds) as $fid) {
+                        $filmStmt->execute([':a'=>$albumId, ':f'=>$fid]);
+                    }
+                }
+                
+                if ($developerIds) {
+                    $developerStmt = $pdo->prepare('INSERT IGNORE INTO album_developer(album_id, developer_id) VALUES (:a, :d)');
+                    foreach (array_unique($developerIds) as $did) {
+                        $developerStmt->execute([':a'=>$albumId, ':d'=>$did]);
+                    }
+                }
+                
+                if ($labIds) {
+                    $labStmt = $pdo->prepare('INSERT IGNORE INTO album_lab(album_id, lab_id) VALUES (:a, :l)');
+                    foreach (array_unique($labIds) as $lid) {
+                        $labStmt->execute([':a'=>$albumId, ':l'=>$lid]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Equipment tables might not exist yet, continue without error
             }
             // If client expects JSON, return album id for AJAX flows (e.g., upload on create)
             $accept = $request->getHeaderLine('Accept');
@@ -144,12 +220,60 @@ class AlbumsController
         }
         $cats = $pdo->query('SELECT id, name FROM categories ORDER BY sort_order, name')->fetchAll();
         $tags = $pdo->query('SELECT id, name FROM tags ORDER BY name')->fetchAll();
+        
+        // Load templates if table exists
+        $templates = [];
+        try {
+            $templates = $pdo->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
+        } catch (\Throwable $e) {
+            // Templates table doesn't exist yet, continue without templates
+        }
+        
+        // Load equipment data
+        $cameras = $pdo->query('SELECT id, make, model FROM cameras ORDER BY make, model')->fetchAll();
+        $lenses = $pdo->query('SELECT id, brand, model FROM lenses ORDER BY brand, model')->fetchAll();
+        $films = $pdo->query('SELECT id, brand, name FROM films ORDER BY brand, name')->fetchAll();
+        $developers = $pdo->query('SELECT id, name FROM developers ORDER BY name')->fetchAll();
+        $labs = $pdo->query('SELECT id, name FROM labs ORDER BY name')->fetchAll();
+        
         $curTags = $pdo->prepare('SELECT tag_id FROM album_tag WHERE album_id = :a');
         $curTags->execute([':a'=>$id]);
         $tagIds = array_map('intval', array_column($curTags->fetchAll(), 'tag_id'));
         $curCatsStmt = $pdo->prepare('SELECT category_id FROM album_category WHERE album_id = :a');
         $curCatsStmt->execute([':a'=>$id]);
         $categoryIds = array_unique(array_map('intval', array_merge([$item['category_id']], array_column($curCatsStmt->fetchAll() ?: [], 'category_id'))));
+        
+        // Load current equipment associations
+        $cameraIds = [];
+        $lensIds = [];
+        $filmIds = [];
+        $developerIds = [];
+        $labIds = [];
+        
+        try {
+            $cameraStmt = $pdo->prepare('SELECT camera_id FROM album_camera WHERE album_id = :a');
+            $cameraStmt->execute([':a'=>$id]);
+            $cameraIds = array_map('intval', array_column($cameraStmt->fetchAll(), 'camera_id'));
+            
+            $lensStmt = $pdo->prepare('SELECT lens_id FROM album_lens WHERE album_id = :a');
+            $lensStmt->execute([':a'=>$id]);
+            $lensIds = array_map('intval', array_column($lensStmt->fetchAll(), 'lens_id'));
+            
+            $filmStmt = $pdo->prepare('SELECT film_id FROM album_film WHERE album_id = :a');
+            $filmStmt->execute([':a'=>$id]);
+            $filmIds = array_map('intval', array_column($filmStmt->fetchAll(), 'film_id'));
+            
+            $developerStmt = $pdo->prepare('SELECT developer_id FROM album_developer WHERE album_id = :a');
+            $developerStmt->execute([':a'=>$id]);
+            $developerIds = array_map('intval', array_column($developerStmt->fetchAll(), 'developer_id'));
+            
+            $labStmt = $pdo->prepare('SELECT lab_id FROM album_lab WHERE album_id = :a');
+            $labStmt->execute([':a'=>$id]);
+            $labIds = array_map('intval', array_column($labStmt->fetchAll(), 'lab_id'));
+        } catch (\Throwable $e) {
+            // Equipment tables might not exist yet
+        }
+        
         $imgsStmt = $pdo->prepare('SELECT i.id, i.original_path, i.created_at, i.sort_order,
                                    COALESCE(iv.path, i.original_path) AS preview_path
                                    FROM images i
@@ -162,8 +286,19 @@ class AlbumsController
             'item' => $item,
             'categories' => $cats,
             'tags' => $tags,
+            'templates' => $templates,
+            'cameras' => $cameras,
+            'lenses' => $lenses,
+            'films' => $films,
+            'developers' => $developers,
+            'labs' => $labs,
             'tagIds' => $tagIds,
             'categoryIds' => $categoryIds,
+            'cameraIds' => $cameraIds,
+            'lensIds' => $lensIds,
+            'filmIds' => $filmIds,
+            'developerIds' => $developerIds,
+            'labIds' => $labIds,
             'images' => $images,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
@@ -182,7 +317,14 @@ class AlbumsController
         $show_date = isset($d['show_date']) ? 1 : 0;
         $is_published = isset($d['is_published']) ? 1 : 0;
         $sort_order = (int)($d['sort_order'] ?? 0);
+        $template_id = (int)($d['template_id'] ?? 0) ?: null;
         $tagIds = array_map('intval', (array)($d['tags'] ?? []));
+        $cameraIds = array_map('intval', (array)($d['cameras'] ?? []));
+        $lensIds = array_map('intval', (array)($d['lenses'] ?? []));
+        $filmIds = array_map('intval', (array)($d['films'] ?? []));
+        $developerIds = array_map('intval', (array)($d['developers'] ?? []));
+        $labIds = array_map('intval', (array)($d['labs'] ?? []));
+        
         if ($title === '' || $category_id <= 0) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Titolo e categoria sono obbligatori'];
             return $response->withHeader('Location', '/admin/albums/'.$id.'/edit')->withStatus(302);
@@ -190,9 +332,16 @@ class AlbumsController
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
         $published_at = $is_published ? (date('Y-m-d H:i:s')) : null;
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o WHERE id=:id');
+        // Try with template_id first, fallback without it if column doesn't exist
         try {
+            $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti WHERE id=:id');
+            $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':id'=>$id]);
+        } catch (\Throwable $e) {
+            // Fallback for old DB schema without template_id column
+            $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o WHERE id=:id');
             $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order, ':id'=>$id]);
+        }
+        try {
             // sync tags
             $pdo->prepare('DELETE FROM album_tag WHERE album_id=:a')->execute([':a'=>$id]);
             if ($tagIds) {
@@ -213,6 +362,55 @@ class AlbumsController
                     foreach ($cats as $cid) { $catStmt->execute([':a'=>$id, ':c'=>$cid]); }
                 }
             }
+            
+            // Sync equipment associations
+            try {
+                // Delete existing equipment associations
+                $pdo->prepare('DELETE FROM album_camera WHERE album_id=:a')->execute([':a'=>$id]);
+                $pdo->prepare('DELETE FROM album_lens WHERE album_id=:a')->execute([':a'=>$id]);
+                $pdo->prepare('DELETE FROM album_film WHERE album_id=:a')->execute([':a'=>$id]);
+                $pdo->prepare('DELETE FROM album_developer WHERE album_id=:a')->execute([':a'=>$id]);
+                $pdo->prepare('DELETE FROM album_lab WHERE album_id=:a')->execute([':a'=>$id]);
+                
+                // Insert new equipment associations
+                if ($cameraIds) {
+                    $cameraStmt = $pdo->prepare('INSERT IGNORE INTO album_camera(album_id, camera_id) VALUES (:a, :c)');
+                    foreach (array_unique($cameraIds) as $cid) {
+                        $cameraStmt->execute([':a'=>$id, ':c'=>$cid]);
+                    }
+                }
+                
+                if ($lensIds) {
+                    $lensStmt = $pdo->prepare('INSERT IGNORE INTO album_lens(album_id, lens_id) VALUES (:a, :l)');
+                    foreach (array_unique($lensIds) as $lid) {
+                        $lensStmt->execute([':a'=>$id, ':l'=>$lid]);
+                    }
+                }
+                
+                if ($filmIds) {
+                    $filmStmt = $pdo->prepare('INSERT IGNORE INTO album_film(album_id, film_id) VALUES (:a, :f)');
+                    foreach (array_unique($filmIds) as $fid) {
+                        $filmStmt->execute([':a'=>$id, ':f'=>$fid]);
+                    }
+                }
+                
+                if ($developerIds) {
+                    $developerStmt = $pdo->prepare('INSERT IGNORE INTO album_developer(album_id, developer_id) VALUES (:a, :d)');
+                    foreach (array_unique($developerIds) as $did) {
+                        $developerStmt->execute([':a'=>$id, ':d'=>$did]);
+                    }
+                }
+                
+                if ($labIds) {
+                    $labStmt = $pdo->prepare('INSERT IGNORE INTO album_lab(album_id, lab_id) VALUES (:a, :l)');
+                    foreach (array_unique($labIds) as $lid) {
+                        $labStmt->execute([':a'=>$id, ':l'=>$lid]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Equipment tables might not exist yet, continue without error
+            }
+            
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album aggiornato'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: '.$e->getMessage()];

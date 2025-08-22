@@ -31,6 +31,12 @@ $app->get('/tag/{slug}', function (Request $request, Response $response, array $
     return $controller->tag($request, $response, $args);
 });
 
+// Test gallery page
+$app->get('/test-gallery', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Frontend\TestController($container['db'], Twig::fromRequest($request));
+    return $controller->gallery($request, $response);
+});
+
 // Admin redirect
 $app->get('/admin-login', function (Request $request, Response $response) {
     return $response->withHeader('Location', '/admin/login')->withStatus(302);
@@ -340,6 +346,32 @@ $app->post('/admin/labs/{id}', function (Request $request, Response $response, a
 })->add(new AuthMiddleware());
 $app->post('/admin/labs/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\LabsController($container['db'], Twig::fromRequest($request));
+    return $controller->delete($request, $response, $args);
+})->add(new AuthMiddleware());
+
+// Templates CRUD
+$app->get('/admin/templates', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add(new AuthMiddleware());
+$app->get('/admin/templates/create', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
+    return $controller->create($request, $response);
+})->add(new AuthMiddleware());
+$app->post('/admin/templates', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
+    return $controller->store($request, $response);
+})->add(new AuthMiddleware());
+$app->get('/admin/templates/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
+    return $controller->edit($request, $response, $args);
+})->add(new AuthMiddleware());
+$app->post('/admin/templates/{id}', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
+    return $controller->update($request, $response, $args);
+})->add(new AuthMiddleware());
+$app->post('/admin/templates/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
 })->add(new AuthMiddleware());
 
