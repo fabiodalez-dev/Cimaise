@@ -20,6 +20,11 @@ $app->get('/album/{slug}', function (Request $request, Response $response, array
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
     return $controller->album($request, $response, $args);
 });
+// Unlock password-protected album
+$app->post('/album/{slug}/unlock', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+    return $controller->unlockAlbum($request, $response, $args);
+})->add(new RateLimitMiddleware(5, 600));
 
 $app->get('/category/{slug}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
@@ -31,11 +36,46 @@ $app->get('/tag/{slug}', function (Request $request, Response $response, array $
     return $controller->tag($request, $response, $args);
 });
 
-// Test gallery page
-$app->get('/test-gallery', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Frontend\TestController($container['db'], Twig::fromRequest($request));
+// About page with dynamic slug from settings
+$settingsSvc = new \App\Services\SettingsService($container['db']);
+$aboutSlug = (string)($settingsSvc->get('about.slug', 'about') ?? 'about');
+if ($aboutSlug === '') { $aboutSlug = 'about'; }
+$aboutPath = '/' . $aboutSlug;
+$app->get($aboutPath, function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+    return $controller->about($request, $response);
+});
+// Backward compat: if slug changed, redirect /about to new path
+if ($aboutSlug !== 'about') {
+    $app->get('/about', function (Request $request, Response $response) use ($aboutPath) {
+        return $response->withHeader('Location', $aboutPath)->withStatus(302);
+    });
+}
+// Contact submit for About, dynamic path
+$app->post($aboutPath . '/contact', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+    return $controller->aboutContact($request, $response);
+})->add(new RateLimitMiddleware(5, 600));
+
+// Image download route (validates album-level permissions)
+$app->get('/download/image/{id}', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\DownloadController($container['db']);
+    return $controller->downloadImage($request, $response, $args);
+});
+
+// Gallery preview page
+$app->get('/gallery', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Frontend\GalleryController($container['db'], Twig::fromRequest($request));
     return $controller->gallery($request, $response);
 });
+
+// Gallery template switcher API
+$app->get('/api/gallery/template', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Frontend\GalleryController($container['db'], Twig::fromRequest($request));
+    return $controller->template($request, $response);
+});
+
+// (public API routes are defined near the bottom of this file)
 
 // Admin redirect
 $app->get('/admin-login', function (Request $request, Response $response) {
@@ -94,6 +134,10 @@ $app->post('/admin/albums/{id}/images/bulk-delete', function (Request $request, 
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->bulkDeleteImages($request, $response, $args);
 })->add(new AuthMiddleware());
+$app->post('/admin/albums/{id}/images/{imageId}/update', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
+    return $controller->updateImageMeta($request, $response, $args);
+})->add(new AuthMiddleware());
 $app->post('/admin/albums/{id}/tags', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->updateTags($request, $response, $args);
@@ -107,6 +151,11 @@ $app->get('/admin/settings', function (Request $request, Response $response) use
 $app->post('/admin/settings', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
     return $controller->save($request, $response);
+})->add(new AuthMiddleware());
+
+$app->post('/admin/settings/generate-images', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
+    return $controller->generateImages($request, $response);
 })->add(new AuthMiddleware());
 
 // Diagnostics
@@ -123,6 +172,21 @@ $app->get('/admin/commands', function (Request $request, Response $response) use
 $app->post('/admin/commands/execute', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CommandsController($container['db'], Twig::fromRequest($request));
     return $controller->execute($request, $response);
+})->add(new AuthMiddleware());
+
+// Pages admin list
+$app->get('/admin/pages', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add(new AuthMiddleware());
+// About page edit
+$app->get('/admin/pages/about', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+    return $controller->aboutForm($request, $response);
+})->add(new AuthMiddleware());
+$app->post('/admin/pages/about', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+    return $controller->saveAbout($request, $response);
 })->add(new AuthMiddleware());
 
 // Albums CRUD

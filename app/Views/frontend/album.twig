@@ -62,14 +62,15 @@
     {% set masonry = template_settings.masonry|default(false) %}
     
     {# Handle both old integer format and new responsive object format #}
-    {% if template_settings.columns.desktop is defined %}
-        {% set desktop_cols = template_settings.columns.desktop %}
-        {% set tablet_cols = template_settings.columns.tablet %}
-        {% set mobile_cols = template_settings.columns.mobile %}
+    {% set cols = template_settings.columns is defined ? template_settings.columns : 3 %}
+    {% if cols is iterable %}
+        {% set desktop_cols = cols.desktop is defined ? cols.desktop : 3 %}
+        {% set tablet_cols = cols.tablet is defined ? cols.tablet : (desktop_cols > 2 ? 2 : desktop_cols) %}
+        {% set mobile_cols = cols.mobile is defined ? cols.mobile : (desktop_cols > 2 ? 1 : desktop_cols) %}
     {% else %}
-        {% set desktop_cols = template_settings.columns|default(3) %}
-        {% set tablet_cols = (desktop_cols > 2) ? 2 : desktop_cols %}
-        {% set mobile_cols = (desktop_cols > 2) ? 1 : desktop_cols %}
+        {% set desktop_cols = cols %}
+        {% set tablet_cols = desktop_cols > 2 ? 2 : desktop_cols %}
+        {% set mobile_cols = desktop_cols > 2 ? 1 : desktop_cols %}
     {% endif %}
     
     {% if layout == 'slideshow' %}
@@ -122,8 +123,7 @@
     {% endif %}
     
     <!-- Image filters (if multiple formats/processes) -->
-    {% set processes = images|map(i => i.process)|unique|filter %}
-    {% set cameras = images|map(i => i.custom_camera ?: (i.exif_display.camera ?? null))|unique|filter %}
+    {# processes and cameras are computed in controller for compatibility #}
     {% if processes|length > 1 or cameras|length > 1 %}
     <div class="mt-8 p-4 bg-neutral-50 rounded">
         <h3 class="text-sm font-medium mb-3">Filter images:</h3>
@@ -175,10 +175,23 @@
     </div>
 </section>
 {% endif %}
+
+{# Swiper Lightbox Overlay (placed inside content to ensure it exists in DOM) #}
+<div id="lb" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50">
+  <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white text-xl" aria-label="Close">✕</button>
+  <div class="w-full max-w-6xl px-4">
+    <div id="lb-swiper" class="swiper">
+      <div class="swiper-wrapper"></div>
+      <div class="swiper-button-next lb-next"></div>
+      <div class="swiper-button-prev lb-prev"></div>
+    </div>
+  </div>
+  <div class="absolute bottom-3 left-0 right-0 text-center text-white text-xs opacity-60">Use arrows or swipe to navigate</div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
-<script>
 // Template settings
 const templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
 const layout = templateSettings.layout || 'grid';
@@ -209,7 +222,20 @@ if (layout === 'slideshow') {
         });
     }
 }
-// Note: Masonry is handled with pure CSS columns now
+// Masonry.js initialization when template enables masonry
+if (masonry && typeof Masonry !== 'undefined') {
+    const container = document.getElementById('images-gallery');
+    const initMasonry = () => {
+        imagesLoaded(container, function(){
+            new Masonry(container, {
+                itemSelector: '.masonry-item',
+                percentPosition: true,
+                transitionDuration: '0.2s'
+            });
+        });
+    };
+    initMasonry();
+}
 
 // Image filtering
 document.getElementById('apply-image-filters')?.addEventListener('click', async function() {
@@ -228,7 +254,11 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
         const gallery = document.getElementById('images-gallery');
         gallery.innerHTML = data.itemsHtml;
         
-        // Masonry is handled with CSS, no need to reinitialize
+        if (masonry && typeof Masonry !== 'undefined') {
+            imagesLoaded(gallery, function(){
+                new Masonry(gallery, { itemSelector: '.masonry-item', percentPosition: true });
+            });
+        }
         
         // Animate filtered results
         if (typeof gsap !== 'undefined') {
@@ -245,83 +275,80 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
     }
 });
 
-// Enhanced lightbox with metadata and template settings
+// Swiper-based lightbox overlay
+let __lbSwiper = null;
+function buildLightboxItems() {
+  const nodes = document.querySelectorAll('.image-item .image-data');
+  const items = [];
+  nodes.forEach((scriptEl) => {
+    const data = JSON.parse(scriptEl.textContent);
+    const src = data.src || data.url; // support both keys
+    const w = data.width || 1200;
+    const h = data.height && data.height > 0 ? data.height : 800;
+    let cap = '';
+    if (data.caption) cap += `<div class="mb-1">${data.caption}</div>`;
+    const m = data.metadata || {};
+    const bits = [];
+    if (m.camera) bits.push(`<i class=\"fas fa-camera\"></i> ${m.camera}`);
+    if (m.lens) bits.push(`<i class=\"fas fa-dot-circle\"></i> ${m.lens}`);
+    const exp = [];
+    if (m.aperture) exp.push(m.aperture);
+    if (m.shutter) exp.push(m.shutter);
+    if (m.iso) exp.push(`ISO ${m.iso}`);
+    if (exp.length) bits.push(`<i class=\"fas fa-sliders-h\"></i> ${exp.join(' • ')}`);
+    if (m.film) bits.push(`<i class=\"fas fa-film\"></i> ${m.film}`);
+    if (m.developer) bits.push(`<i class=\"fas fa-flask\"></i> ${m.developer}`);
+    if (m.lab) bits.push(`<i class=\"fas fa-industry\"></i> ${m.lab}`);
+    if (bits.length) cap += `<div class=\"text-xs text-neutral-300 space-x-2\">${bits.join(' &nbsp; ')}<\/div>`;
+    items.push({ id: String(data.id), src, w, h, alt: data.alt || '', caption: cap });
+  });
+  return items;
+}
 function openLightbox(imageId) {
-    const imageItem = document.querySelector(`[data-image-id="${imageId}"]`);
-    if (!imageItem) return;
-    
-    const dataScript = imageItem.querySelector('.image-data');
-    if (!dataScript) return;
-    
-    const imageData = JSON.parse(dataScript.textContent);
-    
-    // Build caption with metadata
-    let caption = '';
-    if (imageData.caption) {
-        caption += `<div class="mb-2">${imageData.caption}</div>`;
-    }
-    
-    if (imageData.metadata && Object.keys(imageData.metadata).length > 0) {
-        const metadata = [];
-        if (imageData.metadata.camera) metadata.push(imageData.metadata.camera);
-        if (imageData.metadata.lens) metadata.push(imageData.metadata.lens);
-        if (imageData.metadata.aperture) metadata.push(imageData.metadata.aperture);
-        if (imageData.metadata.shutter) metadata.push(imageData.metadata.shutter);
-        if (imageData.metadata.iso) metadata.push(imageData.metadata.iso);
-        if (imageData.metadata.film) metadata.push(imageData.metadata.film);
-        
-        if (metadata.length > 0) {
-            caption += `<div class="text-xs text-neutral-400 mt-2">${metadata.join(' • ')}</div>`;
-        }
-    }
-    
-    const items = [{
-        src: imageData.src,
-        width: imageData.width,
-        height: imageData.height,
-        alt: imageData.alt,
-        caption: caption
-    }];
-    
-    // Use template-specific PhotoSwipe settings
-    const photoswipeSettings = templateSettings.photoswipe || {};
-    const lightboxOptions = {
-        dataSource: items,
-        index: 0,
-        showHideAnimationType: 'fade',
-        loop: photoswipeSettings.loop !== false,
-        zoom: photoswipeSettings.zoom !== false,
-        counter: photoswipeSettings.counter !== false,
-        arrowKeys: photoswipeSettings.arrowKeys !== false,
-        escKey: photoswipeSettings.escKey !== false,
-        bgOpacity: photoswipeSettings.bgOpacity || 0.8,
-        spacing: photoswipeSettings.spacing || 0.12,
-        allowPanToNext: photoswipeSettings.allowPanToNext || false
-    };
-    
-    if (typeof PhotoSwipe !== 'undefined') {
-        const lightbox = new PhotoSwipe(lightboxOptions);
-        lightbox.init();
-    }
+  const overlay = document.getElementById('lb');
+  const wrapper = document.querySelector('#lb-swiper .swiper-wrapper');
+  if (!overlay || !wrapper) return;
+  const items = buildLightboxItems();
+  wrapper.innerHTML = items.map(it => `
+    <div class=\"swiper-slide\">
+      <div class=\"w-full h-full flex flex-col items-center justify-center bg-black\">
+        <img src=\"${it.src}\" alt=\"${it.alt}\" style=\"max-width:100%; max-height:70vh;\"/>
+        ${it.caption ? `<div class=\\"mt-3 text-white text-xs px-4 text-center\\">${it.caption}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+  // find start index
+  const start = Math.max(0, items.findIndex(it => it.id === String(imageId)));
+  overlay.classList.remove('hidden');
+  overlay.classList.add('flex');
+  if (__lbSwiper) { __lbSwiper.destroy(true,true); __lbSwiper = null; }
+  if (typeof Swiper !== 'undefined') {
+    __lbSwiper = new Swiper('#lb-swiper', {
+      initialSlide: start,
+      loop: false,
+      navigation: { nextEl: '.lb-next', prevEl: '.lb-prev' },
+      keyboard: { enabled: true },
+    });
+  }
 }
-</script>
-
-{% if masonry %}
-<style>
-/* Masonry responsive adjustments */
-.masonry-grid {
-    column-count: {{ desktop_cols }};
+function closeLightbox(){
+  const overlay = document.getElementById('lb');
+  if (__lbSwiper) { __lbSwiper.destroy(true,true); __lbSwiper = null; }
+  overlay.classList.add('hidden');
+  overlay.classList.remove('flex');
 }
-@media (max-width: 1023px) {
-    .masonry-grid {
-        column-count: {{ tablet_cols }} !important;
-    }
-}
-@media (max-width: 767px) {
-    .masonry-grid {
-        column-count: {{ mobile_cols }} !important;
-    }
-}
-</style>
-{% endif %}
 {% endblock %}
+
+{# Swiper Lightbox Overlay #}
+<div id="lb" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50">
+  <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white text-xl" aria-label="Close">✕</button>
+  <div class="w-full max-w-6xl px-4">
+    <div id="lb-swiper" class="swiper">
+      <div class="swiper-wrapper"></div>
+      <div class="swiper-button-next lb-next"></div>
+      <div class="swiper-button-prev lb-prev"></div>
+    </div>
+  </div>
+  <div class="absolute bottom-3 left-0 right-0 text-center text-white text-xs opacity-60">Use arrows or swipe to navigate</div>
+  <div class="absolute inset-0" onclick="closeLightbox()" style="pointer-events:none"></div>
+</div>

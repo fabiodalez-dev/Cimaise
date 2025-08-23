@@ -74,6 +74,16 @@ class MigrateCommand extends Command
                     $exists = $this->columnExists('albums', 'show_date');
                     if ($exists) { $output->writeln('Skipping (exists): ' . $base); continue; }
                 }
+                if ($base === '0008_templates.sql') {
+                    $exists = $this->columnExists('albums', 'template_id');
+                    if ($exists) { $output->writeln('Skipping (exists): ' . $base); continue; }
+                }
+                if ($base === '0010_album_equipment.sql') {
+                    if ($this->tableExists('album_camera')) { $output->writeln('Skipping (exists): ' . $base); continue; }
+                }
+                if ($base === '0011_album_protection.sql') {
+                    if ($this->columnExists('albums','password_hash')) { $output->writeln('Skipping (exists): ' . $base); continue; }
+                }
             }
 
             $output->writeln('Running: ' . $base);
@@ -102,5 +112,18 @@ class MigrateCommand extends Command
             }
         } catch (\Throwable) { /* ignore */ }
         return false;
+    }
+
+    // Helper to check table existence (SQLite only)
+    private function tableExists(string $table): bool
+    {
+        try {
+            $pdo = $this->db->pdo();
+            $stmt = $pdo->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = :t LIMIT 1");
+            $stmt->execute([':t' => $table]);
+            return (bool)$stmt->fetchColumn();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

@@ -1,0 +1,108 @@
+{% set layout = template_settings.layout|default('grid') %}
+{% set masonry = template_settings.masonry|default(false) %}
+
+{# Handle potentially nested columns structure #}
+{% set cols = template_settings.columns is defined ? template_settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
+
+{# Extract desktop columns - handle nested structure #}
+{% if cols.desktop is iterable and cols.desktop.desktop is defined %}
+  {% set desktop_cols = cols.desktop.desktop %}
+{% elseif cols.desktop is defined %}
+  {% set desktop_cols = cols.desktop %}
+{% else %}
+  {% set desktop_cols = 3 %}
+{% endif %}
+
+{# Extract tablet columns - handle nested structure #}
+{% if cols.tablet is iterable and cols.tablet.tablet is defined %}
+  {% set tablet_cols = cols.tablet.tablet %}
+{% elseif cols.tablet is defined %}
+  {% set tablet_cols = cols.tablet %}
+{% else %}
+  {% set tablet_cols = 2 %}
+{% endif %}
+
+{# Extract mobile columns - handle nested structure #}
+{% if cols.mobile is iterable and cols.mobile.mobile is defined %}
+  {% set mobile_cols = cols.mobile.mobile %}
+{% elseif cols.mobile is defined %}
+  {% set mobile_cols = cols.mobile %}
+{% else %}
+  {% set mobile_cols = 1 %}
+{% endif %}
+
+{# Ensure values are numbers #}
+{% set desktop_cols = desktop_cols|round %}
+{% set tablet_cols = tablet_cols|round %}
+{% set mobile_cols = mobile_cols|round %}
+
+{% if layout == 'slideshow' %}
+  <div class="swiper gallery-swiper">
+    <div class="swiper-wrapper">
+      {% for image in images %}
+      <div class="swiper-slide">
+        <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer" data-image-id="{{ image.id }}">
+          <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover">
+          <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="swiper-button-next"></div>
+    <div class="swiper-button-prev"></div>
+    <div class="swiper-pagination"></div>
+  </div>
+{% elseif layout == 'fullscreen' %}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
+    {% for image in images %}
+    <div class="masonry-item">
+      <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative" data-image-id="{{ image.id }}">
+        <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
+        <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% elseif masonry %}
+  <div class="masonry-grid">
+    {% for image in images %}
+    <div class="masonry-item">
+      <div class="image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative" data-image-id="{{ image.id }}">
+        <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover">
+        <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  {% if mobile_cols == 1 %}{% set mobile_class = 'grid-cols-1' %}
+  {% elseif mobile_cols == 2 %}{% set mobile_class = 'grid-cols-2' %}
+  {% elseif mobile_cols == 3 %}{% set mobile_class = 'grid-cols-3' %}
+  {% elseif mobile_cols == 4 %}{% set mobile_class = 'grid-cols-4' %}
+  {% elseif mobile_cols == 5 %}{% set mobile_class = 'grid-cols-5' %}
+  {% else %}{% set mobile_class = 'grid-cols-6' %}{% endif %}
+  
+  {% if tablet_cols == 1 %}{% set tablet_class = 'md:grid-cols-1' %}
+  {% elseif tablet_cols == 2 %}{% set tablet_class = 'md:grid-cols-2' %}
+  {% elseif tablet_cols == 3 %}{% set tablet_class = 'md:grid-cols-3' %}
+  {% elseif tablet_cols == 4 %}{% set tablet_class = 'md:grid-cols-4' %}
+  {% elseif tablet_cols == 5 %}{% set tablet_class = 'md:grid-cols-5' %}
+  {% else %}{% set tablet_class = 'md:grid-cols-6' %}{% endif %}
+  
+  {% if desktop_cols == 1 %}{% set desktop_class = 'lg:grid-cols-1' %}
+  {% elseif desktop_cols == 2 %}{% set desktop_class = 'lg:grid-cols-2' %}
+  {% elseif desktop_cols == 3 %}{% set desktop_class = 'lg:grid-cols-3' %}
+  {% elseif desktop_cols == 4 %}{% set desktop_class = 'lg:grid-cols-4' %}
+  {% elseif desktop_cols == 5 %}{% set desktop_class = 'lg:grid-cols-5' %}
+  {% else %}{% set desktop_class = 'lg:grid-cols-6' %}{% endif %}
+  <div class="grid {{ mobile_class }} {{ tablet_class }} {{ desktop_class }} gap-4">
+    {% for image in images %}
+    <div class="masonry-item">
+      <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative" data-image-id="{{ image.id }}">
+        <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
+        <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% endif %}

@@ -35,6 +35,15 @@ $app->add(TwigMiddleware::create($app, $twig));
 
 // Share globals
 $twig->getEnvironment()->addGlobal('app_url', $_ENV['APP_URL'] ?? 'http://localhost:8000');
+// Expose about URL from settings (dynamic permalink)
+try {
+    $settingsSvc = new \App\Services\SettingsService($container['db']);
+    $aboutSlug = (string)($settingsSvc->get('about.slug', 'about') ?? 'about');
+    $aboutSlug = $aboutSlug !== '' ? $aboutSlug : 'about';
+    $twig->getEnvironment()->addGlobal('about_url', '/' . $aboutSlug);
+} catch (\Throwable) {
+    $twig->getEnvironment()->addGlobal('about_url', '/about');
+}
 
 // Routes (pass container and app)
 $routes = require __DIR__ . '/../app/Config/routes.php';

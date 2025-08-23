@@ -8,11 +8,11 @@
           {% set variants_jpg = [] %}
           {% for variant in album.cover.variants %}
             {% if variant.format == 'avif' %}
-              {% set variants_avif = variants_avif|merge(['/public' ~ variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+              {% set variants_avif = variants_avif|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
             {% elseif variant.format == 'webp' %}
-              {% set variants_webp = variants_webp|merge(['/public' ~ variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+              {% set variants_webp = variants_webp|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
             {% elseif variant.format == 'jpg' %}
-              {% set variants_jpg = variants_jpg|merge(['/public' ~ variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+              {% set variants_jpg = variants_jpg|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
             {% endif %}
           {% endfor %}
           
@@ -23,7 +23,7 @@
             <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 90vw">
           {% endif %}
           
-          <img src="/public{{ album.cover.variants[0].path ?? album.cover.original_path }}" 
+          <img src="{{ album.cover.variants[0].path ?? album.cover.original_path }}" 
                alt="{{ album.cover.alt_text|e }}" 
                width="{{ album.cover.width }}" 
                height="{{ album.cover.height }}"

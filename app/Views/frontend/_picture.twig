@@ -5,11 +5,11 @@
 {% set variants_jpg = [] %}
 {% for v in variants %}
   {% if v.format == 'avif' %}
-    {% set variants_avif = variants_avif|merge(['/public' ~ v.path ~ ' ' ~ v.width ~ 'w']) %}
+    {% set variants_avif = variants_avif|merge([v.path ~ ' ' ~ v.width ~ 'w']) %}
   {% elseif v.format == 'webp' %}
-    {% set variants_webp = variants_webp|merge(['/public' ~ v.path ~ ' ' ~ v.width ~ 'w']) %}
+    {% set variants_webp = variants_webp|merge([v.path ~ ' ' ~ v.width ~ 'w']) %}
   {% elseif v.format == 'jpg' %}
-    {% set variants_jpg = variants_jpg|merge(['/public' ~ v.path ~ ' ' ~ v.width ~ 'w']) %}
+    {% set variants_jpg = variants_jpg|merge([v.path ~ ' ' ~ v.width ~ 'w']) %}
   {% endif %}
 {% endfor %}
 
@@ -20,11 +20,10 @@
   {% if variants_webp %}
     <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width:1024px) 50vw, 90vw">
   {% endif %}
-  <img src="/public{{ (variants_jpg|length > 0) ? variants_jpg[0]|split(' ')|first : img.original_path }}"
+  <img src="{{ (variants_jpg|length > 0) ? variants_jpg[0]|split(' ')|first : img.original_path }}"
        alt="{{ img.alt_text|e }}"
        width="{{ img.width }}"
        height="{{ img.height }}"
        loading="lazy" decoding="async"
        class="w-full h-full object-cover">
 </picture>
-

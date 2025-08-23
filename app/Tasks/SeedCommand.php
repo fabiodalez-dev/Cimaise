@@ -27,12 +27,16 @@ class SeedCommand extends Command
     {
         $only = $input->getArgument('only');
         
-        // Check if we're using SQLite and use appropriate seeds
-        $connection = $_ENV['DB_CONNECTION'] ?? 'mysql';
-        $seedsPath = $this->seedsDir;
-        if ($connection === 'sqlite') {
-            $seedsPath = $this->seedsDir . '/sqlite';
+        // Choose seeds directory based on actual database driver
+        $isSqlite = false;
+        try {
+            $isSqlite = $this->db->isSqlite();
+        } catch (\Throwable) {
+            // Fallback to env var if DB not reachable
+            $isSqlite = (($_ENV['DB_CONNECTION'] ?? 'mysql') === 'sqlite');
         }
+        $connection = $isSqlite ? 'sqlite' : 'mysql';
+        $seedsPath = $this->seedsDir . ($isSqlite ? '/sqlite' : '');
         
         if (!is_dir($seedsPath)) {
             $output->writeln('<comment>No seeds directory found: ' . $seedsPath . '</comment>');
@@ -65,4 +69,3 @@ class SeedCommand extends Command
         return Command::SUCCESS;
     }
 }
-

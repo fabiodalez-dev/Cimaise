@@ -22,10 +22,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ current_url }}">
     
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Fonts: use system stack to comply with CSP -->
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -34,7 +31,7 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif']
+                        sans: ['ui-sans-serif','system-ui','-apple-system','Segoe UI','Roboto','Helvetica Neue','Arial','Noto Sans','Liberation Sans','sans-serif']
                     }
                 }
             }
@@ -46,6 +43,9 @@
     
     <!-- Swiper CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+
+    <!-- Font Awesome (icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <!-- Custom styles -->
     <style>
@@ -90,6 +90,18 @@
         .gallery-swiper .swiper-pagination-bullet-active {
             background: #000;
         }
+
+        /* Simple Lightbox fallback */
+        #slb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.95); color:#fff; display:none; align-items:center; justify-content:center; z-index: 10000; }
+        #slb-overlay.active { display:flex; }
+        #slb-content { max-width: 92vw; max-height: 92vh; position: relative; }
+        #slb-content img { max-width: 92vw; max-height: 80vh; display:block; margin: 0 auto; }
+        #slb-caption { margin-top: .75rem; text-align: center; color:#ddd; font-size: .9rem; }
+        .slb-btn { position:absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); color:#fff; width: 44px; height: 44px; border-radius: 9999px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+        .slb-prev { left: -56px; }
+        .slb-next { right: -56px; }
+        .slb-close { position: absolute; top: -52px; right: 0; width: 40px; height: 40px; border-radius: 9999px; background: rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+        @media (max-width: 640px) { .slb-prev { left: -8px; } .slb-next { right: -8px; } }
     </style>
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">
@@ -98,18 +110,30 @@
     <header class="border-b border-neutral-200 sticky top-0 bg-white/90 backdrop-blur z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-4">
-                <div class="flex items-center space-x-8">
+                <div class="flex items-center gap-6">
                     <h1 class="text-xl font-semibold">
                         <a href="/" class="hover:text-neutral-700 transition-colors">Portfolio</a>
                     </h1>
                     
-                    <nav class="hidden md:flex space-x-6">
+                    <!-- Desktop nav with dropdown -->
+                    <nav class="hidden md:flex items-center gap-4 relative">
                         <a href="/" class="text-sm hover:text-neutral-700 transition-colors">Home</a>
-                        {% for category in categories|default([]) %}
-                        <a href="/category/{{ category.slug }}" class="text-sm hover:text-neutral-700 transition-colors">
-                            {{ category.name|e }}
-                        </a>
-                        {% endfor %}
+                        <a href="{{ about_url }}" class="text-sm hover:text-neutral-700 transition-colors">About</a>
+                        <div class="relative" id="cats-wrapper">
+                            <button id="cats-toggle" class="text-sm inline-flex items-center gap-1 hover:text-neutral-700 transition-colors">
+                                Categories
+                                <i class="fas fa-chevron-down text-[10px]"></i>
+                            </button>
+                            <div id="cats-menu" class="hidden absolute left-0 mt-2 w-[520px] max-h-[60vh] overflow-auto bg-white border border-neutral-200 shadow-lg z-50 p-3">
+                                <div class="grid grid-cols-2 lg:grid-cols-3 gap-1">
+                                    {% for category in categories|default([]) %}
+                                    <a href="/category/{{ category.slug }}" class="text-sm px-2 py-1 rounded hover:bg-neutral-100">
+                                        {{ category.name|e }}
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
                     </nav>
                 </div>
                 
@@ -131,13 +155,19 @@
         
         <!-- Mobile menu -->
         <div id="mobile-menu" class="md:hidden hidden border-t border-neutral-200 bg-white">
-            <div class="px-4 py-4 space-y-3">
+            <div class="px-4 py-4 space-y-4">
                 <a href="/" class="block text-sm hover:text-neutral-700 transition-colors">Home</a>
-                {% for category in categories|default([]) %}
-                <a href="/category/{{ category.slug }}" class="block text-sm hover:text-neutral-700 transition-colors">
-                    {{ category.name|e }}
-                </a>
-                {% endfor %}
+                <a href="{{ about_url }}" class="block text-sm hover:text-neutral-700 transition-colors">About</a>
+                <div>
+                    <div class="text-xs uppercase tracking-wide text-neutral-500 mb-2">Categories</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for category in categories|default([]) %}
+                        <a href="/category/{{ category.slug }}" class="text-sm hover:text-neutral-700 transition-colors">
+                            {{ category.name|e }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -218,6 +248,10 @@
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/ScrollTrigger.min.js"></script>
     
+    <!-- imagesLoaded + Masonry -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.imagesloaded/5.0.0/imagesloaded.pkgd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/masonry/4.2.2/masonry.pkgd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
     <!-- App JS -->
     <script>
         // Mobile menu toggle
@@ -231,6 +265,22 @@
             const panel = document.getElementById('filters-panel');
             panel.classList.toggle('hidden');
         });
+
+        // Desktop categories dropdown (click to open, click outside to close)
+        (function(){
+            const toggle = document.getElementById('cats-toggle');
+            const menu = document.getElementById('cats-menu');
+            if (!toggle || !menu) return;
+            let open = false;
+            function close(){ menu.classList.add('hidden'); open=false; }
+            function openMenu(){ menu.classList.remove('hidden'); open=true; }
+            toggle.addEventListener('click', (e)=>{ e.preventDefault(); open ? close() : openMenu(); });
+            document.addEventListener('click', (e)=>{
+                if (!open) return;
+                const w = document.getElementById('cats-wrapper');
+                if (w && !w.contains(e.target)) close();
+            });
+        })();
         
         // Smooth animations
         gsap.registerPlugin(ScrollTrigger);
@@ -266,33 +316,129 @@
             lastScroll = currentScroll;
         });
         
-        // Lightbox function
-        function openLightbox(imageId) {
-            const imageItem = document.querySelector(`[data-image-id="${imageId}"]`);
-            if (!imageItem) return;
-            
-            const dataScript = imageItem.querySelector('.image-data');
-            if (!dataScript) return;
-            
-            const imageData = JSON.parse(dataScript.textContent);
-            
-            // Create PhotoSwipe gallery
-            const items = [{
-                src: imageData.src,
-                width: imageData.width,
-                height: imageData.height,
-                alt: imageData.alt,
-                caption: imageData.caption
-            }];
-            
-            const lightbox = new PhotoSwipe({
-                dataSource: items,
-                index: 0,
-                showHideAnimationType: 'fade'
+        // Lazy loader for PhotoSwipe (handles CDN not yet loaded)
+        let __psLoading = false;
+        // Respect CSP: only use allowed sources (jsDelivr, cdnjs)
+        const __psSources = [
+          'https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.4/photoswipe.min.js'
+        ];
+        function loadPhotoSwipe() {
+            return new Promise((resolve, reject) => {
+                if (window.PhotoSwipe) return resolve();
+                if (__psLoading) {
+                    const check = setInterval(() => { if (window.PhotoSwipe) { clearInterval(check); resolve(); } }, 50);
+                    setTimeout(() => { clearInterval(check); if (!window.PhotoSwipe) reject(new Error('PhotoSwipe load timeout')); }, 5000);
+                    return;
+                }
+                __psLoading = true;
+                let index = 0;
+                const tryNext = () => {
+                    if (window.PhotoSwipe) return resolve();
+                    if (index >= __psSources.length) return reject(new Error('Failed to load PhotoSwipe'));
+                    const url = __psSources[index++];
+                    const s = document.createElement('script');
+                    s.src = url;
+                    s.async = true;
+                    s.onload = () => resolve();
+                    s.onerror = () => tryNext();
+                    document.head.appendChild(s);
+                };
+                tryNext();
             });
-            
-            lightbox.init();
         }
+
+        // Lightbox function (collects current gallery items and opens at clicked index)
+        function openLightbox(imageId) {
+            const container = document.getElementById('images-gallery');
+            if (!container) return;
+
+            const cards = Array.from(container.querySelectorAll('.image-item'));
+            if (!cards.length) return;
+
+            const items = cards.map(card => {
+                const dataScript = card.querySelector('.image-data');
+                if (!dataScript) return null;
+                try {
+                    const d = JSON.parse(dataScript.textContent);
+                    return {
+                        src: d.lightbox_url || d.src || d.url,
+                        width: d.width || 1600,
+                        height: d.height || 1067,
+                        alt: d.alt || '',
+                        caption: d.caption || ''
+                    };
+                } catch { return null; }
+            }).filter(Boolean);
+
+            const startIndex = Math.max(0, cards.findIndex(c => c.getAttribute('data-image-id') === String(imageId)));
+
+            loadPhotoSwipe().then(() => {
+                const psCfg = (window.templateSettings && window.templateSettings.photoswipe) || {};
+                const lightbox = new PhotoSwipe({
+                    dataSource: items,
+                    index: startIndex,
+                    showHideAnimationType: 'fade',
+                    allowPanToNext: !!psCfg.allowPanToNext,
+                    bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
+                    loop: !!psCfg.loop
+                });
+                lightbox.init();
+            }).catch((err) => {
+                console.warn('PhotoSwipe not available, using fallback:', err);
+                fallbackOpenLightbox(items, startIndex);
+            });
+        }
+
+        // Delegated click for image items (no inline handlers)
+        document.addEventListener('click', (e) => {
+            const card = e.target.closest('.image-item');
+            if (!card) return;
+            const id = card.getAttribute('data-image-id');
+            if (!id) return;
+            e.preventDefault();
+            openLightbox(id);
+        });
+
+        // Simple Lightbox fallback implementation
+        let __slbItems = []; let __slbIndex = 0;
+        function ensureSlbDom() {
+            if (document.getElementById('slb-overlay')) return;
+            const wrap = document.createElement('div');
+            wrap.id = 'slb-overlay';
+            wrap.innerHTML = `
+              <div id="slb-content">
+                <button class="slb-close" aria-label="Close">✕</button>
+                <button class="slb-btn slb-prev" aria-label="Prev">‹</button>
+                <img id="slb-img" alt="" />
+                <button class="slb-btn slb-next" aria-label="Next">›</button>
+                <div id="slb-caption"></div>
+              </div>`;
+            document.body.appendChild(wrap);
+            wrap.addEventListener('click', (e)=>{ if (e.target.id === 'slb-overlay') fallbackClose(); });
+            wrap.querySelector('.slb-close').addEventListener('click', fallbackClose);
+            wrap.querySelector('.slb-prev').addEventListener('click', ()=> fallbackShowIndex(__slbIndex-1));
+            wrap.querySelector('.slb-next').addEventListener('click', ()=> fallbackShowIndex(__slbIndex+1));
+            document.addEventListener('keydown', (e)=>{
+              if (!wrap.classList.contains('active')) return;
+              if (e.key === 'Escape') fallbackClose();
+              if (e.key === 'ArrowLeft') fallbackShowIndex(__slbIndex-1);
+              if (e.key === 'ArrowRight') fallbackShowIndex(__slbIndex+1);
+            });
+        }
+        function fallbackOpenLightbox(items, startIndex){
+            ensureSlbDom(); __slbItems = items || []; __slbIndex = Math.max(0, startIndex||0);
+            document.getElementById('slb-overlay').classList.add('active');
+            fallbackShowIndex(__slbIndex);
+        }
+        function fallbackShowIndex(idx){
+            if (!__slbItems.length) return; __slbIndex = (idx + __slbItems.length) % __slbItems.length;
+            const it = __slbItems[__slbIndex];
+            const img = document.getElementById('slb-img'); img.src = it.src; img.alt = it.alt || '';
+            const cap = document.getElementById('slb-caption');
+            cap.innerHTML = it.caption_html || (it.caption ? '<div>' + it.caption + '</div>' : '');
+        }
+        function fallbackClose(){ const o = document.getElementById('slb-overlay'); if (o) o.classList.remove('active'); }
         
         {% block scripts %}{% endblock %}
     </script>
