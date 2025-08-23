@@ -38,8 +38,8 @@
         }
     </script>
     
-    <!-- PhotoSwipe CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.css">
+    <!-- PhotoSwipe CSS (local) -->
+    <link rel="stylesheet" href="/assets/photoswipe/css/photoswipe.css">
     
     <!-- Swiper CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
@@ -253,8 +253,7 @@
         </div>
     </footer>
 
-    <!-- PhotoSwipe lightbox -->
-    <script src="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.min.js"></script>
+    <!-- PhotoSwipe lightbox (local) loaded dynamically in JS -->
     
     <!-- Swiper.js -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -338,28 +337,42 @@
           'https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.min.js',
           'https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.4/photoswipe.min.js'
         ];
+        // Local PhotoSwipe loader: try actual local paths (core + lightbox), then fallback
+        let __psWarned = false;
+        function loadScriptSequential(urls, done) {
+          let idx = 0;
+          const next = () => {
+            if (idx >= urls.length) return done(false);
+            const s = document.createElement('script');
+            s.src = urls[idx++];
+            s.async = true;
+            s.onload = () => done(true);
+            s.onerror = next;
+            document.head.appendChild(s);
+          };
+          next();
+        }
         function loadPhotoSwipe() {
             return new Promise((resolve, reject) => {
                 if (window.PhotoSwipe) return resolve();
-                if (__psLoading) {
-                    const check = setInterval(() => { if (window.PhotoSwipe) { clearInterval(check); resolve(); } }, 50);
-                    setTimeout(() => { clearInterval(check); if (!window.PhotoSwipe) reject(new Error('PhotoSwipe load timeout')); }, 5000);
-                    return;
-                }
-                __psLoading = true;
-                let index = 0;
-                const tryNext = () => {
-                    if (window.PhotoSwipe) return resolve();
-                    if (index >= __psSources.length) return reject(new Error('Failed to load PhotoSwipe'));
-                    const url = __psSources[index++];
-                    const s = document.createElement('script');
-                    s.src = url;
-                    s.async = true;
-                    s.onload = () => resolve();
-                    s.onerror = () => tryNext();
-                    document.head.appendChild(s);
-                };
-                tryNext();
+                const coreCandidates = [
+                  '/assets/photoswipe/js/photoswipe.js',
+                  '/assets/photoswipe/js/photoswipe.min.js',
+                  '/assets/photoswipe/js/photoswipe.umd.min.js',
+                  '/assets/photoswipe/dist/photoswipe.umd.min.js',
+                  '/assets/photoswipe/dist/photoswipe.min.js',
+                  '/assets/photoswipe/dist/photoswipe.js'
+                ];
+                loadScriptSequential(coreCandidates, (okCore) => {
+                  if (!okCore && !window.PhotoSwipe) return reject(new Error('PhotoSwipe unavailable'));
+                  const lbCandidates = [
+                    '/assets/photoswipe/js/photoswipe-lightbox.umd.min.js',
+                    '/assets/photoswipe/js/photoswipe-lightbox.min.js',
+                    '/assets/photoswipe/dist/photoswipe-lightbox.umd.min.js',
+                    '/assets/photoswipe/dist/photoswipe-lightbox.min.js'
+                  ];
+                  loadScriptSequential(lbCandidates, () => resolve());
+                });
             });
         }
 
@@ -391,38 +404,60 @@
 
             loadPhotoSwipe().then(() => {
                 const psCfg = (window.templateSettings && window.templateSettings.photoswipe) || {};
-                const lightbox = new PhotoSwipe({
+                // If PhotoSwipeLightbox is available, use it to get full UI features
+                if (window.PhotoSwipeLightbox) {
+                  const lb = new PhotoSwipeLightbox({
                     dataSource: items,
-                    index: startIndex,
+                    pswpModule: PhotoSwipe,
                     showHideAnimationType: 'fade',
-                    allowPanToNext: !!psCfg.allowPanToNext,
                     bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
+                    wheelToZoom: true,
                     loop: !!psCfg.loop
-                });
-                // Custom caption overlay for PhotoSwipe
-                let psCaptionEl = document.createElement('div');
-                psCaptionEl.style.position = 'fixed';
-                psCaptionEl.style.left = '50%';
-                psCaptionEl.style.transform = 'translateX(-50%)';
-                psCaptionEl.style.bottom = '24px';
-                psCaptionEl.style.maxWidth = '92vw';
-                psCaptionEl.style.color = '#fff';
-                psCaptionEl.style.textAlign = 'center';
-                psCaptionEl.style.fontSize = '14px';
-                psCaptionEl.style.lineHeight = '1.3';
-                psCaptionEl.style.zIndex = '10001';
-                function updatePsCaption(){
-                  const it = items[lightbox.currIndex];
-                  if (!it) return;
-                  psCaptionEl.innerHTML = it.caption_html || (it.caption ? `<div>${it.caption}</div>` : '');
-                  if (psCaptionEl.innerHTML) document.body.appendChild(psCaptionEl);
+                  });
+                  let psCaptionEl;
+                  lb.on('open', () => {
+                    const pswp = lb.pswp;
+                    psCaptionEl = document.createElement('div');
+                    Object.assign(psCaptionEl.style, { position:'fixed', left:'50%', transform:'translateX(-50%)', bottom:'24px', maxWidth:'92vw', color:'#fff', textAlign:'center', fontSize:'14px', lineHeight:'1.3', zIndex:'10001' });
+                    pswp.on('change', () => {
+                      const it = items[pswp.currIndex];
+                      if (!it) return;
+                      psCaptionEl.innerHTML = it.caption_html || (it.caption ? `<div>${it.caption}</div>` : '');
+                      if (psCaptionEl.innerHTML) document.body.appendChild(psCaptionEl);
+                    });
+                    pswp.on('close', () => { if (psCaptionEl && psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
+                  });
+                  lb.init();
+                  lb.loadAndOpen(startIndex);
+                } else {
+                  // Fallback to base PhotoSwipe class (still local JS)
+                  const lightbox = new PhotoSwipe({
+                      dataSource: items,
+                      index: startIndex,
+                      showHideAnimationType: 'fade',
+                      allowPanToNext: !!psCfg.allowPanToNext,
+                      bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
+                      loop: !!psCfg.loop
+                  });
+                  // Custom caption overlay for PhotoSwipe
+                  let psCaptionEl = document.createElement('div');
+                  Object.assign(psCaptionEl.style, { position:'fixed', left:'50%', transform:'translateX(-50%)', bottom:'24px', maxWidth:'92vw', color:'#fff', textAlign:'center', fontSize:'14px', lineHeight:'1.3', zIndex:'10001' });
+                  function updatePsCaption(){
+                    const it = items[lightbox.currIndex];
+                    if (!it) return;
+                    psCaptionEl.innerHTML = it.caption_html || (it.caption ? `<div>${it.caption}</div>` : '');
+                    if (psCaptionEl.innerHTML) document.body.appendChild(psCaptionEl);
+                  }
+                  lightbox.on('change', updatePsCaption);
+                  lightbox.on('close', ()=>{ if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
+                  lightbox.init();
+                  updatePsCaption();
                 }
-                lightbox.on('change', updatePsCaption);
-                lightbox.on('close', ()=>{ if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
-                lightbox.init();
-                updatePsCaption();
             }).catch((err) => {
-                console.warn('PhotoSwipe not available, using fallback:', err);
+                if (!__psWarned) {
+                  console.warn('PhotoSwipe not available, using fallback:', err);
+                  __psWarned = true;
+                }
                 fallbackOpenLightbox(items, startIndex);
             });
         }
