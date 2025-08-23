@@ -90,7 +90,7 @@
     <div class="flex justify-end">
       <div class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm">
         {% for template in available_templates %}
-        <a class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" href="/gallery?template={{ template.id }}{% if album_ref %}&album={{ album_ref }}{% endif %}" title="{{ template.name }}" data-settings="{{ template.settings|json_encode|e('html_attr') }}" data-template-id="{{ template.id }}">
+        <a class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" href="/gallery?template={{ template.id }}{% if album_ref %}&album={{ album_ref }}{% endif %}" title="{{ template.name }}" data-tooltip="{{ template.name }}{% if template.settings and template.settings.columns %} — {{ template.settings.layout|default('grid') }}, {{ template.settings.columns.mobile|default(1) }}/{{ template.settings.columns.tablet|default(2) }}/{{ template.settings.columns.desktop|default(3) }}{% endif %}" data-settings="{{ template.settings|json_encode|e('html_attr') }}" data-template-id="{{ template.id }}">
           {% if template.slug is defined %}
             {# Prefer slug-based icon mapping if available. Match by containment to handle slugs like `gallery-fullscreen` #}
             {% set slug = template.slug|lower %}
