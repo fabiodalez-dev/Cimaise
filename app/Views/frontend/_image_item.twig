@@ -1,28 +1,34 @@
 <div class="image-item group" data-image-id="{{ image.id }}">
-  <div class="aspect-square overflow-hidden bg-neutral-100 rounded-sm cursor-pointer" 
+  <div class="relative aspect-[4/3] md:aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm cursor-pointer" 
        onclick="openLightbox({{ image.id }})">
     <picture>
       {% set variants_avif = [] %}
       {% set variants_webp = [] %}
       {% set variants_jpg = [] %}
+      {% set best_jpg_path = image.original_path %}
+      {% set best_jpg_w = 0 %}
       {% for variant in image.variants %}
         {% if variant.format == 'avif' %}
-          {% set variants_avif = variants_avif|merge(['/public' ~ variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+          {% set variants_avif = variants_avif|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
         {% elseif variant.format == 'webp' %}
-          {% set variants_webp = variants_webp|merge(['/public' ~ variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+          {% set variants_webp = variants_webp|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
         {% elseif variant.format == 'jpg' %}
-          {% set variants_jpg = variants_jpg|merge(['/public' ~ variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+          {% set variants_jpg = variants_jpg|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+          {% if variant.width > best_jpg_w %}
+            {% set best_jpg_path = variant.path %}
+            {% set best_jpg_w = variant.width %}
+          {% endif %}
         {% endif %}
       {% endfor %}
       
       {% if variants_avif %}
-        <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw">
+        <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1280px) 33vw, (min-width: 768px) 45vw, 90vw">
       {% endif %}
       {% if variants_webp %}
-        <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw">
+        <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1280px) 33vw, (min-width: 768px) 45vw, 90vw">
       {% endif %}
       
-      <img src="/public{{ image.variants[0].path ?? image.original_path }}" 
+      <img src="{{ best_jpg_path }}" 
            alt="{{ image.alt_text|e }}" 
            width="{{ image.width }}" 
            height="{{ image.height }}"
@@ -30,6 +36,11 @@
            decoding="async"
            class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
     </picture>
+    {% if album.allow_downloads %}
+      <a href="/download/image/{{ image.id }}" class="absolute top-2 right-2 bg-black/70 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition" title="Download" onclick="event.stopPropagation();" download>
+        <i class="fa-solid fa-arrow-down"></i>
+      </a>
+    {% endif %}
     
     {% if image.caption %}
       <div class="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -42,7 +53,7 @@
   <script type="application/json" class="image-data">
   {
     "id": {{ image.id }},
-    "src": "/public{{ image.original_path }}",
+    "src": "{{ image.original_path }}",
     "alt": {{ image.alt_text|e|json_encode|raw }},
     "caption": {{ image.caption|e|json_encode|raw }},
     "width": {{ image.width }},
@@ -55,7 +66,9 @@
       "process": {{ image.process|json_encode|raw }},
       {% if image.custom_camera %}"camera": {{ image.custom_camera|json_encode|raw }},{% endif %}
       {% if image.custom_lens %}"lens": {{ image.custom_lens|json_encode|raw }},{% endif %}
-      {% if image.custom_film %}"film": {{ image.custom_film|json_encode|raw }}{% endif %}
+      {% if image.custom_film %}"film": {{ image.custom_film|json_encode|raw }}{% elseif image.film_name is defined and image.film_name %}"film": {{ image.film_name|json_encode|raw }}{% endif %}
+      {% if image.developer_name is defined and image.developer_name %},"developer": {{ image.developer_name|json_encode|raw }}{% endif %}
+      {% if image.lab_name is defined and image.lab_name %},"lab": {{ image.lab_name|json_encode|raw }}{% endif %}
     }
   }
   </script>

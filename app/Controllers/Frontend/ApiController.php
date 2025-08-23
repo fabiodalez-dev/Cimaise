@@ -14,260 +14,192 @@ class ApiController
 
     public function albums(Request $request, Response $response): Response
     {
-        $params = $request->getQueryParams();
-        $page = max(1, (int)($params['page'] ?? 1));
-        $perPage = min(50, max(5, (int)($params['per_page'] ?? 12)));
-        $offset = ($page - 1) * $perPage;
-        
-        // Filters
-        $category = trim((string)($params['category'] ?? ''));
-        $tags = array_filter(explode(',', trim((string)($params['tags'] ?? ''))));
-        $process = trim((string)($params['process'] ?? ''));
-        $camera = trim((string)($params['camera'] ?? ''));
-        $film = trim((string)($params['film'] ?? ''));
-        $sort = trim((string)($params['sort'] ?? 'published_desc'));
-        
         $pdo = $this->db->pdo();
-        
-        // Build query
-        $where = ['a.is_published = 1'];
-        $binds = [];
+        $q = $request->getQueryParams();
+
+        $page = max(1, (int)($q['page'] ?? 1));
+        $perPage = min(50, max(1, (int)($q['per_page'] ?? 12)));
+        $offset = ($page - 1) * $perPage;
+        $category = $q['category'] ?? null;
+        $tag = $q['tag'] ?? null; // simple single tag for now
+        $sort = $q['sort'] ?? 'published_desc';
+
+        // Build base SQL
+        $wheres = ['a.is_published = 1'];
+        $params = [];
         $joins = ['JOIN categories c ON c.id = a.category_id'];
-        
-        if ($category) {
-            $where[] = 'c.slug = :category';
-            $binds[':category'] = $category;
+        if ($category) { $wheres[] = 'c.slug = :category'; $params[':category'] = $category; }
+        if ($tag) {
+            $joins[] = 'JOIN album_tag at ON at.album_id = a.id';
+            $joins[] = 'JOIN tags t ON t.id = at.tag_id';
+            $wheres[] = 't.slug = :tag';
+            $params[':tag'] = $tag;
         }
-        
-        if (!empty($tags)) {
-            $joins[] = 'LEFT JOIN album_tag at ON at.album_id = a.id';
-            $joins[] = 'LEFT JOIN tags t ON t.id = at.tag_id';
-            $tagPlaceholders = [];
-            foreach ($tags as $i => $tag) {
-                $placeholder = ":tag$i";
-                $tagPlaceholders[] = $placeholder;
-                $binds[$placeholder] = $tag;
-            }
-            $where[] = 't.slug IN (' . implode(',', $tagPlaceholders) . ')';
-        }
-        
-        // Additional filters for album images (process, camera, film)
-        if ($process || $camera || $film) {
-            $joins[] = 'LEFT JOIN images img ON img.album_id = a.id';
-            
-            if ($process) {
-                $where[] = 'img.process = :process';
-                $binds[':process'] = $process;
-            }
-            
-            if ($camera) {
-                $joins[] = 'LEFT JOIN cameras cam ON cam.id = img.camera_id';
-                // SQLite does not support CONCAT; use fields separately for portability
-                $where[] = "(cam.make LIKE :camera OR cam.model LIKE :camera OR img.custom_camera LIKE :camera)";
-                $binds[':camera'] = '%' . $camera . '%';
-            }
-            
-            if ($film) {
-                $joins[] = 'LEFT JOIN films f ON f.id = img.film_id';
-                $where[] = "(f.name LIKE :film OR img.custom_film LIKE :film)";
-                $binds[':film'] = '%' . $film . '%';
-            }
-        }
-        
+
         $orderBy = match ($sort) {
             'published_asc' => 'a.published_at ASC',
             'shoot_date_desc' => 'a.shoot_date DESC',
             'shoot_date_asc' => 'a.shoot_date ASC',
             'title_asc' => 'a.title ASC',
             'title_desc' => 'a.title DESC',
-            default => 'a.published_at DESC'
+            default => 'a.published_at DESC',
         };
-        
-        // Count query
-        $countSql = "SELECT COUNT(DISTINCT a.id) FROM albums a " . implode(' ', $joins) . 
-                   " WHERE " . implode(' AND ', $where);
-        $countStmt = $pdo->prepare($countSql);
-        $countStmt->execute($binds);
-        $total = (int)$countStmt->fetchColumn();
-        
-        // Data query
-        $dataSql = "SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug 
-                   FROM albums a " . implode(' ', $joins) . 
-                   " WHERE " . implode(' AND ', $where) . 
-                   " ORDER BY $orderBy 
-                   LIMIT :limit OFFSET :offset";
-        
-        $binds[':limit'] = $perPage;
-        $binds[':offset'] = $offset;
-        
-        $stmt = $pdo->prepare($dataSql);
-        foreach ($binds as $key => $value) {
-            $type = is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR;
-            $stmt->bindValue($key, $value, $type);
-        }
+
+        // Count
+        $sqlCount = 'SELECT COUNT(DISTINCT a.id) FROM albums a ' . implode(' ', $joins) . ' WHERE ' . implode(' AND ', $wheres);
+        $stmt = $pdo->prepare($sqlCount);
+        $stmt->execute($params);
+        $total = (int)$stmt->fetchColumn();
+
+        // Fetch paginated
+        $sql = 'SELECT a.*, c.name AS category_name, c.slug AS category_slug 
+                FROM albums a ' . implode(' ', $joins) . ' 
+                WHERE ' . implode(' AND ', $wheres) . ' 
+                GROUP BY a.id 
+                ORDER BY ' . $orderBy . ' 
+                LIMIT :limit OFFSET :offset';
+        $stmt = $pdo->prepare($sql);
+        foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
         $albums = $stmt->fetchAll();
-        
-        // Enrich with cover images and tags
+
+        // Enrich albums minimally (cover + tags)
         foreach ($albums as &$album) {
-            // Cover image
-            $coverStmt = $pdo->prepare('SELECT * FROM images WHERE id = :cover_id');
-            $coverStmt->execute([':cover_id' => $album['cover_image_id']]);
-            $album['cover'] = $coverStmt->fetch() ?: null;
-            
-            if ($album['cover']) {
-                // Get cover variants
-                $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id');
-                $variantsStmt->execute([':id' => $album['cover']['id']]);
-                $album['cover']['variants'] = $variantsStmt->fetchAll();
-            }
-            
-            // Tags
-            $tagsStmt = $pdo->prepare('SELECT t.* FROM tags t JOIN album_tag at ON at.tag_id = t.id WHERE at.album_id = :id');
-            $tagsStmt->execute([':id' => $album['id']]);
-            $album['tags'] = $tagsStmt->fetchAll();
+            $this->enrichAlbum($album);
         }
-        
-        // Render cards HTML
-        $itemsHtml = $this->view->fetchFromString(
-            '{% for album in albums %}{% include "frontend/_album_card.twig" %}{% endfor %}',
-            ['albums' => $albums]
-        );
-        
-        $data = [
+
+        // Render itemsHtml via Twig partial
+        $itemsHtml = '';
+        foreach ($albums as $a) {
+            $itemsHtml .= $this->view->fetch('frontend/_album_card.twig', ['album' => $a]);
+        }
+
+        $pages = max(1, (int)ceil($total / $perPage));
+        $payload = [
             'itemsHtml' => $itemsHtml,
             'pagination' => [
                 'page' => $page,
                 'per_page' => $perPage,
                 'total' => $total,
-                'pages' => (int)ceil($total / $perPage),
-                'has_next' => $page < ceil($total / $perPage),
-                'has_prev' => $page > 1
+                'pages' => $pages,
+                'has_next' => $page < $pages,
+                'has_prev' => $page > 1,
             ],
-            'filters' => [
-                'category' => $category,
-                'tags' => $tags,
-                'process' => $process,
-                'camera' => $camera,
-                'film' => $film,
-                'sort' => $sort
-            ]
         ];
-        
-        $response->getBody()->write(json_encode($data, JSON_UNESCAPED_SLASHES));
+
+        $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function albumImages(Request $request, Response $response, array $args): Response
     {
-        $albumId = (int)($args['id'] ?? 0);
-        $params = $request->getQueryParams();
-        $page = max(1, (int)($params['page'] ?? 1));
-        $perPage = min(100, max(5, (int)($params['per_page'] ?? 24)));
-        $offset = ($page - 1) * $perPage;
-        
-        // Filters
-        $process = trim((string)($params['process'] ?? ''));
-        $camera = trim((string)($params['camera'] ?? ''));
-        $film = trim((string)($params['film'] ?? ''));
-        $lens = trim((string)($params['lens'] ?? ''));
-        
         $pdo = $this->db->pdo();
-        
-        // Check album exists and is published
-        $albumStmt = $pdo->prepare('SELECT * FROM albums WHERE id = :id AND is_published = 1');
-        $albumStmt->execute([':id' => $albumId]);
-        $album = $albumStmt->fetch();
-        
-        if (!$album) {
-            return $response->withStatus(404);
-        }
-        
-        // Build images query
-        $where = ['i.album_id = :album_id'];
-        $binds = [':album_id' => $albumId];
-        $joins = [];
-        
-        if ($process) {
-            $where[] = 'i.process = :process';
-            $binds[':process'] = $process;
-        }
-        
-        if ($camera) {
-            $joins[] = 'LEFT JOIN cameras cam ON cam.id = i.camera_id';
-            $where[] = "(cam.make LIKE :camera OR cam.model LIKE :camera OR i.custom_camera LIKE :camera)";
-            $binds[':camera'] = '%' . $camera . '%';
-        }
-        
-        if ($film) {
-            $joins[] = 'LEFT JOIN films f ON f.id = i.film_id';
-            $where[] = "(f.name LIKE :film OR i.custom_film LIKE :film)";
-            $binds[':film'] = '%' . $film . '%';
-        }
-        
-        if ($lens) {
-            $joins[] = 'LEFT JOIN lenses l ON l.id = i.lens_id';
-            $where[] = "(l.brand LIKE :lens OR l.model LIKE :lens OR i.custom_lens LIKE :lens)";
-            $binds[':lens'] = '%' . $lens . '%';
-        }
-        
-        // Count
-        $countSql = "SELECT COUNT(*) FROM images i " . implode(' ', $joins) . 
-                   " WHERE " . implode(' AND ', $where);
-        $countStmt = $pdo->prepare($countSql);
-        $countStmt->execute($binds);
-        $total = (int)$countStmt->fetchColumn();
-        
-        // Data
-        $dataSql = "SELECT i.* FROM images i " . implode(' ', $joins) . 
-                  " WHERE " . implode(' AND ', $where) . 
-                  " ORDER BY i.sort_order ASC, i.id ASC 
-                  LIMIT :limit OFFSET :offset";
-        
-        $binds[':limit'] = $perPage;
-        $binds[':offset'] = $offset;
-        
-        $stmt = $pdo->prepare($dataSql);
-        foreach ($binds as $key => $value) {
-            $type = is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR;
-            $stmt->bindValue($key, $value, $type);
-        }
+        $albumId = (int)($args['id'] ?? 0);
+        $q = $request->getQueryParams();
+        $process = $q['process'] ?? null;
+        $camera = $q['camera'] ?? null; // matches custom_camera only for demo
+        $page = max(1, (int)($q['page'] ?? 1));
+        $perPage = min(100, max(1, (int)($q['per_page'] ?? 30)));
+        $offset = ($page - 1) * $perPage;
+
+        $wheres = ['i.album_id = :album_id'];
+        $params = [':album_id' => $albumId];
+        if ($process) { $wheres[] = 'i.process = :process'; $params[':process'] = $process; }
+        if ($camera) { $wheres[] = 'i.custom_camera = :camera'; $params[':camera'] = $camera; }
+
+        $sqlCount = 'SELECT COUNT(*) FROM images i WHERE ' . implode(' AND ', $wheres);
+        $stmt = $pdo->prepare($sqlCount);
+        $stmt->execute($params);
+        $total = (int)$stmt->fetchColumn();
+
+        $sql = 'SELECT i.* FROM images i WHERE ' . implode(' AND ', $wheres) . ' ORDER BY i.sort_order ASC, i.id ASC LIMIT :limit OFFSET :offset';
+        $stmt = $pdo->prepare($sql);
+        foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
-        $images = $stmt->fetchAll();
-        
-        // Get variants for each image
-        foreach ($images as &$image) {
-            $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id');
-            $variantsStmt->execute([':id' => $image['id']]);
-            $image['variants'] = $variantsStmt->fetchAll();
+        $images = $stmt->fetchAll() ?: [];
+
+        foreach ($images as &$img) {
+            $vstmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
+            $vstmt->execute([':id' => $img['id']]);
+            $img['variants'] = $vstmt->fetchAll();
+            if ($img['exif']) {
+                $exif = json_decode($img['exif'], true) ?: [];
+                $img['exif_display'] = $this->formatExifForDisplay($exif, $img);
+            }
         }
-        
-        // Render images HTML
-        $itemsHtml = $this->view->fetchFromString(
-            '{% for image in images %}{% include "frontend/_image_item.twig" %}{% endfor %}',
-            ['images' => $images, 'album' => $album]
-        );
-        
-        $data = [
+
+        $itemsHtml = '';
+        foreach ($images as $i) {
+            $itemsHtml .= $this->view->fetch('frontend/_image_item.twig', ['image' => $i]);
+        }
+
+        $pages = max(1, (int)ceil($total / $perPage));
+        $payload = [
             'itemsHtml' => $itemsHtml,
             'pagination' => [
                 'page' => $page,
                 'per_page' => $perPage,
                 'total' => $total,
-                'pages' => (int)ceil($total / $perPage),
-                'has_next' => $page < ceil($total / $perPage),
-                'has_prev' => $page > 1
+                'pages' => $pages,
+                'has_next' => $page < $pages,
+                'has_prev' => $page > 1,
             ],
-            'album' => $album,
-            'filters' => [
-                'process' => $process,
-                'camera' => $camera,
-                'film' => $film,
-                'lens' => $lens
-            ]
         ];
-        
-        $response->getBody()->write(json_encode($data, JSON_UNESCAPED_SLASHES));
+        $response->getBody()->write(json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json');
     }
+
+    private function enrichAlbum(array &$album): void
+    {
+        $pdo = $this->db->pdo();
+        if (!empty($album['cover_image_id'])) {
+            $stmt = $pdo->prepare('SELECT * FROM images WHERE id = :id');
+            $stmt->execute([':id' => $album['cover_image_id']]);
+            $cover = $stmt->fetch();
+            if ($cover) {
+                $vstmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
+                $vstmt->execute([':id' => $cover['id']]);
+                $cover['variants'] = $vstmt->fetchAll();
+                $album['cover'] = $cover;
+            }
+        }
+        $stmt = $pdo->prepare('SELECT t.* FROM tags t JOIN album_tag at ON at.tag_id = t.id WHERE at.album_id = :id ORDER BY t.name ASC');
+        $stmt->execute([':id' => $album['id']]);
+        $album['tags'] = $stmt->fetchAll();
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM images WHERE album_id = :id');
+        $stmt->execute([':id' => $album['id']]);
+        $album['images_count'] = (int)$stmt->fetchColumn();
+    }
+
+    private function formatExifForDisplay(array $exif, array $image): array
+    {
+        $display = [];
+        if (!empty($exif['Make']) && !empty($exif['Model'])) {
+            $display['camera'] = trim($exif['Make'] . ' ' . $exif['Model']);
+        } elseif (!empty($image['custom_camera'])) {
+            $display['camera'] = $image['custom_camera'];
+        }
+        if (!empty($exif['LensModel'])) {
+            $display['lens'] = $exif['LensModel'];
+        } elseif (!empty($image['custom_lens'])) {
+            $display['lens'] = $image['custom_lens'];
+        }
+        if (!empty($image['aperture'])) {
+            $display['aperture'] = 'f/' . number_format((float)$image['aperture'], 1);
+        }
+        if (!empty($image['shutter_speed'])) {
+            $display['shutter'] = (string)$image['shutter_speed'];
+        }
+        if (!empty($image['iso'])) {
+            $display['iso'] = 'ISO ' . (int)$image['iso'];
+        }
+        if (!empty($image['custom_film'])) { $display['film'] = $image['custom_film']; }
+        if (!empty($image['process'])) { $display['process'] = ucfirst((string)$image['process']); }
+        return $display;
+    }
 }
+

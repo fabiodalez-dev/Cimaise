@@ -62,53 +62,112 @@
           
           <div class="space-y-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Cameras</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-gray-700">Cameras</label>
+                <label class="flex items-center text-xs text-gray-600">
+                  <input type="checkbox" id="cameras-custom-toggle" class="mr-1 rounded">
+                  Usa campi liberi
+                </label>
+              </div>
               <select class="form-input" name="cameras[]" id="album-cameras" multiple>
                 {% for camera in cameras %}
                   <option value="{{ camera.id }}">{{ camera.make }} {{ camera.model }}</option>
                 {% endfor %}
               </select>
+              <div id="cameras-custom-fields" class="mt-2 hidden">
+                <textarea name="custom_cameras" placeholder="Una camera per riga, es: Leica M6, Canon AE-1" class="form-input" rows="3"></textarea>
+                <p class="text-xs text-gray-500 mt-1">Una camera per riga</p>
+              </div>
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Lenses</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-gray-700">Lenses</label>
+                <label class="flex items-center text-xs text-gray-600">
+                  <input type="checkbox" id="lenses-custom-toggle" class="mr-1 rounded">
+                  Usa campi liberi
+                </label>
+              </div>
               <select class="form-input" name="lenses[]" id="album-lenses" multiple>
                 {% for lens in lenses %}
                   <option value="{{ lens.id }}">{{ lens.brand }} {{ lens.model }}</option>
                 {% endfor %}
               </select>
+              <div id="lenses-custom-fields" class="mt-2 hidden">
+                <textarea name="custom_lenses" placeholder="Una lente per riga, es: Canon 50mm f/1.4, Leica 35mm f/2" class="form-input" rows="3"></textarea>
+                <p class="text-xs text-gray-500 mt-1">Una lente per riga</p>
+              </div>
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Films</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-gray-700">Films</label>
+                <label class="flex items-center text-xs text-gray-600">
+                  <input type="checkbox" id="films-custom-toggle" class="mr-1 rounded">
+                  Usa campi liberi
+                </label>
+              </div>
               <select class="form-input" name="films[]" id="album-films" multiple>
                 {% for film in films %}
                   <option value="{{ film.id }}">{{ film.brand }} {{ film.name }}</option>
                 {% endfor %}
               </select>
+              <div id="films-custom-fields" class="mt-2 hidden">
+                <textarea name="custom_films" placeholder="Un film per riga, es: Kodak Portra 400, Fuji Pro 400H" class="form-input" rows="3"></textarea>
+                <p class="text-xs text-gray-500 mt-1">Un film per riga</p>
+              </div>
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Developers</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-gray-700">Developers</label>
+                <label class="flex items-center text-xs text-gray-600">
+                  <input type="checkbox" id="developers-custom-toggle" class="mr-1 rounded">
+                  Usa campi liberi
+                </label>
+              </div>
               <select class="form-input" name="developers[]" id="album-developers" multiple>
                 {% for developer in developers %}
                   <option value="{{ developer.id }}">{{ developer.name }}</option>
                 {% endfor %}
               </select>
+              <div id="developers-custom-fields" class="mt-2 hidden">
+                <textarea name="custom_developers" placeholder="Uno sviluppatore per riga, es: Kodak D-76, Rodinal" class="form-input" rows="2"></textarea>
+                <p class="text-xs text-gray-500 mt-1">Uno sviluppatore per riga</p>
+              </div>
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Labs</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-gray-700">Labs</label>
+                <label class="flex items-center text-xs text-gray-600">
+                  <input type="checkbox" id="labs-custom-toggle" class="mr-1 rounded">
+                  Usa campi liberi
+                </label>
+              </div>
               <select class="form-input" name="labs[]" id="album-labs" multiple>
                 {% for lab in labs %}
                   <option value="{{ lab.id }}">{{ lab.name }}</option>
                 {% endfor %}
               </select>
+              <div id="labs-custom-fields" class="mt-2 hidden">
+                <textarea name="custom_labs" placeholder="Un laboratorio per riga, es: Carmencita Film Lab, The FPPF" class="form-input" rows="2"></textarea>
+                <p class="text-xs text-gray-500 mt-1">Un laboratorio per riga</p>
+              </div>
             </div>
           </div>
         </div>
         
         <div class="border-t pt-4 mt-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Password album (opzionale)</label>
+            <input class="form-input" type="password" name="password" placeholder="Imposta password per proteggere l'album">
+            <p class="text-xs text-gray-500 mt-1">Se impostata, l’album richiederà password per l’accesso pubblico</p>
+          </div>
+          <div class="flex items-center gap-2 mt-3">
+            <input class="h-4 w-4" type="checkbox" name="allow_downloads" id="allow_downloads">
+            <label class="text-sm text-gray-700" for="allow_downloads">Consenti download delle immagini</label>
+          </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
             <input class="form-input" type="number" name="sort_order" value="0">
@@ -153,14 +212,153 @@
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  
+  <!-- Modal edit image (for when images are present after upload) -->
+  <div id="image-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div class="bg-white w-full max-w-2xl rounded shadow-lg overflow-hidden">
+      <div class="px-5 py-3 border-b flex items-center justify-between">
+        <h3 class="text-lg font-medium">Modifica immagine</h3>
+        <button type="button" id="image-modal-close" class="text-gray-500 hover:text-black">✕</button>
+      </div>
+      <form id="image-form" method="post">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Alt text</label>
+            <input type="text" name="alt_text" id="f-alt" class="form-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Titolo/Caption</label>
+            <input type="text" name="caption" id="f-caption" class="form-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Camera</label>
+            <select name="camera_id" id="f-camera" class="form-input">
+              <option value="">—</option>
+              {% for camera in cameras %}
+                <option value="{{ camera.id }}">{{ camera.make }} {{ camera.model }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Lens</label>
+            <select name="lens_id" id="f-lens" class="form-input">
+              <option value="">—</option>
+              {% for lens in lenses %}
+                <option value="{{ lens.id }}">{{ lens.brand }} {{ lens.model }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Film</label>
+            <select name="film_id" id="f-film" class="form-input">
+              <option value="">—</option>
+              {% for film in films %}
+                <option value="{{ film.id }}">{{ film.brand }} {{ film.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Developer</label>
+            <select name="developer_id" id="f-developer" class="form-input">
+              <option value="">—</option>
+              {% for dev in developers %}
+                <option value="{{ dev.id }}">{{ dev.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Lab</label>
+            <select name="lab_id" id="f-lab" class="form-input">
+              <option value="">—</option>
+              {% for lab in labs %}
+                <option value="{{ lab.id }}">{{ lab.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Custom camera</label>
+            <input type="text" name="custom_camera" id="f-custom-camera" class="form-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Custom lens</label>
+            <input type="text" name="custom_lens" id="f-custom-lens" class="form-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Custom film</label>
+            <input type="text" name="custom_film" id="f-custom-film" class="form-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ISO</label>
+            <input type="number" name="iso" id="f-iso" class="form-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Shutter</label>
+            <input type="text" name="shutter_speed" id="f-shutter" class="form-input" placeholder="1/125">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Aperture</label>
+            <input type="number" step="0.1" name="aperture" id="f-aperture" class="form-input" placeholder="2.8">
+          </div>
+        </div>
+        <div class="px-5 py-3 border-t flex items-center justify-end gap-2">
+          <button type="button" id="image-cancel" class="btn-secondary">Annulla</button>
+          <button type="submit" class="btn-primary">Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
   <script>
-    new TomSelect('#album-tags',{plugins:['remove_button'],create:false,placeholder:'Seleziona tag...'});
-    new TomSelect('#album-categories',{plugins:['remove_button'],create:false,placeholder:'Seleziona categorie...'});
-    new TomSelect('#album-cameras',{plugins:['remove_button'],create:false,placeholder:'Seleziona cameras...'});
-    new TomSelect('#album-lenses',{plugins:['remove_button'],create:false,placeholder:'Seleziona lenses...'});
-    new TomSelect('#album-films',{plugins:['remove_button'],create:false,placeholder:'Seleziona films...'});
-    new TomSelect('#album-developers',{plugins:['remove_button'],create:false,placeholder:'Seleziona developers...'});
-    new TomSelect('#album-labs',{plugins:['remove_button'],create:false,placeholder:'Seleziona labs...'});
+    const tagSelect = new TomSelect('#album-tags',{plugins:['remove_button'],create:false,placeholder:'Seleziona tag...'});
+    const categorySelect = new TomSelect('#album-categories',{plugins:['remove_button'],create:false,placeholder:'Seleziona categorie...'});
+    const cameraSelect = new TomSelect('#album-cameras',{plugins:['remove_button'],create:false,placeholder:'Seleziona cameras...'});
+    const lensSelect = new TomSelect('#album-lenses',{plugins:['remove_button'],create:false,placeholder:'Seleziona lenses...'});
+    const filmSelect = new TomSelect('#album-films',{plugins:['remove_button'],create:false,placeholder:'Seleziona films...'});
+    const developerSelect = new TomSelect('#album-developers',{plugins:['remove_button'],create:false,placeholder:'Seleziona developers...'});
+    const labSelect = new TomSelect('#album-labs',{plugins:['remove_button'],create:false,placeholder:'Seleziona labs...'});
+    
+    // Ensure form synchronization before submit
+    document.querySelector('form').addEventListener('submit', function(e) {
+      // Force TomSelect to sync with original form fields
+      tagSelect.sync();
+      categorySelect.sync();
+      cameraSelect.sync();
+      lensSelect.sync();
+      filmSelect.sync();
+      developerSelect.sync();
+      labSelect.sync();
+      
+      console.log('Form submitting with tags:', document.getElementById('album-tags').value);
+      console.log('Form submitting with cameras:', document.getElementById('album-cameras').value);
+    });
+
+    // Equipment toggle handlers
+    function setupEquipmentToggle(equipmentType) {
+      const toggle = document.getElementById(`${equipmentType}-custom-toggle`);
+      const selectField = document.getElementById(`album-${equipmentType}`);
+      const customFields = document.getElementById(`${equipmentType}-custom-fields`);
+      
+      if (!toggle || !selectField || !customFields) return;
+      
+      toggle.addEventListener('change', function() {
+        if (this.checked) {
+          selectField.style.display = 'none';
+          customFields.classList.remove('hidden');
+          // Clear TomSelect selection
+          const tomSelect = selectField.tomselect;
+          if (tomSelect) tomSelect.clear();
+        } else {
+          selectField.style.display = 'block';
+          customFields.classList.add('hidden');
+          // Clear custom field
+          const textarea = customFields.querySelector('textarea');
+          if (textarea) textarea.value = '';
+        }
+      });
+    }
+    
+    // Setup all equipment toggles
+    ['cameras', 'lenses', 'films', 'developers', 'labs'].forEach(setupEquipmentToggle);
 
     // Create-first-then-upload flow
     let createdAlbumId = null;

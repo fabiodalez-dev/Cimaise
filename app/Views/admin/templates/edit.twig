@@ -57,7 +57,7 @@
           <div class="border-t pt-4">
             <h3 class="text-md font-medium text-gray-800 mb-3">Colonne per Dispositivo</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {% set desktop_cols = item.settings.columns.desktop|default(item.settings.columns)|default(3) %}
+              {% set desktop_cols = item.settings.columns.desktop|default(3) %}
               {% set tablet_cols = item.settings.columns.tablet|default(2) %}
               {% set mobile_cols = item.settings.columns.mobile|default(1) %}
               

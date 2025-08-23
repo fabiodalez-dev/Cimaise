@@ -104,5 +104,10 @@ class Database
             return "{$column} IS NULL, {$column}";
         }
     }
-}
 
+    // Helper keyword for portable INSERT IGNORE
+    public function insertIgnoreKeyword(): string
+    {
+        return $this->isSqlite ? 'INSERT OR IGNORE' : 'INSERT IGNORE';
+    }
+}

@@ -83,7 +83,30 @@ class PageController
         $album = $stmt->fetch();
         
         if (!$album) {
-            return $response->withStatus(404);
+            return $this->view->render($response->withStatus(404), 'frontend/404.twig', [
+                'page_title' => '404 — Album non trovato',
+                'meta_description' => 'Album non trovato o non pubblicato'
+            ]);
+        }
+
+        // Password protection
+        if (!empty($album['password_hash'])) {
+            $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$album['id']]);
+            if (!$allowed) {
+                // Categories for header menu
+                $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
+                $navStmt->execute();
+                $navCategories = $navStmt->fetchAll();
+                $query = $request->getQueryParams();
+                $error = isset($query['error']);
+                return $this->view->render($response, 'frontend/album_password.twig', [
+                    'album' => $album,
+                    'categories' => $navCategories,
+                    'page_title' => $album['title'] . ' — Protetto',
+                    'error' => $error,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]);
+            }
         }
         
         // Enrich album data
@@ -109,6 +132,39 @@ class PageController
             if ($image['exif']) {
                 $exif = json_decode($image['exif'], true) ?: [];
                 $image['exif_display'] = $this->formatExifForDisplay($exif, $image);
+            }
+
+            // Lookup names for developer/lab/film if present
+            try {
+                if (!empty($image['developer_id'])) {
+                    $s = $pdo->prepare('SELECT name FROM developers WHERE id = :id');
+                    $s->execute([':id' => $image['developer_id']]);
+                    $image['developer_name'] = $s->fetchColumn() ?: null;
+                }
+                if (!empty($image['lab_id'])) {
+                    $s = $pdo->prepare('SELECT name FROM labs WHERE id = :id');
+                    $s->execute([':id' => $image['lab_id']]);
+                    $image['lab_name'] = $s->fetchColumn() ?: null;
+                }
+                if (!empty($image['film_id'])) {
+                    $s = $pdo->prepare('SELECT brand, name FROM films WHERE id = :id');
+                    $s->execute([':id' => $image['film_id']]);
+                    $fr = $s->fetch();
+                    if ($fr) { $image['film_name'] = trim(($fr['brand'] ?? '') . ' ' . ($fr['name'] ?? '')); }
+                }
+            } catch (\Throwable) { /* ignore lookup errors */ }
+        }
+
+        // Compute unique filter options for Twig (avoid unsupported Twig filters like |unique)
+        $processes = [];
+        $cameras = [];
+        foreach ($images as $img) {
+            if (!empty($img['process']) && !in_array($img['process'], $processes, true)) {
+                $processes[] = $img['process'];
+            }
+            $cam = $img['custom_camera'] ?? ($img['exif_display']['camera'] ?? null);
+            if ($cam && !in_array($cam, $cameras, true)) {
+                $cameras[] = $cam;
             }
         }
         
@@ -138,16 +194,44 @@ class PageController
             $templateLibs = json_decode($album['template_libs'], true) ?: [];
         }
         
+        // Categories for header menu
+        $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
+        $navStmt->execute();
+        $navCategories = $navStmt->fetchAll();
+
         return $this->view->render($response, 'frontend/album.twig', [
             'album' => $album,
             'images' => $images,
             'related_albums' => $relatedAlbums,
             'template_settings' => $templateSettings,
             'template_libs' => $templateLibs,
+            'categories' => $navCategories,
+            'processes' => $processes,
+            'cameras' => $cameras,
             'page_title' => $album['title'] . ' - Portfolio',
             'meta_description' => $album['excerpt'] ?: 'Photography album: ' . $album['title'],
             'meta_image' => $album['cover']['variants'][0]['path'] ?? null
         ]);
+    }
+
+    public function unlockAlbum(Request $request, Response $response, array $args): Response
+    {
+        $slug = (string)($args['slug'] ?? '');
+        $pdo = $this->db->pdo();
+        $stmt = $pdo->prepare('SELECT id, password_hash FROM albums WHERE slug = :slug');
+        $stmt->execute([':slug' => $slug]);
+        $album = $stmt->fetch();
+        if (!$album || empty($album['password_hash'])) {
+            return $response->withHeader('Location', '/album/' . $slug)->withStatus(302);
+        }
+        $data = (array)($request->getParsedBody() ?? []);
+        $password = (string)($data['password'] ?? '');
+        if ($password !== '' && password_verify($password, (string)$album['password_hash'])) {
+            if (!isset($_SESSION['album_access'])) $_SESSION['album_access'] = [];
+            $_SESSION['album_access'][(int)$album['id']] = true;
+            return $response->withHeader('Location', '/album/' . $slug)->withStatus(302);
+        }
+        return $response->withHeader('Location', '/album/' . $slug . '?error=1')->withStatus(302);
     }
 
     public function category(Request $request, Response $response, array $args): Response
@@ -204,7 +288,10 @@ class PageController
         $tag = $stmt->fetch();
         
         if (!$tag) {
-            return $response->withStatus(404);
+            return $this->view->render($response->withStatus(404), 'frontend/404.twig', [
+                'page_title' => '404 — Tag non trovato',
+                'meta_description' => 'Tag non trovato'
+            ]);
         }
         
         // Get albums with this tag
@@ -237,13 +324,94 @@ class PageController
         $stmt->execute();
         $tags = $stmt->fetchAll();
         
+        // Categories for header menu
+        $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
+        $navStmt->execute();
+        $navCategories = $navStmt->fetchAll();
+
         return $this->view->render($response, 'frontend/tag.twig', [
             'tag' => $tag,
             'albums' => $albums,
             'tags' => $tags,
+            'categories' => $navCategories,
             'page_title' => '#' . $tag['name'] . ' - Portfolio',
             'meta_description' => 'Photography albums tagged with: ' . $tag['name']
         ]);
+    }
+
+    public function about(Request $request, Response $response): Response
+    {
+        $pdo = $this->db->pdo();
+        // categories for header
+        $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
+        $navStmt->execute();
+        $navCategories = $navStmt->fetchAll();
+
+        // settings
+        $settings = new \App\Services\SettingsService($this->db);
+        $aboutText = (string)($settings->get('about.text', '') ?? '');
+        $aboutPhoto = (string)($settings->get('about.photo_url', '') ?? '');
+        $aboutFooter = (string)($settings->get('about.footer_text', '') ?? '');
+        $aboutSocials = (array)($settings->get('about.socials', []) ?? []);
+        $aboutTitle = (string)($settings->get('about.title', 'About') ?? 'About');
+        $aboutSubtitle = (string)($settings->get('about.subtitle', '') ?? '');
+        $contactTitle = (string)($settings->get('about.contact_title', 'Contatti') ?? 'Contatti');
+        $contactIntro = (string)($settings->get('about.contact_intro', '') ?? '');
+
+        $q = $request->getQueryParams();
+        $contactSent = isset($q['sent']);
+        $contactError = isset($q['error']);
+
+        return $this->view->render($response, 'frontend/about.twig', [
+            'categories' => $navCategories,
+            'page_title' => $aboutTitle . ' — Portfolio',
+            'meta_description' => 'About the photographer',
+            'about_text' => $aboutText,
+            'about_photo_url' => $aboutPhoto,
+            'about_footer_text' => $aboutFooter,
+            'about_socials' => $aboutSocials,
+            'about_title' => $aboutTitle,
+            'about_subtitle' => $aboutSubtitle,
+            'contact_title' => $contactTitle,
+            'contact_intro' => $contactIntro,
+            'contact_sent' => $contactSent,
+            'contact_error' => $contactError,
+            'csrf' => $_SESSION['csrf'] ?? ''
+        ]);
+    }
+
+    public function aboutContact(Request $request, Response $response): Response
+    {
+        $data = (array)($request->getParsedBody() ?? []);
+        $name = trim((string)($data['name'] ?? ''));
+        $email = trim((string)($data['email'] ?? ''));
+        $message = trim((string)($data['message'] ?? ''));
+
+        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $message === '') {
+            return $response->withHeader('Location', '/about?error=1')->withStatus(302);
+        }
+
+        $settings = new \App\Services\SettingsService($this->db);
+        $to = (string)($settings->get('about.contact_email', '') ?? '');
+        if ($to === '') {
+            $to = (string)(\envv('CONTACT_EMAIL', \envv('MAIL_TO', 'webmaster@localhost')));
+        }
+        $subjectPrefix = (string)($settings->get('about.contact_subject', 'Portfolio') ?? 'Portfolio');
+        $subject = '[' . $subjectPrefix . '] Nuovo messaggio da ' . $name;
+        // Basic header-safe sanitization
+        $safeName = str_replace(["\r","\n"], ' ', $name);
+        $safeEmail = str_replace(["\r","\n"], ' ', $email);
+
+        $body = "Nome: {$safeName}\nEmail: {$safeEmail}\n\nMessaggio:\n{$message}\n";
+        $headers = 'From: ' . $safeName . ' <' . $safeEmail . '>' . "\r\n" .
+                   'Reply-To: ' . $safeEmail . "\r\n" .
+                   'Content-Type: text/plain; charset=UTF-8';
+
+        @mail($to, $subject, $body, $headers);
+        $settings = new \App\Services\SettingsService($this->db);
+        $slug = (string)($settings->get('about.slug', 'about') ?? 'about');
+        if ($slug === '') { $slug = 'about'; }
+        return $response->withHeader('Location', '/' . $slug . '?sent=1')->withStatus(302);
     }
 
     private function enrichAlbum(array $album): array

@@ -39,9 +39,14 @@ class SettingsService
         return [
             'image.formats' => ['avif' => true, 'webp' => true, 'jpg' => true],
             'image.quality' => ['avif' => 50, 'webp' => 75, 'jpg' => 85],
-            'image.breakpoints' => ['xs' => 480, 'sm' => 768, 'md' => 1024],
+            'image.breakpoints' => ['sm' => 768, 'md' => 1200, 'lg' => 1920, 'xl' => 2560, 'xxl' => 3840],
             'image.preview' => ['width' => 480, 'height' => null],
             'visibility' => ['public' => true],
+            'gallery.default_template' => [
+                'layout' => 'grid',
+                'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1],
+                'masonry' => false
+            ],
         ];
     }
 }
