@@ -91,6 +91,21 @@
             background: #000;
         }
 
+        /* Simple tooltip for template buttons */
+        .tpl-switch { position: relative; }
+        .tpl-switch[data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%);
+            background: rgba(17,17,17,.95); color: #fff; padding: 6px 8px; border-radius: 4px; white-space: nowrap;
+            font-size: 12px; line-height: 1; z-index: 50;
+            box-shadow: 0 6px 12px rgba(0,0,0,.2);
+        }
+        .tpl-switch[data-tooltip]:hover::before {
+            content: ''; position: absolute; bottom: 115%; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid rgba(17,17,17,.95);
+            z-index: 51;
+        }
+
         /* Simple Lightbox fallback */
         #slb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.95); color:#fff; display:none; align-items:center; justify-content:center; z-index: 10000; }
         #slb-overlay.active { display:flex; }
@@ -366,7 +381,8 @@
                         width: d.width || 1600,
                         height: d.height || 1067,
                         alt: d.alt || '',
-                        caption: d.caption || ''
+                        caption: d.caption || '',
+                        caption_html: d.caption_html || ''
                     };
                 } catch { return null; }
             }).filter(Boolean);
@@ -383,7 +399,28 @@
                     bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
                     loop: !!psCfg.loop
                 });
+                // Custom caption overlay for PhotoSwipe
+                let psCaptionEl = document.createElement('div');
+                psCaptionEl.style.position = 'fixed';
+                psCaptionEl.style.left = '50%';
+                psCaptionEl.style.transform = 'translateX(-50%)';
+                psCaptionEl.style.bottom = '24px';
+                psCaptionEl.style.maxWidth = '92vw';
+                psCaptionEl.style.color = '#fff';
+                psCaptionEl.style.textAlign = 'center';
+                psCaptionEl.style.fontSize = '14px';
+                psCaptionEl.style.lineHeight = '1.3';
+                psCaptionEl.style.zIndex = '10001';
+                function updatePsCaption(){
+                  const it = items[lightbox.currIndex];
+                  if (!it) return;
+                  psCaptionEl.innerHTML = it.caption_html || (it.caption ? `<div>${it.caption}</div>` : '');
+                  if (psCaptionEl.innerHTML) document.body.appendChild(psCaptionEl);
+                }
+                lightbox.on('change', updatePsCaption);
+                lightbox.on('close', ()=>{ if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
                 lightbox.init();
+                updatePsCaption();
             }).catch((err) => {
                 console.warn('PhotoSwipe not available, using fallback:', err);
                 fallbackOpenLightbox(items, startIndex);
