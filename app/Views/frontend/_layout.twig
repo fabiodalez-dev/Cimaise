@@ -39,7 +39,7 @@
     </script>
     
     <!-- PhotoSwipe CSS (local) -->
-    <link rel="stylesheet" href="/assets/photoswipe/css/photoswipe.css">
+    <link rel="stylesheet" href="/assets/photoswipe/photoswipe.css">
     
     <!-- Swiper CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
@@ -355,52 +355,42 @@
         function loadPhotoSwipe() {
             return new Promise((resolve, reject) => {
                 if (window.PhotoSwipe) return resolve();
+                // Prefer UMD builds under /dist/umd (your current files)
                 const coreCandidates = [
-                  '/assets/photoswipe/js/photoswipe.js',
-                  '/assets/photoswipe/js/photoswipe.min.js',
-                  '/assets/photoswipe/js/photoswipe.umd.min.js',
+                  '/assets/photoswipe/dist/umd/photoswipe.umd.min.js',
+                  '/assets/photoswipe/dist/umd/photoswipe.umd.js',
+                  // fallbacks if structure changes
                   '/assets/photoswipe/dist/photoswipe.umd.min.js',
-                  '/assets/photoswipe/dist/photoswipe.min.js',
-                  '/assets/photoswipe/dist/photoswipe.js'
+                  '/assets/photoswipe/dist/photoswipe.umd.js'
                 ];
                 loadScriptSequential(coreCandidates, (okCore) => {
                   if (!okCore && !window.PhotoSwipe) return reject(new Error('PhotoSwipe unavailable'));
                   const lbCandidates = [
-                    '/assets/photoswipe/js/photoswipe-lightbox.umd.min.js',
-                    '/assets/photoswipe/js/photoswipe-lightbox.min.js',
-                    '/assets/photoswipe/dist/photoswipe-lightbox.umd.min.js',
-                    '/assets/photoswipe/dist/photoswipe-lightbox.min.js'
+                    '/assets/photoswipe/dist/umd/photoswipe-lightbox.umd.min.js',
+                    '/assets/photoswipe/dist/umd/photoswipe-lightbox.umd.js'
                   ];
                   loadScriptSequential(lbCandidates, () => resolve());
                 });
             });
         }
 
-        // Lightbox function (collects current gallery items and opens at clicked index)
-        function openLightbox(imageId) {
-            const container = document.getElementById('images-gallery');
-            if (!container) return;
-
-            const cards = Array.from(container.querySelectorAll('.image-item'));
-            if (!cards.length) return;
-
-            const items = cards.map(card => {
-                const dataScript = card.querySelector('.image-data');
-                if (!dataScript) return null;
-                try {
-                    const d = JSON.parse(dataScript.textContent);
-                    return {
-                        src: d.lightbox_url || d.src || d.url,
-                        width: d.width || 1600,
-                        height: d.height || 1067,
-                        alt: d.alt || '',
-                        caption: d.caption || '',
-                        caption_html: d.caption_html || ''
-                    };
-                } catch { return null; }
-            }).filter(Boolean);
-
-            const startIndex = Math.max(0, cards.findIndex(c => c.getAttribute('data-image-id') === String(imageId)));
+        // Build PS items from anchors in current gallery
+        function buildItemsFromAnchors(){
+            const anchors = Array.from(document.querySelectorAll('#images-gallery a.pswp-link'));
+            return anchors.map(x=>({
+              src: x.getAttribute('href'),
+              width: parseInt(x.getAttribute('data-pswp-width')||'1600',10),
+              height: parseInt(x.getAttribute('data-pswp-height')||'1067',10),
+              caption_html: x.getAttribute('data-pswp-caption')||''
+            }));
+        }
+        // Ensure PS modules are loaded after DOM updates (no-op if already loaded)
+        function initLightbox() {
+            try { loadPhotoSwipe(); } catch(e){}
+        }
+        function openLightboxAt(index) {
+            const items = buildItemsFromAnchors();
+            const startIndex = Math.max(0, Math.min(index, items.length-1));
 
             loadPhotoSwipe().then(() => {
                 const psCfg = (window.templateSettings && window.templateSettings.photoswipe) || {};
@@ -428,6 +418,7 @@
                     pswp.on('close', () => { if (psCaptionEl && psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
                   });
                   lb.init();
+                  // Manually open at index
                   lb.loadAndOpen(startIndex);
                 } else {
                   // Fallback to base PhotoSwipe class (still local JS)
@@ -462,15 +453,17 @@
             });
         }
 
-        // Delegated click for image items (no inline handlers)
+        // Delegated click for PS anchors: prevent navigation and open PS/fallback
         document.addEventListener('click', (e) => {
-            const card = e.target.closest('.image-item');
-            if (!card) return;
-            const id = card.getAttribute('data-image-id');
-            if (!id) return;
+            const a = e.target.closest('a.pswp-link');
+            if (!a) return;
             e.preventDefault();
-            openLightbox(id);
+            const anchors = Array.from(document.querySelectorAll('#images-gallery a.pswp-link'));
+            const idx = Math.max(0, anchors.indexOf(a));
+            openLightboxAt(idx);
         });
+        // Initialize PhotoSwipe core/lightbox once DOM is ready
+        document.addEventListener('DOMContentLoaded', initLightbox);
 
         // Simple Lightbox fallback implementation
         let __slbItems = []; let __slbIndex = 0;

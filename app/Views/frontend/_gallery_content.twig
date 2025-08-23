@@ -41,10 +41,10 @@
     <div class="swiper-wrapper">
       {% for image in images %}
       <div class="swiper-slide">
-        <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer" data-image-id="{{ image.id }}">
+        <a class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
+           href="{{ image.lightbox_url }}" data-pswp-width="{{ image.width }}" data-pswp-height="{{ image.height }}" data-pswp-caption="{{ image.caption_html|default('')|e('html_attr') }}">
           <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover">
-          <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
-        </div>
+        </a>
       </div>
       {% endfor %}
     </div>
@@ -56,10 +56,10 @@
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
     {% for image in images %}
     <div class="masonry-item">
-      <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative" data-image-id="{{ image.id }}">
+      <a class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block group relative"
+         href="{{ image.lightbox_url }}" data-pswp-width="{{ image.width }}" data-pswp-height="{{ image.height }}" data-pswp-caption="{{ image.caption_html|default('')|e('html_attr') }}">
         <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
-        <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
-      </div>
+      </a>
     </div>
     {% endfor %}
   </div>
@@ -67,10 +67,10 @@
   <div class="masonry-grid">
     {% for image in images %}
     <div class="masonry-item">
-      <div class="image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative" data-image-id="{{ image.id }}">
+      <a class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 block group relative"
+         href="{{ image.lightbox_url }}" data-pswp-width="{{ image.width }}" data-pswp-height="{{ image.height }}" data-pswp-caption="{{ image.caption_html|default('')|e('html_attr') }}">
         <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover">
-        <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
-      </div>
+      </a>
     </div>
     {% endfor %}
   </div>
@@ -98,10 +98,10 @@
   <div class="grid {{ mobile_class }} {{ tablet_class }} {{ desktop_class }} gap-4">
     {% for image in images %}
     <div class="masonry-item">
-      <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative" data-image-id="{{ image.id }}">
+      <a class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block group relative"
+         href="{{ image.lightbox_url }}" data-pswp-width="{{ image.width }}" data-pswp-height="{{ image.height }}" data-pswp-caption="{{ image.caption_html|default('')|e('html_attr') }}">
         <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
-        <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
-      </div>
+      </a>
     </div>
     {% endfor %}
   </div>
