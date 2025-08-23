@@ -47,11 +47,64 @@ class SettingsController
         if (!is_array($breakpoints)) {
             $breakpoints = $svc->defaults()['image.breakpoints'];
         }
+        // default template
+        $defaultTemplate = [
+            'layout' => (string)($data['default_layout'] ?? 'grid'),
+            'columns' => [
+                'desktop' => max(1, min(6, (int)($data['default_desktop_cols'] ?? 3))),
+                'tablet' => max(1, min(4, (int)($data['default_tablet_cols'] ?? 2))),
+                'mobile' => max(1, min(2, (int)($data['default_mobile_cols'] ?? 1)))
+            ],
+            'masonry' => isset($data['default_masonry'])
+        ];
+        
         $svc->set('image.formats', $formats);
         $svc->set('image.quality', $quality);
         $svc->set('image.preview', $preview);
         $svc->set('image.breakpoints', $breakpoints);
+        $svc->set('gallery.default_template', $defaultTemplate);
         $_SESSION['flash'][] = ['type'=>'success','message'=>'Impostazioni salvate'];
+        return $response->withHeader('Location', '/admin/settings')->withStatus(302);
+    }
+
+    public function generateImages(Request $request, Response $response): Response
+    {
+        try {
+            $consolePath = dirname(__DIR__, 3) . '/bin/console';
+            if (!is_executable($consolePath)) {
+                throw new \RuntimeException("Console script not executable");
+            }
+
+            $cmd = "php $consolePath images:generate --missing 2>&1";
+            $startTime = microtime(true);
+            
+            ob_start();
+            $output = [];
+            $exitCode = 0;
+            exec($cmd, $output, $exitCode);
+            
+            $duration = round(microtime(true) - $startTime, 2);
+            $outputText = implode("\n", $output);
+            
+            if ($exitCode === 0) {
+                $_SESSION['flash'][] = [
+                    'type' => 'success', 
+                    'message' => "Immagini generate con successo in {$duration}s"
+                ];
+            } else {
+                $_SESSION['flash'][] = [
+                    'type' => 'danger', 
+                    'message' => "Errore nella generazione: " . $outputText
+                ];
+            }
+            
+        } catch (\Throwable $e) {
+            $_SESSION['flash'][] = [
+                'type' => 'danger', 
+                'message' => 'Errore: ' . $e->getMessage()
+            ];
+        }
+        
         return $response->withHeader('Location', '/admin/settings')->withStatus(302);
     }
 }

@@ -632,3 +632,12 @@ Mostra caption + lista metadati (processo, pellicola, camera/lente, ISO/tempo/di
 - Uppy upload → EXIF → varianti AVIF/WebP/JPEG → `<picture>` ottimizzato.  
 - Filtri AJAX su album e galleria (processo, pellicola, camera, ecc.).  
 - Admin semplice, bianco/nero, con drag&drop e inline edit.
+## Log — Per‑image equipment editing [TASK-admin-images-meta]
+
+- Added per-image metadata editing in Admin Albums:
+  - New route `POST /admin/albums/{id}/images/{imageId}/update` handled by `AlbumsController::updateImageMeta`.
+  - `AlbumsController::edit` now selects image fields (alt_text, caption, camera_id, lens_id, film_id, developer_id, lab_id, custom_*, iso, shutter_speed, aperture) for the grid.
+  - `admin/albums/edit.twig`: modal to edit per-image fields (alt/caption, equipment + custom, exposure) with inline JS to open/submit.
+  - `admin/albums/create.twig`: added the same modal scaffold for when images are present after upload.
+- Frontend album/test-gallery improved image quality (largest jpg variant as <img src>, better sizes).
+- Fixed `Array to string conversion` in templates listing by normalizing `columns` (number or object).

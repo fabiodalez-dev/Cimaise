@@ -62,6 +62,17 @@ class TemplatesController
             'tablet' => (int)($data['columns_tablet'] ?? 2),
             'mobile' => (int)($data['columns_mobile'] ?? 1)
         ];
+        
+        // Ensure we don't have nested structures (fix potential issues)
+        if (is_array($columns['desktop']) && isset($columns['desktop']['desktop'])) {
+            $columns['desktop'] = (int)$columns['desktop']['desktop'];
+        }
+        if (is_array($columns['tablet']) && isset($columns['tablet']['tablet'])) {
+            $columns['tablet'] = (int)$columns['tablet']['tablet'];
+        }
+        if (is_array($columns['mobile']) && isset($columns['mobile']['mobile'])) {
+            $columns['mobile'] = (int)$columns['mobile']['mobile'];
+        }
 
         // Process settings from form data
         $settings = [
@@ -150,6 +161,17 @@ class TemplatesController
             'tablet' => (int)($data['columns_tablet'] ?? 2),
             'mobile' => (int)($data['columns_mobile'] ?? 1)
         ];
+        
+        // Ensure we don't have nested structures (fix potential issues)
+        if (is_array($columns['desktop']) && isset($columns['desktop']['desktop'])) {
+            $columns['desktop'] = (int)$columns['desktop']['desktop'];
+        }
+        if (is_array($columns['tablet']) && isset($columns['tablet']['tablet'])) {
+            $columns['tablet'] = (int)$columns['tablet']['tablet'];
+        }
+        if (is_array($columns['mobile']) && isset($columns['mobile']['mobile'])) {
+            $columns['mobile'] = (int)$columns['mobile']['mobile'];
+        }
 
         // Process settings from form data
         $settings = [

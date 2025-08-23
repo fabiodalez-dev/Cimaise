@@ -1,5 +1,5 @@
 -- Album equipment relationships
-CREATE TABLE album_camera (
+CREATE TABLE IF NOT EXISTS album_camera (
     album_id INTEGER NOT NULL,
     camera_id INTEGER NOT NULL,
     PRIMARY KEY (album_id, camera_id),
@@ -7,7 +7,7 @@ CREATE TABLE album_camera (
     FOREIGN KEY (camera_id) REFERENCES cameras(id) ON DELETE CASCADE
 );
 
-CREATE TABLE album_lens (
+CREATE TABLE IF NOT EXISTS album_lens (
     album_id INTEGER NOT NULL,
     lens_id INTEGER NOT NULL,
     PRIMARY KEY (album_id, lens_id),
@@ -15,7 +15,7 @@ CREATE TABLE album_lens (
     FOREIGN KEY (lens_id) REFERENCES lenses(id) ON DELETE CASCADE
 );
 
-CREATE TABLE album_film (
+CREATE TABLE IF NOT EXISTS album_film (
     album_id INTEGER NOT NULL,
     film_id INTEGER NOT NULL,
     PRIMARY KEY (album_id, film_id),
@@ -23,7 +23,7 @@ CREATE TABLE album_film (
     FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE
 );
 
-CREATE TABLE album_developer (
+CREATE TABLE IF NOT EXISTS album_developer (
     album_id INTEGER NOT NULL,
     developer_id INTEGER NOT NULL,
     PRIMARY KEY (album_id, developer_id),
@@ -31,7 +31,7 @@ CREATE TABLE album_developer (
     FOREIGN KEY (developer_id) REFERENCES developers(id) ON DELETE CASCADE
 );
 
-CREATE TABLE album_lab (
+CREATE TABLE IF NOT EXISTS album_lab (
     album_id INTEGER NOT NULL,
     lab_id INTEGER NOT NULL,
     PRIMARY KEY (album_id, lab_id),

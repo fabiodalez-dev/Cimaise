@@ -1,0 +1,31 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Pages — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Pages</h1>
+      <p class="text-gray-600 mt-1">Gestisci le pagine statiche del sito</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for p in pages %}
+    <div class="card">
+      <div class="p-6">
+        <div class="flex items-start justify-between">
+          <div>
+            <h3 class="text-lg font-medium text-gray-900">{{ p.title }}</h3>
+            <p class="text-sm text-gray-600 mt-1">{{ p.description }}</p>
+          </div>
+          <span class="inline-flex items-center text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ p.slug }}</span>
+        </div>
+        <div class="mt-4 flex items-center gap-3">
+          <a href="{{ p.edit_url }}" class="btn-primary btn-sm"><i class="fas fa-pen mr-2"></i>Modifica</a>
+          <a href="{{ p.public_url }}" target="_blank" class="btn-secondary btn-sm"><i class="fas fa-external-link-alt mr-2"></i>Vedi</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% endblock %}
+
