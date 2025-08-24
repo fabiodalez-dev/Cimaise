@@ -17,8 +17,9 @@ $app->get('/', function (Request $request, Response $response) use ($container) 
 });
 
 $app->get('/album/{slug}', function (Request $request, Response $response, array $args) use ($container) {
-    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
-    return $controller->album($request, $response, $args);
+    // Redirect to gallery with album param - this ensures consistent behavior
+    $newUrl = '/gallery?album=' . urlencode($args['slug']);
+    return $response->withHeader('Location', $newUrl)->withStatus(302);
 });
 // Unlock password-protected album
 $app->post('/album/{slug}/unlock', function (Request $request, Response $response, array $args) use ($container) {
