@@ -175,6 +175,32 @@ $app->post('/admin/commands/execute', function (Request $request, Response $resp
     return $controller->execute($request, $response);
 })->add(new AuthMiddleware());
 
+// Locations CRUD
+$app->get('/admin/locations', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add(new AuthMiddleware());
+$app->get('/admin/locations/create', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
+    return $controller->create($request, $response);
+})->add(new AuthMiddleware());
+$app->post('/admin/locations', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
+    return $controller->store($request, $response);
+})->add(new AuthMiddleware());
+$app->get('/admin/locations/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
+    return $controller->edit($request, $response, $args);
+})->add(new AuthMiddleware());
+$app->post('/admin/locations/{id}', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
+    return $controller->update($request, $response, $args);
+})->add(new AuthMiddleware());
+$app->post('/admin/locations/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
+    return $controller->delete($request, $response, $args);
+})->add(new AuthMiddleware());
+
 // Pages admin list
 $app->get('/admin/pages', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));

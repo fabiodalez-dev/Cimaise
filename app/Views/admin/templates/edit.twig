@@ -57,9 +57,11 @@
           <div class="border-t pt-4">
             <h3 class="text-md font-medium text-gray-800 mb-3">Colonne per Dispositivo</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {% set desktop_cols = item.settings.columns.desktop|default(3) %}
-              {% set tablet_cols = item.settings.columns.tablet|default(2) %}
-              {% set mobile_cols = item.settings.columns.mobile|default(1) %}
+              {% set cols = item.settings.columns is defined ? item.settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
+              {# Handle potentially nested columns structure #}
+              {% set desktop_cols = cols.desktop is iterable and cols.desktop.desktop is defined ? cols.desktop.desktop : cols.desktop %}
+              {% set tablet_cols = cols.tablet is iterable and cols.tablet.tablet is defined ? cols.tablet.tablet : cols.tablet %}
+              {% set mobile_cols = cols.mobile is iterable and cols.mobile.mobile is defined ? cols.mobile.mobile : cols.mobile %}
               
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -156,9 +158,9 @@
             <div class="mt-3">
               <p class="font-medium">Colonne:</p>
               <ul class="ml-4 space-y-1">
-                <li><i class="fas fa-desktop text-gray-400 mr-1"></i>Desktop: <span id="preview-desktop">{{ desktop_cols }}</span></li>
-                <li><i class="fas fa-tablet-alt text-gray-400 mr-1"></i>Tablet: <span id="preview-tablet">{{ tablet_cols }}</span></li>
-                <li><i class="fas fa-mobile-alt text-gray-400 mr-1"></i>Mobile: <span id="preview-mobile">{{ mobile_cols }}</span></li>
+                <li><i class="fas fa-desktop text-gray-400 mr-1"></i>Desktop: <span id="preview-desktop">{{ desktop_cols|default(3) }}</span></li>
+                <li><i class="fas fa-tablet-alt text-gray-400 mr-1"></i>Tablet: <span id="preview-tablet">{{ tablet_cols|default(2) }}</span></li>
+                <li><i class="fas fa-mobile-alt text-gray-400 mr-1"></i>Mobile: <span id="preview-mobile">{{ mobile_cols|default(1) }}</span></li>
               </ul>
             </div>
             <p><strong>PhotoSwipe:</strong> Abilitato</p>

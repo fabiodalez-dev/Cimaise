@@ -522,320 +522,304 @@
             lastScroll = currentScroll;
         });
         
-        // Simple lightbox implementation
-        let currentLightbox = null;
-        let currentImageIndex = 0;
-        let galleryImages = [];
-        
-        // Close lightbox function
-        function closeLightbox() {
-            if (currentLightbox) {
-                currentLightbox.remove();
-                currentLightbox = null;
-                document.body.style.overflow = '';
-            }
+        // Lazy loader for PhotoSwipe (handles CDN not yet loaded)
+        let __psLoading = false;
+        // Respect CSP: only use allowed sources (jsDelivr, cdnjs)
+        const __psSources = [
+          'https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.4/photoswipe.min.js'
+        ];
+        // Local PhotoSwipe loader: try actual local paths (core + lightbox), then fallback
+        let __psWarned = false;
+        function loadScriptSequential(urls, done) {
+          let idx = 0;
+          const next = () => {
+            if (idx >= urls.length) return done(false);
+            const s = document.createElement('script');
+            s.src = urls[idx++];
+            s.async = true;
+            s.onload = () => done(true);
+            s.onerror = next;
+            document.head.appendChild(s);
+          };
+          next();
         }
-        
-        // Navigation functions
-        function showPrevImage() {
-            if (galleryImages.length > 1) {
-                currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
-                updateLightboxImage();
-            }
-        }
-        
-        function showNextImage() {
-            if (galleryImages.length > 1) {
-                currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
-                updateLightboxImage();
-            }
-        }
-        
-        // Update lightbox image
-        function updateLightboxImage() {
-            if (!currentLightbox || galleryImages.length === 0) return;
-            
-            const img = currentLightbox.querySelector('.lightbox-image');
-            const caption = currentLightbox.querySelector('.lightbox-caption');
-            const counter = currentLightbox.querySelector('.lightbox-counter');
-            
-            if (img) {
-                img.src = galleryImages[currentImageIndex].src;
-            }
-            
-            if (caption) {
-                caption.innerHTML = galleryImages[currentImageIndex].caption || '';
-            }
-            
-            if (counter) {
-                counter.textContent = `${currentImageIndex + 1} / ${galleryImages.length}`;
-            }
-        }
-        
-        // Create and show simple lightbox
-        function openLightbox(src, caption, images, startIndex) {
-            // Close existing lightbox
-            closeLightbox();
-            
-            // Set current images and index
-            galleryImages = images || [{src, caption}];
-            currentImageIndex = startIndex || 0;
-            
-            // Create overlay
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.9);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-            `;
-            
-            // Create main container
-            const container = document.createElement('div');
-            container.style.cssText = `
-                position: relative;
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            `;
-            
-            // Create image container
-            const imgContainer = document.createElement('div');
-            imgContainer.style.cssText = `
-                position: relative;
-                max-width: 80vw;
-                max-height: 80vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            `;
-            
-            // Create image
-            const img = document.createElement('img');
-            img.className = 'lightbox-image';
-            img.src = galleryImages[currentImageIndex].src;
-            img.style.cssText = `
-                max-width: 100%;
-                max-height: 100%;
-                object-fit: contain;
-                box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-                border-radius: 4px;
-            `;
-            
-            // Create navigation arrows
-            const prevBtn = document.createElement('button');
-            prevBtn.innerHTML = '‹';
-            prevBtn.style.cssText = `
-                position: absolute;
-                left: 20px;
-                background: rgba(0, 0, 0, 0.5);
-                color: white;
-                border: none;
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                font-size: 24px;
-                cursor: pointer;
-                z-index: 10002;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: background 0.2s;
-            `;
-            
-            const nextBtn = document.createElement('button');
-            nextBtn.innerHTML = '›';
-            nextBtn.style.cssText = `
-                position: absolute;
-                right: 20px;
-                background: rgba(0, 0, 0, 0.5);
-                color: white;
-                border: none;
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                font-size: 24px;
-                cursor: pointer;
-                z-index: 10002;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: background 0.2s;
-            `;
-            
-            // Create close button
-            const closeBtn = document.createElement('button');
-            closeBtn.innerHTML = '✕';
-            closeBtn.style.cssText = `
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                background: rgba(0, 0, 0, 0.5);
-                color: white;
-                border: none;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                font-size: 20px;
-                cursor: pointer;
-                z-index: 10002;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: background 0.2s;
-            `;
-            
-            // Create fullscreen button
-            const fullscreenBtn = document.createElement('button');
-            fullscreenBtn.innerHTML = '⛶';
-            fullscreenBtn.style.cssText = `
-                position: absolute;
-                top: 20px;
-                right: 70px;
-                background: rgba(0, 0, 0, 0.5);
-                color: white;
-                border: none;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                font-size: 18px;
-                cursor: pointer;
-                z-index: 10002;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: background 0.2s;
-            `;
-            
-            // Create caption if available
-            const captionEl = document.createElement('div');
-            captionEl.className = 'lightbox-caption';
-            captionEl.innerHTML = galleryImages[currentImageIndex].caption || '';
-            captionEl.style.cssText = `
-                position: absolute;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0, 0, 0, 0.7);
-                color: white;
-                padding: 10px 20px;
-                border-radius: 4px;
-                font-size: 14px;
-                max-width: 80%;
-                text-align: center;
-                z-index: 10002;
-            `;
-            
-            // Create counter
-            const counter = document.createElement('div');
-            counter.className = 'lightbox-counter';
-            counter.textContent = `${currentImageIndex + 1} / ${galleryImages.length}`;
-            counter.style.cssText = `
-                position: absolute;
-                top: 20px;
-                left: 20px;
-                background: rgba(0, 0, 0, 0.5);
-                color: white;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-size: 14px;
-                z-index: 10002;
-            `;
-            
-            // Assemble elements
-            imgContainer.appendChild(img);
-            container.appendChild(imgContainer);
-            container.appendChild(prevBtn);
-            container.appendChild(nextBtn);
-            container.appendChild(closeBtn);
-            container.appendChild(fullscreenBtn);
-            container.appendChild(captionEl);
-            container.appendChild(counter);
-            overlay.appendChild(container);
-            document.body.appendChild(overlay);
-            
-            // Store reference
-            currentLightbox = overlay;
-            
-            // Prevent body scrolling
-            document.body.style.overflow = 'hidden';
-            
-            // Add event listeners
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    closeLightbox();
-                }
-            });
-            
-            closeBtn.addEventListener('click', closeLightbox);
-            prevBtn.addEventListener('click', showPrevImage);
-            nextBtn.addEventListener('click', showNextImage);
-            
-            // Fullscreen functionality
-            let isFullscreen = false;
-            fullscreenBtn.addEventListener('click', () => {
-                isFullscreen = !isFullscreen;
-                if (isFullscreen) {
-                    imgContainer.style.maxWidth = '95vw';
-                    imgContainer.style.maxHeight = '95vh';
-                    fullscreenBtn.innerHTML = '❐';
-                } else {
-                    imgContainer.style.maxWidth = '80vw';
-                    imgContainer.style.maxHeight = '80vh';
-                    fullscreenBtn.innerHTML = '⛶';
-                }
-            });
-            
-            // Keyboard navigation
-            const handleKeyDown = (e) => {
-                if (e.key === 'Escape') {
-                    closeLightbox();
-                    document.removeEventListener('keydown', handleKeyDown);
-                } else if (e.key === 'ArrowLeft') {
-                    showPrevImage();
-                } else if (e.key === 'ArrowRight') {
-                    showNextImage();
-                }
-            };
-            document.addEventListener('keydown', handleKeyDown);
-            
-            // Hide navigation buttons if only one image
-            if (galleryImages.length <= 1) {
-                prevBtn.style.display = 'none';
-                nextBtn.style.display = 'none';
-                counter.style.display = 'none';
-            }
-        }
-        
-        // Initialize lightbox for gallery items
-        function initLightbox() {
-            // Get all gallery links
-            const links = document.querySelectorAll('#images-gallery a.pswp-link');
-            const images = Array.from(links).map(link => ({
-                src: link.getAttribute('href'),
-                caption: link.getAttribute('data-pswp-caption') || ''
-            }));
-            
-            // Add click handlers to all gallery links
-            links.forEach((link, index) => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const src = link.getAttribute('href');
-                    const caption = link.getAttribute('data-pswp-caption');
-                    openLightbox(src, caption, images, index);
+        function loadPhotoSwipe() {
+            return new Promise((resolve, reject) => {
+                if (window.PhotoSwipe) return resolve();
+                // Prefer UMD builds under /dist/umd (your current files)
+                const coreCandidates = [
+                  '/assets/photoswipe/dist/umd/photoswipe.umd.min.js',
+                  '/assets/photoswipe/dist/umd/photoswipe.umd.js',
+                  // fallbacks if structure changes
+                  '/assets/photoswipe/dist/photoswipe.umd.min.js',
+                  '/assets/photoswipe/dist/photoswipe.umd.js'
+                ];
+                loadScriptSequential(coreCandidates, (okCore) => {
+                  if (!okCore && !window.PhotoSwipe) return reject(new Error('PhotoSwipe unavailable'));
+                  const lbCandidates = [
+                    '/assets/photoswipe/dist/umd/photoswipe-lightbox.umd.min.js',
+                    '/assets/photoswipe/dist/umd/photoswipe-lightbox.umd.js'
+                  ];
+                  loadScriptSequential(lbCandidates, () => resolve());
                 });
             });
         }
-        
-        // Initialize lightbox on page load
+
+        // Build PS items from anchors in current gallery
+        function buildItemsFromAnchors(){
+            const anchors = Array.from(document.querySelectorAll('#images-gallery a.pswp-link'));
+            return anchors.map(x=>({
+              src: x.getAttribute('href'),
+              width: parseInt(x.getAttribute('data-pswp-width')||'1600',10),
+              height: parseInt(x.getAttribute('data-pswp-height')||'1067',10),
+              caption_html: x.getAttribute('data-pswp-caption')||''
+            }));
+        }
+        function destroyLightbox(){
+            if (window.__pswpLightbox && typeof window.__pswpLightbox.destroy === 'function') {
+                try { window.__pswpLightbox.destroy(); } catch(e){}
+                window.__pswpLightbox = null;
+            }
+        }
+        // Initialize PhotoSwipe Lightbox bound to gallery anchors
+        function initLightbox() {
+            // Check if there are any pswp-link elements before initializing
+            const galleryElement = document.getElementById('images-gallery');
+            if (!galleryElement || !galleryElement.querySelectorAll('a.pswp-link').length) {
+                return;
+            }
+            
+            loadPhotoSwipe().then(()=>{
+                destroyLightbox();
+                if (window.PhotoSwipeLightbox) {
+                    const psCfg = (window.templateSettings && window.templateSettings.photoswipe) || {};
+                    const lb = new PhotoSwipeLightbox({
+                        gallery: '#images-gallery',
+                        children: 'a.pswp-link',
+                        pswpModule: PhotoSwipe,
+                        showHideAnimationType: 'fade',
+                        bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
+                        wheelToZoom: true,
+                        loop: !!psCfg.loop
+                    });
+                    // Caption UI
+                    lb.on('uiRegister', () => {
+                        lb.pswp.ui.registerElement({
+                            name: 'custom-caption', order: 9, isButton: false, appendTo: 'root',
+                            onInit: (el, pswp) => {
+                                el.className = 'pswp__custom-caption';
+                                pswp.on('change', () => {
+                                    const currEl = pswp.currSlide && pswp.currSlide.data && pswp.currSlide.data.element;
+                                    const cap = currEl ? currEl.getAttribute('data-pswp-caption') : '';
+                                    el.innerHTML = cap || '';
+                                });
+                            }
+                        });
+                    });
+                    // Show images in a container with fixed max size
+                    lb.on('open', () => {
+                        const pswp = lb.pswp;
+                        const fitToContainer = () => {
+                            const s = pswp.currSlide;
+                            if (!s || !s.width || !s.height) return;
+                            
+                            // Define max dimensions for the container
+                            const maxWidth = Math.min(1200, pswp.viewportSize.x * 0.6);
+                            const maxHeight = Math.min(800, pswp.viewportSize.y * 0.7);
+                            
+                            // Calculate scale to fit within container
+                            const scaleW = maxWidth / s.width;
+                            const scaleH = maxHeight / s.height;
+                            const scale = Math.min(scaleW, scaleH, 1); // Don't upscale
+                            
+                            // Center the image
+                            const x = (pswp.viewportSize.x - (s.width * scale)) / 2;
+                            const y = (pswp.viewportSize.y - (s.height * scale)) / 2;
+                            
+                            // Apply zoom and pan
+                            s.zoomLevels.initial = scale;
+                            s.zoomLevels.secondary = scale;
+                            s.zoomLevels.max = scale;
+                            s.zoomLevels.min = scale;
+                            s.pan.x = x;
+                            s.pan.y = y;
+                            
+                            // Update content
+                            s.updateContentSize(true);
+                        };
+                        fitToContainer();
+                        pswp.on('change', fitToContainer);
+                        pswp.on('resize', fitToContainer);
+                        
+                        // Ensure arrows are positioned correctly
+                        setTimeout(() => {
+                            const prevArrow = pswp.element.querySelector('.pswp__button--arrow--prev');
+                            const nextArrow = pswp.element.querySelector('.pswp__button--arrow--next');
+                            if (prevArrow) prevArrow.style.left = '20px';
+                            if (nextArrow) nextArrow.style.right = '20px';
+                        }, 50);
+                    });
+                    lb.init();
+                    window.__pswpLightbox = lb;
+                }
+            }).catch((err)=>{
+                console.warn('Failed to initialize PhotoSwipe:', err);
+            });
+        }
+        function openLightboxAt(index) {
+            const items = buildItemsFromAnchors();
+            const startIndex = Math.max(0, Math.min(index, items.length-1));
+
+            loadPhotoSwipe().then(() => {
+                const psCfg = (window.templateSettings && window.templateSettings.photoswipe) || {};
+                // If PhotoSwipeLightbox is available, use it to get full UI features
+                if (window.PhotoSwipeLightbox) {
+                  const lb = new PhotoSwipeLightbox({
+                    dataSource: items,
+                    pswpModule: PhotoSwipe,
+                    showHideAnimationType: 'fade',
+                    bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
+                    wheelToZoom: true,
+                    loop: !!psCfg.loop,
+                    // Force images to be centered and properly sized
+                    imageClickAction: 'close',
+                    tapAction: 'close'
+                  });
+                  let psCaptionEl;
+                  lb.on('open', () => {
+                    const pswp = lb.pswp;
+                    psCaptionEl = document.createElement('div');
+                    psCaptionEl.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
+                    pswp.on('change', () => {
+                      const it = items[pswp.currIndex];
+                      if (!it) return;
+                      
+                      // Debug: log caption data
+                      console.log('Caption data for image:', it);
+                      
+                      // Remove previous caption
+                      if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl);
+                      
+                      // Set caption content
+                      const captionContent = it.caption_html || (it.caption ? `<div>${it.caption}</div>` : '');
+                      if (captionContent) {
+                        psCaptionEl.innerHTML = captionContent;
+                        document.body.appendChild(psCaptionEl);
+                      }
+                    });
+                    pswp.on('close', () => { if (psCaptionEl && psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
+                  });
+                  lb.init();
+                  // Manually open at index
+                  lb.loadAndOpen(startIndex);
+                } else {
+                  // Fallback to base PhotoSwipe class (still local JS)
+                  const lightbox = new PhotoSwipe({
+                      dataSource: items,
+                      index: startIndex,
+                      showHideAnimationType: 'fade',
+                      allowPanToNext: !!psCfg.allowPanToNext,
+                      bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
+                      loop: !!psCfg.loop
+                  });
+                  // Custom caption overlay for PhotoSwipe
+                  let psCaptionEl = document.createElement('div');
+                  psCaptionEl.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
+                  function updatePsCaption(){
+                    const it = items[lightbox.currIndex];
+                    if (!it) return;
+                    
+                    // Debug: log caption data
+                    console.log('Fallback caption data for image:', it);
+                    
+                    // Remove previous caption
+                    if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl);
+                    
+                    // Set caption content
+                    const captionContent = it.caption_html || (it.caption ? `<div>${it.caption}</div>` : '');
+                    if (captionContent) {
+                      psCaptionEl.innerHTML = captionContent;
+                      document.body.appendChild(psCaptionEl);
+                    }
+                  }
+                  lightbox.on('change', updatePsCaption);
+                  lightbox.on('close', ()=>{ if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
+                  lightbox.init();
+                  updatePsCaption();
+                  
+                  // Adjust image to fit in a container
+                  const fitToContainer = () => {
+                    const pswp = lightbox;
+                    const s = pswp.currSlide;
+                    if (!s || !s.width || !s.height) return;
+                    
+                    // Define max dimensions for the container
+                    const maxWidth = Math.min(1200, pswp.viewportSize.x * 0.6);
+                    const maxHeight = Math.min(800, pswp.viewportSize.y * 0.7);
+                    
+                    // Calculate scale to fit within container
+                    const scaleW = maxWidth / s.width;
+                    const scaleH = maxHeight / s.height;
+                    const scale = Math.min(scaleW, scaleH, 1); // Don't upscale
+                    
+                    // Center the image
+                    const x = (pswp.viewportSize.x - (s.width * scale)) / 2;
+                    const y = (pswp.viewportSize.y - (s.height * scale)) / 2;
+                    
+                    // Apply zoom and pan
+                    s.zoomLevels.initial = scale;
+                    s.zoomLevels.secondary = scale;
+                    s.zoomLevels.max = scale;
+                    s.zoomLevels.min = scale;
+                    s.pan.x = x;
+                    s.pan.y = y;
+                    
+                    // Update content
+                    s.updateContentSize(true);
+                  };
+                  lightbox.on('change', fitToContainer);
+                  lightbox.on('resize', fitToContainer);
+                  
+                  // Ensure arrows are positioned correctly
+                  setTimeout(() => {
+                    const prevArrow = lightbox.element.querySelector('.pswp__button--arrow--prev');
+                    const nextArrow = lightbox.element.querySelector('.pswp__button--arrow--next');
+                    if (prevArrow) prevArrow.style.left = '20px';
+                    if (nextArrow) nextArrow.style.right = '20px';
+                  }, 50);
+                  
+                  setTimeout(fitToContainer, 100); // Initial sizing
+                }
+            }).catch((err) => {
+                if (!__psWarned) {
+                  console.warn('PhotoSwipe not available:', err);
+                  __psWarned = true;
+                }
+            });
+        }
+
+        // Delegated click for anchors: open PhotoSwipe
+        document.addEventListener('click', (e) => {
+            const a = e.target.closest('a.pswp-link');
+            if (!a) return;
+            e.preventDefault();
+            const anchors = Array.from(document.querySelectorAll('#images-gallery a.pswp-link'));
+            const idx = Math.max(0, anchors.indexOf(a));
+            if (window.__pswpLightbox && typeof window.__pswpLightbox.loadAndOpen === 'function') {
+                window.__pswpLightbox.loadAndOpen(idx);
+            } else {
+                // Fallback if lightbox isn't initialized properly
+                const items = anchors.map(anchor => ({
+                    src: anchor.getAttribute('href'),
+                    width: parseInt(anchor.getAttribute('data-pswp-width') || '1600', 10),
+                    height: parseInt(anchor.getAttribute('data-pswp-height') || '1067', 10),
+                    caption_html: anchor.getAttribute('data-pswp-caption') || ''
+                }));
+                openLightboxAt(idx);
+            }
+        });
+        // Initialize PhotoSwipe on page load
         document.addEventListener('DOMContentLoaded', function() {
             // Small delay to ensure DOM is fully ready
             setTimeout(initLightbox, 100);

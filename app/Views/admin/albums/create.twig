@@ -158,6 +158,19 @@
           </div>
         </div>
         
+        <!-- Locations -->
+        <div class="border-t pt-4 mt-4">
+          <h3 class="text-sm font-medium text-gray-900 mb-3">Locations</h3>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Seleziona luoghi (multi)</label>
+            <select class="form-input" name="locations[]" id="album-locations" multiple>
+              {% for loc in locations %}
+                <option value="{{ loc.id }}">{{ loc.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        
         <div class="border-t pt-4 mt-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Password album (opzionale)</label>
@@ -277,6 +290,15 @@
             </select>
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <select name="location_id" id="f-location" class="form-input">
+              <option value="">—</option>
+              {% for loc in locations %}
+                <option value="{{ loc.id }}">{{ loc.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Custom camera</label>
             <input type="text" name="custom_camera" id="f-custom-camera" class="form-input">
           </div>
@@ -316,6 +338,7 @@
     const filmSelect = new TomSelect('#album-films',{plugins:['remove_button'],create:false,placeholder:'Seleziona films...'});
     const developerSelect = new TomSelect('#album-developers',{plugins:['remove_button'],create:false,placeholder:'Seleziona developers...'});
     const labSelect = new TomSelect('#album-labs',{plugins:['remove_button'],create:false,placeholder:'Seleziona labs...'});
+    const locationSelect = new TomSelect('#album-locations',{plugins:['remove_button'],create:false,placeholder:'Seleziona luoghi...'});
     
     // Ensure form synchronization before submit
     document.querySelector('form').addEventListener('submit', function(e) {
@@ -327,6 +350,8 @@
       filmSelect.sync();
       developerSelect.sync();
       labSelect.sync();
+      locationSelect.sync();
+      locationSelect.sync();
       
       console.log('Form submitting with tags:', document.getElementById('album-tags').value);
       console.log('Form submitting with cameras:', document.getElementById('album-cameras').value);

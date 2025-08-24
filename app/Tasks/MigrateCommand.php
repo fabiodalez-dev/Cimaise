@@ -84,6 +84,12 @@ class MigrateCommand extends Command
                 if ($base === '0011_album_protection.sql') {
                     if ($this->columnExists('albums','password_hash')) { $output->writeln('Skipping (exists): ' . $base); continue; }
                 }
+                if ($base === '0012_locations.sql') {
+                    if ($this->tableExists('locations')) { $output->writeln('Skipping (exists): ' . $base); continue; }
+                }
+                if ($base === '0013_location_relationships.sql') {
+                    if ($this->tableExists('album_location') && $this->tableExists('image_location')) { $output->writeln('Skipping (exists): ' . $base); continue; }
+                }
             }
 
             $output->writeln('Running: ' . $base);
