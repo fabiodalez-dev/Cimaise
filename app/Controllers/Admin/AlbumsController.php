@@ -79,6 +79,13 @@ class AlbumsController
         $developers = $pdo->query('SELECT id, name FROM developers ORDER BY name')->fetchAll();
         $labs = $pdo->query('SELECT id, name FROM labs ORDER BY name')->fetchAll();
         
+        // Load locations (optional table)
+        try {
+            $locations = $pdo->query('SELECT id, name FROM locations ORDER BY name')->fetchAll();
+        } catch (\Throwable) { 
+            $locations = []; 
+        }
+        
         return $this->view->render($response, 'admin/albums/create.twig', [
             'categories' => $cats,
             'tags' => $tags,
@@ -88,6 +95,7 @@ class AlbumsController
             'films' => $films,
             'developers' => $developers,
             'labs' => $labs,
+            'locations' => $locations,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -114,6 +122,7 @@ class AlbumsController
         $filmIds = array_map('intval', (array)($d['films'] ?? []));
         $developerIds = array_map('intval', (array)($d['developers'] ?? []));
         $labIds = array_map('intval', (array)($d['labs'] ?? []));
+        $locationIds = array_map('intval', (array)($d['locations'] ?? []));
         
         // Custom equipment fields
         $customCameras = trim((string)($d['custom_cameras'] ?? '')) ?: null;
@@ -204,6 +213,14 @@ class AlbumsController
                         $labStmt->execute([':a'=>$albumId, ':l'=>$lid]);
                     }
                 }
+                // Locations pivot
+                if ($locationIds) {
+                    $locSql = $this->db->insertIgnoreKeyword() . ' INTO album_location(album_id, location_id) VALUES (:a, :l)';
+                    $locStmt = $pdo->prepare($locSql);
+                    foreach (array_unique($locationIds) as $lid) {
+                        $locStmt->execute([':a'=>$albumId, ':l'=>$lid]);
+                    }
+                }
             } catch (\Throwable $e) {
                 // Equipment tables might not exist yet, continue without error
             }
@@ -256,6 +273,13 @@ class AlbumsController
         $developers = $pdo->query('SELECT id, name FROM developers ORDER BY name')->fetchAll();
         $labs = $pdo->query('SELECT id, name FROM labs ORDER BY name')->fetchAll();
         
+        // Load locations
+        try {
+            $locations = $pdo->query('SELECT id, name FROM locations ORDER BY name')->fetchAll();
+        } catch (\Throwable) { 
+            $locations = []; 
+        }
+        
         $curTags = $pdo->prepare('SELECT tag_id FROM album_tag WHERE album_id = :a');
         $curTags->execute([':a'=>$id]);
         $tagIds = array_map('intval', array_column($curTags->fetchAll(), 'tag_id'));
@@ -269,6 +293,7 @@ class AlbumsController
         $filmIds = [];
         $developerIds = [];
         $labIds = [];
+        $locationIds = [];
         
         try {
             $cameraStmt = $pdo->prepare('SELECT camera_id FROM album_camera WHERE album_id = :a');
@@ -290,13 +315,19 @@ class AlbumsController
             $labStmt = $pdo->prepare('SELECT lab_id FROM album_lab WHERE album_id = :a');
             $labStmt->execute([':a'=>$id]);
             $labIds = array_map('intval', array_column($labStmt->fetchAll(), 'lab_id'));
+            // Locations
+            try {
+                $locStmt = $pdo->prepare('SELECT location_id FROM album_location WHERE album_id = :a');
+                $locStmt->execute([':a'=>$id]);
+                $locationIds = array_map('intval', array_column($locStmt->fetchAll(), 'location_id'));
+            } catch (\Throwable) { $locationIds = []; }
         } catch (\Throwable $e) {
             // Equipment tables might not exist yet
         }
         
         $imgsStmt = $pdo->prepare('SELECT i.id, i.original_path, i.created_at, i.sort_order,
                                    i.alt_text, i.caption, i.width, i.height,
-                                   i.camera_id, i.lens_id, i.film_id, i.developer_id, i.lab_id,
+                                   i.camera_id, i.lens_id, i.film_id, i.developer_id, i.lab_id, i.location_id,
                                    i.custom_camera, i.custom_lens, i.custom_film,
                                    i.iso, i.shutter_speed, i.aperture,
                                    COALESCE(iv.path, i.original_path) AS preview_path
@@ -316,6 +347,7 @@ class AlbumsController
             'films' => $films,
             'developers' => $developers,
             'labs' => $labs,
+            'locations' => $locations,
             'tagIds' => $tagIds,
             'categoryIds' => $categoryIds,
             'cameraIds' => $cameraIds,
@@ -323,6 +355,7 @@ class AlbumsController
             'filmIds' => $filmIds,
             'developerIds' => $developerIds,
             'labIds' => $labIds,
+            'locationIds' => $locationIds,
             'images' => $images,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
@@ -343,6 +376,7 @@ class AlbumsController
             'film_id' => ($d['film_id'] ?? '') !== '' ? (int)$d['film_id'] : null,
             'developer_id' => ($d['developer_id'] ?? '') !== '' ? (int)$d['developer_id'] : null,
             'lab_id' => ($d['lab_id'] ?? '') !== '' ? (int)$d['lab_id'] : null,
+            'location_id' => ($d['location_id'] ?? '') !== '' ? (int)$d['location_id'] : null,
             'custom_camera' => $d['custom_camera'] ?? null,
             'custom_lens' => $d['custom_lens'] ?? null,
             'custom_film' => $d['custom_film'] ?? null,
@@ -506,6 +540,15 @@ class AlbumsController
                     $labStmt = $pdo->prepare($labSql);
                     foreach (array_unique($labIds) as $lid) {
                         $labStmt->execute([':a'=>$id, ':l'=>$lid]);
+                    }
+                }
+                // Sync locations (if table exists)
+                try { $pdo->prepare('DELETE FROM album_location WHERE album_id=:a')->execute([':a'=>$id]); } catch (\Throwable) {}
+                if ($locationIds) {
+                    $locSql = $this->db->insertIgnoreKeyword() . ' INTO album_location(album_id, location_id) VALUES (:a, :l)';
+                    $locStmt = $pdo->prepare($locSql);
+                    foreach (array_unique($locationIds) as $lid) {
+                        $locStmt->execute([':a'=>$id, ':l'=>$lid]);
                     }
                 }
             } catch (\Throwable $e) {

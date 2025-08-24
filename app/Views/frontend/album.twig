@@ -30,6 +30,16 @@
                 <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('F Y') }}</time>
             </div>
             {% endif %}
+            {% if album.locations is defined and album.locations|length > 0 %}
+            <div class="flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm0 0c-4.418 0-8 3.582-8 8 2.5-2 5.333-3 8-3s5.5 1 8 3c0-4.418-3.582-8-8-8z"/>
+                </svg>
+                {% for loc in album.locations %}
+                  <span class="mr-1">{{ loc.name }}</span>{% if not loop.last %}<span class="text-neutral-400">•</span>{% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
             
             <div class="flex items-center">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

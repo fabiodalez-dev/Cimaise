@@ -1,0 +1,70 @@
+{% extends "admin/_layout.twig" %}
+
+{% block title %}Create Location{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Create Location</h1>
+    <a href="/admin/locations" class="text-sm font-medium text-gray-600 hover:text-gray-900">
+      Back to Locations
+    </a>
+  </div>
+
+  {% if errors is defined and errors|length > 0 %}
+  <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+    <ul class="list-disc pl-5 space-y-1">
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+      <form action="/admin/locations" method="post">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="space-y-6">
+          <div>
+            <label for="name" class="block text-sm font-medium text-gray-700">Name *</label>
+            <div class="mt-1">
+              <input type="text" name="name" id="name" 
+                     class="shadow-sm focus:ring-black focus:border-black block w-full sm:text-sm border-gray-300 rounded-md"
+                     value="{{ old.name|default('') }}" required>
+            </div>
+          </div>
+
+          <div>
+            <label for="slug" class="block text-sm font-medium text-gray-700">Slug *</label>
+            <div class="mt-1">
+              <input type="text" name="slug" id="slug" 
+                     class="shadow-sm focus:ring-black focus:border-black block w-full sm:text-sm border-gray-300 rounded-md"
+                     value="{{ old.slug|default('') }}" required>
+              <p class="mt-2 text-sm text-gray-500">Unique identifier for the location URL.</p>
+            </div>
+          </div>
+
+          <div>
+            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+            <div class="mt-1">
+              <textarea name="description" id="description" rows="4" 
+                        class="shadow-sm focus:ring-black focus:border-black block w-full sm:text-sm border-gray-300 rounded-md">{{ old.description|default('') }}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-end space-x-3">
+          <a href="/admin/locations" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
+            Cancel
+          </a>
+          <button type="submit" 
+                  class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none">
+            Create Location
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
