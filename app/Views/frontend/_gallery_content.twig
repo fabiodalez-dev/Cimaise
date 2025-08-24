@@ -37,42 +37,9 @@
 {% set mobile_cols = mobile_cols|round %}
 
 {% if layout == 'slideshow' %}
-  <div class="swiper gallery-swiper">
-    <div class="swiper-wrapper">
-      {% for image in images %}
-      <div class="swiper-slide">
-        {% set caption_parts = [] %}
-        {% if image.caption %}
-          {% set caption_parts = caption_parts|merge([image.caption]) %}
-        {% endif %}
-        {% if image.custom_camera or image.camera_name %}
-          {% set caption_parts = caption_parts|merge(['Camera: ' ~ (image.custom_camera|default(image.camera_name))]) %}
-        {% endif %}
-        {% if image.custom_lens or image.lens_name %}
-          {% set caption_parts = caption_parts|merge(['Lens: ' ~ (image.custom_lens|default(image.lens_name))]) %}
-        {% endif %}
-        {% if image.custom_film or image.film_name %}
-          {% set caption_parts = caption_parts|merge(['Film: ' ~ (image.custom_film|default(image.film_name))]) %}
-        {% endif %}
-        {% set full_caption = caption_parts|join(' • ') %}
-        <a href="{{ image.lightbox_url|default(image.url) }}" 
-           class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ full_caption|e('html_attr') }}">
-          <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover">
-        </a>
-      </div>
-      {% endfor %}
-    </div>
-    <div class="swiper-button-next"></div>
-    <div class="swiper-button-prev"></div>
-    <div class="swiper-pagination"></div>
-  </div>
-{% elseif layout == 'fullscreen' %}
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
+  <div class="swiper-wrapper">
     {% for image in images %}
-    <div class="masonry-item">
+    <div class="swiper-slide">
       {% set caption_parts = [] %}
       {% if image.caption %}
         {% set caption_parts = caption_parts|merge([image.caption]) %}
@@ -88,91 +55,44 @@
       {% endif %}
       {% set full_caption = caption_parts|join(' • ') %}
       <a href="{{ image.lightbox_url|default(image.url) }}" 
-         class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
+         class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
          data-pswp-width="{{ image.width|default(1600) }}"
          data-pswp-height="{{ image.height|default(1067) }}"
          data-pswp-caption="{{ full_caption|e('html_attr') }}">
-        <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
+        <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover">
       </a>
     </div>
     {% endfor %}
   </div>
-{% elseif masonry %}
-  <div class="masonry-grid">
-    {% for image in images %}
-    <div class="masonry-item">
-      {% set caption_parts = [] %}
-      {% if image.caption %}
-        {% set caption_parts = caption_parts|merge([image.caption]) %}
-      {% endif %}
-      {% if image.custom_camera or image.camera_name %}
-        {% set caption_parts = caption_parts|merge(['Camera: ' ~ (image.custom_camera|default(image.camera_name))]) %}
-      {% endif %}
-      {% if image.custom_lens or image.lens_name %}
-        {% set caption_parts = caption_parts|merge(['Lens: ' ~ (image.custom_lens|default(image.lens_name))]) %}
-      {% endif %}
-      {% if image.custom_film or image.film_name %}
-        {% set caption_parts = caption_parts|merge(['Film: ' ~ (image.custom_film|default(image.film_name))]) %}
-      {% endif %}
-      {% set full_caption = caption_parts|join(' • ') %}
-      <a href="{{ image.lightbox_url|default(image.url) }}" 
-         class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
-         data-pswp-width="{{ image.width|default(1600) }}"
-         data-pswp-height="{{ image.height|default(1067) }}"
-         data-pswp-caption="{{ full_caption|e('html_attr') }}">
-        <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover">
-      </a>
-    </div>
-    {% endfor %}
-  </div>
+  <div class="swiper-button-next"></div>
+  <div class="swiper-button-prev"></div>
+  <div class="swiper-pagination"></div>
 {% else %}
-  {% if mobile_cols == 1 %}{% set mobile_class = 'grid-cols-1' %}
-  {% elseif mobile_cols == 2 %}{% set mobile_class = 'grid-cols-2' %}
-  {% elseif mobile_cols == 3 %}{% set mobile_class = 'grid-cols-3' %}
-  {% elseif mobile_cols == 4 %}{% set mobile_class = 'grid-cols-4' %}
-  {% elseif mobile_cols == 5 %}{% set mobile_class = 'grid-cols-5' %}
-  {% else %}{% set mobile_class = 'grid-cols-6' %}{% endif %}
-  
-  {% if tablet_cols == 1 %}{% set tablet_class = 'md:grid-cols-1' %}
-  {% elseif tablet_cols == 2 %}{% set tablet_class = 'md:grid-cols-2' %}
-  {% elseif tablet_cols == 3 %}{% set tablet_class = 'md:grid-cols-3' %}
-  {% elseif tablet_cols == 4 %}{% set tablet_class = 'md:grid-cols-4' %}
-  {% elseif tablet_cols == 5 %}{% set tablet_class = 'md:grid-cols-5' %}
-  {% else %}{% set tablet_class = 'md:grid-cols-6' %}{% endif %}
-  
-  {% if desktop_cols == 1 %}{% set desktop_class = 'lg:grid-cols-1' %}
-  {% elseif desktop_cols == 2 %}{% set desktop_class = 'lg:grid-cols-2' %}
-  {% elseif desktop_cols == 3 %}{% set desktop_class = 'lg:grid-cols-3' %}
-  {% elseif desktop_cols == 4 %}{% set desktop_class = 'lg:grid-cols-4' %}
-  {% elseif desktop_cols == 5 %}{% set desktop_class = 'lg:grid-cols-5' %}
-  {% else %}{% set desktop_class = 'lg:grid-cols-6' %}{% endif %}
-  <div class="grid {{ mobile_class }} {{ tablet_class }} {{ desktop_class }} gap-4">
-    {% for image in images %}
-    <div class="masonry-item">
-      {% set caption_parts = [] %}
-      {% if image.caption %}
-        {% set caption_parts = caption_parts|merge([image.caption]) %}
-      {% endif %}
-      {% if image.custom_camera or image.camera_name %}
-        {% set caption_parts = caption_parts|merge(['Camera: ' ~ (image.custom_camera|default(image.camera_name))]) %}
-      {% endif %}
-      {% if image.custom_lens or image.lens_name %}
-        {% set caption_parts = caption_parts|merge(['Lens: ' ~ (image.custom_lens|default(image.lens_name))]) %}
-      {% endif %}
-      {% if image.custom_film or image.film_name %}
-        {% set caption_parts = caption_parts|merge(['Film: ' ~ (image.custom_film|default(image.film_name))]) %}
-      {% endif %}
-      {% set full_caption = caption_parts|join(' • ') %}
-      <a href="{{ image.lightbox_url|default(image.url) }}" 
-         class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
-         data-pswp-width="{{ image.width|default(1600) }}"
-         data-pswp-height="{{ image.height|default(1067) }}"
-         data-pswp-caption="{{ full_caption|e('html_attr') }}">
-        <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
-      </a>
-    </div>
-    {% endfor %}
+  {% for image in images %}
+  <div class="masonry-item">
+    {% set caption_parts = [] %}
+    {% if image.caption %}
+      {% set caption_parts = caption_parts|merge([image.caption]) %}
+    {% endif %}
+    {% if image.custom_camera or image.camera_name %}
+      {% set caption_parts = caption_parts|merge(['Camera: ' ~ (image.custom_camera|default(image.camera_name))]) %}
+    {% endif %}
+    {% if image.custom_lens or image.lens_name %}
+      {% set caption_parts = caption_parts|merge(['Lens: ' ~ (image.custom_lens|default(image.lens_name))]) %}
+    {% endif %}
+    {% if image.custom_film or image.film_name %}
+      {% set caption_parts = caption_parts|merge(['Film: ' ~ (image.custom_film|default(image.film_name))]) %}
+    {% endif %}
+    {% set full_caption = caption_parts|join(' • ') %}
+    <a href="{{ image.lightbox_url|default(image.url) }}" 
+       class="pswp-link image-item {% if layout == 'masonry' %}bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block{% else %}aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block{% endif %}"
+       data-pswp-width="{{ image.width|default(1600) }}"
+       data-pswp-height="{{ image.height|default(1067) }}"
+       data-pswp-caption="{{ full_caption|e('html_attr') }}">
+      <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="{% if layout == 'masonry' %}w-full h-auto object-cover{% else %}w-full h-full object-cover{% endif %}">
+    </a>
   </div>
+  {% endfor %}
 {% endif %}
 
 <script>

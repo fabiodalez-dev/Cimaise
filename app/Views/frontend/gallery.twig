@@ -297,11 +297,130 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
       return response.text();
     })
     .then(html => {
+      console.log('=== AJAX TEMPLATE SWITCH DEBUG ===');
       console.log('Received HTML response, length:', html.length);
+      console.log('Raw HTML response:', html.substring(0, 500) + '...');
+      
+      // Hide the gallery container before updating content
+      galleryContainer.style.opacity = '0';
       
       // The API endpoint returns the gallery content directly, not a full HTML page
       // So we can directly use the response as the new gallery content
       galleryContainer.innerHTML = html;
+      
+      console.log('Updated gallery innerHTML');
+      
+      // CRITICAL: Extract template settings from the script tag in the response
+      const scriptMatch = html.match(/<script>[\s\S]*?window\.templateSettings\s*=\s*({[\s\S]*?});[\s\S]*?<\/script>/);
+      if (scriptMatch) {
+        try {
+          const settingsJson = scriptMatch[1];
+          console.log('Found template settings JSON:', settingsJson);
+          window.templateSettings = JSON.parse(settingsJson);
+          console.log('Parsed template settings:', window.templateSettings);
+        } catch (e) {
+          console.error('Error parsing template settings:', e);
+        }
+      } else {
+        console.error('Template settings script not found in response!');
+      }
+      
+      // Update container classes based on new template settings
+      const newLayout = window.templateSettings?.layout || 'grid';
+      const newMasonry = window.templateSettings?.masonry || false;
+      
+      console.log('=== APPLYING CLASSES ===');
+      console.log('Current window.templateSettings:', window.templateSettings);
+      console.log('New layout:', newLayout, 'New masonry:', newMasonry);
+      console.log('Container before class update:', galleryContainer.className);
+      
+      // Store the ID attribute and remove all classes
+      const containerId = galleryContainer.id;
+      galleryContainer.className = '';
+      
+      console.log('Container after clearing classes:', galleryContainer.className);
+      
+      // Apply new layout classes based on template
+      if (newLayout === 'slideshow') {
+        galleryContainer.className = 'swiper gallery-swiper max-w-4xl mx-auto';
+        // For slideshow, we need to wrap the content in a swiper structure
+        // The AJAX response already contains swiper-wrapper content
+      } else if (newLayout === 'fullscreen') {
+        galleryContainer.className = 'grid grid-cols-1 lg:grid-cols-2 gap-2';
+      } else if (newMasonry) {
+        galleryContainer.className = 'masonry-grid';
+      } else {
+        // Regular grid layout - apply column classes exactly like original template
+        const cols = window.templateSettings?.columns || {desktop: 3, tablet: 2, mobile: 1};
+        
+        console.log('=== GRID CLASS GENERATION ===');
+        console.log('Columns from template settings:', cols);
+        
+        // Extract column values (handle nested structure like original)
+        let desktop_cols = 3, tablet_cols = 2, mobile_cols = 1;
+        
+        if (cols.desktop && typeof cols.desktop === 'object' && cols.desktop.desktop) {
+          desktop_cols = cols.desktop.desktop;
+        } else if (cols.desktop) {
+          desktop_cols = cols.desktop;
+        }
+        
+        if (cols.tablet && typeof cols.tablet === 'object' && cols.tablet.tablet) {
+          tablet_cols = cols.tablet.tablet;
+        } else if (cols.tablet) {
+          tablet_cols = cols.tablet;
+        }
+        
+        if (cols.mobile && typeof cols.mobile === 'object' && cols.mobile.mobile) {
+          mobile_cols = cols.mobile.mobile;
+        } else if (cols.mobile) {
+          mobile_cols = cols.mobile;
+        }
+        
+        // Ensure values are numbers (like original)
+        desktop_cols = Math.round(desktop_cols);
+        tablet_cols = Math.round(tablet_cols);
+        mobile_cols = Math.round(mobile_cols);
+        
+        console.log('Extracted columns - Desktop:', desktop_cols, 'Tablet:', tablet_cols, 'Mobile:', mobile_cols);
+        
+        // Build grid classes exactly like the original template
+        let mobile_class = 'grid-cols-1';
+        if (mobile_cols == 2) mobile_class = 'grid-cols-2';
+        else if (mobile_cols == 3) mobile_class = 'grid-cols-3';
+        else if (mobile_cols == 4) mobile_class = 'grid-cols-4';
+        else if (mobile_cols == 5) mobile_class = 'grid-cols-5';
+        else if (mobile_cols >= 6) mobile_class = 'grid-cols-6';
+        
+        let tablet_class = 'md:grid-cols-1';
+        if (tablet_cols == 2) tablet_class = 'md:grid-cols-2';
+        else if (tablet_cols == 3) tablet_class = 'md:grid-cols-3';
+        else if (tablet_cols == 4) tablet_class = 'md:grid-cols-4';
+        else if (tablet_cols == 5) tablet_class = 'md:grid-cols-5';
+        else if (tablet_cols >= 6) tablet_class = 'md:grid-cols-6';
+        
+        let desktop_class = 'lg:grid-cols-1';
+        if (desktop_cols == 2) desktop_class = 'lg:grid-cols-2';
+        else if (desktop_cols == 3) desktop_class = 'lg:grid-cols-3';
+        else if (desktop_cols == 4) desktop_class = 'lg:grid-cols-4';
+        else if (desktop_cols == 5) desktop_class = 'lg:grid-cols-5';
+        else if (desktop_cols >= 6) desktop_class = 'lg:grid-cols-6';
+        
+        console.log('Generated classes - Mobile:', mobile_class, 'Tablet:', tablet_class, 'Desktop:', desktop_class);
+        
+        const finalClasses = `grid ${mobile_class} ${tablet_class} ${desktop_class} gap-4`;
+        console.log('Final class string:', finalClasses);
+        
+        galleryContainer.className = finalClasses;
+      }
+      
+      // Restore the ID
+      galleryContainer.id = containerId;
+      
+      console.log('=== FINAL CONTAINER STATE ===');
+      console.log('Final container classes:', galleryContainer.className);
+      console.log('Final container ID:', galleryContainer.id);
+      console.log('Container element:', galleryContainer);
       
       console.log('Updated gallery content successfully');
       
@@ -358,15 +477,33 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
           }
         }
         
-        // Trigger GSAP animations for new content
-        if (typeof gsap !== 'undefined') {
-          gsap.from('.image-item', {
-            opacity: 0,
-            y: 20,
-            duration: 0.6,
-            stagger: 0.1
-          });
-        }
+        // Wait for components to initialize, then fade in the content
+        setTimeout(() => {
+          // Reset opacity and animate the gallery container fade-in
+          if (typeof gsap !== 'undefined') {
+            gsap.fromTo(galleryContainer, 
+              { opacity: 0 }, 
+              { 
+                opacity: 1, 
+                duration: 0.5, 
+                ease: 'power2.out'
+              }
+            );
+            
+            // Then animate individual items
+            gsap.from('.image-item', {
+              opacity: 0,
+              y: 20,
+              duration: 0.6,
+              stagger: 0.1,
+              delay: 0.2
+            });
+          } else {
+            // Fallback fade-in without GSAP
+            galleryContainer.style.transition = 'opacity 0.5s ease-out';
+            galleryContainer.style.opacity = '1';
+          }
+        }, 150);
       }, 100);
     })
     .catch(error => {
@@ -379,6 +516,8 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
       
       // Restore original content and button state on error
       galleryContainer.innerHTML = originalContent;
+      galleryContainer.style.opacity = '1'; // Ensure opacity is restored
+      galleryContainer.style.transition = ''; // Reset any transition
       
       // Restore button states
       document.querySelectorAll('.tpl-switch').forEach(el => {
