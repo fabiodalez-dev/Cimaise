@@ -4,3 +4,4 @@
 /.phpunit.cache/
 /public/media/
 /storage/
+.DS_Store
