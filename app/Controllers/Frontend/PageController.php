@@ -242,8 +242,20 @@ class PageController
                 $image['exif_display'] = $this->formatExifForDisplay($exif, $image);
             }
 
-            // Lookup names for developer/lab/film/location if present
+            // Lookup names for camera/lens/developer/lab/film/location if present
             try {
+                if (!empty($image['camera_id'])) {
+                    $s = $pdo->prepare('SELECT make, model FROM cameras WHERE id = :id');
+                    $s->execute([':id' => $image['camera_id']]);
+                    $cr = $s->fetch();
+                    if ($cr) { $image['camera_name'] = trim(($cr['make'] ?? '') . ' ' . ($cr['model'] ?? '')); }
+                }
+                if (!empty($image['lens_id'])) {
+                    $s = $pdo->prepare('SELECT brand, model FROM lenses WHERE id = :id');
+                    $s->execute([':id' => $image['lens_id']]);
+                    $lr = $s->fetch();
+                    if ($lr) { $image['lens_name'] = trim(($lr['brand'] ?? '') . ' ' . ($lr['model'] ?? '')); }
+                }
                 if (!empty($image['developer_id'])) {
                     $s = $pdo->prepare('SELECT name FROM developers WHERE id = :id');
                     $s->execute([':id' => $image['developer_id']]);
