@@ -53,13 +53,13 @@ INSERT OR IGNORE INTO album_lab (album_id, lab_id) VALUES
 (100, 3); -- Mori Film Lab
 
 -- Test images with detailed metadata
-INSERT OR IGNORE INTO images (id, album_id, original_path, filename, caption, alt_text, custom_camera, custom_lens, process, sort_order) VALUES
-(201, 100, '/media/test/street-001.jpg', 'street-001.jpg', 'Morning commuter rushing through Milan Central Station', 'Silhouette of person walking through sunlit train station', 'Leica M6', 'Leica 35mm f/2', 'BW', 1),
-(202, 100, '/media/test/street-002.jpg', 'street-002.jpg', 'Elderly man reading newspaper at outdoor café in Rome', 'Man in cap reading newspaper at small round table', 'Canon AE-1', 'Canon 85mm f/1.8', 'Color', 2),
-(203, 100, '/media/test/street-003.jpg', 'street-003.jpg', 'Children playing football in narrow Naples alley', 'Three kids kicking ball between old buildings', 'Nikon F3', 'Nikon 50mm f/1.4', 'Color', 3),
-(204, 100, '/media/test/street-004.jpg', 'street-004.jpg', 'Vendor arranging fresh vegetables at market stall', 'Hands organizing colorful produce display', 'Leica M6', 'Leica 35mm f/2', 'Color', 4),
-(205, 100, '/media/test/street-005.jpg', 'street-005.jpg', 'Dramatic shadows on ancient Roman architecture', 'Stone columns creating geometric shadow patterns', 'Canon AE-1', 'Canon 85mm f/1.8', 'BW', 5),
-(206, 100, '/media/test/street-006.jpg', 'street-006.jpg', 'Street musician performing for evening crowd', 'Guitarist with case open, people gathered around', 'Nikon F3', 'Nikon 50mm f/1.4', 'BW', 6);
+INSERT OR IGNORE INTO images (id, album_id, original_path, file_hash, width, height, mime, caption, alt_text, custom_camera, custom_lens, process, sort_order) VALUES
+(201, 100, '/media/test/street-001.jpg', 'hash001abc', 1920, 1080, 'image/jpeg', 'Morning commuter rushing through Milan Central Station', 'Silhouette of person walking through sunlit train station', 'Leica M6', 'Leica 35mm f/2', 'analog', 1),
+(202, 100, '/media/test/street-002.jpg', 'hash002def', 1920, 1080, 'image/jpeg', 'Elderly man reading newspaper at outdoor café in Rome', 'Man in cap reading newspaper at small round table', 'Canon AE-1', 'Canon 85mm f/1.8', 'analog', 2),
+(203, 100, '/media/test/street-003.jpg', 'hash003ghi', 1920, 1080, 'image/jpeg', 'Children playing football in narrow Naples alley', 'Three kids kicking ball between old buildings', 'Nikon F3', 'Nikon 50mm f/1.4', 'analog', 3),
+(204, 100, '/media/test/street-004.jpg', 'hash004jkl', 1920, 1080, 'image/jpeg', 'Vendor arranging fresh vegetables at market stall', 'Hands organizing colorful produce display', 'Leica M6', 'Leica 35mm f/2', 'analog', 4),
+(205, 100, '/media/test/street-005.jpg', 'hash005mno', 1920, 1080, 'image/jpeg', 'Dramatic shadows on ancient Roman architecture', 'Stone columns creating geometric shadow patterns', 'Canon AE-1', 'Canon 85mm f/1.8', 'analog', 5),
+(206, 100, '/media/test/street-006.jpg', 'hash006pqr', 1920, 1080, 'image/jpeg', 'Street musician performing for evening crowd', 'Guitarist with case open, people gathered around', 'Nikon F3', 'Nikon 50mm f/1.4', 'analog', 6);
 
 -- Set cover image
 UPDATE albums SET cover_image_id = 201 WHERE id = 100;

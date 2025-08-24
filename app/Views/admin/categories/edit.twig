@@ -27,13 +27,19 @@
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Immagine categoria</label>
         {% if item.image_path %}
-          <div class="mb-2">
-            <img src="{{ item.image_path }}" alt="{{ item.name }}" class="w-32 h-20 object-cover rounded border">
-            <small class="block text-gray-500">Immagine corrente</small>
+          <div class="mb-3 p-3 border border-gray-200 rounded-lg">
+            <img src="{{ item.image_path }}" alt="{{ item.name }}" class="w-48 h-32 object-cover rounded border mb-2">
+            <div class="flex items-center gap-2">
+              <small class="text-gray-600">Immagine corrente</small>
+              <label class="flex items-center gap-1 text-red-600 cursor-pointer">
+                <input type="checkbox" name="remove_image" value="1" class="rounded">
+                <small>Rimuovi immagine</small>
+              </label>
+            </div>
           </div>
         {% endif %}
         <input class="form-input" type="file" name="image" accept="image/*">
-        <small class="text-gray-500">Solo per categorie principali (usata nel mega menu)</small>
+        <small class="text-gray-500">Solo per categorie principali (usata nel mega menu). Formati supportati: JPG, PNG, WebP</small>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
