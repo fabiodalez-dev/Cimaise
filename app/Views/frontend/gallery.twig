@@ -25,23 +25,23 @@
 
   <div class="max-w-3xl mx-auto prose prose-neutral mb-12">{{ album.body|raw }}</div>
 
-  <div class="max-w-5xl mx-auto mb-8 p-4 bg-neutral-50 rounded-lg">
+  <div class="max-w-5xl mx-auto mb-8 p-4 bg-neutral-50 rounded-lg equipment-section">
     <h3 class="text-sm font-medium mb-3 text-center">Equipment</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 text-xs text-neutral-600">
-      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-camera"></i> Cameras</div>
-        <div class="space-y-1">{% for camera in album.equipment.cameras %}<div>{{ camera }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-xs text-neutral-600 equipment-grid">
+      <div class="equipment-category"><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-camera"></i> Cameras</div>
+        <div class="space-y-1">{% for camera in album.equipment.cameras %}<div class="equipment-item">{{ camera }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
       </div>
-      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-dot-circle"></i> Lenses</div>
-        <div class="space-y-1">{% for lens in album.equipment.lenses %}<div>{{ lens }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+      <div class="equipment-category"><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-dot-circle"></i> Lenses</div>
+        <div class="space-y-1">{% for lens in album.equipment.lenses %}<div class="equipment-item">{{ lens }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
       </div>
-      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-film"></i> Film</div>
-        <div class="space-y-1">{% for film in album.equipment.film %}<div>{{ film }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+      <div class="equipment-category"><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-film"></i> Film</div>
+        <div class="space-y-1">{% for film in album.equipment.film %}<div class="equipment-item">{{ film }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
       </div>
-      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-flask"></i> Developers</div>
-        <div class="space-y-1">{% for dev in album.equipment.developers %}<div>{{ dev }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+      <div class="equipment-category"><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-flask"></i> Developers</div>
+        <div class="space-y-1">{% for dev in album.equipment.developers %}<div class="equipment-item">{{ dev }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
       </div>
-      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-industry"></i> Labs</div>
-        <div class="space-y-1">{% for lab in album.equipment.labs %}<div>{{ lab }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+      <div class="equipment-category"><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-industry"></i> Labs</div>
+        <div class="space-y-1">{% for lab in album.equipment.labs %}<div class="equipment-item">{{ lab }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
       </div>
     </div>
   </div>

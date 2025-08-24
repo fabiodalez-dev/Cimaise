@@ -137,6 +137,26 @@
             padding: 8px 16px;
             border-radius: 4px;
         }
+        
+        /* Position navigation arrows outside the image */
+        .pswp__button--arrow--prev,
+        .pswp__button--arrow--next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: 60px;
+            margin: 0;
+            padding: 10px;
+        }
+        
+        .pswp__button--arrow--prev {
+            left: 20px;
+        }
+        
+        .pswp__button--arrow--next {
+            right: 20px;
+        }
     </style>
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">
@@ -631,6 +651,14 @@
                         fitToContainer();
                         pswp.on('change', fitToContainer);
                         pswp.on('resize', fitToContainer);
+                        
+                        // Ensure arrows are positioned correctly
+                        setTimeout(() => {
+                            const prevArrow = pswp.element.querySelector('.pswp__button--arrow--prev');
+                            const nextArrow = pswp.element.querySelector('.pswp__button--arrow--next');
+                            if (prevArrow) prevArrow.style.left = '20px';
+                            if (nextArrow) nextArrow.style.right = '20px';
+                        }, 50);
                     });
                     lb.init();
                     window.__pswpLightbox = lb;
@@ -752,6 +780,15 @@
                   };
                   lightbox.on('change', fitToContainer);
                   lightbox.on('resize', fitToContainer);
+                  
+                  // Ensure arrows are positioned correctly
+                  setTimeout(() => {
+                    const prevArrow = lightbox.element.querySelector('.pswp__button--arrow--prev');
+                    const nextArrow = lightbox.element.querySelector('.pswp__button--arrow--next');
+                    if (prevArrow) prevArrow.style.left = '20px';
+                    if (nextArrow) nextArrow.style.right = '20px';
+                  }, 50);
+                  
                   setTimeout(fitToContainer, 100); // Initial sizing
                 }
             }).catch((err) => {
