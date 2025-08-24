@@ -33,7 +33,7 @@ class PageController
             $album = $this->enrichAlbum($album);
         }
         
-        // Get categories for navigation
+        // Get categories for navigation with hierarchy
         $stmt = $pdo->prepare('
             SELECT c.*, COUNT(a.id) as albums_count
             FROM categories c 
@@ -42,7 +42,15 @@ class PageController
             ORDER BY c.sort_order ASC, c.name ASC
         ');
         $stmt->execute();
-        $categories = $stmt->fetchAll();
+        $allCategories = $stmt->fetchAll();
+        
+        // Build hierarchy
+        $categories = []; // flat list for backward compatibility
+        $parentCategories = $this->buildCategoryHierarchy($allCategories);
+        
+        foreach ($allCategories as $cat) {
+            $categories[] = $cat;
+        }
         
         // Get popular tags
         $stmt = $pdo->prepare('
@@ -60,6 +68,7 @@ class PageController
         return $this->view->render($response, 'frontend/home.twig', [
             'albums' => $albums,
             'categories' => $categories,
+            'parent_categories' => $parentCategories,
             'tags' => $tags,
             'page_title' => 'Portfolio',
             'meta_description' => 'Photography portfolio showcasing analog and digital work'
@@ -505,5 +514,26 @@ class PageController
         } else {
             return '1/' . (int)round(1 / $f);
         }
+    }
+    
+    private function buildCategoryHierarchy(array $allCategories): array
+    {
+        $byParent = [];
+        foreach ($allCategories as $cat) {
+            $parentId = $cat['parent_id'] ?? 0;
+            if (!isset($byParent[$parentId])) {
+                $byParent[$parentId] = [];
+            }
+            $byParent[$parentId][] = $cat;
+        }
+        
+        $parentCategories = $byParent[0] ?? [];
+        
+        // Add children to parent categories
+        foreach ($parentCategories as &$parent) {
+            $parent['children'] = $byParent[$parent['id']] ?? [];
+        }
+        
+        return $parentCategories;
     }
 }
