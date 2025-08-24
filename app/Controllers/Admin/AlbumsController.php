@@ -431,6 +431,10 @@ class AlbumsController
         $filmIds = array_map('intval', (array)($d['films'] ?? []));
         $developerIds = array_map('intval', (array)($d['developers'] ?? []));
         $labIds = array_map('intval', (array)($d['labs'] ?? []));
+        $locationIds = array_map('intval', (array)($d['locations'] ?? []));
+        
+        // Log all form data for debugging - REMOVE AFTER TESTING
+        file_put_contents('/tmp/album_update_debug.log', "UPDATE Form data: " . print_r($d, true) . "\nLocationIds: " . print_r($locationIds, true) . "\n", FILE_APPEND | LOCK_EX);
         
         // Custom equipment fields  
         $customCameras = trim((string)($d['custom_cameras'] ?? '')) ?: null;
