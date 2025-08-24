@@ -212,13 +212,8 @@ class GalleryController
                 $vr = $v->fetch();
                 if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
                 
-                // Get highest quality for lightbox (prefer xxl, xl, lg, then original)
-                $lv = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') ORDER BY CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 ELSE 9 END, width DESC LIMIT 1");
-                $lv->execute([':id' => $img['id']]);
-                $lvr = $lv->fetch();
-                if ($lvr && !empty($lvr['path']) && !str_starts_with((string)$lvr['path'], '/storage/')) {
-                    $lightboxUrl = $lvr['path'];
-                }
+                // Always use original for lightbox for best quality
+                // $lightboxUrl is already set to $img['original_path'] above
             } catch (\Throwable) {}
 
             // Ensure we never leak /storage/originals (not publicly served)
@@ -431,13 +426,8 @@ class GalleryController
                     $vr = $v->fetch();
                     if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
                     
-                    // Get highest quality for lightbox (prefer xxl, xl, lg, then original)
-                    $lv = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') ORDER BY CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 ELSE 9 END, width DESC LIMIT 1");
-                    $lv->execute([':id' => $img['id']]);
-                    $lvr = $lv->fetch();
-                    if ($lvr && !empty($lvr['path']) && !str_starts_with((string)$lvr['path'], '/storage/')) {
-                        $lightboxUrl = $lvr['path'];
-                    }
+                    // Always use original for lightbox for best quality
+                    // $lightboxUrl is already set to $img['original_path'] above
                 } catch (\Throwable $e) {
                     error_log('Error fetching image variants: ' . $e->getMessage());
                 }

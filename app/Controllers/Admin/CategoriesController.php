@@ -99,7 +99,7 @@ class CategoriesController
         } else {
             $slug = \App\Support\Str::slug($slug);
         }
-        // Handle parent_id and image upload
+        // Handle parent_id
         $parentId = !empty($data['parent_id']) ? (int)$data['parent_id'] : null;
         
         // Handle image upload
@@ -120,8 +120,14 @@ class CategoriesController
                     mkdir($dir, 0755, true);
                 }
                 
-                $uploadedFile->moveTo($fullPath);
-                $imagePath = $uploadPath;
+                try {
+                    $uploadedFile->moveTo($fullPath);
+                    $imagePath = $uploadPath;
+                } catch (\Throwable $e) {
+                    $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Errore caricamento immagine: ' . $e->getMessage()];
+                }
+            } else {
+                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Formato immagine non supportato. Usa JPG, PNG o WebP.'];
             }
         }
 
@@ -131,6 +137,10 @@ class CategoriesController
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Categoria creata'];
             return $response->withHeader('Location', '/admin/categories')->withStatus(302);
         } catch (\Throwable $e) {
+            // Clean up uploaded file if database insert fails
+            if ($imagePath && file_exists('public' . $imagePath)) {
+                unlink('public' . $imagePath);
+            }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
             return $response->withHeader('Location', '/admin/categories/create')->withStatus(302);
         }
@@ -166,6 +176,8 @@ class CategoriesController
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
         $sort = (int)($data['sort_order'] ?? 0);
+        $parentId = !empty($data['parent_id']) ? (int)$data['parent_id'] : null;
+        
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
             return $response->withHeader('Location', '/admin/categories/'.$id.'/edit')->withStatus(302);
@@ -175,9 +187,56 @@ class CategoriesController
         } else {
             $slug = \App\Support\Str::slug($slug);
         }
-        $stmt = $this->db->pdo()->prepare('UPDATE categories SET name=:n, slug=:s, sort_order=:o WHERE id=:id');
+        
+        // Get current category data for image handling
+        $stmt = $this->db->pdo()->prepare('SELECT image_path FROM categories WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $currentCategory = $stmt->fetch();
+        $imagePath = $currentCategory['image_path'] ?? null;
+        
+        // Handle image upload
+        $uploadedFiles = $request->getUploadedFiles();
+        if (isset($uploadedFiles['image']) && $uploadedFiles['image']->getError() === UPLOAD_ERR_OK) {
+            $uploadedFile = $uploadedFiles['image'];
+            $extension = strtolower(pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION));
+            
+            if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp'])) {
+                $filename = $slug . '_' . time() . '.' . $extension;
+                $uploadPath = '/media/categories/' . $filename;
+                
+                // Create directory if it doesn't exist
+                $fullPath = 'public' . $uploadPath;
+                $dir = dirname($fullPath);
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                }
+                
+                try {
+                    $uploadedFile->moveTo($fullPath);
+                    // Delete old image if exists
+                    if ($imagePath && file_exists('public' . $imagePath)) {
+                        unlink('public' . $imagePath);
+                    }
+                    $imagePath = $uploadPath;
+                } catch (\Throwable $e) {
+                    $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Errore caricamento immagine: ' . $e->getMessage()];
+                }
+            } else {
+                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Formato immagine non supportato. Usa JPG, PNG o WebP.'];
+            }
+        }
+        
+        // Handle image removal if requested
+        if (isset($data['remove_image']) && $data['remove_image'] === '1') {
+            if ($imagePath && file_exists('public' . $imagePath)) {
+                unlink('public' . $imagePath);
+            }
+            $imagePath = null;
+        }
+        
+        $stmt = $this->db->pdo()->prepare('UPDATE categories SET name=:n, slug=:s, sort_order=:o, parent_id=:p, image_path=:i WHERE id=:id');
         try {
-            $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':id' => $id]);
+            $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath, ':id' => $id]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Categoria aggiornata'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];

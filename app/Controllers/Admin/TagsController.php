@@ -90,7 +90,7 @@ class TagsController
         $slug = trim((string)($data['slug'] ?? ''));
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
-            return $response->withHeader('Location', '/admin/tags/'+$id+'/edit')->withStatus(302);
+            return $response->withHeader('Location', '/admin/tags/'.$id.'/edit')->withStatus(302);
         }
         if ($slug === '') {
             $slug = \App\Support\Str::slug($name);

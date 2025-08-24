@@ -82,6 +82,62 @@
     .table-row:hover { 
       background-color: #f9fafb; 
     }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      background-color: white;
+      min-width: 280px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      z-index: 1000;
+      top: 100%;
+      margin-top: 8px;
+    }
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .dropdown-item {
+      color: #374151;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      transition: background-color 0.2s;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .dropdown-item:hover {
+      background-color: #f9fafb;
+    }
+    .dropdown-item:last-child {
+      border-bottom: none;
+      border-radius: 0 0 8px 8px;
+    }
+    .dropdown-item:first-child {
+      border-radius: 8px 8px 0 0;
+    }
+    .dropdown-item i {
+      width: 20px;
+      margin-right: 12px;
+      text-align: center;
+    }
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+    }
   </style>
   <!-- PhotoSwipe CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.css">
@@ -95,11 +151,128 @@
           <i class="fas fa-camera text-2xl text-black mr-3"></i>
           <h1 class="text-xl font-semibold text-black">photoCMS</h1>
         </div>
-        <div class="flex items-center space-x-4">
-          <span class="text-sm text-gray-600">Admin Panel</span>
-          <a href="/admin/logout" class="text-gray-600 hover:text-black transition-colors">
-            <i class="fas fa-sign-out-alt"></i>
+        
+        <!-- User Administration Area -->
+        <div class="flex items-center space-x-6">
+          <!-- Frontend Link -->
+          <a href="/" target="_blank" class="text-gray-600 hover:text-black transition-colors flex items-center space-x-2" title="Visualizza Frontend">
+            <i class="fas fa-external-link-alt"></i>
+            <span class="hidden md:inline text-sm">Frontend</span>
           </a>
+          
+          <!-- User Dropdown -->
+          <div class="dropdown">
+            <button class="flex items-center space-x-3 text-gray-700 hover:text-black transition-colors cursor-pointer">
+              <!-- User Avatar -->
+              <div class="user-avatar">
+                {% if session.admin_name %}
+                  {{ session.admin_name|split(' ')|map(name => name|first)|join('')|upper }}
+                {% else %}
+                  <i class="fas fa-user"></i>
+                {% endif %}
+              </div>
+              
+              <!-- User Info -->
+              <div class="hidden md:block text-left">
+                <div class="text-sm font-medium">
+                  {% if session.admin_name %}
+                    {{ session.admin_name }}
+                  {% else %}
+                    Admin User
+                  {% endif %}
+                </div>
+                <div class="text-xs text-gray-500">
+                  {% if session.admin_email %}
+                    {{ session.admin_email }}
+                  {% else %}
+                    Administrator
+                  {% endif %}
+                </div>
+              </div>
+              
+              <i class="fas fa-chevron-down text-xs"></i>
+            </button>
+            
+            <!-- Dropdown Menu -->
+            <div class="dropdown-content">
+              <!-- User Info Header -->
+              <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                <div class="flex items-center space-x-3">
+                  <div class="user-avatar">
+                    {% if session.admin_name %}
+                      {{ session.admin_name|split(' ')|map(name => name|first)|join('')|upper }}
+                    {% else %}
+                      <i class="fas fa-user"></i>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <div class="font-medium text-gray-900">
+                      {% if session.admin_name %}
+                        {{ session.admin_name }}
+                      {% else %}
+                        Admin User
+                      {% endif %}
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      {% if session.admin_email %}
+                        {{ session.admin_email }}
+                      {% else %}
+                        Administrator
+                      {% endif %}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">
+                      <i class="fas fa-shield-alt mr-1"></i>{{ session.admin_role|default('admin')|title }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Menu Items -->
+              <a href="#" onclick="openProfileModal()" class="dropdown-item">
+                <i class="fas fa-user-edit"></i>
+                <div>
+                  <div class="font-medium">Il Mio Profilo</div>
+                  <div class="text-xs text-gray-500">Modifica informazioni personali</div>
+                </div>
+              </a>
+              
+              <a href="#" onclick="openPasswordModal()" class="dropdown-item">
+                <i class="fas fa-key"></i>
+                <div>
+                  <div class="font-medium">Cambia Password</div>
+                  <div class="text-xs text-gray-500">Aggiorna le tue credenziali</div>
+                </div>
+              </a>
+              
+              <div class="border-t border-gray-100 my-1"></div>
+              
+              <a href="/admin/users" class="dropdown-item">
+                <i class="fas fa-users-cog"></i>
+                <div>
+                  <div class="font-medium">Gestione Utenti</div>
+                  <div class="text-xs text-gray-500">Amministra tutti gli utenti</div>
+                </div>
+              </a>
+              
+              <a href="/admin/settings" class="dropdown-item">
+                <i class="fas fa-cog"></i>
+                <div>
+                  <div class="font-medium">Impostazioni Sistema</div>
+                  <div class="text-xs text-gray-500">Configura l'applicazione</div>
+                </div>
+              </a>
+              
+              <div class="border-t border-gray-100 my-1"></div>
+              
+              <a href="/admin/logout" class="dropdown-item text-red-600 hover:bg-red-50">
+                <i class="fas fa-sign-out-alt"></i>
+                <div>
+                  <div class="font-medium">Logout</div>
+                  <div class="text-xs text-red-400">Esci dall'amministrazione</div>
+                </div>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -163,6 +336,9 @@
         <div>
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">SYSTEM</p>
           <div class="space-y-1">
+            <a href="/admin/users" class="sidebar-link">
+              <i class="fas fa-users"></i>Users
+            </a>
             <a href="/admin/settings" class="sidebar-link">
               <i class="fas fa-cog"></i>Settings
             </a>
@@ -202,6 +378,76 @@
     <div id="toast-inner" class="px-4 py-3 rounded shadow text-sm"></div>
   </div>
 
+  <!-- Profile Modal -->
+  <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen px-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Il Mio Profilo</h3>
+          <button onclick="closeProfileModal()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="profileForm" method="post" action="/admin/profile/update">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+              <input class="form-input" type="text" name="first_name" value="{{ session.admin_name|split(' ')|first }}" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Cognome</label>
+              <input class="form-input" type="text" name="last_name" value="{{ session.admin_name|split(' ')|slice(1)|join(' ') }}" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input class="form-input" type="email" name="email" value="{{ session.admin_email }}" required>
+            </div>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" onclick="closeProfileModal()" class="btn-secondary">Annulla</button>
+            <button type="submit" class="btn-primary">Aggiorna Profilo</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Change Modal -->
+  <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen px-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Cambia Password</h3>
+          <button onclick="closePasswordModal()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="passwordForm" method="post" action="/admin/profile/password">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Password Attuale</label>
+              <input class="form-input" type="password" name="current_password" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nuova Password</label>
+              <input class="form-input" type="password" name="new_password" minlength="8" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Conferma Nuova Password</label>
+              <input class="form-input" type="password" name="confirm_password" minlength="8" required>
+            </div>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" onclick="closePasswordModal()" class="btn-secondary">Annulla</button>
+            <button type="submit" class="btn-primary">Cambia Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Highlight active sidebar link
     document.addEventListener('DOMContentLoaded', function() {
@@ -224,6 +470,52 @@
       box.classList.remove('hidden');
       setTimeout(()=>{ box.classList.add('hidden'); }, 2000);
     }
+
+    // Profile Modal Functions
+    function openProfileModal() {
+      document.getElementById('profileModal').classList.remove('hidden');
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.add('hidden');
+    }
+
+    // Password Modal Functions
+    function openPasswordModal() {
+      document.getElementById('passwordModal').classList.remove('hidden');
+    }
+
+    function closePasswordModal() {
+      document.getElementById('passwordModal').classList.add('hidden');
+      document.getElementById('passwordForm').reset();
+    }
+
+    // Password confirmation validation
+    document.addEventListener('DOMContentLoaded', function() {
+      const passwordForm = document.getElementById('passwordForm');
+      if (passwordForm) {
+        passwordForm.addEventListener('submit', function(e) {
+          const newPassword = document.querySelector('input[name="new_password"]').value;
+          const confirmPassword = document.querySelector('input[name="confirm_password"]').value;
+          
+          if (newPassword !== confirmPassword) {
+            e.preventDefault();
+            showToast('Le password non corrispondono', 'error');
+            return false;
+          }
+        });
+      }
+    });
+
+    // Close modals when clicking outside
+    document.addEventListener('click', function(e) {
+      if (e.target.id === 'profileModal') {
+        closeProfileModal();
+      }
+      if (e.target.id === 'passwordModal') {
+        closePasswordModal();
+      }
+    });
   </script>
   <!-- PhotoSwipe JS -->
   <script src="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.min.js"></script>

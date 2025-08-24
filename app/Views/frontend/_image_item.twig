@@ -1,6 +1,10 @@
-<div class="image-item group" data-image-id="{{ image.id }}">
-  <div class="relative aspect-[4/3] md:aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm cursor-pointer" 
-       onclick="openLightbox({{ image.id }})">
+  <a href="{{ image.original_path }}" 
+     class="pswp-link image-item group block" 
+     data-image-id="{{ image.id }}"
+     data-pswp-width="{{ image.width }}" 
+     data-pswp-height="{{ image.height }}"
+     data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.custom_lens %}<br><small class='text-xs opacity-75'>{% if image.custom_camera %}{{ image.custom_camera|e }}{% endif %}{% if image.custom_lens %} • {{ image.custom_lens|e }}{% endif %}</small>{% endif %}">
+  <div class="relative aspect-[4/3] md:aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm cursor-pointer">
     <picture>
       {% set variants_avif = [] %}
       {% set variants_webp = [] %}
@@ -37,7 +41,7 @@
            class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
     </picture>
     {% if album.allow_downloads %}
-      <a href="/download/image/{{ image.id }}" class="absolute top-2 right-2 bg-black/70 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition" title="Download" onclick="event.stopPropagation();" download>
+      <a href="/download/image/{{ image.id }}" class="absolute top-2 right-2 bg-black/70 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition z-10" title="Download" onclick="event.stopPropagation(); event.preventDefault();" download>
         <i class="fa-solid fa-arrow-down"></i>
       </a>
     {% endif %}
@@ -48,29 +52,4 @@
       </div>
     {% endif %}
   </div>
-  
-  <!-- Metadata for lightbox (hidden) -->
-  <script type="application/json" class="image-data">
-  {
-    "id": {{ image.id }},
-    "src": "{{ image.original_path }}",
-    "alt": {{ image.alt_text|e|json_encode|raw }},
-    "caption": {{ image.caption|e|json_encode|raw }},
-    "width": {{ image.width }},
-    "height": {{ image.height }},
-    "exif": {{ image.exif|json_encode|raw }},
-    "metadata": {
-      {% if image.iso %}"iso": {{ image.iso }},{% endif %}
-      {% if image.shutter_speed %}"shutter": {{ image.shutter_speed|json_encode|raw }},{% endif %}
-      {% if image.aperture %}"aperture": "f/{{ image.aperture }}",{% endif %}
-      "process": {{ image.process|json_encode|raw }},
-      {% if image.custom_camera %}"camera": {{ image.custom_camera|json_encode|raw }},{% endif %}
-      {% if image.custom_lens %}"lens": {{ image.custom_lens|json_encode|raw }},{% endif %}
-      {% if image.custom_film %}"film": {{ image.custom_film|json_encode|raw }}{% elseif image.film_name is defined and image.film_name %}"film": {{ image.film_name|json_encode|raw }}{% endif %}
-      {% if image.developer_name is defined and image.developer_name %},"developer": {{ image.developer_name|json_encode|raw }}{% endif %}
-      {% if image.lab_name is defined and image.lab_name %},"lab": {{ image.lab_name|json_encode|raw }}{% endif %}
-      {% if image.location_name is defined and image.location_name %},"location": {{ image.location_name|json_encode|raw }}{% endif %}
-    }
-  }
-  </script>
-</div>
+</a>

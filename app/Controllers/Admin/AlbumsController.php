@@ -108,6 +108,7 @@ class AlbumsController
         $categoryIds = array_map('intval', (array)($d['categories'] ?? []));
         $category_id = (int)($d['category_id'] ?? ($categoryIds[0] ?? 0));
         $excerpt = trim((string)($d['excerpt'] ?? '')) ?: null;
+        $body = trim((string)($d['body'] ?? '')) ?: null;
         $shoot_date = (string)($d['shoot_date'] ?? '') ?: null;
         $show_date = isset($d['show_date']) ? 1 : 0;
         $is_published = isset($d['is_published']) ? 1 : 0;
@@ -143,17 +144,17 @@ class AlbumsController
         $pdo = $this->db->pdo();
         // Try with template_id and custom equipment fields
         try {
-            $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, password_hash) VALUES(:t,:s,:c,:e,:sd,:sh,:p,:pa,:o,:ti,:cc,:cl,:cf,:cd,:clab,:dl,:ph)');
-            $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':dl'=>$allow_downloads, ':ph'=>$password_hash]);
+            $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, password_hash) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:cc,:cl,:cf,:cd,:clab,:dl,:ph)');
+            $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':dl'=>$allow_downloads, ':ph'=>$password_hash]);
         } catch (\Throwable $e) {
             // Fallback for old DB schema without custom fields
             try {
-                $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, shoot_date, show_date, is_published, published_at, sort_order, template_id, allow_downloads, password_hash) VALUES(:t,:s,:c,:e,:sd,:sh,:p,:pa,:o,:ti,:dl,:ph)');
-                $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':dl'=>$allow_downloads, ':ph'=>$password_hash]);
+                $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, allow_downloads, password_hash) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:dl,:ph)');
+                $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':dl'=>$allow_downloads, ':ph'=>$password_hash]);
             } catch (\Throwable $e2) {
                 // Final fallback
-                $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, shoot_date, show_date, is_published, published_at, sort_order, allow_downloads) VALUES(:t,:s,:c,:e,:sd,:sh,:p,:pa,:o,:dl)');
-                $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order, ':dl'=>$allow_downloads]);
+                $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, allow_downloads) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:dl)');
+                $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order, ':dl'=>$allow_downloads]);
             }
         }
         try {
@@ -417,6 +418,7 @@ class AlbumsController
         $categoryIds = array_map('intval', (array)($d['categories'] ?? []));
         $category_id = (int)($d['category_id'] ?? ($categoryIds[0] ?? 0));
         $excerpt = trim((string)($d['excerpt'] ?? '')) ?: null;
+        $body = trim((string)($d['body'] ?? '')) ?: null;
         $shoot_date = (string)($d['shoot_date'] ?? '') ?: null;
         $show_date = isset($d['show_date']) ? 1 : 0;
         $is_published = isset($d['is_published']) ? 1 : 0;
@@ -452,17 +454,17 @@ class AlbumsController
         $pdo = $this->db->pdo();
         // Try with template_id and custom equipment fields
         try {
-            $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab WHERE id=:id');
-            $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':id'=>$id]);
+            $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab WHERE id=:id');
+            $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':id'=>$id]);
         } catch (\Throwable $e) {
             // Fallback for old DB schema without custom fields
             try {
-                $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti WHERE id=:id');
-                $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':id'=>$id]);
+                $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti WHERE id=:id');
+                $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':id'=>$id]);
             } catch (\Throwable $e2) {
                 // Final fallback
-                $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o WHERE id=:id');
-                $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order, ':id'=>$id]);
+                $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o WHERE id=:id');
+                $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order, ':id'=>$id]);
             }
         }
         // Try to update downloads and password when columns exist
