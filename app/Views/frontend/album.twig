@@ -186,18 +186,6 @@
 </section>
 {% endif %}
 
-{# Swiper Lightbox Overlay (placed inside content to ensure it exists in DOM) #}
-<div id="lb" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50">
-  <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white text-xl" aria-label="Close">✕</button>
-  <div class="w-full max-w-6xl px-4">
-    <div id="lb-swiper" class="swiper">
-      <div class="swiper-wrapper"></div>
-      <div class="swiper-button-next lb-next"></div>
-      <div class="swiper-button-prev lb-prev"></div>
-    </div>
-  </div>
-  <div class="absolute bottom-3 left-0 right-0 text-center text-white text-xs opacity-60">Use arrows or swipe to navigate</div>
-</div>
 
 {% endblock %}
 
@@ -285,79 +273,6 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
     }
 });
 
-// Swiper-based lightbox overlay
-let __lbSwiper = null;
-function buildLightboxItems() {
-  const nodes = document.querySelectorAll('.image-item .image-data');
-  const items = [];
-  nodes.forEach((scriptEl) => {
-    const data = JSON.parse(scriptEl.textContent);
-    const src = data.src || data.url; // support both keys
-    const w = data.width || 1200;
-    const h = data.height && data.height > 0 ? data.height : 800;
-    let cap = '';
-    if (data.caption) cap += `<div class="mb-1">${data.caption}</div>`;
-    const m = data.metadata || {};
-    const bits = [];
-    if (m.camera) bits.push(`<i class=\"fas fa-camera\"></i> ${m.camera}`);
-    if (m.lens) bits.push(`<i class=\"fas fa-dot-circle\"></i> ${m.lens}`);
-    const exp = [];
-    if (m.aperture) exp.push(m.aperture);
-    if (m.shutter) exp.push(m.shutter);
-    if (m.iso) exp.push(`ISO ${m.iso}`);
-    if (exp.length) bits.push(`<i class=\"fas fa-sliders-h\"></i> ${exp.join(' • ')}`);
-    if (m.film) bits.push(`<i class=\"fas fa-film\"></i> ${m.film}`);
-    if (m.developer) bits.push(`<i class=\"fas fa-flask\"></i> ${m.developer}`);
-    if (m.lab) bits.push(`<i class=\"fas fa-industry\"></i> ${m.lab}`);
-    if (bits.length) cap += `<div class=\"text-xs text-neutral-300 space-x-2\">${bits.join(' &nbsp; ')}<\/div>`;
-    items.push({ id: String(data.id), src, w, h, alt: data.alt || '', caption: cap });
-  });
-  return items;
-}
-function openLightbox(imageId) {
-  const overlay = document.getElementById('lb');
-  const wrapper = document.querySelector('#lb-swiper .swiper-wrapper');
-  if (!overlay || !wrapper) return;
-  const items = buildLightboxItems();
-  wrapper.innerHTML = items.map(it => `
-    <div class=\"swiper-slide\">
-      <div class=\"w-full h-full flex flex-col items-center justify-center bg-black\">
-        <img src=\"${it.src}\" alt=\"${it.alt}\" style=\"max-width:60%; max-height:50vh;\"/>
-        ${it.caption ? `<div class=\\"mt-3 text-white text-xs px-4 text-center\\">${it.caption}</div>` : ''}
-      </div>
-    </div>
-  `).join('');
-  // find start index
-  const start = Math.max(0, items.findIndex(it => it.id === String(imageId)));
-  overlay.classList.remove('hidden');
-  overlay.classList.add('flex');
-  if (__lbSwiper) { __lbSwiper.destroy(true,true); __lbSwiper = null; }
-  if (typeof Swiper !== 'undefined') {
-    __lbSwiper = new Swiper('#lb-swiper', {
-      initialSlide: start,
-      loop: false,
-      navigation: { nextEl: '.lb-next', prevEl: '.lb-prev' },
-      keyboard: { enabled: true },
-    });
-  }
-}
-function closeLightbox(){
-  const overlay = document.getElementById('lb');
-  if (__lbSwiper) { __lbSwiper.destroy(true,true); __lbSwiper = null; }
-  overlay.classList.add('hidden');
-  overlay.classList.remove('flex');
-}
-{# Swiper Lightbox Overlay (placed inside content to ensure it exists in DOM) #}
-<div id="lb" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50">
-  <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white text-xl" aria-label="Close">✕</button>
-  <div class="w-full max-w-6xl px-4">
-    <div id="lb-swiper" class="swiper">
-      <div class="swiper-wrapper"></div>
-      <div class="swiper-button-next lb-next"></div>
-      <div class="swiper-button-prev lb-prev"></div>
-    </div>
-  </div>
-  <div class="absolute bottom-3 left-0 right-0 text-center text-white text-xs opacity-60">Use arrows or swipe to navigate</div>
-</div>
+// Initialize PhotoSwipe lightbox (handled by main layout)
 
 {% endblock %}

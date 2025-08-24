@@ -1,0 +1,114 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Gestione Utenti — photoCMS{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Gestione Utenti</h1>
+    <p class="text-gray-600 mt-1">{{ total }} utenti totali</p>
+  </div>
+  <a href="/admin/users/create" class="btn-primary">
+    <i class="fas fa-plus mr-2"></i>Nuovo Utente
+  </a>
+</div>
+
+<div class="card">
+  <div class="overflow-x-auto">
+    <table class="w-full">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utente</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ruolo</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ultimo Accesso</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registrato</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Azioni</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        {% for user in users %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-4 whitespace-nowrap">
+            <div>
+              <div class="text-sm font-medium text-gray-900">
+                {{ user.first_name }} {{ user.last_name }}
+              </div>
+              <div class="text-sm text-gray-500">{{ user.email }}</div>
+            </div>
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ user.role == 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' }}">
+              {{ user.role == 'admin' ? 'Amministratore' : 'Utente' }}
+            </span>
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+              {{ user.is_active ? 'Attivo' : 'Disattivo' }}
+            </span>
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+            {% if user.last_login %}
+              {{ user.last_login|date('d/m/Y H:i') }}
+            {% else %}
+              <span class="text-gray-400">Mai</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+            {{ user.created_at|date('d/m/Y') }}
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+            <a href="/admin/users/{{ user.id }}/edit" class="text-indigo-600 hover:text-indigo-900">
+              <i class="fas fa-edit"></i>
+            </a>
+            {% if user.id != session.admin_id %}
+              <form method="post" action="/admin/users/{{ user.id }}/toggle" class="inline">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <button type="submit" class="text-yellow-600 hover:text-yellow-900" title="{{ user.is_active ? 'Disattiva' : 'Attiva' }}">
+                  <i class="fas fa-{{ user.is_active ? 'pause' : 'play' }}"></i>
+                </button>
+              </form>
+              <form method="post" action="/admin/users/{{ user.id }}/delete" class="inline" 
+                    onsubmit="return confirm('Eliminare questo utente? Questa azione non può essere annullata.');">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <button type="submit" class="text-red-600 hover:text-red-900">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+            {% else %}
+              <span class="text-gray-400" title="Non puoi modificare il tuo account da qui">
+                <i class="fas fa-lock"></i>
+              </span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+            <i class="fas fa-users text-4xl mb-2 block text-gray-300"></i>
+            Nessun utente trovato
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages > 1 %}
+  <div class="bg-gray-50 px-4 py-3 border-t border-gray-200 sm:px-6">
+    <div class="flex items-center justify-between">
+      <div class="text-sm text-gray-700">
+        Pagina {{ page }} di {{ pages }}
+      </div>
+      <div class="flex space-x-2">
+        {% if page > 1 %}
+          <a href="/admin/users?page={{ page - 1 }}" class="btn-secondary">Precedente</a>
+        {% endif %}
+        {% if page < pages %}
+          <a href="/admin/users?page={{ page + 1 }}" class="btn-secondary">Successivo</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

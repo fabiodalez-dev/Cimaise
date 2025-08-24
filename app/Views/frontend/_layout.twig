@@ -646,8 +646,8 @@
                         pinchToClose: true,
                         closeOnVerticalDrag: true,
                         
-                        // Padding to contain images properly (creates the smaller image effect)
-                        padding: { top: 60, bottom: 80, left: 60, right: 60 },
+                        // Minimal padding to show images at full size
+                        padding: { top: 20, bottom: 20, left: 20, right: 20 },
                         
                         // Modern smooth animations
                         showHideAnimationType: 'fade',
@@ -687,25 +687,127 @@
                             };
                         },
                         
-                        // Italian localization
-                        closeTitle: 'Chiudi',
+                        // Enhanced UI with icons
+                        closeTitle: 'Chiudi (Esc)',
                         zoomTitle: 'Zoom',
-                        arrowPrevTitle: 'Precedente',
-                        arrowNextTitle: 'Successiva',
+                        arrowPrevTitle: '← Precedente',
+                        arrowNextTitle: 'Successiva →',
                         errorMsg: 'Impossibile caricare l\'immagine',
-                        indexIndicatorSep: ' di '
+                        indexIndicatorSep: ' di ',
+                        
+                        // Enable advanced features
+                        zoom: true,
+                        counter: true,
+                        arrowKeys: true,
+                        escKey: true,
+                        mouseUsed: false,
+                        
+                        // Custom zoom animations
+                        zoomAnimationDuration: 333,
+                        easing: 'cubic-bezier(0.4, 0, 0.22, 1)'
                     });
-                    // Caption UI
+                    // Enhanced Caption UI with metadata
                     lb.on('uiRegister', () => {
+                        // Custom caption with better styling
                         lb.pswp.ui.registerElement({
                             name: 'custom-caption', order: 9, isButton: false, appendTo: 'root',
                             onInit: (el, pswp) => {
                                 el.className = 'pswp__custom-caption pswp__hide-on-close';
+                                el.style.cssText = `
+                                    position: absolute; bottom: 44px; left: 0; right: 0;
+                                    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+                                    color: white; padding: 20px 16px 16px;
+                                    font-size: 14px; line-height: 1.4; text-align: center;
+                                    pointer-events: none; opacity: 0; transition: opacity 0.3s ease;
+                                `;
+                                
                                 pswp.on('change', () => {
                                     const currEl = pswp.currSlide && pswp.currSlide.data && pswp.currSlide.data.element;
                                     const cap = currEl ? currEl.getAttribute('data-pswp-caption') : '';
-                                    el.innerHTML = cap || '';
+                                    if (cap && cap.trim()) {
+                                        el.innerHTML = cap;
+                                        el.style.opacity = '1';
+                                    } else {
+                                        el.style.opacity = '0';
+                                    }
                                 });
+                            }
+                        });
+                        
+                        // Download button
+                        lb.pswp.ui.registerElement({
+                            name: 'download-button', order: 8, isButton: true, appendTo: 'bar',
+                            html: '<i class="fa-solid fa-download"></i>',
+                            onInit: (el, pswp) => {
+                                el.setAttribute('title', 'Scarica immagine');
+                                el.style.cssText = 'color: white; padding: 8px 12px; margin-left: 4px;';
+                                el.onclick = () => {
+                                    if (pswp.currSlide && pswp.currSlide.data) {
+                                        const link = document.createElement('a');
+                                        link.href = pswp.currSlide.data.src;
+                                        link.download = `image-${Date.now()}.jpg`;
+                                        link.target = '_blank';
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    }
+                                };
+                            }
+                        });
+                        
+                        // Fullscreen button
+                        lb.pswp.ui.registerElement({
+                            name: 'fullscreen-button', order: 7, isButton: true, appendTo: 'bar',
+                            html: '<i class="fa-solid fa-expand"></i>',
+                            onInit: (el, pswp) => {
+                                el.setAttribute('title', 'Schermo intero');
+                                el.style.cssText = 'color: white; padding: 8px 12px; margin-left: 4px;';
+                                el.onclick = () => {
+                                    if (document.fullscreenElement) {
+                                        document.exitFullscreen();
+                                        el.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                                        el.setAttribute('title', 'Schermo intero');
+                                    } else {
+                                        pswp.template.requestFullscreen();
+                                        el.innerHTML = '<i class="fa-solid fa-compress"></i>';
+                                        el.setAttribute('title', 'Esci da schermo intero');
+                                    }
+                                };
+                                document.addEventListener('fullscreenchange', () => {
+                                    if (!document.fullscreenElement) {
+                                        el.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                                        el.setAttribute('title', 'Schermo intero');
+                                    }
+                                });
+                            }
+                        });
+                        
+                        // Share button  
+                        lb.pswp.ui.registerElement({
+                            name: 'share-button', order: 6, isButton: true, appendTo: 'bar',
+                            html: '<i class="fa-solid fa-share"></i>',
+                            onInit: (el, pswp) => {
+                                el.setAttribute('title', 'Condividi');
+                                el.style.cssText = 'color: white; padding: 8px 12px; margin-left: 4px;';
+                                el.onclick = async () => {
+                                    if (pswp.currSlide && pswp.currSlide.data) {
+                                        const url = window.location.href;
+                                        if (navigator.share) {
+                                            try {
+                                                await navigator.share({
+                                                    title: document.title,
+                                                    url: url
+                                                });
+                                            } catch(e) {
+                                                // Fallback to clipboard
+                                                navigator.clipboard.writeText(url);
+                                            }
+                                        } else {
+                                            // Fallback to clipboard
+                                            navigator.clipboard.writeText(url);
+                                        }
+                                    }
+                                };
                             }
                         });
                     });
@@ -737,8 +839,8 @@
                     pinchToClose: true,
                     closeOnVerticalDrag: true,
                     
-                    // Padding for contained images
-                    padding: { top: 60, bottom: 80, left: 60, right: 60 },
+                    // Minimal padding to show images at full size
+                    padding: { top: 20, bottom: 20, left: 20, right: 20 },
                     
                     // Modern animations
                     showHideAnimationType: 'fade',
