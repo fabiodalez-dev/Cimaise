@@ -47,7 +47,7 @@
 
   <div class="max-w-5xl mx-auto mb-8 p-4 bg-neutral-50 rounded-lg">
     <h3 class="text-sm font-medium mb-3 text-center">Equipment</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 text-xs text-neutral-600">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-xs text-neutral-600">
       <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-camera"></i> Cameras</div>
         <div class="space-y-1">{% for camera in album.equipment.cameras %}<div>{{ camera }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
       </div>
@@ -62,9 +62,6 @@
       </div>
       <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-industry"></i> Labs</div>
         <div class="space-y-1">{% for lab in album.equipment.labs %}<div>{{ lab }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
-      </div>
-      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Locations</div>
-        <div class="space-y-1">{% for loc in album.equipment.locations %}<div>{{ loc }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
       </div>
     </div>
   </div>
@@ -113,7 +110,7 @@
     <div class="flex justify-end">
       <div class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm">
         {% for template in available_templates %}
-        <a class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" href="/gallery?template={{ template.id }}{% if album_ref %}&album={{ album_ref }}{% endif %}" title="{{ template.name }}">
+        <a class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" href="/album/{{ album_ref }}?template={{ template.id }}" title="{{ template.name }}">
           {% if template.settings.layout == 'grid' %}
             {% if template.settings.masonry %}
               <i class="fas fa-th-large"></i>
@@ -155,7 +152,7 @@
                class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
-               data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}</div>{% endif %}">
+               data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
               <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover">
             </a>
           </div>
@@ -174,7 +171,7 @@
            class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}</div>{% endif %}">
+           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
           <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
         </a>
       </div>
@@ -188,7 +185,7 @@
            class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}</div>{% endif %}">
+           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
           <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover">
         </a>
       </div>
@@ -222,7 +219,7 @@
            class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}</div>{% endif %}">
+           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
           <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
         </a>
       </div>
@@ -302,8 +299,11 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
     a.classList.remove('text-neutral-700', 'hover:bg-neutral-100');
     a.classList.add('bg-black', 'text-white');
     
-    // Build the AJAX URL for fetching only the gallery content
-    const fetchUrl = `/api/gallery/template?template=${templateId}${albumRef ? '&album=' + encodeURIComponent(albumRef) : ''}`;
+    // Build the AJAX URL for fetching only the gallery content using SEO-friendly format
+    const urlPath = url.pathname; // e.g., "/album/street-photography-portfolio"
+    const albumSlug = urlPath.split('/').pop(); // Extract "street-photography-portfolio"
+    const fetchUrl = `/api/album/${albumSlug}/template?template=${templateId}`;
+    console.log('Fetching from SEO-friendly URL:', fetchUrl);
     
     // Fetch the full page and extract the gallery content
     fetch(fetchUrl, {
