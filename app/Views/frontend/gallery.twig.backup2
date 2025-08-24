@@ -27,7 +27,7 @@
 
   <div class="max-w-5xl mx-auto mb-8 p-4 bg-neutral-50 rounded-lg">
     <h3 class="text-sm font-medium mb-3 text-center">Equipment</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 text-xs text-neutral-600">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 text-xs text-neutral-600">
       <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-camera"></i> Cameras</div>
         <div class="space-y-1">{% for camera in album.equipment.cameras %}<div>{{ camera }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
       </div>
@@ -42,9 +42,6 @@
       </div>
       <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-industry"></i> Labs</div>
         <div class="space-y-1">{% for lab in album.equipment.labs %}<div>{{ lab }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
-      </div>
-      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Locations</div>
-        <div class="space-y-1">{% for loc in album.equipment.locations %}<div>{{ loc }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
       </div>
     </div>
   </div>
@@ -131,13 +128,10 @@
         <div class="swiper-wrapper">
           {% for image in images %}
           <div class="swiper-slide">
-            <a href="{{ image.lightbox_url|default(image.url) }}" 
-               class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
-               data-pswp-width="{{ image.width|default(1600) }}"
-               data-pswp-height="{{ image.height|default(1067) }}"
-               data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}</div>{% endif %}">
+            <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer" data-image-id="{{ image.id }}" onclick="openLightbox('{{ image.id }}')">
               <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover">
-            </a>
+              <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+            </div>
           </div>
           {% endfor %}
         </div>
@@ -150,13 +144,10 @@
     <div id="images-gallery" class="grid grid-cols-1 lg:grid-cols-2 gap-2">
       {% for image in images %}
       <div class="masonry-item">
-        <a href="{{ image.lightbox_url|default(image.url) }}" 
-           class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}</div>{% endif %}">
+        <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative" data-image-id="{{ image.id }}" onclick="openLightbox('{{ image.id }}')">
           <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
-        </a>
+          <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -164,13 +155,10 @@
     <div id="images-gallery" class="masonry-grid">
       {% for image in images %}
       <div class="masonry-item">
-        <a href="{{ image.lightbox_url|default(image.url) }}" 
-           class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}</div>{% endif %}">
+        <div class="image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative" data-image-id="{{ image.id }}" onclick="openLightbox('{{ image.id }}')">
           <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover">
-        </a>
+          <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -198,17 +186,44 @@
     <div id="images-gallery" class="grid {{ mobile_class }} {{ tablet_class }} {{ desktop_class }} gap-4">
       {% for image in images %}
       <div class="masonry-item">
-        <a href="{{ image.lightbox_url|default(image.url) }}" 
-           class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}</div>{% endif %}">
+        <div class="image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative" data-image-id="{{ image.id }}" onclick="openLightbox('{{ image.id }}')">
           <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
-        </a>
+          <script type="application/json" class="image-data">{{ image|json_encode|raw }}</script>
+        </div>
       </div>
       {% endfor %}
     </div>
   {% endif %}
+
+  <div id="lb" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50">
+    <!-- Close button -->
+    <button onclick="closeLightbox()" class="absolute top-6 right-6 bg-white/20 hover:bg-white/30 text-white rounded-full w-12 h-12 flex items-center justify-center backdrop-blur-sm transition-colors z-20" aria-label="Close">
+      <i class="fas fa-times text-lg"></i>
+    </button>
+    
+    <!-- Navigation arrows outside modal -->
+    <button onclick="prevImage()" class="absolute left-6 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white rounded-full w-14 h-14 flex items-center justify-center backdrop-blur-sm transition-colors z-20" aria-label="Previous">
+      <i class="fas fa-chevron-left text-xl"></i>
+    </button>
+    
+    <button onclick="nextImage()" class="absolute right-6 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white rounded-full w-14 h-14 flex items-center justify-center backdrop-blur-sm transition-colors z-20" aria-label="Next">
+      <i class="fas fa-chevron-right text-xl"></i>
+    </button>
+    
+    <!-- Image container -->
+    <div class="w-full h-full flex items-center justify-center px-20">
+      <div id="lb-swiper" class="swiper w-full h-full">
+        <div class="swiper-wrapper"></div>
+      </div>
+    </div>
+    
+    <!-- Instructions -->
+    <div class="absolute bottom-6 left-0 right-0 text-center">
+      <div class="inline-block bg-white/20 text-white text-sm px-4 py-2 rounded-full backdrop-blur-sm">
+        <i class="fas fa-keyboard mr-2"></i>Arrow keys, ESC to close, or swipe to navigate
+      </div>
+    </div>
+  </div>
 
 </div>
 {% endblock %}
@@ -220,19 +235,16 @@ window.templateSettings = {{ template_settings ? template_settings|json_encode|r
 const layout = window.templateSettings.layout || 'grid';
 const masonry = window.templateSettings.masonry || false;
 
-// Initialize Swiper for slideshow layout
 if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
   window.gallerySwiper = new Swiper('.gallery-swiper', { 
-    navigation: {nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev'}, 
-    pagination: {el: '.swiper-pagination', clickable: true}, 
-    loop: true, 
-    autoplay: {delay: 5000, disableOnInteraction: false}, 
-    effect: 'fade', 
-    fadeEffect: {crossFade: true} 
+    navigation:{nextEl:'.swiper-button-next', prevEl:'.swiper-button-prev'}, 
+    pagination:{el:'.swiper-pagination', clickable:true}, 
+    loop:true, 
+    autoplay:{delay:5000, disableOnInteraction:false}, 
+    effect:'fade', 
+    fadeEffect:{crossFade:true} 
   });
 }
-
-// Initialize Masonry for masonry layout
 if (masonry && typeof Masonry !== 'undefined') {
   const container = document.getElementById('images-gallery');
   if (container) {
@@ -241,26 +253,41 @@ if (masonry && typeof Masonry !== 'undefined') {
     });
   }
 }
-
-// Template switcher functionality
-document.querySelectorAll('.tpl-switch')?.forEach(a => {
-  a.addEventListener('click', (e) => {
+let __lbSwiper = null;
+function buildLightboxItems(){
+  const nodes = document.querySelectorAll('.image-item .image-data');
+  const items = [];
+  nodes.forEach(n=>{ const d = JSON.parse(n.textContent); const src = d.lightbox_url || d.src || d.url; const w=d.width||1200; const h=d.height>0?d.height:800; const alt=d.alt||''; let cap=''; if(d.caption) cap+=`<div class=\"mb-1\">${d.caption}</div>`; const bits=[]; if(d.camera) bits.push(`<i class=\"fas fa-camera\"></i> ${d.camera}`); if(d.lens) bits.push(`<i class=\"fas fa-dot-circle\"></i> ${d.lens}`); if(d.settings) bits.push(`<i class=\"fas fa-sliders-h\"></i> ${d.settings}`); if(bits.length) cap+=`<div class=\"text-xs text-gray-400 space-x-2\">${bits.join(' &nbsp; ')}<\/div>`; items.push({ id:String(d.id), src, w, h, alt, caption:cap }); });
+  return items;
+}
+function openLightbox(imageId){
+  const overlay=document.getElementById('lb'); const wrapper=document.querySelector('#lb-swiper .swiper-wrapper'); const items=buildLightboxItems(); if(!overlay||!wrapper||!items.length) return; wrapper.innerHTML=items.map(it=>`<div class="swiper-slide"><div class="w-full h-full flex items-center justify-center relative"><img src="${it.src}" alt="${it.alt}" style="max-width:100%; max-height:100vh; object-fit:contain;"/>${it.caption?`<div class="absolute bottom-8 left-8 right-8 bg-black/60 text-white text-sm px-4 py-3 rounded-lg backdrop-blur-sm">${it.caption}</div>`:''}</div></div>`).join(''); const start=Math.max(0,items.findIndex(it=>it.id===String(imageId))); overlay.classList.remove('hidden'); overlay.classList.add('flex'); document.body.style.overflow='hidden'; if(__lbSwiper){__lbSwiper.destroy(true,true); __lbSwiper=null;} if(typeof Swiper!=='undefined'){ __lbSwiper=new Swiper('#lb-swiper',{initialSlide:start, loop:false, keyboard:{enabled:true}}); }
+}
+function closeLightbox(){ const overlay=document.getElementById('lb'); if(__lbSwiper){ __lbSwiper.destroy(true,true); __lbSwiper=null; } overlay.classList.add('hidden'); overlay.classList.remove('flex'); document.body.style.overflow=''; }
+function nextImage(){ if(__lbSwiper) __lbSwiper.slideNext(); }
+function prevImage(){ if(__lbSwiper) __lbSwiper.slidePrev(); }
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeLightbox(); } });
+document.querySelectorAll('.tpl-switch')?.forEach(a=>{
+  a.addEventListener('click', (e)=>{
     e.preventDefault();
     
     // Get the template ID from the URL
     const url = new URL(a.getAttribute('href'), window.location.origin);
     const templateId = url.searchParams.get('template');
     
-    if (!templateId) {
-      // If no template ID, follow the link normally
-      window.location.href = a.getAttribute('href');
-      return;
-    }
+    if (!templateId) return;
     
     // Get album reference (slug or ID)
     const albumRef = url.searchParams.get('album');
     
-    // Update active state in template switcher first
+    // Add loading state
+    const galleryContainer = document.getElementById('images-gallery');
+    if (!galleryContainer) return;
+    
+    const originalContent = galleryContainer.innerHTML;
+    galleryContainer.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div></div>';
+    
+    // Update active state in template switcher
     document.querySelectorAll('.tpl-switch').forEach(el => {
       el.classList.remove('bg-black', 'text-white');
       el.classList.add('text-neutral-700', 'hover:bg-neutral-100');
@@ -268,8 +295,48 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
     a.classList.remove('text-neutral-700', 'hover:bg-neutral-100');
     a.classList.add('bg-black', 'text-white');
     
-    // Navigate to the new template URL to let the server handle the template switch
-    window.location.href = a.getAttribute('href');
+    // Fetch new gallery content
+    const fetchUrl = `/api/gallery/template?template=${templateId}${albumRef ? '&album=' + encodeURIComponent(albumRef) : ''}`;
+    
+    fetch(fetchUrl, {
+      headers: {
+        'Accept': 'text/html',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Network response was not ok');
+      return response.text();
+    })
+    .then(html => {
+      // Replace only the gallery content
+      galleryContainer.innerHTML = html;
+      
+      // Reinitialize any JavaScript components that might be needed
+      // This would depend on what libraries are being used (Masonry, Swiper, etc.)
+      try {
+        // Reload template-specific scripts
+        const layout = window.templateSettings.layout || 'grid';
+        const masonry = window.templateSettings.masonry || false;
+        
+        // Initialize Masonry if needed
+        if (masonry && typeof Masonry !== 'undefined') {
+          const container = document.getElementById('images-gallery');
+          if (container) {
+            imagesLoaded(container, function(){ 
+              window.galleryMasonry = new Masonry(container, { itemSelector: '.masonry-item', percentPosition: true }); 
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Error reinitializing components:', e);
+      }
+    })
+    .catch(error => {
+      console.error('Error loading template:', error);
+      galleryContainer.innerHTML = originalContent; // Restore original content
+      alert('Error loading template. Please try again.');
+    });
   });
 });
 {% endblock %}

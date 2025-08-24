@@ -143,7 +143,7 @@ class PageController
                 $image['exif_display'] = $this->formatExifForDisplay($exif, $image);
             }
 
-            // Lookup names for developer/lab/film if present
+            // Lookup names for developer/lab/film/location if present
             try {
                 if (!empty($image['developer_id'])) {
                     $s = $pdo->prepare('SELECT name FROM developers WHERE id = :id');
@@ -160,6 +160,11 @@ class PageController
                     $s->execute([':id' => $image['film_id']]);
                     $fr = $s->fetch();
                     if ($fr) { $image['film_name'] = trim(($fr['brand'] ?? '') . ' ' . ($fr['name'] ?? '')); }
+                }
+                if (!empty($image['location_id'])) {
+                    $s = $pdo->prepare('SELECT name FROM locations WHERE id = :id');
+                    $s->execute([':id' => $image['location_id']]);
+                    $image['location_name'] = $s->fetchColumn() ?: null;
                 }
             } catch (\Throwable) { /* ignore lookup errors */ }
         }
@@ -450,6 +455,14 @@ class PageController
         ');
         $stmt->execute([':id' => $album['id']]);
         $album['tags'] = $stmt->fetchAll();
+        // Locations (if present)
+        try {
+            $locStmt = $pdo->prepare('SELECT l.id, l.name, l.slug FROM album_location al JOIN locations l ON l.id = al.location_id WHERE al.album_id = :id ORDER BY l.name');
+            $locStmt->execute([':id' => $album['id']]);
+            $album['locations'] = $locStmt->fetchAll() ?: [];
+        } catch (\Throwable) {
+            $album['locations'] = [];
+        }
         
         // Images count
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM images WHERE album_id = :id');
