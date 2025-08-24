@@ -101,7 +101,7 @@ class GalleryController
         } catch (\Throwable) {}
 
         // Equipment (album-level pivot lists)
-        $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[] ];
+        $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
         
         // Load equipment: first try custom fields, then relationships, then images as fallback
         try {
@@ -150,6 +150,12 @@ class GalleryController
                 $labs = $labStmt->fetchAll();
                 $equipment['labs'] = array_map(fn($l) => $l['name'], $labs);
             }
+            
+            // Locations
+            $locStmt = $pdo->prepare('SELECT l.name FROM locations l JOIN album_location al ON l.id = al.location_id WHERE al.album_id = :a ORDER BY l.name');
+            $locStmt->execute([':a' => $album['id']]);
+            $locations = $locStmt->fetchAll();
+            $equipment['locations'] = array_map(fn($l) => $l['name'], $locations);
         } catch (\Throwable) {
             // Equipment tables might not exist or have issues, continue with empty equipment
         }
@@ -300,6 +306,7 @@ class GalleryController
             'excerpt' => $album['excerpt'] ?? '',
             'body' => $album['body'] ?? '',
             'shoot_date' => $album['shoot_date'] ?? '',
+            'show_date' => (int)($album['show_date'] ?? 1),
             'tags' => $tags,
             'equipment' => $equipment,
         ];
