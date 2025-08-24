@@ -1,10 +1,11 @@
+{# Template content for AJAX gallery switching #}
 {% set layout = template_settings.layout|default('grid') %}
 {% set masonry = template_settings.masonry|default(false) %}
 
 {# Handle potentially nested columns structure #}
 {% set cols = template_settings.columns is defined ? template_settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
 
-{# Extract desktop columns - handle nested structure #}
+{# Extract column values for grid layout #}
 {% if cols.desktop is iterable and cols.desktop.desktop is defined %}
   {% set desktop_cols = cols.desktop.desktop %}
 {% elseif cols.desktop is defined %}
@@ -13,7 +14,6 @@
   {% set desktop_cols = 3 %}
 {% endif %}
 
-{# Extract tablet columns - handle nested structure #}
 {% if cols.tablet is iterable and cols.tablet.tablet is defined %}
   {% set tablet_cols = cols.tablet.tablet %}
 {% elseif cols.tablet is defined %}
@@ -22,7 +22,6 @@
   {% set tablet_cols = 2 %}
 {% endif %}
 
-{# Extract mobile columns - handle nested structure #}
 {% if cols.mobile is iterable and cols.mobile.mobile is defined %}
   {% set mobile_cols = cols.mobile.mobile %}
 {% elseif cols.mobile is defined %}
@@ -36,29 +35,16 @@
 {% set tablet_cols = tablet_cols|round %}
 {% set mobile_cols = mobile_cols|round %}
 
+{# Render content based on layout type #}
 {% if layout == 'slideshow' %}
   <div class="swiper-wrapper">
     {% for image in images %}
     <div class="swiper-slide">
-      {% set caption_parts = [] %}
-      {% if image.caption %}
-        {% set caption_parts = caption_parts|merge([image.caption]) %}
-      {% endif %}
-      {% if image.custom_camera or image.camera_name %}
-        {% set caption_parts = caption_parts|merge(['Camera: ' ~ (image.custom_camera|default(image.camera_name))]) %}
-      {% endif %}
-      {% if image.custom_lens or image.lens_name %}
-        {% set caption_parts = caption_parts|merge(['Lens: ' ~ (image.custom_lens|default(image.lens_name))]) %}
-      {% endif %}
-      {% if image.custom_film or image.film_name %}
-        {% set caption_parts = caption_parts|merge(['Film: ' ~ (image.custom_film|default(image.film_name))]) %}
-      {% endif %}
-      {% set full_caption = caption_parts|join(' • ') %}
       <a href="{{ image.lightbox_url|default(image.url) }}" 
          class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
          data-pswp-width="{{ image.width|default(1600) }}"
          data-pswp-height="{{ image.height|default(1067) }}"
-         data-pswp-caption="{{ full_caption|e('html_attr') }}">
+         data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
         <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover">
       </a>
     </div>
@@ -67,35 +53,46 @@
   <div class="swiper-button-next"></div>
   <div class="swiper-button-prev"></div>
   <div class="swiper-pagination"></div>
-{% else %}
+{% elseif layout == 'fullscreen' %}
   {% for image in images %}
   <div class="masonry-item">
-    {% set caption_parts = [] %}
-    {% if image.caption %}
-      {% set caption_parts = caption_parts|merge([image.caption]) %}
-    {% endif %}
-    {% if image.custom_camera or image.camera_name %}
-      {% set caption_parts = caption_parts|merge(['Camera: ' ~ (image.custom_camera|default(image.camera_name))]) %}
-    {% endif %}
-    {% if image.custom_lens or image.lens_name %}
-      {% set caption_parts = caption_parts|merge(['Lens: ' ~ (image.custom_lens|default(image.lens_name))]) %}
-    {% endif %}
-    {% if image.custom_film or image.film_name %}
-      {% set caption_parts = caption_parts|merge(['Film: ' ~ (image.custom_film|default(image.film_name))]) %}
-    {% endif %}
-    {% set full_caption = caption_parts|join(' • ') %}
     <a href="{{ image.lightbox_url|default(image.url) }}" 
-       class="pswp-link image-item {% if layout == 'masonry' %}bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block{% else %}aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block{% endif %}"
+       class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
-       data-pswp-caption="{{ full_caption|e('html_attr') }}">
-      <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="{% if layout == 'masonry' %}w-full h-auto object-cover{% else %}w-full h-full object-cover{% endif %}">
+       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
+      <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
+    </a>
+  </div>
+  {% endfor %}
+{% elseif masonry %}
+  {% for image in images %}
+  <div class="masonry-item">
+    <a href="{{ image.lightbox_url|default(image.url) }}" 
+       class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
+       data-pswp-width="{{ image.width|default(1600) }}"
+       data-pswp-height="{{ image.height|default(1067) }}"
+       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
+      <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover">
+    </a>
+  </div>
+  {% endfor %}
+{% else %}
+  {# Regular grid layout #}
+  {% for image in images %}
+  <div class="image-item group relative">
+    <a href="{{ image.lightbox_url|default(image.url) }}" 
+       class="pswp-link aspect-square bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
+       data-pswp-width="{{ image.width|default(1600) }}"
+       data-pswp-height="{{ image.height|default(1067) }}"
+       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
+      <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
     </a>
   </div>
   {% endfor %}
 {% endif %}
 
+{# Include template settings for JavaScript #}
 <script>
-// Update template settings for the new content
-window.templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
+window.templateSettings = {{ template_settings|json_encode|raw }};
 </script>
