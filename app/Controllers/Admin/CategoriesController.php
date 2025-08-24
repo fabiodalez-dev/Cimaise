@@ -73,7 +73,13 @@ class CategoriesController
 
     public function create(Request $request, Response $response): Response
     {
+        // Get parent categories for dropdown
+        $pdo = $this->db->pdo();
+        $stmt = $pdo->query('SELECT id, name FROM categories WHERE parent_id IS NULL OR parent_id = 0 ORDER BY sort_order ASC, name ASC');
+        $parents = $stmt->fetchAll() ?: [];
+        
         return $this->view->render($response, 'admin/categories/create.twig', [
+            'parents' => $parents,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -93,9 +99,35 @@ class CategoriesController
         } else {
             $slug = \App\Support\Str::slug($slug);
         }
-        $stmt = $this->db->pdo()->prepare('INSERT INTO categories(name, slug, sort_order) VALUES(:n, :s, :o)');
+        // Handle parent_id and image upload
+        $parentId = !empty($data['parent_id']) ? (int)$data['parent_id'] : null;
+        
+        // Handle image upload
+        $imagePath = null;
+        $uploadedFiles = $request->getUploadedFiles();
+        if (isset($uploadedFiles['image']) && $uploadedFiles['image']->getError() === UPLOAD_ERR_OK) {
+            $uploadedFile = $uploadedFiles['image'];
+            $extension = strtolower(pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION));
+            
+            if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp'])) {
+                $filename = $slug . '_' . time() . '.' . $extension;
+                $uploadPath = '/media/categories/' . $filename;
+                
+                // Create directory if it doesn't exist
+                $fullPath = 'public' . $uploadPath;
+                $dir = dirname($fullPath);
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                }
+                
+                $uploadedFile->moveTo($fullPath);
+                $imagePath = $uploadPath;
+            }
+        }
+
+        $stmt = $this->db->pdo()->prepare('INSERT INTO categories(name, slug, sort_order, parent_id, image_path) VALUES(:n, :s, :o, :p, :i)');
         try {
-            $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort]);
+            $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Categoria creata'];
             return $response->withHeader('Location', '/admin/categories')->withStatus(302);
         } catch (\Throwable $e) {
@@ -114,8 +146,15 @@ class CategoriesController
             $response->getBody()->write('Categoria non trovata');
             return $response->withStatus(404);
         }
+        // Get parent categories for dropdown (exclude self to prevent circular reference)
+        $pdo = $this->db->pdo();
+        $stmt = $pdo->prepare('SELECT id, name FROM categories WHERE (parent_id IS NULL OR parent_id = 0) AND id != :id ORDER BY sort_order ASC, name ASC');
+        $stmt->execute([':id' => $id]);
+        $parents = $stmt->fetchAll() ?: [];
+        
         return $this->view->render($response, 'admin/categories/edit.twig', [
             'item' => $cat,
+            'parents' => $parents,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }

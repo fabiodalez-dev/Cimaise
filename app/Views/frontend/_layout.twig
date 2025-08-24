@@ -106,17 +106,37 @@
             z-index: 51;
         }
 
+
+
         /* Simple Lightbox fallback */
         #slb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.95); color:#fff; display:none; align-items:center; justify-content:center; z-index: 10000; }
         #slb-overlay.active { display:flex; }
-        #slb-content { max-width: 92vw; max-height: 92vh; position: relative; }
-        #slb-content img { max-width: 92vw; max-height: 80vh; display:block; margin: 0 auto; }
-        #slb-caption { margin-top: .75rem; text-align: center; color:#ddd; font-size: .9rem; }
-        .slb-btn { position:absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); color:#fff; width: 44px; height: 44px; border-radius: 9999px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-        .slb-prev { left: -56px; }
-        .slb-next { right: -56px; }
-        .slb-close { position: absolute; top: -52px; right: 0; width: 40px; height: 40px; border-radius: 9999px; background: rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; cursor:pointer; }
-        @media (max-width: 640px) { .slb-prev { left: -8px; } .slb-next { right: -8px; } }
+        #slb-content { max-width: 96vw; max-height: 92vh; position: relative; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+        #slb-content .slb-media { width: min(60%, 1200px); }
+        #slb-img { width: 100%; height: auto; max-height: 72vh; object-fit: contain; display:block; margin: 0 auto; }
+        #slb-caption { margin-top: .9rem; text-align: center; color:#ddd; font-size: .9rem; }
+        .slb-btn { position:absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.22); color:#fff; width: 44px; height: 44px; border-radius: 9999px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index: 10001; }
+        .slb-prev { left: 2%; }
+        .slb-next { right: 2%; }
+        .slb-close { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 9999px; background: rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+        @media (max-width: 1024px) { #slb-content .slb-media { width: min(80%, 1200px); } }
+        @media (max-width: 640px)  { #slb-content .slb-media { width: 92%; } .slb-prev { left: 8px; } .slb-next { right: 8px; } }
+        /* PhotoSwipe custom caption inside overlay */
+        .pswp__custom-caption {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 24px;
+            max-width: 92vw;
+            color: #fff;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.3;
+            z-index: 2;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 16px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">
@@ -137,15 +157,43 @@
                         <div class="relative" id="cats-wrapper">
                             <button id="cats-toggle" class="text-sm inline-flex items-center gap-1 hover:text-neutral-700 transition-colors">
                                 Categories
-                                <i class="fas fa-chevron-down text-[10px]"></i>
+                                <i class="fas fa-chevron-down text-[10px] transition-transform" id="cats-icon"></i>
                             </button>
-                            <div id="cats-menu" class="hidden absolute left-0 mt-2 w-[520px] max-h-[60vh] overflow-auto bg-white border border-neutral-200 shadow-lg z-50 p-3">
-                                <div class="grid grid-cols-2 lg:grid-cols-3 gap-1">
-                                    {% for category in categories|default([]) %}
-                                    <a href="/category/{{ category.slug }}" class="text-sm px-2 py-1 rounded hover:bg-neutral-100">
-                                        {{ category.name|e }}
-                                    </a>
-                                    {% endfor %}
+                            <div id="cats-menu" class="hidden absolute left-0 mt-3 w-[900px] bg-white border border-neutral-200 shadow-2xl rounded-lg z-50 overflow-hidden">
+                                <div class="p-6">
+                                    <!-- Parent categories with images -->
+                                    <div class="grid grid-cols-3 gap-6 mb-6" id="parent-categories">
+                                        {% for category in parent_categories|default([]) %}
+                                        <div class="group cursor-pointer" data-category-id="{{ category.id }}">
+                                            <div class="aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-neutral-100">
+                                                {% if category.image_path %}
+                                                    <img src="{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                                {% else %}
+                                                    <div class="w-full h-full flex items-center justify-center text-neutral-400">
+                                                        <i class="fas fa-image text-2xl"></i>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <h3 class="font-medium text-sm group-hover:text-neutral-600 transition-colors">{{ category.name|e }}</h3>
+                                            {% if category.children|length > 0 %}
+                                                <p class="text-xs text-neutral-500">{{ category.children|length }} subcategories</p>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <!-- Subcategories (shown when parent is selected) -->
+                                    <div id="subcategories" class="hidden border-t pt-4">
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <button id="back-btn" class="text-xs text-neutral-500 hover:text-black transition-colors">
+                                                <i class="fas fa-arrow-left mr-1"></i> Back
+                                            </button>
+                                            <span id="current-parent" class="text-sm font-medium"></span>
+                                        </div>
+                                        <div id="subcategories-list" class="grid grid-cols-4 gap-2">
+                                            <!-- Populated by JavaScript -->
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -175,11 +223,25 @@
                 <a href="{{ about_url }}" class="block text-sm hover:text-neutral-700 transition-colors">About</a>
                 <div>
                     <div class="text-xs uppercase tracking-wide text-neutral-500 mb-2">Categories</div>
-                    <div class="grid grid-cols-2 gap-2">
-                        {% for category in categories|default([]) %}
-                        <a href="/category/{{ category.slug }}" class="text-sm hover:text-neutral-700 transition-colors">
-                            {{ category.name|e }}
-                        </a>
+                    <div class="space-y-2">
+                        {% for category in parent_categories|default([]) %}
+                        <div>
+                            <button class="mobile-category-toggle text-sm font-medium text-left w-full flex items-center justify-between hover:text-neutral-600 transition-colors" data-category-id="{{ category.id }}">
+                                <span>{{ category.name|e }}</span>
+                                {% if category.children|length > 0 %}
+                                    <i class="fas fa-chevron-right text-[10px] transition-transform"></i>
+                                {% endif %}
+                            </button>
+                            {% if category.children|length > 0 %}
+                                <div class="mobile-subcategories hidden pl-4 mt-2 space-y-1" data-parent="{{ category.id }}">
+                                    {% for child in category.children %}
+                                        <a href="/category/{{ child.slug }}" class="block text-xs text-neutral-600 hover:text-black transition-colors">
+                                            {{ child.name|e }}
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
                         {% endfor %}
                     </div>
                 </div>
@@ -273,6 +335,116 @@
             const menu = document.getElementById('mobile-menu');
             menu.classList.toggle('hidden');
         });
+        
+        // Mobile category toggles
+        document.querySelectorAll('.mobile-category-toggle').forEach(button => {
+            button.addEventListener('click', () => {
+                const categoryId = button.dataset.categoryId;
+                const subcategories = document.querySelector(`[data-parent="${categoryId}"]`);
+                const icon = button.querySelector('i');
+                
+                if (subcategories) {
+                    subcategories.classList.toggle('hidden');
+                    if (icon) {
+                        icon.style.transform = subcategories.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(90deg)';
+                    }
+                }
+            });
+        });
+        
+        // Desktop mega menu
+        const megaMenuData = {
+            {% for category in parent_categories|default([]) %}
+            {{ category.id }}: {
+                name: "{{ category.name|e }}",
+                children: [
+                    {% for child in category.children %}
+                    { name: "{{ child.name|e }}", slug: "{{ child.slug }}" }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ]
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        };
+        
+        // Desktop categories dropdown with subcategory support
+        (function(){
+            const toggle = document.getElementById('cats-toggle');
+            const menu = document.getElementById('cats-menu');
+            const icon = document.getElementById('cats-icon');
+            const parentCats = document.getElementById('parent-categories');
+            const subcatsDiv = document.getElementById('subcategories');
+            const subcatsList = document.getElementById('subcategories-list');
+            const currentParent = document.getElementById('current-parent');
+            const backBtn = document.getElementById('back-btn');
+            
+            if (!toggle || !menu) return;
+            
+            let isOpen = false;
+            
+            function closeMenu() {
+                menu.classList.add('hidden');
+                icon?.style.setProperty('transform', 'rotate(0deg)');
+                showParentCategories();
+                isOpen = false;
+            }
+            
+            function openMenu() {
+                menu.classList.remove('hidden');
+                icon?.style.setProperty('transform', 'rotate(180deg)');
+                isOpen = true;
+            }
+            
+            function showParentCategories() {
+                parentCats?.classList.remove('hidden');
+                subcatsDiv?.classList.add('hidden');
+            }
+            
+            function showSubcategories(categoryId) {
+                const category = megaMenuData[categoryId];
+                if (!category || !category.children.length) return;
+                
+                parentCats?.classList.add('hidden');
+                subcatsDiv?.classList.remove('hidden');
+                
+                if (currentParent) currentParent.textContent = category.name;
+                
+                if (subcatsList) {
+                    subcatsList.innerHTML = category.children.map(child => 
+                        `<a href="/category/${child.slug}" class="block text-sm px-3 py-2 rounded-md hover:bg-neutral-100 transition-colors">${child.name}</a>`
+                    ).join('');
+                }
+            }
+            
+            toggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                isOpen ? closeMenu() : openMenu();
+            });
+            
+            // Handle parent category clicks
+            parentCats?.addEventListener('click', (e) => {
+                const categoryDiv = e.target.closest('[data-category-id]');
+                if (categoryDiv) {
+                    e.preventDefault();
+                    const categoryId = categoryDiv.dataset.categoryId;
+                    const category = megaMenuData[categoryId];
+                    
+                    if (category?.children.length > 0) {
+                        showSubcategories(categoryId);
+                    } else {
+                        // Navigate to parent category if no children
+                        window.location.href = `/category/${categoryDiv.querySelector('h3').textContent.toLowerCase().replace(/\s+/g, '-')}`;
+                    }
+                }
+            });
+            
+            backBtn?.addEventListener('click', showParentCategories);
+            
+            document.addEventListener('click', (e) => {
+                if (!isOpen) return;
+                const wrapper = document.getElementById('cats-wrapper');
+                if (wrapper && !wrapper.contains(e.target)) closeMenu();
+            });
+        })();
         
         // Filters toggle
         document.getElementById('filters-toggle')?.addEventListener('click', function() {
@@ -384,9 +556,88 @@
               caption_html: x.getAttribute('data-pswp-caption')||''
             }));
         }
-        // Ensure PS modules are loaded after DOM updates (no-op if already loaded)
+        function destroyLightbox(){
+            if (window.__pswpLightbox && typeof window.__pswpLightbox.destroy === 'function') {
+                try { window.__pswpLightbox.destroy(); } catch(e){}
+                window.__pswpLightbox = null;
+            }
+        }
+        // Initialize PhotoSwipe Lightbox bound to gallery anchors
         function initLightbox() {
-            try { loadPhotoSwipe(); } catch(e){}
+            // Check if there are any pswp-link elements before initializing
+            const galleryElement = document.getElementById('images-gallery');
+            if (!galleryElement || !galleryElement.querySelectorAll('a.pswp-link').length) {
+                return;
+            }
+            
+            loadPhotoSwipe().then(()=>{
+                destroyLightbox();
+                if (window.PhotoSwipeLightbox) {
+                    const psCfg = (window.templateSettings && window.templateSettings.photoswipe) || {};
+                    const lb = new PhotoSwipeLightbox({
+                        gallery: '#images-gallery',
+                        children: 'a.pswp-link',
+                        pswpModule: PhotoSwipe,
+                        showHideAnimationType: 'fade',
+                        bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
+                        wheelToZoom: true,
+                        loop: !!psCfg.loop
+                    });
+                    // Caption UI
+                    lb.on('uiRegister', () => {
+                        lb.pswp.ui.registerElement({
+                            name: 'custom-caption', order: 9, isButton: false, appendTo: 'root',
+                            onInit: (el, pswp) => {
+                                el.className = 'pswp__custom-caption';
+                                pswp.on('change', () => {
+                                    const currEl = pswp.currSlide && pswp.currSlide.data && pswp.currSlide.data.element;
+                                    const cap = currEl ? currEl.getAttribute('data-pswp-caption') : '';
+                                    el.innerHTML = cap || '';
+                                });
+                            }
+                        });
+                    });
+                    // Show images in a container with fixed max size
+                    lb.on('open', () => {
+                        const pswp = lb.pswp;
+                        const fitToContainer = () => {
+                            const s = pswp.currSlide;
+                            if (!s || !s.width || !s.height) return;
+                            
+                            // Define max dimensions for the container
+                            const maxWidth = Math.min(1200, pswp.viewportSize.x * 0.6);
+                            const maxHeight = Math.min(800, pswp.viewportSize.y * 0.7);
+                            
+                            // Calculate scale to fit within container
+                            const scaleW = maxWidth / s.width;
+                            const scaleH = maxHeight / s.height;
+                            const scale = Math.min(scaleW, scaleH, 1); // Don't upscale
+                            
+                            // Center the image
+                            const x = (pswp.viewportSize.x - (s.width * scale)) / 2;
+                            const y = (pswp.viewportSize.y - (s.height * scale)) / 2;
+                            
+                            // Apply zoom and pan
+                            s.zoomLevels.initial = scale;
+                            s.zoomLevels.secondary = scale;
+                            s.zoomLevels.max = scale;
+                            s.zoomLevels.min = scale;
+                            s.pan.x = x;
+                            s.pan.y = y;
+                            
+                            // Update content
+                            s.updateContentSize(true);
+                        };
+                        fitToContainer();
+                        pswp.on('change', fitToContainer);
+                        pswp.on('resize', fitToContainer);
+                    });
+                    lb.init();
+                    window.__pswpLightbox = lb;
+                }
+            }).catch((err)=>{
+                console.warn('Failed to initialize PhotoSwipe:', err);
+            });
         }
         function openLightboxAt(index) {
             const items = buildItemsFromAnchors();
@@ -402,18 +653,32 @@
                     showHideAnimationType: 'fade',
                     bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
                     wheelToZoom: true,
-                    loop: !!psCfg.loop
+                    loop: !!psCfg.loop,
+                    // Force images to be centered and properly sized
+                    imageClickAction: 'close',
+                    tapAction: 'close'
                   });
                   let psCaptionEl;
                   lb.on('open', () => {
                     const pswp = lb.pswp;
                     psCaptionEl = document.createElement('div');
-                    Object.assign(psCaptionEl.style, { position:'fixed', left:'50%', transform:'translateX(-50%)', bottom:'24px', maxWidth:'92vw', color:'#fff', textAlign:'center', fontSize:'14px', lineHeight:'1.3', zIndex:'10001' });
+                    psCaptionEl.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
                     pswp.on('change', () => {
                       const it = items[pswp.currIndex];
                       if (!it) return;
-                      psCaptionEl.innerHTML = it.caption_html || (it.caption ? `<div>${it.caption}</div>` : '');
-                      if (psCaptionEl.innerHTML) document.body.appendChild(psCaptionEl);
+                      
+                      // Debug: log caption data
+                      console.log('Caption data for image:', it);
+                      
+                      // Remove previous caption
+                      if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl);
+                      
+                      // Set caption content
+                      const captionContent = it.caption_html || (it.caption ? `<div>${it.caption}</div>` : '');
+                      if (captionContent) {
+                        psCaptionEl.innerHTML = captionContent;
+                        document.body.appendChild(psCaptionEl);
+                      }
                     });
                     pswp.on('close', () => { if (psCaptionEl && psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
                   });
@@ -432,38 +697,96 @@
                   });
                   // Custom caption overlay for PhotoSwipe
                   let psCaptionEl = document.createElement('div');
-                  Object.assign(psCaptionEl.style, { position:'fixed', left:'50%', transform:'translateX(-50%)', bottom:'24px', maxWidth:'92vw', color:'#fff', textAlign:'center', fontSize:'14px', lineHeight:'1.3', zIndex:'10001' });
+                  psCaptionEl.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
                   function updatePsCaption(){
                     const it = items[lightbox.currIndex];
                     if (!it) return;
-                    psCaptionEl.innerHTML = it.caption_html || (it.caption ? `<div>${it.caption}</div>` : '');
-                    if (psCaptionEl.innerHTML) document.body.appendChild(psCaptionEl);
+                    
+                    // Debug: log caption data
+                    console.log('Fallback caption data for image:', it);
+                    
+                    // Remove previous caption
+                    if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl);
+                    
+                    // Set caption content
+                    const captionContent = it.caption_html || (it.caption ? `<div>${it.caption}</div>` : '');
+                    if (captionContent) {
+                      psCaptionEl.innerHTML = captionContent;
+                      document.body.appendChild(psCaptionEl);
+                    }
                   }
                   lightbox.on('change', updatePsCaption);
                   lightbox.on('close', ()=>{ if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
                   lightbox.init();
                   updatePsCaption();
+                  
+                  // Adjust image to fit in a container
+                  const fitToContainer = () => {
+                    const pswp = lightbox;
+                    const s = pswp.currSlide;
+                    if (!s || !s.width || !s.height) return;
+                    
+                    // Define max dimensions for the container
+                    const maxWidth = Math.min(1200, pswp.viewportSize.x * 0.6);
+                    const maxHeight = Math.min(800, pswp.viewportSize.y * 0.7);
+                    
+                    // Calculate scale to fit within container
+                    const scaleW = maxWidth / s.width;
+                    const scaleH = maxHeight / s.height;
+                    const scale = Math.min(scaleW, scaleH, 1); // Don't upscale
+                    
+                    // Center the image
+                    const x = (pswp.viewportSize.x - (s.width * scale)) / 2;
+                    const y = (pswp.viewportSize.y - (s.height * scale)) / 2;
+                    
+                    // Apply zoom and pan
+                    s.zoomLevels.initial = scale;
+                    s.zoomLevels.secondary = scale;
+                    s.zoomLevels.max = scale;
+                    s.zoomLevels.min = scale;
+                    s.pan.x = x;
+                    s.pan.y = y;
+                    
+                    // Update content
+                    s.updateContentSize(true);
+                  };
+                  lightbox.on('change', fitToContainer);
+                  lightbox.on('resize', fitToContainer);
+                  setTimeout(fitToContainer, 100); // Initial sizing
                 }
             }).catch((err) => {
                 if (!__psWarned) {
-                  console.warn('PhotoSwipe not available, using fallback:', err);
+                  console.warn('PhotoSwipe not available:', err);
                   __psWarned = true;
                 }
-                fallbackOpenLightbox(items, startIndex);
             });
         }
 
-        // Delegated click for PS anchors: prevent navigation and open PS/fallback
+        // Delegated click for anchors: open PhotoSwipe
         document.addEventListener('click', (e) => {
             const a = e.target.closest('a.pswp-link');
             if (!a) return;
             e.preventDefault();
             const anchors = Array.from(document.querySelectorAll('#images-gallery a.pswp-link'));
             const idx = Math.max(0, anchors.indexOf(a));
-            openLightboxAt(idx);
+            if (window.__pswpLightbox && typeof window.__pswpLightbox.loadAndOpen === 'function') {
+                window.__pswpLightbox.loadAndOpen(idx);
+            } else {
+                // Fallback if lightbox isn't initialized properly
+                const items = anchors.map(anchor => ({
+                    src: anchor.getAttribute('href'),
+                    width: parseInt(anchor.getAttribute('data-pswp-width') || '1600', 10),
+                    height: parseInt(anchor.getAttribute('data-pswp-height') || '1067', 10),
+                    caption_html: anchor.getAttribute('data-pswp-caption') || ''
+                }));
+                openLightboxAt(idx);
+            }
         });
-        // Initialize PhotoSwipe core/lightbox once DOM is ready
-        document.addEventListener('DOMContentLoaded', initLightbox);
+        // Initialize PhotoSwipe on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Small delay to ensure DOM is fully ready
+            setTimeout(initLightbox, 100);
+        });
 
         // Simple Lightbox fallback implementation
         let __slbItems = []; let __slbIndex = 0;

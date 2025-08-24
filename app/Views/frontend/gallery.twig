@@ -344,6 +344,14 @@ document.querySelectorAll('.tpl-switch')?.forEach(a=>{
           window.galleryMasonry = null;
         }
         
+        // Destroy existing PhotoSwipe lightbox instance
+        if (window.__pswpLightbox) {
+          try { 
+            window.__pswpLightbox.destroy(); 
+          } catch(e){}
+          window.__pswpLightbox = null;
+        }
+        
         // Initialize new components based on template
         if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
           window.gallerySwiper = new Swiper('.gallery-swiper', { 
@@ -355,7 +363,23 @@ document.querySelectorAll('.tpl-switch')?.forEach(a=>{
             fadeEffect:{crossFade:true} 
           });
         }
-        if (typeof initLightbox === 'function') { try { initLightbox(); } catch(e){} }
+        
+        // Initialize PhotoSwipe lightbox for the new content
+        // Use a small delay to ensure DOM is fully updated
+        setTimeout(() => {
+          if (typeof initLightbox === 'function') { 
+            try { 
+              // Destroy any existing instance first
+              if (window.__pswpLightbox) {
+                try { window.__pswpLightbox.destroy(); } catch(e){}
+              }
+              initLightbox(); 
+            } catch(e){
+              console.warn('Error initializing lightbox:', e);
+            } 
+          }
+        }, 100);
+        
         if (masonry && typeof Masonry !== 'undefined') {
           imagesLoaded(galleryContainer, function(){ 
             window.galleryMasonry = new Masonry(galleryContainer, { itemSelector: '.masonry-item', percentPosition: true }); 
