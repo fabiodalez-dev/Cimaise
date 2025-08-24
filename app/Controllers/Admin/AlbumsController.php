@@ -123,6 +123,10 @@ class AlbumsController
         $developerIds = array_map('intval', (array)($d['developers'] ?? []));
         $labIds = array_map('intval', (array)($d['labs'] ?? []));
         $locationIds = array_map('intval', (array)($d['locations'] ?? []));
+        // Log only location data for debugging
+        if (!empty($locationIds)) {
+            error_log("Album $id: Processing locations - " . implode(',', $locationIds));
+        }
         
         // Custom equipment fields
         $customCameras = trim((string)($d['custom_cameras'] ?? '')) ?: null;

@@ -332,134 +332,152 @@ class GalleryController
 
     public function template(Request $request, Response $response): Response
     {
-        $params = $request->getQueryParams();
-        $albumParam = $params['album'] ?? null; // slug or id
-        $templateId = isset($params['template']) ? (int)$params['template'] : null;
-
-        if (!$templateId || !$albumParam) {
-            $response->getBody()->write('Template or album parameter missing');
-            return $response->withStatus(400);
-        }
-
-        $pdo = $this->db->pdo();
-
-        // Resolve album (published only)
-        if (ctype_digit((string)$albumParam)) {
-            $stmt = $pdo->prepare('SELECT a.*, a.template_id, c.name as category_name, c.slug as category_slug, t.settings as template_settings, t.name as template_name FROM albums a JOIN categories c ON c.id = a.category_id LEFT JOIN templates t ON t.id = a.template_id WHERE a.id = :id AND a.is_published = 1');
-            $stmt->execute([':id' => (int)$albumParam]);
-        } else {
-            $stmt = $pdo->prepare('SELECT a.*, a.template_id, c.name as category_name, c.slug as category_slug, t.settings as template_settings, t.name as template_name FROM albums a JOIN categories c ON c.id = a.category_id LEFT JOIN templates t ON t.id = a.template_id WHERE a.slug = :slug AND a.is_published = 1');
-            $stmt->execute([':slug' => (string)$albumParam]);
-        }
-        
-        $album = $stmt->fetch();
-        if (!$album) {
-            $response->getBody()->write('Album not found');
-            return $response->withStatus(404);
-        }
-        if (!empty($album['password_hash'])) {
-            $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$album['id']]);
-            if (!$allowed) {
-                $response->getBody()->write('Album locked');
-                return $response->withStatus(403);
+        try {
+            // Ensure session is started for album access checks
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
             }
-        }
-
-        // Load template
-        $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
-        $tplStmt->execute([':id' => $templateId]);
-        $template = $tplStmt->fetch();
-        if (!$template) {
-            $response->getBody()->write('Template not found');
-            return $response->withStatus(404);
-        }
-        
-        $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
-
-        // Images with per-photo metadata
-        $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
-        $imgStmt->execute([':id' => $album['id']]);
-        $imagesRows = $imgStmt->fetchAll() ?: [];
-        foreach ($imagesRows as &$ir) {
-            try {
-                if (!empty($ir['developer_id'])) {
-                    $s = $pdo->prepare('SELECT name FROM developers WHERE id = :id');
-                    $s->execute([':id' => $ir['developer_id']]);
-                    $ir['developer_name'] = $s->fetchColumn() ?: null;
-                }
-                if (!empty($ir['lab_id'])) {
-                    $s = $pdo->prepare('SELECT name FROM labs WHERE id = :id');
-                    $s->execute([':id' => $ir['lab_id']]);
-                    $ir['lab_name'] = $s->fetchColumn() ?: null;
-                }
-                if (!empty($ir['film_id'])) {
-                    $s = $pdo->prepare('SELECT brand, name FROM films WHERE id = :id');
-                    $s->execute([':id' => $ir['film_id']]);
-                    $fr = $s->fetch();
-                    if ($fr) { $ir['film_name'] = trim(($fr['brand'] ?? '') . ' ' . ($fr['name'] ?? '')); }
-                }
-            } catch (\Throwable) {}
-        }
-
-        // Build gallery items for the template, preferring public variants
-        $images = [];
-        foreach ($imagesRows as $img) {
-            $bestUrl = $img['original_path'];
-            $lightboxUrl = $img['original_path']; // Default to original for lightbox
             
-            try {
-                // Get best variant for gallery grid  
-                $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
-                $v->execute([':id' => $img['id']]);
-                $vr = $v->fetch();
-                if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
-                
-                // Get highest quality for lightbox (prefer xxl, xl, lg, then original)
-                $lv = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') ORDER BY CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 ELSE 9 END, width DESC LIMIT 1");
-                $lv->execute([':id' => $img['id']]);
-                $lvr = $lv->fetch();
-                if ($lvr && !empty($lvr['path']) && !str_starts_with((string)$lvr['path'], '/storage/')) {
-                    $lightboxUrl = $lvr['path'];
+            $params = $request->getQueryParams();
+            $albumParam = $params['album'] ?? null; // slug or id
+            $templateId = isset($params['template']) ? (int)$params['template'] : null;
+
+            if (!$templateId || !$albumParam) {
+                $response->getBody()->write('Template or album parameter missing');
+                return $response->withStatus(400);
+            }
+
+            $pdo = $this->db->pdo();
+
+            // Resolve album (published only)
+            if (ctype_digit((string)$albumParam)) {
+                $stmt = $pdo->prepare('SELECT a.*, a.template_id, c.name as category_name, c.slug as category_slug, t.settings as template_settings, t.name as template_name FROM albums a JOIN categories c ON c.id = a.category_id LEFT JOIN templates t ON t.id = a.template_id WHERE a.id = :id AND a.is_published = 1');
+                $stmt->execute([':id' => (int)$albumParam]);
+            } else {
+                $stmt = $pdo->prepare('SELECT a.*, a.template_id, c.name as category_name, c.slug as category_slug, t.settings as template_settings, t.name as template_name FROM albums a JOIN categories c ON c.id = a.category_id LEFT JOIN templates t ON t.id = a.template_id WHERE a.slug = :slug AND a.is_published = 1');
+                $stmt->execute([':slug' => (string)$albumParam]);
+            }
+            
+            $album = $stmt->fetch();
+            if (!$album) {
+                $response->getBody()->write('Album not found');
+                return $response->withStatus(404);
+            }
+            if (!empty($album['password_hash'])) {
+                $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$album['id']]);
+                if (!$allowed) {
+                    $response->getBody()->write('Album locked');
+                    return $response->withStatus(403);
                 }
-            } catch (\Throwable) {}
+            }
 
-            // Ensure we never leak /storage/originals (not publicly served)
-            if (str_starts_with((string)$bestUrl, '/storage/')) {
-                // Fallback to original if already under /media; else keep as-is (may 404 until variants are generated)
+            // Load template
+            $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
+            $tplStmt->execute([':id' => $templateId]);
+            $template = $tplStmt->fetch();
+            if (!$template) {
+                $response->getBody()->write('Template not found');
+                return $response->withStatus(404);
+            }
+            
+            $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+
+            // Images with per-photo metadata
+            $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
+            $imgStmt->execute([':id' => $album['id']]);
+            $imagesRows = $imgStmt->fetchAll() ?: [];
+            
+            foreach ($imagesRows as &$ir) {
+                try {
+                    if (!empty($ir['developer_id'])) {
+                        $s = $pdo->prepare('SELECT name FROM developers WHERE id = :id');
+                        $s->execute([':id' => $ir['developer_id']]);
+                        $ir['developer_name'] = $s->fetchColumn() ?: null;
+                    }
+                    if (!empty($ir['lab_id'])) {
+                        $s = $pdo->prepare('SELECT name FROM labs WHERE id = :id');
+                        $s->execute([':id' => $ir['lab_id']]);
+                        $ir['lab_name'] = $s->fetchColumn() ?: null;
+                    }
+                    if (!empty($ir['film_id'])) {
+                        $s = $pdo->prepare('SELECT brand, name FROM films WHERE id = :id');
+                        $s->execute([':id' => $ir['film_id']]);
+                        $fr = $s->fetch();
+                        if ($fr) { $ir['film_name'] = trim(($fr['brand'] ?? '') . ' ' . ($fr['name'] ?? '')); }
+                    }
+                } catch (\Throwable $e) {
+                    // Continue processing even if metadata lookup fails
+                    error_log('Error fetching image metadata: ' . $e->getMessage());
+                }
+            }
+
+            // Build gallery items for the template, preferring public variants
+            $images = [];
+            foreach ($imagesRows as $img) {
                 $bestUrl = $img['original_path'];
-            }
-            if (str_starts_with((string)$lightboxUrl, '/storage/')) {
-                $lightboxUrl = $img['original_path'];
+                $lightboxUrl = $img['original_path']; // Default to original for lightbox
+                
+                try {
+                    // Get best variant for gallery grid  
+                    $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
+                    $v->execute([':id' => $img['id']]);
+                    $vr = $v->fetch();
+                    if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
+                    
+                    // Get highest quality for lightbox (prefer xxl, xl, lg, then original)
+                    $lv = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') ORDER BY CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 ELSE 9 END, width DESC LIMIT 1");
+                    $lv->execute([':id' => $img['id']]);
+                    $lvr = $lv->fetch();
+                    if ($lvr && !empty($lvr['path']) && !str_starts_with((string)$lvr['path'], '/storage/')) {
+                        $lightboxUrl = $lvr['path'];
+                    }
+                } catch (\Throwable $e) {
+                    error_log('Error fetching image variants: ' . $e->getMessage());
+                }
+
+                // Ensure we never leak /storage/originals (not publicly served)
+                if (str_starts_with((string)$bestUrl, '/storage/')) {
+                    $bestUrl = $img['original_path'];
+                }
+                if (str_starts_with((string)$lightboxUrl, '/storage/')) {
+                    $lightboxUrl = $img['original_path'];
+                }
+
+                $images[] = [
+                    'id' => (int)$img['id'],
+                    'url' => $bestUrl,
+                    'lightbox_url' => $lightboxUrl,
+                    'alt' => $img['alt_text'] ?: $album['title'],
+                    'width' => (int)($img['width'] ?? 1200),
+                    'height' => (int)($img['height'] ?? 800),
+                    'caption' => $img['caption'] ?? '',
+                    'custom_camera' => $img['custom_camera'] ?? '',
+                    'camera_name' => $img['camera_name'] ?? '',
+                    'custom_lens' => $img['custom_lens'] ?? '',
+                    'lens_name' => $img['lens_name'] ?? '',
+                    'custom_film' => $img['custom_film'] ?? '',
+                    'film_name' => $img['film_name'] ?? '',
+                    'developer_name' => $img['developer_name'] ?? '',
+                    'lab_name' => $img['lab_name'] ?? '',
+                    'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
+                    'shutter_speed' => $img['shutter_speed'] ?? null,
+                    'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null
+                ];
             }
 
-            $metaParts = [];
-            if (!empty($img['custom_camera'])) { $metaParts[] = $img['custom_camera']; }
-            if (!empty($img['custom_lens'])) { $metaParts[] = $img['custom_lens']; }
-            if (!empty($img['custom_film'])) { $metaParts[] = $img['custom_film']; }
-            if (!empty($img['iso'])) { $metaParts[] = 'ISO ' . (int)$img['iso']; }
-            if (!empty($img['shutter_speed'])) { $metaParts[] = (string)$img['shutter_speed']; }
-            if (!empty($img['aperture'])) { $metaParts[] = 'f/' . number_format((float)$img['aperture'], 1); }
-            $enhancedCaption = trim(($img['caption'] ?? '') . (count($metaParts) ? ( ($img['caption'] ?? '') !== '' ? ' — ' : '' ) . implode(' • ', $metaParts) : ''));
-
-            $images[] = [
-                'id' => (int)$img['id'],
-                'url' => $bestUrl,
-                'lightbox_url' => $lightboxUrl, // High quality for lightbox
-                'alt' => $img['alt_text'] ?: $album['title'],
-                'width' => (int)($img['width'] ?? 1200),
-                'height' => (int)($img['height'] ?? 800),
-                'caption' => $enhancedCaption,
-                'camera' => $img['custom_camera'] ?? '',
-                'lens' => $img['custom_lens'] ?? '',
-                'settings' => ''
-            ];
+            // Render only the gallery part (not the full page)
+            return $this->view->render($response, 'frontend/_gallery_content.twig', [
+                'images' => $images,
+                'template_settings' => $templateSettings
+            ]);
+            
+        } catch (\Throwable $e) {
+            // Log the actual error for debugging
+            error_log('Template API Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            
+            $response->getBody()->write('Internal server error: ' . $e->getMessage());
+            return $response->withStatus(500);
         }
-
-        // Render only the gallery part (not the full page)
-        return $this->view->render($response, 'frontend/_gallery_content.twig', [
-            'album' => $album,
-            'images' => $images,
-            'template_settings' => $templateSettings
-        ]);
     }
 }

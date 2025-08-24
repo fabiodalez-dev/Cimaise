@@ -260,7 +260,21 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
     // Get album reference (slug or ID)
     const albumRef = url.searchParams.get('album');
     
-    // Update active state in template switcher first
+    // Get the gallery container
+    const galleryContainer = document.getElementById('images-gallery');
+    if (!galleryContainer) {
+      // Fallback to normal navigation if container not found
+      window.location.href = a.getAttribute('href');
+      return;
+    }
+    
+    // Store original content for error recovery
+    const originalContent = galleryContainer.innerHTML;
+    
+    // Add loading state
+    galleryContainer.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div></div>';
+    
+    // Update active state in template switcher
     document.querySelectorAll('.tpl-switch').forEach(el => {
       el.classList.remove('bg-black', 'text-white');
       el.classList.add('text-neutral-700', 'hover:bg-neutral-100');
@@ -268,8 +282,125 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
     a.classList.remove('text-neutral-700', 'hover:bg-neutral-100');
     a.classList.add('bg-black', 'text-white');
     
-    // Navigate to the new template URL to let the server handle the template switch
-    window.location.href = a.getAttribute('href');
+    // Build the AJAX URL for fetching only the gallery content
+    const fetchUrl = `/api/gallery/template?template=${templateId}${albumRef ? '&album=' + encodeURIComponent(albumRef) : ''}`;
+    
+    // Fetch the full page and extract the gallery content
+    fetch(fetchUrl, {
+      headers: {
+        'Accept': 'text/html',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Network response was not ok');
+      return response.text();
+    })
+    .then(html => {
+      console.log('Received HTML response, length:', html.length);
+      
+      // The API endpoint returns the gallery content directly, not a full HTML page
+      // So we can directly use the response as the new gallery content
+      galleryContainer.innerHTML = html;
+      
+      console.log('Updated gallery content successfully');
+      
+      // Update the page URL without reloading
+      history.pushState(null, '', a.getAttribute('href'));
+      
+      // Reinitialize components based on new template settings
+      setTimeout(() => {
+        const layout = window.templateSettings?.layout || 'grid';
+        const masonry = window.templateSettings?.masonry || false;
+        
+        // Re-initialize PhotoSwipe
+        if (typeof initLightbox === 'function') {
+          initLightbox();
+        }
+        
+        // Destroy existing Swiper instances
+        if (window.gallerySwiper && typeof window.gallerySwiper.destroy === 'function') {
+          window.gallerySwiper.destroy(true, true);
+          window.gallerySwiper = null;
+        }
+        
+        // Re-initialize Swiper for slideshow layout
+        if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
+          const swiperContainer = document.querySelector('.gallery-swiper');
+          if (swiperContainer) {
+            window.gallerySwiper = new Swiper('.gallery-swiper', {
+              navigation: {nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev'},
+              pagination: {el: '.swiper-pagination', clickable: true},
+              loop: true,
+              autoplay: {delay: 5000, disableOnInteraction: false},
+              effect: 'fade',
+              fadeEffect: {crossFade: true}
+            });
+          }
+        }
+        
+        // Destroy existing Masonry instances
+        if (window.galleryMasonry && typeof window.galleryMasonry.destroy === 'function') {
+          window.galleryMasonry.destroy();
+          window.galleryMasonry = null;
+        }
+        
+        // Re-initialize Masonry for masonry layout
+        if (masonry && typeof Masonry !== 'undefined') {
+          const container = document.getElementById('images-gallery');
+          if (container && container.classList.contains('masonry-grid')) {
+            imagesLoaded(container, function(){
+              window.galleryMasonry = new Masonry(container, {
+                itemSelector: '.masonry-item',
+                percentPosition: true
+              });
+            });
+          }
+        }
+        
+        // Trigger GSAP animations for new content
+        if (typeof gsap !== 'undefined') {
+          gsap.from('.image-item', {
+            opacity: 0,
+            y: 20,
+            duration: 0.6,
+            stagger: 0.1
+          });
+        }
+      }, 100);
+    })
+    .catch(error => {
+      console.error('Error loading template:', error);
+      console.error('Failed URL:', fetchUrl);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Restore original content and button state on error
+      galleryContainer.innerHTML = originalContent;
+      
+      // Restore button states
+      document.querySelectorAll('.tpl-switch').forEach(el => {
+        el.classList.remove('bg-black', 'text-white');
+        el.classList.add('text-neutral-700', 'hover:bg-neutral-100');
+      });
+      
+      // Find and restore the previously active button
+      const currentUrl = window.location.href;
+      document.querySelectorAll('.tpl-switch').forEach(btn => {
+        if (btn.href === currentUrl || btn.classList.contains('bg-black')) {
+          btn.classList.remove('text-neutral-700', 'hover:bg-neutral-100');
+          btn.classList.add('bg-black', 'text-white');
+        }
+      });
+      
+      // Show more specific error message
+      const errorMsg = error.message.includes('Gallery content not found') 
+        ? 'Template content not found. Please refresh the page and try again.'
+        : 'Error loading template. Please check your connection and try again.';
+      alert(errorMsg);
+    });
   });
 });
 {% endblock %}
