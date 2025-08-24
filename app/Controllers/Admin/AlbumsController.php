@@ -123,10 +123,9 @@ class AlbumsController
         $developerIds = array_map('intval', (array)($d['developers'] ?? []));
         $labIds = array_map('intval', (array)($d['labs'] ?? []));
         $locationIds = array_map('intval', (array)($d['locations'] ?? []));
-        // Log only location data for debugging
-        if (!empty($locationIds)) {
-            error_log("Album $id: Processing locations - " . implode(',', $locationIds));
-        }
+        
+        // Log all form data for debugging - REMOVE AFTER TESTING
+        file_put_contents('/tmp/album_update_debug.log', "Form data: " . print_r($d, true) . "\n", FILE_APPEND | LOCK_EX);
         
         // Custom equipment fields
         $customCameras = trim((string)($d['custom_cameras'] ?? '')) ?: null;
