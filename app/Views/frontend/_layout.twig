@@ -121,21 +121,59 @@
         .slb-close { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 9999px; background: rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; cursor:pointer; }
         @media (max-width: 1024px) { #slb-content .slb-media { width: min(80%, 1200px); } }
         @media (max-width: 640px)  { #slb-content .slb-media { width: 92%; } .slb-prev { left: 8px; } .slb-next { right: 8px; } }
-        /* PhotoSwipe custom caption inside overlay */
+        
+        /* PhotoSwipe image sizing fix - minimal approach that works */
+        .pswp__img {
+            object-fit: contain !important;
+        }
+        
+        /* Ensure proper container support */
+        .pswp__content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Migliorate PhotoSwipe caption con responsive design */
         .pswp__custom-caption {
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
             bottom: 24px;
-            max-width: 92vw;
+            max-width: 95vw;
             color: #fff;
             text-align: center;
             font-size: 14px;
             line-height: 1.3;
             z-index: 2;
-            background: rgba(0,0,0,0.6);
-            padding: 8px 16px;
-            border-radius: 4px;
+            background: rgba(0,0,0,0.7);
+            padding: 12px 20px;
+            border-radius: 6px;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Responsive adjustments per caption */
+        @media (max-width: 640px) {
+            .pswp__custom-caption {
+                max-width: 98vw;
+                bottom: 16px;
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+        }
+        
+        .pswp__custom-caption .mb-2 {
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 15px;
+        }
+        
+        .pswp__custom-caption .flex {
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            justify-content: center;
+            font-size: 13px;
+            opacity: 0.9;
         }
         
         /* Position navigation arrows outside the image */
@@ -598,17 +636,71 @@
                         gallery: '#images-gallery',
                         children: 'a.pswp-link',
                         pswpModule: PhotoSwipe,
-                        showHideAnimationType: 'fade',
-                        bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
+                        
+                        // Modern image sizing and layout
+                        bgOpacity: 0.9,
+                        spacing: 0.12, // 12% spacing between slides for modern look
+                        allowPanToNext: true,
+                        loop: !!psCfg.loop,
                         wheelToZoom: true,
-                        loop: !!psCfg.loop
+                        pinchToClose: true,
+                        closeOnVerticalDrag: true,
+                        
+                        // Padding to contain images properly (creates the smaller image effect)
+                        padding: { top: 60, bottom: 80, left: 60, right: 60 },
+                        
+                        // Modern smooth animations
+                        showHideAnimationType: 'fade',
+                        hideAnimationDuration: 400,
+                        showAnimationDuration: 400,
+                        zoomAnimationDuration: 300,
+                        easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                        
+                        // Better interaction for modern UX
+                        imageClickAction: 'zoom-or-close',
+                        bgClickAction: 'close',
+                        tapAction: 'toggle-controls',
+                        doubleTapAction: 'zoom',
+                        
+                        // Performance optimizations
+                        preloadFirstSlide: true,
+                        preload: [1, 2],
+                        preloaderDelay: 800,
+                        
+                        // Better accessibility
+                        escKey: true,
+                        arrowKeys: true,
+                        trapFocus: true,
+                        returnFocus: true,
+                        
+                        // Modern UI
+                        clickToCloseNonZoomable: true,
+                        maxWidthToAnimate: 2000,
+                        
+                        // Custom viewport for smaller, contained images
+                        getViewportSizeFn: function(options, pswp) {
+                            const isMobile = window.innerWidth < 768;
+                            const padding = isMobile ? 40 : 120;
+                            return {
+                                x: window.innerWidth - padding,
+                                y: window.innerHeight - padding
+                            };
+                        },
+                        
+                        // Italian localization
+                        closeTitle: 'Chiudi',
+                        zoomTitle: 'Zoom',
+                        arrowPrevTitle: 'Precedente',
+                        arrowNextTitle: 'Successiva',
+                        errorMsg: 'Impossibile caricare l\'immagine',
+                        indexIndicatorSep: ' di '
                     });
                     // Caption UI
                     lb.on('uiRegister', () => {
                         lb.pswp.ui.registerElement({
                             name: 'custom-caption', order: 9, isButton: false, appendTo: 'root',
                             onInit: (el, pswp) => {
-                                el.className = 'pswp__custom-caption';
+                                el.className = 'pswp__custom-caption pswp__hide-on-close';
                                 pswp.on('change', () => {
                                     const currEl = pswp.currSlide && pswp.currSlide.data && pswp.currSlide.data.element;
                                     const cap = currEl ? currEl.getAttribute('data-pswp-caption') : '';
@@ -616,49 +708,6 @@
                                 });
                             }
                         });
-                    });
-                    // Show images in a container with fixed max size
-                    lb.on('open', () => {
-                        const pswp = lb.pswp;
-                        const fitToContainer = () => {
-                            const s = pswp.currSlide;
-                            if (!s || !s.width || !s.height) return;
-                            
-                            // Define max dimensions for the container
-                            const maxWidth = Math.min(1200, pswp.viewportSize.x * 0.6);
-                            const maxHeight = Math.min(800, pswp.viewportSize.y * 0.7);
-                            
-                            // Calculate scale to fit within container
-                            const scaleW = maxWidth / s.width;
-                            const scaleH = maxHeight / s.height;
-                            const scale = Math.min(scaleW, scaleH, 1); // Don't upscale
-                            
-                            // Center the image
-                            const x = (pswp.viewportSize.x - (s.width * scale)) / 2;
-                            const y = (pswp.viewportSize.y - (s.height * scale)) / 2;
-                            
-                            // Apply zoom and pan
-                            s.zoomLevels.initial = scale;
-                            s.zoomLevels.secondary = scale;
-                            s.zoomLevels.max = scale;
-                            s.zoomLevels.min = scale;
-                            s.pan.x = x;
-                            s.pan.y = y;
-                            
-                            // Update content
-                            s.updateContentSize(true);
-                        };
-                        fitToContainer();
-                        pswp.on('change', fitToContainer);
-                        pswp.on('resize', fitToContainer);
-                        
-                        // Ensure arrows are positioned correctly
-                        setTimeout(() => {
-                            const prevArrow = pswp.element.querySelector('.pswp__button--arrow--prev');
-                            const nextArrow = pswp.element.querySelector('.pswp__button--arrow--next');
-                            if (prevArrow) prevArrow.style.left = '20px';
-                            if (nextArrow) nextArrow.style.right = '20px';
-                        }, 50);
                     });
                     lb.init();
                     window.__pswpLightbox = lb;
@@ -678,13 +727,41 @@
                   const lb = new PhotoSwipeLightbox({
                     dataSource: items,
                     pswpModule: PhotoSwipe,
-                    showHideAnimationType: 'fade',
-                    bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
-                    wheelToZoom: true,
+                    
+                    // Modern configuration matching main lightbox
+                    bgOpacity: 0.9,
+                    spacing: 0.12,
+                    allowPanToNext: true,
                     loop: !!psCfg.loop,
-                    // Force images to be centered and properly sized
-                    imageClickAction: 'close',
-                    tapAction: 'close'
+                    wheelToZoom: true,
+                    pinchToClose: true,
+                    closeOnVerticalDrag: true,
+                    
+                    // Padding for contained images
+                    padding: { top: 60, bottom: 80, left: 60, right: 60 },
+                    
+                    // Modern animations
+                    showHideAnimationType: 'fade',
+                    hideAnimationDuration: 400,
+                    showAnimationDuration: 400,
+                    zoomAnimationDuration: 300,
+                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    
+                    // Modern interactions
+                    imageClickAction: 'zoom-or-close',
+                    bgClickAction: 'close',
+                    tapAction: 'toggle-controls',
+                    doubleTapAction: 'zoom',
+                    
+                    // Custom viewport
+                    getViewportSizeFn: function(options, pswp) {
+                        const isMobile = window.innerWidth < 768;
+                        const padding = isMobile ? 40 : 120;
+                        return {
+                            x: window.innerWidth - padding,
+                            y: window.innerHeight - padding
+                        };
+                    }
                   });
                   let psCaptionEl;
                   lb.on('open', () => {

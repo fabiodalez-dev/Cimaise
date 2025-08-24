@@ -17,15 +17,20 @@ $app->get('/', function (Request $request, Response $response) use ($container) 
 });
 
 $app->get('/album/{slug}', function (Request $request, Response $response, array $args) use ($container) {
-    // Redirect to gallery with album param - this ensures consistent behavior
-    $newUrl = '/gallery?album=' . urlencode($args['slug']);
-    return $response->withHeader('Location', $newUrl)->withStatus(302);
+    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+    return $controller->album($request, $response, $args);
 });
 // Unlock password-protected album
 $app->post('/album/{slug}/unlock', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
     return $controller->unlockAlbum($request, $response, $args);
 })->add(new RateLimitMiddleware(5, 600));
+
+// Album template switcher API
+$app->get('/api/album/{slug}/template', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+    return $controller->albumTemplate($request, $response, $args);
+});
 
 $app->get('/category/{slug}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
