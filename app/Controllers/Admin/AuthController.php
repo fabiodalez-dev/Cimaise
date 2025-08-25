@@ -89,6 +89,17 @@ class AuthController
 
     public function logout(Request $request, Response $response): Response
     {
+        // SECURITY: Verify CSRF token for logout
+        if ($request->getMethod() === 'POST') {
+            $data = (array)($request->getParsedBody() ?? []);
+            $csrf = (string)($data['csrf'] ?? '');
+            
+            if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Token CSRF non valido.'];
+                return $response->withHeader('Location', '/admin')->withStatus(302);
+            }
+        }
+        
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
@@ -117,6 +128,17 @@ class AuthController
 
         if ($firstName === '' || $lastName === '' || $email === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Tutti i campi sono obbligatori.'];
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+        }
+        
+        // SECURITY: Validate names to prevent XSS
+        if (strlen($firstName) > 50 || strlen($lastName) > 50) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome e cognome devono essere massimo 50 caratteri.'];
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+        }
+        
+        if (!preg_match('/^[a-zA-Z\s\-\'\.À-ſ]+$/u', $firstName) || !preg_match('/^[a-zA-Z\s\-\'\.À-ſ]+$/u', $lastName)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome e cognome possono contenere solo lettere, spazi, apostrofi e trattini.'];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
         }
 

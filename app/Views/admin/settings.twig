@@ -8,7 +8,8 @@
     </div>
   </div>
 
-  <form method="post" action="/admin/settings" class="space-y-8">
+  <div class="pb-48"> <!-- Increased padding bottom for sticky footer -->
+    <form method="post" action="/admin/settings" id="settings-form" class="space-y-8">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -79,25 +80,6 @@
               <label class="block text-sm font-medium text-gray-700 mb-2">Responsive Breakpoints</label>
               <textarea name="breakpoints" rows="6" class="form-input font-mono text-sm">{{ settings['image.breakpoints']|json_encode(constant('JSON_PRETTY_PRINT')) }}</textarea>
               <p class="text-xs text-gray-500 mt-1">JSON format: {"sm":768,"md":1200,"lg":1920,"xl":2560,"xxl":3840}</p>
-              
-              <!-- Generate Images Button -->
-              <div class="mt-4 pt-4 border-t border-gray-200">
-                <form id="generate-images-form" method="post" action="/admin/settings/generate-images" onsubmit="return handleImageGeneration(event);">
-                  <input type="hidden" name="csrf" value="{{ csrf }}">
-                  <button id="generate-btn" type="submit" class="btn-secondary">
-                    <i id="generate-icon" class="fas fa-images mr-2"></i>
-                    <span id="generate-text">Genera Varianti Immagini</span>
-                  </button>
-                  <div id="generate-status" class="mt-2 hidden">
-                    <div class="text-xs text-blue-600 flex items-center">
-                      <i class="fas fa-spinner fa-spin mr-2"></i>
-                      <span>Generazione in corso... Questa operazione potrebbe richiedere alcuni minuti.</span>
-                    </div>
-                  </div>
-                  <div id="generate-result" class="mt-2 hidden"></div>
-                  <p class="text-xs text-gray-500 mt-2">Genera automaticamente le varianti ad alta risoluzione (sm, md, lg, xl, xxl) per tutte le immagini mancanti</p>
-                </form>
-              </div>
             </div>
           </div>
         </div>
@@ -145,12 +127,15 @@
         </h3>
         <p class="text-sm text-gray-600 mb-6">Impostazioni utilizzate quando un album non ha un template specifico assegnato</p>
         
+        <!-- Debug Information -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Template Predefinito</label>
+          
           <select name="default_template_id" class="form-input">
             <option value="">Nessun template predefinito</option>
             {% for template in templates %}
-              <option value="{{ template.id }}" {% if template.id == settings['gallery.default_template_id'] %}selected{% endif %}>{{ template.name }}</option>
+              {% set isSelected = template.id == settings['gallery.default_template_id'] %}
+              <option value="{{ template.id }}" {% if isSelected %}selected{% endif %}>{{ template.name }}</option>
             {% endfor %}
           </select>
           <p class="text-xs text-gray-500 mt-1">Template utilizzato quando un album non ha un template specifico assegnato</p>
@@ -187,28 +172,97 @@
       </div>
     </div>
 
-    <!-- Hidden fields for all expected form data -->
-    <input type="hidden" name="fmt_avif" value="{{ settings['image.formats'].avif ? '1' : '0' }}">
-    <input type="hidden" name="fmt_webp" value="{{ settings['image.formats'].webp ? '1' : '0' }}">  
-    <input type="hidden" name="fmt_jpg" value="{{ settings['image.formats'].jpg ? '1' : '0' }}">
-    <input type="hidden" name="q_avif" value="{{ settings['image.quality'].avif|default(50) }}">
-    <input type="hidden" name="q_webp" value="{{ settings['image.quality'].webp|default(75) }}">
-    <input type="hidden" name="q_jpg" value="{{ settings['image.quality'].jpg|default(85) }}">
-    <input type="hidden" name="preview_w" value="{{ settings['image.preview'].width|default(480) }}">
-    <input type="hidden" name="breakpoints" value="{{ settings['image.breakpoints']|json_encode }}">
-    <input type="hidden" name="pagination_limit" value="{{ settings['pagination.limit']|default(12) }}">
-    <input type="hidden" name="cache_ttl" value="{{ settings['cache.ttl']|default(24) }}">
-
-    <!-- Save Button -->
-    <div class="flex justify-end">
-      <button type="submit" class="btn-primary">
-        <i class="fas fa-save mr-2"></i>
-        Save Settings
-      </button>
+    <!-- Image Generation Form -->
+    <div class="card mb-6">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-images mr-3 text-gray-600"></i>
+          Genera Varianti Immagini
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">Genera automaticamente le varianti ad alta risoluzione per tutte le immagini mancanti</p>
+        
+        <form id="generate-images-form" method="post" action="/admin/settings/generate-images" onsubmit="return handleImageGeneration(event);" class="border-t border-gray-200 pt-4">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button id="generate-btn" type="submit" class="btn-secondary">
+            <i id="generate-icon" class="fas fa-images mr-2"></i>
+            <span id="generate-text">Genera Varianti Immagini</span>
+          </button>
+          <div id="generate-status" class="mt-2 hidden">
+            <div class="text-xs text-blue-600 flex items-center">
+              <i class="fas fa-spinner fa-spin mr-2"></i>
+              <span>Generazione in corso... Questa operazione potrebbe richiedere alcuni minuti.</span>
+            </div>
+          </div>
+          <div id="generate-result" class="mt-2 hidden"></div>
+        </form>
+      </div>
     </div>
-  </form>
+    
+    </form>
+  </div>
+
+  <!-- Sticky Footer with Action Buttons -->
+  <div class="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <button type="submit" form="settings-form" class="btn-primary">
+            <i class="fas fa-save mr-2"></i>
+            Salva Impostazioni
+          </button>
+          <a href="/admin" class="btn-secondary">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Dashboard
+          </a>
+        </div>
+        
+        <div class="text-sm text-gray-500">
+          <i class="fas fa-info-circle mr-1"></i>
+          Configura le impostazioni del sistema
+        </div>
+      </div>
+    </div>
+  </div>
 
 <script>
+// Handle form submission to ensure checkbox values are properly sent
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('settings-form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      // Debug: Log form data before submission
+      const formData = new FormData(form);
+      console.log('Settings form data being submitted:');
+      for (let [key, value] of formData.entries()) {
+        console.log(key + ':', value);
+      }
+      
+      // Specifically log the default template ID
+      const templateId = formData.get('default_template_id');
+      console.log('Default template ID:', templateId);
+      console.log('Template ID type:', typeof templateId);
+      
+      // Remove any existing hidden checkbox fields to prevent conflicts
+      const existingHidden = form.querySelectorAll('input[type="hidden"][data-checkbox="true"]');
+      existingHidden.forEach(input => input.remove());
+      
+      // Ensure checkbox states are properly handled
+      const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        if (!checkbox.checked) {
+          // Create hidden input for unchecked checkboxes
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = checkbox.name;
+          hidden.value = '0';
+          hidden.setAttribute('data-checkbox', 'true');
+          form.appendChild(hidden);
+        }
+      });
+    });
+  }
+});
+
 function handleImageGeneration(event) {
   event.preventDefault();
   
@@ -237,22 +291,21 @@ function handleImageGeneration(event) {
     method: 'POST',
     body: formData
   })
-  .then(response => response.text())
-  .then(data => {
+  .then(response => {
     // Reset button state
     btn.disabled = false;
     icon.className = 'fas fa-images mr-2';
     text.textContent = 'Genera Varianti Immagini';
     status.classList.add('hidden');
     
-    // Show success result
-    result.innerHTML = '<div class="text-xs text-green-600 flex items-center"><i class="fas fa-check-circle mr-2"></i><span>Varianti generate con successo!</span></div>';
+    // Show info result for background process
+    result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span>Processo di generazione avviato! Potrebbe richiedere alcuni minuti. Verrai notificato al completamento.</span></div>';
     result.classList.remove('hidden');
     
-    // Hide result after 5 seconds
+    // Hide result after 10 seconds
     setTimeout(() => {
       result.classList.add('hidden');
-    }, 5000);
+    }, 10000);
   })
   .catch(error => {
     // Reset button state
@@ -262,7 +315,7 @@ function handleImageGeneration(event) {
     status.classList.add('hidden');
     
     // Show error result
-    result.innerHTML = '<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>Errore durante la generazione delle varianti</span></div>';
+    result.innerHTML = '<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>Errore durante l\'avvio della generazione</span></div>';
     result.classList.remove('hidden');
   });
   

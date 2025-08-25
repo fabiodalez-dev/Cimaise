@@ -19,7 +19,7 @@
 
   <div class="card">
     <div class="overflow-x-auto">
-      <table class="min-w-full" id="albums-table" data-endpoint="/admin/albums/reorder" data-csrf="{{ csrf }}" data-order="{{ order_mode }}">
+      <table class="min-w-full" id="albums-table" data-endpoint="/admin/albums/reorder" data-csrf="{{ csrf|e('html_attr') }}" data-order="{{ order_mode }}">
         <thead class="bg-gray-50">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cover</th>

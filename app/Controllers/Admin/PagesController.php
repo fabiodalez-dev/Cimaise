@@ -110,25 +110,38 @@ class PagesController
         $photo = $files['about_photo'] ?? null;
         if ($photo && $photo->getError() === UPLOAD_ERR_OK) {
             $tmp = $photo->getStream()->getMetadata('uri') ?? '';
-            $fi = new finfo(FILEINFO_MIME_TYPE);
-            $mime = (string)($fi->file($tmp) ?: '');
-            $ext = match ($mime) {
-                'image/jpeg' => '.jpg',
-                'image/png' => '.png',
-                default => null,
-            };
-            if ($ext) {
-                $hash = sha1_file($tmp) ?: bin2hex(random_bytes(20));
-                $mediaDir = dirname(__DIR__, 3) . '/public/media/about';
-                ImagesService::ensureDir($mediaDir);
-                $dest = $mediaDir . '/' . $hash . $ext;
-                // store original
-                @move_uploaded_file($tmp, $dest) || @rename($tmp, $dest);
-                // also create a resized web version (max 1600px width)
-                $webPath = $mediaDir . '/' . $hash . '_w1600.jpg';
-                ImagesService::generateJpegPreview($dest, $webPath, 1600);
-                $rel = str_replace(dirname(__DIR__, 3) . '/public', '', (file_exists($webPath) ? $webPath : $dest));
-                $svc->set('about.photo_url', $rel);
+            
+            // SECURITY: Comprehensive image validation with magic number checking
+            if ($this->validateImageUpload($tmp)) {
+                $fi = new finfo(FILEINFO_MIME_TYPE);
+                $mime = (string)($fi->file($tmp) ?: '');
+                $ext = match ($mime) {
+                    'image/jpeg' => '.jpg',
+                    'image/png' => '.png',
+                    default => null,
+                };
+                if ($ext) {
+                    $hash = sha1_file($tmp) ?: bin2hex(random_bytes(20));
+                    $mediaDir = dirname(__DIR__, 3) . '/public/media/about';
+                    ImagesService::ensureDir($mediaDir);
+                    $dest = $mediaDir . '/' . $hash . $ext;
+                    // store original
+                    @move_uploaded_file($tmp, $dest) || @rename($tmp, $dest);
+                    
+                    // Re-validate after move for additional security
+                    if ($this->validateImageUpload($dest)) {
+                        // also create a resized web version (max 1600px width)
+                        $webPath = $mediaDir . '/' . $hash . '_w1600.jpg';
+                        ImagesService::generateJpegPreview($dest, $webPath, 1600);
+                        $rel = str_replace(dirname(__DIR__, 3) . '/public', '', (file_exists($webPath) ? $webPath : $dest));
+                        $svc->set('about.photo_url', $rel);
+                    } else {
+                        @unlink($dest);
+                        $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'File di immagine non valido dopo il caricamento.'];
+                    }
+                }
+            } else {
+                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'File di immagine non valido o formato non supportato.'];
             }
         }
 
@@ -226,5 +239,79 @@ class PagesController
                 'animation_duration' => 0.6,
             ];
         }
+    }
+
+    /**
+     * Validates image file using magic number verification and MIME type checking
+     */
+    private function validateImageUpload(string $filePath): bool
+    {
+        // Check if file exists and is readable
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            return false;
+        }
+        
+        // Check file size (prevent DoS attacks)
+        $fileSize = filesize($filePath);
+        if ($fileSize === false || $fileSize > 5 * 1024 * 1024) { // 5MB limit for about photos
+            return false;
+        }
+        
+        if ($fileSize < 12) { // Minimum size for valid image headers
+            return false;
+        }
+        
+        // Detect MIME type using fileinfo
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if (!$finfo) {
+            return false;
+        }
+        
+        $detectedMime = finfo_file($finfo, $filePath);
+        finfo_close($finfo);
+        
+        $allowedMimes = ['image/jpeg', 'image/png'];
+        if (!$detectedMime || !in_array($detectedMime, $allowedMimes, true)) {
+            return false;
+        }
+        
+        // Validate magic numbers (file header signatures)
+        $fileHeader = file_get_contents($filePath, false, null, 0, 12);
+        if ($fileHeader === false) {
+            return false;
+        }
+        
+        $magicNumbers = [
+            'image/jpeg' => ["\xFF\xD8\xFF"],
+            'image/png' => ["\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"]
+        ];
+        
+        $isValidMagic = false;
+        if (isset($magicNumbers[$detectedMime])) {
+            foreach ($magicNumbers[$detectedMime] as $signature) {
+                if (str_starts_with($fileHeader, $signature)) {
+                    $isValidMagic = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!$isValidMagic) {
+            return false;
+        }
+        
+        // Additional validation: try to get image dimensions
+        $imageInfo = getimagesize($filePath);
+        if ($imageInfo === false) {
+            return false;
+        }
+        
+        // Validate image dimensions (prevent processing of malicious files)
+        [$width, $height] = $imageInfo;
+        if ($width <= 0 || $height <= 0 || $width > 5000 || $height > 5000) {
+            return false;
+        }
+        
+        return true;
     }
 }

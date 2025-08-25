@@ -101,10 +101,10 @@ $app->post('/admin/login', function (Request $request, Response $response) use (
     return $controller->login($request, $response);
 })->add(new RateLimitMiddleware(5, 600));
 
-$app->get('/admin/logout', function (Request $request, Response $response) use ($container) {
+$app->post('/admin/logout', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
     return $controller->logout($request, $response);
-});
+})->add(new AuthMiddleware($container['db']));
 
 $app->post('/admin/profile/update', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
@@ -307,6 +307,10 @@ $app->get('/admin/categories', function (Request $request, Response $response) u
 $app->post('/admin/categories/reorder', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->reorder($request, $response);
+})->add(new AuthMiddleware($container['db']));
+$app->post('/admin/categories/reorder-wordpress', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
+    return $controller->reorderWordPress($request, $response);
 })->add(new AuthMiddleware($container['db']));
 $app->get('/admin/categories/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
