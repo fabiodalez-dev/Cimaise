@@ -72,6 +72,18 @@ $app->get('/api/gallery/template', function (Request $request, Response $respons
     return $controller->template($request, $response);
 });
 
+// Galleries page with advanced filtering
+$app->get('/galleries', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Frontend\GalleriesController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+});
+
+// Galleries filter API
+$app->get('/galleries/filter', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Frontend\GalleriesController($container['db'], Twig::fromRequest($request));
+    return $controller->filter($request, $response);
+});
+
 // (public API routes are defined near the bottom of this file)
 
 // Admin redirect
@@ -158,6 +170,24 @@ $app->get('/admin/settings', function (Request $request, Response $response) use
 $app->post('/admin/settings', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
     return $controller->save($request, $response);
+})->add(new AuthMiddleware($container['db']));
+
+// Filter Settings
+$app->get('/admin/filter-settings', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\FilterSettingsController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add(new AuthMiddleware($container['db']));
+$app->post('/admin/filter-settings', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\FilterSettingsController($container['db'], Twig::fromRequest($request));
+    return $controller->update($request, $response);
+})->add(new AuthMiddleware($container['db']));
+$app->post('/admin/filter-settings/reset', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\FilterSettingsController($container['db'], Twig::fromRequest($request));
+    return $controller->reset($request, $response);
+})->add(new AuthMiddleware($container['db']));
+$app->get('/admin/filter-settings/preview', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\FilterSettingsController($container['db'], Twig::fromRequest($request));
+    return $controller->preview($request, $response);
 })->add(new AuthMiddleware($container['db']));
 
 $app->post('/admin/settings/generate-images', function (Request $request, Response $response) use ($container) {
