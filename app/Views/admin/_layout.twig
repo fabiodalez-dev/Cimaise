@@ -98,9 +98,33 @@
       z-index: 1000;
       top: 100%;
       margin-top: 8px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
     }
-    .dropdown:hover .dropdown-content {
+    .dropdown-content.show {
       display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    /* Expanded hover area to prevent accidental closing */
+    .dropdown::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: -10px;
+      left: 0;
+      z-index: 999;
+    }
+    .dropdown-content::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      right: 0;
+      left: 0;
+      height: 10px;
+      background: transparent;
     }
     .dropdown-item {
       color: #374151;
@@ -528,6 +552,58 @@
       }
       if (e.target.id === 'passwordModal') {
         closePasswordModal();
+      }
+    });
+
+    // Enhanced dropdown behavior with delays and expanded hover areas
+    document.addEventListener('DOMContentLoaded', function() {
+      const dropdown = document.querySelector('.dropdown');
+      const dropdownContent = document.querySelector('.dropdown-content');
+      let showTimeout;
+      let hideTimeout;
+      
+      if (dropdown && dropdownContent) {
+        // Function to show dropdown
+        function showDropdown() {
+          clearTimeout(hideTimeout);
+          showTimeout = setTimeout(() => {
+            dropdownContent.classList.add('show');
+          }, 100); // Small delay to prevent accidental opening
+        }
+        
+        // Function to hide dropdown
+        function hideDropdown() {
+          clearTimeout(showTimeout);
+          hideTimeout = setTimeout(() => {
+            dropdownContent.classList.remove('show');
+          }, 300); // Longer delay to prevent accidental closing
+        }
+        
+        // Mouse events for dropdown button
+        dropdown.addEventListener('mouseenter', showDropdown);
+        dropdown.addEventListener('mouseleave', hideDropdown);
+        
+        // Mouse events for dropdown content (to keep it open when hovering over menu)
+        dropdownContent.addEventListener('mouseenter', () => {
+          clearTimeout(hideTimeout);
+          clearTimeout(showTimeout);
+        });
+        
+        dropdownContent.addEventListener('mouseleave', hideDropdown);
+        
+        // Click outside to close
+        document.addEventListener('click', function(e) {
+          if (!dropdown.contains(e.target)) {
+            clearTimeout(showTimeout);
+            clearTimeout(hideTimeout);
+            dropdownContent.classList.remove('show');
+          }
+        });
+        
+        // Prevent dropdown from closing when clicking inside
+        dropdown.addEventListener('click', function(e) {
+          e.stopPropagation();
+        });
       }
     });
   </script>
