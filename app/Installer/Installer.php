@@ -23,24 +23,22 @@ class Installer
      */
     public function isInstalled(): bool
     {
-        // Check if .env file exists
+        // Check if .env file exists (not .env.example)
         if (!file_exists($this->rootPath . '/.env')) {
             return false;
         }
         
-        // Load environment variables
-        if (file_exists($this->rootPath . '/.env')) {
-            $envContent = file_get_contents($this->rootPath . '/.env');
-            if (empty($envContent)) {
-                return false;
-            }
-            
-            $lines = explode("\n", $envContent);
-            foreach ($lines as $line) {
-                if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
-                    list($key, $value) = explode('=', $line, 2);
-                    $this->config[trim($key)] = trim($value);
-                }
+        // Load environment variables from .env
+        $envContent = file_get_contents($this->rootPath . '/.env');
+        if (empty($envContent)) {
+            return false;
+        }
+        
+        $lines = explode("\n", $envContent);
+        foreach ($lines as $line) {
+            if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
+                list($key, $value) = explode('=', $line, 2);
+                $this->config[trim($key)] = trim($value);
             }
         }
         

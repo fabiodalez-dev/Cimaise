@@ -19,12 +19,12 @@ $isAdminLoginRoute = $requestUri === '/admin/login';
 
 // Check if already installed (only for non-installer routes and not admin login)
 if (!$isInstallerRoute && !$isAdminLoginRoute) {
-    // Check if installed by looking for .env file and database
+    // Check if installed by looking for .env file (not .env.example) and database
     $root = dirname(__DIR__);
     $installed = false;
     
     if (file_exists($root . '/.env')) {
-        // Load environment variables
+        // Load environment variables from .env
         $envContent = file_get_contents($root . '/.env');
         if (!empty($envContent)) {
             // Try to load database configuration
@@ -49,8 +49,14 @@ if (!$isInstallerRoute && !$isAdminLoginRoute) {
     }
 }
 
-// Bootstrap env and services
-$container = require __DIR__ . '/../app/Config/bootstrap.php';
+// Bootstrap env and services (skip for installer routes to avoid database connection issues)
+if ($isInstallerRoute) {
+    // For installer routes, create minimal container without database connection
+    $container = ['db' => null];
+} else {
+    // For normal routes, load full bootstrap with database
+    $container = require __DIR__ . '/../app/Config/bootstrap.php';
+}
 
 // Sessions with secure defaults
 ini_set('session.use_strict_mode', '1');
@@ -72,13 +78,18 @@ $app->add(TwigMiddleware::create($app, $twig));
 
 // Share globals
 $twig->getEnvironment()->addGlobal('app_url', $_ENV['APP_URL'] ?? 'http://localhost:8000');
-// Expose about URL from settings (dynamic permalink)
-try {
-    $settingsSvc = new \App\Services\SettingsService($container['db']);
-    $aboutSlug = (string)($settingsSvc->get('about.slug', 'about') ?? 'about');
-    $aboutSlug = $aboutSlug !== '' ? $aboutSlug : 'about';
-    $twig->getEnvironment()->addGlobal('about_url', '/' . $aboutSlug);
-} catch (\Throwable) {
+
+// Expose about URL from settings (only if not installer route and database exists)
+if (!$isInstallerRoute && $container['db'] !== null) {
+    try {
+        $settingsSvc = new \App\Services\SettingsService($container['db']);
+        $aboutSlug = (string)($settingsSvc->get('about.slug', 'about') ?? 'about');
+        $aboutSlug = $aboutSlug !== '' ? $aboutSlug : 'about';
+        $twig->getEnvironment()->addGlobal('about_url', '/' . $aboutSlug);
+    } catch (\Throwable) {
+        $twig->getEnvironment()->addGlobal('about_url', '/about');
+    }
+} else {
     $twig->getEnvironment()->addGlobal('about_url', '/about');
 }
 
