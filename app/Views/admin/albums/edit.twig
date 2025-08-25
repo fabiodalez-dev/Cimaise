@@ -855,6 +855,13 @@
       
       closeBtn?.addEventListener('click', closeModal);
       cancelBtn?.addEventListener('click', closeModal);
+      
+      // ESC key handling for modal
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+          closeModal();
+        }
+      });
     })();
   </script>
   <style>

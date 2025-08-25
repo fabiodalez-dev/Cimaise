@@ -509,13 +509,46 @@
         return;
       }
       const id = await ensureAlbumId();
-      for (const f of files){
-        const fd = new FormData(); fd.append('file', f);
-        await fetch(`/admin/albums/${id}/upload`, { method:'POST', headers:{ 'X-CSRF-Token': csrf, 'Accept':'application/json' }, body: fd });
+      
+      // Upload files and set first one as cover
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const fd = new FormData(); 
+        fd.append('file', f);
+        
+        const response = await fetch(`/admin/albums/${id}/upload`, { 
+          method:'POST', 
+          headers:{ 'X-CSRF-Token': csrf, 'Accept':'application/json' }, 
+          body: fd 
+        });
+        
+        // Set the first uploaded image as cover (new album has no cover by default)
+        if (i === 0 && response.ok) {
+          const result = await response.json();
+          if (result && result.id) {
+            // Set the first uploaded image as cover
+            await fetch(`/admin/albums/${id}/cover/${result.id}`, { 
+              method:'POST', 
+              headers: { 'X-CSRF-Token': csrf, 'Accept':'application/json' }
+            });
+          }
+        }
       }
+      
       // Redirect to edit to manage ordering and details
       window.location.href = `/admin/albums/${id}/edit`;
     }
+    
+    // ESC key handling for image modal
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('image-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+      }
+    });
   </script>
   <style>
     /* TomSelect wrapper - no z-index, natural stacking */
