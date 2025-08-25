@@ -26,10 +26,11 @@ class SettingsController
             // Templates table doesn't exist yet
         }
         
+        
         return $this->view->render($response, 'admin/settings.twig', [
             'settings' => $settings,
             'templates' => $templates,
-            'csrf' => $_SESSION['csrf'] ?? ''
+            'csrf' => $_SESSION['csrf'] ?? '',
         ]);
     }
 
@@ -37,6 +38,10 @@ class SettingsController
     {
         $data = (array)$request->getParsedBody();
         $svc = new SettingsService($this->db);
+        
+        // Debug: Log the incoming data
+        error_log("Settings save request data: " . print_r($data, true));
+        
         // formats
         $formats = [
             'avif' => isset($data['fmt_avif']),
@@ -52,20 +57,22 @@ class SettingsController
             'width' => max(64, (int)($data['preview_w'] ?? 480)),
             'height' => null,
         ];
+        
         // breakpoints from textarea JSON
         $breakpoints = json_decode((string)($data['breakpoints'] ?? ''), true);
         if (!is_array($breakpoints)) {
             $breakpoints = $svc->defaults()['image.breakpoints'];
         }
-        // default template - only save template_id now, remove legacy settings
-        $defaultTemplateId = !empty($data['default_template_id']) ? (int)$data['default_template_id'] : null;
         
-        // Debug: Check if we have template_id in the request
-        if (isset($data['default_template_id'])) {
-            error_log("Settings form received template_id: " . $data['default_template_id']);
-        } else {
-            error_log("Settings form did NOT receive default_template_id field");
+        // default template - handle both empty string and actual values
+        $defaultTemplateId = null;
+        if (isset($data['default_template_id']) && $data['default_template_id'] !== '' && $data['default_template_id'] !== '0') {
+            $defaultTemplateId = (int)$data['default_template_id'];
         }
+        
+        // Debug: Log the processed default template ID
+        error_log("Processed default_template_id: " . var_export($defaultTemplateId, true));
+        error_log("Raw default_template_id from data: " . var_export($data['default_template_id'] ?? 'NOT SET', true));
         
         // Site settings
         $siteSettings = [
@@ -97,8 +104,9 @@ class SettingsController
         $svc->set('pagination.limit', $paginationLimit);
         $svc->set('cache.ttl', $cacheTtl);
         
-        // Debug log
-        error_log("Settings saved - default_template_id: " . ($defaultTemplateId ?? 'null'));
+        // Debug: Verify the saved value
+        $savedValue = $svc->get('gallery.default_template_id');
+        error_log("Saved gallery.default_template_id: " . var_export($savedValue, true));
         
         $_SESSION['flash'][] = ['type'=>'success','message'=>'Impostazioni salvate correttamente'];
         return $response->withHeader('Location', '/admin/settings')->withStatus(302);
@@ -112,33 +120,19 @@ class SettingsController
                 throw new \RuntimeException("Console script not executable");
             }
 
-            $cmd = "php $consolePath images:generate --missing 2>&1";
-            $startTime = microtime(true);
+            // Run the command in the background to prevent timeouts
+            $cmd = "nohup php $consolePath images:generate --missing > /tmp/image_generation.log 2>&1 &";
+            exec($cmd);
             
-            ob_start();
-            $output = [];
-            $exitCode = 0;
-            exec($cmd, $output, $exitCode);
-            
-            $duration = round(microtime(true) - $startTime, 2);
-            $outputText = implode("\n", $output);
-            
-            if ($exitCode === 0) {
-                $_SESSION['flash'][] = [
-                    'type' => 'success', 
-                    'message' => "Immagini generate con successo in {$duration}s"
-                ];
-            } else {
-                $_SESSION['flash'][] = [
-                    'type' => 'danger', 
-                    'message' => "Errore nella generazione: " . $outputText
-                ];
-            }
+            $_SESSION['flash'][] = [
+                'type' => 'info', 
+                'message' => 'Generazione delle varianti immagini avviata. Questo processo potrebbe richiedere alcuni minuti. Riceverai una notifica quando sarà completato.'
+            ];
             
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = [
                 'type' => 'danger', 
-                'message' => 'Errore: ' . $e->getMessage()
+                'message' => 'Errore nell\'avvio della generazione: ' . $e->getMessage()
             ];
         }
         

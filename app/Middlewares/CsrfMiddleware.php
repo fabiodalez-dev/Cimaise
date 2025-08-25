@@ -22,9 +22,8 @@ class CsrfMiddleware implements MiddlewareInterface
         $method = strtoupper($request->getMethod());
         $path = $request->getUri()->getPath();
         
-        // Skip CSRF validation for specific routes
-        if (($path === '/admin/login' && $method === 'POST') || 
-            ($path === '/admin/commands/execute' && $method === 'POST')) {
+        // Skip CSRF validation only for login route
+        if ($path === '/admin/login' && $method === 'POST') {
             return $handler->handle($request);
         }
         

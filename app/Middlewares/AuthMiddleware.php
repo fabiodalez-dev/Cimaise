@@ -19,7 +19,16 @@ class AuthMiddleware implements MiddlewareInterface
     {
         // Skip auth check for login/logout routes
         $path = $request->getUri()->getPath();
-        if (in_array($path, ['/admin/login', '/admin/logout'])) {
+        if (in_array($path, ['/admin/login'])) {
+            return $handler->handle($request);
+        }
+        
+        // Allow logout for authenticated users only
+        if ($path === '/admin/logout') {
+            if (empty($_SESSION['admin_id'])) {
+                $response = new \Slim\Psr7\Response(302);
+                return $response->withHeader('Location', '/admin/login');
+            }
             return $handler->handle($request);
         }
         

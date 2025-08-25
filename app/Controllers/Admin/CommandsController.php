@@ -24,8 +24,12 @@ class CommandsController
         $data = $request->getParsedBody();
         $command = $data['command'] ?? '';
         $args = $data['args'] ?? [];
+        $csrf = (string)($data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token'));
         
-        // Skip CSRF validation for AJAX requests (already handled by middleware skip)
+        // SECURITY: Verify CSRF token
+        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            return $this->jsonResponse($response, ['error' => 'Invalid CSRF token', 'success' => false], 403);
+        }
         
         if (!$command) {
             return $this->jsonResponse($response, ['error' => 'No command specified', 'success' => false], 400);
