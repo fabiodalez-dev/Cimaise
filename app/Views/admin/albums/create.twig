@@ -1,183 +1,313 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}Nuovo album — photoCMS{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-black">Nuovo Album</h1>
+<div class="min-h-screen bg-gray-50 pb-24">
+  <!-- Header -->
+  <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-black">Nuovo Album</h1>
+          <p class="text-gray-600 mt-1">Crea un nuovo album fotografico</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="/admin/albums" class="btn-secondary">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Torna agli album
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
-  <form id="album-form" method="post" action="/admin/albums">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 card p-6 space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-black mb-1">Titolo</label>
-          <input class="form-input border-gray-300 focus:border-black focus:ring-black" type="text" name="title" required>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-black mb-1">Slug</label>
-          <input class="form-input border-gray-300 focus:border-black focus:ring-black" type="text" name="slug" placeholder="(auto se vuoto)">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-black mb-1">Excerpt</label>
-          <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" name="excerpt" rows="4" placeholder="Breve descrizione dell'album..."></textarea>
-          <p class="text-xs text-gray-600 mt-1">Descrizione breve che appare nelle anteprime</p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-black mb-1">Contenuto Completo</label>
-          <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black" name="body" rows="12" placeholder="Descrizione completa dell'album..."></textarea>
-          <p class="text-xs text-gray-600 mt-1">Contenuto completo con formattazione (supporta grassetto, corsivo, elenchi, etc.)</p>
-        </div>
-      </div>
-      <div class="card p-6 space-y-4">
-        <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Categorie</label>
-        <select name="categories[]" id="album-categories" class="form-input" multiple required>
-          {% for c in categories %}
-            <option value="{{ c.id }}">{{ c.name }}</option>
-          {% endfor %}
-        </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Data scatto</label>
-          <input class="form-input" type="date" name="shoot_date">
-        </div>
-        <div class="flex items-center gap-2">
-          <input class="h-4 w-4" type="checkbox" name="show_date" id="show_date" checked>
-          <label class="text-sm text-gray-700" for="show_date">Mostra data</label>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tag</label>
-          <select class="form-input" name="tags[]" id="album-tags" multiple>
-            {% for t in tags %}
-              <option value="{{ t.id }}">{{ t.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Template</label>
-          <select class="form-input" name="template_id">
-            <option value="">Seleziona un template...</option>
-            {% for template in templates %}
-              <option value="{{ template.id }}">{{ template.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        
-        <!-- Equipment Section -->
-        <div class="border-t pt-4 mt-4">
-          <h3 class="text-sm font-medium text-gray-900 mb-3">Equipment</h3>
-          
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Cameras</label>
-              <select class="form-input" name="cameras[]" id="album-cameras" multiple>
-                {% for camera in cameras %}
-                  <option value="{{ camera.id }}">{{ camera.make }} {{ camera.model }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Lenses</label>
-              <select class="form-input" name="lenses[]" id="album-lenses" multiple>
-                {% for lens in lenses %}
-                  <option value="{{ lens.id }}">{{ lens.brand }} {{ lens.model }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Films</label>
-              <select class="form-input" name="films[]" id="album-films" multiple>
-                {% for film in films %}
-                  <option value="{{ film.id }}">{{ film.brand }} {{ film.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Developers</label>
-              <select class="form-input" name="developers[]" id="album-developers" multiple>
-                {% for developer in developers %}
-                  <option value="{{ developer.id }}">{{ developer.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Labs</label>
-              <select class="form-input" name="labs[]" id="album-labs" multiple>
-                {% for lab in labs %}
-                  <option value="{{ lab.id }}">{{ lab.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Locations -->
-        <div class="border-t pt-4 mt-4">
-          <h3 class="text-sm font-medium text-gray-900 mb-3">Locations</h3>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Seleziona luoghi (multi)</label>
-            <select class="form-input" name="locations[]" id="album-locations" multiple>
-              {% for loc in locations %}
-                <option value="{{ loc.id }}">{{ loc.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        
-        <div class="border-t pt-4 mt-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Password album (opzionale)</label>
-            <input class="form-input" type="password" name="password" placeholder="Imposta password per proteggere l'album">
-            <p class="text-xs text-gray-500 mt-1">Se impostata, l’album richiederà password per l’accesso pubblico</p>
-          </div>
-          <div class="flex items-center gap-2 mt-3">
-            <input class="h-4 w-4" type="checkbox" name="allow_downloads" id="allow_downloads">
-            <label class="text-sm text-gray-700" for="allow_downloads">Consenti download delle immagini</label>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
-            <input class="form-input" type="number" name="sort_order" value="0">
-          </div>
-          <div class="flex items-center gap-2 mt-3">
-            <input class="h-4 w-4" type="checkbox" name="is_published" id="pub">
-            <label class="text-sm text-gray-700" for="pub">Pubblica subito</label>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <div class="card p-5 mt-6">
-      <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <div class="flex items-center gap-2">
-          <label class="text-sm text-gray-700">Ordina:</label>
-          <select id="sort-images" class="form-input text-sm py-1.5">
-            <option value="manual">Manuale</option>
-            <option value="created_newest">Data (più recenti)</option>
-            <option value="created_oldest">Data (più vecchie)</option>
-            <option value="id_asc">ID crescente</option>
-            <option value="id_desc">ID decrescente</option>
-          </select>
-          <button id="save-order" class="btn-secondary btn-sm" type="button" disabled>Salva ordine</button>
-        </div>
-      </div>
-      <div id="uploader" class="w-full border-2 border-dashed rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer flex items-center justify-center min-h-[260px]">
-        <input id="file-input" type="file" multiple class="hidden" accept="image/*">
-        <div class="text-center text-gray-600">
-          <i class="fa-regular fa-images mb-2" style="font-size:38px"></i>
-          <div class="text-base">Trascina qui le immagini o clicca per selezionarle</div>
-          <div class="text-sm text-gray-500 mt-1">L’album verrà creato automaticamente al primo caricamento</div>
-        </div>
-      </div>
-    </div>
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <form id="album-form" method="post" action="/admin/albums">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        <!-- Main Content Column -->
+        <div class="xl:col-span-8 space-y-6">
+          <!-- Basic Information Card -->
+          <div class="card">
+            <div class="p-6 border-b border-gray-200">
+              <h2 class="text-lg font-semibold text-black flex items-center">
+                <i class="fas fa-info-circle mr-3 text-gray-600"></i>
+                Informazioni Base
+              </h2>
+              <p class="text-gray-600 text-sm mt-1">Titolo, descrizione e contenuto dell'album</p>
+            </div>
+            <div class="p-6 space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-sm font-medium text-black mb-2">Titolo *</label>
+                  <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                         type="text" name="title" required 
+                         placeholder="Inserisci il titolo dell'album">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-black mb-2">Slug URL</label>
+                  <input class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm" 
+                         type="text" name="slug" 
+                         placeholder="url-friendly-slug (auto se vuoto)">
+                  <p class="text-xs text-gray-500 mt-1">Lascia vuoto per generazione automatica</p>
+                </div>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Descrizione Breve</label>
+                <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                          name="excerpt" rows="4" 
+                          placeholder="Breve descrizione che appare nelle anteprime..."></textarea>
+                <p class="text-xs text-gray-500 mt-1">Massimo 150 caratteri per una visualizzazione ottimale</p>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Contenuto Completo</label>
+                <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black" 
+                          name="body" rows="12" 
+                          placeholder="Descrizione completa con formattazione..."></textarea>
+                <p class="text-xs text-gray-500 mt-1">Supporta formattazione ricca: grassetto, corsivo, elenchi, link</p>
+              </div>
+            </div>
+          </div>
 
-    <div class="flex gap-3 pt-6">
-      <button class="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded font-medium transition-colors" type="submit">Salva Album</button>
-      <a class="bg-gray-100 hover:bg-gray-200 text-black px-6 py-2 rounded font-medium transition-colors" href="/admin/albums">Annulla</a>
+          <!-- Upload Card -->
+          <div class="card">
+            <div class="p-6 border-b border-gray-200">
+              <h2 class="text-lg font-semibold text-black flex items-center">
+                <i class="fas fa-cloud-upload-alt mr-3 text-gray-600"></i>
+                Caricamento Immagini
+              </h2>
+              <p class="text-gray-600 text-sm mt-1">L'album verrà creato automaticamente al primo caricamento</p>
+            </div>
+            
+            <div class="p-6">
+              <!-- Upload Area -->
+              <div id="uploader" role="button" 
+                   class="w-full border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all cursor-pointer flex items-center justify-center min-h-[250px] text-gray-600 group">
+                <input id="file-input" type="file" multiple class="hidden" accept="image/*">
+                <div class="text-center">
+                  <i class="fas fa-images text-4xl mb-4 text-gray-400 group-hover:text-gray-600 transition-colors"></i>
+                  <div class="text-lg font-medium mb-2">Trascina qui le immagini</div>
+                  <div class="text-sm text-gray-500 mb-2">oppure clicca per selezionarle dal computer</div>
+                  <div class="text-xs text-gray-400">Formati supportati: JPG, PNG, WEBP</div>
+                  <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p class="text-sm text-blue-700">
+                      <i class="fas fa-info-circle mr-2"></i>
+                      Prima compila almeno il titolo e seleziona una categoria
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="xl:col-span-4 space-y-6">
+          <!-- Categories and Tags Card -->
+          <div class="card">
+            <div class="p-6 border-b border-gray-200">
+              <h2 class="text-lg font-semibold text-black flex items-center">
+                <i class="fas fa-tags mr-3 text-gray-600"></i>
+                Categorie e Tag
+              </h2>
+              <p class="text-gray-600 text-sm mt-1">Organizza l'album con categorie e tag</p>
+            </div>
+            <div class="p-6 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Categorie *</label>
+                <select name="categories[]" id="album-categories" class="form-input" multiple required>
+                  {% for c in categories %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                  {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Seleziona una o più categorie</p>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Tag</label>
+                <select class="form-input" name="tags[]" id="album-tags" multiple>
+                  {% for t in tags %}
+                    <option value="{{ t.id }}">{{ t.name }}</option>
+                  {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Tag opzionali per categorizzazione avanzata</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Publishing Settings Card -->
+          <div class="card">
+            <div class="p-6 border-b border-gray-200">
+              <h2 class="text-lg font-semibold text-black flex items-center">
+                <i class="fas fa-globe mr-3 text-gray-600"></i>
+                Impostazioni Pubblicazione
+              </h2>
+              <p class="text-gray-600 text-sm mt-1">Data, template e visibilità</p>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-black mb-2">Data scatto</label>
+                  <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                         type="date" name="shoot_date">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-black mb-2">Ordine</label>
+                  <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                         type="number" name="sort_order" value="0" 
+                         placeholder="0">
+                </div>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Template</label>
+                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="template_id">
+                  <option value="">Template predefinito</option>
+                  {% for template in templates %}
+                    <option value="{{ template.id }}">{{ template.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div class="space-y-3">
+                <label class="flex items-center gap-3">
+                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
+                         type="checkbox" name="show_date" id="show_date" checked>
+                  <span class="text-sm font-medium text-gray-700">Mostra data di scatto</span>
+                </label>
+                
+                <label class="flex items-center gap-3">
+                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
+                         type="checkbox" name="is_published" id="pub">
+                  <span class="text-sm font-medium text-gray-700">Pubblica subito</span>
+                </label>
+                
+                <label class="flex items-center gap-3">
+                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
+                         type="checkbox" name="allow_downloads" id="allow_downloads">
+                  <span class="text-sm font-medium text-gray-700">Consenti download immagini</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Equipment Card -->
+          <div class="card">
+            <div class="p-6 border-b border-gray-200">
+              <h2 class="text-lg font-semibold text-black flex items-center">
+                <i class="fas fa-camera mr-3 text-gray-600"></i>
+                Equipment Fotografico
+              </h2>
+              <p class="text-gray-600 text-sm mt-1">Attrezzatura utilizzata per l'album</p>
+            </div>
+            <div class="p-6 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Fotocamere</label>
+                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="cameras[]" id="album-cameras" multiple>
+                  {% for camera in cameras %}
+                    <option value="{{ camera.id }}">{{ camera.make }} {{ camera.model }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Obiettivi</label>
+                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="lenses[]" id="album-lenses" multiple>
+                  {% for lens in lenses %}
+                    <option value="{{ lens.id }}">{{ lens.brand }} {{ lens.model }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Pellicole</label>
+                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="films[]" id="album-films" multiple>
+                  {% for film in films %}
+                    <option value="{{ film.id }}">{{ film.brand }} {{ film.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Sviluppatori</label>
+                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="developers[]" id="album-developers" multiple>
+                  {% for developer in developers %}
+                    <option value="{{ developer.id }}">{{ developer.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Laboratori</label>
+                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="labs[]" id="album-labs" multiple>
+                  {% for lab in labs %}
+                    <option value="{{ lab.id }}">{{ lab.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Locations and Security Card -->
+          <div class="card">
+            <div class="p-6 border-b border-gray-200">
+              <h2 class="text-lg font-semibold text-black flex items-center">
+                <i class="fas fa-map-marker-alt mr-3 text-gray-600"></i>
+                Luoghi e Sicurezza
+              </h2>
+              <p class="text-gray-600 text-sm mt-1">Posizioni e protezione dell'album</p>
+            </div>
+            <div class="p-6 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Luoghi di scatto</label>
+                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="locations[]" id="album-locations" multiple>
+                  {% for loc in locations %}
+                    <option value="{{ loc.id }}">{{ loc.name }}</option>
+                  {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Seleziona uno o più luoghi dove è stato girato l'album</p>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Password Album (opzionale)</label>
+                <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                       type="password" name="password" 
+                       placeholder="Imposta password per proteggere l'album">
+                <p class="text-xs text-gray-500 mt-1">Se impostata, l'album richiederà password per l'accesso pubblico</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Sticky Footer with Action Buttons -->
+<div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button type="submit" form="album-form" class="btn-primary">
+          <i class="fas fa-save mr-2"></i>
+          Crea Album
+        </button>
+        <a href="/admin/albums" class="btn-secondary">
+          <i class="fas fa-times mr-2"></i>
+          Annulla
+        </a>
+      </div>
+      
+      <div class="text-sm text-gray-500">
+        <i class="fas fa-info-circle mr-1"></i>
+        Completa i campi obbligatori per salvare
+      </div>
     </div>
-  </form>
+  </div>
+</div>
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
