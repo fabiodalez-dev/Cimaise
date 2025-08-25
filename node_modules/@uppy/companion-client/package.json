@@ -1,0 +1,47 @@
+{
+  "name": "@uppy/companion-client",
+  "description": "Client library for communication with Companion. Intended for use in Uppy plugins.",
+  "version": "4.5.2",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "typecheck": "tsc --build",
+    "test": "vitest run --environment=jsdom --silent='passed-only'"
+  },
+  "keywords": [
+    "file uploader",
+    "uppy",
+    "uppy-plugin",
+    "companion",
+    "provider"
+  ],
+  "homepage": "https://uppy.io",
+  "bugs": {
+    "url": "https://github.com/transloadit/uppy/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/transloadit/uppy.git"
+  },
+  "files": [
+    "src",
+    "lib",
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "@uppy/utils": "^6.2.2",
+    "namespace-emitter": "^2.0.1",
+    "p-retry": "^6.1.0"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "@uppy/core": "^4.5.2"
+  }
+}
