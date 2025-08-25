@@ -416,34 +416,6 @@
       console.log('Form submitting with cameras:', document.getElementById('album-cameras').value);
     });
 
-    // Equipment toggle handlers
-    function setupEquipmentToggle(equipmentType) {
-      const toggle = document.getElementById(`${equipmentType}-custom-toggle`);
-      const selectField = document.getElementById(`album-${equipmentType}`);
-      const customFields = document.getElementById(`${equipmentType}-custom-fields`);
-      
-      if (!toggle || !selectField || !customFields) return;
-      
-      toggle.addEventListener('change', function() {
-        if (this.checked) {
-          selectField.style.display = 'none';
-          customFields.classList.remove('hidden');
-          // Clear TomSelect selection
-          const tomSelect = selectField.tomselect;
-          if (tomSelect) tomSelect.clear();
-        } else {
-          selectField.style.display = 'block';
-          customFields.classList.add('hidden');
-          // Clear custom field
-          const textarea = customFields.querySelector('textarea');
-          if (textarea) textarea.value = '';
-        }
-      });
-    }
-    
-    // Setup all equipment toggles
-    ['cameras', 'lenses', 'films', 'developers', 'labs'].forEach(setupEquipmentToggle);
-
     // Initialize TinyMCE
     if (window.tinymce) {
       tinymce.init({
