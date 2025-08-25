@@ -9,10 +9,11 @@
     <a href="/galleries" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt mr-2"></i>Vedi pagina</a>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- Editor -->
-    <div class="lg:col-span-2">
-      <form method="post" action="/admin/pages/galleries" class="space-y-6">
+  <div class="pb-20"> <!-- Add padding bottom for sticky footer -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Editor -->
+      <div class="lg:col-span-2">
+        <form method="post" action="/admin/pages/galleries" id="galleries-form" class="space-y-6">
         <input type="hidden" name="csrf" value="{{ csrf }}">
 
         <div class="card">
@@ -93,11 +94,6 @@
             </div>
           </div>
         </div>
-
-        <div class="flex items-center justify-end gap-3">
-          <a href="/admin/pages" class="btn-secondary">Indietro</a>
-          <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>Salva</button>
-        </div>
       </form>
     </div>
 
@@ -160,6 +156,29 @@
             </div>
             {% endfor %}
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky Footer with Action Buttons -->
+  <div class="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <button type="submit" form="galleries-form" class="btn-primary">
+            <i class="fas fa-save mr-2"></i>
+            Salva Impostazioni
+          </button>
+          <a href="/admin/pages" class="btn-secondary">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Indietro
+          </a>
+        </div>
+        
+        <div class="text-sm text-gray-500">
+          <i class="fas fa-info-circle mr-1"></i>
+          Modifica i testi della pagina galleries
         </div>
       </div>
     </div>
