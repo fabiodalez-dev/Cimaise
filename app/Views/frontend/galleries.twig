@@ -344,6 +344,9 @@ $(document).ready(function() {
     const animationEnabled = {{ filter_settings.animation_enabled ? 'true' : 'false' }};
     const animationDuration = {{ filter_settings.animation_duration }};
     
+    // Ensure UI elements are always visible first
+    ensureUIVisibility();
+    
     // Initialize page animations
     if (animationEnabled) {
         initPageAnimations();
@@ -354,7 +357,30 @@ $(document).ready(function() {
     
     // Initialize responsive grid
     initResponsiveGrid();
+    
+    // Safety check every 2 seconds
+    setInterval(ensureUIVisibility, 2000);
 });
+
+function ensureUIVisibility() {
+    // Ensure critical UI elements are always visible
+    const criticalElements = [
+        '#toggle-filters',
+        '[data-gsap="title"]',
+        '[data-gsap="subtitle"]',
+        '#galleries-grid .gallery-card'
+    ];
+    
+    criticalElements.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+            if (el.style.opacity === '0' && !document.body.classList.contains('gsap-animating')) {
+                el.style.opacity = '1';
+                el.style.visibility = 'visible';
+            }
+        });
+    });
+}
 
 function initPageAnimations() {
     // Ensure all elements are visible by default
@@ -441,7 +467,7 @@ function initFilters() {
                 opacity: 0,
                 maxHeight: 0,
                 duration: {{ filter_settings.animation_duration }},
-                ease: 'power3.inOut',
+                ease: 'power2.inOut',
                 onComplete: function() {
                     filtersGrid.removeClass('filters-open');
                 }
@@ -449,32 +475,36 @@ function initFilters() {
             gsap.to(chevron, {
                 rotation: 0,
                 duration: {{ filter_settings.animation_duration }},
-                ease: 'power3.inOut'
+                ease: 'power2.inOut'
             });
         } else {
             // Open filters
             filtersGrid.addClass('filters-open');
             gsap.to(filtersGrid, {
                 opacity: 1,
-                maxHeight: 'none',
+                maxHeight: 600, // Fixed height instead of 'none'
                 duration: {{ filter_settings.animation_duration }},
-                ease: 'power3.inOut'
+                ease: 'power2.inOut'
             });
             gsap.to(chevron, {
                 rotation: 180,
                 duration: {{ filter_settings.animation_duration }},
-                ease: 'power3.inOut'
+                ease: 'power2.inOut'
             });
             
-            // Animate filter groups
-            gsap.from('.filter-group', {
-                y: 20,
-                opacity: 0,
-                duration: {{ filter_settings.animation_duration }},
-                stagger: 0.1,
-                ease: 'power3.out',
-                delay: 0.2
-            });
+            // Animate filter groups with safety check
+            setTimeout(() => {
+                const filterGroups = document.querySelectorAll('.filter-group');
+                if (filterGroups.length > 0) {
+                    gsap.from('.filter-group', {
+                        y: 15,
+                        opacity: 0,
+                        duration: {{ filter_settings.animation_duration }},
+                        stagger: 0.05,
+                        ease: 'power2.out'
+                    });
+                }
+            }, 100);
         }
     });
     
