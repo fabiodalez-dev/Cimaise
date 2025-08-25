@@ -17,7 +17,7 @@ class FilterSettingsController
         $pdo = $this->db->pdo();
         
         // Get current filter settings
-        $stmt = $pdo->prepare('SELECT * FROM filter_settings ORDER BY sort_order ASC');
+        $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
         $stmt->execute();
         $rawSettings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
         
@@ -118,7 +118,7 @@ class FilterSettingsController
         // Return current filter settings as JSON for preview
         $pdo = $this->db->pdo();
         
-        $stmt = $pdo->prepare('SELECT * FROM filter_settings ORDER BY sort_order ASC');
+        $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
         $stmt->execute();
         $settings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
         
