@@ -641,9 +641,32 @@
       uploader.addEventListener('drop', async e=>{ e.preventDefault(); uploader.classList.remove('bg-gray-50'); await uploadFiles(Array.from(e.dataTransfer.files)); });
       input.addEventListener('change', async ()=>{ await uploadFiles(Array.from(input.files||[])); input.value=''; });
       async function uploadFiles(files){
-        for (const f of files){
-          const fd = new FormData(); fd.append('file', f);
-          await fetch(uploader.dataset.endpoint, { method:'POST', headers:{ 'X-CSRF-Token': uploader.dataset.csrf, 'Accept':'application/json' }, body: fd });
+        // Check if album has no cover before upload
+        const currentCoverId = '{{ item.cover_image_id|default("") }}';
+        const hasNoCover = !currentCoverId;
+        
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          const fd = new FormData(); 
+          fd.append('file', f);
+          
+          const response = await fetch(uploader.dataset.endpoint, { 
+            method:'POST', 
+            headers:{ 'X-CSRF-Token': uploader.dataset.csrf, 'Accept':'application/json' }, 
+            body: fd 
+          });
+          
+          // If this is the first image uploaded and album has no cover, set it as cover
+          if (hasNoCover && i === 0 && response.ok) {
+            const result = await response.json();
+            if (result && result.id) {
+              // Set the first uploaded image as cover
+              await fetch(`/admin/albums/{{ item.id }}/cover/${result.id}`, { 
+                method:'POST', 
+                headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }
+              });
+            }
+          }
         }
         location.reload();
       }
