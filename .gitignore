@@ -1,11 +1,7 @@
-.env
 /vendor/
 /node_modules/
 /.phpunit.cache/
 /public/media/
 /storage/
 .DS_Store
-.DS_Store
-.DS_Store
 app/Views/.DS_Store
-.DS_Store
