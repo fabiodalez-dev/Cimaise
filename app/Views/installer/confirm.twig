@@ -1,0 +1,133 @@
+{% extends 'installer/_layout.twig' %}
+{% block title %}Confirm Installation - photoCMS Installer{% endblock %}
+{% block steps %}
+<div class="step-indicator">
+    <div class="step completed">
+        <div class="step-number">1</div>
+        <div class="step-label">Welcome</div>
+    </div>
+    <div class="step completed">
+        <div class="step-number">2</div>
+        <div class="step-label">Database</div>
+    </div>
+    <div class="step completed">
+        <div class="step-number">3</div>
+        <div class="step-label">Admin User</div>
+    </div>
+    <div class="step completed">
+        <div class="step-number">4</div>
+        <div class="step-label">Settings</div>
+    </div>
+    <div class="step active">
+        <div class="step-number">5</div>
+        <div class="step-label">Install</div>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<h3 class="mb-4"><i class="fas fa-check-circle me-2"></i>Confirm Installation</h3>
+
+<p class="text-muted">Review your settings before installing</p>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-database me-2"></i>Database Configuration</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8 text-capitalize">{{ db_config.db_connection }}</dd>
+                    
+                    {% if db_config.db_connection == 'mysql' %}
+                        <dt class="col-sm-4">Host</dt>
+                        <dd class="col-sm-8">{{ db_config.db_host }}:{{ db_config.db_port }}</dd>
+                        
+                        <dt class="col-sm-4">Database</dt>
+                        <dd class="col-sm-8">{{ db_config.db_database }}</dd>
+                        
+                        <dt class="col-sm-4">Username</dt>
+                        <dd class="col-sm-8">{{ db_config.db_username }}</dd>
+                    {% else %}
+                        <dt class="col-sm-4">File Path</dt>
+                        <dd class="col-sm-8">{{ db_config.db_database }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user-shield me-2"></i>Admin User</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">{{ admin_config.admin_name }}</dd>
+                    
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">{{ admin_config.admin_email }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Site Settings</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Title</dt>
+            <dd class="col-sm-9">{{ settings_config.site_title }}</dd>
+            
+            <dt class="col-sm-3">Description</dt>
+            <dd class="col-sm-9">{{ settings_config.site_description ?: 'Not set' }}</dd>
+            
+            <dt class="col-sm-3">Copyright</dt>
+            <dd class="col-sm-9">{{ settings_config.site_copyright ?: 'Not set' }}</dd>
+            
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">{{ settings_config.site_email ?: 'Not set' }}</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="alert alert-warning">
+    <h5><i class="fas fa-exclamation-triangle me-2"></i>Important</h5>
+    <p>Clicking "Install" will:</p>
+    <ul>
+        <li>Create database tables</li>
+        <li>Seed default templates and categories</li>
+        <li>Create your admin user account</li>
+        <li>Generate configuration files</li>
+        <li class="fw-bold">This process cannot be undone</li>
+    </ul>
+</div>
+
+<form method="post" action="/install/run" id="install-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    
+    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+        <a href="/install/settings" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back
+        </a>
+        <button type="submit" class="btn btn-success" id="install-button">
+            <i class="fas fa-cogs me-2"></i>Install photoCMS
+        </button>
+    </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('install-form').addEventListener('submit', function() {
+    const button = document.getElementById('install-button');
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Installing...';
+    button.disabled = true;
+});
+</script>
+{% endblock %}

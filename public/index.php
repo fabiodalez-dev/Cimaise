@@ -12,6 +12,43 @@ use App\Middlewares\SecurityHeadersMiddleware;
 use Slim\Middleware\ErrorMiddleware;
 use Slim\Exception\HttpNotFoundException;
 
+// Check if installer is being accessed
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+$isInstallerRoute = strpos($requestUri, '/install') === 0;
+$isAdminLoginRoute = $requestUri === '/admin/login';
+
+// Check if already installed (only for non-installer routes and not admin login)
+if (!$isInstallerRoute && !$isAdminLoginRoute) {
+    // Check if installed by looking for .env file and database
+    $root = dirname(__DIR__);
+    $installed = false;
+    
+    if (file_exists($root . '/.env')) {
+        // Load environment variables
+        $envContent = file_get_contents($root . '/.env');
+        if (!empty($envContent)) {
+            // Try to load database configuration
+            try {
+                if (file_exists($root . '/app/Installer/Installer.php')) {
+                    require_once $root . '/app/Installer/Installer.php';
+                    $installer = new \App\Installer\Installer($root);
+                    $installed = $installer->isInstalled();
+                }
+            } catch (\Throwable $e) {
+                // If there's an error, we assume it's not installed
+                $installed = false;
+            }
+        }
+    }
+    
+    // If not installed, redirect to installer
+    if (!$installed) {
+        http_response_code(302);
+        header('Location: /install');
+        exit;
+    }
+}
+
 // Bootstrap env and services
 $container = require __DIR__ . '/../app/Config/bootstrap.php';
 
