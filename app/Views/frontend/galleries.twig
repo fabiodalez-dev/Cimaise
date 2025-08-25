@@ -7,10 +7,10 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="text-center">
         <h1 class="text-4xl md:text-5xl font-light text-black mb-6 tracking-tight" data-gsap="title">
-          All Galleries
+          {{ page_texts.title|default('All Galleries')|e }}
         </h1>
         <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed" data-gsap="subtitle">
-          Explore our complete collection of photography galleries with advanced filtering options
+          {{ page_texts.subtitle|default('Explore our complete collection of photography galleries with advanced filtering options')|e }}
         </p>
       </div>
     </div>
@@ -25,7 +25,7 @@
         <div class="flex items-center gap-4">
           <button id="toggle-filters" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5" data-gsap="filter-toggle">
             <i class="fas fa-filter"></i>
-            <span class="font-medium">Filters</span>
+            <span class="font-medium">{{ page_texts.filter_button_text|default('Filters')|e }}</span>
             <i class="fas fa-chevron-down transition-transform duration-300" id="filter-chevron"></i>
           </button>
           
@@ -36,12 +36,12 @@
         
         <div class="flex items-center gap-4">
           <div class="text-sm text-gray-600 font-medium" id="results-count">
-            {{ albums|length }} galleries
+            {{ albums|length }} {{ page_texts.results_text|default('galleries')|e }}
           </div>
           
           <button id="clear-filters" class="text-sm text-gray-500 hover:text-red-600 transition-colors opacity-0 px-3 py-1 rounded hover:bg-gray-100" data-gsap="clear-filters">
             <i class="fas fa-times mr-1"></i>
-            Clear filters
+            {{ page_texts.clear_filters_text|default('Clear filters')|e }}
           </button>
         </div>
       </div>
@@ -285,7 +285,7 @@
             </div>
             
             <div class="flex items-center text-black group-hover:translate-x-1 transition-transform duration-200">
-              <span class="text-xs font-medium mr-1">View</span>
+              <span class="text-xs font-medium mr-1">{{ page_texts.view_button_text|default('View')|e }}</span>
               <i class="fas fa-arrow-right text-xs"></i>
             </div>
           </div>
@@ -315,13 +315,13 @@
     <div class="text-center py-24" id="empty-state" data-gsap="empty-state">
       <div class="max-w-md mx-auto">
         <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
-        <h3 class="text-2xl font-semibold text-gray-900 mb-4">No galleries found</h3>
+        <h3 class="text-2xl font-semibold text-gray-900 mb-4">{{ page_texts.no_results_title|default('No galleries found')|e }}</h3>
         <p class="text-gray-600 mb-8 leading-relaxed">
-          We couldn't find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.
+          {{ page_texts.no_results_text|default('We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.')|e }}
         </p>
         <button onclick="clearAllFilters()" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
           <i class="fas fa-times"></i>
-          Clear All Filters
+          {{ page_texts.clear_filters_text|default('Clear All Filters')|e }}
         </button>
       </div>
     </div>
@@ -343,6 +343,15 @@ $(document).ready(function() {
     // Animation settings from backend
     const animationEnabled = {{ filter_settings.animation_enabled ? 'true' : 'false' }};
     const animationDuration = {{ filter_settings.animation_duration }};
+    
+    // Page texts from backend
+    window.pageTexts = {
+        resultsText: '{{ page_texts.results_text|default("galleries")|e('js') }}',
+        clearFiltersText: '{{ page_texts.clear_filters_text|default("Clear All Filters")|e('js') }}',
+        noResultsTitle: '{{ page_texts.no_results_title|default("No galleries found")|e('js') }}',
+        noResultsText: '{{ page_texts.no_results_text|default("We couldn\'t find any galleries matching your current filters.")|e('js') }}',
+        viewButtonText: '{{ page_texts.view_button_text|default("View")|e('js') }}'
+    };
     
     // Ensure UI elements are always visible first
     ensureUIVisibility();
@@ -570,13 +579,13 @@ function updateGalleries(albums) {
                     <div class="col-span-full text-center py-24" id="empty-state">
                         <div class="max-w-md mx-auto">
                             <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
-                            <h3 class="text-2xl font-semibold text-gray-900 mb-4">No galleries found</h3>
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-4">${window.pageTexts.noResultsTitle}</h3>
                             <p class="text-gray-600 mb-8 leading-relaxed">
-                                We couldn't find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.
+                                ${window.pageTexts.noResultsText}
                             </p>
                             <button onclick="clearAllFilters()" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
                                 <i class="fas fa-times"></i>
-                                Clear All Filters
+                                ${window.pageTexts.clearFiltersText}
                             </button>
                         </div>
                     </div>
@@ -670,7 +679,7 @@ function generateGalleryCard(album) {
                     </div>
                     
                     <div class="flex items-center text-black group-hover:translate-x-1 transition-transform duration-200">
-                        <span class="text-xs font-medium mr-1">View</span>
+                        <span class="text-xs font-medium mr-1">${window.pageTexts.viewButtonText}</span>
                         <i class="fas fa-arrow-right text-xs"></i>
                     </div>
                 </div>
@@ -722,7 +731,7 @@ function updateActiveFilters(filters) {
 }
 
 function updateResultsCount(count) {
-    $('#results-count').text(`${count} galleries found`);
+    $('#results-count').text(`${count} ${window.pageTexts.resultsText}`);
 }
 
 function clearAllFilters() {

@@ -251,6 +251,15 @@ $app->post('/admin/pages/about', function (Request $request, Response $response)
     $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
     return $controller->saveAbout($request, $response);
 })->add(new AuthMiddleware($container['db']));
+// Galleries page edit
+$app->get('/admin/pages/galleries', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+    return $controller->galleriesForm($request, $response);
+})->add(new AuthMiddleware($container['db']));
+$app->post('/admin/pages/galleries', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+    return $controller->saveGalleries($request, $response);
+})->add(new AuthMiddleware($container['db']));
 
 // Albums CRUD
 $app->get('/admin/albums', function (Request $request, Response $response) use ($container) {

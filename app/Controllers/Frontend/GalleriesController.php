@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 
 use App\Support\Database;
+use App\Services\SettingsService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -20,6 +21,9 @@ class GalleriesController
         // Get filter settings from database
         $filterSettings = $this->getFilterSettings();
         
+        // Get page texts from settings
+        $pageTexts = $this->getPageTexts();
+        
         // Build filter parameters
         $filters = $this->buildFilters($params, $filterSettings);
         
@@ -35,11 +39,12 @@ class GalleriesController
         return $this->view->render($response, 'frontend/galleries.twig', [
             'albums' => $albums,
             'filter_settings' => $filterSettings,
+            'page_texts' => $pageTexts,
             'filter_options' => $filterOptions,
             'active_filters' => $filters,
             'parent_categories' => $parentCategories,
-            'page_title' => 'All Galleries',
-            'meta_description' => 'Browse all photography galleries with advanced filtering options'
+            'page_title' => $pageTexts['title'],
+            'meta_description' => $pageTexts['description']
         ]);
     }
 
@@ -97,6 +102,23 @@ class GalleriesController
         ];
         
         return array_merge($defaults, $settings);
+    }
+
+    private function getPageTexts(): array
+    {
+        $svc = new SettingsService($this->db);
+        
+        return [
+            'title' => (string)($svc->get('galleries.title', 'All Galleries') ?? 'All Galleries'),
+            'subtitle' => (string)($svc->get('galleries.subtitle', 'Explore our complete collection of photography galleries') ?? 'Explore our complete collection of photography galleries'),
+            'description' => (string)($svc->get('galleries.description', 'Browse all photography galleries with advanced filtering options') ?? 'Browse all photography galleries with advanced filtering options'),
+            'filter_button_text' => (string)($svc->get('galleries.filter_button_text', 'Filters') ?? 'Filters'),
+            'clear_filters_text' => (string)($svc->get('galleries.clear_filters_text', 'Clear filters') ?? 'Clear filters'),
+            'results_text' => (string)($svc->get('galleries.results_text', 'galleries') ?? 'galleries'),
+            'no_results_title' => (string)($svc->get('galleries.no_results_title', 'No galleries found') ?? 'No galleries found'),
+            'no_results_text' => (string)($svc->get('galleries.no_results_text', 'We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.') ?? 'We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.'),
+            'view_button_text' => (string)($svc->get('galleries.view_button_text', 'View') ?? 'View'),
+        ];
     }
 
     private function buildFilters(array $params, array $settings): array
