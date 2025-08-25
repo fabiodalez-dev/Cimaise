@@ -1,0 +1,45 @@
+import type { Body, DefinePluginOpts, Meta, UIPluginOptions, Uppy } from '@uppy/core';
+import { UIPlugin } from '@uppy/core';
+import type { LocaleStrings } from '@uppy/utils/lib/Translator';
+import { type ComponentChild } from 'preact';
+import locale from './locale.js';
+export interface DragDropOptions extends UIPluginOptions {
+    inputName?: string;
+    allowMultipleFiles?: boolean;
+    width?: string | number;
+    height?: string | number;
+    note?: string;
+    onDragOver?: (event: DragEvent) => void;
+    onDragLeave?: (event: DragEvent) => void;
+    onDrop?: (event: DragEvent) => void;
+    locale?: LocaleStrings<typeof locale>;
+}
+declare const defaultOptions: {
+    inputName: string;
+    width: string;
+    height: string;
+};
+/**
+ * Drag & Drop plugin
+ *
+ */
+export default class DragDrop<M extends Meta, B extends Body> extends UIPlugin<DefinePluginOpts<DragDropOptions, keyof typeof defaultOptions>, M, B> {
+    static VERSION: string;
+    private isDragDropSupported;
+    private fileInputRef;
+    constructor(uppy: Uppy<M, B>, opts?: DragDropOptions);
+    private addFiles;
+    private onInputChange;
+    private handleDragOver;
+    private handleDragLeave;
+    private handleDrop;
+    private renderHiddenFileInput;
+    private static renderArrowSvg;
+    private renderLabel;
+    private renderNote;
+    render(): ComponentChild;
+    install(): void;
+    uninstall(): void;
+}
+export {};
+//# sourceMappingURL=DragDrop.d.ts.map

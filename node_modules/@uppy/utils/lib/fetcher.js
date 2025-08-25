@@ -1,0 +1,81 @@
+import NetworkError from './NetworkError.js';
+import ProgressTimeout from './ProgressTimeout.js';
+const noop = () => { };
+/**
+ * Fetches data from a specified URL using XMLHttpRequest, with optional retry functionality and progress tracking.
+ *
+ * @param url The URL to send the request to.
+ * @param options Optional settings for the fetch operation.
+ */
+export function fetcher(url, options = {}) {
+    const { body = null, headers = {}, method = 'GET', onBeforeRequest = noop, onUploadProgress = noop, shouldRetry = () => true, onAfterResponse = noop, onTimeout = noop, responseType, retries = 3, signal = null, timeout = 30_000, withCredentials = false, } = options;
+    // 300 ms, 600 ms, 1200 ms, 2400 ms, 4800 ms
+    const delay = (attempt) => 0.3 * 2 ** (attempt - 1) * 1000;
+    const timer = new ProgressTimeout(timeout, onTimeout);
+    function requestWithRetry(retryCount = 0) {
+        // biome-ignore lint/suspicious/noAsyncPromiseExecutor: it's fine
+        return new Promise(async (resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            const onError = (error) => {
+                if (shouldRetry(xhr) && retryCount < retries) {
+                    setTimeout(() => {
+                        requestWithRetry(retryCount + 1).then(resolve, reject);
+                    }, delay(retryCount));
+                }
+                else {
+                    timer.done();
+                    reject(error);
+                }
+            };
+            xhr.open(method, url, true);
+            xhr.withCredentials = withCredentials;
+            if (responseType) {
+                xhr.responseType = responseType;
+            }
+            signal?.addEventListener('abort', () => {
+                xhr.abort();
+                // Using DOMException for abort errors aligns with
+                // the convention established by the Fetch API.
+                reject(new DOMException('Aborted', 'AbortError'));
+            });
+            xhr.onload = async () => {
+                try {
+                    await onAfterResponse(xhr, retryCount);
+                }
+                catch (err) {
+                    // This is important as we need to emit the xhr
+                    // over the upload-error event.
+                    err.request = xhr;
+                    onError(err);
+                    return;
+                }
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    timer.done();
+                    resolve(xhr);
+                }
+                else if (shouldRetry(xhr) && retryCount < retries) {
+                    setTimeout(() => {
+                        requestWithRetry(retryCount + 1).then(resolve, reject);
+                    }, delay(retryCount));
+                }
+                else {
+                    timer.done();
+                    reject(new NetworkError(xhr.statusText, xhr));
+                }
+            };
+            xhr.onerror = () => onError(new NetworkError(xhr.statusText, xhr));
+            xhr.upload.onprogress = (event) => {
+                timer.progress();
+                onUploadProgress(event);
+            };
+            if (headers) {
+                Object.keys(headers).forEach((key) => {
+                    xhr.setRequestHeader(key, headers[key]);
+                });
+            }
+            await onBeforeRequest(xhr, retryCount);
+            xhr.send(body);
+        });
+    }
+    return requestWithRetry();
+}
