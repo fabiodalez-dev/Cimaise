@@ -1,0 +1,167 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Pages — Galleries{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Pages</h1>
+      <p class="text-gray-600 mt-1">Modifica la pagina <strong>Galleries</strong></p>
+    </div>
+    <a href="/galleries" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt mr-2"></i>Vedi pagina</a>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Editor -->
+    <div class="lg:col-span-2">
+      <form method="post" action="/admin/pages/galleries" class="space-y-6">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+
+        <div class="card">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-heading mr-3 text-gray-600"></i>
+              Testi base
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Titolo pagina</label>
+                <input type="text" name="galleries_title" class="form-input" placeholder="All Galleries" value="{{ settings['galleries.title']|default('All Galleries') }}">
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Sottotitolo</label>
+                <input type="text" name="galleries_subtitle" class="form-input" placeholder="Explore our complete collection..." value="{{ settings['galleries.subtitle']|default('Explore our complete collection of photography galleries') }}">
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Permalink</label>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-500 select-none">/</span>
+                  <input type="text" name="galleries_slug" class="form-input" placeholder="galleries" value="{{ settings['galleries.slug']|default('galleries') }}">
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Solo lettere, numeri e trattini (kebab-case)</p>
+              </div>
+            </div>
+            <div class="mt-4">
+              <label class="block text-sm text-gray-700 mb-1">Descrizione SEO</label>
+              <textarea name="galleries_description" rows="3" class="form-input" placeholder="Breve descrizione per motori di ricerca...">{{ settings['galleries.description']|default('') }}</textarea>
+              <p class="text-xs text-gray-500 mt-1">Usata come meta description per SEO</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-filter mr-3 text-gray-600"></i>
+              Testi filtri
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Testo pulsante filtri</label>
+                <input type="text" name="filter_button_text" class="form-input" placeholder="Filters" value="{{ settings['galleries.filter_button_text']|default('Filters') }}">
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Testo cancella filtri</label>
+                <input type="text" name="clear_filters_text" class="form-input" placeholder="Clear filters" value="{{ settings['galleries.clear_filters_text']|default('Clear filters') }}">
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Testo conteggio risultati</label>
+                <input type="text" name="results_text" class="form-input" placeholder="galleries" value="{{ settings['galleries.results_text']|default('galleries') }}">
+                <p class="text-xs text-gray-500 mt-1">Es: "25 galleries" - solo la parola dopo il numero</p>
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Testo pulsante visualizza</label>
+                <input type="text" name="view_button_text" class="form-input" placeholder="View" value="{{ settings['galleries.view_button_text']|default('View') }}">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-search-minus mr-3 text-gray-600"></i>
+              Testi stato vuoto
+            </h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Titolo nessun risultato</label>
+                <input type="text" name="no_results_title" class="form-input" placeholder="No galleries found" value="{{ settings['galleries.no_results_title']|default('No galleries found') }}">
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Messaggio nessun risultato</label>
+                <textarea name="no_results_text" rows="3" class="form-input" placeholder="We couldn't find any galleries matching your current filters...">{{ settings['galleries.no_results_text']|default('We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.') }}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+          <a href="/admin/pages" class="btn-secondary">Indietro</a>
+          <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>Salva</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Settings info -->
+    <div class="lg:col-span-1">
+      <div class="card">
+        <div class="p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Impostazioni filtri</h3>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Filtri abilitati:</span>
+              <span class="font-medium {{ filter_settings.enabled ? 'text-green-600' : 'text-red-600' }}">
+                {{ filter_settings.enabled ? 'Sì' : 'No' }}
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Animazioni:</span>
+              <span class="font-medium {{ filter_settings.animation_enabled ? 'text-green-600' : 'text-red-600' }}">
+                {{ filter_settings.animation_enabled ? 'Abilitate' : 'Disabilitate' }}
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Griglia desktop:</span>
+              <span class="font-medium">{{ filter_settings.grid_columns_desktop }} colonne</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Griglia tablet:</span>
+              <span class="font-medium">{{ filter_settings.grid_columns_tablet }} colonne</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Griglia mobile:</span>
+              <span class="font-medium">{{ filter_settings.grid_columns_mobile }} colonne</span>
+            </div>
+          </div>
+          <a href="/admin/filter-settings" class="inline-flex items-center gap-2 mt-4 text-sm text-blue-600 hover:text-blue-800">
+            <i class="fas fa-cog"></i>
+            Gestisci impostazioni filtri
+          </a>
+        </div>
+      </div>
+
+      <div class="card mt-6">
+        <div class="p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Filtri disponibili</h3>
+          <div class="space-y-2 text-sm">
+            {% for filter_name, enabled in {
+              'Categories': filter_settings.show_categories,
+              'Tags': filter_settings.show_tags,
+              'Cameras': filter_settings.show_cameras,
+              'Lenses': filter_settings.show_lenses,
+              'Films': filter_settings.show_films,
+              'Locations': filter_settings.show_locations,
+              'Year': filter_settings.show_year
+            } %}
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">{{ filter_name }}:</span>
+              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                {{ enabled ? 'Attivo' : 'Disattivo' }}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

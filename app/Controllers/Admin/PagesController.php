@@ -20,6 +20,9 @@ class PagesController
         $settings = new SettingsService($this->db);
         $aboutSlug = (string)($settings->get('about.slug', 'about') ?? 'about');
         if ($aboutSlug === '') { $aboutSlug = 'about'; }
+        $galleriesSlug = (string)($settings->get('galleries.slug', 'galleries') ?? 'galleries');
+        if ($galleriesSlug === '') { $galleriesSlug = 'galleries'; }
+        
         $pages = [
             [
                 'slug' => 'about',
@@ -27,6 +30,13 @@ class PagesController
                 'description' => 'Pagina di presentazione: bio, foto, social, contatti',
                 'edit_url' => '/admin/pages/about',
                 'public_url' => '/' . $aboutSlug,
+            ],
+            [
+                'slug' => 'galleries',
+                'title' => 'Galleries',
+                'description' => 'Pagina gallerie con filtri avanzati e gestione testi',
+                'edit_url' => '/admin/pages/galleries',
+                'public_url' => '/' . $galleriesSlug,
             ],
         ];
         return $this->view->render($response, 'admin/pages/index.twig', [
@@ -124,5 +134,97 @@ class PagesController
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Pagina About salvata'];
         return $response->withHeader('Location', '/admin/pages/about')->withStatus(302);
+    }
+
+    public function galleriesForm(Request $request, Response $response): Response
+    {
+        $svc = new SettingsService($this->db);
+        $settings = [
+            'galleries.title' => (string)($svc->get('galleries.title', 'All Galleries') ?? 'All Galleries'),
+            'galleries.subtitle' => (string)($svc->get('galleries.subtitle', 'Explore our complete collection of photography galleries') ?? 'Explore our complete collection of photography galleries'),
+            'galleries.slug' => (string)($svc->get('galleries.slug', 'galleries') ?? 'galleries'),
+            'galleries.description' => (string)($svc->get('galleries.description', '') ?? ''),
+            'galleries.filter_button_text' => (string)($svc->get('galleries.filter_button_text', 'Filters') ?? 'Filters'),
+            'galleries.clear_filters_text' => (string)($svc->get('galleries.clear_filters_text', 'Clear filters') ?? 'Clear filters'),
+            'galleries.results_text' => (string)($svc->get('galleries.results_text', 'galleries') ?? 'galleries'),
+            'galleries.no_results_title' => (string)($svc->get('galleries.no_results_title', 'No galleries found') ?? 'No galleries found'),
+            'galleries.no_results_text' => (string)($svc->get('galleries.no_results_text', 'We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.') ?? 'We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.'),
+            'galleries.view_button_text' => (string)($svc->get('galleries.view_button_text', 'View') ?? 'View'),
+        ];
+        
+        // Get current filter settings for reference
+        $filterSettings = $this->getFilterSettings();
+        
+        return $this->view->render($response, 'admin/pages/galleries.twig', [
+            'settings' => $settings,
+            'filter_settings' => $filterSettings,
+            'csrf' => $_SESSION['csrf'] ?? ''
+        ]);
+    }
+
+    public function saveGalleries(Request $request, Response $response): Response
+    {
+        $data = (array)$request->getParsedBody();
+        $svc = new SettingsService($this->db);
+
+        // Save galleries page settings
+        $svc->set('galleries.title', trim((string)($data['galleries_title'] ?? 'All Galleries')));
+        $svc->set('galleries.subtitle', trim((string)($data['galleries_subtitle'] ?? 'Explore our complete collection of photography galleries')));
+        $svc->set('galleries.slug', trim((string)($data['galleries_slug'] ?? 'galleries')));
+        $svc->set('galleries.description', trim((string)($data['galleries_description'] ?? '')));
+        $svc->set('galleries.filter_button_text', trim((string)($data['filter_button_text'] ?? 'Filters')));
+        $svc->set('galleries.clear_filters_text', trim((string)($data['clear_filters_text'] ?? 'Clear filters')));
+        $svc->set('galleries.results_text', trim((string)($data['results_text'] ?? 'galleries')));
+        $svc->set('galleries.no_results_title', trim((string)($data['no_results_title'] ?? 'No galleries found')));
+        $svc->set('galleries.no_results_text', trim((string)($data['no_results_text'] ?? 'We couldn\'t find any galleries matching your current filters.')));
+        $svc->set('galleries.view_button_text', trim((string)($data['view_button_text'] ?? 'View')));
+
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Pagina Galleries salvata'];
+        return $response->withHeader('Location', '/admin/pages/galleries')->withStatus(302);
+    }
+
+    private function getFilterSettings(): array
+    {
+        $pdo = $this->db->pdo();
+        
+        try {
+            $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
+            $stmt->execute();
+            $rawSettings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+            
+            return [
+                'enabled' => (bool)($rawSettings['enabled'] ?? true),
+                'show_categories' => (bool)($rawSettings['show_categories'] ?? true),
+                'show_tags' => (bool)($rawSettings['show_tags'] ?? true),
+                'show_cameras' => (bool)($rawSettings['show_cameras'] ?? true),
+                'show_lenses' => (bool)($rawSettings['show_lenses'] ?? true),
+                'show_films' => (bool)($rawSettings['show_films'] ?? true),
+                'show_locations' => (bool)($rawSettings['show_locations'] ?? true),
+                'show_year' => (bool)($rawSettings['show_year'] ?? true),
+                'grid_columns_desktop' => (int)($rawSettings['grid_columns_desktop'] ?? 3),
+                'grid_columns_tablet' => (int)($rawSettings['grid_columns_tablet'] ?? 2),
+                'grid_columns_mobile' => (int)($rawSettings['grid_columns_mobile'] ?? 1),
+                'grid_gap' => $rawSettings['grid_gap'] ?? 'normal',
+                'animation_enabled' => (bool)($rawSettings['animation_enabled'] ?? true),
+                'animation_duration' => (float)($rawSettings['animation_duration'] ?? 0.6),
+            ];
+        } catch (\Exception $e) {
+            return [
+                'enabled' => true,
+                'show_categories' => true,
+                'show_tags' => true,
+                'show_cameras' => true,
+                'show_lenses' => true,
+                'show_films' => true,
+                'show_locations' => true,
+                'show_year' => true,
+                'grid_columns_desktop' => 3,
+                'grid_columns_tablet' => 2,
+                'grid_columns_mobile' => 1,
+                'grid_gap' => 'normal',
+                'animation_enabled' => true,
+                'animation_duration' => 0.6,
+            ];
+        }
     }
 }
