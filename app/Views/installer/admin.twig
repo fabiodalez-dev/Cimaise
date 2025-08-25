@@ -1,0 +1,89 @@
+{% extends 'installer/_layout.twig' %}
+{% block title %}Admin User - photoCMS Installer{% endblock %}
+{% block steps %}
+<div class="step-indicator">
+    <div class="step completed">
+        <div class="step-number">1</div>
+        <div class="step-label">Welcome</div>
+    </div>
+    <div class="step completed">
+        <div class="step-number">2</div>
+        <div class="step-label">Database</div>
+    </div>
+    <div class="step active">
+        <div class="step-number">3</div>
+        <div class="step-label">Admin User</div>
+    </div>
+    <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-label">Settings</div>
+    </div>
+    <div class="step">
+        <div class="step-number">5</div>
+        <div class="step-label">Install</div>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<h3 class="mb-4"><i class="fas fa-user-shield me-2"></i>Admin User Account</h3>
+
+<p class="text-muted">Create your first admin user account</p>
+
+<form method="post" action="/install/admin">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" name="admin_name" value="{{ install_admin_data.admin_name|default('') }}" required>
+                {% if install_admin_errors.admin_name %}
+                    <div class="text-danger small mt-1">{{ install_admin_errors.admin_name }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-control" name="admin_email" value="{{ install_admin_data.admin_email|default('') }}" required>
+                {% if install_admin_errors.admin_email %}
+                    <div class="text-danger small mt-1">{{ install_admin_errors.admin_email }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-control" name="admin_password" required>
+                <div class="form-text">At least 8 characters</div>
+                {% if install_admin_errors.admin_password %}
+                    <div class="text-danger small mt-1">{{ install_admin_errors.admin_password }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Confirm Password</label>
+                <input type="password" class="form-control" name="admin_password_confirm" required>
+            </div>
+        </div>
+    </div>
+    
+    <div class="alert alert-info">
+        <h5><i class="fas fa-info-circle me-2"></i>Important</h5>
+        <p>This account will have full administrative privileges. Make sure to use a strong password and keep your credentials secure.</p>
+    </div>
+    
+    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+        <a href="/install/database" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check me-2"></i>Continue
+        </button>
+    </div>
+</form>
+{% endblock %}

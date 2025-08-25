@@ -1,0 +1,127 @@
+{% extends 'installer/_layout.twig' %}
+{% block title %}Database Configuration - photoCMS Installer{% endblock %}
+{% block steps %}
+<div class="step-indicator">
+    <div class="step completed">
+        <div class="step-number">1</div>
+        <div class="step-label">Welcome</div>
+    </div>
+    <div class="step active">
+        <div class="step-number">2</div>
+        <div class="step-label">Database</div>
+    </div>
+    <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-label">Admin User</div>
+    </div>
+    <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-label">Settings</div>
+    </div>
+    <div class="step">
+        <div class="step-number">5</div>
+        <div class="step-label">Install</div>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<h3 class="mb-4"><i class="fas fa-database me-2"></i>Database Configuration</h3>
+
+<p class="text-muted">Configure your database connection settings</p>
+
+<form method="post" action="/install/database" id="database-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    
+    <div class="mb-3">
+        <label class="form-label">Database Type</label>
+        <select class="form-select" name="db_connection" id="db_connection">
+            <option value="sqlite" {% if db_connection == 'sqlite' %}selected{% endif %}>SQLite (Recommended for beginners)</option>
+            <option value="mysql" {% if db_connection == 'mysql' %}selected{% endif %}>MySQL/MariaDB</option>
+        </select>
+        <div class="form-text">SQLite is easier to set up, MySQL offers better performance for large sites</div>
+    </div>
+    
+    <div id="mysql-fields" {% if db_connection != 'mysql' %}style="display: none;"{% endif %}>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Host</label>
+                    <input type="text" class="form-control" name="db_host" value="{{ db_host }}" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Port</label>
+                    <input type="number" class="form-control" name="db_port" value="{{ db_port }}" required>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Database Name</label>
+            <input type="text" class="form-control" name="db_database" value="{{ db_database }}" required>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" name="db_username" value="{{ db_username }}" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" name="db_password" value="{{ db_password }}">
+                    <div class="form-text">Leave empty if no password is required</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Charset</label>
+                    <input type="text" class="form-control" name="db_charset" value="{{ db_charset }}" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Collation</label>
+                    <input type="text" class="form-control" name="db_collation" value="{{ db_collation }}" required>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="sqlite-fields" {% if db_connection == 'mysql' %}style="display: none;"{% endif %}>
+        <div class="mb-3">
+            <label class="form-label">Database File Path</label>
+            <input type="text" class="form-control" name="db_database" value="{{ db_database }}" required>
+            <div class="form-text">Full path to the SQLite database file</div>
+        </div>
+    </div>
+    
+    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+        <a href="/install" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check me-2"></i>Continue
+        </button>
+    </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('db_connection').addEventListener('change', function() {
+    if (this.value === 'mysql') {
+        document.getElementById('mysql-fields').style.display = 'block';
+        document.getElementById('sqlite-fields').style.display = 'none';
+    } else {
+        document.getElementById('mysql-fields').style.display = 'none';
+        document.getElementById('sqlite-fields').style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

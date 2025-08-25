@@ -1,0 +1,76 @@
+{% extends 'installer/_layout.twig' %}
+{% block title %}Welcome - photoCMS Installer{% endblock %}
+{% block steps %}
+<div class="step-indicator">
+    <div class="step active">
+        <div class="step-number">1</div>
+        <div class="step-label">Welcome</div>
+    </div>
+    <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-label">Database</div>
+    </div>
+    <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-label">Admin User</div>
+    </div>
+    <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-label">Settings</div>
+    </div>
+    <div class="step">
+        <div class="step-number">5</div>
+        <div class="step-label">Install</div>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<h3 class="mb-4"><i class="fas fa-rocket me-2"></i>Welcome to photoCMS</h3>
+
+<p class="lead">This installer will guide you through the process of setting up photoCMS on your server.</p>
+
+{% if requirements.errors|length > 0 %}
+    <div class="alert alert-danger">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i>Requirements Check Failed</h5>
+        <p>The following issues need to be resolved before installation can continue:</p>
+        <ul class="mb-0">
+            {% for error in requirements.errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div class="d-grid gap-2">
+        <button class="btn btn-primary btn-lg" disabled>
+            <i class="fas fa-arrow-right me-2"></i>Continue
+        </button>
+        <a href="/install" class="btn btn-outline-secondary">
+            <i class="fas fa-sync me-2"></i>Recheck Requirements
+        </a>
+    </div>
+{% else %}
+    <div class="alert alert-success">
+        <h5><i class="fas fa-check-circle me-2"></i>All Requirements Met</h5>
+        <p>Your server meets all the requirements for running photoCMS.</p>
+    </div>
+    
+    <div class="d-grid gap-2">
+        <a href="/install/database" class="btn btn-primary btn-lg">
+            <i class="fas fa-arrow-right me-2"></i>Continue
+        </a>
+    </div>
+{% endif %}
+
+<div class="mt-4">
+    <h5><i class="fas fa-info-circle me-2"></i>What This Installer Will Do</h5>
+    <ul>
+        <li>Verify system requirements</li>
+        <li>Configure database connection (MySQL or SQLite)</li>
+        <li>Create database tables and seed default data</li>
+        <li>Create your first admin user account</li>
+        <li>Set up initial site configuration</li>
+        <li>Create default templates and categories</li>
+        <li>Generate configuration files</li>
+    </ul>
+</div>
+{% endblock %}

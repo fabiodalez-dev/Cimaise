@@ -1,0 +1,82 @@
+{% extends 'installer/_layout.twig' %}
+{% block title %}Site Settings - photoCMS Installer{% endblock %}
+{% block steps %}
+<div class="step-indicator">
+    <div class="step completed">
+        <div class="step-number">1</div>
+        <div class="step-label">Welcome</div>
+    </div>
+    <div class="step completed">
+        <div class="step-number">2</div>
+        <div class="step-label">Database</div>
+    </div>
+    <div class="step completed">
+        <div class="step-number">3</div>
+        <div class="step-label">Admin User</div>
+    </div>
+    <div class="step active">
+        <div class="step-number">4</div>
+        <div class="step-label">Settings</div>
+    </div>
+    <div class="step">
+        <div class="step-number">5</div>
+        <div class="step-label">Install</div>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<h3 class="mb-4"><i class="fas fa-cog me-2"></i>Site Settings</h3>
+
+<p class="text-muted">Configure your site's basic information</p>
+
+<form method="post" action="/install/settings">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    
+    <div class="mb-3">
+        <label class="form-label">Site Title</label>
+        <input type="text" class="form-control" name="site_title" value="{{ site_title }}" required>
+        <div class="form-text">The name of your photography website</div>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Site Description</label>
+        <textarea class="form-control" name="site_description" rows="3">{{ site_description }}</textarea>
+        <div class="form-text">A short description of your photography portfolio</div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Copyright Notice</label>
+                <input type="text" class="form-control" name="site_copyright" value="{{ site_copyright }}">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Contact Email</label>
+                <input type="email" class="form-control" name="site_email" value="{{ site_email }}">
+                <div class="form-text">For contact form submissions</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="alert alert-info">
+        <h5><i class="fas fa-lightbulb me-2"></i>Default Content</h5>
+        <p>The installer will automatically create:</p>
+        <ul class="mb-0">
+            <li>A default "Foto" category</li>
+            <li>Six professional gallery templates</li>
+            <li>Basic image format settings</li>
+        </ul>
+    </div>
+    
+    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+        <a href="/install/admin" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check me-2"></i>Continue
+        </button>
+    </div>
+</form>
+{% endblock %}
