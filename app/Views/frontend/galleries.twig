@@ -18,14 +18,14 @@
 
   <!-- Advanced Filters Panel -->
   {% if filter_settings.enabled %}
-  <div id="filters-section" class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-16 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <div id="filters-section" class="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <!-- Filter Toggle Button -->
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-4">
-          <button id="toggle-filters" class="flex items-center gap-3 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" data-gsap="filter-toggle">
-            <i class="fas fa-sliders-h"></i>
-            <span class="font-medium">Advanced Filters</span>
+          <button id="toggle-filters" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5" data-gsap="filter-toggle">
+            <i class="fas fa-filter"></i>
+            <span class="font-medium">Filters</span>
             <i class="fas fa-chevron-down transition-transform duration-300" id="filter-chevron"></i>
           </button>
           
@@ -35,24 +35,25 @@
         </div>
         
         <div class="flex items-center gap-4">
-          <div class="text-sm text-gray-500" id="results-count">
-            {{ albums|length }} galleries found
+          <div class="text-sm text-gray-600 font-medium" id="results-count">
+            {{ albums|length }} galleries
           </div>
           
-          <button id="clear-filters" class="text-sm text-gray-500 hover:text-red-600 transition-colors opacity-0" data-gsap="clear-filters">
-            Clear all filters
+          <button id="clear-filters" class="text-sm text-gray-500 hover:text-red-600 transition-colors opacity-0 px-3 py-1 rounded hover:bg-gray-100" data-gsap="clear-filters">
+            <i class="fas fa-times mr-1"></i>
+            Clear filters
           </button>
         </div>
       </div>
       
-      <!-- Filters Grid -->
-      <div id="filters-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 opacity-0 max-h-0 overflow-hidden transition-all duration-500" data-gsap="filters-grid">
+      <!-- Filters Grid with proper spacing -->
+      <div id="filters-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 opacity-0 max-h-0 overflow-hidden transition-all duration-500 mt-4" data-gsap="filters-grid">
         
         <!-- Categories Filter -->
         {% if filter_settings.show_categories and filter_options.categories|length > 0 %}
         <div class="filter-group" data-gsap="filter-category">
-          <label class="block text-sm font-semibold text-gray-900 mb-3">
-            <i class="fas fa-folder-open mr-2 text-gray-600"></i>
+          <label class="block text-xs font-semibold text-gray-900 mb-2">
+            <i class="fas fa-folder-open mr-1 text-gray-600"></i>
             Categories
           </label>
           <select id="filter-categories" class="filter-select" multiple data-placeholder="Select categories...">
@@ -68,8 +69,8 @@
         <!-- Tags Filter -->
         {% if filter_settings.show_tags and filter_options.tags|length > 0 %}
         <div class="filter-group" data-gsap="filter-tags">
-          <label class="block text-sm font-semibold text-gray-900 mb-3">
-            <i class="fas fa-tags mr-2 text-gray-600"></i>
+          <label class="block text-xs font-semibold text-gray-900 mb-2">
+            <i class="fas fa-tags mr-1 text-gray-600"></i>
             Tags
           </label>
           <select id="filter-tags" class="filter-select" multiple data-placeholder="Select tags...">
@@ -85,8 +86,8 @@
         <!-- Cameras Filter -->
         {% if filter_settings.show_cameras and filter_options.cameras|length > 0 %}
         <div class="filter-group" data-gsap="filter-cameras">
-          <label class="block text-sm font-semibold text-gray-900 mb-3">
-            <i class="fas fa-camera mr-2 text-gray-600"></i>
+          <label class="block text-xs font-semibold text-gray-900 mb-2">
+            <i class="fas fa-camera mr-1 text-gray-600"></i>
             Cameras
           </label>
           <select id="filter-cameras" class="filter-select" multiple data-placeholder="Select cameras...">
@@ -102,8 +103,8 @@
         <!-- Lenses Filter -->
         {% if filter_settings.show_lenses and filter_options.lenses|length > 0 %}
         <div class="filter-group" data-gsap="filter-lenses">
-          <label class="block text-sm font-semibold text-gray-900 mb-3">
-            <i class="fas fa-eye mr-2 text-gray-600"></i>
+          <label class="block text-xs font-semibold text-gray-900 mb-2">
+            <i class="fas fa-eye mr-1 text-gray-600"></i>
             Lenses
           </label>
           <select id="filter-lenses" class="filter-select" multiple data-placeholder="Select lenses...">
@@ -119,8 +120,8 @@
         <!-- Films Filter -->
         {% if filter_settings.show_films and filter_options.films|length > 0 %}
         <div class="filter-group" data-gsap="filter-films">
-          <label class="block text-sm font-semibold text-gray-900 mb-3">
-            <i class="fas fa-film mr-2 text-gray-600"></i>
+          <label class="block text-xs font-semibold text-gray-900 mb-2">
+            <i class="fas fa-film mr-1 text-gray-600"></i>
             Films
           </label>
           <select id="filter-films" class="filter-select" multiple data-placeholder="Select films...">
@@ -136,8 +137,8 @@
         <!-- Locations Filter -->
         {% if filter_settings.show_locations and filter_options.locations|length > 0 %}
         <div class="filter-group" data-gsap="filter-locations">
-          <label class="block text-sm font-semibold text-gray-900 mb-3">
-            <i class="fas fa-map-marker-alt mr-2 text-gray-600"></i>
+          <label class="block text-xs font-semibold text-gray-900 mb-2">
+            <i class="fas fa-map-marker-alt mr-1 text-gray-600"></i>
             Locations
           </label>
           <select id="filter-locations" class="filter-select" multiple data-placeholder="Select locations...">
@@ -153,8 +154,8 @@
         <!-- Year Filter -->
         {% if filter_settings.show_year and filter_options.years|length > 0 %}
         <div class="filter-group" data-gsap="filter-year">
-          <label class="block text-sm font-semibold text-gray-900 mb-3">
-            <i class="fas fa-calendar mr-2 text-gray-600"></i>
+          <label class="block text-xs font-semibold text-gray-900 mb-2">
+            <i class="fas fa-calendar mr-1 text-gray-600"></i>
             Year
           </label>
           <select id="filter-year" class="filter-select" data-placeholder="Select year...">
@@ -170,21 +171,21 @@
         
         <!-- Search Filter -->
         <div class="filter-group md:col-span-2" data-gsap="filter-search">
-          <label class="block text-sm font-semibold text-gray-900 mb-3">
-            <i class="fas fa-search mr-2 text-gray-600"></i>
+          <label class="block text-xs font-semibold text-gray-900 mb-2">
+            <i class="fas fa-search mr-1 text-gray-600"></i>
             Search
           </label>
           <div class="relative">
-            <input type="text" id="filter-search" class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200" placeholder="Search galleries..." value="{{ active_filters.search|default('') }}">
-            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <input type="text" id="filter-search" class="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm" placeholder="Search galleries..." value="{{ active_filters.search|default('') }}">
+            <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
           </div>
         </div>
         
         <!-- Sort Filter -->
         <div class="filter-group" data-gsap="filter-sort">
-          <label class="block text-sm font-semibold text-gray-900 mb-3">
-            <i class="fas fa-sort mr-2 text-gray-600"></i>
-            Sort By
+          <label class="block text-xs font-semibold text-gray-900 mb-2">
+            <i class="fas fa-sort mr-1 text-gray-600"></i>
+            Sort
           </label>
           <select id="filter-sort" class="filter-select">
             <option value="published_desc" {% if active_filters.sort == 'published_desc' %}selected{% endif %}>Latest First</option>
@@ -226,8 +227,8 @@
         
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
-          {% if album.cover_image %}
-            <img src="{{ album.cover_image.preview_path|replace({'/public':''}) }}" 
+          {% if album.cover_image and (album.cover_image.preview_path or album.cover_image.original_path) %}
+            <img src="{{ (album.cover_image.preview_path|default(album.cover_image.original_path))|replace({'/public':''}) }}" 
                  alt="{{ album.cover_image.alt_text|default(album.title)|e }}" 
                  class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                  loading="lazy">
@@ -356,38 +357,65 @@ $(document).ready(function() {
 });
 
 function initPageAnimations() {
-    // Timeline for page load
-    const tl = gsap.timeline();
+    // Ensure all elements are visible by default
+    gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'transform' });
     
-    // Animate hero section
+    // Only animate if animation is enabled
+    if (!{{ filter_settings.animation_enabled ? 'true' : 'false' }}) {
+        return;
+    }
+    
+    // Add animation class temporarily
+    document.body.classList.add('gsap-animating');
+    
+    // Timeline for page load with safety measures
+    const tl = gsap.timeline({
+        onComplete: function() {
+            // Remove animation class when done
+            document.body.classList.remove('gsap-animating');
+            // Ensure all elements are visible
+            gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'all' });
+            gsap.set('#galleries-grid .gallery-card', { opacity: 1, clearProps: 'all' });
+        }
+    });
+    
+    // Animate hero section with safer approach
     tl.from('[data-gsap="title"]', {
-        y: 50,
-        opacity: 0,
-        duration: {{ filter_settings.animation_duration }},
-        ease: 'power3.out'
-    })
-    .from('[data-gsap="subtitle"]', {
         y: 30,
         opacity: 0,
         duration: {{ filter_settings.animation_duration }},
-        ease: 'power3.out'
-    }, '-=0.3')
-    .from('[data-gsap="filter-toggle"]', {
+        ease: 'power2.out'
+    })
+    .from('[data-gsap="subtitle"]', {
         y: 20,
         opacity: 0,
         duration: {{ filter_settings.animation_duration }},
-        ease: 'power3.out'
-    }, '-=0.2');
-    
-    // Animate gallery cards
-    gsap.from('[data-gsap="gallery-card"]', {
-        y: 40,
+        ease: 'power2.out'
+    }, '-=0.4')
+    .from('[data-gsap="filter-toggle"]', {
+        y: 15,
         opacity: 0,
         duration: {{ filter_settings.animation_duration }},
-        stagger: 0.1,
-        ease: 'power3.out',
-        delay: 0.5
-    });
+        ease: 'power2.out'
+    }, '-=0.3');
+    
+    // Animate gallery cards with safer approach
+    if (document.querySelectorAll('#galleries-grid .gallery-card').length > 0) {
+        tl.from('#galleries-grid .gallery-card', {
+            y: 30,
+            opacity: 0,
+            duration: {{ filter_settings.animation_duration }},
+            stagger: 0.08,
+            ease: 'power2.out'
+        }, '-=0.2');
+    }
+    
+    // Safety timeout to ensure all elements are visible
+    setTimeout(() => {
+        document.body.classList.remove('gsap-animating');
+        gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'all' });
+        gsap.set('#galleries-grid .gallery-card', { opacity: 1, clearProps: 'all' });
+    }, 2000);
 }
 
 function initFilters() {
@@ -495,8 +523,11 @@ function applyFilters() {
 function updateGalleries(albums) {
     const grid = $('#galleries-grid');
     
-    // Animate out current galleries
-    gsap.to('.gallery-card', {
+    // Add animation class
+    document.body.classList.add('gsap-animating');
+    
+    // Animate out current galleries with specific selector
+    gsap.to('#galleries-grid .gallery-card', {
         y: -20,
         opacity: 0,
         duration: {{ filter_settings.animation_duration }},
@@ -520,6 +551,7 @@ function updateGalleries(albums) {
                         </div>
                     </div>
                 `);
+                document.body.classList.remove('gsap-animating');
             } else {
                 // Generate new gallery cards HTML
                 let html = '';
@@ -527,16 +559,20 @@ function updateGalleries(albums) {
                     html += generateGalleryCard(album);
                 });
                 grid.html(html);
+                
+                // Animate in new galleries with specific selector
+                gsap.from('#galleries-grid .gallery-card', {
+                    y: 40,
+                    opacity: 0,
+                    duration: {{ filter_settings.animation_duration }},
+                    stagger: 0.1,
+                    ease: 'power3.out',
+                    onComplete: function() {
+                        document.body.classList.remove('gsap-animating');
+                        gsap.set('#galleries-grid .gallery-card', { clearProps: 'all' });
+                    }
+                });
             }
-            
-            // Animate in new galleries
-            gsap.from('.gallery-card', {
-                y: 40,
-                opacity: 0,
-                duration: {{ filter_settings.animation_duration }},
-                stagger: 0.1,
-                ease: 'power3.out'
-            });
         }
     });
 }
@@ -552,7 +588,7 @@ function generateGalleryCard(album) {
             
             <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
                 ${coverImage ? 
-                    `<img src="${coverImage.preview_path.replace('/public', '')}" 
+                    `<img src="${(coverImage.preview_path || coverImage.original_path || '').replace('/public', '')}" 
                          alt="${coverImage.alt_text || album.title}" 
                          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                          loading="lazy">` :
@@ -735,16 +771,18 @@ function debounce(func, wait) {
 /* Custom Select2 styling */
 .select2-container--default .select2-selection--multiple {
     border: 1px solid #d1d5db;
-    border-radius: 0.75rem;
-    padding: 0.5rem;
-    min-height: 3rem;
+    border-radius: 0.5rem;
+    padding: 0.25rem;
+    min-height: 2.5rem;
+    font-size: 0.875rem;
 }
 
 .select2-container--default .select2-selection--single {
     border: 1px solid #d1d5db;
-    border-radius: 0.75rem;
-    height: 3rem;
-    line-height: 3rem;
+    border-radius: 0.5rem;
+    height: 2.5rem;
+    line-height: 2.5rem;
+    font-size: 0.875rem;
 }
 
 .select2-container--default.select2-container--focus .select2-selection--multiple,
@@ -756,15 +794,17 @@ function debounce(func, wait) {
 .select2-container--default .select2-selection--multiple .select2-selection__choice {
     background-color: #f3f4f6;
     border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    padding: 0.125rem 0.375rem;
     margin: 0.125rem;
+    font-size: 0.75rem;
 }
 
 .select2-dropdown {
     border: 1px solid #d1d5db;
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    font-size: 0.875rem;
 }
 
 /* Active filter badges */
@@ -806,6 +846,58 @@ function debounce(func, wait) {
 /* Filter animations */
 .filters-open {
     max-height: 500px !important;
+}
+
+/* CSS Protection for Gallery Cards and UI elements */
+#galleries-grid .gallery-card,
+[data-gsap="filter-toggle"],
+[data-gsap="title"],
+[data-gsap="subtitle"] {
+    opacity: 1 !important;
+}
+
+/* Only allow GSAP to control opacity during specific animations */
+.gsap-animating #galleries-grid .gallery-card,
+.gsap-animating [data-gsap="filter-toggle"],
+.gsap-animating [data-gsap="title"],
+.gsap-animating [data-gsap="subtitle"] {
+    opacity: 0;
+}
+
+/* Ensure images in gallery cards are always visible */
+#galleries-grid .gallery-card img {
+    opacity: 1 !important;
+}
+
+/* Filter toggle button protection */
+#toggle-filters {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Better filter grid spacing */
+#filters-grid {
+    padding-top: 0.5rem;
+}
+
+#filters-grid.filters-open {
+    padding-top: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Improved filter bar styling */
+#filters-section {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.active-filter-badge {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 </style>
 {% endblock %}
