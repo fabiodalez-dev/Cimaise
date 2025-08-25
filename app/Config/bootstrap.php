@@ -21,10 +21,10 @@ if (file_exists($root . '/.env')) {
 
 date_default_timezone_set(envv('APP_TIMEZONE', 'UTC'));
 
-// Support both MySQL and SQLite
-$connection = (string)envv('DB_CONNECTION', 'mysql');
+// Support both MySQL and SQLite - default to SQLite for installer compatibility
+$connection = (string)envv('DB_CONNECTION', 'sqlite');
 if ($connection === 'sqlite') {
-    $dbPath = (string)envv('DB_DATABASE', dirname(__DIR__, 1) . '/storage/database.sqlite');
+    $dbPath = (string)envv('DB_DATABASE', dirname(__DIR__, 1) . '/database/database.sqlite');
     $db = new Database(database: $dbPath, isSqlite: true);
 } else {
     $db = new Database(

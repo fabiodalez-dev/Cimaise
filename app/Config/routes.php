@@ -150,446 +150,446 @@ $app->post('/admin/login', function (Request $request, Response $response) use (
 $app->post('/admin/logout', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
     return $controller->logout($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->post('/admin/profile/update', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
     return $controller->updateProfile($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->post('/admin/profile/password', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
     return $controller->changePassword($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->get('/admin', function (Request $request, Response $response) {
     $controller = new \App\Controllers\Admin\DashboardController(Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Upload + API
 $app->post('/admin/albums/{id}/upload', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\UploadController($container['db']);
     return $controller->uploadToAlbum($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/api/tags', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\ApiController($container['db']);
     return $controller->tags($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->get('/admin/api/category/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\ApiController($container['db']);
     return $controller->category($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Images actions and tags update
 $app->post('/admin/albums/{id}/cover/{imageId}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->setCover($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/{id}/images/reorder', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->reorderImages($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/{id}/images/{imageId}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->deleteImage($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/{id}/images/bulk-delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->bulkDeleteImages($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/{id}/images/{imageId}/update', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->updateImageMeta($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/{id}/tags', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->updateTags($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Settings
 $app->get('/admin/settings', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
     return $controller->show($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/settings', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
     return $controller->save($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Filter Settings
 $app->get('/admin/filter-settings', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\FilterSettingsController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/filter-settings', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\FilterSettingsController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/filter-settings/reset', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\FilterSettingsController($container['db'], Twig::fromRequest($request));
     return $controller->reset($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/filter-settings/preview', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\FilterSettingsController($container['db'], Twig::fromRequest($request));
     return $controller->preview($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->post('/admin/settings/generate-images', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
     return $controller->generateImages($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Diagnostics
 $app->get('/admin/diagnostics', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\DiagnosticsController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Commands
 $app->get('/admin/commands', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CommandsController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/commands/execute', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CommandsController($container['db'], Twig::fromRequest($request));
     return $controller->execute($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Locations CRUD
 $app->get('/admin/locations', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/locations/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/locations', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/locations/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/locations/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/locations/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Pages admin list
 $app->get('/admin/pages', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 // About page edit
 $app->get('/admin/pages/about', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
     return $controller->aboutForm($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/pages/about', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
     return $controller->saveAbout($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 // Galleries page edit
 $app->get('/admin/pages/galleries', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
     return $controller->galleriesForm($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/pages/galleries', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
     return $controller->saveGalleries($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Albums CRUD
 $app->get('/admin/albums', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/reorder', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->reorderList($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/albums/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/albums/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/{id}/publish', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->publish($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/{id}/unpublish', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->unpublish($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Categories CRUD
 $app->get('/admin/categories', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/categories/reorder', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->reorder($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/categories/reorder-wordpress', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->reorderWordPress($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/categories/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/categories', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/categories/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/categories/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/categories/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Tags CRUD
 $app->get('/admin/tags', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\TagsController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/tags/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\TagsController($container['db'], Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/tags', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\TagsController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/tags/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\TagsController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/tags/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\TagsController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/tags/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\TagsController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Cameras CRUD
 $app->get('/admin/cameras', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CamerasController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/cameras/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CamerasController($container['db'], Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/cameras', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\CamerasController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/cameras/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\CamerasController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/cameras/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\CamerasController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/cameras/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\CamerasController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Lenses CRUD
 $app->get('/admin/lenses', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LensesController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/lenses/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LensesController($container['db'], Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/lenses', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LensesController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/lenses/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\LensesController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/lenses/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\LensesController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/lenses/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\LensesController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Films CRUD
 $app->get('/admin/films', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\FilmsController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/films/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\FilmsController($container['db'], Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/films', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\FilmsController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/films/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\FilmsController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/films/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\FilmsController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/films/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\FilmsController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Developers CRUD
 $app->get('/admin/developers', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\DevelopersController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/developers/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\DevelopersController($container['db'], Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/developers', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\DevelopersController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/developers/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\DevelopersController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/developers/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\DevelopersController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/developers/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\DevelopersController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Labs CRUD
 $app->get('/admin/labs', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LabsController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/labs/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LabsController($container['db'], Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/labs', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LabsController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/labs/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\LabsController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/labs/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\LabsController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/labs/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\LabsController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Templates CRUD
 $app->get('/admin/templates', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/templates/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/templates', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/templates/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/templates/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/templates/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Users CRUD
 $app->get('/admin/users', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\UsersController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/users/create', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\UsersController($container['db'], Twig::fromRequest($request));
     return $controller->create($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/users', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\UsersController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/users/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\UsersController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/users/{id}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\UsersController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/users/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\UsersController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/users/{id}/toggle', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\UsersController($container['db'], Twig::fromRequest($request));
     return $controller->toggleActive($request, $response, $args);
-})->add(new AuthMiddleware($container['db']));
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Frontend API (public)
 $app->get('/api/albums', function (Request $request, Response $response) use ($container) {
