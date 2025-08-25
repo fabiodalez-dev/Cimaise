@@ -1,0 +1,811 @@
+{% extends 'frontend/_layout.twig' %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+  <!-- Hero Section -->
+  <div class="relative bg-white border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div class="text-center">
+        <h1 class="text-4xl md:text-5xl font-light text-black mb-6 tracking-tight" data-gsap="title">
+          All Galleries
+        </h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed" data-gsap="subtitle">
+          Explore our complete collection of photography galleries with advanced filtering options
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Filters Panel -->
+  {% if filter_settings.enabled %}
+  <div id="filters-section" class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-16 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <!-- Filter Toggle Button -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-4">
+          <button id="toggle-filters" class="flex items-center gap-3 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" data-gsap="filter-toggle">
+            <i class="fas fa-sliders-h"></i>
+            <span class="font-medium">Advanced Filters</span>
+            <i class="fas fa-chevron-down transition-transform duration-300" id="filter-chevron"></i>
+          </button>
+          
+          <div id="active-filters" class="flex items-center gap-2 opacity-0" data-gsap="active-filters">
+            <!-- Active filters will be populated here -->
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <div class="text-sm text-gray-500" id="results-count">
+            {{ albums|length }} galleries found
+          </div>
+          
+          <button id="clear-filters" class="text-sm text-gray-500 hover:text-red-600 transition-colors opacity-0" data-gsap="clear-filters">
+            Clear all filters
+          </button>
+        </div>
+      </div>
+      
+      <!-- Filters Grid -->
+      <div id="filters-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 opacity-0 max-h-0 overflow-hidden transition-all duration-500" data-gsap="filters-grid">
+        
+        <!-- Categories Filter -->
+        {% if filter_settings.show_categories and filter_options.categories|length > 0 %}
+        <div class="filter-group" data-gsap="filter-category">
+          <label class="block text-sm font-semibold text-gray-900 mb-3">
+            <i class="fas fa-folder-open mr-2 text-gray-600"></i>
+            Categories
+          </label>
+          <select id="filter-categories" class="filter-select" multiple data-placeholder="Select categories...">
+            {% for category in filter_options.categories %}
+            <option value="{{ category.id }}" {% if category.id in active_filters.category|default([]) %}selected{% endif %}>
+              {{ category.name }} ({{ category.albums_count }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        
+        <!-- Tags Filter -->
+        {% if filter_settings.show_tags and filter_options.tags|length > 0 %}
+        <div class="filter-group" data-gsap="filter-tags">
+          <label class="block text-sm font-semibold text-gray-900 mb-3">
+            <i class="fas fa-tags mr-2 text-gray-600"></i>
+            Tags
+          </label>
+          <select id="filter-tags" class="filter-select" multiple data-placeholder="Select tags...">
+            {% for tag in filter_options.tags %}
+            <option value="{{ tag.id }}" {% if tag.id in active_filters.tags|default([]) %}selected{% endif %}>
+              {{ tag.name }} ({{ tag.albums_count }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        
+        <!-- Cameras Filter -->
+        {% if filter_settings.show_cameras and filter_options.cameras|length > 0 %}
+        <div class="filter-group" data-gsap="filter-cameras">
+          <label class="block text-sm font-semibold text-gray-900 mb-3">
+            <i class="fas fa-camera mr-2 text-gray-600"></i>
+            Cameras
+          </label>
+          <select id="filter-cameras" class="filter-select" multiple data-placeholder="Select cameras...">
+            {% for camera in filter_options.cameras %}
+            <option value="{{ camera.id }}" {% if camera.id in active_filters.cameras|default([]) %}selected{% endif %}>
+              {{ camera.make }} {{ camera.model }} ({{ camera.albums_count }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        
+        <!-- Lenses Filter -->
+        {% if filter_settings.show_lenses and filter_options.lenses|length > 0 %}
+        <div class="filter-group" data-gsap="filter-lenses">
+          <label class="block text-sm font-semibold text-gray-900 mb-3">
+            <i class="fas fa-eye mr-2 text-gray-600"></i>
+            Lenses
+          </label>
+          <select id="filter-lenses" class="filter-select" multiple data-placeholder="Select lenses...">
+            {% for lens in filter_options.lenses %}
+            <option value="{{ lens.id }}" {% if lens.id in active_filters.lenses|default([]) %}selected{% endif %}>
+              {{ lens.brand }} {{ lens.model }} ({{ lens.albums_count }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        
+        <!-- Films Filter -->
+        {% if filter_settings.show_films and filter_options.films|length > 0 %}
+        <div class="filter-group" data-gsap="filter-films">
+          <label class="block text-sm font-semibold text-gray-900 mb-3">
+            <i class="fas fa-film mr-2 text-gray-600"></i>
+            Films
+          </label>
+          <select id="filter-films" class="filter-select" multiple data-placeholder="Select films...">
+            {% for film in filter_options.films %}
+            <option value="{{ film.id }}" {% if film.id in active_filters.films|default([]) %}selected{% endif %}>
+              {{ film.brand }} {{ film.name }} ({{ film.albums_count }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        
+        <!-- Locations Filter -->
+        {% if filter_settings.show_locations and filter_options.locations|length > 0 %}
+        <div class="filter-group" data-gsap="filter-locations">
+          <label class="block text-sm font-semibold text-gray-900 mb-3">
+            <i class="fas fa-map-marker-alt mr-2 text-gray-600"></i>
+            Locations
+          </label>
+          <select id="filter-locations" class="filter-select" multiple data-placeholder="Select locations...">
+            {% for location in filter_options.locations %}
+            <option value="{{ location.id }}" {% if location.id in active_filters.locations|default([]) %}selected{% endif %}>
+              {{ location.name }} ({{ location.albums_count }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        
+        <!-- Year Filter -->
+        {% if filter_settings.show_year and filter_options.years|length > 0 %}
+        <div class="filter-group" data-gsap="filter-year">
+          <label class="block text-sm font-semibold text-gray-900 mb-3">
+            <i class="fas fa-calendar mr-2 text-gray-600"></i>
+            Year
+          </label>
+          <select id="filter-year" class="filter-select" data-placeholder="Select year...">
+            <option value="">All years</option>
+            {% for year in filter_options.years %}
+            <option value="{{ year.year }}" {% if year.year == active_filters.year|default('') %}selected{% endif %}>
+              {{ year.year }} ({{ year.albums_count }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        
+        <!-- Search Filter -->
+        <div class="filter-group md:col-span-2" data-gsap="filter-search">
+          <label class="block text-sm font-semibold text-gray-900 mb-3">
+            <i class="fas fa-search mr-2 text-gray-600"></i>
+            Search
+          </label>
+          <div class="relative">
+            <input type="text" id="filter-search" class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200" placeholder="Search galleries..." value="{{ active_filters.search|default('') }}">
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          </div>
+        </div>
+        
+        <!-- Sort Filter -->
+        <div class="filter-group" data-gsap="filter-sort">
+          <label class="block text-sm font-semibold text-gray-900 mb-3">
+            <i class="fas fa-sort mr-2 text-gray-600"></i>
+            Sort By
+          </label>
+          <select id="filter-sort" class="filter-select">
+            <option value="published_desc" {% if active_filters.sort == 'published_desc' %}selected{% endif %}>Latest First</option>
+            <option value="published_asc" {% if active_filters.sort == 'published_asc' %}selected{% endif %}>Oldest First</option>
+            <option value="title_asc" {% if active_filters.sort == 'title_asc' %}selected{% endif %}>Title A-Z</option>
+            <option value="title_desc" {% if active_filters.sort == 'title_desc' %}selected{% endif %}>Title Z-A</option>
+            <option value="shoot_date_desc" {% if active_filters.sort == 'shoot_date_desc' %}selected{% endif %}>Shoot Date (New)</option>
+            <option value="shoot_date_asc" {% if active_filters.sort == 'shoot_date_asc' %}selected{% endif %}>Shoot Date (Old)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="text-center">
+      <div class="animate-spin w-12 h-12 border-4 border-gray-200 border-t-black rounded-full mb-4"></div>
+      <p class="text-gray-600 font-medium">Filtering galleries...</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Galleries Grid -->
+    <div id="galleries-grid" class="grid gap-8 transition-all duration-500" 
+         style="grid-template-columns: repeat({{ filter_settings.grid_columns_mobile }}, 1fr); gap: {{ filter_settings.grid_gap == 'small' ? '1rem' : (filter_settings.grid_gap == 'large' ? '2rem' : '1.5rem') }};"
+         data-desktop-cols="{{ filter_settings.grid_columns_desktop }}"
+         data-tablet-cols="{{ filter_settings.grid_columns_tablet }}"
+         data-mobile-cols="{{ filter_settings.grid_columns_mobile }}"
+         data-gap="{{ filter_settings.grid_gap }}">
+      
+      {% for album in albums %}
+      <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2" 
+               data-gsap="gallery-card" 
+               data-album-id="{{ album.id }}"
+               onclick="window.location.href='/album/{{ album.slug }}'">
+        
+        <!-- Cover Image -->
+        <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
+          {% if album.cover_image %}
+            <img src="{{ album.cover_image.preview_path|replace({'/public':''}) }}" 
+                 alt="{{ album.cover_image.alt_text|default(album.title)|e }}" 
+                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                 loading="lazy">
+          {% else %}
+            <div class="w-full h-full flex items-center justify-center text-gray-400">
+              <i class="fas fa-images text-4xl"></i>
+            </div>
+          {% endif %}
+          
+          <!-- Image Count Badge -->
+          {% if album.images_count > 0 %}
+          <div class="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
+            <i class="fas fa-images mr-1"></i>
+            {{ album.images_count }}
+          </div>
+          {% endif %}
+          
+          <!-- Category Badge -->
+          {% if album.category_name %}
+          <div class="absolute top-4 left-4 bg-white/90 text-black px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">
+            {{ album.category_name }}
+          </div>
+          {% endif %}
+        </div>
+        
+        <!-- Content -->
+        <div class="p-6">
+          <h3 class="text-xl font-semibold text-black mb-3 group-hover:text-gray-700 transition-colors duration-200 line-clamp-2">
+            {{ album.title|e }}
+          </h3>
+          
+          {% if album.excerpt %}
+          <p class="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
+            {{ album.excerpt|e }}
+          </p>
+          {% endif %}
+          
+          <!-- Meta Info -->
+          <div class="flex items-center justify-between text-sm text-gray-500">
+            <div class="flex items-center gap-4">
+              {% if album.shoot_date %}
+              <span class="flex items-center gap-1">
+                <i class="fas fa-calendar text-xs"></i>
+                {{ album.shoot_date|date('M Y') }}
+              </span>
+              {% endif %}
+              
+              {% if album.tags|length > 0 %}
+              <span class="flex items-center gap-1">
+                <i class="fas fa-tag text-xs"></i>
+                {{ album.tags|length }} tag{{ album.tags|length != 1 ? 's' : '' }}
+              </span>
+              {% endif %}
+            </div>
+            
+            <div class="flex items-center text-black group-hover:translate-x-1 transition-transform duration-200">
+              <span class="text-xs font-medium mr-1">View</span>
+              <i class="fas fa-arrow-right text-xs"></i>
+            </div>
+          </div>
+          
+          <!-- Tags -->
+          {% if album.tags|length > 0 %}
+          <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+            {% for tag in album.tags|slice(0, 3) %}
+            <span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors">
+              #{{ tag.name }}
+            </span>
+            {% endfor %}
+            {% if album.tags|length > 3 %}
+            <span class="inline-block text-gray-400 text-xs px-2 py-1">
+              +{{ album.tags|length - 3 }} more
+            </span>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    
+    <!-- Empty State -->
+    {% if albums|length == 0 %}
+    <div class="text-center py-24" id="empty-state" data-gsap="empty-state">
+      <div class="max-w-md mx-auto">
+        <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
+        <h3 class="text-2xl font-semibold text-gray-900 mb-4">No galleries found</h3>
+        <p class="text-gray-600 mb-8 leading-relaxed">
+          We couldn't find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.
+        </p>
+        <button onclick="clearAllFilters()" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
+          <i class="fas fa-times"></i>
+          Clear All Filters
+        </button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- GSAP Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+<!-- Select2 for advanced dropdowns -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+// Galleries Page JavaScript with GSAP Animations
+$(document).ready(function() {
+    // Animation settings from backend
+    const animationEnabled = {{ filter_settings.animation_enabled ? 'true' : 'false' }};
+    const animationDuration = {{ filter_settings.animation_duration }};
+    
+    // Initialize page animations
+    if (animationEnabled) {
+        initPageAnimations();
+    }
+    
+    // Initialize filter functionality
+    initFilters();
+    
+    // Initialize responsive grid
+    initResponsiveGrid();
+});
+
+function initPageAnimations() {
+    // Timeline for page load
+    const tl = gsap.timeline();
+    
+    // Animate hero section
+    tl.from('[data-gsap="title"]', {
+        y: 50,
+        opacity: 0,
+        duration: {{ filter_settings.animation_duration }},
+        ease: 'power3.out'
+    })
+    .from('[data-gsap="subtitle"]', {
+        y: 30,
+        opacity: 0,
+        duration: {{ filter_settings.animation_duration }},
+        ease: 'power3.out'
+    }, '-=0.3')
+    .from('[data-gsap="filter-toggle"]', {
+        y: 20,
+        opacity: 0,
+        duration: {{ filter_settings.animation_duration }},
+        ease: 'power3.out'
+    }, '-=0.2');
+    
+    // Animate gallery cards
+    gsap.from('[data-gsap="gallery-card"]', {
+        y: 40,
+        opacity: 0,
+        duration: {{ filter_settings.animation_duration }},
+        stagger: 0.1,
+        ease: 'power3.out',
+        delay: 0.5
+    });
+}
+
+function initFilters() {
+    // Initialize Select2 for multi-select filters
+    $('.filter-select').select2({
+        theme: 'default',
+        placeholder: function() {
+            return $(this).data('placeholder');
+        },
+        allowClear: true,
+        width: '100%'
+    });
+    
+    // Filter toggle functionality
+    $('#toggle-filters').click(function() {
+        const filtersGrid = $('#filters-grid');
+        const chevron = $('#filter-chevron');
+        const isOpen = filtersGrid.hasClass('filters-open');
+        
+        if (isOpen) {
+            // Close filters
+            gsap.to(filtersGrid, {
+                opacity: 0,
+                maxHeight: 0,
+                duration: {{ filter_settings.animation_duration }},
+                ease: 'power3.inOut',
+                onComplete: function() {
+                    filtersGrid.removeClass('filters-open');
+                }
+            });
+            gsap.to(chevron, {
+                rotation: 0,
+                duration: {{ filter_settings.animation_duration }},
+                ease: 'power3.inOut'
+            });
+        } else {
+            // Open filters
+            filtersGrid.addClass('filters-open');
+            gsap.to(filtersGrid, {
+                opacity: 1,
+                maxHeight: 'none',
+                duration: {{ filter_settings.animation_duration }},
+                ease: 'power3.inOut'
+            });
+            gsap.to(chevron, {
+                rotation: 180,
+                duration: {{ filter_settings.animation_duration }},
+                ease: 'power3.inOut'
+            });
+            
+            // Animate filter groups
+            gsap.from('.filter-group', {
+                y: 20,
+                opacity: 0,
+                duration: {{ filter_settings.animation_duration }},
+                stagger: 0.1,
+                ease: 'power3.out',
+                delay: 0.2
+            });
+        }
+    });
+    
+    // Filter change handlers
+    $('.filter-select, #filter-search, #filter-sort').on('change keyup', debounce(applyFilters, 300));
+    
+    // Clear filters button
+    $('#clear-filters').click(clearAllFilters);
+}
+
+function applyFilters() {
+    // Show loading
+    showLoading();
+    
+    // Collect filter values
+    const filters = {
+        category: $('#filter-categories').val() || [],
+        tags: $('#filter-tags').val() || [],
+        cameras: $('#filter-cameras').val() || [],
+        lenses: $('#filter-lenses').val() || [],
+        films: $('#filter-films').val() || [],
+        locations: $('#filter-locations').val() || [],
+        year: $('#filter-year').val() || '',
+        search: $('#filter-search').val() || '',
+        sort: $('#filter-sort').val() || 'published_desc'
+    };
+    
+    // Make AJAX request
+    $.ajax({
+        url: '/galleries/filter',
+        method: 'GET',
+        data: filters,
+        success: function(response) {
+            updateGalleries(response.albums);
+            updateActiveFilters(filters);
+            updateResultsCount(response.total);
+            hideLoading();
+        },
+        error: function() {
+            hideLoading();
+            console.error('Failed to apply filters');
+        }
+    });
+}
+
+function updateGalleries(albums) {
+    const grid = $('#galleries-grid');
+    
+    // Animate out current galleries
+    gsap.to('.gallery-card', {
+        y: -20,
+        opacity: 0,
+        duration: {{ filter_settings.animation_duration }},
+        stagger: 0.05,
+        ease: 'power3.in',
+        onComplete: function() {
+            // Update grid content
+            if (albums.length === 0) {
+                grid.html(`
+                    <div class="col-span-full text-center py-24" id="empty-state">
+                        <div class="max-w-md mx-auto">
+                            <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-4">No galleries found</h3>
+                            <p class="text-gray-600 mb-8 leading-relaxed">
+                                We couldn't find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.
+                            </p>
+                            <button onclick="clearAllFilters()" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
+                                <i class="fas fa-times"></i>
+                                Clear All Filters
+                            </button>
+                        </div>
+                    </div>
+                `);
+            } else {
+                // Generate new gallery cards HTML
+                let html = '';
+                albums.forEach(album => {
+                    html += generateGalleryCard(album);
+                });
+                grid.html(html);
+            }
+            
+            // Animate in new galleries
+            gsap.from('.gallery-card', {
+                y: 40,
+                opacity: 0,
+                duration: {{ filter_settings.animation_duration }},
+                stagger: 0.1,
+                ease: 'power3.out'
+            });
+        }
+    });
+}
+
+function generateGalleryCard(album) {
+    const coverImage = album.cover_image;
+    const tags = album.tags || [];
+    
+    return `
+        <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2" 
+                 data-album-id="${album.id}"
+                 onclick="window.location.href='/album/${album.slug}'">
+            
+            <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                ${coverImage ? 
+                    `<img src="${coverImage.preview_path.replace('/public', '')}" 
+                         alt="${coverImage.alt_text || album.title}" 
+                         class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                         loading="lazy">` :
+                    `<div class="w-full h-full flex items-center justify-center text-gray-400">
+                        <i class="fas fa-images text-4xl"></i>
+                    </div>`
+                }
+                
+                ${album.images_count > 0 ? 
+                    `<div class="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
+                        <i class="fas fa-images mr-1"></i>
+                        ${album.images_count}
+                    </div>` : ''
+                }
+                
+                ${album.category_name ? 
+                    `<div class="absolute top-4 left-4 bg-white/90 text-black px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">
+                        ${album.category_name}
+                    </div>` : ''
+                }
+            </div>
+            
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-black mb-3 group-hover:text-gray-700 transition-colors duration-200 line-clamp-2">
+                    ${album.title}
+                </h3>
+                
+                ${album.excerpt ? 
+                    `<p class="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
+                        ${album.excerpt}
+                    </p>` : ''
+                }
+                
+                <div class="flex items-center justify-between text-sm text-gray-500">
+                    <div class="flex items-center gap-4">
+                        ${album.shoot_date ? 
+                            `<span class="flex items-center gap-1">
+                                <i class="fas fa-calendar text-xs"></i>
+                                ${new Date(album.shoot_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                            </span>` : ''
+                        }
+                        
+                        ${tags.length > 0 ? 
+                            `<span class="flex items-center gap-1">
+                                <i class="fas fa-tag text-xs"></i>
+                                ${tags.length} tag${tags.length !== 1 ? 's' : ''}
+                            </span>` : ''
+                        }
+                    </div>
+                    
+                    <div class="flex items-center text-black group-hover:translate-x-1 transition-transform duration-200">
+                        <span class="text-xs font-medium mr-1">View</span>
+                        <i class="fas fa-arrow-right text-xs"></i>
+                    </div>
+                </div>
+                
+                ${tags.length > 0 ? 
+                    `<div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+                        ${tags.slice(0, 3).map(tag => 
+                            `<span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors">
+                                #${tag.name}
+                            </span>`
+                        ).join('')}
+                        ${tags.length > 3 ? 
+                            `<span class="inline-block text-gray-400 text-xs px-2 py-1">
+                                +${tags.length - 3} more
+                            </span>` : ''
+                        }
+                    </div>` : ''
+                }
+            </div>
+        </article>
+    `;
+}
+
+function updateActiveFilters(filters) {
+    const activeFiltersContainer = $('#active-filters');
+    const clearButton = $('#clear-filters');
+    let activeFiltersHtml = '';
+    let hasActiveFilters = false;
+    
+    // Check each filter type
+    Object.keys(filters).forEach(key => {
+        if (filters[key] && filters[key].length > 0 && key !== 'sort') {
+            hasActiveFilters = true;
+            if (Array.isArray(filters[key])) {
+                activeFiltersHtml += `<span class="active-filter-badge">${key}: ${filters[key].length}</span>`;
+            } else {
+                activeFiltersHtml += `<span class="active-filter-badge">${key}: ${filters[key]}</span>`;
+            }
+        }
+    });
+    
+    if (hasActiveFilters) {
+        activeFiltersContainer.html(activeFiltersHtml);
+        gsap.to(activeFiltersContainer, { opacity: 1, duration: 0.3 });
+        gsap.to(clearButton, { opacity: 1, duration: 0.3 });
+    } else {
+        gsap.to([activeFiltersContainer, clearButton], { opacity: 0, duration: 0.3 });
+    }
+}
+
+function updateResultsCount(count) {
+    $('#results-count').text(`${count} galleries found`);
+}
+
+function clearAllFilters() {
+    // Reset all filter inputs
+    $('.filter-select').val(null).trigger('change');
+    $('#filter-search').val('');
+    $('#filter-sort').val('published_desc');
+    
+    // Apply filters (which will be empty now)
+    applyFilters();
+}
+
+function showLoading() {
+    gsap.to('#loading-overlay', {
+        opacity: 1,
+        pointerEvents: 'auto',
+        duration: 0.3
+    });
+}
+
+function hideLoading() {
+    gsap.to('#loading-overlay', {
+        opacity: 0,
+        pointerEvents: 'none',
+        duration: 0.3
+    });
+}
+
+function initResponsiveGrid() {
+    const grid = $('#galleries-grid');
+    const desktopCols = grid.data('desktop-cols');
+    const tabletCols = grid.data('tablet-cols');
+    const mobileCols = grid.data('mobile-cols');
+    const gap = grid.data('gap');
+    
+    function updateGridColumns() {
+        const width = $(window).width();
+        let cols;
+        
+        if (width >= 1024) {
+            cols = desktopCols;
+        } else if (width >= 768) {
+            cols = tabletCols;
+        } else {
+            cols = mobileCols;
+        }
+        
+        const gapSize = gap === 'small' ? '1rem' : (gap === 'large' ? '2rem' : '1.5rem');
+        
+        grid.css({
+            'grid-template-columns': `repeat(${cols}, 1fr)`,
+            'gap': gapSize
+        });
+    }
+    
+    // Update on resize
+    $(window).resize(debounce(updateGridColumns, 250));
+    updateGridColumns();
+}
+
+// Utility function for debouncing
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+</script>
+
+<style>
+/* Custom Select2 styling */
+.select2-container--default .select2-selection--multiple {
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+    min-height: 3rem;
+}
+
+.select2-container--default .select2-selection--single {
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    height: 3rem;
+    line-height: 3rem;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--multiple,
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: #000;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    margin: 0.125rem;
+}
+
+.select2-dropdown {
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Active filter badges */
+.active-filter-badge {
+    display: inline-block;
+    background-color: #000;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Grid responsive classes */
+@media (min-width: 768px) {
+    #galleries-grid[data-tablet-cols="2"] {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    #galleries-grid[data-tablet-cols="3"] {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    #galleries-grid[data-desktop-cols="2"] {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    #galleries-grid[data-desktop-cols="3"] {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    #galleries-grid[data-desktop-cols="4"] {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    #galleries-grid[data-desktop-cols="5"] {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* Filter animations */
+.filters-open {
+    max-height: 500px !important;
+}
+</style>
+{% endblock %}
