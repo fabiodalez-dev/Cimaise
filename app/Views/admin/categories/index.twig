@@ -1,139 +1,522 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}Categories — photoCMS{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-6">
+  <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Categories</h1>
-      <p class="text-gray-600 mt-1">Gerarchia e ordinamento con drag & drop</p>
+      <h1 class="text-3xl font-bold text-gray-900">Categories Management</h1>
+      <p class="text-gray-600 mt-2">Organize your categories with drag & drop hierarchy and visual management</p>
     </div>
+    <a href="/admin/categories/create" class="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg transition-colors inline-flex items-center">
+      <i class="fas fa-plus mr-2"></i>New Category
+    </a>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="lg:col-span-2 card p-6">
-      <h2 class="text-lg font-medium text-gray-900 mb-3">Organizza</h2>
-      <style>
-        .droplist { min-height: 12px; border-left: 2px dashed #e5e7eb; padding-left: 0.5rem; }
-        .sortable-ghost { opacity: .5; }
-      </style>
-      <ul id="cat-root" class="space-y-2 droplist">
-        {% macro render_nodes(parent, byParent) %}
-          {% set children = byParent[parent|default(0)]|default([]) %}
-          {% for c in children %}
-            <li class="border rounded p-3" data-id="{{ c.id }}">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2 cursor-move"><i class="fas fa-grip-vertical text-gray-400"></i><span class="font-medium">{{ c.name }}</span><code class="text-xs text-gray-500">/{{ c.slug }}</code></div>
-                <div class="flex items-center gap-2">
-                  <button class="text-gray-600 hover:text-black" data-edit="{{ c.id }}" type="button" title="Modifica"><i class="fas fa-edit"></i></button>
-                  <form method="post" action="/admin/categories/{{ c.id }}/delete" onsubmit="return confirm('Eliminare questa categoria?');">
-                    <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <button class="text-red-600 hover:text-red-800" title="Elimina"><i class="fas fa-trash"></i></button>
-                  </form>
+  <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
+    <!-- Categories Visual Grid -->
+    <div class="xl:col-span-3">
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-gray-900">Category Hierarchy</h2>
+          <div class="text-sm text-gray-500">
+            <i class="fas fa-info-circle mr-1"></i>
+            Drag to reorder and nest categories
+          </div>
+        </div>
+        
+        <style>
+          .category-item {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+          }
+          .category-item:hover {
+            border-color: #64748b;
+            box-shadow: 0 8px 25px rgba(100, 116, 139, 0.15);
+            transform: translateY(-2px);
+          }
+          .category-item.has-image {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
+          }
+          .category-image {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+          }
+          .category-item:hover .category-image {
+            opacity: 1;
+          }
+          .category-content {
+            position: relative;
+            z-index: 1;
+          }
+          .category-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 4px;
+          }
+          .category-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+          }
+          .category-slug {
+            background: rgba(100, 116, 139, 0.1);
+            color: #475569;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+          }
+          .category-badge {
+            background: #64748b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 500;
+          }
+          .category-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+          }
+          .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+          }
+          .action-btn.edit {
+            background: #64748b;
+            color: white;
+          }
+          .action-btn.edit:hover {
+            background: #475569;
+            transform: scale(1.05);
+          }
+          .action-btn.delete {
+            background: #000000;
+            color: white;
+          }
+          .action-btn.delete:hover {
+            background: #374151;
+            transform: scale(1.05);
+          }
+          .action-btn.drag {
+            background: #cbd5e1;
+            color: #475569;
+            cursor: grab;
+          }
+          .action-btn.drag:hover {
+            background: #94a3b8;
+            color: #334155;
+          }
+          .action-btn.drag:active {
+            cursor: grabbing;
+          }
+          .droplist { 
+            min-height: 20px;
+            padding-left: 20px;
+            border-left: 3px dashed #cbd5e1;
+            margin-left: 16px;
+          }
+          .sortable-ghost { 
+            opacity: 0.4;
+            transform: rotate(3deg);
+          }
+          .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+          }
+          .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+            color: #cbd5e1;
+          }
+        </style>
+        
+        <div id="cat-root" class="droplist">
+          {% macro render_nodes(parent, byParent) %}
+            {% set children = byParent[parent|default(0)]|default([]) %}
+            {% for c in children %}
+              <div class="category-item {{ c.image_path and c.image_path != '' ? 'has-image' : '' }}" data-id="{{ c.id }}">
+                {% if c.image_path and c.image_path != '' %}
+                  <img src="{{ c.image_path }}" alt="{{ c.name }}" class="category-image" onerror="this.style.display='none'">
+                {% endif %}
+                
+                <div class="category-content">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1 {{ c.image_path and c.image_path != '' ? 'pr-16' : '' }}">
+                      <div class="category-title">{{ c.name }}</div>
+                      <div class="category-meta">
+                        <span class="category-slug">/{{ c.slug }}</span>
+                        {% if c.image_path and c.image_path != '' %}
+                          <span class="category-badge">
+                            <i class="fas fa-image mr-1"></i>Image
+                          </span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    
+                    <div class="category-actions">
+                      <button class="action-btn drag" title="Drag to reorder">
+                        <i class="fas fa-grip-vertical"></i>
+                      </button>
+                      <button class="action-btn edit" data-edit="{{ c.id }}" title="Edit category">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <form method="post" action="/admin/categories/{{ c.id }}/delete" class="inline" onsubmit="return confirm('Delete this category? This action cannot be undone.')">
+                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                        <button class="action-btn delete" title="Delete category">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="droplist mt-4">
+                  {{ _self.render_nodes(c.id, byParent) }}
                 </div>
               </div>
-              <ul class="ml-6 mt-2 space-y-2 droplist">
-                {{ _self.render_nodes(c.id, byParent) }}
-              </ul>
-            </li>
-          {% endfor %}
-        {% endmacro %}
+            {% endfor %}
+          {% endmacro %}
 
-        {{ _self.render_nodes(0, byParent) }}
-      </ul>
-      <div class="text-sm text-gray-500 mt-3">Trascina per ordinare e annidare. I cambi vengono salvati automaticamente.</div>
+          {% if byParent[0] is defined and byParent[0]|length > 0 %}
+            {{ _self.render_nodes(0, byParent) }}
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-folder-open"></i>
+              <div class="text-lg font-medium mb-2 text-gray-900">No categories yet</div>
+              <div class="text-sm mb-4">Create your first category to get started organizing your content</div>
+              <a href="/admin/categories/create" class="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg transition-colors inline-flex items-center">
+                <i class="fas fa-plus mr-2"></i>Create First Category
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
 
-    <div class="card p-6">
-      <h2 class="text-lg font-medium text-gray-900 mb-3">Dettagli</h2>
-      <form id="cat-form" method="post" action="/admin/categories" class="space-y-4">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <input type="hidden" name="id" id="cat-id" value="">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-          <input class="form-input" type="text" name="name" id="cat-name" required>
+    <!-- Quick Edit Panel -->
+    <div class="xl:col-span-1">
+      <div class="card p-6 sticky top-24">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">
+          <i class="fas fa-edit mr-2 text-gray-600"></i>Quick Edit
+        </h2>
+        
+        <form id="cat-form" method="post" action="/admin/categories" enctype="multipart/form-data" class="space-y-4">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="id" id="cat-id" value="">
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
+            <input class="form-input" type="text" name="name" id="cat-name" placeholder="Enter category name..." required>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">URL Slug</label>
+            <input class="form-input" type="text" name="slug" id="cat-slug" placeholder="Auto-generated if empty">
+            <small class="text-gray-500 text-xs mt-1">Used in URLs, leave empty for auto-generation</small>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Parent Category</label>
+            <select class="form-input" name="parent_id" id="cat-parent">
+              <option value="">None (Main category)</option>
+              {% for parent in byParent[0]|default([]) %}
+                <option value="{{ parent.id }}">{{ parent.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Category Image</label>
+            <div id="current-image" class="hidden mb-3">
+              <img id="current-image-preview" class="w-full h-32 object-cover rounded-lg border" alt="Current image">
+              <div class="flex items-center justify-between mt-2 p-2 bg-gray-50 rounded">
+                <small class="text-gray-600">Current image</small>
+                <label class="flex items-center gap-1 text-red-600 cursor-pointer text-sm">
+                  <input type="checkbox" name="remove_image" value="1" class="rounded">
+                  Remove image
+                </label>
+              </div>
+            </div>
+            <input class="form-input" type="file" name="image" accept="image/*" id="cat-image">
+            <small class="text-gray-500 text-xs mt-1">JPG, PNG, WebP formats supported. Used in navigation menus.</small>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Sort Order</label>
+            <input class="form-input" type="number" name="sort_order" id="cat-sort" value="0" min="0">
+          </div>
+          
+          <div class="flex flex-col gap-2 pt-4">
+            <button class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-colors w-full flex items-center justify-center" type="submit">
+              <i class="fas fa-save mr-2"></i>Save Category
+            </button>
+            <button id="cat-reset" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition-colors w-full flex items-center justify-center" type="button">
+              <i class="fas fa-plus mr-2"></i>New Category
+            </button>
+          </div>
+        </form>
+        
+        <div class="mt-6 pt-6 border-t border-gray-200">
+          <div class="text-sm text-gray-600">
+            <div class="flex items-center mb-2">
+              <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+              <strong>Pro Tips:</strong>
+            </div>
+            <ul class="space-y-1 text-xs">
+              <li>• Click any category to edit it instantly</li>
+              <li>• Drag categories to reorder and create hierarchy</li>
+              <li>• Images are displayed in navigation menus</li>
+              <li>• Changes save automatically when dragging</li>
+            </ul>
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-          <input class="form-input" type="text" name="slug" id="cat-slug" placeholder="(auto se vuoto)">
-        </div>
-        <div class="flex gap-2">
-          <button class="btn-primary" type="submit">Salva</button>
-          <button id="cat-reset" class="btn-secondary" type="button">Nuova</button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script>
     let csrfToken = '{{ csrf }}';
+    
     function initSortables() {
-      document.querySelectorAll('#cat-root, #cat-root ul').forEach(el => {
+      document.querySelectorAll('#cat-root, #cat-root .droplist').forEach(el => {
         if (el.dataset.sortableInited) return;
         new Sortable(el, {
           group: { name: 'cats', pull: true, put: true },
-          animation: 150,
+          animation: 200,
           fallbackOnBody: true,
           forceFallback: true,
           swapThreshold: 0.65,
-          handle: '.fa-grip-vertical',
+          handle: '.action-btn.drag',
           ghostClass: 'sortable-ghost',
-          onEnd: () => { initSortables(); debounceSave(); }
+          onEnd: () => { 
+            initSortables();
+            debounceSave();
+          }
         });
         el.dataset.sortableInited = '1';
       });
     }
-    const debounceSave = debounce(saveTree, 200);
-    function debounce(fn, ms){ let t; return (...args) => { clearTimeout(t); t=setTimeout(()=>fn.apply(null,args), ms); } }
-    function readTree(ul){
+    
+    const debounceSave = debounce(saveTree, 300);
+    function debounce(fn, ms){ 
+      let t; 
+      return (...args) => { 
+        clearTimeout(t); 
+        t = setTimeout(() => fn.apply(null, args), ms); 
+      }
+    }
+    
+    function readTree(container) {
       const out = [];
-      ul.querySelectorAll(':scope > li').forEach(li => {
-        const node = { id: parseInt(li.dataset.id, 10) || 0, children: [] };
-        const child = li.querySelector(':scope > ul');
-        if (child) node.children = readTree(child);
+      container.querySelectorAll(':scope > .category-item').forEach(item => {
+        const node = { id: parseInt(item.dataset.id, 10) || 0, children: [] };
+        const childContainer = item.querySelector(':scope > .droplist');
+        if (childContainer) {
+          node.children = readTree(childContainer);
+        }
         out.push(node);
       });
       return out;
     }
-    async function saveTree(){
+    
+    async function saveTree() {
       const root = document.getElementById('cat-root');
       const tree = readTree(root);
-      const res = await fetch('/admin/categories/reorder', { method:'POST', headers: { 'Content-Type':'application/json', 'X-CSRF-Token': csrfToken, 'Accept':'application/json' }, body: JSON.stringify({ tree }) });
-      const newToken = res.headers.get('X-CSRF-Token'); if (newToken) { csrfToken = newToken; document.querySelectorAll('input[name="csrf"]').forEach(i=>i.value=newToken); }
+      
+      try {
+        const res = await fetch('/admin/categories/reorder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ tree })
+        });
+        
+        const newToken = res.headers.get('X-CSRF-Token');
+        if (newToken) {
+          csrfToken = newToken;
+          document.querySelectorAll('input[name="csrf"]').forEach(i => i.value = newToken);
+        }
+        
+        if (res.ok) {
+          showToast('Category order updated successfully', 'success');
+        }
+      } catch (error) {
+        showToast('Failed to update category order', 'error');
+      }
     }
-    // Inline edit: fetch JSON details for a category
+    
+    // Quick edit functionality
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-edit]');
       if (!btn) return;
       e.preventDefault();
+      
       const id = btn.getAttribute('data-edit');
-      const res = await fetch('/admin/api/category/'+id, { headers: { 'Accept':'application/json' } });
-      if (!res.ok) return;
-      const data = await res.json();
-      document.getElementById('cat-id').value = data.id;
-      document.getElementById('cat-name').value = data.name || '';
-      document.getElementById('cat-slug').value = data.slug || '';
-      const form = document.getElementById('cat-form');
-      form.action = '/admin/categories/'+id;
+      
+      try {
+        const res = await fetch('/admin/api/category/' + id, {
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!res.ok) throw new Error('Failed to fetch category data');
+        
+        const data = await res.json();
+        
+        // Populate form fields
+        document.getElementById('cat-id').value = data.id;
+        document.getElementById('cat-name').value = data.name || '';
+        document.getElementById('cat-slug').value = data.slug || '';
+        document.getElementById('cat-sort').value = data.sort_order || 0;
+        document.getElementById('cat-parent').value = data.parent_id || '';
+        
+        // Handle image preview
+        const currentImageDiv = document.getElementById('current-image');
+        const currentImagePreview = document.getElementById('current-image-preview');
+        
+        if (data.image_path) {
+          currentImagePreview.src = data.image_path;
+          currentImageDiv.classList.remove('hidden');
+        } else {
+          currentImageDiv.classList.add('hidden');
+        }
+        
+        // Reset remove image checkbox
+        const removeImageCheckbox = document.querySelector('input[name="remove_image"]');
+        if (removeImageCheckbox) {
+          removeImageCheckbox.checked = false;
+        }
+        
+        // Update form action
+        const form = document.getElementById('cat-form');
+        form.action = '/admin/categories/' + id;
+        
+        // Scroll to form
+        document.getElementById('cat-form').scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        showToast('Category loaded for editing', 'success');
+      } catch (error) {
+        showToast('Failed to load category data', 'error');
+      }
     });
+    
+    // Reset form for new category
     document.getElementById('cat-reset').addEventListener('click', () => {
       document.getElementById('cat-id').value = '';
       document.getElementById('cat-name').value = '';
       document.getElementById('cat-slug').value = '';
+      document.getElementById('cat-sort').value = '0';
+      document.getElementById('cat-parent').value = '';
+      document.getElementById('cat-image').value = '';
+      
+      // Hide current image
+      document.getElementById('current-image').classList.add('hidden');
+      
+      // Reset remove image checkbox
+      const removeImageCheckbox = document.querySelector('input[name="remove_image"]');
+      if (removeImageCheckbox) {
+        removeImageCheckbox.checked = false;
+      }
+      
+      // Update form action
       const form = document.getElementById('cat-form');
       form.action = '/admin/categories';
+      
+      showToast('Form reset for new category', 'success');
     });
-    // AJAX submit for create/update to prevent CSRF rotation issues
+    
+    // Handle form submission with proper file upload
     document.getElementById('cat-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.currentTarget;
-      const fd = new URLSearchParams();
-      fd.set('name', document.getElementById('cat-name').value || '');
-      fd.set('slug', document.getElementById('cat-slug').value || '');
-      const res = await fetch(form.action, { method:'POST', headers: { 'Content-Type':'application/x-www-form-urlencoded', 'X-CSRF-Token': csrfToken, 'Accept':'text/html' }, body: fd.toString() });
-      const newToken = res.headers.get('X-CSRF-Token'); if (newToken) csrfToken = newToken;
-      // Simplest: refresh to reflect structure changes and updated CSRF
-      location.reload();
+      const formData = new FormData(form);
+      
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRF-Token': csrfToken,
+            'Accept': 'text/html'
+          }
+        });
+        
+        const newToken = res.headers.get('X-CSRF-Token');
+        if (newToken) csrfToken = newToken;
+        
+        if (res.ok) {
+          showToast('Category saved successfully', 'success');
+          // Refresh page to show changes
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          throw new Error('Server responded with error');
+        }
+      } catch (error) {
+        showToast('Failed to save category', 'error');
+      }
     });
+    
+    // Image preview functionality
+    document.getElementById('cat-image').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const currentImageDiv = document.getElementById('current-image');
+          const currentImagePreview = document.getElementById('current-image-preview');
+          currentImagePreview.src = e.target.result;
+          currentImageDiv.classList.remove('hidden');
+          
+          // Uncheck remove image if new image is selected
+          const removeImageCheckbox = document.querySelector('input[name="remove_image"]');
+          if (removeImageCheckbox) {
+            removeImageCheckbox.checked = false;
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    
+    // Initialize drag and drop
     initSortables();
+    
+    // Toast notification function
+    function showToast(message, type = 'success') {
+      if (window.showToast) {
+        window.showToast(message, type === 'success' ? '' : 'error');
+      }
+    }
   </script>
 {% endblock %}

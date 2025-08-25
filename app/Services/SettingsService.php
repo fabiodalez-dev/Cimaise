@@ -30,8 +30,10 @@ class SettingsService
 
     public function set(string $key, mixed $value): void
     {
-        $stmt = $this->db->pdo()->prepare('REPLACE INTO settings(`key`,`value`) VALUES(:k, :v)');
-        $stmt->execute([':k' => $key, ':v' => json_encode($value, JSON_UNESCAPED_SLASHES)]);
+        $stmt = $this->db->pdo()->prepare('INSERT OR REPLACE INTO settings(`key`,`value`,`type`,`updated_at`) VALUES(:k, :v, :t, datetime(\'now\'))');
+        $encodedValue = json_encode($value, JSON_UNESCAPED_SLASHES);
+        $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
+        $stmt->execute([':k' => $key, ':v' => $encodedValue, ':t' => $type]);
     }
 
     public function defaults(): array
@@ -42,11 +44,14 @@ class SettingsService
             'image.breakpoints' => ['sm' => 768, 'md' => 1200, 'lg' => 1920, 'xl' => 2560, 'xxl' => 3840],
             'image.preview' => ['width' => 480, 'height' => null],
             'visibility' => ['public' => true],
-            'gallery.default_template' => [
-                'layout' => 'grid',
-                'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1],
-                'masonry' => false
-            ],
+            'gallery.default_template_id' => null,
+            'site.title' => 'photoCMS',
+            'site.description' => 'Professional Photography Portfolio',
+            'site.copyright' => '© 2024 Photography Portfolio',
+            'site.email' => '',
+            'performance.compression' => true,
+            'pagination.limit' => 12,
+            'cache.ttl' => 24,
         ];
     }
 }

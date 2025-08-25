@@ -25,7 +25,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-black mb-1">Contenuto Completo</label>
-          <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black" name="body" rows="6" placeholder="Descrizione completa dell'album...">{{ item.body }}</textarea>
+          <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black" name="body" rows="12" placeholder="Descrizione completa dell'album...">{{ item.body }}</textarea>
           <p class="text-xs text-gray-600 mt-1">Contenuto completo con formattazione (supporta grassetto, corsivo, elenchi, etc.)</p>
         </div>
       </div>
@@ -71,98 +71,48 @@
           
           <div class="space-y-3">
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block text-sm font-medium text-gray-700">Cameras</label>
-                <label class="flex items-center text-xs text-gray-600">
-                  <input type="checkbox" id="cameras-custom-toggle" class="mr-1 rounded">
-                  Usa campi liberi
-                </label>
-              </div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Cameras</label>
               <select class="form-input" name="cameras[]" id="album-cameras" multiple>
                 {% for camera in cameras %}
                   <option value="{{ camera.id }}" {% if camera.id in cameraIds %}selected{% endif %}>{{ camera.make }} {{ camera.model }}</option>
                 {% endfor %}
               </select>
-              <div id="cameras-custom-fields" class="mt-2 hidden">
-                <textarea name="custom_cameras" placeholder="Una camera per riga, es: Leica M6, Canon AE-1" class="form-input" rows="3">{{ item.custom_cameras ?? '' }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Una camera per riga</p>
-              </div>
             </div>
             
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block text-sm font-medium text-gray-700">Lenses</label>
-                <label class="flex items-center text-xs text-gray-600">
-                  <input type="checkbox" id="lenses-custom-toggle" class="mr-1 rounded">
-                  Usa campi liberi
-                </label>
-              </div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Lenses</label>
               <select class="form-input" name="lenses[]" id="album-lenses" multiple>
                 {% for lens in lenses %}
                   <option value="{{ lens.id }}" {% if lens.id in lensIds %}selected{% endif %}>{{ lens.brand }} {{ lens.model }}</option>
                 {% endfor %}
               </select>
-              <div id="lenses-custom-fields" class="mt-2 hidden">
-                <textarea name="custom_lenses" placeholder="Una lente per riga, es: Canon 50mm f/1.4, Leica 35mm f/2" class="form-input" rows="3">{{ item.custom_lenses ?? '' }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Una lente per riga</p>
-              </div>
             </div>
             
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block text-sm font-medium text-gray-700">Films</label>
-                <label class="flex items-center text-xs text-gray-600">
-                  <input type="checkbox" id="films-custom-toggle" class="mr-1 rounded">
-                  Usa campi liberi
-                </label>
-              </div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Films</label>
               <select class="form-input" name="films[]" id="album-films" multiple>
                 {% for film in films %}
                   <option value="{{ film.id }}" {% if film.id in filmIds %}selected{% endif %}>{{ film.brand }} {{ film.name }}</option>
                 {% endfor %}
               </select>
-              <div id="films-custom-fields" class="mt-2 hidden">
-                <textarea name="custom_films" placeholder="Un film per riga, es: Kodak Portra 400, Fuji Pro 400H" class="form-input" rows="3">{{ item.custom_films ?? '' }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Un film per riga</p>
-              </div>
             </div>
             
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block text-sm font-medium text-gray-700">Developers</label>
-                <label class="flex items-center text-xs text-gray-600">
-                  <input type="checkbox" id="developers-custom-toggle" class="mr-1 rounded">
-                  Usa campi liberi
-                </label>
-              </div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Developers</label>
               <select class="form-input" name="developers[]" id="album-developers" multiple>
                 {% for developer in developers %}
                   <option value="{{ developer.id }}" {% if developer.id in developerIds %}selected{% endif %}>{{ developer.name }}</option>
                 {% endfor %}
               </select>
-              <div id="developers-custom-fields" class="mt-2 hidden">
-                <textarea name="custom_developers" placeholder="Uno sviluppatore per riga, es: Kodak D-76, Rodinal" class="form-input" rows="2">{{ item.custom_developers ?? '' }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Uno sviluppatore per riga</p>
-              </div>
             </div>
             
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block text-sm font-medium text-gray-700">Labs</label>
-                <label class="flex items-center text-xs text-gray-600">
-                  <input type="checkbox" id="labs-custom-toggle" class="mr-1 rounded">
-                  Usa campi liberi
-                </label>
-              </div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Labs</label>
               <select class="form-input" name="labs[]" id="album-labs" multiple>
                 {% for lab in labs %}
                   <option value="{{ lab.id }}" {% if lab.id in labIds %}selected{% endif %}>{{ lab.name }}</option>
                 {% endfor %}
               </select>
-              <div id="labs-custom-fields" class="mt-2 hidden">
-                <textarea name="custom_labs" placeholder="Un laboratorio per riga, es: Carmencita Film Lab, The FPPF" class="form-input" rows="2">{{ item.custom_labs ?? '' }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Un laboratorio per riga</p>
-              </div>
             </div>
           </div>
         </div>
@@ -510,7 +460,7 @@
         content_css: false,
         content_style: 'body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111; line-height:1.7} a{color:#000; text-decoration:underline} blockquote{border-left:3px solid #e5e7eb; margin:1rem 0; padding-left:.75rem; color:#444}',
         valid_elements: 'p,br,strong/b,em/i,ul,ol,li,blockquote,a[href|target|rel],h2,h3,h4,hr',
-        height: 300,
+        height: 480,
         skin: 'oxide',
         content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: #111827; }',
         toolbar_mode: 'wrap',

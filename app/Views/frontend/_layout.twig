@@ -49,6 +49,9 @@
     
     <!-- Custom styles -->
     <style>
+        /* Font imports must be at the top */
+        @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400&display=swap');
+        
         .line-clamp-2 {
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -195,60 +198,317 @@
         .pswp__button--arrow--next {
             right: 20px;
         }
+        
+        /* MASONRY FIT - Preserva le proporzioni originali delle immagini */
+        .masonry-fit-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            align-items: start;
+        }
+        
+        .masonry-fit-item {
+            width: 100%;
+            height: auto;
+            overflow: hidden;
+        }
+        
+        .masonry-fit-item img {
+            display: block;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+        
+        @media (min-width: 768px) {
+            .masonry-fit-container {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .masonry-fit-container {
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                gap: 24px;
+            }
+        }
+        
+        /* SLIDESHOW PRO - Controlli avanzati e thumbnails */
+        .slideshow-pro {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .slideshow-thumbs {
+            margin-top: 16px;
+        }
+        
+        .slideshow-thumbs .swiper-slide {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .slideshow-thumbs .swiper-slide-thumb-active {
+            border-color: #000;
+            transform: scale(1.1);
+        }
+        
+        /* GRID MINIMAL - Hover eleganti e spacing aumentato */
+        .grid-minimal-item {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .grid-minimal-item:hover {
+            transform: translateY(-8px) scale(1.02);
+        }
+        
+        /* MOSAIC PRO - Layout irregolare con elementi in evidenza */
+        .mosaic-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-auto-rows: 200px;
+            gap: 12px;
+            grid-auto-flow: row dense;
+        }
+        
+        .mosaic-item {
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .mosaic-featured {
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+        
+        .mosaic-normal {
+            grid-column: span 1;
+            grid-row: span 1;
+        }
+        
+        /* Variazioni dinamiche per gli elementi mosaic */
+        .mosaic-item[data-index="1"], .mosaic-item[data-index="7"], .mosaic-item[data-index="13"] {
+            grid-row: span 1.5;
+        }
+        
+        .mosaic-item[data-index="4"], .mosaic-item[data-index="10"], .mosaic-item[data-index="16"] {
+            grid-column: span 1.5;
+        }
+        
+        @media (max-width: 1024px) {
+            .mosaic-container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .mosaic-container {
+                grid-template-columns: repeat(2, 1fr);
+                grid-auto-rows: 150px;
+            }
+            
+            .mosaic-featured {
+                grid-column: span 2;
+                grid-row: span 1;
+            }
+        }
+        
+        /* CAROUSEL FLOW - Scroll orizzontale fluido */
+        .carousel-flow-container {
+            margin: 0 -1rem;
+            padding: 0 1rem;
+        }
+        
+        .carousel-flow {
+            cursor: grab;
+        }
+        
+        .carousel-flow:active {
+            cursor: grabbing;
+        }
+        
+        .carousel-flow .swiper-slide {
+            transition: all 0.3s ease;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .carousel-flow .swiper-slide:hover {
+            transform: scale(1.05) translateY(-10px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+        }
+        
+        /* POLAROID VINTAGE - Effetto fotografico retrò */
+        .polaroid-container {
+            position: relative;
+            min-height: 70vh;
+            background: radial-gradient(circle at 30% 70%, #8b4513, #a0522d, #cd853f);
+            background-size: 200% 200%;
+            animation: polaroidBg 20s ease infinite;
+        }
+        
+        @keyframes polaroidBg {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .polaroid-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+        
+        .polaroid-item:hover {
+            transform: rotate(0deg) !important;
+            scale: 1.2;
+            z-index: 100;
+            filter: none !important;
+        }
+        
+        .polaroid-item a {
+            display: block;
+            background: #ffffff;
+            border-radius: 2px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3),
+                        0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+            transform-origin: center center;
+            transition: all 0.3s ease;
+        }
+        
+        .polaroid-item:hover a {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5),
+                        0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+        }
+        
+        .polaroid-item img {
+            filter: sepia(0.3) contrast(1.2) brightness(1.1) saturate(0.8);
+            transition: filter 0.3s ease;
+        }
+        
+        .polaroid-item:hover img {
+            filter: sepia(0.1) contrast(1.1) brightness(1.05) saturate(1);
+        }
+        
+        /* Font handwriting personalizzato */
+        .font-handwriting {
+            font-family: 'Kalam', cursive;
+        }
+        
+        /* Responsive adjustments per polaroid */
+        @media (max-width: 768px) {
+            .polaroid-container {
+                min-height: 50vh;
+                padding: 1rem;
+            }
+            
+            .polaroid-item {
+                position: relative !important;
+                float: left;
+                margin: 0.5rem;
+                transform: none !important;
+                top: auto !important;
+                left: auto !important;
+            }
+            
+            .polaroid-item a {
+                width: 150px !important;
+            }
+        }
+        
+        /* Mega menu and header image protection */
+        header img,
+        #categories-mega-menu img,
+        #mobile-menu img {
+            opacity: 1 !important;
+            transform: scale(1) !important;
+        }
     </style>
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">
     
     <!-- Header -->
-    <header class="border-b border-neutral-200 sticky top-0 bg-white/90 backdrop-blur z-40">
+    <header class="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-md z-50 transition-all duration-300" id="main-header">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-4">
-                <div class="flex items-center gap-6">
+            <div class="flex justify-between items-center py-5">
+                <!-- Left: Logo and Desktop Navigation -->
+                <div class="flex items-center gap-8">
                     <h1 class="text-xl font-semibold">
-                        <a href="/" class="hover:text-neutral-700 transition-colors">Portfolio</a>
+                        <a href="/" class="hover:text-gray-600 transition-colors duration-200">Portfolio</a>
                     </h1>
                     
-                    <!-- Desktop nav with dropdown -->
-                    <nav class="hidden md:flex items-center gap-4 relative">
-                        <a href="/" class="text-sm hover:text-neutral-700 transition-colors">Home</a>
-                        <a href="{{ about_url }}" class="text-sm hover:text-neutral-700 transition-colors">About</a>
-                        <div class="relative" id="cats-wrapper">
-                            <button id="cats-toggle" class="text-sm inline-flex items-center gap-1 hover:text-neutral-700 transition-colors">
+                    <!-- Desktop Navigation -->
+                    <nav class="hidden lg:flex items-center gap-6" id="desktop-nav">
+                        <a href="/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">Home</a>
+                        <a href="{{ about_url }}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">About</a>
+                        
+                        <!-- Categories Mega Menu -->
+                        <div class="relative" id="categories-dropdown">
+                            <button id="categories-toggle" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md">
                                 Categories
-                                <i class="fas fa-chevron-down text-[10px] transition-transform" id="cats-icon"></i>
+                                <i class="fas fa-chevron-down text-xs transition-transform duration-200" id="categories-icon"></i>
                             </button>
-                            <div id="cats-menu" class="hidden absolute left-0 mt-3 w-[900px] bg-white border border-neutral-200 shadow-2xl rounded-lg z-50 overflow-hidden">
-                                <div class="p-6">
-                                    <!-- Parent categories with images -->
-                                    <div class="grid grid-cols-3 gap-6 mb-6" id="parent-categories">
+                            
+                            <!-- Mega Menu Panel -->
+                            <div id="categories-mega-menu" class="absolute left-0 top-full mt-2 w-[720px] bg-white border border-gray-200 shadow-xl rounded-xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out">
+                                <div class="p-8">
+                                    <!-- Parent Categories Grid -->
+                                    <div class="grid grid-cols-3 gap-6 mb-6" id="parent-categories-grid">
                                         {% for category in parent_categories|default([]) %}
-                                        <div class="group cursor-pointer" data-category-id="{{ category.id }}">
-                                            <div class="aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-neutral-100">
-                                                {% if category.image_path %}
-                                                    <img src="{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                                                {% else %}
-                                                    <div class="w-full h-full flex items-center justify-center text-neutral-400">
-                                                        <i class="fas fa-image text-2xl"></i>
-                                                    </div>
-                                                {% endif %}
-                                            </div>
-                                            <h3 class="font-medium text-sm group-hover:text-neutral-600 transition-colors">{{ category.name|e }}</h3>
-                                            {% if category.children|length > 0 %}
-                                                <p class="text-xs text-neutral-500">{{ category.children|length }} subcategories</p>
-                                            {% endif %}
+                                        <div class="group cursor-pointer category-parent-item relative" data-category-id="{{ category.id }}" data-category-slug="{{ category.slug }}" data-category-name="{{ category.name|e }}">
+                                            <a href="/category/{{ category.slug }}" class="block hover:no-underline">
+                                                <div class="relative aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-gray-50 transition-all duration-300 group-hover:shadow-lg">
+                                                    {% if category.image_path and category.image_path != '' %}
+                                                        <img src="{{ category.image_path }}" alt="{{ category.name|e }}" 
+                                                             class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                             onerror="this.style.display='none';">
+                                                    {% else %}
+                                                        <div class="w-full h-full flex items-center justify-center text-gray-400 group-hover:text-gray-600 transition-colors duration-300">
+                                                            <i class="fas fa-folder-open text-2xl"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                    
+                                                    <!-- Subcategories button overlay for categories with children -->
+                                                    {% if category.children|length > 0 %}
+                                                    <button class="subcategories-toggle absolute top-2 right-2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-white hover:scale-110 z-10" 
+                                                            data-category-id="{{ category.id }}" title="View subcategories">
+                                                        <i class="fas fa-list text-xs text-gray-600"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <div class="text-center">
+                                                    <h3 class="font-medium text-sm text-gray-900 group-hover:text-black transition-colors duration-200 mb-1">{{ category.name|e }}</h3>
+                                                    {% if category.children|length > 0 %}
+                                                        <p class="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-200">
+                                                            {{ category.children|length }} {{ category.children|length == 1 ? 'subcategory' : 'subcategories' }}
+                                                        </p>
+                                                    {% else %}
+                                                        <p class="text-xs text-gray-500 group-hover:text-black transition-colors duration-200">View albums</p>
+                                                    {% endif %}
+                                                </div>
+                                            </a>
                                         </div>
                                         {% endfor %}
                                     </div>
                                     
-                                    <!-- Subcategories (shown when parent is selected) -->
-                                    <div id="subcategories" class="hidden border-t pt-4">
-                                        <div class="flex items-center gap-2 mb-3">
-                                            <button id="back-btn" class="text-xs text-neutral-500 hover:text-black transition-colors">
-                                                <i class="fas fa-arrow-left mr-1"></i> Back
+                                    <!-- Subcategories Panel (shown on parent hover/click) -->
+                                    <div id="subcategories-panel" class="border-t border-gray-100 pt-6 hidden">
+                                        <div class="flex items-center gap-3 mb-4">
+                                            <button id="back-to-parents" class="text-xs text-gray-500 hover:text-black transition-colors duration-200 flex items-center gap-1">
+                                                <i class="fas fa-arrow-left"></i> Back
                                             </button>
-                                            <span id="current-parent" class="text-sm font-medium"></span>
+                                            <span class="text-xs text-gray-400">•</span>
+                                            <span id="current-parent-name" class="text-sm font-medium text-gray-900"></span>
                                         </div>
-                                        <div id="subcategories-list" class="grid grid-cols-4 gap-2">
+                                        
+                                        <div id="subcategories-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                             <!-- Populated by JavaScript -->
                                         </div>
                                     </div>
@@ -258,61 +518,101 @@
                     </nav>
                 </div>
                 
-                <div class="flex items-center space-x-4">
-                    <!-- Search/filters toggle -->
-                    <button id="filters-toggle" class="text-sm hover:text-neutral-700 transition-colors">
-                        Filters
+                <!-- Right Side Actions -->
+                <div class="flex items-center gap-4">
+                    <!-- Filters Toggle -->
+                    <button id="filters-toggle" class="hidden md:flex items-center gap-2 text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2 px-3 rounded-md hover:bg-gray-50">
+                        <i class="fas fa-filter text-xs"></i>
+                        <span>Filters</span>
                     </button>
                     
-                    <!-- Mobile menu toggle -->
-                    <button id="mobile-menu-toggle" class="md:hidden">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    <!-- Mobile Menu Button - Aligned with Logo -->
+                    <button id="mobile-menu-toggle" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                        <svg class="w-5 h-5 transition-transform duration-200" id="mobile-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path class="hamburger-line" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            <path class="close-line hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
             </div>
         </div>
         
-        <!-- Mobile menu -->
-        <div id="mobile-menu" class="md:hidden hidden border-t border-neutral-200 bg-white">
-            <div class="px-4 py-4 space-y-4">
-                <a href="/" class="block text-sm hover:text-neutral-700 transition-colors">Home</a>
-                <a href="{{ about_url }}" class="block text-sm hover:text-neutral-700 transition-colors">About</a>
+        <!-- Mobile Navigation Panel -->
+        <div id="mobile-menu" class="lg:hidden border-t border-gray-200 bg-white/98 backdrop-blur-md hidden overflow-hidden">
+            <div class="px-4 py-6 space-y-6 max-h-[calc(100vh-80px)] overflow-y-auto">
+                <!-- Main Navigation -->
+                <div class="space-y-4">
+                    <a href="/" class="block text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">Home</a>
+                    <a href="{{ about_url }}" class="block text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">About</a>
+                </div>
+                
+                <!-- Mobile Categories -->
                 <div>
-                    <div class="text-xs uppercase tracking-wide text-neutral-500 mb-2">Categories</div>
-                    <div class="space-y-2">
+                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-4">Categories</div>
+                    <div class="space-y-3">
                         {% for category in parent_categories|default([]) %}
-                        <div>
-                            <button class="mobile-category-toggle text-sm font-medium text-left w-full flex items-center justify-between hover:text-neutral-600 transition-colors" data-category-id="{{ category.id }}">
-                                <span>{{ category.name|e }}</span>
-                                {% if category.children|length > 0 %}
-                                    <i class="fas fa-chevron-right text-[10px] transition-transform"></i>
-                                {% endif %}
-                            </button>
+                        <div class="mobile-category-group">
                             {% if category.children|length > 0 %}
-                                <div class="mobile-subcategories hidden pl-4 mt-2 space-y-1" data-parent="{{ category.id }}">
+                                <button class="mobile-category-toggle w-full text-left flex items-center justify-between text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2" 
+                                        data-category-id="{{ category.id }}">
+                                    <div class="flex items-center gap-3">
+                                        {% if category.image_path and category.image_path != '' %}
+                                            <div class="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                                                <img src="{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                                            </div>
+                                        {% else %}
+                                            <div class="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                                <i class="fas fa-folder text-xs text-gray-400"></i>
+                                            </div>
+                                        {% endif %}
+                                        <span>{{ category.name|e }}</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
+                                </button>
+                                
+                                <div class="mobile-subcategories hidden pl-11 mt-2 space-y-2" data-parent="{{ category.id }}">
                                     {% for child in category.children %}
-                                        <a href="/category/{{ child.slug }}" class="block text-xs text-neutral-600 hover:text-black transition-colors">
+                                        <a href="/category/{{ child.slug }}" class="block text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200 py-1">
                                             {{ child.name|e }}
                                         </a>
                                     {% endfor %}
                                 </div>
+                            {% else %}
+                                <a href="/category/{{ category.slug }}" class="flex items-center gap-3 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">
+                                    {% if category.image_path and category.image_path != '' %}
+                                        <div class="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                                            <img src="{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                                        </div>
+                                    {% else %}
+                                        <div class="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                            <i class="fas fa-folder text-xs text-gray-400"></i>
+                                        </div>
+                                    {% endif %}
+                                    <span>{{ category.name|e }}</span>
+                                </a>
                             {% endif %}
                         </div>
                         {% endfor %}
                     </div>
                 </div>
+                
+                <!-- Mobile Filters -->
+                <div class="pt-4 border-t border-gray-200">
+                    <button id="mobile-filters-toggle" class="flex items-center gap-2 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200">
+                        <i class="fas fa-filter text-xs"></i>
+                        <span>Show Filters</span>
+                    </button>
+                </div>
             </div>
         </div>
         
-        <!-- Filters panel -->
-        <div id="filters-panel" class="hidden border-t border-neutral-200 bg-neutral-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <div class="flex flex-wrap gap-4 items-center text-sm">
-                    <div class="flex items-center space-x-2">
-                        <label class="font-medium">Process:</label>
-                        <select id="filter-process" class="border border-neutral-300 rounded px-2 py-1 text-xs">
+        <!-- Enhanced Filters Panel -->
+        <div id="filters-panel" class="border-t border-gray-200 bg-gray-50/80 backdrop-blur-md hidden transition-all duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+                <div class="flex flex-wrap gap-4 items-center">
+                    <div class="flex items-center gap-3">
+                        <label class="text-sm font-medium text-gray-700">Process:</label>
+                        <select id="filter-process" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                             <option value="">All</option>
                             <option value="analog">Analog</option>
                             <option value="digital">Digital</option>
@@ -320,9 +620,9 @@
                         </select>
                     </div>
                     
-                    <div class="flex items-center space-x-2">
-                        <label class="font-medium">Sort:</label>
-                        <select id="filter-sort" class="border border-neutral-300 rounded px-2 py-1 text-xs">
+                    <div class="flex items-center gap-3">
+                        <label class="text-sm font-medium text-gray-700">Sort:</label>
+                        <select id="filter-sort" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                             <option value="published_desc">Latest</option>
                             <option value="published_asc">Oldest</option>
                             <option value="title_asc">Title A-Z</option>
@@ -330,18 +630,20 @@
                         </select>
                     </div>
                     
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center gap-3">
                         <input type="text" id="filter-search" placeholder="Search camera, film..." 
-                               class="border border-neutral-300 rounded px-2 py-1 text-xs w-48">
+                               class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                     </div>
                     
-                    <button id="apply-filters" class="bg-black text-white px-3 py-1 text-xs rounded hover:bg-neutral-800 transition-colors">
-                        Apply
-                    </button>
-                    
-                    <button id="clear-filters" class="text-neutral-600 hover:text-black px-2 py-1 text-xs">
-                        Clear
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button id="apply-filters" class="bg-black text-white px-4 py-1.5 text-sm rounded-md hover:bg-gray-800 transition-colors duration-200 shadow-sm">
+                            Apply
+                        </button>
+                        
+                        <button id="clear-filters" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 text-sm transition-colors duration-200">
+                            Clear
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -388,13 +690,43 @@
     
     <!-- App JS -->
     <script>
-        // Mobile menu toggle
+        // Enhanced Mobile menu with animations
         document.getElementById('mobile-menu-toggle')?.addEventListener('click', function() {
             const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
+            const icon = this.querySelector('i');
+            
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                // Animate in
+                requestAnimationFrame(() => {
+                    menu.style.opacity = '0';
+                    menu.style.transform = 'translateY(-10px)';
+                    requestAnimationFrame(() => {
+                        menu.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        menu.style.opacity = '1';
+                        menu.style.transform = 'translateY(0)';
+                    });
+                });
+                // Animate burger to X
+                if (icon) {
+                    icon.style.transform = 'rotate(90deg)';
+                }
+            } else {
+                // Animate out
+                menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                menu.style.opacity = '0';
+                menu.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    menu.classList.add('hidden');
+                }, 200);
+                // Animate X back to burger
+                if (icon) {
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            }
         });
         
-        // Mobile category toggles
+        // Enhanced Mobile category toggles with smooth animations
         document.querySelectorAll('.mobile-category-toggle').forEach(button => {
             button.addEventListener('click', () => {
                 const categoryId = button.dataset.categoryId;
@@ -402,19 +734,56 @@
                 const icon = button.querySelector('i');
                 
                 if (subcategories) {
-                    subcategories.classList.toggle('hidden');
-                    if (icon) {
-                        icon.style.transform = subcategories.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(90deg)';
+                    if (subcategories.classList.contains('hidden')) {
+                        subcategories.classList.remove('hidden');
+                        // Smooth expand animation
+                        subcategories.style.maxHeight = '0px';
+                        subcategories.style.opacity = '0';
+                        subcategories.style.overflow = 'hidden';
+                        subcategories.style.transition = 'max-height 0.3s ease, opacity 0.3s ease';
+                        
+                        requestAnimationFrame(() => {
+                            subcategories.style.maxHeight = subcategories.scrollHeight + 'px';
+                            subcategories.style.opacity = '1';
+                        });
+                        
+                        if (icon) {
+                            icon.style.transition = 'transform 0.3s ease';
+                            icon.style.transform = 'rotate(90deg)';
+                        }
+                    } else {
+                        // Smooth collapse animation
+                        subcategories.style.maxHeight = subcategories.scrollHeight + 'px';
+                        subcategories.style.transition = 'max-height 0.3s ease, opacity 0.3s ease';
+                        
+                        requestAnimationFrame(() => {
+                            subcategories.style.maxHeight = '0px';
+                            subcategories.style.opacity = '0';
+                        });
+                        
+                        setTimeout(() => {
+                            subcategories.classList.add('hidden');
+                            subcategories.style.maxHeight = '';
+                            subcategories.style.opacity = '';
+                            subcategories.style.overflow = '';
+                        }, 300);
+                        
+                        if (icon) {
+                            icon.style.transition = 'transform 0.3s ease';
+                            icon.style.transform = 'rotate(0deg)';
+                        }
                     }
                 }
             });
         });
         
-        // Desktop mega menu
+        // Enhanced Desktop mega menu with category data and images
         const megaMenuData = {
             {% for category in parent_categories|default([]) %}
             {{ category.id }}: {
                 name: "{{ category.name|e }}",
+                slug: "{{ category.slug }}",
+                image: "{{ category.image_path ? category.image_path : '' }}",
                 children: [
                     {% for child in category.children %}
                     { name: "{{ child.name|e }}", slug: "{{ child.slug }}" }{% if not loop.last %},{% endif %}
@@ -424,140 +793,329 @@
             {% endfor %}
         };
         
-        // Desktop categories dropdown with subcategory support
+        // Enhanced Desktop categories mega menu with animations
         (function(){
-            const toggle = document.getElementById('cats-toggle');
-            const menu = document.getElementById('cats-menu');
-            const icon = document.getElementById('cats-icon');
-            const parentCats = document.getElementById('parent-categories');
-            const subcatsDiv = document.getElementById('subcategories');
-            const subcatsList = document.getElementById('subcategories-list');
-            const currentParent = document.getElementById('current-parent');
-            const backBtn = document.getElementById('back-btn');
+            const toggle = document.getElementById('categories-toggle');
+            const menu = document.getElementById('categories-mega-menu');
+            const icon = document.getElementById('categories-icon');
+            let isOpen = false;
+            let hoverTimeout;
             
             if (!toggle || !menu) return;
             
-            let isOpen = false;
-            
             function closeMenu() {
-                menu.classList.add('hidden');
-                icon?.style.setProperty('transform', 'rotate(0deg)');
-                showParentCategories();
+                if (!isOpen) return;
+                
+                menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                menu.style.opacity = '0';
+                menu.style.transform = 'translateY(-10px)';
+                
+                setTimeout(() => {
+                    menu.classList.add('opacity-0', 'invisible');
+                    menu.classList.remove('opacity-100', 'visible');
+                }, 200);
+                
+                if (icon) {
+                    icon.style.transform = 'rotate(0deg)';
+                }
+                
                 isOpen = false;
             }
             
             function openMenu() {
-                menu.classList.remove('hidden');
-                icon?.style.setProperty('transform', 'rotate(180deg)');
+                if (isOpen) return;
+                
+                menu.classList.remove('opacity-0', 'invisible');
+                menu.classList.add('opacity-100', 'visible');
+                
+                requestAnimationFrame(() => {
+                    menu.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    menu.style.opacity = '1';
+                    menu.style.transform = 'translateY(0)';
+                });
+                
+                if (icon) {
+                    icon.style.transform = 'rotate(180deg)';
+                }
+                
                 isOpen = true;
             }
             
-            function showParentCategories() {
-                parentCats?.classList.remove('hidden');
-                subcatsDiv?.classList.add('hidden');
+            // Mouse enter/leave for smooth mega menu
+            const dropdown = document.getElementById('categories-dropdown');
+            if (dropdown) {
+                dropdown.addEventListener('mouseenter', () => {
+                    clearTimeout(hoverTimeout);
+                    openMenu();
+                });
+                
+                dropdown.addEventListener('mouseleave', () => {
+                    hoverTimeout = setTimeout(closeMenu, 150);
+                });
             }
             
-            function showSubcategories(categoryId) {
-                const category = megaMenuData[categoryId];
-                if (!category || !category.children.length) return;
-                
-                parentCats?.classList.add('hidden');
-                subcatsDiv?.classList.remove('hidden');
-                
-                if (currentParent) currentParent.textContent = category.name;
-                
-                if (subcatsList) {
-                    subcatsList.innerHTML = category.children.map(child => 
-                        `<a href="/category/${child.slug}" class="block text-sm px-3 py-2 rounded-md hover:bg-neutral-100 transition-colors">${child.name}</a>`
-                    ).join('');
-                }
-            }
-            
+            // Click toggle for mobile/accessibility
             toggle.addEventListener('click', (e) => {
                 e.preventDefault();
                 isOpen ? closeMenu() : openMenu();
             });
             
-            // Handle parent category clicks
-            parentCats?.addEventListener('click', (e) => {
-                const categoryDiv = e.target.closest('[data-category-id]');
-                if (categoryDiv) {
+            // Close on outside click
+            document.addEventListener('click', (e) => {
+                if (!isOpen) return;
+                if (!dropdown?.contains(e.target)) {
+                    closeMenu();
+                }
+            });
+            
+            // Handle subcategories toggle buttons
+            menu.addEventListener('click', (e) => {
+                if (e.target.closest('.subcategories-toggle')) {
                     e.preventDefault();
-                    const categoryId = categoryDiv.dataset.categoryId;
+                    e.stopPropagation();
+                    
+                    const button = e.target.closest('.subcategories-toggle');
+                    const categoryId = button.dataset.categoryId;
                     const category = megaMenuData[categoryId];
                     
-                    if (category?.children.length > 0) {
+                    if (category && category.children.length > 0) {
                         showSubcategories(categoryId);
-                    } else {
-                        // Navigate to parent category if no children
-                        window.location.href = `/category/${categoryDiv.querySelector('h3').textContent.toLowerCase().replace(/\s+/g, '-')}`;
                     }
                 }
             });
             
-            backBtn?.addEventListener('click', showParentCategories);
+            // Function to show subcategories panel
+            function showSubcategories(categoryId) {
+                const category = megaMenuData[categoryId];
+                if (!category || !category.children.length) return;
+                
+                const parentGrid = document.getElementById('parent-categories-grid');
+                const subcatsPanel = document.getElementById('subcategories-panel');
+                const subcatsList = document.getElementById('subcategories-list');
+                const currentParentName = document.getElementById('current-parent-name');
+                
+                if (parentGrid && subcatsPanel && subcatsList && currentParentName) {
+                    // Hide parent grid and show subcategories
+                    parentGrid.style.display = 'none';
+                    subcatsPanel.classList.remove('hidden');
+                    
+                    // Update parent name
+                    currentParentName.textContent = category.name;
+                    
+                    // Populate subcategories
+                    subcatsList.innerHTML = category.children.map(child => 
+                        `<a href="/category/${child.slug}" class="block text-sm px-3 py-2 rounded-md hover:bg-gray-100 transition-colors duration-200">
+                            ${child.name}
+                        </a>`
+                    ).join('');
+                }
+            }
             
-            document.addEventListener('click', (e) => {
-                if (!isOpen) return;
-                const wrapper = document.getElementById('cats-wrapper');
-                if (wrapper && !wrapper.contains(e.target)) closeMenu();
+            // Back to parent categories
+            const backButton = document.getElementById('back-to-parents');
+            if (backButton) {
+                backButton.addEventListener('click', () => {
+                    const parentGrid = document.getElementById('parent-categories-grid');
+                    const subcatsPanel = document.getElementById('subcategories-panel');
+                    
+                    if (parentGrid && subcatsPanel) {
+                        parentGrid.style.display = 'grid';
+                        subcatsPanel.classList.add('hidden');
+                    }
+                });
+            }
+            
+            // Handle category image hover effects
+            menu.addEventListener('mouseenter', (e) => {
+                if (e.target.matches('.category-item')) {
+                    const img = e.target.querySelector('img');
+                    if (img) {
+                        img.style.transition = 'transform 0.3s ease';
+                        img.style.transform = 'scale(1.05)';
+                    }
+                }
+            });
+            
+            menu.addEventListener('mouseleave', (e) => {
+                if (e.target.matches('.category-item')) {
+                    const img = e.target.querySelector('img');
+                    if (img) {
+                        img.style.transform = 'scale(1)';
+                    }
+                }
             });
         })();
         
-        // Filters toggle
+        // Enhanced Filters toggle with animations
         document.getElementById('filters-toggle')?.addEventListener('click', function() {
             const panel = document.getElementById('filters-panel');
-            panel.classList.toggle('hidden');
+            const icon = this.querySelector('i');
+            
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                // Animate in
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateY(-10px)';
+                panel.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                
+                requestAnimationFrame(() => {
+                    panel.style.opacity = '1';
+                    panel.style.transform = 'translateY(0)';
+                });
+                
+                if (icon) {
+                    icon.style.transform = 'rotate(180deg)';
+                }
+            } else {
+                // Animate out
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateY(-10px)';
+                
+                setTimeout(() => {
+                    panel.classList.add('hidden');
+                }, 300);
+                
+                if (icon) {
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            }
         });
 
-        // Desktop categories dropdown (click to open, click outside to close)
-        (function(){
-            const toggle = document.getElementById('cats-toggle');
-            const menu = document.getElementById('cats-menu');
-            if (!toggle || !menu) return;
-            let open = false;
-            function close(){ menu.classList.add('hidden'); open=false; }
-            function openMenu(){ menu.classList.remove('hidden'); open=true; }
-            toggle.addEventListener('click', (e)=>{ e.preventDefault(); open ? close() : openMenu(); });
-            document.addEventListener('click', (e)=>{
-                if (!open) return;
-                const w = document.getElementById('cats-wrapper');
-                if (w && !w.contains(e.target)) close();
-            });
-        })();
-        
-        // Smooth animations
+        // Enhanced smooth animations with GSAP
         gsap.registerPlugin(ScrollTrigger);
         
-        // Animate elements on scroll
-        gsap.utils.toArray('.album-card, .image-item').forEach(el => {
+        // Animate elements on scroll with stagger effect - exclude header and mega menu images
+        gsap.utils.toArray('main .album-card, main .image-item, .gallery-container .image-item').forEach((el, index) => {
             gsap.from(el, {
                 opacity: 0,
-                y: 20,
-                duration: 0.6,
+                y: 30,
+                duration: 0.8,
+                delay: index * 0.08,
+                ease: "power2.out",
                 scrollTrigger: {
                     trigger: el,
-                    start: "top 90%",
-                    end: "bottom 10%",
+                    start: "top 85%",
+                    end: "bottom 15%",
                     toggleActions: "play none none none"
                 }
             });
         });
         
-        // Header scroll behavior
+        // Enhanced header scroll behavior with smooth transitions
         let lastScroll = 0;
-        const header = document.querySelector('header');
+        const header = document.querySelector('#main-header');
+        let ticking = false;
         
-        window.addEventListener('scroll', () => {
+        function updateHeader() {
             const currentScroll = window.pageYOffset;
             
             if (currentScroll > lastScroll && currentScroll > 100) {
-                header.style.transform = 'translateY(-100%)';
+                // Scrolling down
+                gsap.to(header, {
+                    y: -100,
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
             } else {
-                header.style.transform = 'translateY(0)';
+                // Scrolling up or at top
+                gsap.to(header, {
+                    y: 0,
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            }
+            
+            // Add/remove backdrop blur based on scroll
+            if (currentScroll > 50) {
+                header.style.backdropFilter = 'blur(20px)';
+                header.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+            } else {
+                header.style.backdropFilter = 'blur(10px)';
+                header.style.backgroundColor = 'rgba(255, 255, 255, 0.90)';
             }
             
             lastScroll = currentScroll;
+            ticking = false;
+        }
+        
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateHeader);
+                ticking = true;
+            }
+        });
+        
+        // Enhanced image loading animations
+        document.addEventListener('DOMContentLoaded', () => {
+            const images = document.querySelectorAll('img[data-src], img:not([data-src])');
+            
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        
+                        // Skip mega menu and header images to avoid conflicts
+                        if (img.closest('#categories-mega-menu, header, #mobile-menu')) {
+                            observer.unobserve(img);
+                            return;
+                        }
+                        
+                        // Skip if image is already complete and loaded
+                        if (img.complete && img.naturalHeight !== 0) {
+                            // Image is already loaded, ensure it's visible
+                            img.style.opacity = '1';
+                            img.style.transform = 'scale(1)';
+                            observer.unobserve(img);
+                            return;
+                        }
+                        
+                        // Set initial animation state for loading images
+                        img.style.opacity = '0';
+                        img.style.transform = 'scale(1.05)';
+                        img.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                        
+                        const showImage = () => {
+                            img.style.opacity = '1';
+                            img.style.transform = 'scale(1)';
+                        };
+                        
+                        // Handle both onload and onerror cases
+                        img.onload = showImage;
+                        img.onerror = () => {
+                            // Even on error, make sure the fallback is visible
+                            img.style.opacity = '1';
+                            img.style.transform = 'scale(1)';
+                        };
+                        
+                        // Handle lazy loading
+                        if (img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src');
+                        } else if (img.complete) {
+                            // Image was already loaded before we set up the handler
+                            showImage();
+                        }
+                        
+                        observer.unobserve(img);
+                    }
+                });
+            }, {
+                rootMargin: '50px 0px',
+                threshold: 0.1
+            });
+            
+            images.forEach(img => {
+                imageObserver.observe(img);
+            });
+            
+            // Ensure mega menu and header images are always visible
+            setTimeout(() => {
+                const headerImages = document.querySelectorAll('header img, #categories-mega-menu img, #mobile-menu img');
+                headerImages.forEach(img => {
+                    img.style.opacity = '1';
+                    img.style.transform = 'scale(1)';
+                });
+            }, 100);
         });
         
         // Lazy loader for PhotoSwipe (handles CDN not yet loaded)

@@ -18,12 +18,12 @@ class CategoriesController
     {
         $pdo = $this->db->pdo();
         try {
-            $stmt = $pdo->query('SELECT id, name, slug, sort_order, COALESCE(parent_id, 0) AS parent_id FROM categories ORDER BY sort_order ASC, name ASC');
+            $stmt = $pdo->query('SELECT id, name, slug, sort_order, image_path, COALESCE(parent_id, 0) AS parent_id FROM categories ORDER BY sort_order ASC, name ASC');
             $rows = $stmt->fetchAll() ?: [];
         } catch (\Throwable $e) {
             // Fallback for pre-migration DBs (no parent_id column)
             $stmt = $pdo->query('SELECT id, name, slug, sort_order FROM categories ORDER BY sort_order ASC, name ASC');
-            $rows = array_map(function(array $r){ $r['parent_id'] = 0; return $r; }, $stmt->fetchAll() ?: []);
+            $rows = array_map(function(array $r){ $r['parent_id'] = 0; $r['image_path'] = null; return $r; }, $stmt->fetchAll() ?: []);
         }
         // Group on server for efficiency
         $byParent = [];

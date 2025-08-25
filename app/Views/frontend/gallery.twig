@@ -111,7 +111,23 @@
       <div class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm">
         {% for template in available_templates %}
         <a class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" href="/album/{{ album_ref }}?template={{ template.id }}" title="{{ template.name }}">
-          {% if template.settings.layout == 'grid' %}
+          {% if template.settings.layout == 'masonry_fit' %}
+            <i class="fas fa-expand-arrows-alt"></i>
+          {% elseif template.settings.layout == 'slideshow' and 'swiper' in template.libs %}
+            <i class="fas fa-play-circle"></i>
+          {% elseif template.settings.layout == 'slideshow' %}
+            <i class="fas fa-images"></i>
+          {% elseif template.settings.layout == 'grid' and template.settings.spacing == 'large' %}
+            <i class="fas fa-border-none"></i>
+          {% elseif template.settings.layout == 'mosaic' %}
+            <i class="fas fa-puzzle-piece"></i>
+          {% elseif template.settings.layout == 'carousel' %}
+            <i class="fas fa-arrows-alt-h"></i>
+          {% elseif template.settings.layout == 'polaroid' %}
+            <i class="fas fa-camera-retro"></i>
+          {% elseif template.settings.layout == 'fullscreen' %}
+            <i class="fas fa-expand"></i>
+          {% elseif template.settings.layout == 'grid' %}
             {% if template.settings.masonry %}
               <i class="fas fa-th-large"></i>
             {% else %}
@@ -120,18 +136,12 @@
                 <i class="fas fa-pause"></i>
               {% elseif tpl_desktop_cols == 3 %}
                 <i class="fas fa-th"></i>
-              {% elseif tpl_desktop_cols == 4 %}
-                <i class="fas fa-th"></i>
-              {% else %}
+              {% elseif tpl_desktop_cols >= 5 %}
                 <i class="fas fa-border-all"></i>
+              {% else %}
+                <i class="fas fa-th"></i>
               {% endif %}
             {% endif %}
-          {% elseif template.settings.layout == 'slideshow' %}
-            <i class="fas fa-images"></i>
-          {% elseif template.settings.layout == 'fullscreen' %}
-            <i class="fas fa-expand"></i>
-          {% elseif template.settings.layout == 'masonry' %}
-            <i class="fas fa-th-large"></i>
           {% else %}
             <i class="fas fa-th"></i>
           {% endif %}
@@ -142,41 +152,147 @@
   </div>
   {% endif %}
 
-  {% if layout == 'slideshow' %}
-    <div id="images-gallery" class="max-w-4xl mx-auto">
-      <div class="swiper gallery-swiper">
-        <div class="swiper-wrapper">
-          {% for image in images %}
-          <div class="swiper-slide">
-            <a href="{{ image.lightbox_url|default(image.url) }}" 
-               class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
-               data-pswp-width="{{ image.width|default(1600) }}"
-               data-pswp-height="{{ image.height|default(1067) }}"
-               data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
-              <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover">
-            </a>
-          </div>
-          {% endfor %}
-        </div>
-        <div class="swiper-button-next"></div>
-        <div class="swiper-button-prev"></div>
-        <div class="swiper-pagination"></div>
-      </div>
-    </div>
-  {% elseif layout == 'fullscreen' %}
-    <div id="images-gallery" class="grid grid-cols-1 lg:grid-cols-2 gap-2">
+  {# 1. MASONRY FIT - Rispetta proporzioni originali #}
+  {% if layout == 'masonry_fit' %}
+    <div id="images-gallery" class="masonry-fit-container">
       {% for image in images %}
-      <div class="masonry-item">
+      <div class="masonry-fit-item" style="--aspect-ratio: {{ image.width / image.height }}">
         <a href="{{ image.lightbox_url|default(image.url) }}" 
-           class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
+           class="pswp-link image-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
-          <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
+          <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-auto object-contain" style="aspect-ratio: var(--aspect-ratio)">
         </a>
       </div>
       {% endfor %}
     </div>
+
+  {# 2. SLIDESHOW PRO - Con controlli avanzati #}
+  {% elseif layout == 'slideshow' %}
+    <div id="images-gallery" class="max-w-6xl mx-auto">
+      <div class="swiper slideshow-pro" data-autoplay="{{ template_settings.slideshow.autoplay|default(true) }}" data-delay="{{ template_settings.slideshow.delay|default(5000) }}">
+        <div class="swiper-wrapper">
+          {% for image in images %}
+          <div class="swiper-slide relative">
+            <a href="{{ image.lightbox_url|default(image.url) }}" 
+               class="pswp-link image-item block h-[70vh] bg-neutral-100 rounded-xl overflow-hidden flex items-center justify-center"
+               data-pswp-width="{{ image.width|default(1600) }}"
+               data-pswp-height="{{ image.height|default(1067) }}"
+               data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
+              <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="max-w-full max-h-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};">
+            </a>
+            {% if image.caption %}
+            <div class="absolute bottom-4 left-4 right-4 bg-black/70 text-white p-4 rounded-lg backdrop-blur-sm">
+              <p class="text-sm">{{ image.caption|e }}</p>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <div class="swiper-button-next !text-white !bg-black/30 !rounded-full !w-12 !h-12"></div>
+        <div class="swiper-button-prev !text-white !bg-black/30 !rounded-full !w-12 !h-12"></div>
+        <div class="swiper-pagination !bottom-2"></div>
+        {% if template_settings.slideshow.showProgress|default(true) %}
+        <div class="swiper-scrollbar !bg-white/20"></div>
+        {% endif %}
+      </div>
+      {% if template_settings.slideshow.showThumbs|default(true) %}
+      <div class="swiper slideshow-thumbs mt-4">
+        <div class="swiper-wrapper">
+          {% for image in images %}
+          <div class="swiper-slide !w-20 !h-16 cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+            <img src="{{ image.url }}" alt="" class="w-full h-full object-contain rounded">
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+  {# 3. GRID MINIMAL - Design pulito #}
+  {% elseif layout == 'grid' and template_settings.spacing == 'large' %}
+    <div id="images-gallery" class="grid {{ mobile_class|default('grid-cols-1') }} {{ tablet_class|default('md:grid-cols-2') }} {{ desktop_class|default('lg:grid-cols-3') }} gap-8">
+      {% for image in images %}
+      <div class="grid-minimal-item group">
+        <a href="{{ image.lightbox_url|default(image.url) }}" 
+           class="pswp-link image-item block aspect-square bg-neutral-50 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+           data-pswp-width="{{ image.width|default(1600) }}"
+           data-pswp-height="{{ image.height|default(1067) }}"
+           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
+          <div class="relative w-full h-full">
+            <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+  {# 4. MOSAIC PRO - Dimensioni variabili #}
+  {% elseif layout == 'mosaic' %}
+    <div id="images-gallery" class="mosaic-container">
+      {% for image in images %}
+      {% set featured = loop.index0 % 6 == 0 or loop.index0 % 6 == 3 %}
+      <div class="mosaic-item {{ featured ? 'mosaic-featured' : 'mosaic-normal' }}" data-index="{{ loop.index0 }}">
+        <a href="{{ image.lightbox_url|default(image.url) }}" 
+           class="pswp-link image-item block w-full h-full bg-neutral-100 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:z-10 {{ featured ? 'flex items-center justify-center' : '' }}"
+           data-pswp-width="{{ image.width|default(1600) }}"
+           data-pswp-height="{{ image.height|default(1067) }}"
+           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
+          <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full {{ featured ? 'object-contain max-w-full max-h-full' : 'object-cover' }}">
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+  {# 5. CAROUSEL FLOW - Scroll orizzontale #}
+  {% elseif layout == 'carousel' %}
+    <div id="images-gallery" class="carousel-flow-container overflow-hidden">
+      <div class="swiper carousel-flow" data-centered="true" data-free-mode="true">
+        <div class="swiper-wrapper">
+          {% for image in images %}
+          <div class="swiper-slide !w-auto !h-[80vh] px-2">
+            <a href="{{ image.lightbox_url|default(image.url) }}" 
+               class="pswp-link image-item block h-full bg-neutral-100 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 relative flex items-center justify-center"
+               data-pswp-width="{{ image.width|default(1600) }}"
+               data-pswp-height="{{ image.height|default(1067) }}"
+               data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
+              <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="max-h-full max-w-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};">
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  {# 6. POLAROID VINTAGE - Stile retrò #}
+  {% elseif layout == 'polaroid' %}
+    <div id="images-gallery" class="polaroid-container relative p-8" style="background: linear-gradient(45deg, #8b4513, #a0522d); min-height: 60vh;">
+      {% for image in images %}
+      {% set rotation_values = [-8, -6, -4, -2, 0, 2, 4, 6, 8] %}
+      {% set rotation = rotation_values[loop.index0 % 9] %}
+      <div class="polaroid-item absolute" 
+           style="--rotation: {{ rotation }}deg; transform: rotate(var(--rotation)); top: {{ (loop.index0 * 15) % 60 + 10 }}%; left: {{ (loop.index0 * 20) % 80 + 5 }}%;">
+        <a href="{{ image.lightbox_url|default(image.url) }}" 
+           class="pswp-link image-item block bg-white p-3 pb-12 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 hover:z-50 relative"
+           data-pswp-width="{{ image.width|default(1600) }}"
+           data-pswp-height="{{ image.height|default(1067) }}"
+           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
+           style="width: 200px; filter: sepia(0.2) contrast(1.1) brightness(1.05);">
+          <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full aspect-square object-cover">
+          {% if image.caption %}
+          <div class="absolute bottom-2 left-3 right-3 text-center text-xs font-handwriting text-gray-700">
+            {{ image.caption|e|slice(0, 40) }}{% if image.caption|length > 40 %}...{% endif %}
+          </div>
+          {% endif %}
+          <div class="absolute -top-2 left-1/2 transform -translate-x-1/2 w-8 h-4 bg-yellow-100/80 rounded-sm shadow-sm"></div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+  {# DEFAULT: Standard masonry #}
   {% elseif masonry %}
     <div id="images-gallery" class="masonry-grid">
       {% for image in images %}
@@ -237,26 +353,165 @@ window.templateSettings = {{ template_settings ? template_settings|json_encode|r
 const layout = window.templateSettings.layout || 'grid';
 const masonry = window.templateSettings.masonry || false;
 
-// Initialize Swiper for slideshow layout
-if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
-  window.gallerySwiper = new Swiper('.gallery-swiper', { 
-    navigation: {nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev'}, 
-    pagination: {el: '.swiper-pagination', clickable: true}, 
-    loop: true, 
-    autoplay: {delay: 5000, disableOnInteraction: false}, 
-    effect: 'fade', 
-    fadeEffect: {crossFade: true} 
-  });
-}
+// Initialize layouts based on template settings
+document.addEventListener('DOMContentLoaded', function() {
+  initializeGalleryLayout();
+  
+  // Ensure images are visible without animation to prevent flickering
+  setTimeout(() => {
+    const galleryContainer = document.getElementById('images-gallery');
+    if (galleryContainer) {
+      // Show content directly without fade-in animation
+      galleryContainer.style.opacity = '1';
+      galleryContainer.style.transition = 'none';
+      
+      // Ensure all images are visible
+      const images = galleryContainer.querySelectorAll('img');
+      images.forEach(img => {
+        img.style.opacity = '1';
+        img.style.transition = 'none';
+      });
+      
+      // Ensure all image items are visible
+      const imageItems = galleryContainer.querySelectorAll('.image-item');
+      imageItems.forEach(item => {
+        item.style.opacity = '1';
+        item.style.transform = 'scale(1)';
+        item.style.transition = 'none';
+      });
+    }
+  }, 100);
+});
 
-// Initialize Masonry for masonry layout
-if (masonry && typeof Masonry !== 'undefined') {
-  const container = document.getElementById('images-gallery');
-  if (container) {
-    imagesLoaded(container, function(){ 
-      window.galleryMasonry = new Masonry(container, { itemSelector: '.masonry-item', percentPosition: true }); 
+function initializeGalleryLayout() {
+  const layout = window.templateSettings?.layout || 'grid';
+  const masonry = window.templateSettings?.masonry || false;
+  
+  // 1. MASONRY FIT - No special JS needed, pure CSS Grid
+  
+  // 2. SLIDESHOW PRO - Enhanced slideshow with thumbnails
+  if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
+    const slideshowThumbs = new Swiper('.slideshow-thumbs', {
+      spaceBetween: 10,
+      slidesPerView: 'auto',
+      freeMode: true,
+      watchSlidesProgress: true,
+    });
+    
+    window.gallerySwiper = new Swiper('.slideshow-pro', {
+      spaceBetween: 10,
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+      pagination: {
+        el: '.swiper-pagination',
+        clickable: true,
+      },
+      thumbs: {
+        swiper: slideshowThumbs,
+      },
+      loop: true,
+      autoplay: window.templateSettings?.slideshow?.autoplay ? {
+        delay: window.templateSettings?.slideshow?.delay || 5000,
+        disableOnInteraction: false,
+      } : false,
+      effect: 'fade',
+      fadeEffect: {
+        crossFade: true
+      }
     });
   }
+  
+  // 3. GRID MINIMAL - No special JS needed, pure CSS with hover effects
+  
+  // 4. MOSAIC PRO - No special JS needed, pure CSS Grid
+  
+  // 5. CAROUSEL FLOW - Horizontal scrolling carousel
+  else if (layout === 'carousel' && typeof Swiper !== 'undefined') {
+    window.gallerySwiper = new Swiper('.carousel-flow', {
+      slidesPerView: 'auto',
+      spaceBetween: 20,
+      centeredSlides: true,
+      freeMode: true,
+      grabCursor: true,
+      mousewheel: {
+        thresholdDelta: 70,
+        forceToAxis: true,
+      },
+      breakpoints: {
+        640: {
+          spaceBetween: 30,
+        },
+        1024: {
+          spaceBetween: 40,
+        },
+      }
+    });
+  }
+  
+  // 6. POLAROID VINTAGE - Add random positioning for desktop
+  else if (layout === 'polaroid') {
+    const polaroidItems = document.querySelectorAll('.polaroid-item');
+    
+    // Only apply random positioning on desktop
+    if (window.innerWidth > 768) {
+      polaroidItems.forEach((item, index) => {
+        const randomX = Math.random() * 80 + 5; // 5-85%
+        const randomY = Math.random() * 60 + 10; // 10-70%
+        const randomRotation = (Math.random() - 0.5) * 16; // -8 to +8 degrees
+        
+        item.style.left = randomX + '%';
+        item.style.top = randomY + '%';
+        item.style.transform = `rotate(${randomRotation}deg)`;
+        item.style.zIndex = Math.floor(Math.random() * 10) + 1;
+      });
+    }
+  }
+  
+  // DEFAULT: Standard masonry for backward compatibility
+  else if (masonry && typeof Masonry !== 'undefined') {
+    const container = document.getElementById('images-gallery');
+    if (container) {
+      imagesLoaded(container, function(){ 
+        window.galleryMasonry = new Masonry(container, { 
+          itemSelector: '.masonry-item', 
+          percentPosition: true 
+        }); 
+        
+        // Ensure images are visible after masonry initialization
+        setTimeout(() => {
+          const images = container.querySelectorAll('img');
+          images.forEach(img => {
+            img.style.opacity = '1';
+            img.style.transition = 'none';
+          });
+          
+          // Ensure image items are also visible
+          const imageItems = container.querySelectorAll('.image-item');
+          imageItems.forEach(item => {
+            item.style.opacity = '1';
+            item.style.transform = 'scale(1)';
+            item.style.transition = 'none';
+          });
+        }, 50);
+      });
+    }
+  }
+  
+  // Ensure images are visible after layout initialization
+  setTimeout(() => {
+    const galleryContainer = document.getElementById('images-gallery');
+    if (galleryContainer) {
+      const imageItems = galleryContainer.querySelectorAll('.image-item');
+      imageItems.forEach(item => {
+        // Ensure images are visible without animation
+        item.style.opacity = '1';
+        item.style.transform = 'scale(1)';
+        item.style.transition = 'none';
+      });
+    }
+  }, 100);
 }
 
 // Template switcher functionality
@@ -449,9 +704,6 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
       
       // Reinitialize components based on new template settings
       setTimeout(() => {
-        const layout = window.templateSettings?.layout || 'grid';
-        const masonry = window.templateSettings?.masonry || false;
-        
         // Re-initialize PhotoSwipe
         if (typeof initLightbox === 'function') {
           initLightbox();
@@ -463,67 +715,29 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
           window.gallerySwiper = null;
         }
         
-        // Re-initialize Swiper for slideshow layout
-        if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
-          const swiperContainer = document.querySelector('.gallery-swiper');
-          if (swiperContainer) {
-            window.gallerySwiper = new Swiper('.gallery-swiper', {
-              navigation: {nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev'},
-              pagination: {el: '.swiper-pagination', clickable: true},
-              loop: true,
-              autoplay: {delay: 5000, disableOnInteraction: false},
-              effect: 'fade',
-              fadeEffect: {crossFade: true}
-            });
-          }
-        }
-        
         // Destroy existing Masonry instances
         if (window.galleryMasonry && typeof window.galleryMasonry.destroy === 'function') {
           window.galleryMasonry.destroy();
           window.galleryMasonry = null;
         }
         
-        // Re-initialize Masonry for masonry layout
-        if (masonry && typeof Masonry !== 'undefined') {
-          const container = document.getElementById('images-gallery');
-          if (container && container.classList.contains('masonry-grid')) {
-            imagesLoaded(container, function(){
-              window.galleryMasonry = new Masonry(container, {
-                itemSelector: '.masonry-item',
-                percentPosition: true
-              });
-            });
-          }
-        }
+        // Re-initialize the gallery layout
+        initializeGalleryLayout();
         
-        // Wait for components to initialize, then fade in the content
+        // Wait for components to initialize, then show content directly without animation
         setTimeout(() => {
-          // Reset opacity and animate the gallery container fade-in
-          if (typeof gsap !== 'undefined') {
-            gsap.fromTo(galleryContainer, 
-              { opacity: 0 }, 
-              { 
-                opacity: 1, 
-                duration: 0.5, 
-                ease: 'power2.out'
-              }
-            );
-            
-            // Then animate individual items
-            gsap.from('.image-item', {
-              opacity: 0,
-              y: 20,
-              duration: 0.6,
-              stagger: 0.1,
-              delay: 0.2
-            });
-          } else {
-            // Fallback fade-in without GSAP
-            galleryContainer.style.transition = 'opacity 0.5s ease-out';
-            galleryContainer.style.opacity = '1';
-          }
-        }, 150);
+          // Show content directly without fade-in animation to prevent flickering
+          galleryContainer.style.opacity = '1';
+          galleryContainer.style.transition = 'none';
+          
+          // Ensure individual images are also visible
+          const imageItems = galleryContainer.querySelectorAll('.image-item');
+          imageItems.forEach(item => {
+            item.style.opacity = '1';
+            item.style.transform = 'scale(1)';
+            item.style.transition = 'none';
+          });
+        }, 50);
       }, 100);
     })
     .catch(error => {

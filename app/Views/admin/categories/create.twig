@@ -1,42 +1,119 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Nuova categoria — photoCMS{% endblock %}
+{% block title %}New Category — photoCMS{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Nuova categoria</h1>
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Create New Category</h1>
+      <p class="text-gray-600 mt-2">Add a new category to organize your content</p>
+    </div>
+    <a href="/admin/categories" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors inline-flex items-center">
+      <i class="fas fa-arrow-left mr-2"></i>Back to Categories
+    </a>
   </div>
-  <div class="card p-6">
-    <form method="post" action="/admin/categories" enctype="multipart/form-data" class="space-y-4">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-        <input class="form-input" type="text" name="name" required>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-        <input class="form-input" type="text" name="slug" placeholder="(auto se vuoto)">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Categoria genitore</label>
-        <select class="form-input" name="parent_id">
-          <option value="">Nessuna (categoria principale)</option>
-          {% for parent in parents|default([]) %}
-            <option value="{{ parent.id }}">{{ parent.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Immagine categoria</label>
-        <input class="form-input" type="file" name="image" accept="image/*">
-        <small class="text-gray-500">Solo per categorie principali (usata nel mega menu)</small>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
-        <input class="form-input" type="number" name="sort_order" value="0">
-      </div>
-      <div class="flex gap-3 pt-2">
-        <button class="btn-primary" type="submit">Salva</button>
-        <a class="btn-secondary" href="/admin/categories">Annulla</a>
-      </div>
-    </form>
+  
+  <div class="max-w-2xl">
+    <div class="card p-8">
+      <form method="post" action="/admin/categories" enctype="multipart/form-data" class="space-y-6">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-tag text-gray-600 mr-2"></i>Category Name
+            </label>
+            <input class="form-input" type="text" name="name" placeholder="Enter category name..." required>
+            <small class="text-gray-500 text-xs mt-1">This will be displayed in menus and navigation</small>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-link text-gray-600 mr-2"></i>URL Slug
+            </label>
+            <input class="form-input" type="text" name="slug" placeholder="Auto-generated if empty">
+            <small class="text-gray-500 text-xs mt-1">Used in URLs, leave empty for auto-generation</small>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-sitemap text-gray-600 mr-2"></i>Parent Category
+            </label>
+            <select class="form-input" name="parent_id">
+              <option value="">None (Main category)</option>
+              {% for parent in parents|default([]) %}
+                <option value="{{ parent.id }}">{{ parent.name }}</option>
+              {% endfor %}
+            </select>
+            <small class="text-gray-500 text-xs mt-1">Create hierarchy by selecting a parent</small>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-sort-numeric-up text-gray-600 mr-2"></i>Sort Order
+            </label>
+            <input class="form-input" type="number" name="sort_order" value="0" min="0">
+            <small class="text-gray-500 text-xs mt-1">Lower numbers appear first</small>
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-3">
+            <i class="fas fa-image text-gray-600 mr-2"></i>Category Image
+          </label>
+          <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+            <div class="space-y-3">
+              <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
+              </div>
+              <div>
+                <input class="form-input" type="file" name="image" accept="image/*" id="category-image">
+                <p class="text-sm text-gray-600 mt-2">
+                  Upload JPG, PNG, or WebP format
+                </p>
+                <p class="text-xs text-gray-500">
+                  Images are used in navigation menus and category headers
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex justify-end gap-4 pt-6 border-t border-gray-200">
+          <a href="/admin/categories" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-8 py-2 rounded-lg transition-colors inline-flex items-center">
+            <i class="fas fa-times mr-2"></i>Cancel
+          </a>
+          <button class="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded-lg transition-colors inline-flex items-center" type="submit">
+            <i class="fas fa-save mr-2"></i>Create Category
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
+  
+  <script>
+    // Image preview functionality
+    document.getElementById('category-image').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const preview = document.createElement('img');
+          preview.src = e.target.result;
+          preview.className = 'w-32 h-32 object-cover rounded-lg border mx-auto mt-3';
+          
+          // Remove existing preview if any
+          const existingPreview = document.querySelector('.image-preview');
+          if (existingPreview) {
+            existingPreview.remove();
+          }
+          
+          // Add new preview
+          preview.classList.add('image-preview');
+          document.querySelector('.border-dashed').appendChild(preview);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>
 {% endblock %}

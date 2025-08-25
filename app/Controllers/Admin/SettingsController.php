@@ -17,8 +17,18 @@ class SettingsController
     {
         $svc = new SettingsService($this->db);
         $settings = $svc->all();
+        
+        // Load templates for dropdown
+        $templates = [];
+        try {
+            $templates = $this->db->pdo()->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
+        } catch (\Throwable $e) {
+            // Templates table doesn't exist yet
+        }
+        
         return $this->view->render($response, 'admin/settings.twig', [
             'settings' => $settings,
+            'templates' => $templates,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -47,23 +57,50 @@ class SettingsController
         if (!is_array($breakpoints)) {
             $breakpoints = $svc->defaults()['image.breakpoints'];
         }
-        // default template
-        $defaultTemplate = [
-            'layout' => (string)($data['default_layout'] ?? 'grid'),
-            'columns' => [
-                'desktop' => max(1, min(6, (int)($data['default_desktop_cols'] ?? 3))),
-                'tablet' => max(1, min(4, (int)($data['default_tablet_cols'] ?? 2))),
-                'mobile' => max(1, min(2, (int)($data['default_mobile_cols'] ?? 1)))
-            ],
-            'masonry' => isset($data['default_masonry'])
+        // default template - only save template_id now, remove legacy settings
+        $defaultTemplateId = !empty($data['default_template_id']) ? (int)$data['default_template_id'] : null;
+        
+        // Debug: Check if we have template_id in the request
+        if (isset($data['default_template_id'])) {
+            error_log("Settings form received template_id: " . $data['default_template_id']);
+        } else {
+            error_log("Settings form did NOT receive default_template_id field");
+        }
+        
+        // Site settings
+        $siteSettings = [
+            'title' => trim((string)($data['site_title'] ?? '')),
+            'description' => trim((string)($data['site_description'] ?? '')),
+            'copyright' => trim((string)($data['site_copyright'] ?? '')),
+            'email' => trim((string)($data['site_email'] ?? ''))
         ];
         
+        // Performance settings  
+        $performanceSettings = [
+            'compression' => isset($data['enable_compression'])
+        ];
+        
+        $paginationLimit = max(1, min(100, (int)($data['pagination_limit'] ?? 12)));
+        $cacheTtl = max(1, min(168, (int)($data['cache_ttl'] ?? 24)));
+        
+        // Save all settings
         $svc->set('image.formats', $formats);
         $svc->set('image.quality', $quality);
         $svc->set('image.preview', $preview);
         $svc->set('image.breakpoints', $breakpoints);
-        $svc->set('gallery.default_template', $defaultTemplate);
-        $_SESSION['flash'][] = ['type'=>'success','message'=>'Impostazioni salvate'];
+        $svc->set('gallery.default_template_id', $defaultTemplateId);
+        $svc->set('site.title', $siteSettings['title']);
+        $svc->set('site.description', $siteSettings['description']);  
+        $svc->set('site.copyright', $siteSettings['copyright']);
+        $svc->set('site.email', $siteSettings['email']);
+        $svc->set('performance.compression', $performanceSettings['compression']);
+        $svc->set('pagination.limit', $paginationLimit);
+        $svc->set('cache.ttl', $cacheTtl);
+        
+        // Debug log
+        error_log("Settings saved - default_template_id: " . ($defaultTemplateId ?? 'null'));
+        
+        $_SESSION['flash'][] = ['type'=>'success','message'=>'Impostazioni salvate correttamente'];
         return $response->withHeader('Location', '/admin/settings')->withStatus(302);
     }
 

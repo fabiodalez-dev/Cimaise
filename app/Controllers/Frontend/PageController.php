@@ -34,22 +34,19 @@ class PageController
         }
         
         // Get categories for navigation with hierarchy
-        $stmt = $pdo->prepare('
-            SELECT c.*, COUNT(a.id) as albums_count
-            FROM categories c 
-            LEFT JOIN albums a ON a.category_id = c.id AND a.is_published = 1
-            GROUP BY c.id 
-            ORDER BY c.sort_order ASC, c.name ASC
-        ');
-        $stmt->execute();
-        $allCategories = $stmt->fetchAll();
+        $parentCategories = $this->getParentCategoriesForNavigation();
         
-        // Build hierarchy
-        $categories = []; // flat list for backward compatibility
-        $parentCategories = $this->buildCategoryHierarchy($allCategories);
-        
-        foreach ($allCategories as $cat) {
-            $categories[] = $cat;
+        // Keep flat list for backward compatibility
+        $categories = [];
+        foreach ($parentCategories as $parent) {
+            if ($parent['albums_count'] > 0) {
+                $categories[] = $parent;
+            }
+            foreach ($parent['children'] as $child) {
+                if ($child['albums_count'] > 0) {
+                    $categories[] = $child;
+                }
+            }
         }
         
         // Get popular tags
@@ -129,19 +126,35 @@ class PageController
         if (!$templateId) {
             // Use default template from settings
             $settingsService = new \App\Services\SettingsService($this->db);
-            $defaultTemplate = $settingsService->get('gallery.default_template');
-            $template = ['name' => 'Template Predefinito', 'settings' => json_encode($defaultTemplate)];
-            $templateSettings = $defaultTemplate;
+            $defaultTemplateId = $settingsService->get('gallery.default_template_id');
+            
+            if ($defaultTemplateId) {
+                // Use the predefined template from settings
+                $templateId = (int)$defaultTemplateId;
+                $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
+                $tplStmt->execute([':id' => $templateId]);
+                $template = $tplStmt->fetch();
+                
+                if ($template) {
+                    $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+                } else {
+                    // No template found, use basic grid fallback
+                    $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
+                    $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
+                }
+            } else {
+                // No default template set, use basic grid fallback
+                $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
+                $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
+            }
         } else {
             $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
             $tplStmt->execute([':id' => $templateId]);
             $template = $tplStmt->fetch();
             if (!$template) {
-                // Fallback to default template from settings
-                $settingsService = new \App\Services\SettingsService($this->db);
-                $defaultTemplate = $settingsService->get('gallery.default_template');
-                $template = ['name' => 'Template Predefinito', 'settings' => json_encode($defaultTemplate)];
-                $templateSettings = $defaultTemplate;
+                // Fallback to basic grid
+                $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
+                $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
             } else {
                 $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
             }
@@ -422,6 +435,7 @@ class PageController
             'current_template_id' => $templateId,
             'album_ref' => $albumRef,
             'categories' => $navCategories,
+            'parent_categories' => $this->getParentCategoriesForNavigation(),
             'page_title' => $galleryMeta['title'] . ' - ' . $template['name'],
             'meta_description' => $galleryMeta['excerpt'] ?: 'Photography album: ' . $galleryMeta['title'],
             'meta_image' => $album['cover']['variants'][0]['path'] ?? null
@@ -634,6 +648,7 @@ class PageController
             'category' => $category,
             'albums' => $albums,
             'categories' => $categories,
+            'parent_categories' => $this->getParentCategoriesForNavigation(),
             'page_title' => $category['name'] . ' - Portfolio',
             'meta_description' => 'Photography albums in category: ' . $category['name']
         ]);
@@ -696,6 +711,7 @@ class PageController
             'albums' => $albums,
             'tags' => $tags,
             'categories' => $navCategories,
+            'parent_categories' => $this->getParentCategoriesForNavigation(),
             'page_title' => '#' . $tag['name'] . ' - Portfolio',
             'meta_description' => 'Photography albums tagged with: ' . $tag['name']
         ]);
@@ -726,6 +742,7 @@ class PageController
 
         return $this->view->render($response, 'frontend/about.twig', [
             'categories' => $navCategories,
+            'parent_categories' => $this->getParentCategoriesForNavigation(),
             'page_title' => $aboutTitle . ' — Portfolio',
             'meta_description' => 'About the photographer',
             'about_text' => $aboutText,
@@ -881,7 +898,7 @@ class PageController
     {
         $byParent = [];
         foreach ($allCategories as $cat) {
-            $parentId = $cat['parent_id'] ?? 0;
+            $parentId = (int)($cat['parent_id'] ?? 0);
             if (!isset($byParent[$parentId])) {
                 $byParent[$parentId] = [];
             }
@@ -893,8 +910,61 @@ class PageController
         // Add children to parent categories
         foreach ($parentCategories as &$parent) {
             $parent['children'] = $byParent[$parent['id']] ?? [];
+            // Ensure children have the albums_count for filtering
+            foreach ($parent['children'] as &$child) {
+                if (!isset($child['albums_count'])) {
+                    $child['albums_count'] = 0;
+                }
+            }
         }
         
         return $parentCategories;
+    }
+    
+    /**
+     * Get parent categories with album counts for navigation
+     */
+    private function getParentCategoriesForNavigation(): array
+    {
+        $pdo = $this->db->pdo();
+        
+        // Get categories for navigation with hierarchy (simplified query for better reliability)
+        $stmt = $pdo->prepare('
+            SELECT c.*, COUNT(a.id) as albums_count
+            FROM categories c 
+            LEFT JOIN albums a ON a.category_id = c.id AND a.is_published = 1
+            GROUP BY c.id 
+            ORDER BY c.sort_order ASC, c.name ASC
+        ');
+        $stmt->execute();
+        $allCategories = $stmt->fetchAll();
+        
+        // Build hierarchy
+        $parentCategories = $this->buildCategoryHierarchy($allCategories);
+        
+        // Filter out completely empty categories (no albums and no children with albums)
+        $filteredParentCategories = [];
+        foreach ($parentCategories as $parent) {
+            // Count albums in children
+            $childrenWithAlbums = 0;
+            foreach ($parent['children'] as $child) {
+                if ($child['albums_count'] > 0) {
+                    $childrenWithAlbums++;
+                }
+            }
+            
+            // Keep parent if it has albums OR has children with albums
+            if ($parent['albums_count'] > 0 || $childrenWithAlbums > 0) {
+                // Filter children to only those with albums (if parent has no albums)
+                if ($parent['albums_count'] == 0) {
+                    $parent['children'] = array_filter($parent['children'], function($child) {
+                        return $child['albums_count'] > 0;
+                    });
+                }
+                $filteredParentCategories[] = $parent;
+            }
+        }
+        
+        return $filteredParentCategories;
     }
 }

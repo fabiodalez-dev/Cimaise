@@ -356,16 +356,30 @@
     <!-- Main Content -->
     <div class="flex-1 ml-64">
       <main class="p-8">
-        {% if flash.success %}
-          <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-            {{ flash.success }}
-          </div>
-        {% endif %}
-        
-        {% if flash.error %}
-          <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-            {{ flash.error }}
-          </div>
+        {% if flash %}
+          {% for message in flash %}
+            {% if message.type == 'success' %}
+              <div class="mb-6 bg-white border border-gray-300 text-black px-4 py-3 rounded-lg shadow-sm flex items-center">
+                <i class="fas fa-check-circle text-gray-600 mr-3"></i>
+                <span>{{ message.message }}</span>
+              </div>
+            {% elseif message.type == 'danger' or message.type == 'error' %}
+              <div class="mb-6 bg-white border border-gray-400 text-black px-4 py-3 rounded-lg shadow-sm flex items-center">
+                <i class="fas fa-exclamation-circle text-gray-600 mr-3"></i>
+                <span>{{ message.message }}</span>
+              </div>
+            {% elseif message.type == 'warning' %}
+              <div class="mb-6 bg-gray-50 border border-gray-300 text-black px-4 py-3 rounded-lg shadow-sm flex items-center">
+                <i class="fas fa-exclamation-triangle text-gray-600 mr-3"></i>
+                <span>{{ message.message }}</span>
+              </div>
+            {% elseif message.type == 'info' %}
+              <div class="mb-6 bg-gray-50 border border-gray-300 text-black px-4 py-3 rounded-lg shadow-sm flex items-center">
+                <i class="fas fa-info-circle text-gray-600 mr-3"></i>
+                <span>{{ message.message }}</span>
+              </div>
+            {% endif %}
+          {% endfor %}
         {% endif %}
 
         {% block content %}{% endblock %}

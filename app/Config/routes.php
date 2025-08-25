@@ -43,22 +43,13 @@ $app->get('/tag/{slug}', function (Request $request, Response $response, array $
 });
 
 // About page with dynamic slug from settings
-$settingsSvc = new \App\Services\SettingsService($container['db']);
-$aboutSlug = (string)($settingsSvc->get('about.slug', 'about') ?? 'about');
-if ($aboutSlug === '') { $aboutSlug = 'about'; }
-$aboutPath = '/' . $aboutSlug;
-$app->get($aboutPath, function (Request $request, Response $response) use ($container) {
+$app->get('/about', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
     return $controller->about($request, $response);
 });
-// Backward compat: if slug changed, redirect /about to new path
-if ($aboutSlug !== 'about') {
-    $app->get('/about', function (Request $request, Response $response) use ($aboutPath) {
-        return $response->withHeader('Location', $aboutPath)->withStatus(302);
-    });
-}
-// Contact submit for About, dynamic path
-$app->post($aboutPath . '/contact', function (Request $request, Response $response) use ($container) {
+
+// Contact submit for About page
+$app->post('/about/contact', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
     return $controller->aboutContact($request, $response);
 })->add(new RateLimitMiddleware(5, 600));

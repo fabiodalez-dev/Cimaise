@@ -3,68 +3,100 @@
 {% block title %}Create Location{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Create Location</h1>
-    <a href="/admin/locations" class="text-sm font-medium text-gray-600 hover:text-gray-900">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-black">Create Location</h1>
+      <p class="text-gray-600 mt-1">Add a new shooting location</p>
+    </div>
+    <a href="/admin/locations" class="btn-secondary">
+      <i class="fas fa-arrow-left mr-2"></i>
       Back to Locations
     </a>
   </div>
 
   {% if errors is defined and errors|length > 0 %}
-  <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-    <ul class="list-disc pl-5 space-y-1">
-      {% for error in errors %}
-      <li>{{ error }}</li>
-      {% endfor %}
-    </ul>
+  <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg" role="alert">
+    <div class="flex items-start">
+      <i class="fas fa-exclamation-circle mr-3 mt-0.5"></i>
+      <div>
+        <h3 class="font-medium mb-2">Please fix the following errors:</h3>
+        <ul class="list-disc pl-5 space-y-1">
+          {% for error in errors %}
+          <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
   </div>
   {% endif %}
 
-  <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-    <div class="px-4 py-5 sm:p-6">
-      <form action="/admin/locations" method="post">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <div class="space-y-6">
-          <div>
-            <label for="name" class="block text-sm font-medium text-gray-700">Name *</label>
-            <div class="mt-1">
-              <input type="text" name="name" id="name" 
-                     class="shadow-sm focus:ring-black focus:border-black block w-full sm:text-sm border-gray-300 rounded-md"
-                     value="{{ old.name|default('') }}" required>
-            </div>
-          </div>
-
-          <div>
-            <label for="slug" class="block text-sm font-medium text-gray-700">Slug *</label>
-            <div class="mt-1">
-              <input type="text" name="slug" id="slug" 
-                     class="shadow-sm focus:ring-black focus:border-black block w-full sm:text-sm border-gray-300 rounded-md"
-                     value="{{ old.slug|default('') }}" required>
-              <p class="mt-2 text-sm text-gray-500">Unique identifier for the location URL.</p>
-            </div>
-          </div>
-
-          <div>
-            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
-            <div class="mt-1">
-              <textarea name="description" id="description" rows="4" 
-                        class="shadow-sm focus:ring-black focus:border-black block w-full sm:text-sm border-gray-300 rounded-md">{{ old.description|default('') }}</textarea>
-            </div>
-          </div>
+  <form action="/admin/locations" method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    
+    <div class="card p-6 space-y-6">
+      <div class="border-b border-gray-200 pb-4">
+        <h2 class="text-lg font-semibold text-black flex items-center">
+          <i class="fas fa-map-marker-alt mr-3 text-gray-600"></i>
+          Location Details
+        </h2>
+        <p class="text-gray-600 text-sm mt-1">Basic information about this shooting location</p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="name" class="block text-sm font-medium text-black mb-2">
+            Location Name *
+          </label>
+          <input type="text" 
+                 name="name" 
+                 id="name" 
+                 class="form-input border-gray-300 focus:border-black focus:ring-black"
+                 value="{{ old.name|default('') }}" 
+                 required
+                 placeholder="e.g., Central Park, Tokyo Streets">
+          <p class="text-xs text-gray-500 mt-1">Display name for this location</p>
         </div>
 
-        <div class="mt-6 flex items-center justify-end space-x-3">
-          <a href="/admin/locations" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
-            Cancel
-          </a>
-          <button type="submit" 
-                  class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none">
-            Create Location
-          </button>
+        <div>
+          <label for="slug" class="block text-sm font-medium text-black mb-2">
+            URL Slug *
+          </label>
+          <input type="text" 
+                 name="slug" 
+                 id="slug" 
+                 class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm"
+                 value="{{ old.slug|default('') }}" 
+                 required
+                 placeholder="e.g., central-park, tokyo-streets">
+          <p class="text-xs text-gray-500 mt-1">Unique identifier for URLs (lowercase, no spaces)</p>
         </div>
-      </form>
+      </div>
+
+      <div>
+        <label for="description" class="block text-sm font-medium text-black mb-2">
+          Description
+        </label>
+        <textarea name="description" 
+                  id="description" 
+                  rows="4" 
+                  class="form-input border-gray-300 focus:border-black focus:ring-black"
+                  placeholder="Describe this location, its characteristics, accessibility, or any relevant notes...">{{ old.description|default('') }}</textarea>
+        <p class="text-xs text-gray-500 mt-1">Optional description to help organize and identify this location</p>
+      </div>
     </div>
-  </div>
+
+    <div class="flex items-center justify-between mt-8">
+      <div class="flex items-center space-x-4">
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-plus mr-2"></i>
+          Create Location
+        </button>
+        <a href="/admin/locations" class="btn-secondary">
+          Cancel
+        </a>
+      </div>
+    </div>
+  </form>
 </div>
 {% endblock %}

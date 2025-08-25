@@ -69,19 +69,35 @@ class GalleryController
         if (!$templateId) {
             // Use default template from settings
             $settingsService = new SettingsService($this->db);
-            $defaultTemplate = $settingsService->get('gallery.default_template');
-            $template = ['name' => 'Template Predefinito', 'settings' => json_encode($defaultTemplate)];
-            $templateSettings = $defaultTemplate;
+            $defaultTemplateId = $settingsService->get('gallery.default_template_id');
+            
+            if ($defaultTemplateId) {
+                // Use the predefined template from settings
+                $templateId = (int)$defaultTemplateId;
+                $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
+                $tplStmt->execute([':id' => $templateId]);
+                $template = $tplStmt->fetch();
+                
+                if ($template) {
+                    $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+                } else {
+                    // No template found, use basic grid fallback
+                    $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
+                    $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
+                }
+            } else {
+                // No default template set, use basic grid fallback
+                $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
+                $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
+            }
         } else {
             $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
             $tplStmt->execute([':id' => $templateId]);
             $template = $tplStmt->fetch();
             if (!$template) {
-                // Fallback to default template from settings
-                $settingsService = new SettingsService($this->db);
-                $defaultTemplate = $settingsService->get('gallery.default_template');
-                $template = ['name' => 'Template Predefinito', 'settings' => json_encode($defaultTemplate)];
-                $templateSettings = $defaultTemplate;
+                // Fallback to basic grid
+                $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
+                $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
             } else {
                 $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
             }
