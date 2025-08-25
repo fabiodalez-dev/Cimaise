@@ -10,6 +10,52 @@ use App\Middlewares\RateLimitMiddleware;
 
 return function (App $app, array $container) {
 
+// Installer routes (placed at the top to override other routes when not installed)
+$app->get('/install', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->index($request, $response);
+});
+
+$app->get('/install/database', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->showDatabaseConfig($request, $response);
+});
+
+$app->post('/install/database', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->processDatabaseConfig($request, $response);
+});
+
+$app->get('/install/admin', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->showAdminConfig($request, $response);
+});
+
+$app->post('/install/admin', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->processAdminConfig($request, $response);
+});
+
+$app->get('/install/settings', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->showSettingsConfig($request, $response);
+});
+
+$app->post('/install/settings', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->processSettingsConfig($request, $response);
+});
+
+$app->get('/install/confirm', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->showConfirm($request, $response);
+});
+
+$app->post('/install/run', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->runInstall($request, $response);
+});
+
 // Frontend pages
 $app->get('/', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
