@@ -72,7 +72,7 @@ class GalleriesController
         $pdo = $this->db->pdo();
         
         // Get filter settings from database
-        $stmt = $pdo->prepare('SELECT * FROM filter_settings ORDER BY sort_order ASC');
+        $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
         $stmt->execute();
         $settings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
         
@@ -428,7 +428,12 @@ class GalleriesController
         
         // Get cover image
         if (!empty($album['cover_image_id'])) {
-            $stmt = $pdo->prepare('SELECT * FROM images WHERE id = :id');
+            $stmt = $pdo->prepare('
+                SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
+                FROM images i
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "sm" AND iv.format = "jpg"
+                WHERE i.id = :id
+            ');
             $stmt->execute([':id' => $album['cover_image_id']]);
             $cover = $stmt->fetch();
             if ($cover) {
@@ -439,9 +444,11 @@ class GalleriesController
         // If no cover image, get first image
         if (empty($album['cover_image'])) {
             $stmt = $pdo->prepare('
-                SELECT * FROM images 
-                WHERE album_id = :album_id 
-                ORDER BY sort_order ASC, id ASC 
+                SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
+                FROM images i
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "sm" AND iv.format = "jpg"
+                WHERE i.album_id = :album_id 
+                ORDER BY i.sort_order ASC, i.id ASC 
                 LIMIT 1
             ');
             $stmt->execute([':album_id' => $album['id']]);
