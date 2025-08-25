@@ -25,6 +25,12 @@ class SettingsService
         $stmt = $this->db->pdo()->prepare('SELECT `value` FROM settings WHERE `key`=:k');
         $stmt->execute([':k' => $key]);
         $val = $stmt->fetchColumn();
+        
+        // Handle case where value is the string "null"
+        if ($val === 'null') {
+            return $this->defaults()[$key] ?? $default;
+        }
+        
         return $val !== false ? json_decode((string)$val, true) : ($this->defaults()[$key] ?? $default);
     }
 

@@ -97,9 +97,20 @@ class PageController
             ]);
         }
 
-        // Password protection
+        // Password protection with session timeout
         if (!empty($album['password_hash'])) {
-            $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$album['id']]);
+            $allowed = false;
+            if (isset($_SESSION['album_access']) && isset($_SESSION['album_access'][$album['id']])) {
+                $accessTime = $_SESSION['album_access'][$album['id']];
+                // Check if access is still valid (24 hour timeout)
+                if (is_int($accessTime) && (time() - $accessTime) < 86400) {
+                    $allowed = true;
+                } else {
+                    // Remove expired access
+                    unset($_SESSION['album_access'][$album['id']]);
+                }
+            }
+            
             if (!$allowed) {
                 // Categories for header menu
                 $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
@@ -455,8 +466,12 @@ class PageController
         $data = (array)($request->getParsedBody() ?? []);
         $password = (string)($data['password'] ?? '');
         if ($password !== '' && password_verify($password, (string)$album['password_hash'])) {
+            // SECURITY: Regenerate session ID to prevent session fixation
+            session_regenerate_id(true);
+            
             if (!isset($_SESSION['album_access'])) $_SESSION['album_access'] = [];
-            $_SESSION['album_access'][(int)$album['id']] = true;
+            $_SESSION['album_access'][(int)$album['id']] = time(); // Store timestamp for potential timeout
+            
             return $response->withHeader('Location', '/album/' . $slug)->withStatus(302);
         }
         return $response->withHeader('Location', '/album/' . $slug . '?error=1')->withStatus(302);

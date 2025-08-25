@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS for photoCMS */
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Button styles */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-black text-white hover:bg-gray-800 focus:ring-gray-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-300;
+  }
+  
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+  
+  .btn-lg {
+    @apply px-6 py-3 text-lg;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200;
+  }
+  
+  /* Form styles */
+  .form-input {
+    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
+  }
+  
+  .form-select {
+    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
+  }
+  
+  .form-textarea {
+    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
+  }
+  
+  /* Text truncation utilities */
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+  
+  /* Admin layout specific styles */
+  .admin-sidebar {
+    @apply bg-white border-r border-gray-200 fixed inset-y-0 left-0 w-64 transform transition-transform duration-300 ease-in-out z-30;
+  }
+  
+  .admin-main {
+    @apply flex-1 min-w-0 flex flex-col lg:pl-64;
+  }
+  
+  /* Gallery grid animations */
+  .gallery-card {
+    @apply transform transition-all duration-500 ease-out;
+  }
+  
+  .gallery-card:hover {
+    @apply -translate-y-2 shadow-2xl;
+  }
+  
+  /* Loading animations */
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: .5;
+    }
+  }
+}
+
+@layer utilities {
+  /* Custom utility classes */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Backdrop blur fallback */
+  .backdrop-blur-fallback {
+    background-color: rgba(255, 255, 255, 0.8);
+  }
+  
+  @supports (backdrop-filter: blur(10px)) {
+    .backdrop-blur-fallback {
+      background-color: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+    }
+  }
+  
+  /* Text shadow utilities */
+  .text-shadow-sm {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+}
