@@ -172,6 +172,11 @@
     <div class="px-6 py-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center">
+          <!-- Hamburger Menu Button (Mobile/Tablet) -->
+          <button id="sidebar-toggle" class="lg:hidden mr-3 p-2 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors">
+            <i class="fas fa-bars"></i>
+          </button>
+          
           <i class="fas fa-camera text-2xl text-black mr-3"></i>
           <h1 class="text-xl font-semibold text-black">photoCMS</h1>
         </div>
@@ -306,29 +311,38 @@
   </nav>
 
   <div class="flex h-screen pt-16">
+    <!-- Sidebar Overlay (Mobile/Tablet) -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden hidden"></div>
+    
     <!-- Sidebar -->
-    <div class="w-64 bg-white border-r border-gray-200 fixed h-full overflow-y-auto">
+    <div id="sidebar" class="fixed lg:relative w-64 bg-white border-r border-gray-200 h-full overflow-y-auto transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-50 lg:z-auto">
       <div class="p-6">
+        <!-- Close Button (Mobile/Tablet) -->
+        <div class="lg:hidden flex justify-end mb-4">
+          <button id="sidebar-close" class="p-2 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
         <!-- Main Navigation -->
         <div class="mb-8">
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">NAVIGATION</p>
           <div class="space-y-1">
-            <a href="{{ base_path }}/admin" class="sidebar-link">
+            <a href="{{ base_path }}/admin" class="sidebar-link" data-spa-link>
               <i class="fas fa-tachometer-alt"></i>Dashboard
             </a>
-            <a href="{{ base_path }}/admin/albums" class="sidebar-link">
+            <a href="{{ base_path }}/admin/albums" class="sidebar-link" data-spa-link>
               <i class="fas fa-images"></i>Albums
             </a>
-            <a href="{{ base_path }}/admin/categories" class="sidebar-link">
+            <a href="{{ base_path }}/admin/categories" class="sidebar-link" data-spa-link>
               <i class="fas fa-folder"></i>Categories
             </a>
-            <a href="{{ base_path }}/admin/tags" class="sidebar-link">
+            <a href="{{ base_path }}/admin/tags" class="sidebar-link" data-spa-link>
               <i class="fas fa-tags"></i>Tags
             </a>
-            <a href="{{ base_path }}/admin/templates" class="sidebar-link">
+            <a href="{{ base_path }}/admin/templates" class="sidebar-link" data-spa-link>
               <i class="fas fa-palette"></i>Templates
             </a>
-            <a href="{{ base_path }}/admin/pages" class="sidebar-link">
+            <a href="{{ base_path }}/admin/pages" class="sidebar-link" data-spa-link>
               <i class="fas fa-file-alt"></i>Pages
             </a>
           </div>
@@ -338,22 +352,22 @@
         <div class="mb-8">
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">METADATA</p>
           <div class="space-y-1">
-            <a href="{{ base_path }}/admin/cameras" class="sidebar-link">
+            <a href="{{ base_path }}/admin/cameras" class="sidebar-link" data-spa-link>
               <i class="fas fa-camera"></i>Cameras
             </a>
-            <a href="{{ base_path }}/admin/lenses" class="sidebar-link">
+            <a href="{{ base_path }}/admin/lenses" class="sidebar-link" data-spa-link>
               <i class="fas fa-circle-dot"></i>Lenses
             </a>
-            <a href="{{ base_path }}/admin/films" class="sidebar-link">
+            <a href="{{ base_path }}/admin/films" class="sidebar-link" data-spa-link>
               <i class="fas fa-film"></i>Films
             </a>
-            <a href="{{ base_path }}/admin/developers" class="sidebar-link">
+            <a href="{{ base_path }}/admin/developers" class="sidebar-link" data-spa-link>
               <i class="fas fa-flask"></i>Developers
             </a>
-            <a href="{{ base_path }}/admin/labs" class="sidebar-link">
+            <a href="{{ base_path }}/admin/labs" class="sidebar-link" data-spa-link>
               <i class="fas fa-microscope"></i>Labs
             </a>
-            <a href="{{ base_path }}/admin/locations" class="sidebar-link">
+            <a href="{{ base_path }}/admin/locations" class="sidebar-link" data-spa-link>
               <i class="fas fa-location-dot"></i>Locations
             </a>
           </div>
@@ -363,20 +377,20 @@
         <div>
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">SYSTEM</p>
           <div class="space-y-1">
-            <a href="{{ base_path }}/admin/users" class="sidebar-link">
+            <a href="{{ base_path }}/admin/users" class="sidebar-link" data-spa-link>
               <i class="fas fa-users"></i>Users
             </a>
-            <a href="{{ base_path }}/admin/settings" class="sidebar-link">
+            <a href="{{ base_path }}/admin/settings" class="sidebar-link" data-spa-link>
               <i class="fas fa-cog"></i>Settings
             </a>
-            <a href="{{ base_path }}/admin/filter-settings" class="sidebar-link">
+            <a href="{{ base_path }}/admin/filter-settings" class="sidebar-link" data-spa-link>
               <i class="fas fa-sliders-h"></i>Filter Settings
             </a>
 
-            <a href="{{ base_path }}/admin/commands" class="sidebar-link">
+            <a href="{{ base_path }}/admin/commands" class="sidebar-link" data-spa-link>
               <i class="fas fa-terminal"></i>Commands
             </a>
-            <a href="{{ base_path }}/admin/diagnostics" class="sidebar-link">
+            <a href="{{ base_path }}/admin/diagnostics" class="sidebar-link" data-spa-link>
               <i class="fas fa-stethoscope"></i>Diagnostics
             </a>
           </div>
@@ -385,8 +399,14 @@
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 ml-64">
-      <main class="p-8">
+    <div class="flex-1 lg:flex-1 overflow-hidden">
+      <main class="p-4 lg:p-8 h-full overflow-y-auto" id="main-content">
+        <div id="loading-indicator" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+          <div class="bg-white p-4 rounded-lg shadow-lg">
+            <i class="fas fa-spinner fa-spin mr-2"></i>Loading...
+          </div>
+        </div>
+        
         {% if flash %}
           {% for message in flash %}
             {% if message.type == 'success' %}
@@ -413,7 +433,9 @@
           {% endfor %}
         {% endif %}
 
-        {% block content %}{% endblock %}
+        <div id="page-content">
+          {% block content %}{% endblock %}
+        </div>
       </main>
     </div>
   </div>
@@ -612,6 +634,188 @@
           e.stopPropagation();
         });
       }
+    });
+
+    // SPA Navigation System
+    document.addEventListener('DOMContentLoaded', function() {
+      const pageContent = document.getElementById('page-content');
+      const loadingIndicator = document.getElementById('loading-indicator');
+      const sidebarLinks = document.querySelectorAll('[data-spa-link]');
+      
+      // Mobile Sidebar Functionality
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      
+      function openSidebar() {
+        sidebar.classList.remove('-translate-x-full');
+        sidebarOverlay.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden'); // Prevent background scrolling
+      }
+      
+      function closeSidebar() {
+        sidebar.classList.add('-translate-x-full');
+        sidebarOverlay.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+      }
+      
+      // Mobile sidebar toggle events
+      if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', openSidebar);
+      }
+      
+      if (sidebarClose) {
+        sidebarClose.addEventListener('click', closeSidebar);
+      }
+      
+      if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+      }
+      
+      // Close sidebar when clicking on sidebar links on mobile
+      sidebarLinks.forEach(link => {
+        link.addEventListener('click', function() {
+          // Close sidebar on mobile after navigation
+          if (window.innerWidth < 1024) {
+            setTimeout(closeSidebar, 150);
+          }
+        });
+      });
+      
+      // Handle window resize
+      window.addEventListener('resize', function() {
+        if (window.innerWidth >= 1024) {
+          closeSidebar();
+        }
+      });
+      
+      // Function to update active sidebar link
+      function updateActiveSidebar(currentPath) {
+        sidebarLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === currentPath) {
+            link.classList.add('active');
+          }
+        });
+      }
+      
+      // Function to show loading indicator
+      function showLoading() {
+        loadingIndicator.classList.remove('hidden');
+      }
+      
+      // Function to hide loading indicator
+      function hideLoading() {
+        loadingIndicator.classList.add('hidden');
+      }
+      
+      // Function to load page content via AJAX
+      async function loadPageContent(url) {
+        try {
+          showLoading();
+          
+          const response = await fetch(url, {
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'text/html'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          
+          const html = await response.text();
+          
+          // Extract content from the response (assuming it's a full page)
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const content = doc.querySelector('#page-content') || doc.querySelector('main') || doc.body;
+          
+          if (content) {
+            // Fade out current content
+            pageContent.style.opacity = '0';
+            
+            setTimeout(() => {
+              pageContent.innerHTML = content.innerHTML;
+              
+              // Reinitialize any JavaScript that might be needed
+              initializePageScripts();
+              
+              // Fade in new content
+              pageContent.style.opacity = '1';
+              hideLoading();
+            }, 150);
+          } else {
+            throw new Error('Could not find content in response');
+          }
+          
+        } catch (error) {
+          console.error('Failed to load page content:', error);
+          hideLoading();
+          showToast('Failed to load page content. Falling back to full page load.', 'error');
+          
+          // Fallback to full page load
+          setTimeout(() => {
+            window.location.href = url;
+          }, 1000);
+        }
+      }
+      
+      // Function to reinitialize scripts after content load
+      function initializePageScripts() {
+        // Reinitialize any dynamic elements that might be in the new content
+        // This could include form handlers, modals, etc.
+        
+        // Re-bind any click handlers for dynamic content
+        const dynamicLinks = pageContent.querySelectorAll('a[href*="/admin/"]');
+        dynamicLinks.forEach(link => {
+          if (!link.hasAttribute('data-spa-link') && !link.hasAttribute('target')) {
+            link.addEventListener('click', handleDynamicLinkClick);
+          }
+        });
+      }
+      
+      // Handle clicks on dynamically loaded links
+      function handleDynamicLinkClick(e) {
+        const href = e.target.closest('a').getAttribute('href');
+        if (href && href.includes('/admin/') && !href.includes('#') && !e.target.closest('form')) {
+          e.preventDefault();
+          loadPageContent(href);
+          updateActiveSidebar(href);
+          
+          // Update browser history
+          history.pushState(null, '', href);
+        }
+      }
+      
+      // Handle sidebar navigation
+      sidebarLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          const href = this.getAttribute('href');
+          loadPageContent(href);
+          updateActiveSidebar(href);
+          
+          // Update browser history
+          history.pushState(null, '', href);
+        });
+      });
+      
+      // Handle browser back/forward buttons
+      window.addEventListener('popstate', function() {
+        const currentPath = window.location.pathname;
+        loadPageContent(currentPath);
+        updateActiveSidebar(currentPath);
+      });
+      
+      // Set initial active sidebar link
+      updateActiveSidebar(window.location.pathname);
+      
+      // Add smooth transition to page content
+      pageContent.style.transition = 'opacity 0.15s ease-in-out';
     });
   </script>
   <!-- PhotoSwipe JS -->
