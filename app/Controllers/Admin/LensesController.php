@@ -10,12 +10,13 @@ use Slim\Views\Twig;
 
 class LensesController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) {}
+    public function __construct(private Database $db, private Twig $view) 
+    {
         parent::__construct();
+    }
 
     public function index(Request $request, Response $response): Response
     {
-        parent::__construct();
         $page=max(1,(int)($request->getQueryParams()['page']??1)); $per=10; $off=($page-1)*$per; $pdo=$this->db->pdo();
         $total=(int)$pdo->query('SELECT COUNT(*) FROM lenses')->fetchColumn();
         $st=$pdo->prepare('SELECT id, brand, model, focal_min, focal_max, aperture_min FROM lenses ORDER BY brand, model LIMIT :l OFFSET :o');

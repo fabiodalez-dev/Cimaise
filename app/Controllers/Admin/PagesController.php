@@ -13,12 +13,13 @@ use Slim\Views\Twig;
 
 class PagesController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) {}
+    public function __construct(private Database $db, private Twig $view)
+    {
         parent::__construct();
+    }
 
     public function index(Request $request, Response $response): Response
     {
-        parent::__construct();
         $settings = new SettingsService($this->db);
         $aboutSlug = (string)($settings->get('about.slug', 'about') ?? 'about');
         if ($aboutSlug === '') { $aboutSlug = 'about'; }
@@ -148,7 +149,7 @@ class PagesController extends BaseController
         }
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Pagina About salvata'];
-        return $response->withHeader('Location', $this->redirect('/admin/pages/about')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/pages/about'))->withStatus(302);
     }
 
     public function galleriesForm(Request $request, Response $response): Response
@@ -195,7 +196,7 @@ class PagesController extends BaseController
         $svc->set('galleries.view_button_text', trim((string)($data['view_button_text'] ?? 'View')));
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Pagina Galleries salvata'];
-        return $response->withHeader('Location', $this->redirect('/admin/pages/galleries')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);
     }
 
     private function getFilterSettings(): array

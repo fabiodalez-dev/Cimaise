@@ -1,9 +1,44 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  
+  # Skip if already in public directory
+  RewriteRule ^public/ - [L]
+  
   # If the request is not for an existing file or directory, route into /public
-  RewriteCond %{REQUEST_URI} !^/public/
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^ public/$0 [L]
+  RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
 
+
+
+# Protect sensitive files
+<Files ".env">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files ".env.*">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "composer.json">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "composer.lock">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "package.json">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "package-lock.json">
+    Order Allow,Deny
+    Deny from all
+</Files>

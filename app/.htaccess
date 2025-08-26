@@ -1,0 +1,5 @@
+# Deny all access to application files
+<Files "*">
+    Order Allow,Deny
+    Deny from all
+</Files>
