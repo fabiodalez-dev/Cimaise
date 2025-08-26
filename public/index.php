@@ -138,6 +138,10 @@ $app->add(new FlashMiddleware());
 $app->add(new SecurityHeadersMiddleware());
 
 $twig = Twig::create(__DIR__ . '/../app/Views', ['cache' => false]);
+
+// Add custom Twig extensions
+$twig->getEnvironment()->addExtension(new \App\Extensions\AnalyticsTwigExtension());
+
 $app->add(TwigMiddleware::create($app, $twig));
 
 // Auto-detect app URL if not set in environment

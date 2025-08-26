@@ -1,0 +1,337 @@
+{% extends "admin/_layout.twig" %}
+
+{% block title %}Export Analytics Data — photoCMS{% endblock %}
+
+{% block content %}
+<div class="p-6">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Export Analytics Data</h1>
+      <p class="text-gray-600">Download your analytics data in various formats</p>
+    </div>
+    <div class="flex gap-2 mt-4 md:mt-0">
+      <a href="{{ base_path }}/admin/analytics" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors" data-spa-link>
+        <i class="fas fa-arrow-left mr-1.5 text-xs"></i>Back to Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Export Options -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Quick Exports -->
+    <div class="card p-6">
+      <div class="border-b border-gray-200 pb-4 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900">Quick Exports</h2>
+        <p class="text-sm text-gray-600 mt-1">Pre-configured exports for common use cases</p>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Sessions Export -->
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div class="flex-1">
+            <h3 class="font-medium text-gray-900">Sessions Data</h3>
+            <p class="text-sm text-gray-600">All visitor sessions with browser, location, and duration data</p>
+          </div>
+          <div class="flex gap-2">
+            <a href="{{ base_path }}/admin/analytics/export?type=sessions&format=csv" 
+               class="btn-secondary btn-sm">
+              <i class="fas fa-file-csv mr-1"></i>CSV
+            </a>
+            <a href="{{ base_path }}/admin/analytics/export?type=sessions&format=json" 
+               class="btn-secondary btn-sm">
+              <i class="fas fa-file-code mr-1"></i>JSON
+            </a>
+          </div>
+        </div>
+
+        <!-- Page Views Export -->
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div class="flex-1">
+            <h3 class="font-medium text-gray-900">Page Views</h3>
+            <p class="text-sm text-gray-600">Individual page view records with timing and referrer data</p>
+          </div>
+          <div class="flex gap-2">
+            <a href="{{ base_path }}/admin/analytics/export?type=pageviews&format=csv" 
+               class="btn-secondary btn-sm">
+              <i class="fas fa-file-csv mr-1"></i>CSV
+            </a>
+            <a href="{{ base_path }}/admin/analytics/export?type=pageviews&format=json" 
+               class="btn-secondary btn-sm">
+              <i class="fas fa-file-code mr-1"></i>JSON
+            </a>
+          </div>
+        </div>
+
+        <!-- Events Export -->
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div class="flex-1">
+            <h3 class="font-medium text-gray-900">Events Data</h3>
+            <p class="text-sm text-gray-600">User interactions like downloads, searches, and clicks</p>
+          </div>
+          <div class="flex gap-2">
+            <a href="{{ base_path }}/admin/analytics/export?type=events&format=csv" 
+               class="btn-secondary btn-sm">
+              <i class="fas fa-file-csv mr-1"></i>CSV
+            </a>
+            <a href="{{ base_path }}/admin/analytics/export?type=events&format=json" 
+               class="btn-secondary btn-sm">
+              <i class="fas fa-file-code mr-1"></i>JSON
+            </a>
+          </div>
+        </div>
+
+        <!-- Dashboard Summary -->
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div class="flex-1">
+            <h3 class="font-medium text-gray-900">Dashboard Summary</h3>
+            <p class="text-sm text-gray-600">Current dashboard statistics and key metrics</p>
+          </div>
+          <div class="flex gap-2">
+            <a href="{{ base_path }}/admin/analytics/export?type=dashboard&format=json" 
+               class="btn-secondary btn-sm">
+              <i class="fas fa-file-code mr-1"></i>JSON
+            </a>
+          </div>
+        </div>
+
+        <!-- Charts Data -->
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div class="flex-1">
+            <h3 class="font-medium text-gray-900">Charts Data</h3>
+            <p class="text-sm text-gray-600">Time-series data for charts and visualizations</p>
+          </div>
+          <div class="flex gap-2">
+            <a href="{{ base_path }}/admin/analytics/export?type=charts&format=json" 
+               class="btn-secondary btn-sm">
+              <i class="fas fa-file-code mr-1"></i>JSON
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Export -->
+    <div class="card p-6">
+      <div class="border-b border-gray-200 pb-4 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900">Custom Export</h2>
+        <p class="text-sm text-gray-600 mt-1">Configure your own export with date range and filters</p>
+      </div>
+
+      <form id="custom-export-form" class="space-y-6">
+        <!-- Data Type -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Data Type</label>
+          <select name="type" class="form-input" required>
+            <option value="sessions">Sessions Data</option>
+            <option value="pageviews">Page Views</option>
+            <option value="events">Events Data</option>
+            <option value="albums">Album Analytics</option>
+            <option value="dashboard">Dashboard Summary</option>
+            <option value="charts">Charts Data</option>
+          </select>
+        </div>
+
+        <!-- Date Range -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+            <input type="date" name="start_date" class="form-input" 
+                   value="{{ 'now'|date_modify('-30 days')|date('Y-m-d') }}" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+            <input type="date" name="end_date" class="form-input" 
+                   value="{{ 'now'|date('Y-m-d') }}" required>
+          </div>
+        </div>
+
+        <!-- Format -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
+          <div class="flex gap-4">
+            <label class="flex items-center">
+              <input type="radio" name="format" value="csv" class="mr-2" checked>
+              <span class="text-sm">CSV (Spreadsheet)</span>
+            </label>
+            <label class="flex items-center">
+              <input type="radio" name="format" value="json" class="mr-2">
+              <span class="text-sm">JSON (Data)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Advanced Options -->
+        <div class="border-t border-gray-200 pt-6">
+          <h3 class="text-sm font-medium text-gray-900 mb-4">Advanced Options</h3>
+          
+          <div class="space-y-4">
+            <!-- Include Bot Traffic -->
+            <label class="flex items-center">
+              <input type="checkbox" name="include_bots" class="mr-2">
+              <span class="text-sm text-gray-700">Include bot traffic in export</span>
+            </label>
+
+            <!-- Limit Records -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Limit Records</label>
+              <select name="limit" class="form-input w-32">
+                <option value="">No limit</option>
+                <option value="1000">1,000 records</option>
+                <option value="5000">5,000 records</option>
+                <option value="10000">10,000 records</option>
+                <option value="50000">50,000 records</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export Button -->
+        <div class="flex justify-end pt-4">
+          <button type="submit" class="btn-primary">
+            <i class="fas fa-download mr-2"></i>Generate Export
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Export Information -->
+  <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Data Privacy Notice -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <div class="flex items-start">
+        <i class="fas fa-shield-alt text-blue-600 mt-1 mr-3"></i>
+        <div>
+          <h3 class="text-sm font-medium text-blue-800 mb-2">Data Privacy & Security</h3>
+          <ul class="text-sm text-blue-700 space-y-1">
+            <li>• Exported data respects your privacy settings</li>
+            <li>• IP addresses are hashed and anonymized when enabled</li>
+            <li>• No personally identifiable information is included</li>
+            <li>• Geographic data is limited to country/region level</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Format Information -->
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+      <div class="flex items-start">
+        <i class="fas fa-info-circle text-gray-600 mt-1 mr-3"></i>
+        <div>
+          <h3 class="text-sm font-medium text-gray-800 mb-2">Export Formats</h3>
+          <ul class="text-sm text-gray-700 space-y-1">
+            <li>• <strong>CSV:</strong> Best for Excel, Google Sheets, and data analysis</li>
+            <li>• <strong>JSON:</strong> Perfect for developers and API integration</li>
+            <li>• Files are generated on-demand and not stored</li>
+            <li>• Large exports may take a few moments to generate</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('custom-export-form');
+  
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Get form data
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+    
+    // Add all form fields to URL params
+    for (const [key, value] of formData.entries()) {
+      if (value) {
+        params.append(key, value);
+      }
+    }
+    
+    // Create export URL
+    const exportUrl = `{{ base_path }}/admin/analytics/export?${params.toString()}`;
+    
+    // Trigger download
+    window.location.href = exportUrl;
+    
+    // Show feedback
+    const button = form.querySelector('button[type="submit"]');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
+    button.disabled = true;
+    
+    // Reset button after delay
+    setTimeout(() => {
+      button.innerHTML = originalText;
+      button.disabled = false;
+    }, 3000);
+  });
+  
+  // Update format options based on data type
+  const typeSelect = form.querySelector('select[name="type"]');
+  const formatInputs = form.querySelectorAll('input[name="format"]');
+  
+  typeSelect.addEventListener('change', function() {
+    const selectedType = this.value;
+    
+    // Some data types are better suited for specific formats
+    if (selectedType === 'dashboard' || selectedType === 'charts') {
+      // Dashboard and charts are complex objects, prefer JSON
+      formatInputs[1].checked = true; // JSON
+    } else {
+      // Raw data types work well with CSV
+      formatInputs[0].checked = true; // CSV
+    }
+  });
+});
+</script>
+
+<style>
+/* Custom export page styles */
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Export item hover effects */
+.bg-gray-50:hover {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+/* Form enhancements */
+.form-input:focus {
+  outline: none;
+  border-color: #000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Button loading state */
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .flex.gap-2 {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .btn-sm {
+    justify-content: center;
+  }
+}
+</style>
+{% endblock %}

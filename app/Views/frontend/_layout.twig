@@ -456,7 +456,7 @@
                                             <a href="{{ base_path }}/category/{{ category.slug }}" class="block hover:no-underline">
                                                 <div class="relative aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-gray-50 transition-all duration-300 group-hover:shadow-lg">
                                                     {% if category.image_path and category.image_path != '' %}
-                                                        <img src="{{ category.image_path }}" alt="{{ category.name|e }}" 
+                                                        <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" 
                                                              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                                              onerror="this.style.display='none';">
                                                     {% else %}
@@ -550,7 +550,7 @@
                                     <div class="flex items-center gap-3">
                                         {% if category.image_path and category.image_path != '' %}
                                             <div class="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                                                <img src="{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                                                <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
                                             </div>
                                         {% else %}
                                             <div class="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -573,7 +573,7 @@
                                 <a href="{{ base_path }}/category/{{ category.slug }}" class="flex items-center gap-3 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">
                                     {% if category.image_path and category.image_path != '' %}
                                         <div class="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                                            <img src="{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                                            <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
                                         </div>
                                     {% else %}
                                         <div class="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -603,7 +603,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
                 <div class="flex flex-wrap gap-4 items-center">
                     <div class="flex items-center gap-3">
-                        <label class="text-sm font-medium text-gray-700">Process:</label>
+                        <label for="filter-process" class="text-sm font-medium text-gray-700">Process:</label>
                         <select id="filter-process" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                             <option value="">All</option>
                             <option value="analog">Analog</option>
@@ -613,7 +613,7 @@
                     </div>
                     
                     <div class="flex items-center gap-3">
-                        <label class="text-sm font-medium text-gray-700">Sort:</label>
+                        <label for="filter-sort" class="text-sm font-medium text-gray-700">Sort:</label>
                         <select id="filter-sort" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                             <option value="published_desc">Latest</option>
                             <option value="published_asc">Oldest</option>
@@ -623,6 +623,7 @@
                     </div>
                     
                     <div class="flex items-center gap-3">
+                        <label for="filter-search" class="text-sm font-medium text-gray-700 sr-only">Search:</label>
                         <input type="text" id="filter-search" placeholder="Search camera, film..." 
                                class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                     </div>
@@ -1110,14 +1111,8 @@
             }, 100);
         });
         
-        // Lazy loader for PhotoSwipe (handles CDN not yet loaded)
+        // Local PhotoSwipe loader - use only local files to avoid CORB issues
         let __psLoading = false;
-        // Respect CSP: only use allowed sources (jsDelivr, cdnjs)
-        const __psSources = [
-          'https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.min.js',
-          'https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.4/photoswipe.min.js'
-        ];
-        // Local PhotoSwipe loader: try actual local paths (core + lightbox), then fallback
         let __psWarned = false;
         function loadScriptSequential(urls, done) {
           let idx = 0;
@@ -1135,19 +1130,19 @@
         function loadPhotoSwipe() {
             return new Promise((resolve, reject) => {
                 if (window.PhotoSwipe) return resolve();
-                // Prefer UMD builds under /dist/umd (your current files)
+                // Use only local PhotoSwipe files to avoid CORB issues
                 const coreCandidates = [
                   '{{ base_path }}/assets/photoswipe/dist/umd/photoswipe.umd.min.js',
-                  '{{ base_path }}/assets/photoswipe/dist/umd/photoswipe.umd.js',
-                  // fallbacks if structure changes
-                  '{{ base_path }}/assets/photoswipe/dist/photoswipe.umd.min.js',
-                  '{{ base_path }}/assets/photoswipe/dist/photoswipe.umd.js'
+                  '{{ base_path }}/assets/photoswipe/dist/photoswipe.esm.min.js'
                 ];
                 loadScriptSequential(coreCandidates, (okCore) => {
-                  if (!okCore && !window.PhotoSwipe) return reject(new Error('PhotoSwipe unavailable'));
+                  if (!okCore && !window.PhotoSwipe) {
+                    console.warn('PhotoSwipe could not be loaded from local files');
+                    return reject(new Error('PhotoSwipe unavailable'));
+                  }
                   const lbCandidates = [
                     '{{ base_path }}/assets/photoswipe/dist/umd/photoswipe-lightbox.umd.min.js',
-                    '{{ base_path }}/assets/photoswipe/dist/umd/photoswipe-lightbox.umd.js'
+                    '{{ base_path }}/assets/photoswipe/dist/photoswipe-lightbox.esm.min.js'
                   ];
                   loadScriptSequential(lbCandidates, () => resolve());
                 });
@@ -1593,6 +1588,28 @@
             cap.innerHTML = it.caption_html || (it.caption ? '<div>' + it.caption + '</div>' : '');
         }
         function fallbackClose(){ const o = document.getElementById('slb-overlay'); if (o) o.classList.remove('active'); }
+    </script>
+
+    <!-- Analytics Tracking (Cookieless) -->
+    <script src="{{ base_path }}/assets/js/analytics.js"></script>
+    <script>
+        // Initialize analytics with site configuration
+        window.photoCMSAnalyticsEnabled = true;
+        window.photoCMSAnalyticsConfig = {
+            endpoint: '{{ base_path }}/api/analytics/track',
+            debug: {{ app_debug|default(false) ? 'true' : 'false' }}
+        };
+        
+        // Add meta tags for analytics
+        {% if current_album %}
+        window.albumId = {{ current_album.id }};
+        {% endif %}
+        {% if current_category %}
+        window.categoryId = {{ current_category.id }};
+        {% endif %}
+        {% if current_tag %}
+        window.tagId = {{ current_tag.id }};
+        {% endif %}
     </script>
 
     {% block scripts %}{% endblock %}
