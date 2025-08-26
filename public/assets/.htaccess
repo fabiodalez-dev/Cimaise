@@ -1,26 +1,11 @@
-# Serve static assets directly
-<IfModule mod_mime.c>
-  # CSS files
-  AddType text/css .css
-  # JavaScript files  
-  AddType application/javascript .js
-  # Image files
-  AddType image/png .png
-  AddType image/jpeg .jpg .jpeg
-  AddType image/gif .gif
-  AddType image/svg+xml .svg
-  AddType image/webp .webp
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # Serve real files and directories directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  
+  # Route all other requests to index.php
+  RewriteRule ^ index.php [QSA,L]
 </IfModule>
-
-# Cache control for static assets
-<IfModule mod_expires.c>
-  ExpiresActive On
-  ExpiresByType text/css "access plus 1 month"
-  ExpiresByType application/javascript "access plus 1 month"
-  ExpiresByType image/png "access plus 1 month"
-  ExpiresByType image/jpeg "access plus 1 month"
-  ExpiresByType image/gif "access plus 1 month"
-  ExpiresByType image/svg+xml "access plus 1 month"
-  ExpiresByType image/webp "access plus 1 month"
-</IfModule>
-

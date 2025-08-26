@@ -19,6 +19,14 @@ class PageController extends BaseController
     {
         $pdo = $this->db->pdo();
         
+        // Pagination parameters
+        $perPage = 12;
+        
+        // Get total count of published albums
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1');
+        $countStmt->execute();
+        $totalAlbums = (int)$countStmt->fetchColumn();
+        
         // Get latest published albums
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
@@ -26,8 +34,9 @@ class PageController extends BaseController
             JOIN categories c ON c.id = a.category_id 
             WHERE a.is_published = 1 
             ORDER BY a.published_at DESC 
-            LIMIT 12
+            LIMIT :limit
         ');
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
         $stmt->execute();
         $albums = $stmt->fetchAll();
         
@@ -35,6 +44,9 @@ class PageController extends BaseController
         foreach ($albums as &$album) {
             $album = $this->enrichAlbum($album);
         }
+        
+        // Calculate pagination info
+        $hasMore = $totalAlbums > $perPage;
         
         // Get categories for navigation with hierarchy
         $parentCategories = $this->getParentCategoriesForNavigation();
@@ -70,6 +82,8 @@ class PageController extends BaseController
             'categories' => $categories,
             'parent_categories' => $parentCategories,
             'tags' => $tags,
+            'has_more' => $hasMore,
+            'total_albums' => $totalAlbums,
             'page_title' => 'Portfolio',
             'meta_description' => 'Photography portfolio showcasing analog and digital work'
         ]);
