@@ -247,7 +247,7 @@
         <div class="flex flex-wrap gap-4 text-sm">
             {% if processes|length > 1 %}
             <div class="flex items-center space-x-2">
-                <label>Process:</label>
+                <label for="image-filter-process">Process:</label>
                 <select id="image-filter-process" class="border border-neutral-300 rounded px-2 py-1 text-xs">
                     <option value="">All</option>
                     {% for process in processes %}
@@ -259,7 +259,7 @@
             
             {% if cameras|length > 1 %}
             <div class="flex items-center space-x-2">
-                <label>Camera:</label>
+                <label for="image-filter-camera">Camera:</label>
                 <select id="image-filter-camera" class="border border-neutral-300 rounded px-2 py-1 text-xs">
                     <option value="">All</option>
                     {% for camera in cameras %}

@@ -73,8 +73,15 @@
         <p class="text-gray-600 text-sm mb-4">Sitemap and SEO optimization</p>
         
         <div class="mb-4">
-          <label for="base-url" class="block text-sm font-medium text-gray-700 mb-2">Base URL:</label>
-          <input type="url" id="base-url" class="form-input text-sm" value="https://example.com" placeholder="https://yourdomain.com">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div class="flex items-center">
+              <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+              <div class="text-sm">
+                <div class="font-medium text-blue-800">Auto-detected Base URL:</div>
+                <div class="text-blue-700" id="detected-base-url">{{ detected_base_url }}</div>
+              </div>
+            </div>
+          </div>
         </div>
         
         <button onclick="runSitemapCommand()" class="w-full btn-primary text-sm">
@@ -103,25 +110,7 @@
       </div>
     </div>
 
-    <!-- User Commands -->
-    <div class="card">
-      <div class="p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center">
-          <i class="fas fa-users mr-3 text-indigo-600"></i>
-          Users
-        </h3>
-        <p class="text-gray-600 text-sm mb-4">User management and authentication</p>
-        
-        <div class="mb-4">
-          <label for="user-email" class="block text-sm font-medium text-gray-700 mb-2">Email:</label>
-          <input type="email" id="user-email" class="form-input text-sm" placeholder="admin@example.com">
-        </div>
-        
-        <button onclick="runUserCommand()" class="w-full btn-primary text-sm">
-          <i class="fas fa-user-plus mr-2"></i>Create User
-        </button>
-      </div>
-    </div>
+
 
     <!-- Additional System Tools -->
     <div class="card">
@@ -139,6 +128,35 @@
           <a href="{{ base_path }}/admin/diagnostics" class="w-full btn-secondary text-sm text-center block">
             <i class="fas fa-chart-line mr-2"></i>View System Status
           </a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Analytics Commands -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center">
+          <i class="fas fa-chart-bar mr-3 text-teal-600"></i>
+          Analytics
+        </h3>
+        <p class="text-gray-600 text-sm mb-4">Analytics data management and optimization</p>
+        
+        <div class="space-y-2">
+          <button onclick="runCommand('analytics:cleanup', {'dry-run': true})" class="w-full btn-secondary text-sm">
+            <i class="fas fa-preview mr-2"></i>Preview Cleanup
+          </button>
+          <button onclick="runAnalyticsCleanup()" class="w-full btn-primary text-sm">
+            <i class="fas fa-trash-alt mr-2"></i>Clean Old Data
+          </button>
+          <button onclick="runCommand('analytics:summarize')" class="w-full btn-secondary text-sm">
+            <i class="fas fa-chart-pie mr-2"></i>Generate Summaries
+          </button>
+        </div>
+        
+        <div class="mt-3 text-xs text-gray-500">
+          <div><strong>Preview:</strong> Shows what would be deleted without deleting</div>
+          <div><strong>Clean:</strong> Removes data older than retention period</div>
+          <div><strong>Summarize:</strong> Generates daily stats for faster dashboards</div>
         </div>
       </div>
     </div>
@@ -256,23 +274,9 @@ function runCommand(command, args = {}) {
 }
 
 function runSitemapCommand() {
-    const baseUrl = document.getElementById('base-url').value.trim();
-    if (!baseUrl) {
-        alert('Please enter a base URL');
-        return;
-    }
-    
+    // Use server-detected base URL
+    const baseUrl = document.getElementById('detected-base-url').textContent;
     runCommand('sitemap:build', { 'base-url': baseUrl });
-}
-
-function runUserCommand() {
-    const email = document.getElementById('user-email').value.trim();
-    if (!email) {
-        alert('Please enter an email address');
-        return;
-    }
-    
-    runCommand('user:create', { 'email': email });
 }
 
 function updateOutput(text, clear = false) {
@@ -307,6 +311,14 @@ function updateStatus(command, status, duration) {
     }
     
     statusDiv.classList.remove('hidden');
+}
+
+function runAnalyticsCleanup() {
+    if (!confirm('Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.')) {
+        return;
+    }
+    
+    runCommand('analytics:cleanup', { 'force': true });
 }
 
 function clearOutput() {

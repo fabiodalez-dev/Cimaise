@@ -48,16 +48,16 @@
           <form method="post" action="{{ about_url }}/contact" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <div>
-              <label class="block text-sm mb-1">Nome</label>
-              <input type="text" name="name" required class="w-full border border-neutral-300 rounded px-3 py-2">
+              <label for="contact-name" class="block text-sm mb-1">Nome</label>
+              <input type="text" id="contact-name" name="name" autocomplete="name" required class="w-full border border-neutral-300 rounded px-3 py-2">
             </div>
             <div>
-              <label class="block text-sm mb-1">Email</label>
-              <input type="email" name="email" required class="w-full border border-neutral-300 rounded px-3 py-2">
+              <label for="contact-email" class="block text-sm mb-1">Email</label>
+              <input type="email" id="contact-email" name="email" autocomplete="email" required class="w-full border border-neutral-300 rounded px-3 py-2">
             </div>
             <div class="md:col-span-2">
-              <label class="block text-sm mb-1">Messaggio</label>
-              <textarea name="message" rows="5" required class="w-full border border-neutral-300 rounded px-3 py-2"></textarea>
+              <label for="contact-message" class="block text-sm mb-1">Messaggio</label>
+              <textarea id="contact-message" name="message" rows="5" required class="w-full border border-neutral-300 rounded px-3 py-2"></textarea>
             </div>
             <div>
               <button type="submit" class="bg-black text-white px-5 py-2 rounded hover:bg-neutral-800 transition-colors">Invia</button>
