@@ -20,6 +20,11 @@ class AuthMiddleware implements MiddlewareInterface
         $basePath = dirname($_SERVER['SCRIPT_NAME']);
         $basePath = $basePath === '/' ? '' : $basePath;
         
+        // Remove /public from the path if present (since document root should be public/)
+        if (str_ends_with($basePath, '/public')) {
+            $basePath = substr($basePath, 0, -7); // Remove '/public'
+        }
+        
         // Skip auth check for login/logout routes
         $path = $request->getUri()->getPath();
         if (in_array($path, ['/admin/login'])) {

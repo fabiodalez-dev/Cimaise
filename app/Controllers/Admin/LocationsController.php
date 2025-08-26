@@ -78,7 +78,7 @@ class LocationsController extends BaseController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', $this->redirect('/admin/locations')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
@@ -90,6 +90,6 @@ class LocationsController extends BaseController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', $this->redirect('/admin/locations')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
     }
 }

@@ -11,12 +11,13 @@ use Slim\Views\Twig;
 
 class SettingsController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) {}
+    public function __construct(private Database $db, private Twig $view)
+    {
         parent::__construct();
+    }
 
     public function show(Request $request, Response $response): Response
     {
-        parent::__construct();
         $svc = new SettingsService($this->db);
         $settings = $svc->all();
         
@@ -111,7 +112,7 @@ class SettingsController extends BaseController
         error_log("Saved gallery.default_template_id: " . var_export($savedValue, true));
         
         $_SESSION['flash'][] = ['type'=>'success','message'=>'Impostazioni salvate correttamente'];
-        return $response->withHeader('Location', $this->redirect('/admin/settings')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
     }
 
     public function generateImages(Request $request, Response $response): Response
@@ -138,7 +139,7 @@ class SettingsController extends BaseController
             ];
         }
         
-        return $response->withHeader('Location', $this->redirect('/admin/settings')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
     }
 }
 

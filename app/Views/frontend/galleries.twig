@@ -340,6 +340,9 @@
 <script>
 // Galleries Page JavaScript with GSAP Animations
 $(document).ready(function() {
+    // Global base path for API calls
+    window.basePath = '{{ base_path }}';
+    
     // Animation settings from backend
     const animationEnabled = {{ filter_settings.animation_enabled ? 'true' : 'false' }};
     const animationDuration = {{ filter_settings.animation_duration }};
@@ -543,7 +546,7 @@ function applyFilters() {
     
     // Make AJAX request
     $.ajax({
-        url: '/galleries/filter',
+        url: window.basePath + '/galleries/filter',
         method: 'GET',
         data: filters,
         success: function(response) {
@@ -623,7 +626,7 @@ function generateGalleryCard(album) {
     return `
         <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2" 
                  data-album-id="${album.id}"
-                 onclick="window.location.href='/album/${album.slug}'">
+                 onclick="window.location.href=window.basePath + '/album/' + album.slug">
             
             <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
                 ${coverImage ? 

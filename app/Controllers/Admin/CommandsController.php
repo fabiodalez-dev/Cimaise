@@ -10,12 +10,13 @@ use Slim\Views\Twig;
 
 class CommandsController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) {}
+    public function __construct(private Database $db, private Twig $view) 
+    {
         parent::__construct();
+    }
 
     public function index(Request $request, Response $response): Response
     {
-        parent::__construct();
         return $this->view->render($response, 'admin/commands.twig', [
             'page_title' => 'System Commands'
         ]);
