@@ -8,6 +8,13 @@ INSERT INTO templates (name, slug, description, settings, libs) VALUES
   '["photoswipe"]'
 ),
 (
+  'Template Album 2',
+  'template-album-2',
+  'Template con header a tutta larghezza, immagine cover come sfondo e overlay scuro',
+  '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false,"hero":true,"coverBackground":true,"darkOverlay":true,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}',
+  '["photoswipe"]'
+),
+(
   'Masonry Portfolio',
   'masonry-portfolio',
   'Layout masonry responsivo per portfolio - desktop 4 colonne, tablet 3, mobile 2',
