@@ -1,0 +1,369 @@
+{% extends "admin/_layout.twig" %}
+
+{% block title %}Album Analytics — photoCMS{% endblock %}
+
+{% block content %}
+<div class="p-6">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Album Analytics</h1>
+      <p class="text-gray-600">Track performance of your photo albums</p>
+    </div>
+    <div class="flex gap-2 mt-4 md:mt-0">
+      <a href="{{ base_path }}/admin/analytics" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors" data-spa-link>
+        <i class="fas fa-arrow-left mr-1.5 text-xs"></i>Back to Dashboard
+      </a>
+      <a href="{{ base_path }}/admin/analytics/export?type=albums&format=csv" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">
+        <i class="fas fa-download mr-1.5 text-xs"></i>Export CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- Date Range Picker -->
+  <div class="card p-4 mb-6">
+    <form method="get" id="date-range-form" class="flex flex-col sm:flex-row items-center gap-4">
+      <div class="flex items-center gap-2">
+        <label for="start_date" class="text-sm font-medium text-gray-700">From:</label>
+        <input type="date" name="start_date" id="start_date" value="{{ start_date }}" 
+               class="form-input w-auto text-sm">
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="end_date" class="text-sm font-medium text-gray-700">To:</label>
+        <input type="date" name="end_date" id="end_date" value="{{ end_date }}" 
+               class="form-input w-auto text-sm">
+      </div>
+      <button type="submit" class="btn-primary btn-sm">
+        <i class="fas fa-search mr-2"></i>Update
+      </button>
+      <button type="button" onclick="setDateRange('7days')" class="btn-secondary btn-sm">7 Days</button>
+      <button type="button" onclick="setDateRange('30days')" class="btn-secondary btn-sm">30 Days</button>
+    </form>
+  </div>
+
+  <!-- Albums Performance Table -->
+  <div class="card">
+    <div class="p-6 border-b border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900">Album Performance</h3>
+      <p class="text-sm text-gray-600 mt-1">Sorted by page views ({{ start_date }} to {{ end_date }})</p>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Album
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Page Views
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Unique Visitors
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Avg. Time on Page
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for album in albums_data %}
+            <tr class="table-row">
+              <td class="px-6 py-4">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 w-12 h-12">
+                    {% if album.cover_image %}
+                      <img src="{{ base_path }}/uploads/thumbnails/{{ album.cover_image }}" 
+                           alt="{{ album.album_title|e }}" 
+                           class="w-12 h-12 rounded-lg object-cover">
+                    {% else %}
+                      <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-images text-gray-400"></i>
+                      </div>
+                    {% endif %}
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">
+                      {{ album.album_title|e }}
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      {% if album.album_slug %}
+                        <a href="{{ base_path }}/album/{{ album.album_slug }}" 
+                           target="_blank" 
+                           class="text-blue-600 hover:text-blue-800">
+                          /album/{{ album.album_slug }}
+                        </a>
+                      {% else %}
+                        No slug
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-sm font-semibold text-gray-900">
+                  {{ album.pageviews|number_format }}
+                </div>
+                <div class="text-xs text-gray-500">
+                  views
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-sm font-semibold text-gray-900">
+                  {{ album.unique_visitors|number_format }}
+                </div>
+                <div class="text-xs text-gray-500">
+                  visitors
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-sm font-semibold text-gray-900">
+                  {% if album.avg_time_on_page %}
+                    {% set time = album.avg_time_on_page %}
+                    {% if time > 60 %}
+                      {{ (time / 60)|round(1) }}m
+                    {% else %}
+                      {{ time|round }}s
+                    {% endif %}
+                  {% else %}
+                    --
+                  {% endif %}
+                </div>
+                <div class="text-xs text-gray-500">
+                  average
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex space-x-2">
+                  {% if album.album_slug %}
+                    <a href="{{ base_path }}/album/{{ album.album_slug }}" 
+                       target="_blank" 
+                       class="text-blue-600 hover:text-blue-800 text-sm">
+                      <i class="fas fa-external-link-alt mr-1"></i>View
+                    </a>
+                  {% endif %}
+                  {% if album.album_id %}
+                    <a href="{{ base_path }}/admin/albums/{{ album.album_id }}/edit" 
+                       class="text-gray-600 hover:text-gray-800 text-sm" 
+                       data-spa-link>
+                      <i class="fas fa-edit mr-1"></i>Edit
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                <div class="flex flex-col items-center">
+                  <i class="fas fa-chart-bar text-3xl mb-4"></i>
+                  <h3 class="text-lg font-medium text-gray-900 mb-2">No album data available</h3>
+                  <p class="text-sm">Album analytics will appear here once visitors view your albums.</p>
+                  {% if start_date != end_date %}
+                    <p class="text-xs mt-2">Try adjusting the date range or check if analytics are enabled.</p>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Performance Insights -->
+  {% if albums_data %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+      <!-- Top Performing Album -->
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          <i class="fas fa-trophy text-yellow-500 mr-2"></i>Top Performing Album
+        </h3>
+        {% set top_album = albums_data[0] %}
+        <div class="flex items-center">
+          <div class="flex-shrink-0 w-16 h-16">
+            {% if top_album.cover_image %}
+              <img src="{{ base_path }}/uploads/thumbnails/{{ top_album.cover_image }}" 
+                   alt="{{ top_album.album_title|e }}" 
+                   class="w-16 h-16 rounded-lg object-cover">
+            {% else %}
+              <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                <i class="fas fa-images text-gray-400 text-xl"></i>
+              </div>
+            {% endif %}
+          </div>
+          <div class="ml-4 flex-1">
+            <h4 class="text-lg font-medium text-gray-900">{{ top_album.album_title|e }}</h4>
+            <div class="mt-2 grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <span class="text-gray-500">Views:</span>
+                <div class="font-semibold">{{ top_album.pageviews|number_format }}</div>
+              </div>
+              <div>
+                <span class="text-gray-500">Visitors:</span>
+                <div class="font-semibold">{{ top_album.unique_visitors|number_format }}</div>
+              </div>
+              <div>
+                <span class="text-gray-500">Avg. Time:</span>
+                <div class="font-semibold">
+                  {% if top_album.avg_time_on_page %}
+                    {% set time = top_album.avg_time_on_page %}
+                    {% if time > 60 %}
+                      {{ (time / 60)|round(1) }}m
+                    {% else %}
+                      {{ time|round }}s
+                    {% endif %}
+                  {% else %}
+                    --
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          <i class="fas fa-chart-pie text-blue-500 mr-2"></i>Quick Stats
+        </h3>
+        <div class="space-y-4">
+          <div class="flex justify-between">
+            <span class="text-gray-600">Total Albums with Views:</span>
+            <span class="font-semibold">{{ albums_data|length }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Total Page Views:</span>
+            <span class="font-semibold">
+              {% set total_views = 0 %}
+              {% for album in albums_data %}
+                {% set total_views = total_views + album.pageviews %}
+              {% endfor %}
+              {{ total_views|number_format }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Total Unique Visitors:</span>
+            <span class="font-semibold">
+              {% set total_visitors = 0 %}
+              {% for album in albums_data %}
+                {% set total_visitors = total_visitors + album.unique_visitors %}
+              {% endfor %}
+              {{ total_visitors|number_format }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Average Time per Album:</span>
+            <span class="font-semibold">
+              {% set total_time = 0 %}
+              {% set albums_with_time = 0 %}
+              {% for album in albums_data %}
+                {% if album.avg_time_on_page %}
+                  {% set total_time = total_time + album.avg_time_on_page %}
+                  {% set albums_with_time = albums_with_time + 1 %}
+                {% endif %}
+              {% endfor %}
+              {% if albums_with_time > 0 %}
+                {% set avg_time = total_time / albums_with_time %}
+                {% if avg_time > 60 %}
+                  {{ (avg_time / 60)|round(1) }}m
+                {% else %}
+                  {{ avg_time|round }}s
+                {% endif %}
+              {% else %}
+                --
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+// Date range helpers
+function setDateRange(range) {
+  const today = new Date();
+  const startInput = document.getElementById('start_date');
+  const endInput = document.getElementById('end_date');
+  
+  endInput.value = today.toISOString().split('T')[0];
+  
+  let startDate = new Date();
+  switch(range) {
+    case '7days':
+      startDate.setDate(today.getDate() - 7);
+      break;
+    case '30days':
+      startDate.setDate(today.getDate() - 30);
+      break;
+  }
+  
+  startInput.value = startDate.toISOString().split('T')[0];
+  document.getElementById('date-range-form').submit();
+}
+
+// Enhanced table interactions
+document.addEventListener('DOMContentLoaded', function() {
+  // Add hover effects to table rows
+  const tableRows = document.querySelectorAll('.table-row');
+  tableRows.forEach(row => {
+    row.addEventListener('mouseenter', function() {
+      this.style.backgroundColor = '#f8fafc';
+    });
+    row.addEventListener('mouseleave', function() {
+      this.style.backgroundColor = '';
+    });
+  });
+});
+</script>
+
+<style>
+/* Custom album analytics styles */
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.table-row {
+  transition: background-color 0.2s ease;
+}
+
+/* Album thumbnail styles */
+.w-12.h-12 img, .w-16.h-16 img {
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+/* Link hover effects */
+.text-blue-600:hover {
+  text-decoration: underline;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  .overflow-x-auto {
+    font-size: 0.875rem;
+  }
+  
+  .px-6 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .py-4 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+</style>
+{% endblock %}

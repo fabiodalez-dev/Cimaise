@@ -99,17 +99,24 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
           }
           
           .category-icon img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 3px;
           }
           
-          .category-icon.placeholder {
+          .category-icon .placeholder {
             color: #9ca3af;
             font-size: 14px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
           
           .category-name {
@@ -210,6 +217,67 @@
             margin-bottom: 12px;
             color: #d1d5db;
           }
+          
+          /* Enhanced upload area styles */
+          .upload-zone {
+            transition: all 0.2s ease;
+            position: relative;
+          }
+          
+          .upload-zone:hover {
+            border-color: #9ca3af;
+            background-color: #f9fafb;
+          }
+          
+          .upload-zone.border-blue-400 {
+            border-color: #60a5fa !important;
+            background-color: #eff6ff !important;
+          }
+          
+          #upload-preview img {
+            transition: all 0.3s ease;
+          }
+          
+          #current-image {
+            transition: opacity 0.3s ease;
+          }
+          
+          /* Improved form styling */
+          .form-input:focus {
+            ring: 2px;
+            ring-color: #000;
+            border-color: transparent;
+          }
+          
+          /* Better button states */
+          .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+          
+          /* Loading states */
+          .loading {
+            opacity: 0.7;
+            pointer-events: none;
+          }
+          
+          .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+          
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
         </style>
         
         <div class="categories-container" id="categories-container">
@@ -222,7 +290,7 @@
                 
                 <div class="category-icon">
                   {% if category.image_path and category.image_path != '' %}
-                    <img src="{{ category.image_path }}" alt="{{ category.name }}" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=&quot;placeholder&quot;><i class=&quot;fas fa-folder&quot;></i></div>';">
+                    <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name }}" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=&quot;placeholder&quot;><i class=&quot;fas fa-folder&quot;></i></div>';">
                   {% else %}
                     <div class="placeholder">
                       <i class="fas fa-folder"></i>
@@ -308,8 +376,23 @@
                 </label>
               </div>
             </div>
-            <input class="form-input" type="file" name="image" accept="image/*" id="cat-image">
-            <small class="text-gray-500 text-xs mt-1">JPG, PNG, WebP formats supported. Used in navigation menus.</small>
+            <div class="upload-area" id="upload-area">
+              <input class="form-input hidden" type="file" name="image" accept="image/*" id="cat-image">
+              <div class="upload-zone border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors cursor-pointer" onclick="document.getElementById('cat-image').click()">
+                <i class="fas fa-cloud-upload-alt text-gray-400 text-2xl mb-2"></i>
+                <div class="text-sm text-gray-600">Click to upload or drag & drop</div>
+                <div class="text-xs text-gray-500 mt-1">JPG, PNG, WebP • Max 5MB</div>
+              </div>
+              <div id="upload-preview" class="hidden mt-3">
+                <img id="upload-preview-img" class="w-full h-32 object-cover rounded-lg border" alt="Upload preview">
+                <div class="flex items-center justify-between mt-2 p-2 bg-blue-50 rounded">
+                  <small class="text-blue-600">New image selected</small>
+                  <button type="button" onclick="clearUploadPreview()" class="text-red-600 text-sm hover:underline">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div>
@@ -569,9 +652,13 @@
         const currentImageDiv = document.getElementById('current-image');
         const currentImagePreview = document.getElementById('current-image-preview');
         
+        // Clear any upload preview first
+        clearUploadPreview();
+        
         if (data.image_path) {
-          currentImagePreview.src = data.image_path;
+          currentImagePreview.src = window.basePath + data.image_path;
           currentImageDiv.classList.remove('hidden');
+          currentImageDiv.style.opacity = '1';
         } else {
           currentImageDiv.classList.add('hidden');
         }
@@ -609,20 +696,159 @@
       // Hide current image
       document.getElementById('current-image').classList.add('hidden');
       
+      // Clear upload preview
+      clearUploadPreview();
+      
       // Reset remove image checkbox
       const removeImageCheckbox = document.querySelector('input[name="remove_image"]');
       if (removeImageCheckbox) {
         removeImageCheckbox.checked = false;
       }
       
+      // Reset slug auto-generation
+      document.getElementById('cat-slug').dataset.auto = 'true';
+      
       // Update form action
       const form = document.getElementById('cat-form');
       form.action = window.basePath + '/admin/categories';
+      
+      // Focus on name field
+      document.getElementById('cat-name').focus();
     });
     
     // Initialize the drag system
     document.addEventListener('DOMContentLoaded', function() {
       new DragSystem();
+      setupImageUpload();
+      setupFormValidation();
     });
+    
+    // Enhanced image upload with drag & drop
+    function setupImageUpload() {
+      const uploadArea = document.getElementById('upload-area');
+      const fileInput = document.getElementById('cat-image');
+      const uploadZone = uploadArea.querySelector('.upload-zone');
+      const uploadPreview = document.getElementById('upload-preview');
+      const uploadPreviewImg = document.getElementById('upload-preview-img');
+      
+      // Drag and drop handlers
+      uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('border-blue-400', 'bg-blue-50');
+      });
+      
+      uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('border-blue-400', 'bg-blue-50');
+      });
+      
+      uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('border-blue-400', 'bg-blue-50');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          handleFileSelection(files[0]);
+        }
+      });
+      
+      // File input change handler
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleFileSelection(e.target.files[0]);
+        }
+      });
+      
+      function handleFileSelection(file) {
+        // Validate file
+        if (!file.type.startsWith('image/')) {
+          alert('Please select an image file (JPG, PNG, WebP)');
+          return;
+        }
+        
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+          alert('File size must be less than 5MB');
+          return;
+        }
+        
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          uploadPreviewImg.src = e.target.result;
+          uploadPreview.classList.remove('hidden');
+          
+          // Hide current image section if editing
+          const currentImage = document.getElementById('current-image');
+          if (!currentImage.classList.contains('hidden')) {
+            currentImage.style.opacity = '0.5';
+          }
+        };
+        reader.readAsDataURL(file);
+        
+        // Set the file input
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+      }
+    }
+    
+    // Clear upload preview
+    function clearUploadPreview() {
+      const uploadPreview = document.getElementById('upload-preview');
+      const fileInput = document.getElementById('cat-image');
+      const currentImage = document.getElementById('current-image');
+      
+      uploadPreview.classList.add('hidden');
+      fileInput.value = '';
+      
+      // Restore current image opacity
+      if (!currentImage.classList.contains('hidden')) {
+        currentImage.style.opacity = '1';
+      }
+    }
+    
+    // Form validation and auto-slug generation
+    function setupFormValidation() {
+      const nameInput = document.getElementById('cat-name');
+      const slugInput = document.getElementById('cat-slug');
+      
+      // Auto-generate slug from name
+      nameInput.addEventListener('input', (e) => {
+        if (!slugInput.value || slugInput.dataset.auto === 'true') {
+          const slug = e.target.value
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .trim('-');
+          
+          slugInput.value = slug;
+          slugInput.dataset.auto = 'true';
+        }
+      });
+      
+      // Mark slug as manually edited when user types
+      slugInput.addEventListener('input', () => {
+        slugInput.dataset.auto = 'false';
+      });
+      
+      // Form submission validation
+      document.getElementById('cat-form').addEventListener('submit', (e) => {
+        const name = nameInput.value.trim();
+        
+        if (!name) {
+          e.preventDefault();
+          alert('Category name is required');
+          nameInput.focus();
+          return;
+        }
+        
+        if (name.length < 2) {
+          e.preventDefault();
+          alert('Category name must be at least 2 characters long');
+          nameInput.focus();
+          return;
+        }
+      });
+    }
   </script>
 {% endblock %}

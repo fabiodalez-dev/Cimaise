@@ -28,7 +28,7 @@
         <label class="block text-sm font-medium text-gray-700 mb-1">Immagine categoria</label>
         {% if item.image_path %}
           <div class="mb-3 p-3 border border-gray-200 rounded-lg">
-            <img src="{{ item.image_path }}" alt="{{ item.name }}" class="w-48 h-32 object-cover rounded border mb-2">
+            <img src="{{ base_path }}{{ item.image_path }}" alt="{{ item.name }}" class="w-48 h-32 object-cover rounded border mb-2">
             <div class="flex items-center gap-2">
               <small class="text-gray-600">Immagine corrente</small>
               <label class="flex items-center gap-1 text-red-600 cursor-pointer">

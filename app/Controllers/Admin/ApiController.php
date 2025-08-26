@@ -9,12 +9,13 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 class ApiController extends BaseController
 {
-    public function __construct(private Database $db) {}
+    public function __construct(private Database $db)
+    {
         parent::__construct();
+    }
 
     public function tags(Request $request, Response $response): Response
     {
-        parent::__construct();
         $q = trim((string)($request->getQueryParams()['q'] ?? ''));
         $pdo = $this->db->pdo();
         if ($q !== '') {
@@ -33,10 +34,10 @@ class ApiController extends BaseController
         $id = (int)($args['id'] ?? 0);
         $pdo = $this->db->pdo();
         try {
-            $stmt = $pdo->prepare('SELECT id, name, slug, sort_order, COALESCE(parent_id, 0) AS parent_id FROM categories WHERE id = :id');
+            $stmt = $pdo->prepare('SELECT id, name, slug, sort_order, image_path, COALESCE(parent_id, 0) AS parent_id FROM categories WHERE id = :id');
         } catch (\Throwable) {
             // Fallback if parent_id does not exist
-            $stmt = $pdo->prepare('SELECT id, name, slug, sort_order FROM categories WHERE id = :id');
+            $stmt = $pdo->prepare('SELECT id, name, slug, sort_order, image_path FROM categories WHERE id = :id');
         }
         $stmt->execute([':id'=>$id]);
         $row = $stmt->fetch() ?: null;
