@@ -2,18 +2,20 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class ApiController
+class ApiController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view) {}
+        parent::__construct();
 
     public function albums(Request $request, Response $response): Response
     {
+        parent::__construct();
         $pdo = $this->db->pdo();
         $q = $request->getQueryParams();
 

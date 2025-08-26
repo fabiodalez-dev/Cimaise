@@ -6,7 +6,7 @@
       <h1 class="text-2xl font-bold text-gray-900">System Commands</h1>
       <p class="text-gray-600 mt-1">Execute system commands and maintenance tasks</p>
     </div>
-    <a href="/CLI_GUIDE.md" target="_blank" class="btn-secondary">
+    <a href="{{ base_path }}/CLI_GUIDE.md" target="_blank" class="btn-secondary">
       <i class="fas fa-book mr-2"></i>CLI Guide
     </a>
   </div>
@@ -96,7 +96,7 @@
           <button onclick="runCommand('diagnostics:report')" class="w-full btn-primary text-sm">
             <i class="fas fa-stethoscope mr-2"></i>Run Diagnostics
           </button>
-          <a href="/admin/diagnostics" class="w-full btn-secondary text-sm text-center block">
+          <a href="{{ base_path }}/admin/diagnostics" class="w-full btn-secondary text-sm text-center block">
             <i class="fas fa-eye mr-2"></i>View Diagnostics
           </a>
         </div>
@@ -136,7 +136,7 @@
           <button onclick="runCommand('init')" class="w-full btn-secondary text-sm">
             <i class="fas fa-sync mr-2"></i>Initialize System
           </button>
-          <a href="/admin/diagnostics" class="w-full btn-secondary text-sm text-center block">
+          <a href="{{ base_path }}/admin/diagnostics" class="w-full btn-secondary text-sm text-center block">
             <i class="fas fa-chart-line mr-2"></i>View System Status
           </a>
         </div>

@@ -2,19 +2,21 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
-
+use App\Controllers\BaseController;
 use App\Services\SettingsService;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class SettingsController
+class SettingsController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view) {}
+        parent::__construct();
 
     public function show(Request $request, Response $response): Response
     {
+        parent::__construct();
         $svc = new SettingsService($this->db);
         $settings = $svc->all();
         
@@ -109,7 +111,7 @@ class SettingsController
         error_log("Saved gallery.default_template_id: " . var_export($savedValue, true));
         
         $_SESSION['flash'][] = ['type'=>'success','message'=>'Impostazioni salvate correttamente'];
-        return $response->withHeader('Location', '/admin/settings')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/settings')->withStatus(302);
     }
 
     public function generateImages(Request $request, Response $response): Response
@@ -136,7 +138,7 @@ class SettingsController
             ];
         }
         
-        return $response->withHeader('Location', '/admin/settings')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/settings')->withStatus(302);
     }
 }
 

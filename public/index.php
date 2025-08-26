@@ -14,8 +14,8 @@ use Slim\Exception\HttpNotFoundException;
 
 // Check if installer is being accessed
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-$isInstallerRoute = strpos($requestUri, '/install') === 0;
-$isAdminLoginRoute = $requestUri === '/admin/login';
+$isInstallerRoute = strpos($requestUri, '/install') !== false;
+$isAdminLoginRoute = strpos($requestUri, '/admin/login') !== false;
 
 // Check if already installed (only for non-installer routes and not admin login)
 if (!$isInstallerRoute && !$isAdminLoginRoute) {
@@ -43,19 +43,33 @@ if (!$isInstallerRoute && !$isAdminLoginRoute) {
     
     // If not installed, redirect to installer
     if (!$installed) {
-        http_response_code(302);
-        header('Location: /install');
-        exit;
+        // Avoid redirect loop - check if we're already on install page
+        if (strpos($_SERVER['REQUEST_URI'], '/install') === false) {
+            // Get the base path for the installer redirect
+            $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
+            $scriptDir = dirname($scriptPath);
+            $basePath = $scriptDir === '/' ? '' : $scriptDir;
+            
+            // Try simple installer first, fallback to main installer
+            if (file_exists(__DIR__ . '/simple-installer.php')) {
+                http_response_code(302);
+                header('Location: ' . $basePath . '/simple-installer.php');
+                exit;
+            } else {
+                http_response_code(302);
+                header('Location: ' . $basePath . '/installer.php');
+                exit;
+            }
+        }
     }
 }
 
-// Bootstrap env and services (skip for installer routes to avoid database connection issues)
-if ($isInstallerRoute) {
-    // For installer routes, create minimal container without database connection
-    $container = ['db' => null];
-} else {
-    // For normal routes, load full bootstrap with database
+// Bootstrap env and services
+try {
     $container = require __DIR__ . '/../app/Config/bootstrap.php';
+} catch (\Throwable $e) {
+    // If bootstrap fails (e.g., no database), create minimal container
+    $container = ['db' => null];
 }
 
 // Sessions with secure defaults
@@ -68,6 +82,14 @@ if ((bool)($_ENV['APP_DEBUG'] ?? false) === false) {
 session_start();
 
 $app = AppFactory::create();
+
+// Set base path for subdirectory installations
+$scriptDir = dirname($_SERVER['SCRIPT_NAME']);
+$basePath = $scriptDir === '/' ? '' : $scriptDir;
+if ($basePath) {
+    $app->setBasePath($basePath);
+}
+
 $app->addBodyParsingMiddleware();
 $app->add(new CsrfMiddleware());
 $app->add(new FlashMiddleware());
@@ -76,8 +98,16 @@ $app->add(new SecurityHeadersMiddleware());
 $twig = Twig::create(__DIR__ . '/../app/Views', ['cache' => false]);
 $app->add(TwigMiddleware::create($app, $twig));
 
+// Auto-detect app URL if not set in environment
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptDir = dirname($_SERVER['SCRIPT_NAME']);
+$basePath = $scriptDir === '/' ? '' : $scriptDir;
+$autoDetectedUrl = $protocol . '://' . $host . $basePath;
+
 // Share globals
-$twig->getEnvironment()->addGlobal('app_url', $_ENV['APP_URL'] ?? 'http://localhost:8000');
+$twig->getEnvironment()->addGlobal('app_url', $_ENV['APP_URL'] ?? $autoDetectedUrl);
+$twig->getEnvironment()->addGlobal('base_path', $basePath);
 
 // Expose about URL from settings (only if not installer route and database exists)
 if (!$isInstallerRoute && $container['db'] !== null) {
@@ -85,13 +115,15 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $settingsSvc = new \App\Services\SettingsService($container['db']);
         $aboutSlug = (string)($settingsSvc->get('about.slug', 'about') ?? 'about');
         $aboutSlug = $aboutSlug !== '' ? $aboutSlug : 'about';
-        $twig->getEnvironment()->addGlobal('about_url', '/' . $aboutSlug);
+        $twig->getEnvironment()->addGlobal('about_url', $basePath . '/' . $aboutSlug);
     } catch (\Throwable) {
-        $twig->getEnvironment()->addGlobal('about_url', '/about');
+        $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
     }
 } else {
-    $twig->getEnvironment()->addGlobal('about_url', '/about');
+    $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
 }
+
+
 
 // Routes (pass container and app)
 $routes = require __DIR__ . '/../app/Config/routes.php';

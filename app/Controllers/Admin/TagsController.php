@@ -2,16 +2,17 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class TagsController
+class TagsController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view)
     {
+        parent::__construct();
     }
 
     public function index(Request $request, Response $response): Response
@@ -48,7 +49,7 @@ class TagsController
         $slug = trim((string)($data['slug'] ?? ''));
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
-            return $response->withHeader('Location', '/admin/tags/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/tags/create'))->withStatus(302);
         }
         if ($slug === '') {
             $slug = \App\Support\Str::slug($name);
@@ -59,10 +60,10 @@ class TagsController
         try {
             $stmt->execute([':n' => $name, ':s' => $slug]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag creato'];
-            return $response->withHeader('Location', '/admin/tags')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
-            return $response->withHeader('Location', '/admin/tags/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/tags/create'))->withStatus(302);
         }
     }
 
@@ -90,7 +91,7 @@ class TagsController
         $slug = trim((string)($data['slug'] ?? ''));
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
-            return $response->withHeader('Location', '/admin/tags/'.$id.'/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/tags/'.$id.'/edit'))->withStatus(302);
         }
         if ($slug === '') {
             $slug = \App\Support\Str::slug($name);
@@ -104,7 +105,7 @@ class TagsController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', '/admin/tags')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
@@ -117,6 +118,6 @@ class TagsController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', '/admin/tags')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
     }
 }

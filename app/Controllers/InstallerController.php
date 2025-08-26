@@ -13,12 +13,16 @@ class InstallerController
     private Installer $installer;
     private Twig $view;
     private string $rootPath;
+    private string $basePath;
     
     public function __construct(Twig $view)
     {
         $this->rootPath = dirname(__DIR__, 2);
         $this->installer = new Installer($this->rootPath);
         $this->view = $view;
+        // Get base path for redirects
+        $this->basePath = dirname($_SERVER['SCRIPT_NAME']);
+        $this->basePath = $this->basePath === '/' ? '' : $this->basePath;
     }
     
     /**
@@ -29,7 +33,7 @@ class InstallerController
         // Check if already installed
         if ($this->installer->isInstalled()) {
             // Redirect to admin login
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
         
         // Verify requirements
@@ -48,12 +52,12 @@ class InstallerController
     {
         // Check if already installed
         if ($this->installer->isInstalled()) {
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
         
         $requirements = $this->checkRequirements();
         if (!empty($requirements['errors'])) {
-            return $response->withHeader('Location', '/install')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install')->withStatus(302);
         }
         
         return $this->view->render($response, 'installer/database.twig', [
@@ -75,7 +79,7 @@ class InstallerController
     {
         // Check if already installed
         if ($this->installer->isInstalled()) {
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
         
         $data = (array)$request->getParsedBody();
@@ -84,7 +88,7 @@ class InstallerController
         $csrf = (string)($data['csrf'] ?? '');
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
-            return $response->withHeader('Location', '/install/database')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
         
         // Store database config in session for later use
@@ -94,14 +98,14 @@ class InstallerController
         try {
             $testResult = $this->testDatabaseConnection($data);
             if ($testResult['success']) {
-                return $response->withHeader('Location', '/install/admin')->withStatus(302);
+                return $response->withHeader('Location', $this->basePath . '/install/admin')->withStatus(302);
             } else {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => $testResult['error']];
-                return $response->withHeader('Location', '/install/database')->withStatus(302);
+                return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
             }
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Database connection failed: ' . $e->getMessage()];
-            return $response->withHeader('Location', '/install/database')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
     }
     
@@ -112,12 +116,12 @@ class InstallerController
     {
         // Check if already installed
         if ($this->installer->isInstalled()) {
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
         
         // Check if we have database config
         if (!isset($_SESSION['install_db_config'])) {
-            return $response->withHeader('Location', '/install/database')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
         
         return $this->view->render($response, 'installer/admin.twig', [
@@ -132,12 +136,12 @@ class InstallerController
     {
         // Check if already installed
         if ($this->installer->isInstalled()) {
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
         
         // Check if we have database config
         if (!isset($_SESSION['install_db_config'])) {
-            return $response->withHeader('Location', '/install/database')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
         
         $data = (array)$request->getParsedBody();
@@ -146,7 +150,7 @@ class InstallerController
         $csrf = (string)($data['csrf'] ?? '');
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
-            return $response->withHeader('Location', '/install/admin')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/admin')->withStatus(302);
         }
         
         // Validate admin data
@@ -155,13 +159,13 @@ class InstallerController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Please correct the errors below'];
             $_SESSION['install_admin_errors'] = $errors;
             $_SESSION['install_admin_data'] = $data;
-            return $response->withHeader('Location', '/install/admin')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/admin')->withStatus(302);
         }
         
         // Store admin config in session
         $_SESSION['install_admin_config'] = $data;
         
-        return $response->withHeader('Location', '/install/settings')->withStatus(302);
+        return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
     }
     
     /**
@@ -171,12 +175,12 @@ class InstallerController
     {
         // Check if already installed
         if ($this->installer->isInstalled()) {
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
         
         // Check if we have database and admin config
         if (!isset($_SESSION['install_db_config']) || !isset($_SESSION['install_admin_config'])) {
-            return $response->withHeader('Location', '/install/database')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
         
         return $this->view->render($response, 'installer/settings.twig', [
@@ -195,12 +199,12 @@ class InstallerController
     {
         // Check if already installed
         if ($this->installer->isInstalled()) {
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
         
         // Check if we have database and admin config
         if (!isset($_SESSION['install_db_config']) || !isset($_SESSION['install_admin_config'])) {
-            return $response->withHeader('Location', '/install/database')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
         
         $data = (array)$request->getParsedBody();
@@ -209,13 +213,13 @@ class InstallerController
         $csrf = (string)($data['csrf'] ?? '');
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
-            return $response->withHeader('Location', '/install/settings')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
         }
         
         // Store settings config in session
         $_SESSION['install_settings_config'] = $data;
         
-        return $response->withHeader('Location', '/install/confirm')->withStatus(302);
+        return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
     }
     
     /**
@@ -225,14 +229,14 @@ class InstallerController
     {
         // Check if already installed
         if ($this->installer->isInstalled()) {
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
         
         // Check if we have all config
         if (!isset($_SESSION['install_db_config']) || 
             !isset($_SESSION['install_admin_config']) || 
             !isset($_SESSION['install_settings_config'])) {
-            return $response->withHeader('Location', '/install/database')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
         
         return $this->view->render($response, 'installer/confirm.twig', [
@@ -253,7 +257,7 @@ class InstallerController
         // Check if already installed
         if ($this->installer->isInstalled()) {
             error_log('runInstall: Already installed, redirecting to /admin/login');
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
         
         // Check if we have all config
@@ -261,7 +265,7 @@ class InstallerController
             !isset($_SESSION['install_admin_config']) || 
             !isset($_SESSION['install_settings_config'])) {
             error_log('runInstall: Missing configuration data, redirecting to /install/database');
-            return $response->withHeader('Location', '/install/database')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
         
         $data = (array)$request->getParsedBody();
@@ -272,7 +276,7 @@ class InstallerController
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             error_log('runInstall: Invalid CSRF token');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
-            return $response->withHeader('Location', '/install/confirm')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
         }
         
         try {
@@ -302,12 +306,12 @@ class InstallerController
             session_write_close();
             
             error_log('runInstall: Redirecting to /admin/login');
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         } catch (\Throwable $e) {
             error_log('runInstall: Installation failed: ' . $e->getMessage());
             error_log('runInstall: Stack trace: ' . $e->getTraceAsString());
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Installation failed: ' . $e->getMessage()];
-            return $response->withHeader('Location', '/install/confirm')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
         }
     }
     

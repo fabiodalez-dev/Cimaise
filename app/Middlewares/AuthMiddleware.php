@@ -17,6 +17,9 @@ class AuthMiddleware implements MiddlewareInterface
 
     public function process(Request $request, Handler $handler): Response
     {
+        $basePath = dirname($_SERVER['SCRIPT_NAME']);
+        $basePath = $basePath === '/' ? '' : $basePath;
+        
         // Skip auth check for login/logout routes
         $path = $request->getUri()->getPath();
         if (in_array($path, ['/admin/login'])) {
@@ -27,14 +30,14 @@ class AuthMiddleware implements MiddlewareInterface
         if ($path === '/admin/logout') {
             if (empty($_SESSION['admin_id'])) {
                 $response = new \Slim\Psr7\Response(302);
-                return $response->withHeader('Location', '/admin/login');
+                return $response->withHeader('Location', $basePath . '/admin/login');
             }
             return $handler->handle($request);
         }
         
         if (empty($_SESSION['admin_id'])) {
             $response = new \Slim\Psr7\Response(302);
-            return $response->withHeader('Location', '/admin/login');
+            return $response->withHeader('Location', $basePath . '/admin/login');
         }
         
         // Verify user still exists and is active
@@ -46,7 +49,7 @@ class AuthMiddleware implements MiddlewareInterface
             // User no longer exists, is inactive, or no longer admin - force logout
             session_destroy();
             $response = new \Slim\Psr7\Response(302);
-            return $response->withHeader('Location', '/admin/login');
+            return $response->withHeader('Location', $basePath . '/admin/login');
         }
         
         // Update session with current user data

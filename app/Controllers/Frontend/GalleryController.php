@@ -2,19 +2,21 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
-
+use App\Controllers\BaseController;
 use App\Services\SettingsService;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class GalleryController
+class GalleryController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view) {}
+        parent::__construct();
 
     public function gallery(Request $request, Response $response): Response
     {
+        parent::__construct();
         $params = $request->getQueryParams();
         $albumParam = $params['album'] ?? null; // slug or id
         $templateId = isset($params['template']) ? (int)$params['template'] : null;
