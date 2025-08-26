@@ -190,6 +190,10 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+// Global base path for API calls
+window.basePath = '{{ base_path }}';
+</script>
 // Template settings
 const templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
 const layout = templateSettings.layout || 'grid';
@@ -246,7 +250,7 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
     if (camera) params.set('camera', camera);
     
     try {
-        const response = await fetch(`/api/album/${albumId}/images?${params}`);
+        const response = await fetch(`${window.basePath}/api/album/${albumId}/images?${params}`);
         const data = await response.json();
         
         const gallery = document.getElementById('images-gallery');

@@ -48,6 +48,12 @@ class Installer
             
             if ($connection === 'sqlite') {
                 $dbPath = $this->config['DB_DATABASE'] ?? $this->rootPath . '/database/database.sqlite';
+                
+                // If the path is relative, make it absolute relative to project root
+                if (!str_starts_with($dbPath, '/')) {
+                    $dbPath = $this->rootPath . '/' . $dbPath;
+                }
+                
                 if (!file_exists($dbPath)) {
                     return false;
                 }
@@ -234,13 +240,21 @@ class Installer
         error_log('Installer: Database connection type: ' . $connection);
         
         if ($connection === 'sqlite') {
-            $dbPath = $data['db_database'] ?? $this->rootPath . '/database/database.sqlite';
+            // Use absolute path for SQLite database
+            $dbPath = $this->rootPath . '/database/database.sqlite';
             error_log('Installer: SQLite database path: ' . $dbPath);
             $dir = dirname($dbPath);
             if (!is_dir($dir)) {
                 error_log('Installer: Creating directory: ' . $dir);
                 mkdir($dir, 0755, true);
             }
+            
+            // Ensure the database file exists (create empty file if needed)
+            if (!file_exists($dbPath)) {
+                error_log('Installer: Creating empty database file: ' . $dbPath);
+                touch($dbPath);
+            }
+            
             error_log('Installer: Creating Database instance for SQLite');
             $this->db = new Database(database: $dbPath, isSqlite: true);
         } else {
@@ -272,17 +286,42 @@ class Installer
             $targetPath = $this->rootPath . '/database/database.sqlite';
             
             if (file_exists($templatePath)) {
-                error_log('Installer: Copying template database from: ' . $templatePath);
+                error_log('Installer: Template database found at: ' . $templatePath);
+                error_log('Installer: Template database size: ' . filesize($templatePath) . ' bytes');
+                
+                // Remove existing empty database file if it exists
+                if (file_exists($targetPath)) {
+                    error_log('Installer: Removing existing empty database file');
+                    unlink($targetPath);
+                }
+                
+                error_log('Installer: Copying template database from: ' . $templatePath . ' to: ' . $targetPath);
                 if (copy($templatePath, $targetPath)) {
                     error_log('Installer: Template database copied successfully');
-                    // Reconnect to the new database
-                    $this->db = new Database(database: $targetPath, isSqlite: true);
-                    return true; // Template copied successfully
+                    error_log('Installer: Copied database size: ' . filesize($targetPath) . ' bytes');
+                    
+                    // Verify the copy was successful
+                    if (filesize($targetPath) > 0) {
+                        // Reconnect to the new database
+                        $this->db = new Database(database: $targetPath, isSqlite: true);
+                        
+                        // Test connection
+                        try {
+                            $stmt = $this->db->pdo()->query("SELECT name FROM sqlite_master WHERE type='table' LIMIT 1");
+                            error_log('Installer: Database connection test successful');
+                            return true; // Template copied successfully
+                        } catch (\Throwable $e) {
+                            error_log('Installer: Database connection test failed: ' . $e->getMessage());
+                            // Fall through to migrations
+                        }
+                    } else {
+                        error_log('Installer: Copied database is empty, falling back to migrations');
+                    }
                 } else {
                     error_log('Installer: Failed to copy template database, falling back to migrations');
                 }
             } else {
-                error_log('Installer: Template database not found, running migrations');
+                error_log('Installer: Template database not found at: ' . $templatePath . ', running migrations');
             }
         }
         
@@ -517,9 +556,8 @@ class Installer
         $envContent .= "DB_CONNECTION={$connection}\n";
         
         if ($connection === 'sqlite') {
-            $dbPath = $data['db_database'] ?? $this->rootPath . '/database/database.sqlite';
-            error_log('Installer: SQLite database path: ' . $dbPath);
-            $envContent .= "DB_DATABASE={$dbPath}\n";
+            // Use relative path for .env file
+            $envContent .= "DB_DATABASE=database/database.sqlite\n";
         } else {
             error_log('Installer: MySQL database configuration');
             $envContent .= "DB_HOST=" . ($data['db_host'] ?? '127.0.0.1') . "\n";

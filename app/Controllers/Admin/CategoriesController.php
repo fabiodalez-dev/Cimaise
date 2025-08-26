@@ -99,7 +99,7 @@ class CategoriesController extends BaseController
         $sort = (int)($data['sort_order'] ?? 0);
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
-            return $response->withHeader('Location', $this->redirect('/admin/categories/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/categories/create'))->withStatus(302);
         }
         if ($slug === '') {
             $slug = \App\Support\Str::slug($name);
@@ -155,14 +155,14 @@ class CategoriesController extends BaseController
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Categoria creata'];
-            return $response->withHeader('Location', $this->redirect('/admin/categories')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
         } catch (\Throwable $e) {
             // Clean up uploaded file if database insert fails
             if ($imagePath && file_exists('public' . $imagePath)) {
                 unlink('public' . $imagePath);
             }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
-            return $response->withHeader('Location', $this->redirect('/admin/categories/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/categories/create'))->withStatus(302);
         }
     }
 
@@ -200,7 +200,7 @@ class CategoriesController extends BaseController
         
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
-            return $response->withHeader('Location', $this->redirect('/admin/categories/'.$id.'/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/categories/'.$id.'/edit'))->withStatus(302);
         }
         if ($slug === '') {
             $slug = \App\Support\Str::slug($name);
@@ -274,7 +274,7 @@ class CategoriesController extends BaseController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', $this->redirect('/admin/categories')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
@@ -287,7 +287,7 @@ class CategoriesController extends BaseController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', $this->redirect('/admin/categories')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
     }
 
     /**
