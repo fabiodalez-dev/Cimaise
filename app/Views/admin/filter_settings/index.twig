@@ -12,11 +12,11 @@
           <p class="text-gray-600 mt-1">Configure galleries page filtering options and grid layout</p>
         </div>
         <div class="flex items-center gap-3">
-          <a href="/galleries" target="_blank" class="btn-secondary">
+          <a href="{{ base_path }}/galleries" target="_blank" class="btn-secondary">
             <i class="fas fa-external-link-alt mr-2"></i>
             Preview Galleries Page
           </a>
-          <form method="post" action="/admin/filter-settings/reset" class="inline" 
+          <form method="post" action="{{ base_path }}/admin/filter-settings/reset" class="inline" 
                 onsubmit="return confirm('Are you sure you want to reset all filter settings to defaults?');">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <button type="submit" class="btn-outline-danger">
@@ -31,7 +31,7 @@
 
   <!-- Main Content -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <form method="post" action="/admin/filter-settings" id="filter-settings-form">
+    <form method="post" action="{{ base_path }}/admin/filter-settings" id="filter-settings-form">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">

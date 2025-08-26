@@ -2,18 +2,20 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class FilterSettingsController
+class FilterSettingsController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view) {}
+        parent::__construct();
 
     public function index(Request $request, Response $response): Response
     {
+        parent::__construct();
         $pdo = $this->db->pdo();
         
         // Get current filter settings
@@ -110,7 +112,7 @@ class FilterSettingsController
             ];
         }
         
-        return $response->withHeader('Location', '/admin/filter-settings')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/filter-settings')->withStatus(302);
     }
 
     public function preview(Request $request, Response $response): Response
@@ -194,7 +196,7 @@ class FilterSettingsController
             ];
         }
         
-        return $response->withHeader('Location', '/admin/filter-settings')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/filter-settings')->withStatus(302);
     }
 
     private function getFilterStatistics(): array

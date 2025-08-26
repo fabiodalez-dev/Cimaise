@@ -2,15 +2,18 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class PageController
+class PageController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) {}
+    public function __construct(private Database $db, private Twig $view)
+    {
+        parent::__construct();
+    }
 
     public function home(Request $request, Response $response): Response
     {
@@ -461,7 +464,7 @@ class PageController
         $stmt->execute([':slug' => $slug]);
         $album = $stmt->fetch();
         if (!$album || empty($album['password_hash'])) {
-            return $response->withHeader('Location', '/album/' . $slug)->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/album/' . $slug)->withStatus(302);
         }
         $data = (array)($request->getParsedBody() ?? []);
         $password = (string)($data['password'] ?? '');
@@ -472,9 +475,9 @@ class PageController
             if (!isset($_SESSION['album_access'])) $_SESSION['album_access'] = [];
             $_SESSION['album_access'][(int)$album['id']] = time(); // Store timestamp for potential timeout
             
-            return $response->withHeader('Location', '/album/' . $slug)->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/album/' . $slug)->withStatus(302);
         }
-        return $response->withHeader('Location', '/album/' . $slug . '?error=1')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/album/' . $slug . '?error=1')->withStatus(302);
     }
 
     public function albumTemplate(Request $request, Response $response, array $args): Response
@@ -782,7 +785,7 @@ class PageController
         $message = trim((string)($data['message'] ?? ''));
 
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $message === '') {
-            return $response->withHeader('Location', '/about?error=1')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/about?error=1')->withStatus(302);
         }
 
         $settings = new \App\Services\SettingsService($this->db);
@@ -805,7 +808,7 @@ class PageController
         $settings = new \App\Services\SettingsService($this->db);
         $slug = (string)($settings->get('about.slug', 'about') ?? 'about');
         if ($slug === '') { $slug = 'about'; }
-        return $response->withHeader('Location', '/' . $slug . '?sent=1')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/' . $slug . '?sent=1')->withStatus(302);
     }
 
     private function enrichAlbum(array $album): array

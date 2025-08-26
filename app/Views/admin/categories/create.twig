@@ -6,14 +6,14 @@
       <h1 class="text-3xl font-bold text-gray-900">Create New Category</h1>
       <p class="text-gray-600 mt-2">Add a new category to organize your content</p>
     </div>
-    <a href="/admin/categories" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors inline-flex items-center">
+    <a href="{{ base_path }}/admin/categories" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-colors inline-flex items-center">
       <i class="fas fa-arrow-left mr-2"></i>Back to Categories
     </a>
   </div>
   
   <div class="max-w-2xl">
     <div class="card p-8">
-      <form method="post" action="/admin/categories" enctype="multipart/form-data" class="space-y-6">
+      <form method="post" action="{{ base_path }}/admin/categories" enctype="multipart/form-data" class="space-y-6">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -80,7 +80,7 @@
         </div>
         
         <div class="flex justify-end gap-4 pt-6 border-t border-gray-200">
-          <a href="/admin/categories" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-8 py-2 rounded-lg transition-colors inline-flex items-center">
+          <a href="{{ base_path }}/admin/categories" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-8 py-2 rounded-lg transition-colors inline-flex items-center">
             <i class="fas fa-times mr-2"></i>Cancel
           </a>
           <button class="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded-lg transition-colors inline-flex items-center" type="submit">

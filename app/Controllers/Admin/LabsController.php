@@ -2,17 +2,19 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class LabsController
+class LabsController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view) {}
+        parent::__construct();
     public function index(Request $request, Response $response): Response
     {
+        parent::__construct();
         $page=max(1,(int)($request->getQueryParams()['page']??1)); $per=10; $off=($page-1)*$per; $pdo=$this->db->pdo();
         $total=(int)$pdo->query('SELECT COUNT(*) FROM labs')->fetchColumn();
         $st=$pdo->prepare('SELECT id, name, city, country FROM labs ORDER BY name LIMIT :l OFFSET :o');

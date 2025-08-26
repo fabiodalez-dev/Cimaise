@@ -6,11 +6,11 @@
       <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
       <p class="text-gray-600 mt-1">Benvenuto! User ID: {{ userId }}</p>
     </div>
-    <a href="/admin/albums/create" class="btn-primary"><i class="fas fa-plus mr-2"></i>Nuovo Album</a>
+    <a href="{{ base_path }}/admin/albums/create" class="btn-primary"><i class="fas fa-plus mr-2"></i>Nuovo Album</a>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/albums">
+    <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/albums">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-medium text-gray-900">Albums</h3>
@@ -19,7 +19,7 @@
         <i class="fas fa-images text-2xl text-gray-400"></i>
       </div>
     </a>
-    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/categories">
+    <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/categories">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-medium text-gray-900">Categorie</h3>
@@ -28,7 +28,7 @@
         <i class="fas fa-folder-open text-2xl text-gray-400"></i>
       </div>
     </a>
-    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/tags">
+    <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/tags">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-medium text-gray-900">Tag</h3>
@@ -37,7 +37,7 @@
         <i class="fas fa-hashtag text-2xl text-gray-400"></i>
       </div>
     </a>
-    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/cameras">
+    <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/cameras">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-medium text-gray-900">Cameras</h3>
@@ -46,7 +46,7 @@
         <i class="fas fa-camera text-2xl text-gray-400"></i>
       </div>
     </a>
-    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/lenses">
+    <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/lenses">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-medium text-gray-900">Lenses</h3>
@@ -55,7 +55,7 @@
         <i class="fas fa-eye text-2xl text-gray-400"></i>
       </div>
     </a>
-    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/films">
+    <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/films">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-medium text-gray-900">Films</h3>
@@ -64,7 +64,7 @@
         <i class="fas fa-film text-2xl text-gray-400"></i>
       </div>
     </a>
-    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/developers">
+    <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/developers">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-medium text-gray-900">Developers</h3>
@@ -73,7 +73,7 @@
         <i class="fas fa-flask text-2xl text-gray-400"></i>
       </div>
     </a>
-    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/labs">
+    <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/labs">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-medium text-gray-900">Labs</h3>
@@ -82,7 +82,7 @@
         <i class="fas fa-industry text-2xl text-gray-400"></i>
       </div>
     </a>
-    <a class="card p-6 hover:bg-gray-50 transition" href="/admin/commands">
+    <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/commands">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-medium text-gray-900">Strumenti</h3>

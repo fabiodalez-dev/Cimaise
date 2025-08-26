@@ -11,11 +11,11 @@
           <p class="text-gray-600 mt-1">Aggiorna le informazioni e gestisci le immagini</p>
         </div>
         <div class="flex items-center gap-3">
-          <a href="/admin/albums" class="btn-secondary">
+          <a href="{{ base_path }}/admin/albums" class="btn-secondary">
             <i class="fas fa-arrow-left mr-2"></i>
             Torna agli album
           </a>
-          <a href="/admin/settings" class="btn-secondary">
+          <a href="{{ base_path }}/admin/settings" class="btn-secondary">
             <i class="fas fa-cog mr-2"></i>
             Impostazioni
           </a>
@@ -26,7 +26,7 @@
 
   <!-- Main Content -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <form method="post" action="/admin/albums/{{ item.id }}" id="album-form">
+    <form method="post" action="{{ base_path }}/admin/albums/{{ item.id }}" id="album-form">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
@@ -367,14 +367,14 @@
           <i class="fas fa-save mr-2"></i>
           Salva Modifiche
         </button>
-        <a href="/admin/albums" class="btn-secondary">
+        <a href="{{ base_path }}/admin/albums" class="btn-secondary">
           <i class="fas fa-times mr-2"></i>
           Annulla
         </a>
       </div>
       
       <div class="flex items-center gap-3">
-        <form method="post" action="/admin/albums/{{ item.id }}/delete" class="inline" 
+        <form method="post" action="{{ base_path }}/admin/albums/{{ item.id }}/delete" class="inline" 
               onsubmit="return confirm('Sei sicuro di voler eliminare questo album? Questa azione non può essere annullata.');">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button type="submit" class="btn-outline-danger">

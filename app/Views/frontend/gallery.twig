@@ -6,7 +6,7 @@
     <div class="mb-4 flex flex-wrap gap-2 justify-center">
       {% if album.categories is defined and album.categories|length > 0 %}
         {% for cat in album.categories %}
-        <a href="/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ cat.name|e }}">
+        <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ cat.name|e }}">
           <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ cat.name|e }}
         </a>
         {% endfor %}
@@ -110,7 +110,7 @@
     <div class="flex justify-end">
       <div class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm">
         {% for template in available_templates %}
-        <a class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" href="/album/{{ album_ref }}?template={{ template.id }}" title="{{ template.name }}">
+        <a class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" href="{{ base_path }}/album/{{ album_ref }}?template={{ template.id }}" title="{{ template.name }}">
           {% if template.settings.layout == 'masonry_fit' %}
             <i class="fas fa-expand-arrows-alt"></i>
           {% elseif template.settings.layout == 'slideshow' and 'swiper' in template.libs %}

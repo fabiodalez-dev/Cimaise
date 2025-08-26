@@ -29,7 +29,7 @@
 
 <p class="text-muted">Configure your database connection settings</p>
 
-<form method="post" action="/install/database" id="database-form">
+<form method="post" action="{{ base_path }}/install/database" id="database-form">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     
     <div class="mb-3">
@@ -103,7 +103,7 @@
     </div>
     
     <div class="d-grid gap-2 d-md-flex justify-content-md-between">
-        <a href="/install" class="btn btn-outline-secondary">
+        <a href="{{ base_path }}/install" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Back
         </a>
         <button type="submit" class="btn btn-primary">

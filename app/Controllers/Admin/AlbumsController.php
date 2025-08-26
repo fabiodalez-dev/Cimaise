@@ -2,16 +2,17 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class AlbumsController
+class AlbumsController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view)
     {
+        parent::__construct();
     }
 
     public function index(Request $request, Response $response): Response
@@ -137,7 +138,7 @@ class AlbumsController
         
         if ($title === '' || $category_id <= 0) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Titolo e categoria sono obbligatori'];
-            return $response->withHeader('Location', '/admin/albums/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/albums/create')->withStatus(302);
         }
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
         $published_at = $is_published ? date('Y-m-d H:i:s') : null;
@@ -231,12 +232,12 @@ class AlbumsController
             // If client expects JSON, return album id for AJAX flows (e.g., upload on create)
             $accept = $request->getHeaderLine('Accept');
             if (str_contains($accept, 'application/json')) {
-                $payload = json_encode(['ok'=>true,'id'=>$albumId,'redirect'=>"/admin/albums/{$albumId}/edit"], JSON_UNESCAPED_SLASHES);
+                $payload = json_encode(['ok'=>true,'id'=>$albumId,'redirect'=>$this->redirect("/admin/albums/{$albumId}/edit")], JSON_UNESCAPED_SLASHES);
                 $response->getBody()->write($payload);
                 return $response->withHeader('Content-Type','application/json');
             }
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album creato'];
-            return $response->withHeader('Location', '/admin/albums')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/albums')->withStatus(302);
         } catch (\Throwable $e) {
             $accept = $request->getHeaderLine('Accept');
             if (str_contains($accept, 'application/json')) {
@@ -244,7 +245,7 @@ class AlbumsController
                 return $response->withStatus(400)->withHeader('Content-Type','application/json');
             }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: '.$e->getMessage()];
-            return $response->withHeader('Location', '/admin/albums/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/albums/create')->withStatus(302);
         }
     }
 
@@ -447,7 +448,7 @@ class AlbumsController
         
         if ($title === '' || $category_id <= 0) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Titolo e categoria sono obbligatori'];
-            return $response->withHeader('Location', '/admin/albums/'.$id.'/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit')->withStatus(302);
         }
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
         $published_at = $is_published ? (date('Y-m-d H:i:s')) : null;
@@ -568,7 +569,7 @@ class AlbumsController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: '.$e->getMessage()];
         }
-        return $response->withHeader('Location', '/admin/albums')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/albums')->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
@@ -581,7 +582,7 @@ class AlbumsController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: '.$e->getMessage()];
         }
-        return $response->withHeader('Location', '/admin/albums')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/albums')->withStatus(302);
     }
 
     public function publish(Request $request, Response $response, array $args): Response
@@ -591,7 +592,7 @@ class AlbumsController
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET is_published=1, published_at=CURRENT_TIMESTAMP WHERE id=:id');
         $stmt->execute([':id'=>$id]);
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album pubblicato'];
-        return $response->withHeader('Location', '/admin/albums')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/albums')->withStatus(302);
     }
 
     public function unpublish(Request $request, Response $response, array $args): Response
@@ -600,7 +601,7 @@ class AlbumsController
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET is_published=0, published_at=NULL WHERE id=:id');
         $stmt->execute([':id'=>$id]);
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album in bozza'];
-        return $response->withHeader('Location', '/admin/albums')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/albums')->withStatus(302);
     }
 
     public function setCover(Request $request, Response $response, array $args): Response
@@ -612,7 +613,7 @@ class AlbumsController
         $check->execute([':img'=>$imageId, ':a'=>$albumId]);
         if (!$check->fetchColumn()) {
             $_SESSION['flash'][] = ['type'=>'danger','message'=>'Immagine non appartiene a questo album'];
-            return $response->withHeader('Location', '/admin/albums/'.$albumId.'/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/albums/'.$albumId.'/edit')->withStatus(302);
         }
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET cover_image_id=:img WHERE id=:id');
         $stmt->execute([':img'=>$imageId, ':id'=>$albumId]);
@@ -622,7 +623,7 @@ class AlbumsController
             return $response->withHeader('Content-Type','application/json');
         }
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Cover aggiornata'];
-        return $response->withHeader('Location', '/admin/albums/'.$albumId.'/edit')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/albums/'.$albumId.'/edit')->withStatus(302);
     }
 
     public function reorderImages(Request $request, Response $response, array $args): Response
