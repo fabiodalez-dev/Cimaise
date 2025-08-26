@@ -25,6 +25,12 @@ date_default_timezone_set(envv('APP_TIMEZONE', 'UTC'));
 $connection = (string)envv('DB_CONNECTION', 'sqlite');
 if ($connection === 'sqlite') {
     $dbPath = (string)envv('DB_DATABASE', dirname(__DIR__, 1) . '/database/database.sqlite');
+    
+    // If the path is relative, make it absolute relative to project root
+    if (!str_starts_with($dbPath, '/')) {
+        $dbPath = $root . '/' . $dbPath;
+    }
+    
     $db = new Database(database: $dbPath, isSqlite: true);
 } else {
     $db = new Database(

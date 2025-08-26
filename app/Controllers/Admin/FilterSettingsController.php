@@ -10,12 +10,13 @@ use Slim\Views\Twig;
 
 class FilterSettingsController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) {}
+    public function __construct(private Database $db, private Twig $view)
+    {
         parent::__construct();
+    }
 
     public function index(Request $request, Response $response): Response
     {
-        parent::__construct();
         $pdo = $this->db->pdo();
         
         // Get current filter settings
@@ -112,7 +113,7 @@ class FilterSettingsController extends BaseController
             ];
         }
         
-        return $response->withHeader('Location', $this->redirect('/admin/filter-settings')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/filter-settings'))->withStatus(302);
     }
 
     public function preview(Request $request, Response $response): Response
@@ -196,7 +197,7 @@ class FilterSettingsController extends BaseController
             ];
         }
         
-        return $response->withHeader('Location', $this->redirect('/admin/filter-settings')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/filter-settings'))->withStatus(302);
     }
 
     private function getFilterStatistics(): array

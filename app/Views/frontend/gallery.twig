@@ -347,6 +347,10 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+// Global base path for API calls
+window.basePath = '{{ base_path }}';
+
 // Store template settings globally for AJAX reloads
 window.templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
 
@@ -557,7 +561,7 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
     // Build the AJAX URL for fetching only the gallery content using SEO-friendly format
     const urlPath = url.pathname; // e.g., "/album/street-photography-portfolio"
     const albumSlug = urlPath.split('/').pop(); // Extract "street-photography-portfolio"
-    const fetchUrl = `/api/album/${albumSlug}/template?template=${templateId}`;
+    const fetchUrl = `${window.basePath}/api/album/${albumSlug}/template?template=${templateId}`;
     console.log('Fetching from SEO-friendly URL:', fetchUrl);
     
     // Fetch the full page and extract the gallery content

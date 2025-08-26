@@ -26,7 +26,7 @@ class AuthController extends BaseController
     public function login(Request $request, Response $response): Response
     {
         $data = (array)$request->getParsedBody();
-        $email = trim((string)($data['email'] ?? ''));
+        $email = strtolower(trim((string)($data['email'] ?? '')));
         $password = (string)($data['password'] ?? '');
         $csrf = (string)($data['csrf'] ?? '');
 
@@ -44,7 +44,7 @@ class AuthController extends BaseController
             ]);
         }
 
-        $stmt = $this->db->pdo()->prepare('SELECT id, email, password_hash, role, is_active, first_name, last_name FROM users WHERE email = :email LIMIT 1');
+        $stmt = $this->db->pdo()->prepare('SELECT id, email, password_hash, role, is_active, first_name, last_name FROM users WHERE LOWER(email) = :email LIMIT 1');
         $stmt->execute([':email' => $email]);
         $user = $stmt->fetch();
         

@@ -146,10 +146,28 @@ $app->get('/galleries/filter', function (Request $request, Response $response) u
 
 // (public API routes are defined near the bottom of this file)
 
-// Admin redirect
+// Admin redirects
+$app->get('/login', function (Request $request, Response $response) {
+    $basePath = dirname($_SERVER['SCRIPT_NAME']);
+    $basePath = $basePath === '/' ? '' : $basePath;
+    
+    // Remove /public from the path if present (since document root should be public/)
+    if (str_ends_with($basePath, '/public')) {
+        $basePath = substr($basePath, 0, -7); // Remove '/public'
+    }
+    
+    return $response->withHeader('Location', $basePath . '/admin/login')->withStatus(302);
+});
+
 $app->get('/admin-login', function (Request $request, Response $response) {
     $basePath = dirname($_SERVER['SCRIPT_NAME']);
     $basePath = $basePath === '/' ? '' : $basePath;
+    
+    // Remove /public from the path if present (since document root should be public/)
+    if (str_ends_with($basePath, '/public')) {
+        $basePath = substr($basePath, 0, -7); // Remove '/public'
+    }
+    
     return $response->withHeader('Location', $basePath . '/admin/login')->withStatus(302);
 });
 

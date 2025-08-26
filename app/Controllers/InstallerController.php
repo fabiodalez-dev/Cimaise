@@ -23,6 +23,11 @@ class InstallerController
         // Get base path for redirects
         $this->basePath = dirname($_SERVER['SCRIPT_NAME']);
         $this->basePath = $this->basePath === '/' ? '' : $this->basePath;
+        
+        // Remove /public from the path if present (since document root should be public/)
+        if (str_ends_with($this->basePath, '/public')) {
+            $this->basePath = substr($this->basePath, 0, -7); // Remove '/public'
+        }
     }
     
     /**
