@@ -35,8 +35,8 @@
     <div class="row">
         <div class="col-md-6">
             <div class="mb-3">
-                <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" name="admin_name" value="{{ install_admin_data.admin_name|default('') }}" required>
+                <label for="admin-name" class="form-label">Full Name</label>
+                <input type="text" id="admin-name" class="form-control" name="admin_name" autocomplete="name" value="{{ install_admin_data.admin_name|default('') }}" required>
                 {% if install_admin_errors.admin_name %}
                     <div class="text-danger small mt-1">{{ install_admin_errors.admin_name }}</div>
                 {% endif %}
@@ -44,8 +44,8 @@
         </div>
         <div class="col-md-6">
             <div class="mb-3">
-                <label class="form-label">Email Address</label>
-                <input type="email" class="form-control" name="admin_email" value="{{ install_admin_data.admin_email|default('') }}" required>
+                <label for="admin-email" class="form-label">Email Address</label>
+                <input type="email" id="admin-email" class="form-control" name="admin_email" autocomplete="email" value="{{ install_admin_data.admin_email|default('') }}" required>
                 {% if install_admin_errors.admin_email %}
                     <div class="text-danger small mt-1">{{ install_admin_errors.admin_email }}</div>
                 {% endif %}
@@ -56,8 +56,8 @@
     <div class="row">
         <div class="col-md-6">
             <div class="mb-3">
-                <label class="form-label">Password</label>
-                <input type="password" class="form-control" name="admin_password" required>
+                <label for="admin-password" class="form-label">Password</label>
+                <input type="password" id="admin-password" class="form-control" name="admin_password" autocomplete="new-password" required>
                 <div class="form-text">At least 8 characters</div>
                 {% if install_admin_errors.admin_password %}
                     <div class="text-danger small mt-1">{{ install_admin_errors.admin_password }}</div>
@@ -66,8 +66,8 @@
         </div>
         <div class="col-md-6">
             <div class="mb-3">
-                <label class="form-label">Confirm Password</label>
-                <input type="password" class="form-control" name="admin_password_confirm" required>
+                <label for="admin-password-confirm" class="form-label">Confirm Password</label>
+                <input type="password" id="admin-password-confirm" class="form-control" name="admin_password_confirm" autocomplete="new-password" required>
             </div>
         </div>
     </div>

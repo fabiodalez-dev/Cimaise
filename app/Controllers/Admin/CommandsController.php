@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Services\BaseUrlService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -17,8 +18,11 @@ class CommandsController extends BaseController
 
     public function index(Request $request, Response $response): Response
     {
+        $baseUrl = BaseUrlService::getCurrentBaseUrl();
+        
         return $this->view->render($response, 'admin/commands.twig', [
-            'page_title' => 'System Commands'
+            'page_title' => 'System Commands',
+            'detected_base_url' => $baseUrl
         ]);
     }
 
@@ -61,7 +65,9 @@ class CommandsController extends BaseController
             'sitemap:build',
             'diagnostics:report',
             'user:create',
-            'media:normalize-paths'
+            'media:normalize-paths',
+            'analytics:cleanup',
+            'analytics:summarize'
         ];
 
         if (!in_array($command, $allowedCommands)) {

@@ -48,6 +48,7 @@ $success = false;
 
 // Helper functions
 function checkRequirements() {
+    $rootPath = dirname(__DIR__);
     $checks = [
         'php_version' => version_compare(PHP_VERSION, '8.2.0', '>='),
         'pdo' => extension_loaded('pdo'),
@@ -57,10 +58,15 @@ function checkRequirements() {
         'gd' => extension_loaded('gd'),
         'mbstring' => extension_loaded('mbstring'),
         'openssl' => extension_loaded('openssl'),
-        'writable_database' => is_writable(dirname(__DIR__) . '/database'),
-        'writable_root' => is_writable(dirname(__DIR__)),
-        'template_db_exists' => file_exists(dirname(__DIR__) . '/database/template.sqlite')
+        'writable_database' => is_writable($rootPath . '/database'),
+        'writable_root' => is_writable($rootPath),
+        'writable_public' => is_writable($rootPath . '/public'),
+        'template_db_exists' => file_exists($rootPath . '/database/template.sqlite')
     ];
+    
+    // Check if we can create storage directories
+    $storageParent = $rootPath;
+    $checks['can_create_storage'] = is_writable($storageParent);
     
     return $checks;
 }
@@ -101,6 +107,41 @@ function getCurrentUrl() {
     }
     
     return $protocol . '://' . $host . $basePath;
+}
+
+// Create required storage directories
+function createStorageDirectories($rootPath) {
+    $directories = [
+        $rootPath . '/storage',
+        $rootPath . '/storage/originals',
+        $rootPath . '/storage/tmp',
+        $rootPath . '/public/media',
+        $rootPath . '/public/media/categories',
+        $rootPath . '/public/media/about',
+        $rootPath . '/public/media/albums',
+        $rootPath . '/public/media/thumbnails'
+    ];
+    
+    foreach ($directories as $dir) {
+        if (!is_dir($dir)) {
+            if (!mkdir($dir, 0755, true)) {
+                throw new Exception('Could not create directory: ' . $dir);
+            }
+        }
+    }
+    
+    // Create .gitkeep files to preserve empty directories in git
+    $keepFiles = [
+        $rootPath . '/storage/originals/.gitkeep',
+        $rootPath . '/storage/tmp/.gitkeep',
+        $rootPath . '/public/media/.gitkeep'
+    ];
+    
+    foreach ($keepFiles as $keepFile) {
+        if (!file_exists($keepFile)) {
+            file_put_contents($keepFile, '');
+        }
+    }
 }
 
 // Create security files to protect sensitive directories
@@ -418,6 +459,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
+            // Create required directories
+            createStorageDirectories($rootPath);
+            
             // Create security files
             createSecurityFiles($rootPath);
             
@@ -731,6 +775,36 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                 <div class="flex-1">
                                     <div class="font-medium">Template Database</div>
                                     <div class="text-sm text-gray-500">Pre-configured database template</div>
+                                </div>
+                            </div>
+                            
+                            <div class="requirement-check">
+                                <div class="check-icon <?= $requirements['writable_root'] ? 'success' : 'error' ?>">
+                                    <i class="fas fa-<?= $requirements['writable_root'] ? 'check' : 'times' ?>"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium">Root Directory Writable</div>
+                                    <div class="text-sm text-gray-500">Project root permissions</div>
+                                </div>
+                            </div>
+                            
+                            <div class="requirement-check">
+                                <div class="check-icon <?= $requirements['writable_public'] ? 'success' : 'error' ?>">
+                                    <i class="fas fa-<?= $requirements['writable_public'] ? 'check' : 'times' ?>"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium">Public Directory Writable</div>
+                                    <div class="text-sm text-gray-500">/public directory permissions</div>
+                                </div>
+                            </div>
+                            
+                            <div class="requirement-check">
+                                <div class="check-icon <?= $requirements['can_create_storage'] ? 'success' : 'error' ?>">
+                                    <i class="fas fa-<?= $requirements['can_create_storage'] ? 'check' : 'times' ?>"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium">Can Create Storage Directories</div>
+                                    <div class="text-sm text-gray-500">Permissions to create required directories</div>
                                 </div>
                             </div>
                         </div>

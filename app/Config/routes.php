@@ -625,6 +625,59 @@ $app->post('/admin/users/{id}/toggle', function (Request $request, Response $res
     return $controller->toggleActive($request, $response, $args);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+// Analytics routes
+$app->get('/admin/analytics', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/analytics/realtime', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->realtime($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/analytics/settings', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->settings($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/analytics/settings', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->settings($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/analytics/albums', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->albums($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/analytics/export', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->export($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/analytics/cleanup', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->cleanup($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+// Analytics API endpoints
+$app->get('/api/admin/analytics/charts', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->apiChartsData($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/api/admin/analytics/realtime', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->apiRealtime($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+// Public analytics tracking endpoint (no auth required)
+$app->post('/api/analytics/track', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->track($request, $response);
+});
+
 // Frontend API (public)
 $app->get('/api/albums', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Frontend\ApiController($container['db'], Twig::fromRequest($request));
