@@ -28,11 +28,13 @@
     {% endif %}
     
     <!-- Load more -->
+    {% if albums|length > 0 and has_more %}
     <div class="text-center mt-12">
         <button id="load-more" class="bg-black text-white px-6 py-3 hover:bg-neutral-800 transition-colors" data-page="2">
             Load More
         </button>
     </div>
+    {% endif %}
 
 </div>
 {% endblock %}
