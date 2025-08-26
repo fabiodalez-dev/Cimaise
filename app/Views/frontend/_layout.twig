@@ -1593,8 +1593,8 @@
             cap.innerHTML = it.caption_html || (it.caption ? '<div>' + it.caption + '</div>' : '');
         }
         function fallbackClose(){ const o = document.getElementById('slb-overlay'); if (o) o.classList.remove('active'); }
-        
-        {% block scripts %}{% endblock %}
     </script>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>

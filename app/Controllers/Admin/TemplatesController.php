@@ -48,7 +48,7 @@ class TemplatesController extends BaseController
         
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
-            return $response->withHeader('Location', $this->redirect('/admin/templates/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/templates/create'))->withStatus(302);
         }
         
         if ($slug === '') {
@@ -108,10 +108,10 @@ class TemplatesController extends BaseController
                 ':libs' => json_encode($libs)
             ]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Template creato'];
-            return $response->withHeader('Location', $this->redirect('/admin/templates')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/templates'))->withStatus(302);
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
-            return $response->withHeader('Location', $this->redirect('/admin/templates/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/templates/create'))->withStatus(302);
         }
     }
 
@@ -147,7 +147,7 @@ class TemplatesController extends BaseController
         
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
-            return $response->withHeader('Location', $this->redirect('/admin/templates/'.$id.'/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/templates/'.$id.'/edit'))->withStatus(302);
         }
         
         if ($slug === '') {
@@ -211,7 +211,7 @@ class TemplatesController extends BaseController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', $this->redirect('/admin/templates')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/templates'))->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
@@ -224,6 +224,6 @@ class TemplatesController extends BaseController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', $this->redirect('/admin/templates')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/templates'))->withStatus(302);
     }
 }

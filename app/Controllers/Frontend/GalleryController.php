@@ -11,12 +11,13 @@ use Slim\Views\Twig;
 
 class GalleryController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) {}
+    public function __construct(private Database $db, private Twig $view)
+    {
         parent::__construct();
+    }
 
     public function gallery(Request $request, Response $response): Response
     {
-        parent::__construct();
         $params = $request->getQueryParams();
         $albumParam = $params['album'] ?? null; // slug or id
         $templateId = isset($params['template']) ? (int)$params['template'] : null;

@@ -10,12 +10,13 @@ use Slim\Views\Twig;
 
 class ApiController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) {}
+    public function __construct(private Database $db, private Twig $view)
+    {
         parent::__construct();
+    }
 
     public function albums(Request $request, Response $response): Response
     {
-        parent::__construct();
         $pdo = $this->db->pdo();
         $q = $request->getQueryParams();
 
