@@ -6,7 +6,7 @@
       <h1 class="text-3xl font-bold text-black">Categories</h1>
       <p class="text-gray-600 mt-1">Drag horizontally to create hierarchy</p>
     </div>
-    <a href="/admin/categories/create" class="btn-primary">
+    <a href="{{ base_path }}/admin/categories/create" class="btn-primary">
       <i class="fas fa-plus mr-2"></i>New Category
     </a>
   </div>
@@ -236,7 +236,7 @@
                   <button class="action-btn edit" data-edit="{{ category.id }}" title="Edit">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <form method="post" action="/admin/categories/{{ category.id }}/delete" class="inline" onsubmit="return confirm('Delete this category?')">
+                  <form method="post" action="{{ base_path }}/admin/categories/{{ category.id }}/delete" class="inline" onsubmit="return confirm('Delete this category?')">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
                     <button class="action-btn delete" title="Delete">
                       <i class="fas fa-trash"></i>
@@ -250,7 +250,7 @@
               <i class="fas fa-folder-open"></i>
               <div class="text-lg font-medium mb-2 text-gray-900">No categories yet</div>
               <div class="text-sm mb-4">Create your first category to get started</div>
-              <a href="/admin/categories/create" class="btn-primary">
+              <a href="{{ base_path }}/admin/categories/create" class="btn-primary">
                 <i class="fas fa-plus mr-2"></i>Create First Category
               </a>
             </div>
@@ -271,7 +271,7 @@
           <i class="fas fa-edit mr-2 text-gray-600"></i>Quick Edit
         </h2>
         
-        <form id="cat-form" method="post" action="/admin/categories" enctype="multipart/form-data" class="space-y-4">
+        <form id="cat-form" method="post" action="{{ base_path }}/admin/categories" enctype="multipart/form-data" class="space-y-4">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="id" id="cat-id" value="">
           

@@ -2,16 +2,17 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class UsersController
+class UsersController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view)
     {
+        parent::__construct();
     }
 
     public function index(Request $request, Response $response): Response
@@ -68,22 +69,22 @@ class UsersController
         // Validation
         if (empty($email) || empty($firstName) || empty($lastName) || empty($password)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Tutti i campi obbligatori devono essere compilati'];
-            return $response->withHeader('Location', '/admin/users/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users/create')->withStatus(302);
         }
         
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Email non valida'];
-            return $response->withHeader('Location', '/admin/users/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users/create')->withStatus(302);
         }
         
         if (strlen($password) < 8) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'La password deve avere almeno 8 caratteri'];
-            return $response->withHeader('Location', '/admin/users/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users/create')->withStatus(302);
         }
         
         if ($password !== $confirmPassword) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Le password non coincidono'];
-            return $response->withHeader('Location', '/admin/users/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users/create')->withStatus(302);
         }
         
         if (!in_array($role, ['admin', 'user'])) {
@@ -95,7 +96,7 @@ class UsersController
         $stmt->execute([':email' => $email]);
         if ($stmt->fetch()) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Email già in uso'];
-            return $response->withHeader('Location', '/admin/users/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users/create')->withStatus(302);
         }
         
         // Create user
@@ -116,10 +117,10 @@ class UsersController
             ]);
             
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Utente creato con successo'];
-            return $response->withHeader('Location', '/admin/users')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
-            return $response->withHeader('Location', '/admin/users/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users/create')->withStatus(302);
         }
     }
 
@@ -132,7 +133,7 @@ class UsersController
         
         if (!$user) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Utente non trovato'];
-            return $response->withHeader('Location', '/admin/users')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
         }
         
         return $this->view->render($response, 'admin/users/edit.twig', [
@@ -153,7 +154,7 @@ class UsersController
         
         if (!$currentUser) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Utente non trovato'];
-            return $response->withHeader('Location', '/admin/users')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
         }
         
         // Validate fields
@@ -168,23 +169,23 @@ class UsersController
         // Validation
         if (empty($email) || empty($firstName) || empty($lastName)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Email, nome e cognome sono obbligatori'];
-            return $response->withHeader('Location', '/admin/users/' . $id . '/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit')->withStatus(302);
         }
         
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Email non valida'];
-            return $response->withHeader('Location', '/admin/users/' . $id . '/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit')->withStatus(302);
         }
         
         if (!empty($password)) {
             if (strlen($password) < 8) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'La password deve avere almeno 8 caratteri'];
-                return $response->withHeader('Location', '/admin/users/' . $id . '/edit')->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit')->withStatus(302);
             }
             
             if ($password !== $confirmPassword) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Le password non coincidono'];
-                return $response->withHeader('Location', '/admin/users/' . $id . '/edit')->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit')->withStatus(302);
             }
         }
         
@@ -197,7 +198,7 @@ class UsersController
         $stmt->execute([':email' => $email, ':id' => $id]);
         if ($stmt->fetch()) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Email già in uso da un altro utente'];
-            return $response->withHeader('Location', '/admin/users/' . $id . '/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit')->withStatus(302);
         }
         
         // Update user
@@ -239,10 +240,10 @@ class UsersController
         try {
             $stmt->execute($params);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Utente aggiornato con successo'];
-            return $response->withHeader('Location', '/admin/users')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
-            return $response->withHeader('Location', '/admin/users/' . $id . '/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit')->withStatus(302);
         }
     }
 
@@ -253,7 +254,7 @@ class UsersController
         // Prevent self-deletion and ensure at least one admin remains
         if ($id === $_SESSION['admin_id']) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Non puoi eliminare il tuo account'];
-            return $response->withHeader('Location', '/admin/users')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
         }
         
         // Check if user exists and get role
@@ -263,7 +264,7 @@ class UsersController
         
         if (!$user) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Utente non trovato'];
-            return $response->withHeader('Location', '/admin/users')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
         }
         
         // If deleting an admin, ensure at least one admin remains
@@ -273,7 +274,7 @@ class UsersController
             
             if ($adminCount <= 1) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Deve rimanere almeno un amministratore attivo'];
-                return $response->withHeader('Location', '/admin/users')->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
             }
         }
         
@@ -286,7 +287,7 @@ class UsersController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
         
-        return $response->withHeader('Location', '/admin/users')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
     }
 
     public function toggleActive(Request $request, Response $response, array $args): Response
@@ -296,7 +297,7 @@ class UsersController
         // Prevent self-deactivation
         if ($id === $_SESSION['admin_id']) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Non puoi disattivare il tuo account'];
-            return $response->withHeader('Location', '/admin/users')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
         }
         
         // Get current status
@@ -306,7 +307,7 @@ class UsersController
         
         if (!$user) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Utente non trovato'];
-            return $response->withHeader('Location', '/admin/users')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
         }
         
         $newStatus = $user['is_active'] ? 0 : 1;
@@ -318,7 +319,7 @@ class UsersController
             
             if ($adminCount <= 1) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Deve rimanere almeno un amministratore attivo'];
-                return $response->withHeader('Location', '/admin/users')->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
             }
         }
         
@@ -332,6 +333,6 @@ class UsersController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
         
-        return $response->withHeader('Location', '/admin/users')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/users')->withStatus(302);
     }
 }

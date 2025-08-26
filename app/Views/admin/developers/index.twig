@@ -6,7 +6,7 @@
       <h1 class="text-2xl font-bold text-gray-900">Developers</h1>
       <p class="text-gray-600 mt-1">Manage film developers and their processes</p>
     </div>
-    <a href="/admin/developers/create" class="btn-primary">
+    <a href="{{ base_path }}/admin/developers/create" class="btn-primary">
       <i class="fas fa-plus mr-2"></i>New Developer
     </a>
   </div>
@@ -58,10 +58,10 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
               <div class="flex items-center justify-end space-x-3">
-                <a href="/admin/developers/{{ d.id }}/edit" class="text-gray-600 hover:text-black transition-colors">
+                <a href="{{ base_path }}/admin/developers/{{ d.id }}/edit" class="text-gray-600 hover:text-black transition-colors">
                   <i class="fas fa-edit"></i>
                 </a>
-                <form method="post" action="/admin/developers/{{ d.id }}/delete" class="inline" onsubmit="return confirm('Delete this developer?')">
+                <form method="post" action="{{ base_path }}/admin/developers/{{ d.id }}/delete" class="inline" onsubmit="return confirm('Delete this developer?')">
                   <input type="hidden" name="csrf" value="{{ csrf }}">
                   <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">
                     <i class="fas fa-trash"></i>
@@ -80,7 +80,7 @@
         <i class="fas fa-flask text-4xl text-gray-300 mb-4"></i>
         <h3 class="text-lg font-medium text-gray-900 mb-2">No developers yet</h3>
         <p class="text-gray-600 mb-6">Add film developers to track your processing methods.</p>
-        <a href="/admin/developers/create" class="btn-primary">
+        <a href="{{ base_path }}/admin/developers/create" class="btn-primary">
           <i class="fas fa-plus mr-2"></i>Add Developer
         </a>
       </div>

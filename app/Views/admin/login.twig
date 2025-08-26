@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login — photoCMS</title>
-  <link href="/assets/app.css" rel="stylesheet">
+  <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body class="bg-gray-50 min-h-screen flex items-center justify-center">
@@ -21,7 +21,7 @@
       </div>
     {% endif %}
 
-    <form method="post" action="/admin/login" class="mt-8 space-y-6">
+    <form method="post" action="{{ base_path }}/admin/login" class="mt-8 space-y-6">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       
       <div class="space-y-4">

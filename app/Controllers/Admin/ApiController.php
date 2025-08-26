@@ -2,17 +2,19 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
-class ApiController
+class ApiController extends BaseController
 {
     public function __construct(private Database $db) {}
+        parent::__construct();
 
     public function tags(Request $request, Response $response): Response
     {
+        parent::__construct();
         $q = trim((string)($request->getQueryParams()['q'] ?? ''));
         $pdo = $this->db->pdo();
         if ($q !== '') {

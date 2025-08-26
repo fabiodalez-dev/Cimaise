@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
-
+use App\Controllers\BaseController;
 use App\Services\ImagesService;
 use App\Services\SettingsService;
 use App\Support\Database;
@@ -11,12 +11,14 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class PagesController
+class PagesController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view) {}
+        parent::__construct();
 
     public function index(Request $request, Response $response): Response
     {
+        parent::__construct();
         $settings = new SettingsService($this->db);
         $aboutSlug = (string)($settings->get('about.slug', 'about') ?? 'about');
         if ($aboutSlug === '') { $aboutSlug = 'about'; }
@@ -146,7 +148,7 @@ class PagesController
         }
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Pagina About salvata'];
-        return $response->withHeader('Location', '/admin/pages/about')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/pages/about')->withStatus(302);
     }
 
     public function galleriesForm(Request $request, Response $response): Response
@@ -193,7 +195,7 @@ class PagesController
         $svc->set('galleries.view_button_text', trim((string)($data['view_button_text'] ?? 'View')));
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Pagina Galleries salvata'];
-        return $response->withHeader('Location', '/admin/pages/galleries')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/pages/galleries')->withStatus(302);
     }
 
     private function getFilterSettings(): array

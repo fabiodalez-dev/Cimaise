@@ -2,18 +2,20 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class CommandsController
+class CommandsController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view) {}
+        parent::__construct();
 
     public function index(Request $request, Response $response): Response
     {
+        parent::__construct();
         return $this->view->render($response, 'admin/commands.twig', [
             'page_title' => 'System Commands'
         ]);

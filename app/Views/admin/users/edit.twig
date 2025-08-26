@@ -10,7 +10,7 @@
 </div>
 
 <div class="card p-6">
-  <form method="post" action="/admin/users/{{ user.id }}" class="space-y-6">
+  <form method="post" action="{{ base_path }}/admin/users/{{ user.id }}" class="space-y-6">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -79,9 +79,9 @@
     
     <div class="flex gap-3 pt-4 border-t">
       <button class="btn-primary" type="submit">Aggiorna Utente</button>
-      <a class="btn-secondary" href="/admin/users">Annulla</a>
+      <a class="btn-secondary" href="{{ base_path }}/admin/users">Annulla</a>
       {% if user.id != session.admin_id %}
-      <form method="post" action="/admin/users/{{ user.id }}/delete" class="inline ml-auto" 
+      <form method="post" action="{{ base_path }}/admin/users/{{ user.id }}/delete" class="inline ml-auto" 
             onsubmit="return confirm('Eliminare questo utente? Questa azione non può essere annullata.');">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <button class="btn-secondary text-red-700" type="submit">Elimina Utente</button>
