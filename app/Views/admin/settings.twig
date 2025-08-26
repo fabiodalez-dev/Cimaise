@@ -9,7 +9,7 @@
   </div>
 
   <div class="pb-48"> <!-- Increased padding bottom for sticky footer -->
-    <form method="post" action="/admin/settings" id="settings-form" class="space-y-8">
+    <form method="post" action="{{ base_path }}/admin/settings" id="settings-form" class="space-y-8">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -181,7 +181,7 @@
         </h3>
         <p class="text-sm text-gray-600 mb-4">Genera automaticamente le varianti ad alta risoluzione per tutte le immagini mancanti</p>
         
-        <form id="generate-images-form" method="post" action="/admin/settings/generate-images" onsubmit="return handleImageGeneration(event);" class="border-t border-gray-200 pt-4">
+        <form id="generate-images-form" method="post" action="{{ base_path }}/admin/settings/generate-images" onsubmit="return handleImageGeneration(event);" class="border-t border-gray-200 pt-4">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button id="generate-btn" type="submit" class="btn-secondary">
             <i id="generate-icon" class="fas fa-images mr-2"></i>
@@ -210,7 +210,7 @@
             <i class="fas fa-save mr-2"></i>
             Salva Impostazioni
           </button>
-          <a href="/admin" class="btn-secondary">
+          <a href="{{ base_path }}/admin" class="btn-secondary">
             <i class="fas fa-arrow-left mr-2"></i>
             Dashboard
           </a>

@@ -2,16 +2,17 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class CategoriesController
+class CategoriesController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view)
     {
+        parent::__construct();
     }
 
     public function index(Request $request, Response $response): Response
@@ -98,7 +99,7 @@ class CategoriesController
         $sort = (int)($data['sort_order'] ?? 0);
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
-            return $response->withHeader('Location', '/admin/categories/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/categories/create')->withStatus(302);
         }
         if ($slug === '') {
             $slug = \App\Support\Str::slug($name);
@@ -154,14 +155,14 @@ class CategoriesController
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Categoria creata'];
-            return $response->withHeader('Location', '/admin/categories')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/categories')->withStatus(302);
         } catch (\Throwable $e) {
             // Clean up uploaded file if database insert fails
             if ($imagePath && file_exists('public' . $imagePath)) {
                 unlink('public' . $imagePath);
             }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
-            return $response->withHeader('Location', '/admin/categories/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/categories/create')->withStatus(302);
         }
     }
 
@@ -199,7 +200,7 @@ class CategoriesController
         
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
-            return $response->withHeader('Location', '/admin/categories/'.$id.'/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/categories/'.$id.'/edit')->withStatus(302);
         }
         if ($slug === '') {
             $slug = \App\Support\Str::slug($name);
@@ -273,7 +274,7 @@ class CategoriesController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', '/admin/categories')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/categories')->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
@@ -286,7 +287,7 @@ class CategoriesController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', '/admin/categories')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/categories')->withStatus(302);
     }
 
     /**

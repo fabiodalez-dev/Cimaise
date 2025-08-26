@@ -2,17 +2,19 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
-
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
-class DownloadController
+class DownloadController extends BaseController
 {
     public function __construct(private Database $db) {}
+        parent::__construct();
 
     public function downloadImage(Request $request, Response $response, array $args): Response
     {
+        parent::__construct();
         $id = (int)($args['id'] ?? 0);
         if ($id <= 0) return $response->withStatus(404);
         

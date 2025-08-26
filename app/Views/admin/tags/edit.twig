@@ -5,7 +5,7 @@
     <h1 class="text-2xl font-bold text-gray-900">Modifica tag</h1>
   </div>
   <div class="card p-6">
-    <form method="post" action="/admin/tags/{{ item.id }}" class="space-y-4">
+    <form method="post" action="{{ base_path }}/admin/tags/{{ item.id }}" class="space-y-4">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
@@ -17,8 +17,8 @@
       </div>
       <div class="flex gap-3 pt-2">
         <button class="btn-primary" type="submit">Aggiorna</button>
-        <a class="btn-secondary" href="/admin/tags">Annulla</a>
-        <form method="post" action="/admin/tags/{{ item.id }}/delete" class="inline ml-auto" onsubmit="return confirm('Eliminare questo tag?');">
+        <a class="btn-secondary" href="{{ base_path }}/admin/tags">Annulla</a>
+        <form method="post" action="{{ base_path }}/admin/tags/{{ item.id }}/delete" class="inline ml-auto" onsubmit="return confirm('Eliminare questo tag?');">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button class="btn-secondary text-red-700" type="submit">Elimina</button>
         </form>

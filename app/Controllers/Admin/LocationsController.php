@@ -2,15 +2,16 @@
 
 namespace App\Controllers\Admin;
 
-use App\Repositories\LocationRepository;
+use App\Controllers\BaseController;use App\Repositories\LocationRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class LocationsController
+class LocationsController extends BaseController
 {
     public function __construct(private LocationRepository $locations, private Twig $view)
     {
+        parent::__construct();
     }
 
     public function index(Request $request, Response $response): Response
@@ -37,15 +38,15 @@ class LocationsController
         $desc = trim((string)($data['description'] ?? '')) ?: null;
         if ($name === '' || $slug === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name e slug sono obbligatori'];
-            return $response->withHeader('Location', '/admin/locations/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/locations/create')->withStatus(302);
         }
         try {
             $this->locations->create(['name' => $name, 'slug' => $slug, 'description' => $desc]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location creata'];
-            return $response->withHeader('Location', '/admin/locations')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
-            return $response->withHeader('Location', '/admin/locations/create')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/locations/create')->withStatus(302);
         }
     }
 
@@ -69,7 +70,7 @@ class LocationsController
         $desc = trim((string)($data['description'] ?? '')) ?: null;
         if ($name === '' || $slug === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name e slug sono obbligatori'];
-            return $response->withHeader('Location', '/admin/locations/' . $id . '/edit')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/locations/' . $id . '/edit'))->withStatus(302);
         }
         try {
             $this->locations->update($id, ['name' => $name, 'slug' => $slug, 'description' => $desc]);
@@ -77,7 +78,7 @@ class LocationsController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', '/admin/locations')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/locations')->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
@@ -89,6 +90,6 @@ class LocationsController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
         }
-        return $response->withHeader('Location', '/admin/locations')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/locations')->withStatus(302);
     }
 }

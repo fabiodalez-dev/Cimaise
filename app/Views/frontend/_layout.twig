@@ -25,11 +25,11 @@
     <!-- Fonts: use system stack to comply with CSP -->
     
     <!-- Tailwind CSS - Local Build -->
-    <link href="/assets/app.css" rel="stylesheet">
+    <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
     <!-- Custom CSS for system fonts -->
     
     <!-- PhotoSwipe CSS (local) -->
-    <link rel="stylesheet" href="/assets/photoswipe/photoswipe.css">
+    <link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css">
     
     <!-- Swiper CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
@@ -430,13 +430,13 @@
                 <!-- Left: Logo and Desktop Navigation -->
                 <div class="flex items-center gap-8">
                     <h1 class="text-xl font-semibold">
-                        <a href="/" class="hover:text-gray-600 transition-colors duration-200">Portfolio</a>
+                        <a href="{{ base_path }}/" class="hover:text-gray-600 transition-colors duration-200">Portfolio</a>
                     </h1>
                     
                     <!-- Desktop Navigation -->
                     <nav class="hidden lg:flex items-center gap-6" id="desktop-nav">
-                        <a href="/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">Home</a>
-                        <a href="/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">All Galleries</a>
+                        <a href="{{ base_path }}/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">Home</a>
+                        <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">All Galleries</a>
                         <a href="{{ about_url }}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">About</a>
                         
                         <!-- Categories Mega Menu -->
@@ -453,7 +453,7 @@
                                     <div class="grid grid-cols-3 gap-6 mb-6" id="parent-categories-grid">
                                         {% for category in parent_categories|default([]) %}
                                         <div class="group cursor-pointer category-parent-item relative" data-category-id="{{ category.id }}" data-category-slug="{{ category.slug }}" data-category-name="{{ category.name|e }}">
-                                            <a href="/category/{{ category.slug }}" class="block hover:no-underline">
+                                            <a href="{{ base_path }}/category/{{ category.slug }}" class="block hover:no-underline">
                                                 <div class="relative aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-gray-50 transition-all duration-300 group-hover:shadow-lg">
                                                     {% if category.image_path and category.image_path != '' %}
                                                         <img src="{{ category.image_path }}" alt="{{ category.name|e }}" 
@@ -533,8 +533,8 @@
             <div class="px-4 py-6 space-y-6 max-h-[calc(100vh-80px)] overflow-y-auto">
                 <!-- Main Navigation -->
                 <div class="space-y-4">
-                    <a href="/" class="block text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">Home</a>
-                    <a href="/galleries" class="block text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">All Galleries</a>
+                    <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">Home</a>
+                    <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">All Galleries</a>
                     <a href="{{ about_url }}" class="block text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">About</a>
                 </div>
                 
@@ -564,13 +564,13 @@
                                 
                                 <div class="mobile-subcategories hidden pl-11 mt-2 space-y-2" data-parent="{{ category.id }}">
                                     {% for child in category.children %}
-                                        <a href="/category/{{ child.slug }}" class="block text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200 py-1">
+                                        <a href="{{ base_path }}/category/{{ child.slug }}" class="block text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200 py-1">
                                             {{ child.name|e }}
                                         </a>
                                     {% endfor %}
                                 </div>
                             {% else %}
-                                <a href="/category/{{ category.slug }}" class="flex items-center gap-3 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">
+                                <a href="{{ base_path }}/category/{{ category.slug }}" class="flex items-center gap-3 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">
                                     {% if category.image_path and category.image_path != '' %}
                                         <div class="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                                             <img src="{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
@@ -657,7 +657,7 @@
                 {% if tags|default([])|length > 0 %}
                 <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
                     {% for tag in tags|slice(0, 10) %}
-                    <a href="/tag/{{ tag.slug }}" class="text-xs text-neutral-500 hover:text-black border border-neutral-200 rounded px-2 py-1 transition-colors">
+                    <a href="{{ base_path }}/tag/{{ tag.slug }}" class="text-xs text-neutral-500 hover:text-black border border-neutral-200 rounded px-2 py-1 transition-colors">
                         #{{ tag.name|e }}
                     </a>
                     {% endfor %}
@@ -896,7 +896,7 @@
                     
                     // Populate subcategories
                     subcatsList.innerHTML = category.children.map(child => 
-                        `<a href="/category/${child.slug}" class="block text-sm px-3 py-2 rounded-md hover:bg-gray-100 transition-colors duration-200">
+                        `<a href="{{ base_path }}/category/${child.slug}" class="block text-sm px-3 py-2 rounded-md hover:bg-gray-100 transition-colors duration-200">
                             ${child.name}
                         </a>`
                     ).join('');
@@ -1137,17 +1137,17 @@
                 if (window.PhotoSwipe) return resolve();
                 // Prefer UMD builds under /dist/umd (your current files)
                 const coreCandidates = [
-                  '/assets/photoswipe/dist/umd/photoswipe.umd.min.js',
-                  '/assets/photoswipe/dist/umd/photoswipe.umd.js',
+                  '{{ base_path }}/assets/photoswipe/dist/umd/photoswipe.umd.min.js',
+                  '{{ base_path }}/assets/photoswipe/dist/umd/photoswipe.umd.js',
                   // fallbacks if structure changes
-                  '/assets/photoswipe/dist/photoswipe.umd.min.js',
-                  '/assets/photoswipe/dist/photoswipe.umd.js'
+                  '{{ base_path }}/assets/photoswipe/dist/photoswipe.umd.min.js',
+                  '{{ base_path }}/assets/photoswipe/dist/photoswipe.umd.js'
                 ];
                 loadScriptSequential(coreCandidates, (okCore) => {
                   if (!okCore && !window.PhotoSwipe) return reject(new Error('PhotoSwipe unavailable'));
                   const lbCandidates = [
-                    '/assets/photoswipe/dist/umd/photoswipe-lightbox.umd.min.js',
-                    '/assets/photoswipe/dist/umd/photoswipe-lightbox.umd.js'
+                    '{{ base_path }}/assets/photoswipe/dist/umd/photoswipe-lightbox.umd.min.js',
+                    '{{ base_path }}/assets/photoswipe/dist/umd/photoswipe-lightbox.umd.js'
                   ];
                   loadScriptSequential(lbCandidates, () => resolve());
                 });

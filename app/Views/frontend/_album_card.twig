@@ -1,5 +1,5 @@
 <article class="album-card group cursor-pointer" data-album-id="{{ album.id }}">
-  <a href="/album/{{ album.slug }}" class="block">
+  <a href="{{ base_path }}/album/{{ album.slug }}" class="block">
     <div class="aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm">
       {% if album.cover %}
         <picture>

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Admin — photoCMS{% endblock %}</title>
-  <link href="/assets/app.css" rel="stylesheet">
+  <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     .sidebar-link { 
@@ -179,7 +179,7 @@
         <!-- User Administration Area -->
         <div class="flex items-center space-x-6">
           <!-- Frontend Link -->
-          <a href="/" target="_blank" class="text-gray-600 hover:text-black transition-colors flex items-center space-x-2" title="Visualizza Frontend">
+          <a href="{{ base_path }}/" target="_blank" class="text-gray-600 hover:text-black transition-colors flex items-center space-x-2" title="Visualizza Frontend">
             <i class="fas fa-external-link-alt"></i>
             <span class="hidden md:inline text-sm">Frontend</span>
           </a>
@@ -270,7 +270,7 @@
               
               <div class="border-t border-gray-100 my-1"></div>
               
-              <a href="/admin/users" class="dropdown-item">
+              <a href="{{ base_path }}/admin/users" class="dropdown-item">
                 <i class="fas fa-users-cog"></i>
                 <div>
                   <div class="font-medium">Gestione Utenti</div>
@@ -278,7 +278,7 @@
                 </div>
               </a>
               
-              <a href="/admin/settings" class="dropdown-item">
+              <a href="{{ base_path }}/admin/settings" class="dropdown-item">
                 <i class="fas fa-cog"></i>
                 <div>
                   <div class="font-medium">Impostazioni Sistema</div>
@@ -288,7 +288,7 @@
               
               <div class="border-t border-gray-100 my-1"></div>
               
-              <form method="post" action="/admin/logout" class="m-0">
+              <form method="post" action="{{ base_path }}/admin/logout" class="m-0">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
                 <button type="submit" class="dropdown-item text-red-600 hover:bg-red-50 w-full text-left border-0 bg-transparent cursor-pointer">
                   <i class="fas fa-sign-out-alt"></i>
@@ -313,22 +313,22 @@
         <div class="mb-8">
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">NAVIGATION</p>
           <div class="space-y-1">
-            <a href="/admin" class="sidebar-link">
+            <a href="{{ base_path }}/admin" class="sidebar-link">
               <i class="fas fa-tachometer-alt"></i>Dashboard
             </a>
-            <a href="/admin/albums" class="sidebar-link">
+            <a href="{{ base_path }}/admin/albums" class="sidebar-link">
               <i class="fas fa-images"></i>Albums
             </a>
-            <a href="/admin/categories" class="sidebar-link">
+            <a href="{{ base_path }}/admin/categories" class="sidebar-link">
               <i class="fas fa-folder"></i>Categories
             </a>
-            <a href="/admin/tags" class="sidebar-link">
+            <a href="{{ base_path }}/admin/tags" class="sidebar-link">
               <i class="fas fa-tags"></i>Tags
             </a>
-            <a href="/admin/templates" class="sidebar-link">
+            <a href="{{ base_path }}/admin/templates" class="sidebar-link">
               <i class="fas fa-palette"></i>Templates
             </a>
-            <a href="/admin/pages" class="sidebar-link">
+            <a href="{{ base_path }}/admin/pages" class="sidebar-link">
               <i class="fas fa-file-alt"></i>Pages
             </a>
           </div>
@@ -338,22 +338,22 @@
         <div class="mb-8">
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">METADATA</p>
           <div class="space-y-1">
-            <a href="/admin/cameras" class="sidebar-link">
+            <a href="{{ base_path }}/admin/cameras" class="sidebar-link">
               <i class="fas fa-camera"></i>Cameras
             </a>
-            <a href="/admin/lenses" class="sidebar-link">
+            <a href="{{ base_path }}/admin/lenses" class="sidebar-link">
               <i class="fas fa-circle-dot"></i>Lenses
             </a>
-            <a href="/admin/films" class="sidebar-link">
+            <a href="{{ base_path }}/admin/films" class="sidebar-link">
               <i class="fas fa-film"></i>Films
             </a>
-            <a href="/admin/developers" class="sidebar-link">
+            <a href="{{ base_path }}/admin/developers" class="sidebar-link">
               <i class="fas fa-flask"></i>Developers
             </a>
-            <a href="/admin/labs" class="sidebar-link">
+            <a href="{{ base_path }}/admin/labs" class="sidebar-link">
               <i class="fas fa-microscope"></i>Labs
             </a>
-            <a href="/admin/locations" class="sidebar-link">
+            <a href="{{ base_path }}/admin/locations" class="sidebar-link">
               <i class="fas fa-location-dot"></i>Locations
             </a>
           </div>
@@ -363,20 +363,20 @@
         <div>
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">SYSTEM</p>
           <div class="space-y-1">
-            <a href="/admin/users" class="sidebar-link">
+            <a href="{{ base_path }}/admin/users" class="sidebar-link">
               <i class="fas fa-users"></i>Users
             </a>
-            <a href="/admin/settings" class="sidebar-link">
+            <a href="{{ base_path }}/admin/settings" class="sidebar-link">
               <i class="fas fa-cog"></i>Settings
             </a>
-            <a href="/admin/filter-settings" class="sidebar-link">
+            <a href="{{ base_path }}/admin/filter-settings" class="sidebar-link">
               <i class="fas fa-sliders-h"></i>Filter Settings
             </a>
 
-            <a href="/admin/commands" class="sidebar-link">
+            <a href="{{ base_path }}/admin/commands" class="sidebar-link">
               <i class="fas fa-terminal"></i>Commands
             </a>
-            <a href="/admin/diagnostics" class="sidebar-link">
+            <a href="{{ base_path }}/admin/diagnostics" class="sidebar-link">
               <i class="fas fa-stethoscope"></i>Diagnostics
             </a>
           </div>
@@ -433,7 +433,7 @@
             <i class="fas fa-times"></i>
           </button>
         </div>
-        <form id="profileForm" method="post" action="/admin/profile/update">
+        <form id="profileForm" method="post" action="{{ base_path }}/admin/profile/update">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <div class="space-y-4">
             <div>
@@ -468,7 +468,7 @@
             <i class="fas fa-times"></i>
           </button>
         </div>
-        <form id="passwordForm" method="post" action="/admin/profile/password">
+        <form id="passwordForm" method="post" action="{{ base_path }}/admin/profile/password">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <div class="space-y-4">
             <div>

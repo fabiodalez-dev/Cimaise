@@ -3,15 +3,17 @@ declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 
+use App\Controllers\BaseController;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
-class AuthController
+class AuthController extends BaseController
 {
     public function __construct(private Database $db, private Twig $view)
     {
+        parent::__construct();
     }
 
     public function showLogin(Request $request, Response $response): Response
@@ -83,7 +85,7 @@ class AuthController
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
 
         return $response
-            ->withHeader('Location', '/admin')
+            ->withHeader('Location', $this->redirect('/admin'))
             ->withStatus(302);
     }
 
@@ -96,7 +98,7 @@ class AuthController
             
             if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Token CSRF non valido.'];
-                return $response->withHeader('Location', '/admin')->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
             }
         }
         
@@ -106,13 +108,13 @@ class AuthController
             setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'] ?? '', $params['secure'] ?? false, $params['httponly'] ?? true);
         }
         session_destroy();
-        return $response->withHeader('Location', '/admin/login')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
     }
 
     public function updateProfile(Request $request, Response $response): Response
     {
         if (empty($_SESSION['admin_id'])) {
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
         }
 
         $data = (array)$request->getParsedBody();
@@ -123,28 +125,28 @@ class AuthController
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Token CSRF non valido.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         if ($firstName === '' || $lastName === '' || $email === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Tutti i campi sono obbligatori.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
         
         // SECURITY: Validate names to prevent XSS
         if (strlen($firstName) > 50 || strlen($lastName) > 50) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome e cognome devono essere massimo 50 caratteri.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
         
         if (!preg_match('/^[a-zA-Z\s\-\'\.À-ſ]+$/u', $firstName) || !preg_match('/^[a-zA-Z\s\-\'\.À-ſ]+$/u', $lastName)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome e cognome possono contenere solo lettere, spazi, apostrofi e trattini.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Email non valida.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         // Check if email is already taken by another user
@@ -152,7 +154,7 @@ class AuthController
         $stmt->execute([':email' => $email, ':id' => $_SESSION['admin_id']]);
         if ($stmt->fetch()) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Questa email è già utilizzata da un altro utente.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         try {
@@ -175,13 +177,13 @@ class AuthController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore durante l\'aggiornamento del profilo: ' . $e->getMessage()];
         }
 
-        return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+        return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
     }
 
     public function changePassword(Request $request, Response $response): Response
     {
         if (empty($_SESSION['admin_id'])) {
-            return $response->withHeader('Location', '/admin/login')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
         }
 
         $data = (array)$request->getParsedBody();
@@ -192,22 +194,22 @@ class AuthController
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Token CSRF non valido.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Tutti i campi sono obbligatori.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         if (strlen($newPassword) < 8) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'La nuova password deve essere di almeno 8 caratteri.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         if ($newPassword !== $confirmPassword) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Le password non corrispondono.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         // Verify current password
@@ -217,7 +219,7 @@ class AuthController
 
         if (!$user || !password_verify($currentPassword, $user['password_hash'])) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Password attuale non corretta.'];
-            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         try {
@@ -235,6 +237,6 @@ class AuthController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore durante il cambio password: ' . $e->getMessage()];
         }
 
-        return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? '/admin')->withStatus(302);
+        return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
     }
 }

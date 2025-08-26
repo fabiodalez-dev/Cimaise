@@ -8,9 +8,22 @@ use Slim\Views\Twig;
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\RateLimitMiddleware;
 
+// Helper function to check if app is installed
+function isAppInstalled($db): bool {
+    if (!$db) return false;
+    try {
+        $stmt = $db->query('SELECT COUNT(*) as count FROM users WHERE role = "admin"');
+        $result = $stmt->fetch();
+        return $result && $result['count'] > 0;
+    } catch (\Throwable $e) {
+        return false;
+    }
+}
+
 return function (App $app, array $container) {
 
-// Installer routes (placed at the top to override other routes when not installed)
+// Installer routes (only register when not installed)
+if (!$container['db'] || !isAppInstalled($container['db'])) {
 $app->get('/install', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
     return $controller->index($request, $response);
@@ -55,6 +68,7 @@ $app->post('/install/run', function (Request $request, Response $response) use (
     $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
     return $controller->runInstall($request, $response);
 });
+}
 
 // Frontend pages
 $app->get('/', function (Request $request, Response $response) use ($container) {
@@ -134,7 +148,9 @@ $app->get('/galleries/filter', function (Request $request, Response $response) u
 
 // Admin redirect
 $app->get('/admin-login', function (Request $request, Response $response) {
-    return $response->withHeader('Location', '/admin/login')->withStatus(302);
+    $basePath = dirname($_SERVER['SCRIPT_NAME']);
+    $basePath = $basePath === '/' ? '' : $basePath;
+    return $response->withHeader('Location', $basePath . '/admin/login')->withStatus(302);
 });
 
 $app->get('/admin/login', function (Request $request, Response $response) use ($container) {
