@@ -358,6 +358,9 @@
   </div>
 
   <script>
+    // Global base path for API calls
+    window.basePath = '{{ base_path }}';
+    
     let csrfToken = {{ csrf|json_encode|raw }};
     
     // Clean drag system
@@ -509,7 +512,7 @@
         });
         
         try {
-          const response = await fetch('/admin/categories/reorder-wordpress', {
+          const response = await fetch(window.basePath + '/admin/categories/reorder-wordpress', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -547,7 +550,7 @@
       const id = btn.getAttribute('data-edit');
       
       try {
-        const res = await fetch('/admin/api/category/' + id, {
+        const res = await fetch(window.basePath + '/admin/api/category/' + id, {
           headers: { 'Accept': 'application/json' }
         });
         
@@ -581,7 +584,7 @@
         
         // Update form action
         const form = document.getElementById('cat-form');
-        form.action = '/admin/categories/' + id;
+        form.action = window.basePath + '/admin/categories/' + id;
         
         // Scroll to form
         document.getElementById('cat-form').scrollIntoView({ 
@@ -614,7 +617,7 @@
       
       // Update form action
       const form = document.getElementById('cat-form');
-      form.action = '/admin/categories';
+      form.action = window.basePath + '/admin/categories';
     });
     
     // Initialize the drag system

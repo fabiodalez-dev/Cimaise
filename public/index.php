@@ -14,19 +14,55 @@ use Slim\Exception\HttpNotFoundException;
 
 // Check if installer is being accessed
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-$isInstallerRoute = strpos($requestUri, '/install') !== false;
-$isAdminLoginRoute = strpos($requestUri, '/admin/login') !== false;
+$isInstallerRoute = strpos($requestUri, '/install') !== false || strpos($requestUri, 'installer.php') !== false;
+$isAdminRoute = strpos($requestUri, '/admin') !== false;
+$isLoginRoute = strpos($requestUri, '/login') !== false;
 
-// Check if already installed (only for non-installer routes and not admin login)
-if (!$isInstallerRoute && !$isAdminLoginRoute) {
+// Check if already installed (only for non-installer routes, not admin routes, and not login routes)
+if (!$isInstallerRoute && !$isAdminRoute && !$isLoginRoute) {
     // Check if installed by looking for .env file (not .env.example) and database
     $root = dirname(__DIR__);
     $installed = false;
+    
+    // Auto-repair: create .env file if missing but template database exists
+    if (!file_exists($root . '/.env') && file_exists($root . '/database/template.sqlite')) {
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
+        $basePath = $scriptDir === '/' ? '' : $scriptDir;
+        if (str_ends_with($basePath, '/public')) {
+            $basePath = substr($basePath, 0, -7);
+        }
+        $appUrl = $protocol . '://' . $host . $basePath;
+        
+        $envContent = "APP_ENV=production\n";
+        $envContent .= "APP_DEBUG=false\n";
+        $envContent .= "APP_URL=$appUrl\n";
+        $envContent .= "APP_TIMEZONE=Europe/Rome\n\n";
+        $envContent .= "DB_CONNECTION=sqlite\n";
+        $envContent .= "DB_DATABASE=database/database.sqlite\n\n";
+        $envContent .= "SESSION_SECRET=" . bin2hex(random_bytes(32)) . "\n";
+        
+        if (is_writable($root)) {
+            @file_put_contents($root . '/.env', $envContent);
+        }
+    }
     
     if (file_exists($root . '/.env')) {
         // Load environment variables from .env
         $envContent = file_get_contents($root . '/.env');
         if (!empty($envContent)) {
+            // Check if database file exists and is not empty
+            $dbPath = $root . '/database/database.sqlite';
+            $templatePath = $root . '/database/template.sqlite';
+            
+            // Auto-repair: if database is empty but template exists, copy template
+            if (file_exists($templatePath) && (!file_exists($dbPath) || filesize($dbPath) == 0)) {
+                if (is_writable(dirname($dbPath))) {
+                    @copy($templatePath, $dbPath);
+                }
+            }
+            
             // Try to load database configuration
             try {
                 if (file_exists($root . '/app/Installer/Installer.php')) {
@@ -86,6 +122,12 @@ $app = AppFactory::create();
 // Set base path for subdirectory installations
 $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
 $basePath = $scriptDir === '/' ? '' : $scriptDir;
+
+// Remove /public from the base path if present (since document root should be public/)
+if (str_ends_with($basePath, '/public')) {
+    $basePath = substr($basePath, 0, -7); // Remove '/public'
+}
+
 if ($basePath) {
     $app->setBasePath($basePath);
 }
@@ -102,8 +144,14 @@ $app->add(TwigMiddleware::create($app, $twig));
 $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
-$basePath = $scriptDir === '/' ? '' : $scriptDir;
-$autoDetectedUrl = $protocol . '://' . $host . $basePath;
+$autoBasePath = $scriptDir === '/' ? '' : $scriptDir;
+
+// Remove /public from the path if present (since document root should be public/)
+if (str_ends_with($autoBasePath, '/public')) {
+    $autoBasePath = substr($autoBasePath, 0, -7); // Remove '/public'
+}
+
+$autoDetectedUrl = $protocol . '://' . $host . $autoBasePath;
 
 // Share globals
 $twig->getEnvironment()->addGlobal('app_url', $_ENV['APP_URL'] ?? $autoDetectedUrl);

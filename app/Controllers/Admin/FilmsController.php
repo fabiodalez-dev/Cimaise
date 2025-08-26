@@ -10,12 +10,13 @@ use Slim\Views\Twig;
 
 class FilmsController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view) {}
+    public function __construct(private Database $db, private Twig $view) 
+    {
         parent::__construct();
+    }
 
     public function index(Request $request, Response $response): Response
     {
-        parent::__construct();
         $page=max(1,(int)($request->getQueryParams()['page']??1)); $per=10; $off=($page-1)*$per; $pdo=$this->db->pdo();
         $total=(int)$pdo->query('SELECT COUNT(*) FROM films')->fetchColumn();
         $st=$pdo->prepare('SELECT id, brand, name, iso, format, type FROM films ORDER BY brand, name LIMIT :l OFFSET :o');
