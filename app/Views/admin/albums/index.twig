@@ -35,7 +35,7 @@
           <tr class="table-row cursor-move" data-id="{{ a.id }}" title="Trascina per riordinare">
             <td class="px-6 py-4 whitespace-nowrap">
               {% if a.cover_path %}
-                <img src="{{ a.cover_path|replace({'/public':''}) }}" alt="" class="w-14 h-10 object-cover rounded border border-gray-200">
+                <img src="{% if a.cover_path starts with '/' %}{{ base_path }}{{ a.cover_path }}{% else %}{{ a.cover_path }}{% endif %}" alt="" class="w-14 h-10 object-cover rounded border border-gray-200">
               {% else %}
                 <div class="w-14 h-10 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
                   <i class="fas fa-image text-gray-400 text-sm"></i>

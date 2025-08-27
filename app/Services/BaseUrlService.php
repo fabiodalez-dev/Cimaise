@@ -61,6 +61,16 @@ class BaseUrlService
      */
     public static function getInstallationPath(): string
     {
+        // Try to get from APP_URL first (for CLI commands)
+        if (isset($_ENV['APP_URL']) && !empty($_ENV['APP_URL'])) {
+            $parsedUrl = parse_url($_ENV['APP_URL']);
+            if (isset($parsedUrl['path']) && !empty($parsedUrl['path'])) {
+                return rtrim($parsedUrl['path'], '/');
+            }
+            return '';
+        }
+        
+        // Fallback to server variables for web requests
         $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
         $basePath = dirname($scriptPath);
         

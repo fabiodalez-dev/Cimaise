@@ -221,7 +221,7 @@
             {% if image.sources and image.sources.jpg|length %}
               <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
             {% endif %}
-            <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-auto object-contain" style="aspect-ratio: var(--aspect-ratio)" loading="lazy" decoding="async">
+            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-auto object-contain" style="aspect-ratio: var(--aspect-ratio)" loading="lazy" decoding="async">
           </picture>
         </a>
       </div>
@@ -263,7 +263,7 @@
                 {% if image.sources and image.sources.jpg|length %}
                   <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
                 {% endif %}
-                <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|default('Image')|e }}" class="max-w-full max-h-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};" loading="lazy" decoding="async">
+                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" class="max-w-full max-h-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};" loading="lazy" decoding="async">
               </picture>
             </a>
             {% if image.caption %}
@@ -286,7 +286,7 @@
         <div class="swiper-wrapper">
           {% for image in images %}
           <div class="swiper-slide !w-20 !h-16 cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
-            <img src="{{ image.url }}" alt="" class="w-full h-full object-contain rounded">
+            <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="" class="w-full h-full object-contain rounded">
           </div>
           {% endfor %}
         </div>
@@ -328,7 +328,7 @@
               {% if image.sources and image.sources.jpg|length %}
                 <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
               {% endif %}
-              <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async">
+              <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async">
             </picture>
             <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
@@ -348,7 +348,7 @@
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
-          <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full {{ featured ? 'object-contain max-w-full max-h-full' : 'object-cover' }}">
+          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full {{ featured ? 'object-contain max-w-full max-h-full' : 'object-cover' }}">
         </a>
       </div>
       {% endfor %}
@@ -366,7 +366,7 @@
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
                data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
-              <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="max-h-full max-w-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};">
+              <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" class="max-h-full max-w-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};">
             </a>
           </div>
           {% endfor %}
@@ -388,7 +388,7 @@
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
            style="width: 200px; filter: sepia(0.2) contrast(1.1) brightness(1.05);">
-          <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full aspect-square object-cover">
+          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" class="w-full aspect-square object-cover">
           {% if image.caption %}
           <div class="absolute bottom-2 left-3 right-3 text-center text-xs font-handwriting text-gray-700">
             {{ image.caption|e|slice(0, 40) }}{% if image.caption|length > 40 %}...{% endif %}
@@ -410,7 +410,7 @@
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
-          <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover">
+          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover">
         </a>
       </div>
       {% endfor %}
@@ -454,7 +454,7 @@
             {% if image.sources and image.sources.jpg|length %}
               <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
             {% endif %}
-            <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
           </picture>
         </a>
       </div>
