@@ -28,6 +28,33 @@ function initUppyAreaUpload() {
   const uppy = new Uppy({ autoProceed: true, restrictions: { allowedFileTypes: ['image/*'] } })
     .use(XHRUpload, { endpoint, fieldName: 'file', headers: { 'X-CSRF-Token': csrf, 'Accept':'application/json' } });
 
+  // Create progress indicator
+  let progressEl = document.getElementById('upload-progress');
+  if (!progressEl) {
+    progressEl = document.createElement('div');
+    progressEl.id = 'upload-progress';
+    progressEl.className = 'hidden fixed top-4 right-4 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50 min-w-[300px]';
+    progressEl.innerHTML = `
+      <div class="flex items-center gap-3">
+        <i class="fas fa-cloud-upload-alt text-blue-500"></i>
+        <div class="flex-1">
+          <div class="text-sm font-medium text-gray-900">Caricamento in corso...</div>
+          <div class="text-xs text-gray-500" id="upload-status">0% - Preparazione...</div>
+        </div>
+        <div class="w-12 h-12 relative">
+          <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+            <path d="m18,2.0845 a 15.9155,15.9155 0 0,1 0,31.831 a 15.9155,15.9155 0 0,1 0,-31.831" fill="none" stroke="#e5e7eb" stroke-width="3"/>
+            <path id="upload-progress-circle" d="m18,2.0845 a 15.9155,15.9155 0 0,1 0,31.831 a 15.9155,15.9155 0 0,1 0,-31.831" fill="none" stroke="#3b82f6" stroke-width="3" stroke-dasharray="0, 100"/>
+          </svg>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span class="text-xs font-bold text-gray-900" id="upload-percentage">0%</span>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(progressEl);
+  }
+
   // Hidden file input to trigger on click while preserving UI
   let input = area.querySelector('input[type="file"].uppy-input');
   if (!input) {
@@ -67,7 +94,54 @@ function initUppyAreaUpload() {
     });
   });
 
-  uppy.on('complete', () => { refreshGalleryArea(); });
+  // Progress event handlers
+  uppy.on('upload-start', () => {
+    progressEl.classList.remove('hidden');
+    const statusEl = document.getElementById('upload-status');
+    const percentageEl = document.getElementById('upload-percentage');
+    const circleEl = document.getElementById('upload-progress-circle');
+    
+    if (statusEl) statusEl.textContent = '0% - Avvio caricamento...';
+    if (percentageEl) percentageEl.textContent = '0%';
+    if (circleEl) circleEl.setAttribute('stroke-dasharray', '0, 100');
+  });
+
+  uppy.on('upload-progress', (file, progress) => {
+    const percentage = Math.round((progress.bytesUploaded / progress.bytesTotal) * 100);
+    const statusEl = document.getElementById('upload-status');
+    const percentageEl = document.getElementById('upload-percentage');
+    const circleEl = document.getElementById('upload-progress-circle');
+    
+    if (statusEl) statusEl.textContent = `${percentage}% - Caricamento ${file.name}`;
+    if (percentageEl) percentageEl.textContent = `${percentage}%`;
+    if (circleEl) circleEl.setAttribute('stroke-dasharray', `${percentage}, 100`);
+  });
+
+  uppy.on('complete', (result) => {
+    const statusEl = document.getElementById('upload-status');
+    const percentageEl = document.getElementById('upload-percentage');
+    const circleEl = document.getElementById('upload-progress-circle');
+    
+    if (statusEl) statusEl.textContent = '100% - Completato!';
+    if (percentageEl) percentageEl.textContent = '100%';
+    if (circleEl) circleEl.setAttribute('stroke-dasharray', '100, 100');
+    
+    // Hide progress after 2 seconds
+    setTimeout(() => {
+      progressEl.classList.add('hidden');
+    }, 2000);
+    
+    refreshGalleryArea();
+  });
+
+  uppy.on('error', (error) => {
+    const statusEl = document.getElementById('upload-status');
+    if (statusEl) statusEl.textContent = `Errore: ${error.message}`;
+    
+    setTimeout(() => {
+      progressEl.classList.add('hidden');
+    }, 3000);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => { initUppyAreaUpload(); });

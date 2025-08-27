@@ -201,8 +201,9 @@ class UploadService
             $targetW = (int)$targetW;
             foreach (['avif','webp','jpg'] as $fmt) {
                 if (empty($formats[$fmt])) continue;
-                $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
-                $destPath = dirname(__DIR__, 2) . '/public' . $destRelUrl;
+                $basePath = \App\Services\BaseUrlService::getInstallationPath();
+                $destRelUrl = $basePath . "/media/{$imageId}_{$variant}.{$fmt}";
+                $destPath = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
                 if ($fmt === 'jpg' && $variant === 'sm' && is_file($destPath)) continue;
                 @mkdir(dirname($destPath), 0775, true);
                 $ok = false;

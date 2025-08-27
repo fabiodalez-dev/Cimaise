@@ -4,12 +4,13 @@
 {% set variants_webp = [] %}
 {% set variants_jpg = [] %}
 {% for v in variants %}
+  {% set v_url = v.path starts with '/' ? base_path ~ v.path : v.path %}
   {% if v.format == 'avif' %}
-    {% set variants_avif = variants_avif|merge([v.path ~ ' ' ~ v.width ~ 'w']) %}
+    {% set variants_avif = variants_avif|merge([v_url ~ ' ' ~ v.width ~ 'w']) %}
   {% elseif v.format == 'webp' %}
-    {% set variants_webp = variants_webp|merge([v.path ~ ' ' ~ v.width ~ 'w']) %}
+    {% set variants_webp = variants_webp|merge([v_url ~ ' ' ~ v.width ~ 'w']) %}
   {% elseif v.format == 'jpg' %}
-    {% set variants_jpg = variants_jpg|merge([v.path ~ ' ' ~ v.width ~ 'w']) %}
+    {% set variants_jpg = variants_jpg|merge([v_url ~ ' ' ~ v.width ~ 'w']) %}
   {% endif %}
 {% endfor %}
 
@@ -20,7 +21,8 @@
   {% if variants_webp %}
     <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width:1024px) 50vw, 90vw">
   {% endif %}
-  <img src="{{ (variants_jpg|length > 0) ? variants_jpg[0]|split(' ')|first : img.original_path }}"
+  {% set picture_src = (variants_jpg|length > 0) ? variants_jpg[0]|split(' ')|first : img.original_path %}
+  <img src="{% if picture_src starts with '/' %}{{ base_path }}{{ picture_src }}{% else %}{{ picture_src }}{% endif %}"
        alt="{{ img.alt_text|e }}"
        width="{{ img.width }}"
        height="{{ img.height }}"

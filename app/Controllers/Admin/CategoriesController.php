@@ -123,11 +123,11 @@ class CategoriesController extends BaseController
                 $extension = $this->getSecureFileExtension($tmpPath);
                 if ($extension) {
                     $filename = $slug . '_' . time() . $extension;
-                    $uploadPath = '/media/categories/' . $filename;
+                    $uploadPath = \App\Services\BaseUrlService::getInstallationPath() . '/media/categories/' . $filename;
                     
                     // Create directory if it doesn't exist (absolute to project public dir)
                     $publicDir = dirname(__DIR__, 3) . '/public';
-                    $fullPath = $publicDir . $uploadPath;
+                    $fullPath = $publicDir . '/media/categories/' . $filename;
                     $dir = dirname($fullPath);
                     if (!is_dir($dir)) {
                         mkdir($dir, 0755, true);
@@ -229,11 +229,11 @@ class CategoriesController extends BaseController
                 $extension = $this->getSecureFileExtension($tmpPath);
                 if ($extension) {
                     $filename = $slug . '_' . time() . $extension;
-                    $uploadPath = '/media/categories/' . $filename;
+                    $uploadPath = \App\Services\BaseUrlService::getInstallationPath() . '/media/categories/' . $filename;
                     
                     // Create directory if it doesn't exist (absolute to project public dir)
                     $publicDir = dirname(__DIR__, 3) . '/public';
-                    $fullPath = $publicDir . $uploadPath;
+                    $fullPath = $publicDir . '/media/categories/' . $filename;
                     $dir = dirname($fullPath);
                     if (!is_dir($dir)) {
                         mkdir($dir, 0755, true);
