@@ -1,0 +1,403 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Media Library — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-black">Media Library</h1>
+    <form method="get" class="flex items-center gap-2">
+      <input type="text" name="q" value="{{ app.request.getQueryParams.q|default('') }}" class="form-input w-64" placeholder="Cerca per nome file, alt text...">
+      <button class="btn-secondary">
+        <i class="fas fa-search mr-2"></i>Cerca
+      </button>
+    </form>
+  </div>
+
+  <div class="flex gap-6 min-h-screen">
+    <!-- Main content area -->
+    <div class="flex-1">
+      <!-- Toolbar -->
+      <div class="flex items-center justify-between mb-4 bg-white rounded-lg border border-gray-200 px-4 py-3">
+        <div class="flex items-center gap-4">
+          <label class="inline-flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" id="media-select-all" class="rounded border-gray-300 text-black focus:ring-black">
+            <span id="selection-count">Seleziona tutto</span>
+          </label>
+          <div class="text-sm text-gray-500" id="total-count">{{ items|length }} elementi</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="media-attach-album" class="form-input text-sm">
+            <option value="">— Aggiungi ad album —</option>
+            {% for a in albums %}
+              <option value="{{ a.id }}">{{ a.title }}</option>
+            {% endfor %}
+          </select>
+          <button id="media-attach-btn" class="btn-primary text-sm" disabled>
+            <i class="fas fa-plus mr-1"></i>Aggiungi
+          </button>
+          <button id="media-delete-btn" class="btn-outline-danger text-sm" disabled>
+            <i class="fas fa-trash mr-1"></i>Elimina
+          </button>
+        </div>
+      </div>
+
+      <!-- Media Grid -->
+      {% include 'admin/media/_grid.twig' %}
+    </div>
+
+    <!-- Sidebar for image details -->
+    <div id="media-sidebar" class="w-80 bg-white rounded-lg border border-gray-200 hidden flex-shrink-0">
+      <div class="p-4 border-b border-gray-200 relative">
+        <h3 class="font-semibold text-gray-900">Dettagli Immagine</h3>
+        <button id="sidebar-close" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="p-4 space-y-6">
+        <!-- Image preview -->
+        <div class="text-center">
+          <img id="sidebar-preview" src="" alt="" class="max-w-full rounded-lg shadow-sm">
+          <div class="mt-2 text-xs text-gray-500" id="sidebar-dimensions"></div>
+        </div>
+
+        <!-- Image details form -->
+        <form id="sidebar-form" class="space-y-4">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" id="sidebar-image-id" name="image_id">
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nome file</label>
+            <div class="form-input bg-gray-50 text-gray-600 text-sm" id="sidebar-filename">—</div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Alt text *</label>
+            <input type="text" name="alt_text" id="sidebar-alt" class="form-input text-sm" required>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Didascalia</label>
+            <textarea name="caption" id="sidebar-caption" rows="3" class="form-input text-sm" placeholder="Descrizione dell'immagine..."></textarea>
+          </div>
+
+          <div class="border-t pt-4">
+            <h4 class="font-medium text-gray-900 mb-3">Metadati Fotografici</h4>
+            
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Camera</label>
+                <select name="camera_id" id="sidebar-camera" class="form-input text-sm">
+                  <option value="">—</option>
+                  {% for camera in cameras %}
+                    <option value="{{ camera.id }}">{{ camera.make }} {{ camera.model }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Lens</label>
+                <select name="lens_id" id="sidebar-lens" class="form-input text-sm">
+                  <option value="">—</option>
+                  {% for lens in lenses %}
+                    <option value="{{ lens.id }}">{{ lens.brand }} {{ lens.model }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Film</label>
+                <select name="film_id" id="sidebar-film" class="form-input text-sm">
+                  <option value="">—</option>
+                  {% for film in films %}
+                    <option value="{{ film.id }}">{{ film.brand }} {{ film.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Developer</label>
+                <select name="developer_id" id="sidebar-developer" class="form-input text-sm">
+                  <option value="">—</option>
+                  {% for dev in developers %}
+                    <option value="{{ dev.id }}">{{ dev.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Lab</label>
+                <select name="lab_id" id="sidebar-lab" class="form-input text-sm">
+                  <option value="">—</option>
+                  {% for lab in labs %}
+                    <option value="{{ lab.id }}">{{ lab.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Location</label>
+                <select name="location_id" id="sidebar-location" class="form-input text-sm">
+                  <option value="">—</option>
+                  {% for loc in locations %}
+                    <option value="{{ loc.id }}">{{ loc.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mt-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">ISO</label>
+                <input type="number" name="iso" id="sidebar-iso" class="form-input text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Shutter</label>
+                <input type="text" name="shutter_speed" id="sidebar-shutter" class="form-input text-sm" placeholder="1/125">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Aperture</label>
+                <input type="number" step="0.1" name="aperture" id="sidebar-aperture" class="form-input text-sm" placeholder="2.8">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-2 pt-4 border-t">
+            <button type="submit" class="btn-primary flex-1 text-sm">
+              <i class="fas fa-save mr-1"></i>Salva
+            </button>
+            <button type="button" id="sidebar-delete" class="btn-outline-danger text-sm">
+              <i class="fas fa-trash mr-1"></i>Elimina
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      const grid = document.getElementById('media-grid');
+      const sidebar = document.getElementById('media-sidebar');
+      const sidebarForm = document.getElementById('sidebar-form');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const attachBtn = document.getElementById('media-attach-btn');
+      const deleteBtn = document.getElementById('media-delete-btn');
+      const selectAll = document.getElementById('media-select-all');
+      const selectionCount = document.getElementById('selection-count');
+      
+      if (!grid) return;
+      
+      let currentImageId = null;
+
+      // Add checkboxes to grid items
+      grid.querySelectorAll('[data-media-id]')?.forEach(card => {
+        const id = card.getAttribute('data-media-id');
+        const cb = document.createElement('input'); 
+        cb.type='checkbox'; 
+        cb.className='absolute top-2 left-2 w-4 h-4 bg-white rounded border z-10'; 
+        cb.setAttribute('data-select-id', id);
+        const wrap = card.querySelector('.aspect-square');
+        if (wrap) { 
+          // Make the existing wrap relative to position checkbox
+          wrap.style.position = 'relative';
+          wrap.appendChild(cb);
+        }
+
+        // Add click handler for opening sidebar
+        card.addEventListener('click', (e) => {
+          // Don't open sidebar if checkbox was clicked
+          if (e.target.type === 'checkbox') return;
+          openSidebar(id, card);
+        });
+
+        // Update selection count when checkbox changes
+        cb.addEventListener('change', updateSelectionUI);
+      });
+
+      function getSelectedIds() {
+        return Array.from(grid.querySelectorAll('[data-select-id]:checked')).map(cb=>cb.getAttribute('data-select-id'));
+      }
+
+      function updateSelectionUI() {
+        const selected = getSelectedIds();
+        const hasSelection = selected.length > 0;
+        
+        attachBtn.disabled = !hasSelection;
+        deleteBtn.disabled = !hasSelection;
+        
+        if (selected.length === 0) {
+          selectionCount.textContent = 'Seleziona tutto';
+        } else if (selected.length === 1) {
+          selectionCount.textContent = '1 elemento selezionato';
+        } else {
+          selectionCount.textContent = `${selected.length} elementi selezionati`;
+        }
+
+        // Update select all checkbox state
+        const total = grid.querySelectorAll('[data-select-id]').length;
+        selectAll.checked = selected.length === total;
+        selectAll.indeterminate = selected.length > 0 && selected.length < total;
+      }
+
+      // Select all handler
+      selectAll?.addEventListener('change', () => {
+        grid.querySelectorAll('[data-select-id]').forEach(cb => cb.checked = selectAll.checked);
+        updateSelectionUI();
+      });
+
+      // Open sidebar with image details
+      function openSidebar(imageId, cardElement) {
+        currentImageId = imageId;
+        sidebar.classList.remove('hidden');
+        
+        // Get image data from card attributes
+        const img = cardElement.querySelector('img');
+        const preview = document.getElementById('sidebar-preview');
+        const dimensions = document.getElementById('sidebar-dimensions');
+        const filename = document.getElementById('sidebar-filename');
+        const imageIdInput = document.getElementById('sidebar-image-id');
+        
+        if (img && preview) {
+          preview.src = img.src;
+          preview.alt = img.alt || '';
+          imageIdInput.value = imageId;
+          
+          // Extract filename from src
+          const srcParts = img.src.split('/');
+          filename.textContent = srcParts[srcParts.length - 1];
+          
+          // Show dimensions if available in data attributes
+          const w = cardElement.getAttribute('data-width');
+          const h = cardElement.getAttribute('data-height');
+          if (w && h) {
+            dimensions.textContent = `${w} × ${h} pixels`;
+          }
+        }
+
+        // Populate form fields with data attributes
+        document.getElementById('sidebar-alt').value = cardElement.getAttribute('data-alt-text') || '';
+        document.getElementById('sidebar-caption').value = cardElement.getAttribute('data-caption') || '';
+        document.getElementById('sidebar-camera').value = cardElement.getAttribute('data-camera-id') || '';
+        document.getElementById('sidebar-lens').value = cardElement.getAttribute('data-lens-id') || '';
+        document.getElementById('sidebar-film').value = cardElement.getAttribute('data-film-id') || '';
+        document.getElementById('sidebar-developer').value = cardElement.getAttribute('data-developer-id') || '';
+        document.getElementById('sidebar-lab').value = cardElement.getAttribute('data-lab-id') || '';
+        document.getElementById('sidebar-location').value = cardElement.getAttribute('data-location-id') || '';
+        document.getElementById('sidebar-iso').value = cardElement.getAttribute('data-iso') || '';
+        document.getElementById('sidebar-shutter').value = cardElement.getAttribute('data-shutter-speed') || '';
+        document.getElementById('sidebar-aperture').value = cardElement.getAttribute('data-aperture') || '';
+      }
+
+      // Close sidebar
+      sidebarClose?.addEventListener('click', () => {
+        sidebar.classList.add('hidden');
+        currentImageId = null;
+      });
+
+      // Sidebar form submission
+      sidebarForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentImageId) return;
+
+        const formData = new FormData(sidebarForm);
+        try {
+          const response = await fetch(`{{ base_path }}/admin/media/images/${currentImageId}/update`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'Accept': 'application/json' }
+          });
+          
+          if (response.ok) {
+            if (window.showToast) window.showToast('Immagine aggiornata', 'success');
+          } else {
+            if (window.showToast) window.showToast('Errore aggiornamento', 'error');
+          }
+        } catch (error) {
+          if (window.showToast) window.showToast('Errore aggiornamento', 'error');
+        }
+      });
+
+      // Sidebar delete button
+      document.getElementById('sidebar-delete')?.addEventListener('click', async () => {
+        if (!currentImageId || !confirm('Eliminare questa immagine?')) return;
+        
+        try {
+          const response = await fetch(`{{ base_path }}/admin/media/images/${currentImageId}/delete`, {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': '{{ csrf }}', 'Accept': 'application/json' }
+          });
+          
+          if (response.ok) {
+            sidebar.classList.add('hidden');
+            location.reload();
+          } else {
+            if (window.showToast) window.showToast('Errore eliminazione', 'error');
+          }
+        } catch (error) {
+          if (window.showToast) window.showToast('Errore eliminazione', 'error');
+        }
+      });
+
+      // Bulk attach to album
+      attachBtn?.addEventListener('click', async () => {
+        const ids = getSelectedIds(); 
+        const albumId = document.getElementById('media-attach-album').value; 
+        if (!ids.length || !albumId) return;
+        
+        const csrf = '{{ csrf }}';
+        let success = 0;
+        
+        for (const id of ids) { 
+          const fd = new URLSearchParams(); 
+          fd.append('csrf', csrf); 
+          fd.append('image_id', id); 
+          try {
+            const response = await fetch(`{{ base_path }}/admin/albums/${albumId}/images/attach`, { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' }, 
+              body: fd.toString() 
+            });
+            if (response.ok) success++;
+          } catch (e) {
+            console.error('Failed to attach image', id, e);
+          }
+        }
+        
+        if (window.showToast) {
+          window.showToast(`${success} immagini aggiunte all'album`, 'success');
+        }
+        
+        // Clear selection
+        grid.querySelectorAll('[data-select-id]:checked').forEach(cb => cb.checked = false);
+        updateSelectionUI();
+      });
+
+      // Bulk delete
+      deleteBtn?.addEventListener('click', async () => {
+        const ids = getSelectedIds(); 
+        if (!ids.length) return; 
+        if (!confirm(`Eliminare ${ids.length} immagini selezionate?`)) return;
+        
+        let success = 0;
+        for (const id of ids) { 
+          try {
+            const response = await fetch(`{{ base_path }}/admin/media/images/${id}/delete`, { 
+              method: 'POST', 
+              headers: { 'X-CSRF-Token': '{{ csrf }}', 'Accept': 'application/json' }
+            });
+            if (response.ok) success++;
+          } catch (e) {
+            console.error('Failed to delete image', id, e);
+          }
+        }
+        
+        if (window.showToast) {
+          window.showToast(`${success} immagini eliminate`, 'success');
+        }
+        
+        location.reload();
+      });
+
+      // Initialize selection UI
+      updateSelectionUI();
+    })();
+  </script>
+{% endblock %}

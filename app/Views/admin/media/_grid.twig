@@ -1,0 +1,24 @@
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="media-grid">
+  {% for it in items %}
+    {% set src = it.preview_path|replace({'/public':''}) %}
+    <div class="group border rounded overflow-hidden cursor-pointer hover:border-blue-500 transition-colors" 
+         data-media-id="{{ it.id }}"
+         data-width="{{ it.width }}"
+         data-height="{{ it.height }}"
+         data-alt-text="{{ it.alt_text }}"
+         data-caption="{{ it.caption }}"
+         data-camera-id="{{ it.camera_id }}"
+         data-lens-id="{{ it.lens_id }}"
+         data-film-id="{{ it.film_id }}"
+         data-developer-id="{{ it.developer_id }}"
+         data-lab-id="{{ it.lab_id }}"
+         data-location-id="{{ it.location_id }}"
+         data-iso="{{ it.iso }}"
+         data-shutter-speed="{{ it.shutter_speed }}"
+         data-aperture="{{ it.aperture }}">
+      <div class="aspect-square bg-gray-100">
+        <img src="{{ src }}" alt="{{ it.alt_text }}" class="w-full h-full object-cover">
+      </div>
+    </div>
+  {% endfor %}
+</div>
