@@ -27,20 +27,20 @@ class LensesController extends BaseController
     public function store(Request $r, Response $res): Response{
         $d=(array)$r->getParsedBody(); $brand=trim((string)($d['brand']??'')); $model=trim((string)($d['model']??''));
         $fmin=$d['focal_min']!==''?(float)$d['focal_min']:null; $fmax=$d['focal_max']!==''?(float)$d['focal_max']:null; $amin=$d['aperture_min']!==''?(float)$d['aperture_min']:null;
-        if($brand===''||$model===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Brand e Model obbligatori']; return $res->withHeader('Location','/admin/lenses/create')->withStatus(302);}        
+        if($brand===''||$model===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Brand e Model obbligatori']; return $res->withHeader('Location',$this->basePath . '/admin/lenses/create')->withStatus(302);}        
         try{ $this->db->pdo()->prepare('INSERT INTO lenses(brand, model, focal_min, focal_max, aperture_min) VALUES(?,?,?,?,?)')->execute([$brand,$model,$fmin,$fmax,$amin]); $_SESSION['flash'][]=['type'=>'success','message'=>'Lente creata']; }
-        catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()]; return $res->withHeader('Location','/admin/lenses/create')->withStatus(302);}        
-        return $res->withHeader('Location','/admin/lenses')->withStatus(302);
+        catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()]; return $res->withHeader('Location',$this->basePath . '/admin/lenses/create')->withStatus(302);}        
+        return $res->withHeader('Location',$this->basePath . '/admin/lenses')->withStatus(302);
     }
     public function edit(Request $r, Response $res, array $args): Response{ $id=(int)($args['id']??0); $st=$this->db->pdo()->prepare('SELECT * FROM lenses WHERE id=:id'); $st->execute([':id'=>$id]); $it=$st->fetch(); if(!$it){return $res->withStatus(404);} return $this->view->render($res,'admin/lenses/edit.twig',['item'=>$it,'csrf'=>$_SESSION['csrf']??'']);}
     public function update(Request $r, Response $res, array $args): Response{
         $id=(int)($args['id']??0); $d=(array)$r->getParsedBody(); $brand=trim((string)($d['brand']??'')); $model=trim((string)($d['model']??''));
         $fmin=$d['focal_min']!==''?(float)$d['focal_min']:null; $fmax=$d['focal_max']!==''?(float)$d['focal_max']:null; $amin=$d['aperture_min']!==''?(float)$d['aperture_min']:null;
-        if($brand===''||$model===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Brand e Model obbligatori']; return $res->withHeader('Location','/admin/lenses/'.$id.'/edit')->withStatus(302);}        
+        if($brand===''||$model===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Brand e Model obbligatori']; return $res->withHeader('Location',$this->basePath . '/admin/lenses/'.$id.'/edit')->withStatus(302);}        
         try{ $this->db->pdo()->prepare('UPDATE lenses SET brand=?, model=?, focal_min=?, focal_max=?, aperture_min=? WHERE id=?')->execute([$brand,$model,$fmin,$fmax,$amin,$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Lente aggiornata']; }
         catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()]; }
-        return $res->withHeader('Location','/admin/lenses')->withStatus(302);
+        return $res->withHeader('Location',$this->basePath . '/admin/lenses')->withStatus(302);
     }
-    public function delete(Request $r, Response $res, array $args): Response{ $id=(int)($args['id']??0); try{$this->db->pdo()->prepare('DELETE FROM lenses WHERE id=:id')->execute([':id'=>$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Lente eliminata'];}catch(\Throwable $e){$_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()];} return $res->withHeader('Location','/admin/lenses')->withStatus(302);}    
+    public function delete(Request $r, Response $res, array $args): Response{ $id=(int)($args['id']??0); try{$this->db->pdo()->prepare('DELETE FROM lenses WHERE id=:id')->execute([':id'=>$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Lente eliminata'];}catch(\Throwable $e){$_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()];} return $res->withHeader('Location',$this->basePath . '/admin/lenses')->withStatus(302);}    
 }
 

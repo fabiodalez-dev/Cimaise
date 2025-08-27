@@ -140,7 +140,7 @@ class AnalyticsController
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Error updating settings: ' . $e->getMessage()];
         }
 
-        return $response->withHeader('Location', '/admin/analytics/settings')->withStatus(302);
+        return $response->withHeader('Location', $this->basePath . '/admin/analytics/settings')->withStatus(302);
     }
 
     /**
@@ -395,7 +395,7 @@ class AnalyticsController
                 ];
             }
 
-            return $response->withHeader('Location', '/admin/analytics/settings')->withStatus(302);
+            return $response->withHeader('Location', $this->basePath . '/admin/analytics/settings')->withStatus(302);
         }
 
         return $response->withStatus(405); // Method not allowed

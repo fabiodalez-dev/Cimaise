@@ -241,7 +241,7 @@ function runCommand(command, args = {}) {
     
     const startTime = Date.now();
     
-    fetch('/admin/commands/execute', {
+    fetch(window.basePath + '/admin/commands/execute', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

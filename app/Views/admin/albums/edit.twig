@@ -136,7 +136,7 @@
 
                 <!-- Images Grid -->
                 <div id="images-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4" 
-                     data-reorder-endpoint="/admin/albums/{{ item.id }}/images/reorder" data-csrf="{{ csrf }}" data-album-id="{{ item.id }}">
+                     data-reorder-endpoint="{{ base_path }}/admin/albums/{{ item.id }}/images/reorder" data-csrf="{{ csrf }}" data-album-id="{{ item.id }}">
                   {% for img in images %}
                     <div class="border rounded overflow-hidden group" data-id="{{ img.id }}" data-created="{{ img.created_at }}" data-sort="{{ img.sort_order }}"
                          data-src="{% if img.original_path starts with '/' %}{{ base_path }}{{ img.original_path }}{% else %}{{ img.original_path }}{% endif %}" data-w="{{ img.width }}" data-h="{{ img.height }}"
