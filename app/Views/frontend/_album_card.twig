@@ -7,12 +7,13 @@
           {% set variants_webp = [] %}
           {% set variants_jpg = [] %}
           {% for variant in album.cover.variants %}
+            {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
             {% if variant.format == 'avif' %}
-              {% set variants_avif = variants_avif|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+              {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
             {% elseif variant.format == 'webp' %}
-              {% set variants_webp = variants_webp|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+              {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
             {% elseif variant.format == 'jpg' %}
-              {% set variants_jpg = variants_jpg|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+              {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
             {% endif %}
           {% endfor %}
           
@@ -23,7 +24,8 @@
             <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 90vw">
           {% endif %}
           
-          <img src="{{ album.cover.variants[0].path ?? album.cover.original_path }}" 
+          {% set card_img_url = album.cover.variants[0].path ?? album.cover.original_path %}
+          <img src="{% if card_img_url starts with '/' %}{{ base_path }}{{ card_img_url }}{% else %}{{ card_img_url }}{% endif %}" 
                alt="{{ album.cover.alt_text|e }}" 
                width="{{ album.cover.width }}" 
                height="{{ album.cover.height }}"

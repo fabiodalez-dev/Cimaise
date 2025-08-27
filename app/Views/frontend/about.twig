@@ -68,7 +68,7 @@
       <div class="lg:col-span-1 order-1 lg:order-2">
         <div class="max-w-md ml-auto bg-neutral-100 overflow-hidden border border-neutral-200">
           {% if about_photo_url %}
-            <img src="{{ about_photo_url }}" alt="Portrait" class="w-full h-auto object-cover" loading="eager" fetchpriority="high"/>
+            <img src="{% if about_photo_url starts with '/' %}{{ base_path }}{{ about_photo_url }}{% else %}{{ about_photo_url }}{% endif %}" alt="Portrait" class="w-full h-auto object-cover" loading="eager" fetchpriority="high"/>
           {% else %}
             <div class="aspect-[3/4] w-full h-full flex items-center justify-center text-neutral-400">Portrait</div>
           {% endif %}

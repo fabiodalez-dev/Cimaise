@@ -68,7 +68,7 @@
         {% if image.sources.jpg|length %}
           <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
         {% endif %}
-        <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
       </picture>
     </a>
     </div>
@@ -108,7 +108,7 @@
         {% if image.sources.jpg|length %}
           <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
         {% endif %}
-        <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
       </picture>
     </a>
   </div>
@@ -144,7 +144,7 @@
         {% if image.sources.jpg|length %}
           <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
         {% endif %}
-        <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover" loading="lazy" decoding="async">
+        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover" loading="lazy" decoding="async">
       </picture>
     </a>
   </div>
@@ -181,7 +181,7 @@
         {% if image.sources.jpg|length %}
           <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
         {% endif %}
-        <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
       </picture>
     </a>
   </div>
