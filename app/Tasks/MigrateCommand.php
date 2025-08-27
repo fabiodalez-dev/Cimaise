@@ -90,6 +90,9 @@ class MigrateCommand extends Command
                 if ($base === '0013_location_relationships.sql') {
                     if ($this->tableExists('album_location') && $this->tableExists('image_location')) { $output->writeln('Skipping (exists): ' . $base); continue; }
                 }
+                if ($base === '0017_analytics_tables.sql') {
+                    if ($this->tableExists('analytics_sessions')) { $output->writeln('Skipping (exists): ' . $base); continue; }
+                }
             }
 
             $output->writeln('Running: ' . $base);

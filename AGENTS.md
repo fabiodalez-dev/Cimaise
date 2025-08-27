@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-This repository hosts a minimalist, high‑performance photography CMS built with PHP 8.2, Slim 4, Twig, MySQL/SQLite, Vite, Tailwind, and GSAP. Follow the conventions below to keep the codebase fast, secure, and consistent.
+This repository hosts a minimalist, high‑performance photography CMS built with PHP 8.2, Slim 4, Twig, MySQL, Vite, Tailwind, and GSAP. Follow the conventions below to keep the codebase fast, secure, and consistent.
 
 ## Project Structure & Module Organization
 - app/Config, Controllers, Views (Twig), Repositories, Services, Middlewares, Tasks, Support
@@ -15,26 +15,6 @@ This repository hosts a minimalist, high‑performance photography CMS built wit
 - php -S 127.0.0.1:8000 -t public — local PHP server
 - composer test — run PHPUnit; composer audit && npm audit — security audits
 - php bin/console images:generate [--missing] — build AVIF/WebP/JPEG variants
-
-### Database: MySQL e SQLite (compatibile)
-- Stato attuale: sviluppo con SQLite (vedi `.env`), supporto pieno anche a MySQL.
-- Bootstrap: `app/Config/bootstrap.php` sceglie il driver in base a `DB_CONNECTION` (`sqlite`|`mysql`).
-- Migrazioni: `php bin/console db:migrate` seleziona automaticamente gli script MySQL (`database/migrations/*.sql`) o SQLite (`database/migrations/sqlite/*.sql`).
-- Seed: `php bin/console db:seed` (dati minimi demo); test connessione: `php bin/console db:test`.
-- Config `.env` esempio:
-  - SQLite
-    - `DB_CONNECTION=sqlite`
-    - `DB_DATABASE=/percorso/assoluto/alla/storage/database.sqlite`
-  - MySQL
-    - `DB_CONNECTION=mysql`
-    - `DB_HOST=127.0.0.1` `DB_PORT=3306` `DB_DATABASE=photocms` `DB_USERNAME=...` `DB_PASSWORD=...`
-- Portabilità SQL (linee guida):
-  - Evitare funzioni specifiche MySQL; preferire SQL neutro. Esempio: concatenazione stringhe — MySQL usa `CONCAT(a,' ',b)`, SQLite usa `a || ' ' || b`. Nel codice pubblico sono presenti alcuni `CONCAT(...)` da sostituire con una strategia compatibile (TODO).
-  - Tipi `ENUM/JSON`: in SQLite sono gestiti come `TEXT`; trattare i JSON sempre via `json_encode/json_decode` lato PHP.
-  - Date/ora: in SQLite salvate come stringhe ISO; in MySQL usare `DATETIME`. Normalizzare sempre il formato `Y-m-d H:i:s` lato app.
-  - `REPLACE INTO` è supportato da entrambi i driver (usato per `image_variants`).
-
-Nota: l’ambiente locale attuale usa SQLite (vedi `.env`), obiettivo è mantenere piena compatibilità con entrambe le soluzioni senza ramificare la logica applicativa.
 
 ## Coding Style & Naming Conventions
 - PHP: strict_types=1, PSR‑12, typed properties/params/returns, PDO prepared statements only
@@ -304,36 +284,23 @@ CREATE TABLE image_variants (
 
 ## 4) Rotte
 
-### 4.1 Frontend (SSR, implementato)
-- `GET /` — Home: ultimi album pubblicati con categorie e tag popolari.
-- `GET /album/{slug}` — Scheda album: testo + gallery (variants) + metadati.
-- `GET /category/{slug}` — Listing per categoria.
+### 4.1 Frontend (SSR)
+- `GET /` — Home (ultimi album, griglia filtrabile lato client/server).
+- `GET /album/{slug}` — Scheda album: testo + gallery + metadati salienti (categoria, tag).
+- `GET /categoria/{slug}` — Listing per categoria (filtri tag/processo/pellicola).
 - `GET /tag/{slug}` — Listing per tag.
 
-### 4.2 API Pubbliche (AJAX filtri)
-- `GET /api/albums`
-  - Query: `category, tags (csv), process, camera, film, page (1..), per_page (<=50), sort (published_desc|published_asc|shoot_date_desc|shoot_date_asc|title_asc|title_desc)`
-  - Risposta: JSON `{ itemsHtml, pagination { page, per_page, total, pages, has_next, has_prev }, filters }`
-- `GET /api/album/{id}/images`
-  - Query: `process, camera, film, lens, page (1..), per_page (<=100)`
-  - Risposta: JSON `{ itemsHtml, pagination {...}, album, filters }`
+### 4.2 API (AJAX leggere)
+- `GET /api/albums?category=&tags=&process=&film=&camera=&page=&sort=` → JSON `{ itemsHtml, pagination }`.
+- `GET /api/album/{id}/images?film=&process=&page=` → JSON `{ itemsHtml, meta }`.
+- `POST /api/upload` (admin, CSRF) — Uppy → salva originali + ritorna metadati base.
+- CRUD admin: `/api/albums`, `/api/images`, `/api/categories`, `/api/tags`, `/api/lookup/{cameras|lenses|films|developers|labs}`.
 
-### 4.3 Admin (SSR + azioni)
-- Auth: `GET /admin/login`, `POST /admin/login`, `GET /admin/logout`, redirect helper `GET /admin-login`.
-- Dashboard: `GET /admin`.
-- Upload: `POST /admin/albums/{id}/upload` (Uppy; richiede auth/CSRF).
-- Albums CRUD: 
-  - `GET /admin/albums`, `GET /admin/albums/create`, `POST /admin/albums`, 
-  - `GET /admin/albums/{id}/edit`, `POST /admin/albums/{id}` (update), 
-  - `POST /admin/albums/{id}/delete`, `POST /admin/albums/{id}/publish`, `POST /admin/albums/{id}/unpublish`.
-  - Azioni immagini/tag: `POST /admin/albums/{id}/cover/{imageId}`, `POST /admin/albums/{id}/images/reorder`, `POST /admin/albums/{id}/tags`.
-- Categories CRUD: `GET/POST /admin/categories`, `GET /admin/categories/create`, `GET /admin/categories/{id}/edit`, `POST /admin/categories/{id}`, `POST /admin/categories/{id}/delete`.
-- Tags CRUD: `GET/POST /admin/tags`, `GET /admin/tags/create`, `GET /admin/tags/{id}/edit`, `POST /admin/tags/{id}`, `POST /admin/tags/{id}/delete`.
-- Lookups CRUD: `cameras`, `lenses`, `films`, `developers`, `labs` con le stesse rotte `GET index/create/edit`, `POST store/update/delete` (prefisso `/admin/{lookup}`...).
-- Admin API helper: `GET /admin/api/tags?q=` (autocomplete/tagging).
-- Settings: `GET /admin/settings`, `POST /admin/settings`.
-- Diagnostics: `GET /admin/diagnostics`.
-- Commands UI: `GET /admin/commands`, `POST /admin/commands/execute`.
+### 4.3 Admin
+- `GET /admin/login` / `POST /admin/login`
+- `GET /admin` — dashboard
+- `GET /admin/albums` / `GET /admin/albums/create` / `POST /admin/albums` / `GET /admin/albums/{id}/edit` / `PUT /admin/albums/{id}` / `DELETE ...`
+- Editor immagini con **drag&drop** ordinamento, alt/caption inline edit, selezione **camera, lente, pellicola, sviluppo, laboratorio, scanner**, campi custom.
 
 ---
 
@@ -452,19 +419,6 @@ public function upload(ServerRequestInterface $req, ResponseInterface $res) {
   return $this->json($res, ['ok' => true]);
 }
 ```
-
----
-
-## Piano Frontend (incrementale)
-- Base layout + Tailwind: impostare shell HTML, partials Twig (`_head`, `_nav`, `_footer`), tema B/N.
-- Componenti SSR: `frontend/_album_card.twig`, `frontend/_picture.twig`, griglia home con categorie/tag.
-- Pagina Album: gallery SSR con PhotoSwipe, EXIF/metadata sidebar, `<picture>` responsive (variants).
-- Liste Categoria/Tag: pagine SSR con griglia riuso card; breadcrumb, titoli, meta.
-- Filtri AJAX: integrazione `/api/albums` con Shuffle.js; transizioni GSAP sobrie al refresh items.
-- Accessibilità/SEO: alt obbligatori, focus states, JSON‑LD (Home/Album), meta OG/Twitter.
-- Performance: LQIP, lazyload, `fetchpriority` per cover, code‑split Vite minimo.
-
-Nota: per piena compatibilità DB, evitare `CONCAT()` nei filtri API; introdurre helper DB o concatenazione lato PHP nelle prossime iterazioni.
 
 ---
 
@@ -623,7 +577,7 @@ Mostra caption + lista metadati (processo, pellicola, camera/lente, ISO/tempo/di
 - Watermark opzionale solo in lightbox.  
 - Esportazione **CSV/JSON** dei metadati per archivio.
 
----
+---x
 
 ## 20) TL;DR (per quando avrai sonno)
 
@@ -632,12 +586,5 @@ Mostra caption + lista metadati (processo, pellicola, camera/lente, ISO/tempo/di
 - Uppy upload → EXIF → varianti AVIF/WebP/JPEG → `<picture>` ottimizzato.  
 - Filtri AJAX su album e galleria (processo, pellicola, camera, ecc.).  
 - Admin semplice, bianco/nero, con drag&drop e inline edit.
-## Log — Per‑image equipment editing [TASK-admin-images-meta]
 
-- Added per-image metadata editing in Admin Albums:
-  - New route `POST /admin/albums/{id}/images/{imageId}/update` handled by `AlbumsController::updateImageMeta`.
-  - `AlbumsController::edit` now selects image fields (alt_text, caption, camera_id, lens_id, film_id, developer_id, lab_id, custom_*, iso, shutter_speed, aperture) for the grid.
-  - `admin/albums/edit.twig`: modal to edit per-image fields (alt/caption, equipment + custom, exposure) with inline JS to open/submit.
-  - `admin/albums/create.twig`: added the same modal scaffold for when images are present after upload.
-- Frontend album/test-gallery improved image quality (largest jpg variant as <img src>, better sizes).
-- Fixed `Array to string conversion` in templates listing by normalizing `columns` (number or object).
+#VERSIONE ATTUALE
