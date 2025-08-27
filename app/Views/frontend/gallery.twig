@@ -228,15 +228,25 @@
       {% endfor %}
     </div>
 
-  {# 2. SLIDESHOW PRO - Con controlli avanzati #}
+  {# 2. SLIDESHOW PRO - Con controlli avanzati e miglioramenti #}
   {% elseif layout == 'slideshow' %}
-    <div id="images-gallery" class="max-w-6xl mx-auto">
-      <div class="swiper slideshow-pro" data-autoplay="{{ template_settings.slideshow.autoplay|default(true) }}" data-delay="{{ template_settings.slideshow.delay|default(5000) }}">
+    <div id="images-gallery" class="max-w-6xl mx-auto relative">
+      <!-- Navigation arrows outside the slideshow container -->
+      <div class="slideshow-navigation absolute inset-y-0 left-0 right-0 z-10 pointer-events-none">
+        <button class="slideshow-prev absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition-all duration-200 pointer-events-auto flex items-center justify-center" aria-label="Previous image">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="slideshow-next absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition-all duration-200 pointer-events-auto flex items-center justify-center" aria-label="Next image">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+      
+      <div class="swiper slideshow-pro" data-autoplay="{{ template_settings.slideshow.autoplay|default(true) }}" data-delay="{{ template_settings.slideshow.delay|default(4000) }}">
         <div class="swiper-wrapper">
           {% for image in images %}
           <div class="swiper-slide relative">
             <a href="{{ image.lightbox_url|default(image.url) }}" 
-               class="pswp-link image-item block h-[70vh] bg-neutral-100 rounded-xl overflow-hidden flex items-center justify-center"
+               class="pswp-link image-item block h-[75vh] bg-neutral-50 rounded-xl overflow-hidden flex items-center justify-center"
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
                data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -263,7 +273,7 @@
                 {% if image.sources and image.sources.jpg|length %}
                   <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
                 {% endif %}
-                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" class="max-w-full max-h-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};" loading="lazy" decoding="async">
+                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" class="max-w-full max-h-full object-contain" loading="lazy" decoding="async">
               </picture>
             </a>
             {% if image.caption %}
@@ -274,19 +284,21 @@
           </div>
           {% endfor %}
         </div>
-        <div class="swiper-button-next !text-white !bg-black/30 !rounded-full !w-12 !h-12"></div>
-        <div class="swiper-button-prev !text-white !bg-black/30 !rounded-full !w-12 !h-12"></div>
-        <div class="swiper-pagination !bottom-2"></div>
-        {% if template_settings.slideshow.showProgress|default(true) %}
+        
+        <!-- Pagination dots -->
+        <div class="swiper-pagination !bottom-4 !left-1/2 !transform !-translate-x-1/2"></div>
+        
+        {% if template_settings.slideshow.showProgress|default(false) %}
         <div class="swiper-scrollbar !bg-white/20"></div>
         {% endif %}
       </div>
+      
       {% if template_settings.slideshow.showThumbs|default(true) %}
-      <div class="swiper slideshow-thumbs mt-4">
+      <div class="swiper slideshow-thumbs mt-6">
         <div class="swiper-wrapper">
           {% for image in images %}
-          <div class="swiper-slide !w-20 !h-16 cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
-            <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="" class="w-full h-full object-contain rounded">
+          <div class="swiper-slide !w-20 !h-16 cursor-pointer opacity-60 hover:opacity-100 transition-opacity rounded-lg overflow-hidden">
+            <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="" class="w-full h-full object-cover">
           </div>
           {% endfor %}
         </div>
@@ -512,7 +524,7 @@ function initializeGalleryLayout() {
   
   // 1. MASONRY FIT - No special JS needed, pure CSS Grid
   
-  // 2. SLIDESHOW PRO - Enhanced slideshow with thumbnails
+  // 2. SLIDESHOW PRO - Enhanced slideshow with external navigation
   if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
     const slideshowThumbs = new Swiper('.slideshow-thumbs', {
       spaceBetween: 10,
@@ -524,25 +536,35 @@ function initializeGalleryLayout() {
     window.gallerySwiper = new Swiper('.slideshow-pro', {
       spaceBetween: 10,
       navigation: {
-        nextEl: '.swiper-button-next',
-        prevEl: '.swiper-button-prev',
+        nextEl: '.slideshow-next',
+        prevEl: '.slideshow-prev',
       },
       pagination: {
         el: '.swiper-pagination',
         clickable: true,
+        dynamicBullets: true,
       },
       thumbs: {
         swiper: slideshowThumbs,
       },
       loop: true,
-      autoplay: window.templateSettings?.slideshow?.autoplay ? {
-        delay: window.templateSettings?.slideshow?.delay || 5000,
+      autoplay: {
+        delay: window.templateSettings?.slideshow?.delay || 4000,
         disableOnInteraction: false,
-      } : false,
+        pauseOnMouseEnter: true,
+      },
       effect: 'fade',
       fadeEffect: {
         crossFade: true
-      }
+      },
+      keyboard: {
+        enabled: true,
+        onlyInViewport: true,
+      },
+      mousewheel: {
+        thresholdDelta: 70,
+        forceToAxis: true,
+      },
     });
   }
   

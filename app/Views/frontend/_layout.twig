@@ -232,8 +232,49 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
         
+        /* External navigation buttons for slideshow */
+        .slideshow-navigation {
+            z-index: 20;
+        }
+        
+        .slideshow-prev,
+        .slideshow-next {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            z-index: 30;
+        }
+        
+        .slideshow-prev:hover,
+        .slideshow-next:hover {
+            background: rgba(0, 0, 0, 0.95);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .slideshow-prev:active,
+        .slideshow-next:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+        
+        /* Positioning adjustments for mobile */
+        @media (max-width: 768px) {
+            .slideshow-prev {
+                left: 8px;
+                width: 40px;
+                height: 40px;
+            }
+            
+            .slideshow-next {
+                right: 8px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+        
         .slideshow-thumbs {
-            margin-top: 16px;
+            margin-top: 24px;
         }
         
         .slideshow-thumbs .swiper-slide {
@@ -246,6 +287,32 @@
         .slideshow-thumbs .swiper-slide-thumb-active {
             border-color: #000;
             transform: scale(1.1);
+        }
+        
+        .slideshow-thumbs .swiper-slide:hover {
+            border-color: rgba(0, 0, 0, 0.3);
+            transform: scale(1.05);
+        }
+        
+        /* Custom pagination styling */
+        .slideshow-pro .swiper-pagination {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .slideshow-pro .swiper-pagination-bullet {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            opacity: 1;
+            transition: all 0.3s ease;
+        }
+        
+        .slideshow-pro .swiper-pagination-bullet-active {
+            background: rgba(0, 0, 0, 0.8);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.2);
         }
         
         /* GRID MINIMAL - Hover eleganti e spacing aumentato */
