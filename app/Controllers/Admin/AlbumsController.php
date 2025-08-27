@@ -409,7 +409,7 @@ class AlbumsController extends BaseController
             return $response->withHeader('Content-Type','application/json');
         }
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Immagine aggiornata'];
-        return $response->withHeader('Location','/admin/albums/'.$albumId.'/edit')->withStatus(302);
+        return $response->withHeader('Location',$this->basePath . '/admin/albums/'.$albumId.'/edit')->withStatus(302);
     }
 
     public function update(Request $request, Response $response, array $args): Response

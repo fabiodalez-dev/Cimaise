@@ -62,8 +62,7 @@ class ImagesGenerateCommand extends Command
             foreach ($breakpoints as $variant => $width) {
                 foreach (['avif','webp','jpg'] as $fmt) {
                     if (empty($formats[$fmt])) continue;
-                    $basePath = \App\Services\BaseUrlService::getInstallationPath();
-                    $destRelUrl = $basePath . "/media/{$imageId}_{$variant}.{$fmt}";
+                    $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                     $dest = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
                     if ($missingOnly && is_file($dest)) continue;
                     $ok = false;
