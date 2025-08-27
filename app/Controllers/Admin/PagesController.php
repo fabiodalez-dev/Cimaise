@@ -31,14 +31,14 @@ class PagesController extends BaseController
                 'slug' => 'about',
                 'title' => 'About',
                 'description' => 'Pagina di presentazione: bio, foto, social, contatti',
-                'edit_url' => '/admin/pages/about',
+                'edit_url' => $this->basePath . '/admin/pages/about',
                 'public_url' => '/' . $aboutSlug,
             ],
             [
                 'slug' => 'galleries',
                 'title' => 'Galleries',
                 'description' => 'Pagina gallerie con filtri avanzati e gestione testi',
-                'edit_url' => '/admin/pages/galleries',
+                'edit_url' => $this->basePath . '/admin/pages/galleries',
                 'public_url' => '/' . $galleriesSlug,
             ],
         ];
