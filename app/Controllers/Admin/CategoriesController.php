@@ -123,7 +123,7 @@ class CategoriesController extends BaseController
                 $extension = $this->getSecureFileExtension($tmpPath);
                 if ($extension) {
                     $filename = $slug . '_' . time() . $extension;
-                    $uploadPath = \App\Services\BaseUrlService::getInstallationPath() . '/media/categories/' . $filename;
+                    $uploadPath = '/media/categories/' . $filename;
                     
                     // Create directory if it doesn't exist (absolute to project public dir)
                     $publicDir = dirname(__DIR__, 3) . '/public';
@@ -229,7 +229,7 @@ class CategoriesController extends BaseController
                 $extension = $this->getSecureFileExtension($tmpPath);
                 if ($extension) {
                     $filename = $slug . '_' . time() . $extension;
-                    $uploadPath = \App\Services\BaseUrlService::getInstallationPath() . '/media/categories/' . $filename;
+                    $uploadPath = '/media/categories/' . $filename;
                     
                     // Create directory if it doesn't exist (absolute to project public dir)
                     $publicDir = dirname(__DIR__, 3) . '/public';

@@ -201,8 +201,7 @@ class UploadService
             $targetW = (int)$targetW;
             foreach (['avif','webp','jpg'] as $fmt) {
                 if (empty($formats[$fmt])) continue;
-                $basePath = \App\Services\BaseUrlService::getInstallationPath();
-                $destRelUrl = $basePath . "/media/{$imageId}_{$variant}.{$fmt}";
+                $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                 $destPath = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
                 if ($fmt === 'jpg' && $variant === 'sm' && is_file($destPath)) continue;
                 @mkdir(dirname($destPath), 0775, true);
@@ -221,6 +220,16 @@ class UploadService
                         ->execute([$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, (int)$vh, $size]);
                 }
             }
+        }
+
+        // Set as cover if album doesn't have one yet
+        $coverCheck = $pdo->prepare('SELECT cover_image_id FROM albums WHERE id = :id');
+        $coverCheck->execute([':id' => $albumId]);
+        $album = $coverCheck->fetch();
+        
+        if ($album && !$album['cover_image_id']) {
+            $pdo->prepare('UPDATE albums SET cover_image_id = :imageId WHERE id = :albumId')
+                ->execute([':imageId' => $imageId, ':albumId' => $albumId]);
         }
 
         return ['id'=>$imageId,'path'=>$dest,'mime'=>$mime,'width'=>$width,'height'=>$height,'preview_url'=>$previewRel];
