@@ -1202,10 +1202,11 @@
                         easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                         
                         // Better interaction for modern UX
-                        imageClickAction: 'zoom-or-close',
+                        imageClickAction: (psCfg.imageClickAction ?? 'next'),
                         bgClickAction: 'close',
-                        tapAction: 'toggle-controls',
-                        doubleTapAction: 'zoom',
+                        tapAction: (psCfg.tapAction ?? 'next'),
+                        // tap delay removed if set to false
+                        doubleTapAction: (psCfg.doubleTapAction ?? false),
                         
                         // Performance optimizations
                         preloadFirstSlide: true,
@@ -1253,32 +1254,88 @@
                     });
                     // Enhanced Caption UI with metadata
                     lb.on('uiRegister', () => {
-                        // Custom caption with better styling
+                        // Custom caption inline (transparent background), includes meta info
                         lb.pswp.ui.registerElement({
                             name: 'custom-caption', order: 9, isButton: false, appendTo: 'root',
                             onInit: (el, pswp) => {
                                 el.className = 'pswp__custom-caption pswp__hide-on-close';
                                 el.style.cssText = `
-                                    position: absolute; bottom: 44px; left: 0; right: 0;
-                                    background: linear-gradient(transparent, rgba(0,0,0,0.7));
-                                    color: white; padding: 20px 16px 16px;
-                                    font-size: 14px; line-height: 1.4; text-align: center;
-                                    pointer-events: none; opacity: 0; transition: opacity 0.3s ease;
+                                    position: absolute; left: 50%; transform: translateX(-50%);
+                                    bottom: 18px; width: min(1100px, calc(100% - 24px));
+                                    background: transparent; color: #fff; padding: 0 8px;
+                                    font-size: 14px; line-height: 1.5; text-align: center;
+                                    pointer-events: none; opacity: 0; transition: opacity 0.2s ease;
                                 `;
-                                
-                                pswp.on('change', () => {
-                                    const currEl = pswp.currSlide && pswp.currSlide.data && pswp.currSlide.data.element;
-                                    const cap = currEl ? currEl.getAttribute('data-pswp-caption') : '';
-                                    if (cap && cap.trim()) {
-                                        el.innerHTML = cap;
-                                        el.style.opacity = '1';
-                                    } else {
-                                        el.style.opacity = '0';
-                                    }
-                                });
+                                const esc = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                                const piece = (icon, val) => val ? `<span class=\"cc-item\"><i class=\"${icon}\"></i>${esc(val)}</span>` : '';
+                                const updateCaption = () => {
+                                    const a = pswp.currSlide && pswp.currSlide.data && pswp.currSlide.data.element;
+                                    if (!a) { el.style.opacity='0'; return; }
+                                    const title = a.getAttribute('data-title') || '';
+                                    const alt = a.getAttribute('data-alt') || '';
+                                    const camera = a.getAttribute('data-camera') || '';
+                                    const lens = a.getAttribute('data-lens') || '';
+                                    const film = a.getAttribute('data-film') || '';
+                                    const dev = a.getAttribute('data-developer') || '';
+                                    const lab = a.getAttribute('data-lab') || '';
+                                    const loc = a.getAttribute('data-location') || '';
+                                    const iso = a.getAttribute('data-iso') || '';
+                                    const sh = a.getAttribute('data-shutter') || '';
+                                    const ap = a.getAttribute('data-aperture') || '';
+                                    const proc = a.getAttribute('data-process') || '';
+                                    const head = esc(title) || esc(alt);
+                                    const line = [
+                                      piece('fa-solid fa-camera', camera),
+                                      piece('fa-solid fa-dot-circle', lens),
+                                      piece('fa-solid fa-film', film),
+                                      piece('fa-solid fa-flask', dev),
+                                      piece('fa-solid fa-industry', lab),
+                                      piece('fa-solid fa-map-marker-alt', loc),
+                                      piece('fa-solid fa-signal', iso ? 'ISO ' + iso : ''),
+                                      piece('fa-regular fa-clock', sh),
+                                      piece('fa-solid fa-circle-half-stroke', ap ? 'f/' + ap : ''),
+                                      piece('fa-solid fa-recycle', proc)
+                                    ].filter(Boolean).join('<span class=\"cc-sep\">•</span>');
+                                    el.innerHTML = `
+                                      ${head ? `<div class=\"cc-title\">${head}</div>` : ''}
+                                      ${line ? `<div class=\"cc-line\">${line}</div>` : ''}
+                                    `;
+                                    el.style.opacity = (head || line) ? '1' : '0';
+                                };
+                                pswp.on('change', updateCaption);
+                                pswp.on('openingAnimationEnd', updateCaption);
                             }
                         });
-                        
+
+                        // Zoom indicator bottom-right
+                        lb.pswp.ui.registerElement({
+                          name: 'zoom-indicator-br', order: 6, appendTo: 'root',
+                          onInit: (el, pswp) => {
+                            el.className = 'pswp__zoom-indicator-br pswp__hide-on-close';
+                            el.style.cssText = 'position:absolute; bottom:18px; right:12px; color:#fff; font-size:12px; pointer-events:none; opacity:0; transition:opacity .2s;';
+                            const update = () => { const z = Math.round((pswp.currSlide?.currZoomLevel || 1) * 100); el.textContent = 'zoom: ' + z + '%'; el.style.opacity = '1'; };
+                            pswp.on('zoomPanUpdate', (e) => { if (e.slide === pswp.currSlide) update(); });
+                            pswp.on('change', update);
+                            pswp.on('openingAnimationEnd', update);
+                          }
+                        });
+
+                        // Bullets navigation
+                        lb.pswp.ui.registerElement({
+                          name: 'bulletsIndicator', className: 'pswp__bullets-indicator', appendTo: 'wrapper',
+                          onInit: (el, pswp) => {
+                            const bullets = []; let prev = -1;
+                            for (let i = 0; i < pswp.getNumItems(); i++) {
+                              const b = document.createElement('div'); b.className = 'pswp__bullet';
+                              b.onclick = () => pswp.goTo(bullets.indexOf(b)); el.appendChild(b); bullets.push(b);
+                            }
+                            pswp.on('change', () => { if (prev>=0) bullets[prev].classList.remove('pswp__bullet--active'); bullets[pswp.currIndex].classList.add('pswp__bullet--active'); prev = pswp.currIndex; });
+                          }
+                        });
+
+                        // Hide any meta-panel (not used)
+                        lb.pswp.ui.registerElement({ name: 'meta-panel', order: 99, appendTo: 'root', onInit: (el)=>{ el.style.display='none'; el.className='pswp__meta-panel'; } });
+                    
                         // Download button
                         lb.pswp.ui.registerElement({
                             name: 'download-button', order: 8, isButton: true, appendTo: 'bar',
@@ -1530,6 +1587,21 @@
                 }
             });
         }
+
+        /* PhotoSwipe custom UI styles (minimal BN silver) */
+        const pswpStyle = document.createElement('style');
+        pswpStyle.innerHTML = `
+          .pswp__bullets-indicator { display:flex; gap:8px; position:absolute; bottom:24px; left:50%; transform:translateX(-50%); z-index:30; }
+          .pswp__bullet { width:8px; height:8px; border-radius:50%; background:#C0C0C0; }
+          .pswp__bullet--active { background:#000; }
+          .pswp__custom-caption { z-index: 28; }
+          .pswp__custom-caption .cc-title { font-weight:600; margin-bottom:6px; }
+          .pswp__custom-caption .cc-line { display:inline-flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+          .pswp__custom-caption .cc-item { display:inline-flex; gap:6px; align-items:center; color:#f3f4f6; }
+          .pswp__custom-caption .cc-item i { color:#fff; }
+          .pswp__custom-caption .cc-sep { opacity:.6; margin: 0 6px; }
+        `;
+        document.head.appendChild(pswpStyle);
 
         // Delegated click for anchors: open PhotoSwipe
         document.addEventListener('click', (e) => {

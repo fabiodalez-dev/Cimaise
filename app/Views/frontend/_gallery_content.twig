@@ -44,7 +44,20 @@
        class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
-       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
+       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}"
+       data-title="{{ image.caption|default('')|e }}"
+       data-alt="{{ image.alt|default('')|e }}"
+       data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
+       data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+       data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
+       data-developer="{{ image.developer_name|default('')|e }}"
+       data-lab="{{ image.lab_name|default('')|e }}"
+       data-location="{{ image.location_name|default('')|e }}"
+       data-iso="{{ image.iso|default('') }}"
+       data-shutter="{{ image.shutter_speed|default('')|e }}"
+       data-aperture="{{ image.aperture|default('') }}"
+       data-process="{{ image.process|default('')|e }}"
+    >
       <picture>
         {% if image.sources.avif|length %}
           <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
@@ -71,7 +84,20 @@
        class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
-       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
+       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}"
+       data-title="{{ image.caption|default('')|e }}"
+       data-alt="{{ image.alt|default('')|e }}"
+       data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
+       data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+       data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
+       data-developer="{{ image.developer_name|default('')|e }}"
+       data-lab="{{ image.lab_name|default('')|e }}"
+       data-location="{{ image.location_name|default('')|e }}"
+       data-iso="{{ image.iso|default('') }}"
+       data-shutter="{{ image.shutter_speed|default('')|e }}"
+       data-aperture="{{ image.aperture|default('') }}"
+       data-process="{{ image.process|default('')|e }}"
+    >
       <picture>
         {% if image.sources.avif|length %}
           <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
@@ -94,7 +120,20 @@
        class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
-       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
+       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}"
+       data-title="{{ image.caption|default('')|e }}"
+       data-alt="{{ image.alt|default('')|e }}"
+       data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
+       data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+       data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
+       data-developer="{{ image.developer_name|default('')|e }}"
+       data-lab="{{ image.lab_name|default('')|e }}"
+       data-location="{{ image.location_name|default('')|e }}"
+       data-iso="{{ image.iso|default('') }}"
+       data-shutter="{{ image.shutter_speed|default('')|e }}"
+       data-aperture="{{ image.aperture|default('') }}"
+       data-process="{{ image.process|default('')|e }}"
+    >
       <picture>
         {% if image.sources.avif|length %}
           <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
@@ -118,7 +157,20 @@
        class="pswp-link aspect-square bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
-       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
+       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}"
+       data-title="{{ image.caption|default('')|e }}"
+       data-alt="{{ image.alt|default('')|e }}"
+       data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
+       data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+       data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
+       data-developer="{{ image.developer_name|default('')|e }}"
+       data-lab="{{ image.lab_name|default('')|e }}"
+       data-location="{{ image.location_name|default('')|e }}"
+       data-iso="{{ image.iso|default('') }}"
+       data-shutter="{{ image.shutter_speed|default('')|e }}"
+       data-aperture="{{ image.aperture|default('') }}"
+       data-process="{{ image.process|default('')|e }}"
+    >
       <picture>
         {% if image.sources.avif|length %}
           <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
