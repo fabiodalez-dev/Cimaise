@@ -226,6 +226,7 @@ class GalleryController extends BaseController
             $bestUrl = $img['original_path'];
             $lightboxUrl = $img['original_path']; // Default to original for lightbox
             
+            $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
             try {
                 // Get best variant for gallery grid  
                 $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
@@ -235,15 +236,38 @@ class GalleryController extends BaseController
                 
                 // Always use original for lightbox for best quality
                 // $lightboxUrl is already set to $img['original_path'] above
+                
+                // Build responsive sources for <picture>
+                $srcStmt = $pdo->prepare("SELECT format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width ASC");
+                $srcStmt->execute([':id' => $img['id']]);
+                $rows = $srcStmt->fetchAll() ?: [];
+                foreach ($rows as $r) {
+                    $fmt = $r['format'];
+                    if (isset($sources[$fmt])) {
+                        // Add base_path to each source URL
+                        $sourcePath = $r['path'];
+                        if (str_starts_with($sourcePath, '/')) {
+                            $sourcePath = $this->basePath . $sourcePath;
+                        }
+                        $sources[$fmt][] = $sourcePath . ' ' . (int)$r['width'] . 'w';
+                    }
+                }
             } catch (\Throwable) {}
 
             // Ensure we never leak /storage/originals (not publicly served)
             if (str_starts_with((string)$bestUrl, '/storage/')) {
-                // Fallback to original if already under /media; else keep as-is (may 404 until variants are generated)
-                $bestUrl = $img['original_path'];
+                // If no public variants available, try to find any jpg variant
+                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format='jpg' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
+                $fallbackStmt->execute([':id' => $img['id']]);
+                $fallback = $fallbackStmt->fetchColumn();
+                $bestUrl = $fallback ?: '/media/placeholder.jpg'; // Use placeholder if no variants
             }
             if (str_starts_with((string)$lightboxUrl, '/storage/')) {
-                $lightboxUrl = $img['original_path'];
+                // Same logic for lightbox URL
+                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
+                $fallbackStmt->execute([':id' => $img['id']]);
+                $fallback = $fallbackStmt->fetchColumn();
+                $lightboxUrl = $fallback ?: $bestUrl; // Use bestUrl as fallback
             }
 
             // Build an enhanced caption combining caption + basic metadata
@@ -303,7 +327,9 @@ class GalleryController extends BaseController
                 'shutter_speed' => $img['shutter_speed'] ?? null,
                 'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
                 'process' => $img['process'] ?? null,
-                'settings' => ''
+                'settings' => '',
+                'sources' => $sources, // Add sources array with base_path prepended
+                'fallback_src' => $lightboxUrl ?: $bestUrl
             ];
         }
 
@@ -464,14 +490,36 @@ class GalleryController extends BaseController
                     foreach ($rows as $r) {
                         $fmt = $r['format'];
                         if (isset($sources[$fmt])) {
-                            $sources[$fmt][] = $r['path'] . ' ' . (int)$r['width'] . 'w';
+                            // Add base_path to each source URL
+                            $sourcePath = $r['path'];
+                            if (str_starts_with($sourcePath, '/')) {
+                                $sourcePath = $this->basePath . $sourcePath;
+                            }
+                            $sources[$fmt][] = $sourcePath . ' ' . (int)$r['width'] . 'w';
                         }
                     }
                 } catch (\Throwable $e) {
                     error_log('Error fetching image variants: ' . $e->getMessage());
                 }
-                // Fallbacks
-                if (str_starts_with((string)$lightboxUrl, '/storage/')) { $lightboxUrl = $bestUrl; }
+                // Fallbacks - ensure we never serve /storage/ paths
+                if (str_starts_with((string)$bestUrl, '/storage/')) {
+                    // Try to find any public variant
+                    $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format='jpg' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
+                    $fallbackStmt->execute([':id' => $img['id']]);
+                    $fallback = $fallbackStmt->fetchColumn();
+                    $bestUrl = $fallback ?: '/media/placeholder.jpg';
+                }
+                if (str_starts_with((string)$lightboxUrl, '/storage/')) { 
+                    $lightboxUrl = $bestUrl; 
+                }
+                
+                // Apply base_path to URLs if they start with /
+                if (str_starts_with((string)$bestUrl, '/')) {
+                    $bestUrl = $this->basePath . $bestUrl;
+                }
+                if (str_starts_with((string)$lightboxUrl, '/')) {
+                    $lightboxUrl = $this->basePath . $lightboxUrl;
+                }
 
                 $images[] = [
                     'id' => (int)$img['id'],

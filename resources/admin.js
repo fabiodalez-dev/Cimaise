@@ -305,6 +305,9 @@ window.AdminInit = function() {
   bindGridButtons();
 };
 
+// Expose refreshGalleryArea globally
+window.refreshGalleryArea = refreshGalleryArea;
+
 // Ensure all initializers run on first load (not only SPA swaps)
 document.addEventListener('DOMContentLoaded', () => {
   try { window.AdminInit(); } catch(e) { console.error(e); }
@@ -384,22 +387,48 @@ function getCsrf(){ const el = document.querySelector('input[name="csrf"]'); ret
 // Refresh only the gallery grid after uploads
 async function refreshGalleryArea() {
   try {
+    // Show loading indicator
+    const grid = document.getElementById('images-grid');
+    if (grid) {
+      const loadingEl = document.createElement('div');
+      loadingEl.className = 'gallery-refresh-loading';
+      loadingEl.style.cssText = 'position: fixed; inset: 0; background: rgba(0, 0, 0, 0.2); display: flex; align-items: center; justify-content: center; z-index: 50;';
+      loadingEl.innerHTML = '<div class="bg-white rounded-lg p-4 shadow-lg"><i class="fas fa-spinner fa-spin mr-2"></i>Aggiornamento galleria...</div>';
+      document.body.appendChild(loadingEl);
+    }
+    
     const res = await fetch(window.location.href, { headers: { 'Accept': 'text/html' }});
     if (!res.ok) throw new Error('Failed to fetch page');
     const html = await res.text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const newGrid = doc.querySelector('#images-grid');
-    const grid = document.getElementById('images-grid');
+    
     if (newGrid && grid) {
+      // Update grid content
       grid.innerHTML = newGrid.innerHTML;
-      // Rebind sortable and grid buttons
+      
+      // Re-initialize all components that depend on the grid
       initSortableGrid();
       bindGridButtons();
-      // Rebind bulk selection events
       rebindBulkSelection();
-      if (window.showToast) window.showToast('Galleria aggiornata', '');
+      rebindImageModalHandlers(); // Add this new function
+      
+      if (window.showToast) window.showToast('Galleria aggiornata', 'success');
     }
-  } catch (e) { window.location.reload(); }
+    
+    // Remove loading indicator
+    const loadingEl = document.querySelector('.gallery-refresh-loading');
+    if (loadingEl) loadingEl.remove();
+    
+  } catch (e) { 
+    console.error('Error refreshing gallery:', e);
+    // Remove loading indicator on error
+    const loadingEl = document.querySelector('.gallery-refresh-loading');
+    if (loadingEl) loadingEl.remove();
+    
+    // Fallback to full page reload if refresh fails
+    window.location.reload(); 
+  }
 }
 
 function bindGridButtons() {
@@ -446,4 +475,58 @@ function rebindBulkSelection() {
   });
   
   updateBulk(); // Update initial state
+}
+
+// New function to re-bind image modal click handlers after gallery refresh
+function rebindImageModalHandlers() {
+  const grid = document.getElementById('images-grid');
+  if (!grid) return;
+  
+  // Remove any existing delegated click handler to avoid duplicates
+  const existingHandler = grid._modalClickHandler;
+  if (existingHandler) {
+    grid.removeEventListener('click', existingHandler);
+  }
+  
+  // Create new delegated click handler
+  const newHandler = (e) => {
+    // Don't interfere with button clicks
+    if (e.target.closest('[data-select-id]') || e.target.closest('[data-delete-id]') || e.target.closest('[data-cover-id]')) return;
+    
+    // Find the clicked image box
+    const box = e.target.closest('[data-id]');
+    if (!box) return;
+    
+    // Check if we clicked on the image area (not just anywhere in the card)
+    const imageArea = e.target.closest('.aspect-square');
+    if (!imageArea) return;
+    
+    // Get image data and open modal
+    const imageId = box.getAttribute('data-id');
+    const data = {
+      alt_text: box.getAttribute('data-alt_text'),
+      caption: box.getAttribute('data-caption'),
+      camera_id: box.getAttribute('data-camera_id'),
+      lens_id: box.getAttribute('data-lens_id'),
+      film_id: box.getAttribute('data-film_id'),
+      developer_id: box.getAttribute('data-developer_id'),
+      lab_id: box.getAttribute('data-lab_id'),
+      location_id: box.getAttribute('data-location_id'),
+      custom_camera: box.getAttribute('data-custom_camera'),
+      custom_lens: box.getAttribute('data-custom_lens'),
+      custom_film: box.getAttribute('data-custom_film'),
+      iso: box.getAttribute('data-iso'),
+      shutter_speed: box.getAttribute('data-shutter_speed'),
+      aperture: box.getAttribute('data-aperture'),
+    };
+    
+    // Call global modal open function if it exists
+    if (window.openImageModal) {
+      window.openImageModal(imageId, data, box);
+    }
+  };
+  
+  // Store reference and add new handler
+  grid._modalClickHandler = newHandler;
+  grid.addEventListener('click', newHandler);
 }
