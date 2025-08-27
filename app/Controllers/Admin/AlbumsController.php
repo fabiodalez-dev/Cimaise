@@ -344,6 +344,16 @@ class AlbumsController extends BaseController
                                    ORDER BY i.sort_order ASC, i.id ASC');
         $imgsStmt->execute([':a'=>$id]);
         $images = $imgsStmt->fetchAll();
+        
+        // Add base path to preview paths for subdirectory installations
+        foreach ($images as &$image) {
+            if (isset($image['preview_path']) && str_starts_with($image['preview_path'], '/')) {
+                $image['preview_path'] = $this->basePath . $image['preview_path'];
+            }
+            if (isset($image['original_path']) && str_starts_with($image['original_path'], '/')) {
+                $image['original_path'] = $this->basePath . $image['original_path'];
+            }
+        }
         return $this->view->render($response, 'admin/albums/edit.twig', [
             'item' => $item,
             'categories' => $cats,
