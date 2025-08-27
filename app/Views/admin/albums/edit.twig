@@ -139,12 +139,12 @@
                      data-reorder-endpoint="{{ base_path }}/admin/albums/{{ item.id }}/images/reorder" data-csrf="{{ csrf }}" data-album-id="{{ item.id }}">
                   {% for img in images %}
                     <div class="border rounded overflow-hidden group" data-id="{{ img.id }}" data-created="{{ img.created_at }}" data-sort="{{ img.sort_order }}"
-                         data-src="{% if img.original_path starts with '/' %}{{ base_path }}{{ img.original_path }}{% else %}{{ img.original_path }}{% endif %}" data-w="{{ img.width }}" data-h="{{ img.height }}"
+                         data-src="{{ img.original_path }}" data-w="{{ img.width }}" data-h="{{ img.height }}"
                          data-alt_text="{{ img.alt_text }}" data-caption="{{ img.caption }}"
                          data-camera_id="{{ img.camera_id }}" data-lens_id="{{ img.lens_id }}" data-film_id="{{ img.film_id }}" data-developer_id="{{ img.developer_id }}" data-lab_id="{{ img.lab_id }}" data-location_id="{{ img.location_id }}"
                          data-custom_camera="{{ img.custom_camera }}" data-custom_lens="{{ img.custom_lens }}" data-custom_film="{{ img.custom_film }}" data-iso="{{ img.iso }}" data-shutter_speed="{{ img.shutter_speed }}" data-aperture="{{ img.aperture }}">
                       <div class="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer hover:ring-2 hover:ring-blue-500 hover:ring-opacity-50 transition-all" title="Clicca per modificare i dettagli dell'immagine">
-                        <img src="{% if img.preview_path starts with '/' %}{{ base_path }}{{ img.preview_path }}{% else %}{{ img.preview_path }}{% endif %}" class="w-full h-full object-cover" alt="">
+                        <img src="{{ img.preview_path }}" class="w-full h-full object-cover" alt="">
                         <input type="checkbox" class="absolute top-2 left-2 w-4 h-4 bg-white rounded border z-10" data-select-id="{{ img.id }}">
                         <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition-all flex items-center justify-center">
                           <div class="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -689,8 +689,10 @@
       const cancelBtn = document.getElementById('image-cancel');
       const form = document.getElementById('image-form');
       let currentId = null;
+      
       function openModal(){ modal.classList.remove('hidden'); modal.classList.add('flex'); }
       function closeModal(){ modal.classList.add('hidden'); modal.classList.remove('flex'); currentId=null; }
+      
       function fillForm(data, imageBox){
         document.getElementById('f-alt').value = data.alt_text || '';
         document.getElementById('f-caption').value = data.caption || '';
@@ -729,42 +731,51 @@
         }
       }
       
-      // Image click handler for opening modal
-      const grid = document.getElementById('images-grid');
-      grid?.addEventListener('click', (e)=>{
-        // Don't interfere with button clicks
-        if (e.target.closest('[data-select-id]') || e.target.closest('[data-delete-id]') || e.target.closest('[data-cover-id]')) return;
-        
-        // Find the clicked image box
-        const box = e.target.closest('[data-id]');
-        if (!box) return;
-        
-        // Check if we clicked on the image area (not just anywhere in the card)
-        const imageArea = e.target.closest('.aspect-square');
-        if (!imageArea) return;
-        
-        const imageId = box.getAttribute('data-id');
+      // Expose global function for modal opening (used by refreshGalleryArea)
+      window.openImageModal = function(imageId, data, imageBox) {
         currentId = imageId;
-        const data = {
-          alt_text: box.getAttribute('data-alt_text'),
-          caption: box.getAttribute('data-caption'),
-          camera_id: box.getAttribute('data-camera_id'),
-          lens_id: box.getAttribute('data-lens_id'),
-          film_id: box.getAttribute('data-film_id'),
-          developer_id: box.getAttribute('data-developer_id'),
-          lab_id: box.getAttribute('data-lab_id'),
-          location_id: box.getAttribute('data-location_id'),
-          custom_camera: box.getAttribute('data-custom_camera'),
-          custom_lens: box.getAttribute('data-custom_lens'),
-          custom_film: box.getAttribute('data-custom_film'),
-          iso: box.getAttribute('data-iso'),
-          shutter_speed: box.getAttribute('data-shutter_speed'),
-          aperture: box.getAttribute('data-aperture'),
-        };
-        fillForm(data, box); 
+        fillForm(data, imageBox);
         openModal();
-        if (form) form.action = `{{ base_path }}/admin/albums/{{ item.id }}/images/${currentId}/update`;
-      });
+        if (form) form.action = `{{ base_path }}/admin/albums/{{ item.id }}/images/${imageId}/update`;
+      };
+      
+      // Initial image click handler for opening modal (will be replaced after refresh)
+      const grid = document.getElementById('images-grid');
+      if (grid && !grid._modalClickHandler) {
+        const handler = (e)=>{
+          // Don't interfere with button clicks
+          if (e.target.closest('[data-select-id]') || e.target.closest('[data-delete-id]') || e.target.closest('[data-cover-id]')) return;
+          
+          // Find the clicked image box
+          const box = e.target.closest('[data-id]');
+          if (!box) return;
+          
+          // Check if we clicked on the image area (not just anywhere in the card)
+          const imageArea = e.target.closest('.aspect-square');
+          if (!imageArea) return;
+          
+          const imageId = box.getAttribute('data-id');
+          const data = {
+            alt_text: box.getAttribute('data-alt_text'),
+            caption: box.getAttribute('data-caption'),
+            camera_id: box.getAttribute('data-camera_id'),
+            lens_id: box.getAttribute('data-lens_id'),
+            film_id: box.getAttribute('data-film_id'),
+            developer_id: box.getAttribute('data-developer_id'),
+            lab_id: box.getAttribute('data-lab_id'),
+            location_id: box.getAttribute('data-location_id'),
+            custom_camera: box.getAttribute('data-custom_camera'),
+            custom_lens: box.getAttribute('data-custom_lens'),
+            custom_film: box.getAttribute('data-custom_film'),
+            iso: box.getAttribute('data-iso'),
+            shutter_speed: box.getAttribute('data-shutter_speed'),
+            aperture: box.getAttribute('data-aperture'),
+          };
+          window.openImageModal(imageId, data, box);
+        };
+        grid._modalClickHandler = handler;
+        grid.addEventListener('click', handler);
+      }
       
       // Modal action buttons
       const modalCoverBtn = document.getElementById('modal-cover-btn');
@@ -772,20 +783,52 @@
       
       modalCoverBtn?.addEventListener('click', async () => {
         if (!currentId) return;
-        await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/cover/${currentId}`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
-        location.reload(); // Refresh to update cover status
+        try {
+          const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/cover/${currentId}`, { 
+            method:'POST', 
+            headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }
+          });
+          if (res.ok) {
+            closeModal();
+            // Use refreshGalleryArea instead of full page reload
+            if (window.refreshGalleryArea) {
+              window.refreshGalleryArea();
+            } else {
+              location.reload();
+            }
+            if (window.showToast) showToast('Cover impostata', 'success');
+          } else {
+            if (window.showToast) showToast('Errore impostazione cover', 'error');
+          }
+        } catch (error) {
+          console.error('Error setting cover:', error);
+          if (window.showToast) showToast('Errore impostazione cover', 'error');
+        }
       });
       
       modalDeleteBtn?.addEventListener('click', async () => {
         if (!currentId) return;
         if (!confirm('Eliminare questa immagine?')) return;
-        const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/${currentId}/delete`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
-        if (res.ok) {
-          closeModal();
-          const card = document.querySelector(`[data-id="${currentId}"]`);
-          card?.parentNode?.removeChild(card);
-          if (window.showToast) showToast('Immagine eliminata', 'success');
-        } else {
+        try {
+          const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/${currentId}/delete`, { 
+            method:'POST', 
+            headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }
+          });
+          if (res.ok) {
+            closeModal();
+            // Use refreshGalleryArea instead of manual DOM removal
+            if (window.refreshGalleryArea) {
+              window.refreshGalleryArea();
+            } else {
+              const card = document.querySelector(`[data-id="${currentId}"]`);
+              card?.parentNode?.removeChild(card);
+            }
+            if (window.showToast) showToast('Immagine eliminata', 'success');
+          } else {
+            if (window.showToast) showToast('Errore eliminazione', 'error');
+          }
+        } catch (error) {
+          console.error('Error deleting image:', error);
           if (window.showToast) showToast('Errore eliminazione', 'error');
         }
       });
@@ -807,7 +850,13 @@
           
           if (response.ok) {
             closeModal();
-            location.reload(); // Reload to show updated data
+            // Use refreshGalleryArea instead of full page reload
+            if (window.refreshGalleryArea) {
+              window.refreshGalleryArea();
+            } else {
+              location.reload();
+            }
+            if (window.showToast) showToast('Modifiche salvate', 'success');
           } else {
             if (window.showToast) showToast('Errore nel salvataggio', 'error');
           }
