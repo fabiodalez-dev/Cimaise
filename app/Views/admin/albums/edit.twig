@@ -107,7 +107,7 @@
               <!-- Upload Area -->
               <div id="uploader" role="button" 
                    class="w-full border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all cursor-pointer flex items-center justify-center min-h-[200px] text-gray-600 group"
-                   data-endpoint="/admin/albums/{{ item.id }}/upload" data-csrf="{{ csrf }}">
+                   data-endpoint="{{ base_path }}/admin/albums/{{ item.id }}/upload" data-csrf="{{ csrf }}">
                 <input id="file-input" type="file" multiple class="hidden" accept="image/*">
                 <div class="text-center">
                   <i class="fas fa-cloud-upload-alt text-4xl mb-4 text-gray-400 group-hover:text-gray-600 transition-colors"></i>
@@ -626,7 +626,7 @@
     document.getElementById('save-order')?.addEventListener('click', async (e)=>{
       e.preventDefault(); if (!grid) return;
       const ids = Array.from(grid.querySelectorAll('[data-id]')).map(el=>el.getAttribute('data-id'));
-      await fetch(grid.dataset.reorderEndpoint, {
+      await fetch(`{{ base_path }}${grid.dataset.reorderEndpoint.startsWith('/')? '': '/'}${grid.dataset.reorderEndpoint}`, {
         method:'POST', headers:{ 'Content-Type':'application/json', 'X-CSRF-Token': grid.dataset.csrf, 'Accept':'application/json' },
         body: JSON.stringify({ order: ids })
       });
@@ -661,7 +661,7 @@
             const result = await response.json();
             if (result && result.id) {
               // Set the first uploaded image as cover
-              await fetch(`/admin/albums/{{ item.id }}/cover/${result.id}`, { 
+              await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/cover/${result.id}`, { 
                 method:'POST', 
                 headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }
               });
@@ -676,7 +676,7 @@
     document.querySelectorAll('[data-cover-id]')?.forEach(btn => {
       btn.addEventListener('click', async () => {
         const imageId = btn.getAttribute('data-cover-id');
-        await fetch(`/admin/albums/{{ item.id }}/cover/${imageId}`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
+        await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/cover/${imageId}`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
         location.reload();
       });
     });
@@ -684,7 +684,7 @@
       btn.addEventListener('click', async () => {
         if(!confirm('Eliminare questa immagine?')) return;
         const imageId = btn.getAttribute('data-delete-id');
-        const res = await fetch(`/admin/albums/{{ item.id }}/images/${imageId}/delete`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
+        const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/${imageId}/delete`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
         if (res.ok) {
           const card = btn.closest('[data-id]');
           card?.parentNode?.removeChild(card);
@@ -709,7 +709,7 @@
     document.querySelectorAll('[data-select-id]').forEach(cb=>cb.addEventListener('change', updateBulk));
     bulkBtn?.addEventListener('click', async ()=>{
       const ids = getSelectedIds(); if (!ids.length) return; if (!confirm('Eliminare le immagini selezionate?')) return;
-      const res = await fetch('/admin/albums/{{ item.id }}/images/bulk-delete', { method:'POST', headers:{ 'Content-Type':'application/json','X-CSRF-Token':'{{ csrf }}','Accept':'application/json' }, body: JSON.stringify({ ids })});
+      const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/bulk-delete`, { method:'POST', headers:{ 'Content-Type':'application/json','X-CSRF-Token':'{{ csrf }}','Accept':'application/json' }, body: JSON.stringify({ ids })});
       if (res.ok) {
         ids.forEach(id=>{ const el = document.querySelector(`[data-id="${id}"]`); el?.parentNode?.removeChild(el); });
         if (window.showToast) showToast('Immagini eliminate', 'success');
@@ -808,7 +808,7 @@
       
       modalCoverBtn?.addEventListener('click', async () => {
         if (!currentId) return;
-        await fetch(`/admin/albums/{{ item.id }}/cover/${currentId}`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
+        await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/cover/${currentId}`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
         location.reload(); // Refresh to update cover status
       });
       
