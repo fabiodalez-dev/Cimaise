@@ -1,4 +1,4 @@
-  <a href="{{ image.original_path }}" 
+  <a href="{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}" 
      class="pswp-link image-item group block" 
      data-image-id="{{ image.id }}"
      data-pswp-width="{{ image.width }}" 
@@ -9,17 +9,18 @@
       {% set variants_avif = [] %}
       {% set variants_webp = [] %}
       {% set variants_jpg = [] %}
-      {% set best_jpg_path = image.original_path %}
+      {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
       {% set best_jpg_w = 0 %}
       {% for variant in image.variants %}
+        {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
         {% if variant.format == 'avif' %}
-          {% set variants_avif = variants_avif|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+          {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
         {% elseif variant.format == 'webp' %}
-          {% set variants_webp = variants_webp|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+          {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
         {% elseif variant.format == 'jpg' %}
-          {% set variants_jpg = variants_jpg|merge([variant.path ~ ' ' ~ variant.width ~ 'w']) %}
+          {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
           {% if variant.width > best_jpg_w %}
-            {% set best_jpg_path = variant.path %}
+            {% set best_jpg_path = variant_url %}
             {% set best_jpg_w = variant.width %}
           {% endif %}
         {% endif %}
