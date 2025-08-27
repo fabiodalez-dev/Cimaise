@@ -103,6 +103,8 @@ class GalleryController extends BaseController
                 $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
             } else {
                 $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+                // Fix deeply nested column structure
+                $templateSettings = $this->normalizeTemplateSettings($templateSettings);
             }
         }
 
@@ -327,8 +329,11 @@ class GalleryController extends BaseController
 
         // Available templates for icon switcher
         try {
-            $list = $pdo->query('SELECT id, name, slug, settings FROM templates ORDER BY name ASC')->fetchAll() ?: [];
-            foreach ($list as &$tpl) { $tpl['settings'] = json_decode($tpl['settings'] ?? '{}', true) ?: []; }
+            $list = $pdo->query('SELECT id, name, slug, settings, libs FROM templates ORDER BY name ASC')->fetchAll() ?: [];
+            foreach ($list as &$tpl) {
+                $tpl['settings'] = json_decode($tpl['settings'] ?? '{}', true) ?: [];
+                $tpl['libs'] = json_decode($tpl['libs'] ?? '[]', true) ?: [];
+            }
         } catch (\Throwable) { $list = []; }
 
         // Nav categories for header
@@ -402,6 +407,7 @@ class GalleryController extends BaseController
             }
             
             $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+            $templateSettings = $this->normalizeTemplateSettings($templateSettings);
 
             // Images with per-photo metadata
             $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
@@ -436,28 +442,36 @@ class GalleryController extends BaseController
             $images = [];
             foreach ($imagesRows as $img) {
                 $bestUrl = $img['original_path'];
-                $lightboxUrl = $img['original_path']; // Default to original for lightbox
-                
+                $lightboxUrl = $img['original_path'];
                 try {
-                    // Get best variant for gallery grid  
-                    $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
-                    $v->execute([':id' => $img['id']]);
-                    $vr = $v->fetch();
-                    if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
-                    
-                    // Always use original for lightbox for best quality
-                    // $lightboxUrl is already set to $img['original_path'] above
+                    // Grid: prefer largest public variant (avif > webp > jpg)
+                    $vg = $pdo->prepare("SELECT path, width, height FROM image_variants 
+                        WHERE image_id = :id AND path NOT LIKE '/storage/%' 
+                        ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
+                    $vg->execute([':id' => $img['id']]);
+                    if ($vgr = $vg->fetch()) { if (!empty($vgr['path'])) { $bestUrl = $vgr['path']; } }
+                    // Lightbox: same
+                    $vl = $pdo->prepare("SELECT path FROM image_variants 
+                        WHERE image_id = :id AND path NOT LIKE '/storage/%' 
+                        ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
+                    $vl->execute([':id' => $img['id']]);
+                    if ($vlr = $vl->fetch()) { if (!empty($vlr['path'])) { $lightboxUrl = $vlr['path']; } }
+                    // Build responsive sources for <picture>
+                    $srcStmt = $pdo->prepare("SELECT format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width ASC");
+                    $srcStmt->execute([':id' => $img['id']]);
+                    $rows = $srcStmt->fetchAll() ?: [];
+                    $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
+                    foreach ($rows as $r) {
+                        $fmt = $r['format'];
+                        if (isset($sources[$fmt])) {
+                            $sources[$fmt][] = $r['path'] . ' ' . (int)$r['width'] . 'w';
+                        }
+                    }
                 } catch (\Throwable $e) {
                     error_log('Error fetching image variants: ' . $e->getMessage());
                 }
-
-                // Ensure we never leak /storage/originals (not publicly served)
-                if (str_starts_with((string)$bestUrl, '/storage/')) {
-                    $bestUrl = $img['original_path'];
-                }
-                if (str_starts_with((string)$lightboxUrl, '/storage/')) {
-                    $lightboxUrl = $img['original_path'];
-                }
+                // Fallbacks
+                if (str_starts_with((string)$lightboxUrl, '/storage/')) { $lightboxUrl = $bestUrl; }
 
                 $images[] = [
                     'id' => (int)$img['id'],
@@ -477,7 +491,9 @@ class GalleryController extends BaseController
                     'lab_name' => $img['lab_name'] ?? '',
                     'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
                     'shutter_speed' => $img['shutter_speed'] ?? null,
-                    'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null
+                    'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
+                    'sources' => $sources ?? ['avif'=>[], 'webp'=>[], 'jpg'=>[]],
+                    'fallback_src' => $lightboxUrl ?: $bestUrl
                 ];
             }
 
@@ -495,5 +511,40 @@ class GalleryController extends BaseController
             $response->getBody()->write('Internal server error: ' . $e->getMessage());
             return $response->withStatus(500);
         }
+    }
+
+    private function normalizeTemplateSettings(array $templateSettings): array
+    {
+        // Fix deeply nested column structures like {"desktop":{"desktop":{"desktop":3}}}
+        if (isset($templateSettings['columns']) && is_array($templateSettings['columns'])) {
+            $normalizedColumns = [];
+            
+            foreach (['desktop', 'tablet', 'mobile'] as $device) {
+                if (isset($templateSettings['columns'][$device])) {
+                    $value = $templateSettings['columns'][$device];
+                    
+                    // Keep digging until we find the actual numeric value
+                    while (is_array($value) && isset($value[$device])) {
+                        $value = $value[$device];
+                    }
+                    
+                    // Ensure we have a reasonable numeric value
+                    if (is_numeric($value) && $value > 0 && $value <= 12) {
+                        $normalizedColumns[$device] = (int)$value;
+                    } else {
+                        // Fallback values
+                        $normalizedColumns[$device] = match($device) {
+                            'desktop' => 3,
+                            'tablet' => 2, 
+                            'mobile' => 1
+                        };
+                    }
+                }
+            }
+            
+            $templateSettings['columns'] = $normalizedColumns;
+        }
+        
+        return $templateSettings;
     }
 }

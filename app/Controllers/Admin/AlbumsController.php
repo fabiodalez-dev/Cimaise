@@ -108,7 +108,7 @@ class AlbumsController extends BaseController
         $slug = trim((string)($d['slug'] ?? ''));
         $categoryIds = array_map('intval', (array)($d['categories'] ?? []));
         $category_id = (int)($d['category_id'] ?? ($categoryIds[0] ?? 0));
-        $excerpt = trim((string)($d['excerpt'] ?? '')) ?: null;
+        $excerpt = trim(strip_tags((string)($d['excerpt'] ?? ''))) ?: null;
         $body = trim((string)($d['body'] ?? '')) ?: null;
         $shoot_date = (string)($d['shoot_date'] ?? '') ?: null;
         $show_date = isset($d['show_date']) ? 1 : 0;
@@ -290,7 +290,9 @@ class AlbumsController extends BaseController
         $tagIds = array_map('intval', array_column($curTags->fetchAll(), 'tag_id'));
         $curCatsStmt = $pdo->prepare('SELECT category_id FROM album_category WHERE album_id = :a');
         $curCatsStmt->execute([':a'=>$id]);
-        $categoryIds = array_unique(array_map('intval', array_merge([$item['category_id']], array_column($curCatsStmt->fetchAll() ?: [], 'category_id'))));
+        $baseCats = $item['category_id'] ? [(int)$item['category_id']] : [];
+        $additionalCats = array_column($curCatsStmt->fetchAll() ?: [], 'category_id');
+        $categoryIds = array_values(array_unique(array_map('intval', array_merge($baseCats, $additionalCats))));
         
         // Load current equipment associations
         $cameraIds = [];
@@ -418,7 +420,7 @@ class AlbumsController extends BaseController
         $slug = trim((string)($d['slug'] ?? ''));
         $categoryIds = array_map('intval', (array)($d['categories'] ?? []));
         $category_id = (int)($d['category_id'] ?? ($categoryIds[0] ?? 0));
-        $excerpt = trim((string)($d['excerpt'] ?? '')) ?: null;
+        $excerpt = trim(strip_tags((string)($d['excerpt'] ?? ''))) ?: null;
         $body = trim((string)($d['body'] ?? '')) ?: null;
         $shoot_date = (string)($d['shoot_date'] ?? '') ?: null;
         $show_date = isset($d['show_date']) ? 1 : 0;
@@ -775,6 +777,57 @@ class AlbumsController extends BaseController
             @unlink($abs);
         }
         $response->getBody()->write(json_encode(['ok'=>true]));
+        return $response->withHeader('Content-Type','application/json');
+    }
+
+    public function attachExisting(Request $request, Response $response, array $args): Response
+    {
+        $albumId = (int)($args['id'] ?? 0);
+        $d = (array)$request->getParsedBody();
+        $sourceId = (int)($d['image_id'] ?? 0);
+        if ($albumId <= 0 || $sourceId <= 0) {
+            return $response->withStatus(400);
+        }
+        $pdo = $this->db->pdo();
+        $rowStmt = $pdo->prepare('SELECT * FROM images WHERE id = :id');
+        $rowStmt->execute([':id'=>$sourceId]);
+        $src = $rowStmt->fetch();
+        if (!$src) return $response->withStatus(404);
+        // Duplicate row for target album
+        $ins = $pdo->prepare('INSERT INTO images(album_id, original_path, file_hash, width, height, mime, alt_text, caption, exif, camera_id, lens_id, film_id, developer_id, lab_id, custom_camera, custom_lens, custom_film, custom_development, custom_lab, custom_scanner, scan_resolution_dpi, scan_bit_depth, process, development_date, iso, shutter_speed, aperture, sort_order)
+                              VALUES(:album,:p,:h,:w,:hh,:m,:alt,:cap,:ex,:cam,:lens,:film,:dev,:lab,:ccam,:clens,:cfilm,:cdev,:clab,:cscan,:dpi,:bit,:proc,:ddate,:iso,:sh,:ap,:sort)');
+        $ins->execute([
+            ':album'=>$albumId,
+            ':p'=>$src['original_path'],
+            ':h'=>$src['file_hash'],
+            ':w'=>$src['width'],
+            ':hh'=>$src['height'],
+            ':m'=>$src['mime'],
+            ':alt'=>$src['alt_text'],
+            ':cap'=>$src['caption'],
+            ':ex'=>$src['exif'],
+            ':cam'=>$src['camera_id'],
+            ':lens'=>$src['lens_id'],
+            ':film'=>$src['film_id'],
+            ':dev'=>$src['developer_id'],
+            ':lab'=>$src['lab_id'],
+            ':ccam'=>$src['custom_camera'],
+            ':clens'=>$src['custom_lens'],
+            ':cfilm'=>$src['custom_film'],
+            ':cdev'=>$src['custom_development'],
+            ':clab'=>$src['custom_lab'],
+            ':cscan'=>$src['custom_scanner'],
+            ':dpi'=>$src['scan_resolution_dpi'],
+            ':bit'=>$src['scan_bit_depth'],
+            ':proc'=>$src['process'],
+            ':ddate'=>$src['development_date'],
+            ':iso'=>$src['iso'],
+            ':sh'=>$src['shutter_speed'],
+            ':ap'=>$src['aperture'],
+            ':sort'=>0,
+        ]);
+        $newId = (int)$pdo->lastInsertId();
+        $response->getBody()->write(json_encode(['ok'=>true,'id'=>$newId]));
         return $response->withHeader('Content-Type','application/json');
     }
 }

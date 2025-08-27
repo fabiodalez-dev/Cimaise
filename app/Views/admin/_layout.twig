@@ -5,8 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Admin — photoCMS{% endblock %}</title>
   <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
+  <link href="{{ base_path }}/assets/admin.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script>window.basePath = '{{ base_path }}';</script>
   <style>
+    html, body {
+      height: 100%;
+      min-height: 100vh;
+    }
     .sidebar-link { 
       display: flex; 
       align-items: center; 
@@ -55,6 +61,50 @@
     }
     .btn-secondary:hover { 
       background-color: #d1d5db; 
+    }
+    .btn-outline-danger { 
+      background-color: transparent; 
+      color: #dc2626; 
+      padding: 8px 24px; 
+      border: 1px solid #dc2626;
+      border-radius: 6px; 
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: all 0.2s;
+    }
+    .btn-outline-danger:hover { 
+      background-color: #dc2626;
+      color: white;
+    }
+    .btn-outline-danger:disabled { 
+      opacity: 0.5; 
+      cursor: not-allowed;
+    }
+    
+    /* TinyMCE Toolbar Fix */
+    .tox:not(.tox-tinymce-inline) .tox-editor-header { 
+      display: block !important; 
+    }
+    .tox .tox-toolbar { 
+      display: flex !important; 
+      flex-wrap: wrap; 
+      border-bottom: 1px solid #e5e5e5;
+      padding: 4px 8px;
+      background: #f4f4f4;
+    }
+    .tox .tox-toolbar__group { 
+      display: flex !important; 
+      align-items: center;
+      margin-right: 12px;
+    }
+    .tox .tox-tbtn { 
+      margin: 2px 1px;
+      padding: 4px 6px;
+      border-radius: 3px;
+    }
+    .tox .tox-tbtn:hover {
+      background: #e5e5e5;
     }
     .btn-sm {
       padding: 6px 12px;
@@ -162,6 +212,12 @@
       font-weight: 600;
       font-size: 14px;
     }
+    /* TomSelect: remove double border and align with form-input */
+    .ts-wrapper.form-input { border: 0 !important; padding: 0 !important; background: transparent !important; }
+    .ts-wrapper .ts-control { border: 1px solid #d1d5db !important; border-radius: 6px; min-height: 38px; }
+    .ts-wrapper .ts-control:focus-within { outline: none; box-shadow: 0 0 0 3px rgba(0,0,0,0.1); border-color: #000; }
+    .ts-wrapper .ts-control .item { background: #111; color: #fff; border-radius: 9999px; padding: 2px 8px; margin: 2px; }
+    .ts-dropdown { z-index: 99999; }
   </style>
   <!-- PhotoSwipe CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.css">
@@ -329,6 +385,9 @@
           <div class="space-y-1">
             <a href="{{ base_path }}/admin" class="sidebar-link" data-spa-link>
               <i class="fas fa-tachometer-alt"></i>Dashboard
+            </a>
+            <a href="{{ base_path }}/admin/media" class="sidebar-link" data-spa-link>
+              <i class="fas fa-images"></i>Galleria
             </a>
             <a href="{{ base_path }}/admin/albums" class="sidebar-link" data-spa-link>
               <i class="fas fa-images"></i>Albums
@@ -778,6 +837,11 @@
             link.addEventListener('click', handleDynamicLinkClick);
           }
         });
+
+        // Call global admin initializer for widgets (TomSelect, Uppy, Sortable, etc.)
+        if (window.AdminInit) {
+          try { window.AdminInit(); } catch(e) { console.error('AdminInit failed', e); }
+        }
       }
       
       // Handle clicks on dynamically loaded links
@@ -821,5 +885,6 @@
       pageContent.style.transition = 'opacity 0.15s ease-in-out';
     });
   </script>
+  <script type="module" src="{{ base_path }}/assets/admin.js"></script>
 </body>
 </html>

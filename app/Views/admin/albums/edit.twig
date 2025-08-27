@@ -3,7 +3,7 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50 pb-24">
   <!-- Header -->
-  <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+  <div class="bg-white border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex items-center justify-between">
         <div>
@@ -31,7 +31,7 @@
       
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
         <!-- Main Content Column -->
-        <div class="xl:col-span-8 space-y-6">
+        <div class="xl:col-span-9 space-y-6">
           <!-- Basic Information Card -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
@@ -62,14 +62,15 @@
                 <label class="block text-sm font-medium text-black mb-2">Descrizione Breve</label>
                 <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
                           name="excerpt" rows="4" 
-                          placeholder="Breve descrizione che appare nelle anteprime...">{{ item.excerpt }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Massimo 150 caratteri per una visualizzazione ottimale</p>
+                          placeholder="Breve descrizione che appare nelle anteprime..."
+                          maxlength="150">{{ item.excerpt|striptags }}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Massimo 150 caratteri per una visualizzazione ottimale. Solo testo semplice.</p>
               </div>
               
               <div>
                 <label class="block text-sm font-medium text-black mb-2">Contenuto Completo</label>
                 <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black" 
-                          name="body" rows="12" 
+                          name="body" rows="32" 
                           placeholder="Descrizione completa con formattazione...">{{ item.body }}</textarea>
                 <p class="text-xs text-gray-500 mt-1">Supporta formattazione ricca: grassetto, corsivo, elenchi, link</p>
               </div>
@@ -104,17 +105,18 @@
             </div>
             
             <div class="p-6">
-              <!-- Upload Area -->
-              <div id="uploader" role="button" 
-                   class="w-full border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all cursor-pointer flex items-center justify-center min-h-[200px] text-gray-600 group"
-                   data-endpoint="{{ base_path }}/admin/albums/{{ item.id }}/upload" data-csrf="{{ csrf }}">
-                <input id="file-input" type="file" multiple class="hidden" accept="image/*">
-                <div class="text-center">
-                  <i class="fas fa-cloud-upload-alt text-4xl mb-4 text-gray-400 group-hover:text-gray-600 transition-colors"></i>
-                  <div class="text-lg font-medium mb-2">Trascina qui le immagini</div>
+              <!-- Uppy Drag & Drop Upload -->
+              <div id="uppy" class="w-full border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all flex items-center justify-center min-h-[200px] text-gray-600"
+                   data-endpoint="{{ base_path }}/admin/albums/{{ item.id }}/upload" data-csrf="{{ csrf }}" data-album-id="{{ item.id }}">
+                <div class="text-center py-8">
+                  <i class="fas fa-cloud-upload-alt text-4xl mb-4 text-gray-400"></i>
+                  <div class="text-lg font-medium mb-1">Trascina qui le immagini</div>
                   <div class="text-sm text-gray-500">oppure clicca per selezionarle dal computer</div>
-                  <div class="text-xs text-gray-400 mt-2">Formati supportati: JPG, PNG, WEBP</div>
+                  <div class="text-xs text-gray-400 mt-2">JPG, PNG, WebP</div>
                 </div>
+              </div>
+              <div class="mt-3 text-right">
+                <button type="button" id="open-media-library" class="btn-secondary"><i class="fas fa-images mr-2"></i>Carica da galleria</button>
               </div>
 
               {% if images %}
@@ -134,7 +136,7 @@
 
                 <!-- Images Grid -->
                 <div id="images-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4" 
-                     data-reorder-endpoint="/admin/albums/{{ item.id }}/images/reorder" data-csrf="{{ csrf }}">
+                     data-reorder-endpoint="/admin/albums/{{ item.id }}/images/reorder" data-csrf="{{ csrf }}" data-album-id="{{ item.id }}">
                   {% for img in images %}
                     <div class="border rounded overflow-hidden group" data-id="{{ img.id }}" data-created="{{ img.created_at }}" data-sort="{{ img.sort_order }}"
                          data-src="{{ img.original_path|replace({'/public':''}) }}" data-w="{{ img.width }}" data-h="{{ img.height }}"
@@ -166,7 +168,7 @@
         </div>
 
         <!-- Sidebar -->
-        <div class="xl:col-span-4 space-y-6">
+        <div class="xl:col-span-3 space-y-6">
           <!-- Categories and Tags Card -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
@@ -180,7 +182,7 @@
               <div>
                 <label class="block text-sm font-medium text-black mb-2">Categorie *</label>
                 <select name="categories[]" id="album-categories" class="form-input" multiple required>
-                  {% set selectedCats = categoryIds|default([item.category_id]) %}
+                  {% set selectedCats = categoryIds|default([item.category_id ? item.category_id : 0]) %}
                   {% for c in categories %}
                     <option value="{{ c.id }}" {% if c.id in selectedCats %}selected{% endif %}>{{ c.name }}</option>
                   {% endfor %}
@@ -338,17 +340,59 @@
               
               <div>
                 <label class="block text-sm font-medium text-black mb-2">Password Album</label>
-                <div class="space-y-3">
-                  <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                         type="password" name="password" 
-                         placeholder="Nuova password (lascia vuoto per mantenere)">
-                  <label class="flex items-center gap-2">
-                    <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
-                           type="checkbox" name="password_clear">
-                    <span class="text-sm text-gray-700">Rimuovi password esistente</span>
-                  </label>
+                <div class="space-y-3" id="password-section">
+                  {% if item.password %}
+                    <!-- Album has password -->
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-3" id="password-status">
+                      <div class="flex items-center gap-2 mb-2">
+                        <i class="fas fa-lock text-green-600"></i>
+                        <span class="text-sm font-medium text-green-800">Album protetto da password</span>
+                      </div>
+                      <div class="flex gap-2">
+                        <button type="button" id="change-password-btn" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                          <i class="fas fa-edit mr-1"></i>Cambia password
+                        </button>
+                        <button type="button" id="remove-password-btn" class="text-sm text-red-600 hover:text-red-800 font-medium">
+                          <i class="fas fa-times mr-1"></i>Rimuovi password
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div class="hidden" id="change-password-form">
+                      <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                             type="password" name="password" id="password-input"
+                             placeholder="Nuova password">
+                      <div class="flex gap-2 mt-2">
+                        <button type="button" id="cancel-change-btn" class="btn-secondary text-sm">Annulla</button>
+                        <button type="button" id="save-change-btn" class="btn-primary text-sm">Cambia password</button>
+                      </div>
+                    </div>
+                    
+                    <input type="hidden" name="password_clear" id="password-clear-input" value="">
+                  {% else %}
+                    <!-- Album doesn't have password -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-3" id="no-password-status">
+                      <div class="flex items-center gap-2 mb-2">
+                        <i class="fas fa-unlock text-gray-500"></i>
+                        <span class="text-sm text-gray-600">Album non protetto</span>
+                      </div>
+                      <button type="button" id="add-password-btn" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                        <i class="fas fa-plus mr-1"></i>Aggiungi password
+                      </button>
+                    </div>
+                    
+                    <div class="hidden" id="add-password-form">
+                      <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                             type="password" name="password" id="new-password-input"
+                             placeholder="Inserisci password">
+                      <div class="flex gap-2 mt-2">
+                        <button type="button" id="cancel-add-btn" class="btn-secondary text-sm">Annulla</button>
+                        <button type="button" id="save-add-btn" class="btn-primary text-sm">Aggiungi password</button>
+                      </div>
+                    </div>
+                  {% endif %}
                 </div>
-                <p class="text-xs text-gray-500 mt-1">Proteggi l'album con una password</p>
+                <p class="text-xs text-gray-500 mt-1">Proteggi l'album con una password per limitare l'accesso</p>
               </div>
             </div>
           </div>
@@ -537,163 +581,31 @@
           </div>
         </form>
       </div>
+  </div>
+
+  <!-- Media Library Modal -->
+  <div id="media-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white w-full max-w-5xl rounded-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
+        <h3 class="text-xl font-semibold text-gray-900">Galleria</h3>
+        <button type="button" id="media-close" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+      </div>
+      <div class="p-4 overflow-auto" id="media-body">
+        <div class="text-center text-gray-500">Caricamento…</div>
+      </div>
     </div>
+  </div>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="no-referrer"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script>
-    // TomSelects with proper form synchronization
-    const tagSelect = new TomSelect('#album-tags',{
-      plugins:['remove_button'],create:false,placeholder:'Seleziona tag...',
-      valueField:'id',labelField:'name',searchField:'name',
-      load: (q, cb) => { fetch('/admin/api/tags?q='+encodeURIComponent(q||''),{headers:{'Accept':'application/json'}}).then(r=>r.json()).then(cb).catch(()=>cb()); }
-    });
-    
-    const categorySelect = new TomSelect('#album-categories',{plugins:['remove_button'],create:false,placeholder:'Seleziona categorie...'});
-    const cameraSelect = new TomSelect('#album-cameras',{plugins:['remove_button'],create:false,placeholder:'Seleziona cameras...'});
-    const lensSelect = new TomSelect('#album-lenses',{plugins:['remove_button'],create:false,placeholder:'Seleziona lenses...'});
-    const filmSelect = new TomSelect('#album-films',{plugins:['remove_button'],create:false,placeholder:'Seleziona films...'});
-    const developerSelect = new TomSelect('#album-developers',{plugins:['remove_button'],create:false,placeholder:'Seleziona developers...'});
-    const labSelect = new TomSelect('#album-labs',{plugins:['remove_button'],create:false,placeholder:'Seleziona labs...'});
-    const locationSelect = new TomSelect('#album-locations',{plugins:['remove_button'],create:false,placeholder:'Seleziona luoghi...'});
-    
-    // Ensure form synchronization before submit
-    document.querySelector('form').addEventListener('submit', function(e) {
-      // Force TomSelect to sync with original form fields
-      tagSelect.sync();
-      categorySelect.sync();
-      cameraSelect.sync();
-      lensSelect.sync();
-      filmSelect.sync();
-      developerSelect.sync();
-      labSelect.sync();
-      locationSelect.sync();
-      
-      console.log('Form submitting with tags:', document.getElementById('album-tags').value);
-      console.log('Form submitting with cameras:', document.getElementById('album-cameras').value);
-    });
+    // TomSelect + TinyMCE are initialized by the Vite bundle (resources/admin.js)
 
-    // Initialize TinyMCE
-    if (window.tinymce) {
-      tinymce.init({
-        selector: 'textarea.richtext',
-        menubar: false,
-        statusbar: false,
-        branding: false,
-        plugins: 'link lists autoresize',
-        toolbar: 'undo redo | styles | bold italic | bullist numlist | blockquote | link | removeformat',
-        block_formats: 'Paragrafo=p; Sottotitolo=h3; Titolo sezione=h2; Nota=h4',
-        default_link_target: '_blank',
-        link_default_protocol: 'https',
-        rel_list: [{title: 'noopener', value: 'noopener'},{title:'noreferrer', value:'noreferrer'}],
-        content_css: false,
-        content_style: 'body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111; line-height:1.7} a{color:#000; text-decoration:underline} blockquote{border-left:3px solid #e5e7eb; margin:1rem 0; padding-left:.75rem; color:#444}',
-        valid_elements: 'p,br,strong/b,em/i,ul,ol,li,blockquote,a[href|target|rel],h2,h3,h4,hr',
-        height: 480,
-        skin: 'oxide',
-        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: #111827; }',
-        toolbar_mode: 'wrap',
-      });
-    }
+    // Sortable and sort helpers initialized in Vite bundle (resources/admin.js)
 
-    // Sortable grid
-    const grid = document.getElementById('images-grid');
-    if (grid) {
-      new Sortable(grid, { animation: 150, draggable: '[data-id]' });
-    }
+    // Upload handled by Uppy (initialized via assets/admin.js)
 
-    // Sort helpers
-    function sortGridBy(mode){
-      if (!grid) return;
-      const cards = Array.from(grid.children);
-      const parseDate = (s) => new Date(s || '1970-01-01T00:00:00Z').getTime();
-      cards.sort((a,b) => {
-        switch(mode){
-          case 'created_newest': return parseDate(b.dataset.created) - parseDate(a.dataset.created);
-          case 'created_oldest': return parseDate(a.dataset.created) - parseDate(b.dataset.created);
-          case 'id_asc': return (parseInt(a.dataset.id,10)||0) - (parseInt(b.dataset.id,10)||0);
-          case 'id_desc': return (parseInt(b.dataset.id,10)||0) - (parseInt(a.dataset.id,10)||0);
-          default: return 0;
-        }
-      });
-      cards.forEach(c => grid.appendChild(c));
-    }
-    document.getElementById('sort-images')?.addEventListener('change', (e)=>{
-      sortGridBy(e.target.value);
-    });
-    document.getElementById('save-order')?.addEventListener('click', async (e)=>{
-      e.preventDefault(); if (!grid) return;
-      const ids = Array.from(grid.querySelectorAll('[data-id]')).map(el=>el.getAttribute('data-id'));
-      await fetch(`{{ base_path }}${grid.dataset.reorderEndpoint.startsWith('/')? '': '/'}${grid.dataset.reorderEndpoint}`, {
-        method:'POST', headers:{ 'Content-Type':'application/json', 'X-CSRF-Token': grid.dataset.csrf, 'Accept':'application/json' },
-        body: JSON.stringify({ order: ids })
-      });
-    });
+    // Media library modal handled by admin.js initMediaModalOnEdit()
 
-    // Upload area: click & DnD multiple
-    const uploader = document.getElementById('uploader');
-    const input = document.getElementById('file-input');
-    if (uploader && input){
-      uploader.addEventListener('click', ()=> input.click());
-      ['dragover','dragleave'].forEach(ev=>uploader.addEventListener(ev, e=>{ e.preventDefault(); uploader.classList.toggle('bg-gray-50', ev==='dragover'); }));
-      uploader.addEventListener('drop', async e=>{ e.preventDefault(); uploader.classList.remove('bg-gray-50'); await uploadFiles(Array.from(e.dataTransfer.files)); });
-      input.addEventListener('change', async ()=>{ await uploadFiles(Array.from(input.files||[])); input.value=''; });
-      async function uploadFiles(files){
-        // Check if album has no cover before upload
-        const currentCoverId = '{{ item.cover_image_id|default("") }}';
-        const hasNoCover = !currentCoverId;
-        
-        for (let i = 0; i < files.length; i++) {
-          const f = files[i];
-          const fd = new FormData(); 
-          fd.append('file', f);
-          
-          const response = await fetch(uploader.dataset.endpoint, { 
-            method:'POST', 
-            headers:{ 'X-CSRF-Token': uploader.dataset.csrf, 'Accept':'application/json' }, 
-            body: fd 
-          });
-          
-          // If this is the first image uploaded and album has no cover, set it as cover
-          if (hasNoCover && i === 0 && response.ok) {
-            const result = await response.json();
-            if (result && result.id) {
-              // Set the first uploaded image as cover
-              await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/cover/${result.id}`, { 
-                method:'POST', 
-                headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }
-              });
-            }
-          }
-        }
-        location.reload();
-      }
-    }
-
-    // Cover + Delete actions
-    document.querySelectorAll('[data-cover-id]')?.forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const imageId = btn.getAttribute('data-cover-id');
-        await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/cover/${imageId}`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
-        location.reload();
-      });
-    });
-    document.querySelectorAll('[data-delete-id]')?.forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if(!confirm('Eliminare questa immagine?')) return;
-        const imageId = btn.getAttribute('data-delete-id');
-        const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/${imageId}/delete`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
-        if (res.ok) {
-          const card = btn.closest('[data-id]');
-          card?.parentNode?.removeChild(card);
-          if (window.showToast) showToast('Immagine eliminata', 'success');
-        } else {
-          if (window.showToast) showToast('Errore eliminazione', 'error');
-        }
-      });
-    });
+    // Cover/Delete handled by Vite bundle bindGridButtons()
 
     // Bulk selection & delete
     const selectAll = document.getElementById('select-all');
@@ -717,6 +629,58 @@
         if (window.showToast) showToast('Errore eliminazione', 'error');
       }
     });
+
+    // Password workflow logic
+    (function(){
+      const removeBtn = document.getElementById('remove-password-btn');
+      const changeBtn = document.getElementById('change-password-btn');
+      const addBtn = document.getElementById('add-password-btn');
+      
+      const changeForm = document.getElementById('change-password-form');
+      const addForm = document.getElementById('add-password-form');
+      
+      const cancelChangeBtn = document.getElementById('cancel-change-btn');
+      const cancelAddBtn = document.getElementById('cancel-add-btn');
+      
+      const passwordClearInput = document.getElementById('password-clear-input');
+      
+      // Remove password
+      removeBtn?.addEventListener('click', () => {
+        if (confirm('Rimuovere la password dall\'album?')) {
+          if (passwordClearInput) passwordClearInput.value = '1';
+          // Submit the form to remove password
+          document.getElementById('album-form')?.submit();
+        }
+      });
+      
+      // Show change password form
+      changeBtn?.addEventListener('click', () => {
+        changeBtn.classList.add('hidden');
+        changeForm?.classList.remove('hidden');
+        document.getElementById('password-input')?.focus();
+      });
+      
+      // Cancel change password
+      cancelChangeBtn?.addEventListener('click', () => {
+        changeForm?.classList.add('hidden');
+        changeBtn?.classList.remove('hidden');
+        document.getElementById('password-input').value = '';
+      });
+      
+      // Show add password form
+      addBtn?.addEventListener('click', () => {
+        addBtn.classList.add('hidden');
+        addForm?.classList.remove('hidden');
+        document.getElementById('new-password-input')?.focus();
+      });
+      
+      // Cancel add password
+      cancelAddBtn?.addEventListener('click', () => {
+        addForm?.classList.add('hidden');
+        addBtn?.classList.remove('hidden');
+        document.getElementById('new-password-input').value = '';
+      });
+    })();
 
     // Image modal logic
     (function(){
@@ -799,7 +763,7 @@
         };
         fillForm(data, box); 
         openModal();
-        if (form) form.action = `/admin/albums/{{ item.id }}/images/${currentId}/update`;
+        if (form) form.action = `{{ base_path }}/admin/albums/{{ item.id }}/images/${currentId}/update`;
       });
       
       // Modal action buttons
@@ -815,7 +779,7 @@
       modalDeleteBtn?.addEventListener('click', async () => {
         if (!currentId) return;
         if (!confirm('Eliminare questa immagine?')) return;
-        const res = await fetch(`/admin/albums/{{ item.id }}/images/${currentId}/delete`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
+        const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/${currentId}/delete`, { method:'POST', headers: { 'X-CSRF-Token':'{{ csrf }}', 'Accept':'application/json' }});
         if (res.ok) {
           closeModal();
           const card = document.querySelector(`[data-id="${currentId}"]`);
@@ -856,7 +820,7 @@
       closeBtn?.addEventListener('click', closeModal);
       cancelBtn?.addEventListener('click', closeModal);
       
-      // ESC key handling for modal
+      // Close modal with ESC key
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
           closeModal();
