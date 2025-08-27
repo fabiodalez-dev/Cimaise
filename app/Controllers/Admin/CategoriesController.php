@@ -125,8 +125,9 @@ class CategoriesController extends BaseController
                     $filename = $slug . '_' . time() . $extension;
                     $uploadPath = '/media/categories/' . $filename;
                     
-                    // Create directory if it doesn't exist
-                    $fullPath = 'public' . $uploadPath;
+                    // Create directory if it doesn't exist (absolute to project public dir)
+                    $publicDir = dirname(__DIR__, 3) . '/public';
+                    $fullPath = $publicDir . $uploadPath;
                     $dir = dirname($fullPath);
                     if (!is_dir($dir)) {
                         mkdir($dir, 0755, true);
@@ -158,8 +159,9 @@ class CategoriesController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
         } catch (\Throwable $e) {
             // Clean up uploaded file if database insert fails
-            if ($imagePath && file_exists('public' . $imagePath)) {
-                unlink('public' . $imagePath);
+            $publicDir = dirname(__DIR__, 3) . '/public';
+            if ($imagePath && file_exists($publicDir . $imagePath)) {
+                unlink($publicDir . $imagePath);
             }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
             return $response->withHeader('Location', $this->redirect('/admin/categories/create'))->withStatus(302);
@@ -229,8 +231,9 @@ class CategoriesController extends BaseController
                     $filename = $slug . '_' . time() . $extension;
                     $uploadPath = '/media/categories/' . $filename;
                     
-                    // Create directory if it doesn't exist
-                    $fullPath = 'public' . $uploadPath;
+                    // Create directory if it doesn't exist (absolute to project public dir)
+                    $publicDir = dirname(__DIR__, 3) . '/public';
+                    $fullPath = $publicDir . $uploadPath;
                     $dir = dirname($fullPath);
                     if (!is_dir($dir)) {
                         mkdir($dir, 0755, true);
@@ -242,8 +245,9 @@ class CategoriesController extends BaseController
                         // Re-validate after move for additional security
                         if ($this->validateImageUpload($fullPath)) {
                             // Delete old image if exists
-                            if ($imagePath && file_exists('public' . $imagePath)) {
-                                unlink('public' . $imagePath);
+                            $publicDir = dirname(__DIR__, 3) . '/public';
+                            if ($imagePath && file_exists($publicDir . $imagePath)) {
+                                unlink($publicDir . $imagePath);
                             }
                             $imagePath = $uploadPath;
                         } else {
@@ -261,8 +265,9 @@ class CategoriesController extends BaseController
         
         // Handle image removal if requested
         if (isset($data['remove_image']) && $data['remove_image'] === '1') {
-            if ($imagePath && file_exists('public' . $imagePath)) {
-                unlink('public' . $imagePath);
+            $publicDir = dirname(__DIR__, 3) . '/public';
+            if ($imagePath && file_exists($publicDir . $imagePath)) {
+                unlink($publicDir . $imagePath);
             }
             $imagePath = null;
         }

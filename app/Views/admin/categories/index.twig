@@ -4,7 +4,7 @@
   <div class="flex items-center justify-between mb-8">
     <div>
       <h1 class="text-3xl font-bold text-black">Categories</h1>
-      <p class="text-gray-600 mt-1">Drag horizontally to create hierarchy</p>
+      <p class="text-gray-600 mt-1">Drag horizontally to create hierarchy or use Edit to open full form</p>
     </div>
     <a href="{{ base_path }}/admin/categories/create" class="btn-primary">
       <i class="fas fa-plus mr-2"></i>New Category
@@ -301,9 +301,12 @@
                 <div class="category-name">{{ category.name }}</div>
                 
                 <div class="category-actions">
-                  <button class="action-btn edit" data-edit="{{ category.id }}" title="Edit">
+                  <a class="action-btn edit" data-edit="{{ category.id }}" title="Quick Edit" href="{{ base_path }}/admin/categories/{{ category.id }}/edit">
                     <i class="fas fa-edit"></i>
-                  </button>
+                  </a>
+                  <a class="action-btn" title="Open full form" href="{{ base_path }}/admin/categories/{{ category.id }}/edit">
+                    <i class="fas fa-up-right-from-square"></i>
+                  </a>
                   <form method="post" action="{{ base_path }}/admin/categories/{{ category.id }}/delete" class="inline" onsubmit="return confirm('Delete this category?')">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
                     <button class="action-btn delete" title="Delete">
@@ -436,6 +439,77 @@
             </ul>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  {# Modal: Edit Category #}
+  <div id="category-modal" class="hidden">
+    <div id="category-modal-overlay" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h3 class="text-xl font-semibold text-black">Modifica categoria</h3>
+          <button type="button" class="text-gray-500 hover:text-black" data-modal-close aria-label="Chiudi">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="modal-cat-form" method="post" action="#" enctype="multipart/form-data">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" id="modal-cat-id" value="">
+
+          <div class="px-6 py-5 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+              <input id="modal-cat-name" class="form-input" type="text" name="name" required>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                <input id="modal-cat-slug" class="form-input" type="text" name="slug" placeholder="auto se vuoto">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
+                <input id="modal-cat-sort" class="form-input" type="number" name="sort_order" value="0" min="0">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Categoria genitore</label>
+              <select id="modal-cat-parent" class="form-input" name="parent_id">
+                <option value="">Nessuna</option>
+                {% for parent in byParent[0]|default([]) %}
+                  <option value="{{ parent.id }}">{{ parent.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Immagine</label>
+              <div id="modal-current-image" class="hidden mb-3">
+                <img id="modal-current-image-preview" class="w-full h-40 object-cover rounded-lg border" alt="Immagine attuale">
+                <label class="flex items-center gap-2 mt-2 text-sm text-red-600">
+                  <input id="modal-remove-image" type="checkbox" name="remove_image" value="1" class="rounded">
+                  Rimuovi immagine
+                </label>
+              </div>
+              <input id="modal-cat-image" class="hidden" type="file" name="image" accept="image/*">
+              <div id="modal-upload-zone" class="upload-zone border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer" onclick="document.getElementById('modal-cat-image').click()">
+                <i class="fas fa-cloud-upload-alt text-gray-400 text-2xl mb-2"></i>
+                <div class="text-sm text-gray-600">Clicca o trascina un'immagine</div>
+                <div class="text-xs text-gray-500">JPG, PNG, WebP • Max 5MB</div>
+              </div>
+              <div id="modal-upload-preview" class="hidden mt-3">
+                <img id="modal-upload-preview-img" class="w-full h-40 object-cover rounded-lg border" alt="Anteprima">
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
+            <button type="button" class="btn-secondary" data-modal-close>Annulla</button>
+            <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>Salva</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -624,61 +698,17 @@
       }
     }
     
-    // Quick edit functionality
+    // Edit click → open modal (replaces sidebar quick edit)
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-edit]');
       if (!btn) return;
       e.preventDefault();
-      
       const id = btn.getAttribute('data-edit');
-      
       try {
-        const res = await fetch(window.basePath + '/admin/api/category/' + id, {
-          headers: { 'Accept': 'application/json' }
-        });
-        
+        const res = await fetch(window.basePath + '/admin/api/category/' + id, { headers: { 'Accept': 'application/json' } });
         if (!res.ok) throw new Error('Failed to fetch category data');
-        
         const data = await res.json();
-        
-        // Populate form fields
-        document.getElementById('cat-id').value = data.id;
-        document.getElementById('cat-name').value = data.name || '';
-        document.getElementById('cat-slug').value = data.slug || '';
-        document.getElementById('cat-sort').value = data.sort_order || 0;
-        document.getElementById('cat-parent').value = data.parent_id || '';
-        
-        // Handle image preview
-        const currentImageDiv = document.getElementById('current-image');
-        const currentImagePreview = document.getElementById('current-image-preview');
-        
-        // Clear any upload preview first
-        clearUploadPreview();
-        
-        if (data.image_path) {
-          currentImagePreview.src = window.basePath + data.image_path;
-          currentImageDiv.classList.remove('hidden');
-          currentImageDiv.style.opacity = '1';
-        } else {
-          currentImageDiv.classList.add('hidden');
-        }
-        
-        // Reset remove image checkbox
-        const removeImageCheckbox = document.querySelector('input[name="remove_image"]');
-        if (removeImageCheckbox) {
-          removeImageCheckbox.checked = false;
-        }
-        
-        // Update form action
-        const form = document.getElementById('cat-form');
-        form.action = window.basePath + '/admin/categories/' + id;
-        
-        // Scroll to form
-        document.getElementById('cat-form').scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
-        });
-        
+        openCategoryModal(data);
       } catch (error) {
         console.error('Failed to load category data:', error);
       }
@@ -721,6 +751,7 @@
       new DragSystem();
       setupImageUpload();
       setupFormValidation();
+      setupCategoryModal();
     });
     
     // Enhanced image upload with drag & drop
@@ -850,5 +881,95 @@
         }
       });
     }
+
+    // ===== Modal for Edit Category =====
+    function setupCategoryModal() {
+      const modal = document.getElementById('category-modal');
+      const overlay = document.getElementById('category-modal-overlay');
+      const closeBtns = modal.querySelectorAll('[data-modal-close]');
+      const fileInput = document.getElementById('modal-cat-image');
+      const uploadZone = document.getElementById('modal-upload-zone');
+      const uploadPreview = document.getElementById('modal-upload-preview');
+      const uploadPreviewImg = document.getElementById('modal-upload-preview-img');
+
+      function closeModal() {
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        // Clear upload preview state
+        uploadPreview.classList.add('hidden');
+        uploadPreviewImg.src = '';
+        fileInput.value = '';
+      }
+
+      closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
+
+      if (uploadZone) {
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('border-gray-700'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('border-gray-700'));
+        uploadZone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          uploadZone.classList.remove('border-gray-700');
+          const files = e.dataTransfer.files;
+          if (files.length) handleModalFile(files[0]);
+        });
+      }
+      if (fileInput) {
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleModalFile(e.target.files[0]); });
+      }
+
+      function handleModalFile(file) {
+        if (!file.type.startsWith('image/')) { alert('Seleziona un file immagine'); return; }
+        if (file.size > 5 * 1024 * 1024) { alert('Max 5MB'); return; }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          uploadPreviewImg.src = ev.target.result;
+          uploadPreview.classList.remove('hidden');
+          document.getElementById('modal-current-image').classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function openCategoryModal(data) {
+      const modal = document.getElementById('category-modal');
+      document.body.classList.add('overflow-hidden');
+
+      // Fill fields
+      document.getElementById('modal-cat-id').value = data.id;
+      document.getElementById('modal-cat-name').value = data.name || '';
+      document.getElementById('modal-cat-slug').value = data.slug || '';
+      document.getElementById('modal-cat-sort').value = data.sort_order || 0;
+      const parentSelect = document.getElementById('modal-cat-parent');
+      if (parentSelect) parentSelect.value = data.parent_id || '';
+
+      // Current image
+      const currentImageWrap = document.getElementById('modal-current-image');
+      const currentImage = document.getElementById('modal-current-image-preview');
+      const removeCheckbox = document.getElementById('modal-remove-image');
+      if (removeCheckbox) removeCheckbox.checked = false;
+      const uploadPreview = document.getElementById('modal-upload-preview');
+      const uploadPreviewImg = document.getElementById('modal-upload-preview-img');
+      if (uploadPreview) {
+        uploadPreview.classList.add('hidden');
+        uploadPreviewImg.src = '';
+      }
+      if (data.image_path) {
+        currentImage.src = window.basePath + data.image_path;
+        currentImageWrap.classList.remove('hidden');
+      } else {
+        currentImageWrap.classList.add('hidden');
+      }
+
+      // Form action
+      const form = document.getElementById('modal-cat-form');
+      form.action = window.basePath + '/admin/categories/' + data.id;
+
+      // Show modal
+      modal.classList.remove('hidden');
+    }
   </script>
+
+  
 {% endblock %}
