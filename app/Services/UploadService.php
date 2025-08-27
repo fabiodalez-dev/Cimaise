@@ -197,27 +197,51 @@ class UploadService
 
         // Generate all configured variants
         $haveImagick = class_exists(\Imagick::class);
+        $variantsGenerated = 0;
+        $totalVariants = count($breakpoints) * count(array_filter($formats));
+        
         foreach ($breakpoints as $variant => $targetW) {
             $targetW = (int)$targetW;
             foreach (['avif','webp','jpg'] as $fmt) {
                 if (empty($formats[$fmt])) continue;
+                
                 $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                 $destPath = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
-                if ($fmt === 'jpg' && $variant === 'sm' && is_file($destPath)) continue;
+                
+                // Skip if JPG sm variant already exists (created above)
+                if ($fmt === 'jpg' && $variant === 'sm' && is_file($destPath)) {
+                    $variantsGenerated++;
+                    continue;
+                }
+                
                 @mkdir(dirname($destPath), 0775, true);
                 $ok = false;
+                
+                // Try generation based on format and available libraries
                 if ($fmt === 'jpg') {
                     $ok = $this->resizeWithImagickOrGd($dest, $destPath, $targetW, 'jpeg', (int)($quality['jpg'] ?? 85));
-                } elseif ($fmt === 'webp' && $haveImagick) {
-                    $ok = $this->resizeWithImagick($dest, $destPath, $targetW, 'webp', (int)($quality['webp'] ?? 75));
+                } elseif ($fmt === 'webp') {
+                    if ($haveImagick) {
+                        $ok = $this->resizeWithImagick($dest, $destPath, $targetW, 'webp', (int)($quality['webp'] ?? 75));
+                    } else {
+                        // GD WebP fallback if available
+                        if (function_exists('imagewebp')) {
+                            $ok = $this->resizeWithGdWebp($dest, $destPath, $targetW, (int)($quality['webp'] ?? 75));
+                        }
+                    }
                 } elseif ($fmt === 'avif' && $haveImagick) {
                     $ok = $this->resizeWithImagick($dest, $destPath, $targetW, 'avif', (int)($quality['avif'] ?? 50));
                 }
+                
                 if ($ok && is_file($destPath)) {
                     $size = (int)filesize($destPath);
                     [$vw, $vh] = getimagesize($destPath) ?: [$targetW, 0];
                     $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
                         ->execute([$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, (int)$vh, $size]);
+                    $variantsGenerated++;
+                } else {
+                    // Log warning for failed generation
+                    error_log("Failed to generate {$fmt} variant {$variant} for image {$imageId}");
                 }
             }
         }
@@ -278,6 +302,35 @@ class UploadService
         imagecopyresampled($dst, $srcImg, 0,0,0,0, $newW,$newH, $w,$h);
         @mkdir(dirname($dest), 0775, true);
         $ok = imagejpeg($dst, $dest, $quality);
+        imagedestroy($srcImg); imagedestroy($dst);
+        return (bool)$ok;
+    }
+
+    private function resizeWithGdWebp(string $src, string $dest, int $targetW, int $quality): bool
+    {
+        // GD WebP generation
+        $info = @getimagesize($src);
+        if (!$info) return false;
+        [$w, $h] = $info;
+        $ratio = $h > 0 ? $w / $h : 1;
+        $newW = $targetW; $newH = (int)round($targetW / $ratio);
+        $srcImg = match ($info['mime'] ?? '') {
+            'image/jpeg' => @imagecreatefromjpeg($src),
+            'image/png' => @imagecreatefrompng($src),
+            default => null,
+        };
+        if (!$srcImg) return false;
+        $dst = imagecreatetruecolor($newW, $newH);
+        
+        // Preserve transparency for PNG sources
+        if ($info['mime'] === 'image/png') {
+            imagealphablending($dst, false);
+            imagesavealpha($dst, true);
+        }
+        
+        imagecopyresampled($dst, $srcImg, 0,0,0,0, $newW,$newH, $w,$h);
+        @mkdir(dirname($dest), 0775, true);
+        $ok = imagewebp($dst, $dest, $quality);
         imagedestroy($srcImg); imagedestroy($dst);
         return (bool)$ok;
     }

@@ -37,6 +37,10 @@ class ImagesGenerateCommand extends Command
         $missingOnly = (bool)$input->getOption('missing');
         $limit = (int)$input->getOption('limit');
 
+        $output->writeln('<info>Image Variant Generation Starting...</info>');
+        $output->writeln(sprintf('Formats: %s', implode(', ', array_keys(array_filter($formats)))));
+        $output->writeln(sprintf('Breakpoints: %s', implode(', ', array_map(fn($k, $v) => "{$k}:{$v}px", array_keys($breakpoints), $breakpoints))));
+
         $q = 'SELECT id, original_path FROM images';
         if ($limit > 0) { $q .= ' LIMIT ' . (int)$limit; }
         $images = $pdo->query($q)->fetchAll();
@@ -51,40 +55,73 @@ class ImagesGenerateCommand extends Command
         }
 
         $imagickOk = class_exists(Imagick::class);
+        $gdWebpOk = function_exists('imagewebp');
         if (!$imagickOk) {
-            $output->writeln('<comment>Imagick not available, generating only JPEG via GD (if any).</comment>');
+            $output->writeln('<comment>Imagick not available, using GD fallbacks.</comment>');
         }
+        if (!$gdWebpOk) {
+            $output->writeln('<comment>GD WebP support not available.</comment>');
+        }
+
+        $totalGenerated = 0;
+        $totalSkipped = 0;
+        $totalErrors = 0;
 
         foreach ($images as $img) {
             $imageId = (int)$img['id'];
             $src = dirname(__DIR__, 2) . $img['original_path'];
-            if (!is_file($src)) continue;
+            if (!is_file($src)) {
+                $output->writeln("<error>Source file not found for image #{$imageId}: {$src}</error>");
+                $totalErrors++;
+                continue;
+            }
+            
+            $variantsGenerated = 0;
             foreach ($breakpoints as $variant => $width) {
                 foreach (['avif','webp','jpg'] as $fmt) {
                     if (empty($formats[$fmt])) continue;
                     $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                     $dest = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
-                    if ($missingOnly && is_file($dest)) continue;
+                    
+                    if ($missingOnly && is_file($dest)) {
+                        $totalSkipped++;
+                        continue;
+                    }
+                    
                     $ok = false;
                     if ($fmt === 'jpg') {
                         $ok = $this->resizeWithImagickOrGd($src, $dest, (int)$width, 'jpeg', (int)$quality['jpg']);
                     } elseif ($fmt === 'webp') {
-                        $ok = $imagickOk && $this->resizeWithImagick($src, $dest, (int)$width, 'webp', (int)$quality['webp']);
+                        if ($imagickOk) {
+                            $ok = $this->resizeWithImagick($src, $dest, (int)$width, 'webp', (int)$quality['webp']);
+                        } elseif ($gdWebpOk) {
+                            $ok = $this->resizeWithGdWebp($src, $dest, (int)$width, (int)$quality['webp']);
+                        }
                     } elseif ($fmt === 'avif') {
                         $ok = $imagickOk && $this->resizeWithImagick($src, $dest, (int)$width, 'avif', (int)$quality['avif']);
                     }
+                    
                     if ($ok) {
                         $size = (int)filesize($dest);
                         [$w, $h] = getimagesize($dest) ?: [(int)$width, 0];
                         $stmt = $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)');
                         $stmt->execute([$imageId, $variant, $fmt, $destRelUrl, $w, $h, $size]);
+                        $variantsGenerated++;
+                        $totalGenerated++;
+                    } else {
+                        $output->writeln("<error>Failed to generate {$fmt} variant {$variant} for image #{$imageId}</error>");
+                        $totalErrors++;
                     }
                 }
             }
-            $output->writeln("Generated variants for image #{$imageId}");
+            
+            if ($variantsGenerated > 0) {
+                $output->writeln("Generated {$variantsGenerated} variants for image #{$imageId}");
+            }
         }
 
-        $output->writeln('<info>Done.</info>');
+        $output->writeln('<info>Generation Complete!</info>');
+        $output->writeln(sprintf('Generated: %d, Skipped: %d, Errors: %d', $totalGenerated, $totalSkipped, $totalErrors));
         return Command::SUCCESS;
     }
 
@@ -115,23 +152,83 @@ class ImagesGenerateCommand extends Command
         if (class_exists(Imagick::class)) {
             return $this->resizeWithImagick($src, $dest, $targetW, $format, $quality);
         }
-        // GD fallback JPEG only
+        
+        // GD fallback for JPEG only
         $info = @getimagesize($src);
         if (!$info) return false;
         [$w, $h] = $info;
         $ratio = $h > 0 ? $w / $h : 1;
-        $newW = $targetW; $newH = (int)round($targetW / $ratio);
+        $newW = $targetW; 
+        $newH = (int)round($targetW / $ratio);
+        
         $srcImg = match ($info['mime'] ?? '') {
             'image/jpeg' => @imagecreatefromjpeg($src),
             'image/png' => @imagecreatefrompng($src),
+            'image/gif' => @imagecreatefromgif($src),
+            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($src) : null,
             default => null,
         };
+        
         if (!$srcImg) return false;
+        
         $dst = imagecreatetruecolor($newW, $newH);
-        imagecopyresampled($dst, $srcImg, 0,0,0,0, $newW,$newH, $w,$h);
+        
+        // Preserve transparency for PNG/GIF
+        if ($info['mime'] === 'image/png' || $info['mime'] === 'image/gif') {
+            imagealphablending($dst, false);
+            imagesavealpha($dst, true);
+            $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+            imagefill($dst, 0, 0, $transparent);
+        }
+        
+        imagecopyresampled($dst, $srcImg, 0, 0, 0, 0, $newW, $newH, $w, $h);
         @mkdir(dirname($dest), 0775, true);
+        
         $ok = imagejpeg($dst, $dest, $quality);
-        imagedestroy($srcImg); imagedestroy($dst);
+        
+        imagedestroy($srcImg);
+        imagedestroy($dst);
+        return (bool)$ok;
+    }
+
+    private function resizeWithGdWebp(string $src, string $dest, int $targetW, int $quality): bool
+    {
+        if (!function_exists('imagewebp')) {
+            return false;
+        }
+        
+        $info = @getimagesize($src);
+        if (!$info) return false;
+        [$w, $h] = $info;
+        $ratio = $h > 0 ? $w / $h : 1;
+        $newW = $targetW;
+        $newH = (int)round($targetW / $ratio);
+        
+        $srcImg = match ($info['mime'] ?? '') {
+            'image/jpeg' => @imagecreatefromjpeg($src),
+            'image/png' => @imagecreatefrompng($src),
+            'image/gif' => @imagecreatefromgif($src),
+            'image/webp' => @imagecreatefromwebp($src),
+            default => null,
+        };
+        
+        if (!$srcImg) return false;
+        
+        $dst = imagecreatetruecolor($newW, $newH);
+        
+        // Preserve transparency
+        imagealphablending($dst, false);
+        imagesavealpha($dst, true);
+        $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+        imagefill($dst, 0, 0, $transparent);
+        
+        imagecopyresampled($dst, $srcImg, 0, 0, 0, 0, $newW, $newH, $w, $h);
+        @mkdir(dirname($dest), 0775, true);
+        
+        $ok = imagewebp($dst, $dest, $quality);
+        
+        imagedestroy($srcImg);
+        imagedestroy($dst);
         return (bool)$ok;
     }
 }
