@@ -233,6 +233,10 @@ $app->post('/admin/albums/{id}/images/bulk-delete', function (Request $request, 
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->bulkDeleteImages($request, $response, $args);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/albums/{id}/images/attach', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
+    return $controller->attachExisting($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/albums/{id}/images/{imageId}/update', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
     return $controller->updateImageMeta($request, $response, $args);
@@ -688,5 +692,19 @@ $app->get('/api/album/{id}/images', function (Request $request, Response $respon
     $controller = new \App\Controllers\Frontend\ApiController($container['db'], Twig::fromRequest($request));
     return $controller->albumImages($request, $response, $args);
 });
+
+// Media Library
+$app->get('/admin/media', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/media/images/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request));
+    return $controller->delete($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/media/images/{id}/update', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request));
+    return $controller->update($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 }; // End routes function

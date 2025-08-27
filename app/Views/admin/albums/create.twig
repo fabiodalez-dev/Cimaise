@@ -3,7 +3,7 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50 pb-24">
   <!-- Header -->
-  <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+  <div class="bg-white border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex items-center justify-between">
         <div>
@@ -27,7 +27,7 @@
       
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
         <!-- Main Content Column -->
-        <div class="xl:col-span-8 space-y-6">
+        <div class="xl:col-span-9 space-y-6">
           <!-- Basic Information Card -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
@@ -58,46 +58,36 @@
                 <label class="block text-sm font-medium text-black mb-2">Descrizione Breve</label>
                 <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
                           name="excerpt" rows="4" 
-                          placeholder="Breve descrizione che appare nelle anteprime..."></textarea>
-                <p class="text-xs text-gray-500 mt-1">Massimo 150 caratteri per una visualizzazione ottimale</p>
+                          placeholder="Breve descrizione che appare nelle anteprime..."
+                          maxlength="150"></textarea>
+                <p class="text-xs text-gray-500 mt-1">Massimo 150 caratteri per una visualizzazione ottimale. Solo testo semplice.</p>
               </div>
               
               <div>
                 <label class="block text-sm font-medium text-black mb-2">Contenuto Completo</label>
                 <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black" 
-                          name="body" rows="12" 
+                          name="body" rows="32" 
                           placeholder="Descrizione completa con formattazione..."></textarea>
                 <p class="text-xs text-gray-500 mt-1">Supporta formattazione ricca: grassetto, corsivo, elenchi, link</p>
               </div>
             </div>
           </div>
 
-          <!-- Upload Card -->
+          <!-- Upload Card (disabled until saved) -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-cloud-upload-alt mr-3 text-gray-600"></i>
                 Caricamento Immagini
               </h2>
-              <p class="text-gray-600 text-sm mt-1">L'album verrà creato automaticamente al primo caricamento</p>
+              <p class="text-gray-600 text-sm mt-1">Salva l'album, poi carica le foto nella pagina di modifica</p>
             </div>
-            
             <div class="p-6">
-              <!-- Upload Area -->
-              <div id="uploader" role="button" 
-                   class="w-full border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all cursor-pointer flex items-center justify-center min-h-[250px] text-gray-600 group">
-                <input id="file-input" type="file" multiple class="hidden" accept="image/*">
-                <div class="text-center">
-                  <i class="fas fa-images text-4xl mb-4 text-gray-400 group-hover:text-gray-600 transition-colors"></i>
-                  <div class="text-lg font-medium mb-2">Trascina qui le immagini</div>
-                  <div class="text-sm text-gray-500 mb-2">oppure clicca per selezionarle dal computer</div>
-                  <div class="text-xs text-gray-400">Formati supportati: JPG, PNG, WEBP</div>
-                  <div class="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <p class="text-sm text-blue-700">
-                      <i class="fas fa-info-circle mr-2"></i>
-                      Prima compila almeno il titolo e seleziona una categoria
-                    </p>
-                  </div>
+              <div class="w-full border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center min-h-[180px]">
+                <div class="text-center py-6">
+                  <i class="fas fa-lock text-3xl mb-3 text-gray-300"></i>
+                  <div class="text-sm">Il caricamento è disponibile dopo il salvataggio</div>
+                  <div class="text-xs text-gray-400 mt-1">Dopo il salvataggio verrai reindirizzato alla pagina di modifica</div>
                 </div>
               </div>
             </div>
@@ -105,7 +95,7 @@
         </div>
 
         <!-- Sidebar -->
-        <div class="xl:col-span-4 space-y-6">
+        <div class="xl:col-span-3 space-y-6">
           <!-- Categories and Tags Card -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
@@ -309,10 +299,6 @@
   </div>
 </div>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="no-referrer"></script>
-  
   <!-- Modal edit image (for when images are present after upload) -->
   <div id="image-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
     <div class="bg-white w-full max-w-2xl rounded shadow-lg overflow-hidden">
@@ -418,54 +404,7 @@
     </div>
   </div>
   <script>
-    const tagSelect = new TomSelect('#album-tags',{plugins:['remove_button'],create:false,placeholder:'Seleziona tag...'});
-    const categorySelect = new TomSelect('#album-categories',{plugins:['remove_button'],create:false,placeholder:'Seleziona categorie...'});
-    const cameraSelect = new TomSelect('#album-cameras',{plugins:['remove_button'],create:false,placeholder:'Seleziona cameras...'});
-    const lensSelect = new TomSelect('#album-lenses',{plugins:['remove_button'],create:false,placeholder:'Seleziona lenses...'});
-    const filmSelect = new TomSelect('#album-films',{plugins:['remove_button'],create:false,placeholder:'Seleziona films...'});
-    const developerSelect = new TomSelect('#album-developers',{plugins:['remove_button'],create:false,placeholder:'Seleziona developers...'});
-    const labSelect = new TomSelect('#album-labs',{plugins:['remove_button'],create:false,placeholder:'Seleziona labs...'});
-    const locationSelect = new TomSelect('#album-locations',{plugins:['remove_button'],create:false,placeholder:'Seleziona luoghi...'});
-    
-    // Ensure form synchronization before submit
-    document.querySelector('form').addEventListener('submit', function(e) {
-      // Force TomSelect to sync with original form fields
-      tagSelect.sync();
-      categorySelect.sync();
-      cameraSelect.sync();
-      lensSelect.sync();
-      filmSelect.sync();
-      developerSelect.sync();
-      labSelect.sync();
-      locationSelect.sync();
-      locationSelect.sync();
-      
-      console.log('Form submitting with tags:', document.getElementById('album-tags').value);
-      console.log('Form submitting with cameras:', document.getElementById('album-cameras').value);
-    });
-
-    // Initialize TinyMCE
-    if (window.tinymce) {
-      tinymce.init({
-        selector: 'textarea.richtext',
-        menubar: false,
-        statusbar: false,
-        branding: false,
-        plugins: 'link lists autoresize',
-        toolbar: 'undo redo | styles | bold italic | bullist numlist | blockquote | link | removeformat',
-        block_formats: 'Paragrafo=p; Sottotitolo=h3; Titolo sezione=h2; Nota=h4',
-        default_link_target: '_blank',
-        link_default_protocol: 'https',
-        rel_list: [{title: 'noopener', value: 'noopener'},{title:'noreferrer', value:'noreferrer'}],
-        content_css: false,
-        content_style: 'body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111; line-height:1.7} a{color:#000; text-decoration:underline} blockquote{border-left:3px solid #e5e7eb; margin:1rem 0; padding-left:.75rem; color:#444}',
-        valid_elements: 'p,br,strong/b,em/i,ul,ol,li,blockquote,a[href|target|rel],h2,h3,h4,hr',
-        height: 480,
-        skin: 'oxide',
-        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: #111827; }',
-        toolbar_mode: 'wrap',
-      });
-    }
+    // TomSelect + TinyMCE are initialized by the Vite bundle (resources/admin.js)
 
     // Create-first-then-upload flow
     let createdAlbumId = null;
@@ -516,7 +455,7 @@
         const fd = new FormData(); 
         fd.append('file', f);
         
-        const response = await fetch(`/admin/albums/${id}/upload`, { 
+        const response = await fetch(`{{ base_path }}/admin/albums/${id}/upload`, { 
           method:'POST', 
           headers:{ 'X-CSRF-Token': csrf, 'Accept':'application/json' }, 
           body: fd 
@@ -527,7 +466,7 @@
           const result = await response.json();
           if (result && result.id) {
             // Set the first uploaded image as cover
-            await fetch(`/admin/albums/${id}/cover/${result.id}`, { 
+            await fetch(`{{ base_path }}/admin/albums/${id}/cover/${result.id}`, { 
               method:'POST', 
               headers: { 'X-CSRF-Token': csrf, 'Accept':'application/json' }
             });

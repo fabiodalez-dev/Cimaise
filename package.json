@@ -16,6 +16,9 @@
     "@uppy/core": "^4.2.2",
     "@uppy/drag-drop": "^4.2.2",
     "@uppy/xhr-upload": "^4.2.2",
-    "chart.js": "^4.5.0"
+    "chart.js": "^4.5.0",
+    "sortablejs": "^1.15.6",
+    "tinymce": "^6.8.6",
+    "tom-select": "^2.4.3"
   }
 }

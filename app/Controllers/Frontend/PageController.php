@@ -15,6 +15,34 @@ class PageController extends BaseController
         parent::__construct();
     }
 
+    private function normalizeTemplateSettings(array $templateSettings): array
+    {
+        // Normalize possibly nested columns structure to flat integers
+        if (isset($templateSettings['columns']) && is_array($templateSettings['columns'])) {
+            $normalizedColumns = [];
+            foreach (['desktop', 'tablet', 'mobile'] as $device) {
+                if (isset($templateSettings['columns'][$device])) {
+                    $value = $templateSettings['columns'][$device];
+                    while (is_array($value) && isset($value[$device])) {
+                        $value = $value[$device];
+                    }
+                    if (is_numeric($value) && $value > 0 && $value <= 12) {
+                        $normalizedColumns[$device] = (int)$value;
+                    } else {
+                        $normalizedColumns[$device] = match($device) {
+                            'desktop' => 3,
+                            'tablet' => 2,
+                            'mobile' => 1,
+                            default => 3,
+                        };
+                    }
+                }
+            }
+            $templateSettings['columns'] = $normalizedColumns;
+        }
+        return $templateSettings;
+    }
+
     public function home(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
@@ -165,6 +193,7 @@ class PageController extends BaseController
                 
                 if ($template) {
                     $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+                    $templateSettings = $this->normalizeTemplateSettings($templateSettings);
                 } else {
                     // No template found, use basic grid fallback
                     $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
@@ -185,6 +214,7 @@ class PageController extends BaseController
                 $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
             } else {
                 $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+                $templateSettings = $this->normalizeTemplateSettings($templateSettings);
             }
         }
 
@@ -367,34 +397,28 @@ class PageController extends BaseController
 
         // Enrich images with metadata and build PhotoSwipe-compatible data
         foreach ($images as &$image) {
-            // Get best variant for gallery grid  
+            // Choose best public variant for both grid and lightbox (largest available)
             $bestUrl = $image['original_path'];
             $lightboxUrl = $image['original_path'];
-            
             try {
-                $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
-                $v->execute([':id' => $image['id']]);
-                $vr = $v->fetch();
-                if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
-                
-                // Get highest quality for lightbox
-                $lv = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') ORDER BY CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 ELSE 9 END, width DESC LIMIT 1");
-                $lv->execute([':id' => $image['id']]);
-                $lvr = $lv->fetch();
-                if ($lvr && !empty($lvr['path']) && !str_starts_with((string)$lvr['path'], '/storage/')) {
-                    $lightboxUrl = $lvr['path'];
-                }
+                // Grid: prefer largest public variant (format priority avif > webp > jpg)
+                $vg = $pdo->prepare("SELECT path, width, height FROM image_variants 
+                    WHERE image_id = :id AND path NOT LIKE '/storage/%' 
+                    ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
+                $vg->execute([':id' => $image['id']]);
+                if ($vgr = $vg->fetch()) { if (!empty($vgr['path'])) { $bestUrl = $vgr['path']; } }
+
+                // Lightbox: same rule, ensure highest quality
+                $vl = $pdo->prepare("SELECT path FROM image_variants 
+                    WHERE image_id = :id AND path NOT LIKE '/storage/%' 
+                    ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
+                $vl->execute([':id' => $image['id']]);
+                if ($vlr = $vl->fetch()) { if (!empty($vlr['path'])) { $lightboxUrl = $vlr['path']; } }
             } catch (\Throwable $e) {
                 error_log('Error fetching image variants: ' . $e->getMessage());
             }
-
-            // Ensure we never leak /storage/originals
-            if (str_starts_with((string)$bestUrl, '/storage/')) {
-                $bestUrl = $image['original_path'];
-            }
-            if (str_starts_with((string)$lightboxUrl, '/storage/')) {
-                $lightboxUrl = $image['original_path'];
-            }
+            // Final fallback: if still pointing to /storage, use grid URL
+            if (str_starts_with((string)$lightboxUrl, '/storage/')) { $lightboxUrl = $bestUrl; }
 
             // Build enhanced caption with equipment and location info
             $equipBits = [];
@@ -425,11 +449,22 @@ class PageController extends BaseController
                 $captionHtml .= '<div class="flex flex-wrap gap-x-3 gap-y-1 justify-center text-sm">' . implode(' ', array_map(fn($x)=>'<span class="inline-flex items-center">'.$x.'</span>', $equipBits)) . '</div>';
             }
 
+            // Build responsive sources for <picture>
+            $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
+            foreach (($image['variants'] ?? []) as $v) {
+                if (!isset($sources[$v['format']])) continue;
+                if (!empty($v['path']) && !str_starts_with((string)$v['path'], '/storage/')) {
+                    $sources[$v['format']][] = $v['path'] . ' ' . (int)$v['width'] . 'w';
+                }
+            }
+
             // Update image data for PhotoSwipe compatibility
             $image['url'] = $bestUrl;
             $image['lightbox_url'] = $lightboxUrl;
             $image['caption_html'] = $captionHtml;
             $image['alt'] = $image['alt_text'] ?: $album['title'];
+            $image['sources'] = $sources;
+            $image['fallback_src'] = $lightboxUrl ?: $bestUrl;
         }
 
         // Gallery meta mapped from album for consistency with gallery view

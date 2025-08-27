@@ -1183,11 +1183,11 @@
                         pswpModule: PhotoSwipe,
                         
                         // Modern image sizing and layout
-                        bgOpacity: 0.9,
-                        spacing: 0.12, // 12% spacing between slides for modern look
-                        allowPanToNext: true,
+                        bgOpacity: (typeof psCfg.bgOpacity === 'number') ? psCfg.bgOpacity : 0.9,
+                        spacing: (typeof psCfg.spacing === 'number') ? psCfg.spacing : 0.12,
+                        allowPanToNext: !!psCfg.allowPanToNext,
                         loop: !!psCfg.loop,
-                        wheelToZoom: true,
+                        wheelToZoom: !!psCfg.zoom,
                         pinchToClose: true,
                         closeOnVerticalDrag: true,
                         
@@ -1212,9 +1212,9 @@
                         preload: [1, 2],
                         preloaderDelay: 800,
                         
-                        // Better accessibility
-                        escKey: true,
-                        arrowKeys: true,
+                        // Better accessibility (template-controlled)
+                        escKey: (psCfg.escKey === undefined ? true : !!psCfg.escKey),
+                        arrowKeys: (psCfg.arrowKeys === undefined ? true : !!psCfg.arrowKeys),
                         trapFocus: true,
                         returnFocus: true,
                         
@@ -1232,7 +1232,7 @@
                             };
                         },
                         
-                        // Enhanced UI with icons
+                        // Enhanced UI with icons (share/counter driven by template)
                         closeTitle: 'Chiudi (Esc)',
                         zoomTitle: 'Zoom',
                         arrowPrevTitle: '← Precedente',
@@ -1327,11 +1327,12 @@
                             }
                         });
                         
-                        // Share button  
+                        // Share button (toggle by template)
                         lb.pswp.ui.registerElement({
                             name: 'share-button', order: 6, isButton: true, appendTo: 'bar',
                             html: '<i class="fa-solid fa-share"></i>',
                             onInit: (el, pswp) => {
+                                if (psCfg.share === false) { el.style.display = 'none'; return; }
                                 el.setAttribute('title', 'Condividi');
                                 el.style.cssText = 'color: white; padding: 8px 12px; margin-left: 4px;';
                                 el.onclick = async () => {
@@ -1357,6 +1358,13 @@
                         });
                     });
                     lb.init();
+                    // Hide counter if disabled in template
+                    if (psCfg.counter === false) {
+                        try {
+                            const counterEl = document.querySelector('.pswp__counter');
+                            if (counterEl) counterEl.style.display = 'none';
+                        } catch(e) {}
+                    }
                     window.__pswpLightbox = lb;
                 }
             }).catch((err)=>{

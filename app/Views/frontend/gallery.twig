@@ -69,37 +69,15 @@
   {% set layout = template_settings.layout|default('grid') %}
   {% set masonry = template_settings.masonry|default(false) %}
   
-  {# Handle potentially nested columns structure #}
+  {# Usa direttamente la struttura semplificata #}
   {% set cols = template_settings.columns is defined ? template_settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
   
-  {# Extract desktop columns - handle nested structure #}
-  {% if cols.desktop is iterable and cols.desktop.desktop is defined %}
-    {% set desktop_cols = cols.desktop.desktop %}
-  {% elseif cols.desktop is defined %}
-    {% set desktop_cols = cols.desktop %}
-  {% else %}
-    {% set desktop_cols = 3 %}
-  {% endif %}
+  {# Estrai direttamente i valori #}
+  {% set desktop_cols = cols.desktop %}
+  {% set tablet_cols = cols.tablet %}
+  {% set mobile_cols = cols.mobile %}
   
-  {# Extract tablet columns - handle nested structure #}
-  {% if cols.tablet is iterable and cols.tablet.tablet is defined %}
-    {% set tablet_cols = cols.tablet.tablet %}
-  {% elseif cols.tablet is defined %}
-    {% set tablet_cols = cols.tablet %}
-  {% else %}
-    {% set tablet_cols = 2 %}
-  {% endif %}
-  
-  {# Extract mobile columns - handle nested structure #}
-  {% if cols.mobile is iterable and cols.mobile.mobile is defined %}
-    {% set mobile_cols = cols.mobile.mobile %}
-  {% elseif cols.mobile is defined %}
-    {% set mobile_cols = cols.mobile %}
-  {% else %}
-    {% set mobile_cols = 1 %}
-  {% endif %}
-  
-  {# Ensure values are numbers #}
+  {# Assicurati che siano numeri #}
   {% set desktop_cols = desktop_cols|round %}
   {% set tablet_cols = tablet_cols|round %}
   {% set mobile_cols = mobile_cols|round %}
@@ -110,7 +88,7 @@
     <div class="flex justify-end">
       <div class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm">
         {% for template in available_templates %}
-        <a class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" href="{{ base_path }}/album/{{ album_ref }}?template={{ template.id }}" title="{{ template.name }}">
+        <button type="button" class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" title="{{ template.name }}" aria-label="{{ template.name }}">
           {% if template.settings.layout == 'masonry_fit' %}
             <i class="fas fa-expand-arrows-alt"></i>
           {% elseif template.settings.layout == 'slideshow' and 'swiper' in template.libs %}
@@ -129,7 +107,7 @@
             <i class="fas fa-expand"></i>
           {% elseif template.settings.layout == 'grid' %}
             {% if template.settings.masonry %}
-              <i class="fas fa-th-large"></i>
+              <i class="fas fa-grip-vertical"></i>
             {% else %}
               {% set tpl_desktop_cols = template.settings.columns.desktop|default(3) %}
               {% if tpl_desktop_cols <= 2 %}
@@ -137,7 +115,7 @@
               {% elseif tpl_desktop_cols == 3 %}
                 <i class="fas fa-th"></i>
               {% elseif tpl_desktop_cols >= 5 %}
-                <i class="fas fa-border-all"></i>
+                <i class="fas fa-grip-horizontal"></i>
               {% else %}
                 <i class="fas fa-th"></i>
               {% endif %}
@@ -145,12 +123,70 @@
           {% else %}
             <i class="fas fa-th"></i>
           {% endif %}
-        </a>
+        </button>
         {% endfor %}
       </div>
     </div>
   </div>
   {% endif %}
+
+  <script>
+  (function(){
+    try {
+      var basePath = '{{ base_path }}';
+      var albumRef = '{{ album_ref }}';
+      var buttons = document.querySelectorAll('.tpl-switch');
+      if (!buttons || buttons.length === 0) return;
+      buttons.forEach(function(btn){
+        btn.addEventListener('click', function(ev){
+          ev.preventDefault();
+          if (btn.dataset.switchInProgress === '1') return;
+          btn.dataset.switchInProgress = '1';
+          var id = btn.getAttribute('data-template-id');
+          var el = document.getElementById('images-gallery');
+          if (!id || !el) { delete btn.dataset.switchInProgress; return; }
+          document.querySelectorAll('.tpl-switch').forEach(function(b){ b.classList.remove('bg-black','text-white'); b.classList.add('text-neutral-700','hover:bg-neutral-100'); });
+          btn.classList.remove('text-neutral-700','hover:bg-neutral-100'); btn.classList.add('bg-black','text-white');
+          var url = basePath + '/api/gallery/template?album=' + encodeURIComponent(albumRef) + '&template=' + encodeURIComponent(id);
+          fetch(url, { headers: { 'Accept':'text/html','X-Requested-With':'XMLHttpRequest' }})
+            .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+            .then(function(html){
+              el.innerHTML = html;
+              var m = html.match(/window\.templateSettings\s*=\s*({[\s\S]*?});/);
+              var s = m ? JSON.parse(m[1]) : {};
+              window.templateSettings = s;
+              var layout = s.layout || 'grid';
+              el.className = '';
+              if (layout === 'slideshow') {
+                el.className = 'swiper slideshow-pro max-w-6xl mx-auto';
+              } else if (layout === 'fullscreen') {
+                el.className = 'grid grid-cols-1 lg:grid-cols-2 gap-2';
+              } else if (s.masonry) {
+                el.className = 'masonry-grid';
+              } else {
+                var d = Math.round((s.columns && s.columns.desktop) || 3);
+                var t = Math.round((s.columns && s.columns.tablet) || 2);
+                var mcols = Math.round((s.columns && s.columns.mobile) || 1);
+                function cls(prefix, n){
+                  if (n >= 6) return (prefix?prefix+':':'') + 'grid-cols-6';
+                  if (n == 5) return (prefix?prefix+':':'') + 'grid-cols-5';
+                  if (n == 4) return (prefix?prefix+':':'') + 'grid-cols-4';
+                  if (n == 3) return (prefix?prefix+':':'') + 'grid-cols-3';
+                  if (n == 2) return (prefix?prefix+':':'') + 'grid-cols-2';
+                  return (prefix?prefix+':':'') + 'grid-cols-1';
+                }
+                el.className = 'grid ' + cls('', mcols) + ' ' + cls('md', t) + ' ' + cls('lg', d) + ' gap-4';
+              }
+              history.pushState(null, '', basePath + '/album/' + albumRef + '?template=' + id);
+              if (typeof initLightbox === 'function') { try { initLightbox(); } catch(e) {} }
+            })
+            .catch(function(err){ console.error(err); })
+            .finally(function(){ delete btn.dataset.switchInProgress; });
+        });
+      });
+    } catch(e) { console.error(e); }
+  })();
+  </script>
 
   {# 1. MASONRY FIT - Rispetta proporzioni originali #}
   {% if layout == 'masonry_fit' %}
@@ -336,7 +372,18 @@
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
-          <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
+          <picture>
+            {% if image.sources and image.sources.avif|length %}
+              <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+            {% endif %}
+            {% if image.sources and image.sources.webp|length %}
+              <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+            {% endif %}
+            {% if image.sources and image.sources.jpg|length %}
+              <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+            {% endif %}
+            <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+          </picture>
         </a>
       </div>
       {% endfor %}
@@ -518,7 +565,8 @@ function initializeGalleryLayout() {
   }, 100);
 }
 
-// Template switcher functionality
+// Template switcher functionality (bind after DOM ready)
+window.addEventListener('DOMContentLoaded', function() {
 document.querySelectorAll('.tpl-switch')?.forEach(a => {
   a.addEventListener('click', (e) => {
     e.preventDefault();
@@ -558,11 +606,12 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
     a.classList.remove('text-neutral-700', 'hover:bg-neutral-100');
     a.classList.add('bg-black', 'text-white');
     
-    // Build the AJAX URL for fetching only the gallery content using SEO-friendly format
-    const urlPath = url.pathname; // e.g., "/album/street-photography-portfolio"
+    // Build the AJAX URL for fetching only the gallery content
+    // Use the gallery API endpoint that handles template normalization properly
+    const urlPath = url.pathname; // e.g., "/album/street-photography-portfolio"  
     const albumSlug = urlPath.split('/').pop(); // Extract "street-photography-portfolio"
-    const fetchUrl = `${window.basePath}/api/album/${albumSlug}/template?template=${templateId}`;
-    console.log('Fetching from SEO-friendly URL:', fetchUrl);
+    const fetchUrl = `${window.basePath}/api/gallery/template?album=${albumSlug}&template=${templateId}`;
+    console.log('Fetching from gallery template API:', fetchUrl);
     
     // Fetch the full page and extract the gallery content
     fetch(fetchUrl, {
@@ -621,7 +670,8 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
       
       // Apply new layout classes based on template
       if (newLayout === 'slideshow') {
-        galleryContainer.className = 'swiper gallery-swiper max-w-4xl mx-auto';
+        // Keep class names consistent with initial render to ensure Swiper init
+        galleryContainer.className = 'swiper slideshow-pro max-w-6xl mx-auto';
         // For slideshow, we need to wrap the content in a swiper structure
         // The AJAX response already contains swiper-wrapper content
       } else if (newLayout === 'fullscreen') {
@@ -629,41 +679,25 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
       } else if (newMasonry) {
         galleryContainer.className = 'masonry-grid';
       } else {
-        // Regular grid layout - apply column classes exactly like original template
+        // Regular grid layout - apply column classes with simplified structure
         const cols = window.templateSettings?.columns || {desktop: 3, tablet: 2, mobile: 1};
         
         console.log('=== GRID CLASS GENERATION ===');
         console.log('Columns from template settings:', cols);
         
-        // Extract column values (handle nested structure like original)
-        let desktop_cols = 3, tablet_cols = 2, mobile_cols = 1;
+        // Extract column values directly (simplified structure)
+        let desktop_cols = cols.desktop || 3;
+        let tablet_cols = cols.tablet || 2;
+        let mobile_cols = cols.mobile || 1;
         
-        if (cols.desktop && typeof cols.desktop === 'object' && cols.desktop.desktop) {
-          desktop_cols = cols.desktop.desktop;
-        } else if (cols.desktop) {
-          desktop_cols = cols.desktop;
-        }
-        
-        if (cols.tablet && typeof cols.tablet === 'object' && cols.tablet.tablet) {
-          tablet_cols = cols.tablet.tablet;
-        } else if (cols.tablet) {
-          tablet_cols = cols.tablet;
-        }
-        
-        if (cols.mobile && typeof cols.mobile === 'object' && cols.mobile.mobile) {
-          mobile_cols = cols.mobile.mobile;
-        } else if (cols.mobile) {
-          mobile_cols = cols.mobile;
-        }
-        
-        // Ensure values are numbers (like original)
+        // Ensure values are numbers
         desktop_cols = Math.round(desktop_cols);
         tablet_cols = Math.round(tablet_cols);
         mobile_cols = Math.round(mobile_cols);
         
         console.log('Extracted columns - Desktop:', desktop_cols, 'Tablet:', tablet_cols, 'Mobile:', mobile_cols);
         
-        // Build grid classes exactly like the original template
+        // Build grid classes
         let mobile_class = 'grid-cols-1';
         if (mobile_cols == 2) mobile_class = 'grid-cols-2';
         else if (mobile_cols == 3) mobile_class = 'grid-cols-3';
@@ -779,5 +813,76 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
       alert(errorMsg);
     });
   });
+  });
+});
+
+// Fallback: delegated handler to intercept clicks even if buttons are re-rendered
+// HARD INTERCEPT: handle both <button.tpl-switch> and <a.tpl-switch>
+document.addEventListener('click', function(event) {
+  const el = event.target.closest('.tpl-switch');
+  if (!el) return;
+  // Block native navigation for anchors
+  if (el.tagName === 'A') event.preventDefault();
+  if (el.dataset.switchInProgress === '1') return;
+  el.dataset.switchInProgress = '1';
+
+  const galleryContainer = document.getElementById('images-gallery');
+  const templateId = el.getAttribute('data-template-id') || (el.tagName === 'A' ? (new URL(el.href, window.location.origin)).searchParams.get('template') : '');
+  const albumRef = el.getAttribute('data-album-ref') || window.location.pathname.split('/').pop();
+  if (!galleryContainer || !templateId || !albumRef) { delete el.dataset.switchInProgress; return; }
+
+  const originalContent = galleryContainer.innerHTML;
+  galleryContainer.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div></div>';
+
+  document.querySelectorAll('.tpl-switch').forEach(btn => {
+    btn.classList.remove('bg-black', 'text-white');
+    btn.classList.add('text-neutral-700', 'hover:bg-neutral-100');
+  });
+  el.classList.remove('text-neutral-700', 'hover:bg-neutral-100');
+  el.classList.add('bg-black', 'text-white');
+
+  const fetchUrl = `${window.basePath}/api/gallery/template?album=${encodeURIComponent(albumRef)}&template=${encodeURIComponent(templateId)}`;
+  fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(html => {
+      galleryContainer.style.opacity = '0';
+      galleryContainer.innerHTML = html;
+      const m = html.match(/window\.templateSettings\s*=\s*({[\s\S]*?});/);
+      if (m) { try { window.templateSettings = JSON.parse(m[1]); } catch(e) { console.error(e); } }
+      const newLayout = window.templateSettings?.layout || 'grid';
+      const newMasonry = !!window.templateSettings?.masonry;
+      const idKeep = galleryContainer.id;
+      galleryContainer.className = '';
+      if (newLayout === 'slideshow') {
+        galleryContainer.className = 'swiper slideshow-pro max-w-6xl mx-auto';
+      } else if (newLayout === 'fullscreen') {
+        galleryContainer.className = 'grid grid-cols-1 lg:grid-cols-2 gap-2';
+      } else if (newMasonry) {
+        galleryContainer.className = 'masonry-grid';
+      } else {
+        const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
+        let d = Math.round(cols.desktop || 3), t = Math.round(cols.tablet || 2), m = Math.round(cols.mobile || 1);
+        const mc = m>=6?'grid-cols-6':m==5?'grid-cols-5':m==4?'grid-cols-4':m==3?'grid-cols-3':m==2?'grid-cols-2':'grid-cols-1';
+        const tc = t>=6?'md:grid-cols-6':t==5?'md:grid-cols-5':t==4?'md:grid-cols-4':t==3?'md:grid-cols-3':t==2?'md:grid-cols-2':'md:grid-cols-1';
+        const dc = d>=6?'lg:grid-cols-6':d==5?'lg:grid-cols-5':d==4?'lg:grid-cols-4':d==3?'lg:grid-cols-3':d==2?'lg:grid-cols-2':'lg:grid-cols-1';
+        galleryContainer.className = `grid ${mc} ${tc} ${dc} gap-4`;
+      }
+      galleryContainer.id = idKeep;
+      const newUrl = `${window.basePath}/album/${albumRef}?template=${templateId}`;
+      history.pushState(null, '', newUrl);
+      setTimeout(() => {
+        if (typeof initLightbox === 'function') initLightbox();
+        if (window.gallerySwiper?.destroy) { window.gallerySwiper.destroy(true, true); window.gallerySwiper = null; }
+        if (window.galleryMasonry?.destroy) { window.galleryMasonry.destroy(); window.galleryMasonry = null; }
+        initializeGalleryLayout();
+        setTimeout(() => { galleryContainer.style.opacity = '1'; galleryContainer.style.transition = 'none'; }, 50);
+      }, 50);
+    })
+    .catch(err => {
+      console.error('Template switch failed', err);
+      galleryContainer.innerHTML = originalContent;
+      galleryContainer.style.opacity = '1';
+    })
+    .finally(() => { delete el.dataset.switchInProgress; });
 });
 {% endblock %}

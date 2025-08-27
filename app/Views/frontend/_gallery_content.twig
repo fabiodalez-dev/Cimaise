@@ -40,13 +40,24 @@
   <div class="swiper-wrapper">
     {% for image in images %}
     <div class="swiper-slide">
-      <a href="{{ image.lightbox_url|default(image.url) }}" 
-         class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
-         data-pswp-width="{{ image.width|default(1600) }}"
-         data-pswp-height="{{ image.height|default(1067) }}"
-         data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
-        <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover">
-      </a>
+    <a href="{{ image.lightbox_url|default(image.url) }}" 
+       class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
+       data-pswp-width="{{ image.width|default(1600) }}"
+       data-pswp-height="{{ image.height|default(1067) }}"
+       data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
+      <picture>
+        {% if image.sources.avif|length %}
+          <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+        {% endif %}
+        {% if image.sources.webp|length %}
+          <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+        {% endif %}
+        {% if image.sources.jpg|length %}
+          <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+        {% endif %}
+        <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+      </picture>
+    </a>
     </div>
     {% endfor %}
   </div>
@@ -61,7 +72,18 @@
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
        data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
-      <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
+      <picture>
+        {% if image.sources.avif|length %}
+          <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+        {% endif %}
+        {% if image.sources.webp|length %}
+          <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+        {% endif %}
+        {% if image.sources.jpg|length %}
+          <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+        {% endif %}
+        <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+      </picture>
     </a>
   </div>
   {% endfor %}
@@ -73,7 +95,18 @@
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
        data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
-      <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover">
+      <picture>
+        {% if image.sources.avif|length %}
+          <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+        {% endif %}
+        {% if image.sources.webp|length %}
+          <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+        {% endif %}
+        {% if image.sources.jpg|length %}
+          <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+        {% endif %}
+        <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover" loading="lazy" decoding="async">
+      </picture>
     </a>
   </div>
   {% endfor %}
@@ -86,7 +119,18 @@
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
        data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}<div class='mt-2 text-sm text-gray-300'>{% if image.custom_camera or image.camera_name %}<i class='fas fa-camera mr-1'></i>{{ image.custom_camera|default(image.camera_name)|e }}{% endif %}{% if image.custom_lens or image.lens_name %} <i class='fas fa-dot-circle mr-1'></i>{{ image.custom_lens|default(image.lens_name)|e }}{% endif %}{% if image.custom_film or image.film_name %} <i class='fas fa-film mr-1'></i>{{ image.custom_film|default(image.film_name)|e }}{% endif %}{% if image.location_name %} <i class='fas fa-map-marker-alt mr-1'></i>{{ image.location_name|e }}{% endif %}</div>{% endif %}">
-      <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover">
+      <picture>
+        {% if image.sources.avif|length %}
+          <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+        {% endif %}
+        {% if image.sources.webp|length %}
+          <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+        {% endif %}
+        {% if image.sources.jpg|length %}
+          <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+        {% endif %}
+        <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+      </picture>
     </a>
   </div>
   {% endfor %}

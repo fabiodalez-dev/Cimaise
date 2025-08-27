@@ -174,25 +174,102 @@ class UploadService
         ]);
         $imageId = (int)$pdo->lastInsertId();
 
-        // Minimal preview variant
+        // Generate preview and full variants set
         $mediaDir = dirname(__DIR__, 2) . '/public/media';
         ImagesService::ensureDir($mediaDir);
-        // get preview width from settings
         $settings = new \App\Services\SettingsService($this->db);
+        $formats = (array)$settings->get('image.formats');
+        $quality = (array)$settings->get('image.quality');
+        $breakpoints = (array)$settings->get('image.breakpoints');
+
         $previewW = (int)($settings->get('image.preview')['width'] ?? 480);
         $previewPath = $mediaDir . '/' . $imageId . '_sm.jpg';
         $preview = ImagesService::generateJpegPreview($dest, $previewPath, $previewW);
         if ($preview) {
-            $relFs = str_replace(dirname(__DIR__, 2), '', $preview); // e.g. /public/media/1_sm.jpg
-            $relUrl = preg_replace('#^/public#','', $relFs); // e.g. /media/1_sm.jpg
-            $pdo->prepare('INSERT INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
+            $relFs = str_replace(dirname(__DIR__, 2), '', $preview);
+            $relUrl = preg_replace('#^/public#','', $relFs);
+            $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
                 ->execute([$imageId,'sm','jpg',$relUrl,$previewW,0, (int)filesize($preview)]);
             $previewRel = $relUrl;
         } else {
             $previewRel = null;
         }
 
+        // Generate all configured variants
+        $haveImagick = class_exists(\Imagick::class);
+        foreach ($breakpoints as $variant => $targetW) {
+            $targetW = (int)$targetW;
+            foreach (['avif','webp','jpg'] as $fmt) {
+                if (empty($formats[$fmt])) continue;
+                $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
+                $destPath = dirname(__DIR__, 2) . '/public' . $destRelUrl;
+                if ($fmt === 'jpg' && $variant === 'sm' && is_file($destPath)) continue;
+                @mkdir(dirname($destPath), 0775, true);
+                $ok = false;
+                if ($fmt === 'jpg') {
+                    $ok = $this->resizeWithImagickOrGd($dest, $destPath, $targetW, 'jpeg', (int)($quality['jpg'] ?? 85));
+                } elseif ($fmt === 'webp' && $haveImagick) {
+                    $ok = $this->resizeWithImagick($dest, $destPath, $targetW, 'webp', (int)($quality['webp'] ?? 75));
+                } elseif ($fmt === 'avif' && $haveImagick) {
+                    $ok = $this->resizeWithImagick($dest, $destPath, $targetW, 'avif', (int)($quality['avif'] ?? 50));
+                }
+                if ($ok && is_file($destPath)) {
+                    $size = (int)filesize($destPath);
+                    [$vw, $vh] = getimagesize($destPath) ?: [$targetW, 0];
+                    $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
+                        ->execute([$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, (int)$vh, $size]);
+                }
+            }
+        }
+
         return ['id'=>$imageId,'path'=>$dest,'mime'=>$mime,'width'=>$width,'height'=>$height,'preview_url'=>$previewRel];
+    }
+
+    private function resizeWithImagick(string $src, string $dest, int $targetW, string $format, int $quality): bool
+    {
+        try {
+            $im = new \Imagick($src);
+            $im->setImageColorspace(\Imagick::COLORSPACE_RGB);
+            $im->setInterlaceScheme(\Imagick::INTERLACE_JPEG);
+            $im->thumbnailImage($targetW, 0);
+            $im->setImageFormat($format);
+            if ($format === 'webp' || $format === 'jpeg') {
+                $im->setImageCompressionQuality($quality);
+            } elseif ($format === 'avif') {
+                $im->setOption('heic:quality', (string)$quality);
+            }
+            @mkdir(dirname($dest), 0775, true);
+            $ok = $im->writeImage($dest);
+            $im->clear();
+            return (bool)$ok;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function resizeWithImagickOrGd(string $src, string $dest, int $targetW, string $format, int $quality): bool
+    {
+        if (class_exists(\Imagick::class)) {
+            return $this->resizeWithImagick($src, $dest, $targetW, $format, $quality);
+        }
+        // GD fallback JPEG only
+        $info = @getimagesize($src);
+        if (!$info) return false;
+        [$w, $h] = $info;
+        $ratio = $h > 0 ? $w / $h : 1;
+        $newW = $targetW; $newH = (int)round($targetW / $ratio);
+        $srcImg = match ($info['mime'] ?? '') {
+            'image/jpeg' => @imagecreatefromjpeg($src),
+            'image/png' => @imagecreatefrompng($src),
+            default => null,
+        };
+        if (!$srcImg) return false;
+        $dst = imagecreatetruecolor($newW, $newH);
+        imagecopyresampled($dst, $srcImg, 0,0,0,0, $newW,$newH, $w,$h);
+        @mkdir(dirname($dest), 0775, true);
+        $ok = imagejpeg($dst, $dest, $quality);
+        imagedestroy($srcImg); imagedestroy($dst);
+        return (bool)$ok;
     }
     
     /**

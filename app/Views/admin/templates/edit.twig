@@ -58,10 +58,10 @@
             <h3 class="text-md font-medium text-gray-800 mb-3">Colonne per Dispositivo</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               {% set cols = item.settings.columns is defined ? item.settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
-              {# Handle potentially nested columns structure #}
-              {% set desktop_cols = cols.desktop is iterable and cols.desktop.desktop is defined ? cols.desktop.desktop : cols.desktop %}
-              {% set tablet_cols = cols.tablet is iterable and cols.tablet.tablet is defined ? cols.tablet.tablet : cols.tablet %}
-              {% set mobile_cols = cols.mobile is iterable and cols.mobile.mobile is defined ? cols.mobile.mobile : cols.mobile %}
+              {# Usiamo direttamente i valori semplici #}
+              {% set desktop_cols = cols.desktop %}
+              {% set tablet_cols = cols.tablet %}
+              {% set mobile_cols = cols.mobile %}
               
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
