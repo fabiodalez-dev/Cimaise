@@ -197,8 +197,32 @@
            class="pswp-link image-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
-          <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-auto object-contain" style="aspect-ratio: var(--aspect-ratio)">
+           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
+           data-title="{{ image.caption|default('')|e }}"
+           data-alt="{{ image.alt|default('')|e }}"
+           data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
+           data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
+           data-developer="{{ image.developer_name|default('')|e }}"
+           data-lab="{{ image.lab_name|default('')|e }}"
+           data-location="{{ image.location_name|default('')|e }}"
+           data-iso="{{ image.iso|default('') }}"
+           data-shutter="{{ image.shutter_speed|default('')|e }}"
+           data-aperture="{{ image.aperture|default('') }}"
+           data-process="{{ image.process|default('')|e }}"
+        >
+          <picture>
+            {% if image.sources and image.sources.avif|length %}
+              <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+            {% endif %}
+            {% if image.sources and image.sources.webp|length %}
+              <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+            {% endif %}
+            {% if image.sources and image.sources.jpg|length %}
+              <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+            {% endif %}
+            <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-auto object-contain" style="aspect-ratio: var(--aspect-ratio)" loading="lazy" decoding="async">
+          </picture>
         </a>
       </div>
       {% endfor %}
@@ -215,8 +239,32 @@
                class="pswp-link image-item block h-[70vh] bg-neutral-100 rounded-xl overflow-hidden flex items-center justify-center"
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
-               data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
-              <img src="{{ image.url }}" alt="{{ image.alt|default('Image')|e }}" class="max-w-full max-h-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};">
+               data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
+               data-title="{{ image.caption|default('')|e }}"
+               data-alt="{{ image.alt|default('')|e }}"
+               data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
+               data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+               data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
+               data-developer="{{ image.developer_name|default('')|e }}"
+               data-lab="{{ image.lab_name|default('')|e }}"
+               data-location="{{ image.location_name|default('')|e }}"
+               data-iso="{{ image.iso|default('') }}"
+               data-shutter="{{ image.shutter_speed|default('')|e }}"
+               data-aperture="{{ image.aperture|default('') }}"
+               data-process="{{ image.process|default('')|e }}"
+            >
+              <picture>
+                {% if image.sources and image.sources.avif|length %}
+                  <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+                {% endif %}
+                {% if image.sources and image.sources.webp|length %}
+                  <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+                {% endif %}
+                {% if image.sources and image.sources.jpg|length %}
+                  <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+                {% endif %}
+                <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|default('Image')|e }}" class="max-w-full max-h-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};" loading="lazy" decoding="async">
+              </picture>
             </a>
             {% if image.caption %}
             <div class="absolute bottom-4 left-4 right-4 bg-black/70 text-white p-4 rounded-lg backdrop-blur-sm">
@@ -255,9 +303,33 @@
            class="pswp-link image-item block aspect-square bg-neutral-50 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
+           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
+           data-title="{{ image.caption|default('')|e }}"
+           data-alt="{{ image.alt|default('')|e }}"
+           data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
+           data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
+           data-developer="{{ image.developer_name|default('')|e }}"
+           data-lab="{{ image.lab_name|default('')|e }}"
+           data-location="{{ image.location_name|default('')|e }}"
+           data-iso="{{ image.iso|default('') }}"
+           data-shutter="{{ image.shutter_speed|default('')|e }}"
+           data-aperture="{{ image.aperture|default('') }}"
+           data-process="{{ image.process|default('')|e }}"
+        >
           <div class="relative w-full h-full">
-            <img src="{{ image.url }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+            <picture>
+              {% if image.sources and image.sources.avif|length %}
+                <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+              {% endif %}
+              {% if image.sources and image.sources.webp|length %}
+                <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+              {% endif %}
+              {% if image.sources and image.sources.jpg|length %}
+                <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+              {% endif %}
+              <img src="{{ image.fallback_src|default(image.url) }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async">
+            </picture>
             <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
         </a>
