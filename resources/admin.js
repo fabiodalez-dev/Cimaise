@@ -469,6 +469,7 @@ function cleanupExistingInstances() {
     
     document.querySelectorAll('#images-grid').forEach(el => {
       delete el._sortableInstance;
+      delete el._gridButtonsBound;
     });
     
     // Detach Uppy click handlers and remove hidden inputs to prevent double dialogs
@@ -479,7 +480,8 @@ function cleanupExistingInstances() {
           delete el._uppyClickHandler;
         }
         el.querySelectorAll('input[type="file"].uppy-input').forEach(inp => inp.remove());
-        // Do not delete _uppyInitialized here to avoid duplicate re-inits on the same element
+        // Allow re-init on the next AdminInit pass
+        delete el._uppyInitialized;
       } catch(e) {
         console.warn('Cleanup Uppy click/input failed:', e);
       }
@@ -625,10 +627,8 @@ window.refreshGalleryArea = refreshGalleryArea;
 // Expose rebindImageModalHandlers globally to prevent tree-shaking
 window.rebindImageModalHandlers = rebindImageModalHandlers;
 
-// Ensure all initializers run on first load (not only SPA swaps)
-document.addEventListener('DOMContentLoaded', () => {
-  try { window.AdminInit(); } catch(e) { console.error(e); }
-});
+// SPA layout is responsible for calling AdminInit on initial load and swaps.
+// Avoid calling AdminInit here to prevent double-initialization.
 
 // Media library modal on album edit page
 function initMediaModalOnEdit() {
@@ -750,30 +750,50 @@ async function refreshGalleryArea() {
 
 function bindGridButtons() {
   const grid = document.getElementById('images-grid');
-  if (!grid) return;
-  const csrf = document.querySelector('input[name="csrf"]')?.value || '';
-  const albumId = grid.dataset.albumId;
-  // Cover
-  grid.querySelectorAll('[data-cover-id]')?.forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = btn.getAttribute('data-cover-id');
-      await fetch(`${window.basePath}/admin/albums/${albumId}/cover/${id}`, { method:'POST', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }});
-      refreshGalleryArea();
-    });
-  });
-  // Delete
-  grid.querySelectorAll('[data-delete-id]')?.forEach(btn => {
-    btn.addEventListener('click', async () => {
+  if (!grid || grid._gridButtonsBound) return;
+  grid._gridButtonsBound = true;
+  
+  grid.addEventListener('click', async (e) => {
+    const csrf = document.querySelector('input[name="csrf"]')?.value || '';
+    const albumId = grid.dataset.albumId;
+    const coverBtn = e.target.closest('[data-cover-id]');
+    const delBtn = e.target.closest('[data-delete-id]');
+
+    if (coverBtn) {
+      e.preventDefault(); e.stopPropagation();
+      const id = coverBtn.getAttribute('data-cover-id');
+      try {
+        const res = await fetch(`${window.basePath || ''}/admin/albums/${albumId}/cover/${id}`, { method:'POST', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }});
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (window.refreshGalleryArea) await window.refreshGalleryArea();
+        if (window.showToast) window.showToast('Cover impostata', 'success');
+      } catch (err) {
+        console.error('Cover set failed:', err);
+        if (window.showToast) window.showToast('Errore impostazione cover', 'error');
+      }
+      return;
+    }
+
+    if (delBtn) {
+      e.preventDefault(); e.stopPropagation();
       if(!confirm('Eliminare questa immagine?')) return;
-      const id = btn.getAttribute('data-delete-id');
-      const res = await fetch(`${window.basePath}/admin/albums/${albumId}/images/${id}/delete`, { method:'POST', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }});
-      if (res.ok) {
-        btn.closest('[data-id]')?.remove();
-        if (window.showToast) window.showToast('Immagine eliminata', '');
-      } else {
+      const id = delBtn.getAttribute('data-delete-id');
+      try {
+        const res = await fetch(`${window.basePath || ''}/admin/albums/${albumId}/images/${id}/delete`, { method:'POST', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }});
+        if (res.ok) {
+          delBtn.closest('[data-id]')?.remove();
+          if (window.refreshGalleryArea) await window.refreshGalleryArea();
+          if (window.showToast) window.showToast('Immagine eliminata', 'success');
+        } else {
+          const t = await res.text().catch(()=> '');
+          console.error('Delete failed:', res.status, t);
+          if (window.showToast) window.showToast('Errore eliminazione', 'error');
+        }
+      } catch (err) {
+        console.error('Delete request error:', err);
         if (window.showToast) window.showToast('Errore eliminazione', 'error');
       }
-    });
+    }
   });
 }
 
