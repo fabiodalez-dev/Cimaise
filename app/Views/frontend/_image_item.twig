@@ -1,4 +1,4 @@
-  <a href="{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}" 
+  <a href="{% if image.original_path starts with '/' %}{{ app_url }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}" 
      class="pswp-link image-item group block" 
      data-image-id="{{ image.id }}"
      data-pswp-width="{{ image.width }}" 
@@ -9,10 +9,10 @@
       {% set variants_avif = [] %}
       {% set variants_webp = [] %}
       {% set variants_jpg = [] %}
-      {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+      {% set best_jpg_path = image.original_path starts with '/' ? app_url ~ image.original_path : image.original_path %}
       {% set best_jpg_w = 0 %}
       {% for variant in image.variants %}
-        {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+        {% set variant_url = variant.path starts with '/' ? app_url ~ variant.path : variant.path %}
         {% if variant.format == 'avif' %}
           {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
         {% elseif variant.format == 'webp' %}
