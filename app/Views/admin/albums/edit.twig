@@ -771,9 +771,10 @@
 
     // Cover/Delete handled by Vite bundle bindGridButtons()
 
-    // Image modal logic
-    (function(){
+    // Image modal logic (moved into init function to support SPA)
+    function initImageModal() {
       const modal = document.getElementById('image-modal');
+      if (!modal || modal._initialized) return;
       const closeBtn = document.getElementById('image-modal-close');
       const cancelBtn = document.getElementById('image-cancel');
       const form = document.getElementById('image-form');
@@ -800,7 +801,7 @@
         
         // Update modal preview image
         const preview = document.getElementById('modal-preview');
-        const imgElement = imageBox.querySelector('img');
+        const imgElement = imageBox?.querySelector('img');
         if (preview && imgElement) {
           // Use the preview image src instead of original_path
           preview.src = imgElement.src;
@@ -958,13 +959,19 @@
       closeBtn?.addEventListener('click', closeModal);
       cancelBtn?.addEventListener('click', closeModal);
       
-      // Close modal with ESC key
-      document.addEventListener('keydown', function(e) {
+      // Close modal with ESC key (ensure single handler across SPA nav)
+      if (document._imageModalEscHandler) {
+        document.removeEventListener('keydown', document._imageModalEscHandler);
+      }
+      document._imageModalEscHandler = function(e) {
         if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
           closeModal();
         }
-      });
-    })();
+      };
+      document.addEventListener('keydown', document._imageModalEscHandler);
+
+      modal._initialized = true;
+    }
   </script>
   
   <script>
@@ -1110,10 +1117,7 @@
       }
     }
     
-    function initImageModal() {
-      // Image modal logic is already present above, but we ensure it's properly initialized
-      // The existing modal code will be called by the global AdminInit function
-    }
+    // initImageModal is defined above and binds all modal handlers
     
     function initSeoPreview() {
       const updateSeoPreview = () => {
