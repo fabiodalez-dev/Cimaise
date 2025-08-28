@@ -517,7 +517,7 @@
                             <div id="categories-mega-menu" class="absolute left-0 top-full mt-2 w-[720px] bg-white border border-gray-200 shadow-xl rounded-xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out">
                                 <div class="p-8">
                                     <!-- Parent Categories Grid -->
-                                    <div class="grid grid-cols-3 gap-6 mb-6" id="parent-categories-grid">
+                                    <div class="grid grid-cols-3 gap-6" id="parent-categories-grid">
                                         {% for category in parent_categories|default([]) %}
                                         <div class="group cursor-pointer category-parent-item relative" data-category-id="{{ category.id }}" data-category-slug="{{ category.slug }}" data-category-name="{{ category.name|e }}">
                                             <a href="{{ base_path }}/category/{{ category.slug }}" class="block hover:no-underline">
@@ -531,20 +531,24 @@
                                                             <i class="fas fa-folder-open text-2xl"></i>
                                                         </div>
                                                     {% endif %}
-                                                    
-                                                    <!-- Subcategories button overlay for categories with children -->
-                                                    {% if category.children|length > 0 %}
-                                                    <button class="subcategories-toggle absolute top-2 right-2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-white hover:scale-110 z-10" 
-                                                            data-category-id="{{ category.id }}" title="View subcategories">
-                                                        <i class="fas fa-list text-xs text-gray-600"></i>
-                                                    </button>
-                                                    {% endif %}
                                                 </div>
                                                 
                                                 <div class="text-center">
                                                     <h3 class="font-medium text-sm text-gray-900 group-hover:text-black transition-colors duration-200 mb-1">{{ category.name|e }}</h3>
+                                                    
+                                                    <!-- Subcategories shown as text on hover -->
                                                     {% if category.children|length > 0 %}
-                                                        <p class="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-200">
+                                                        <div class="subcategories-hover-text opacity-0 group-hover:opacity-100 transition-all duration-300 max-h-0 group-hover:max-h-32 overflow-hidden">
+                                                            <div class="text-xs text-gray-600 mt-2 space-y-1">
+                                                                {% for child in category.children|slice(0, 4) %}
+                                                                    <div class="hover:text-black transition-colors duration-150">{{ child.name|e }}</div>
+                                                                {% endfor %}
+                                                                {% if category.children|length > 4 %}
+                                                                    <div class="text-gray-400 text-xs">+{{ category.children|length - 4 }} more</div>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        <p class="text-xs text-gray-500 group-hover:opacity-0 transition-opacity duration-200">
                                                             {{ category.children|length }} {{ category.children|length == 1 ? 'subcategory' : 'subcategories' }}
                                                         </p>
                                                     {% else %}
@@ -554,21 +558,6 @@
                                             </a>
                                         </div>
                                         {% endfor %}
-                                    </div>
-                                    
-                                    <!-- Subcategories Panel (shown on parent hover/click) -->
-                                    <div id="subcategories-panel" class="border-t border-gray-100 pt-6 hidden">
-                                        <div class="flex items-center gap-3 mb-4">
-                                            <button id="back-to-parents" class="text-xs text-gray-500 hover:text-black transition-colors duration-200 flex items-center gap-1">
-                                                <i class="fas fa-arrow-left"></i> Back
-                                            </button>
-                                            <span class="text-xs text-gray-400">•</span>
-                                            <span id="current-parent-name" class="text-sm font-medium text-gray-900"></span>
-                                        </div>
-                                        
-                                        <div id="subcategories-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                            <!-- Populated by JavaScript -->
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -925,83 +914,6 @@
                 if (!isOpen) return;
                 if (!dropdown?.contains(e.target)) {
                     closeMenu();
-                }
-            });
-            
-            // Handle subcategories toggle buttons
-            menu.addEventListener('click', (e) => {
-                if (e.target.closest('.subcategories-toggle')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const button = e.target.closest('.subcategories-toggle');
-                    const categoryId = button.dataset.categoryId;
-                    const category = megaMenuData[categoryId];
-                    
-                    if (category && category.children.length > 0) {
-                        showSubcategories(categoryId);
-                    }
-                }
-            });
-            
-            // Function to show subcategories panel
-            function showSubcategories(categoryId) {
-                const category = megaMenuData[categoryId];
-                if (!category || !category.children.length) return;
-                
-                const parentGrid = document.getElementById('parent-categories-grid');
-                const subcatsPanel = document.getElementById('subcategories-panel');
-                const subcatsList = document.getElementById('subcategories-list');
-                const currentParentName = document.getElementById('current-parent-name');
-                
-                if (parentGrid && subcatsPanel && subcatsList && currentParentName) {
-                    // Hide parent grid and show subcategories
-                    parentGrid.style.display = 'none';
-                    subcatsPanel.classList.remove('hidden');
-                    
-                    // Update parent name
-                    currentParentName.textContent = category.name;
-                    
-                    // Populate subcategories
-                    subcatsList.innerHTML = category.children.map(child => 
-                        `<a href="{{ base_path }}/category/${child.slug}" class="block text-sm px-3 py-2 rounded-md hover:bg-gray-100 transition-colors duration-200">
-                            ${child.name}
-                        </a>`
-                    ).join('');
-                }
-            }
-            
-            // Back to parent categories
-            const backButton = document.getElementById('back-to-parents');
-            if (backButton) {
-                backButton.addEventListener('click', () => {
-                    const parentGrid = document.getElementById('parent-categories-grid');
-                    const subcatsPanel = document.getElementById('subcategories-panel');
-                    
-                    if (parentGrid && subcatsPanel) {
-                        parentGrid.style.display = 'grid';
-                        subcatsPanel.classList.add('hidden');
-                    }
-                });
-            }
-            
-            // Handle category image hover effects
-            menu.addEventListener('mouseenter', (e) => {
-                if (e.target.matches('.category-item')) {
-                    const img = e.target.querySelector('img');
-                    if (img) {
-                        img.style.transition = 'transform 0.3s ease';
-                        img.style.transform = 'scale(1.05)';
-                    }
-                }
-            });
-            
-            menu.addEventListener('mouseleave', (e) => {
-                if (e.target.matches('.category-item')) {
-                    const img = e.target.querySelector('img');
-                    if (img) {
-                        img.style.transform = 'scale(1)';
-                    }
                 }
             });
         })();

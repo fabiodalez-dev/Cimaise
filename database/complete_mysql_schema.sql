@@ -84,6 +84,17 @@ CREATE TABLE `albums` (
   `allow_downloads` tinyint(1) NOT NULL DEFAULT 0,
   `location_id` int(11) DEFAULT NULL,
   `sort_order` int(11) DEFAULT 0,
+  `seo_title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `seo_description` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `seo_keywords` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `og_title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `og_description` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `og_image_path` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `schema_type` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT 'ImageGallery',
+  `schema_data` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `canonical_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `robots_index` tinyint(1) DEFAULT 1,
+  `robots_follow` tinyint(1) DEFAULT 1,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -94,6 +105,8 @@ CREATE TABLE `albums` (
   KEY `idx_albums_published_at` (`published_at`),
   KEY `idx_albums_sort` (`sort_order`),
   KEY `idx_albums_template` (`template_id`),
+  KEY `idx_albums_seo_title` (`seo_title`),
+  KEY `idx_albums_robots` (`robots_index`, `robots_follow`),
   FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -338,7 +351,51 @@ INSERT INTO `settings` (`id`, `key`, `value`, `type`, `created_at`, `updated_at`
 (277, 'gallery.default_template_id', '3', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (282, 'performance.compression', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (283, 'pagination.limit', '12', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
-(284, 'cache.ttl', '24', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37');
+(284, 'cache.ttl', '24', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+
+-- SEO Settings
+(285, 'seo.site_title', 'Photography Portfolio', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(286, 'seo.site_description', 'Professional photography portfolio showcasing creative work and artistic vision', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(287, 'seo.site_keywords', 'photography, portfolio, professional photographer, creative photography', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(288, 'seo.author_name', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(289, 'seo.author_url', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(290, 'seo.organization_name', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(291, 'seo.organization_url', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(292, 'seo.og_site_name', 'Photography Portfolio', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(293, 'seo.og_type', 'website', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(294, 'seo.og_locale', 'en_US', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(295, 'seo.twitter_card', 'summary_large_image', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(296, 'seo.twitter_site', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(297, 'seo.twitter_creator', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(298, 'seo.schema_enabled', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(299, 'seo.breadcrumbs_enabled', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(300, 'seo.local_business_enabled', 'false', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(301, 'seo.local_business_name', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(302, 'seo.local_business_type', 'ProfessionalService', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(303, 'seo.local_business_address', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(304, 'seo.local_business_city', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(305, 'seo.local_business_postal_code', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(306, 'seo.local_business_country', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(307, 'seo.local_business_phone', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(308, 'seo.local_business_geo_lat', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(309, 'seo.local_business_geo_lng', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(310, 'seo.local_business_opening_hours', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(311, 'seo.photographer_job_title', 'Professional Photographer', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(312, 'seo.photographer_services', 'Professional Photography Services', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(313, 'seo.photographer_area_served', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(314, 'seo.photographer_same_as', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(315, 'seo.robots_default', 'index,follow', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(316, 'seo.canonical_base_url', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(317, 'seo.sitemap_enabled', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(318, 'seo.analytics_gtag', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(319, 'seo.analytics_gtm', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(320, 'seo.image_alt_auto', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(321, 'seo.image_copyright_notice', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(322, 'seo.image_license_url', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(323, 'seo.image_acquire_license_page', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(324, 'seo.preload_critical_images', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(325, 'seo.lazy_load_images', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(326, 'seo.structured_data_format', 'json-ld', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37');
 
 INSERT INTO `templates` (`id`, `name`, `slug`, `description`, `settings`, `libs`, `created_at`) VALUES
 (7, 'Grid Classica', 'grid-classica', 'Layout a griglia responsivo - desktop 3 colonne, tablet 2, mobile 1', '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]', '2025-08-25 14:21:20'),
@@ -350,7 +407,7 @@ INSERT INTO `templates` (`id`, `name`, `slug`, `description`, `settings`, `libs`
 
 -- Set AUTO_INCREMENT values to match the SQLite sequence
 ALTER TABLE `categories` AUTO_INCREMENT = 10;
-ALTER TABLE `settings` AUTO_INCREMENT = 285;
+ALTER TABLE `settings` AUTO_INCREMENT = 327;
 ALTER TABLE `templates` AUTO_INCREMENT = 13;
 
 -- Analytics system tables

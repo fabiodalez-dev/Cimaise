@@ -42,7 +42,7 @@
               <p class="text-gray-600 text-sm mt-1">Titolo, descrizione e contenuto dell'album</p>
             </div>
             <div class="p-6 space-y-6">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <label class="block text-sm font-medium text-black mb-2">Titolo *</label>
                   <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
@@ -163,6 +163,170 @@
               {% else %}
                 <p class="text-gray-500">Nessuna immagine in questo album.</p>
               {% endif %}
+            </div>
+          </div>
+
+          <!-- SEO & Schema Markup (Optional) -->
+          <div class="card">
+            <div class="p-6 border-b border-gray-200">
+              <button type="button" id="seo-accordion-toggle" class="w-full flex items-center justify-between text-left hover:bg-gray-50 -m-6 p-6 transition-colors">
+                <div>
+                  <h2 class="text-lg font-semibold text-black flex items-center">
+                    <i class="fas fa-search mr-3 text-gray-600"></i>
+                    SEO & Schema Markup
+                  </h2>
+                  <p class="text-gray-600 text-sm mt-1">Ottimizzazione per motori di ricerca e social media (opzionale)</p>
+                </div>
+                <i id="seo-accordion-icon" class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+              </button>
+            </div>
+            <div id="seo-accordion-content" class="hidden p-6 space-y-6">
+              <!-- Basic SEO -->
+              <div class="space-y-4">
+                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">SEO Base</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <label class="block text-sm font-medium text-black mb-2">SEO Title</label>
+                    <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                           type="text" name="seo_title" value="{{ item.seo_title }}" 
+                           placeholder="{{ item.title }} - Lascia vuoto per auto-generazione">
+                    <p class="text-xs text-gray-500 mt-1">Titolo specifico per SEO (max 60 caratteri). Se vuoto, userà il titolo dell'album.</p>
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-black mb-2">Keywords SEO</label>
+                    <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                           type="text" name="seo_keywords" value="{{ item.seo_keywords }}" 
+                           placeholder="fotografia, portfolio, arte, creatività">
+                    <p class="text-xs text-gray-500 mt-1">Parole chiave separate da virgole (max 10-15 keywords).</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-black mb-2">Meta Description</label>
+                  <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                            name="seo_description" rows="3" 
+                            placeholder="Descrizione concisa per i motori di ricerca..." 
+                            maxlength="160">{{ item.seo_description }}</textarea>
+                  <p class="text-xs text-gray-500 mt-1">Descrizione per motori di ricerca (max 160 caratteri). Se vuoto, userà l'excerpt dell'album.</p>
+                </div>
+              </div>
+
+              <!-- Open Graph & Social Media -->
+              <div class="space-y-4">
+                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">Open Graph & Social Media</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <label class="block text-sm font-medium text-black mb-2">OG Title</label>
+                    <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                           type="text" name="og_title" value="{{ item.og_title }}" 
+                           placeholder="{{ item.title }}">
+                    <p class="text-xs text-gray-500 mt-1">Titolo per social media. Se vuoto, userà il SEO title o il titolo album.</p>
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-black mb-2">OG Image Path</label>
+                    <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                           type="text" name="og_image_path" value="{{ item.og_image_path }}" 
+                           placeholder="/uploads/thumbnails/cover-image.jpg">
+                    <p class="text-xs text-gray-500 mt-1">Path immagine social. Se vuoto, userà l'immagine cover dell'album.</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-black mb-2">OG Description</label>
+                  <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                            name="og_description" rows="3" 
+                            placeholder="Descrizione coinvolgente per social media..." 
+                            maxlength="200">{{ item.og_description }}</textarea>
+                  <p class="text-xs text-gray-500 mt-1">Descrizione per social media (max 200 caratteri). Se vuoto, userà la meta description.</p>
+                </div>
+              </div>
+
+              <!-- Schema.org Structured Data -->
+              <div class="space-y-4">
+                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">Schema.org Structured Data</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <label class="block text-sm font-medium text-black mb-2">Schema Type</label>
+                    <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="schema_type">
+                      <option value="ImageGallery" {% if item.schema_type == 'ImageGallery' or not item.schema_type %}selected{% endif %}>ImageGallery</option>
+                      <option value="PhotographAction" {% if item.schema_type == 'PhotographAction' %}selected{% endif %}>PhotographAction</option>
+                      <option value="CreativeWork" {% if item.schema_type == 'CreativeWork' %}selected{% endif %}>CreativeWork</option>
+                      <option value="VisualArtwork" {% if item.schema_type == 'VisualArtwork' %}selected{% endif %}>VisualArtwork</option>
+                      <option value="MediaGallery" {% if item.schema_type == 'MediaGallery' %}selected{% endif %}>MediaGallery</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Tipo di schema strutturato per il markup.</p>
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-black mb-2">Canonical URL</label>
+                    <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                           type="url" name="canonical_url" value="{{ item.canonical_url }}" 
+                           placeholder="https://example.com/album/{{ item.slug }}">
+                    <p class="text-xs text-gray-500 mt-1">URL canonico. Se vuoto, userà l'URL corrente dell'album.</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-black mb-2">Schema Data (JSON-LD)</label>
+                  <textarea class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm" 
+                            name="schema_data" rows="6" 
+                            placeholder='{
+  "@type": "ImageGallery",
+  "name": "{{ item.title }}",
+  "description": "{{ item.excerpt }}",
+  "creator": {
+    "@type": "Person",
+    "name": "Fotografo Professionista"
+  }
+}'>{{ item.schema_data }}</textarea>
+                  <p class="text-xs text-gray-500 mt-1">Dati strutturati JSON-LD personalizzati. Se vuoto, verrà generato automaticamente.</p>
+                </div>
+              </div>
+
+              <!-- Technical SEO -->
+              <div class="space-y-4">
+                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">SEO Tecnico</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div class="space-y-3">
+                    <label class="flex items-center gap-3">
+                      <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
+                             type="checkbox" name="robots_index" 
+                             {% if item.robots_index is null or item.robots_index %}checked{% endif %}>
+                      <span class="text-sm font-medium text-gray-700">Indicizza sui motori di ricerca</span>
+                    </label>
+                    <p class="text-xs text-gray-500 ml-7">Permetti ai motori di ricerca di indicizzare questo album.</p>
+                  </div>
+                  
+                  <div class="space-y-3">
+                    <label class="flex items-center gap-3">
+                      <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
+                             type="checkbox" name="robots_follow" 
+                             {% if item.robots_follow is null or item.robots_follow %}checked{% endif %}>
+                      <span class="text-sm font-medium text-gray-700">Segui i link dell'album</span>
+                    </label>
+                    <p class="text-xs text-gray-500 ml-7">Permetti ai motori di ricerca di seguire i link in questo album.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Preview Section -->
+              <div class="border-t pt-4 mt-6">
+                <h3 class="text-md font-medium text-gray-900 mb-4">Anteprima SEO</h3>
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div class="text-blue-600 text-lg hover:underline cursor-pointer" id="seo-preview-title">
+                    {{ item.seo_title ?: item.title }}
+                  </div>
+                  <div class="text-green-600 text-sm" id="seo-preview-url">
+                    {{ base_path }}/album/{{ item.slug }}
+                  </div>
+                  <div class="text-gray-600 text-sm" id="seo-preview-description">
+                    {{ item.seo_description ?: item.excerpt ?: 'Galleria fotografica professionale.' }}
+                  </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Anteprima di come apparirà l'album nei risultati di ricerca di Google.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -607,81 +771,6 @@
 
     // Cover/Delete handled by Vite bundle bindGridButtons()
 
-    // Bulk selection & delete
-    const selectAll = document.getElementById('select-all');
-    const bulkBtn = document.getElementById('bulk-delete');
-    function getSelectedIds(){
-      return Array.from(document.querySelectorAll('[data-select-id]:checked')).map(cb=>cb.getAttribute('data-select-id'));
-    }
-    function updateBulk(){ const any = getSelectedIds().length>0; if (bulkBtn) bulkBtn.disabled = !any; }
-    selectAll?.addEventListener('change', ()=>{
-      document.querySelectorAll('[data-select-id]').forEach(cb=>{ cb.checked = selectAll.checked; });
-      updateBulk();
-    });
-    document.querySelectorAll('[data-select-id]').forEach(cb=>cb.addEventListener('change', updateBulk));
-    bulkBtn?.addEventListener('click', async ()=>{
-      const ids = getSelectedIds(); if (!ids.length) return; if (!confirm('Eliminare le immagini selezionate?')) return;
-      const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/bulk-delete`, { method:'POST', headers:{ 'Content-Type':'application/json','X-CSRF-Token':'{{ csrf }}','Accept':'application/json' }, body: JSON.stringify({ ids })});
-      if (res.ok) {
-        ids.forEach(id=>{ const el = document.querySelector(`[data-id="${id}"]`); el?.parentNode?.removeChild(el); });
-        if (window.showToast) showToast('Immagini eliminate', 'success');
-      } else {
-        if (window.showToast) showToast('Errore eliminazione', 'error');
-      }
-    });
-
-    // Password workflow logic
-    (function(){
-      const removeBtn = document.getElementById('remove-password-btn');
-      const changeBtn = document.getElementById('change-password-btn');
-      const addBtn = document.getElementById('add-password-btn');
-      
-      const changeForm = document.getElementById('change-password-form');
-      const addForm = document.getElementById('add-password-form');
-      
-      const cancelChangeBtn = document.getElementById('cancel-change-btn');
-      const cancelAddBtn = document.getElementById('cancel-add-btn');
-      
-      const passwordClearInput = document.getElementById('password-clear-input');
-      
-      // Remove password
-      removeBtn?.addEventListener('click', () => {
-        if (confirm('Rimuovere la password dall\'album?')) {
-          if (passwordClearInput) passwordClearInput.value = '1';
-          // Submit the form to remove password
-          document.getElementById('album-form')?.submit();
-        }
-      });
-      
-      // Show change password form
-      changeBtn?.addEventListener('click', () => {
-        changeBtn.classList.add('hidden');
-        changeForm?.classList.remove('hidden');
-        document.getElementById('password-input')?.focus();
-      });
-      
-      // Cancel change password
-      cancelChangeBtn?.addEventListener('click', () => {
-        changeForm?.classList.add('hidden');
-        changeBtn?.classList.remove('hidden');
-        document.getElementById('password-input').value = '';
-      });
-      
-      // Show add password form
-      addBtn?.addEventListener('click', () => {
-        addBtn.classList.add('hidden');
-        addForm?.classList.remove('hidden');
-        document.getElementById('new-password-input')?.focus();
-      });
-      
-      // Cancel add password
-      cancelAddBtn?.addEventListener('click', () => {
-        addForm?.classList.add('hidden');
-        addBtn?.classList.remove('hidden');
-        document.getElementById('new-password-input').value = '';
-      });
-    })();
-
     // Image modal logic
     (function(){
       const modal = document.getElementById('image-modal');
@@ -877,7 +966,250 @@
       });
     })();
   </script>
+  
+  <script>
+    // Album page initialization - Compatible with SPA
+    function initializeAlbumPage() {
+      console.log('Initializing Album edit page...');
+      
+      // Initialize bulk selection functionality
+      initBulkSelection();
+      
+      // Initialize password workflow
+      initPasswordWorkflow();
+      
+      // Initialize image modal handlers
+      initImageModal();
+      
+      // Initialize SEO preview updates
+      initSeoPreview();
+      
+      // Initialize SEO accordion
+      initSeoAccordion();
+      
+      console.log('Album edit page initialization completed');
+    }
+    
+    function initBulkSelection() {
+      const selectAll = document.getElementById('select-all');
+      const bulkBtn = document.getElementById('bulk-delete');
+      
+      function getSelectedIds(){
+        return Array.from(document.querySelectorAll('[data-select-id]:checked')).map(cb=>cb.getAttribute('data-select-id'));
+      }
+      
+      function updateBulk(){ 
+        const any = getSelectedIds().length>0; 
+        if (bulkBtn) bulkBtn.disabled = !any; 
+      }
+      
+      // Remove existing listeners to prevent duplicates
+      selectAll?.removeEventListener('change', handleSelectAll);
+      selectAll?.addEventListener('change', handleSelectAll);
+      
+      function handleSelectAll() {
+        document.querySelectorAll('[data-select-id]').forEach(cb=>{ cb.checked = selectAll.checked; });
+        updateBulk();
+      }
+      
+      // Re-bind individual checkbox listeners
+      document.querySelectorAll('[data-select-id]').forEach(cb => {
+        cb.removeEventListener('change', updateBulk);
+        cb.addEventListener('change', updateBulk);
+      });
+      
+      // Bulk delete handler
+      bulkBtn?.removeEventListener('click', handleBulkDelete);
+      bulkBtn?.addEventListener('click', handleBulkDelete);
+      
+      async function handleBulkDelete() {
+        const ids = getSelectedIds(); 
+        if (!ids.length) return; 
+        if (!confirm('Eliminare le immagini selezionate?')) return;
+        
+        const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/bulk-delete`, { 
+          method:'POST', 
+          headers:{ 
+            'Content-Type':'application/json',
+            'X-CSRF-Token':'{{ csrf }}',
+            'Accept':'application/json' 
+          }, 
+          body: JSON.stringify({ ids })
+        });
+        
+        if (res.ok) {
+          ids.forEach(id=>{ 
+            const el = document.querySelector(`[data-id="${id}"]`); 
+            el?.parentNode?.removeChild(el); 
+          });
+          if (window.showToast) showToast('Immagini eliminate', 'success');
+        } else {
+          if (window.showToast) showToast('Errore eliminazione', 'error');
+        }
+      }
+    }
+    
+    function initPasswordWorkflow() {
+      const removeBtn = document.getElementById('remove-password-btn');
+      const changeBtn = document.getElementById('change-password-btn');
+      const addBtn = document.getElementById('add-password-btn');
+      
+      const changeForm = document.getElementById('change-password-form');
+      const addForm = document.getElementById('add-password-form');
+      
+      const cancelChangeBtn = document.getElementById('cancel-change-btn');
+      const cancelAddBtn = document.getElementById('cancel-add-btn');
+      
+      const passwordClearInput = document.getElementById('password-clear-input');
+      
+      // Remove existing listeners to prevent duplicates
+      removeBtn?.removeEventListener('click', handleRemovePassword);
+      changeBtn?.removeEventListener('click', handleChangePassword);
+      addBtn?.removeEventListener('click', handleAddPassword);
+      cancelChangeBtn?.removeEventListener('click', handleCancelChange);
+      cancelAddBtn?.removeEventListener('click', handleCancelAdd);
+      
+      // Add event listeners
+      removeBtn?.addEventListener('click', handleRemovePassword);
+      changeBtn?.addEventListener('click', handleChangePassword);
+      addBtn?.addEventListener('click', handleAddPassword);
+      cancelChangeBtn?.addEventListener('click', handleCancelChange);
+      cancelAddBtn?.addEventListener('click', handleCancelAdd);
+      
+      function handleRemovePassword() {
+        if (confirm('Rimuovere la password dall\'album?')) {
+          if (passwordClearInput) passwordClearInput.value = '1';
+          document.getElementById('album-form')?.submit();
+        }
+      }
+      
+      function handleChangePassword() {
+        changeBtn?.classList.add('hidden');
+        changeForm?.classList.remove('hidden');
+        document.getElementById('password-input')?.focus();
+      }
+      
+      function handleCancelChange() {
+        changeForm?.classList.add('hidden');
+        changeBtn?.classList.remove('hidden');
+        const input = document.getElementById('password-input');
+        if (input) input.value = '';
+      }
+      
+      function handleAddPassword() {
+        addBtn?.classList.add('hidden');
+        addForm?.classList.remove('hidden');
+        document.getElementById('new-password-input')?.focus();
+      }
+      
+      function handleCancelAdd() {
+        addForm?.classList.add('hidden');
+        addBtn?.classList.remove('hidden');
+        const input = document.getElementById('new-password-input');
+        if (input) input.value = '';
+      }
+    }
+    
+    function initImageModal() {
+      // Image modal logic is already present above, but we ensure it's properly initialized
+      // The existing modal code will be called by the global AdminInit function
+    }
+    
+    function initSeoPreview() {
+      const updateSeoPreview = () => {
+        const title = document.querySelector('input[name="title"]')?.value || '';
+        const seoTitle = document.querySelector('input[name="seo_title"]')?.value || '';
+        const excerpt = document.querySelector('textarea[name="excerpt"]')?.value || '';
+        const seoDescription = document.querySelector('textarea[name="seo_description"]')?.value || '';
+        const slug = document.querySelector('input[name="slug"]')?.value || '';
+        
+        const previewTitle = document.getElementById('seo-preview-title');
+        const previewUrl = document.getElementById('seo-preview-url');
+        const previewDescription = document.getElementById('seo-preview-description');
+        
+        if (previewTitle) previewTitle.textContent = seoTitle || title || 'Titolo Album';
+        if (previewUrl) previewUrl.textContent = `{{ base_path }}/album/${slug || '{{ item.slug }}' || 'album-slug'}`;
+        if (previewDescription) previewDescription.textContent = seoDescription || excerpt || 'Galleria fotografica professionale.';
+      };
+      
+      // Remove existing listeners to prevent duplicates
+      const titleInput = document.querySelector('input[name="title"]');
+      const seoTitleInput = document.querySelector('input[name="seo_title"]');
+      const excerptTextarea = document.querySelector('textarea[name="excerpt"]');
+      const seoDescTextarea = document.querySelector('textarea[name="seo_description"]');
+      const slugInput = document.querySelector('input[name="slug"]');
+      
+      titleInput?.removeEventListener('input', updateSeoPreview);
+      seoTitleInput?.removeEventListener('input', updateSeoPreview);
+      excerptTextarea?.removeEventListener('input', updateSeoPreview);
+      seoDescTextarea?.removeEventListener('input', updateSeoPreview);
+      slugInput?.removeEventListener('input', updateSeoPreview);
+      
+      // Add listeners
+      titleInput?.addEventListener('input', updateSeoPreview);
+      seoTitleInput?.addEventListener('input', updateSeoPreview);
+      excerptTextarea?.addEventListener('input', updateSeoPreview);
+      seoDescTextarea?.addEventListener('input', updateSeoPreview);
+      slugInput?.addEventListener('input', updateSeoPreview);
+    }
+    
+    function initSeoAccordion() {
+      const toggle = document.getElementById('seo-accordion-toggle');
+      const content = document.getElementById('seo-accordion-content');
+      const icon = document.getElementById('seo-accordion-icon');
+      
+      if (!toggle || !content || !icon) return;
+      
+      // Remove existing listeners to prevent duplicates
+      toggle.removeEventListener('click', handleSeoToggle);
+      
+      function handleSeoToggle() {
+        const isHidden = content.classList.contains('hidden');
+        
+        if (isHidden) {
+          content.classList.remove('hidden');
+          icon.classList.add('rotate-180');
+          // Re-initialize form components after showing SEO section
+          setTimeout(() => {
+            if (window.initTomSelects) {
+              window.initTomSelects();
+            }
+          }, 100);
+        } else {
+          content.classList.add('hidden');
+          icon.classList.remove('rotate-180');
+        }
+      }
+      
+      toggle.addEventListener('click', handleSeoToggle);
+    }
+    
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', initializeAlbumPage);
+    
+    // Make initialization function globally available for SPA re-initialization
+    if (!window.pageInitializers) {
+      window.pageInitializers = {};
+    }
+    window.pageInitializers.albums = initializeAlbumPage;
+    
+    // Auto-initialize if this is loaded in SPA context
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeAlbumPage);
+    } else {
+      initializeAlbumPage();
+    }
+  </script>
   <style>
+    /* Accordion rotation transition */
+    .transition-transform {
+      transition: transform 0.2s ease-in-out;
+    }
+    
+    .rotate-180 {
+      transform: rotate(180deg);
+    }
+    
     /* TomSelect wrapper - no z-index, natural stacking */
     .ts-wrapper {
       position: relative !important;

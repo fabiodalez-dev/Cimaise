@@ -129,6 +129,19 @@ class AlbumsController extends BaseController
         // Log all form data for debugging - REMOVE AFTER TESTING
         file_put_contents('/tmp/album_update_debug.log', "Form data: " . print_r($d, true) . "\n", FILE_APPEND | LOCK_EX);
         
+        // SEO fields for new albums (set defaults)
+        $seoTitle = trim((string)($d['seo_title'] ?? '')) ?: null;
+        $seoDescription = trim((string)($d['seo_description'] ?? '')) ?: null;
+        $seoKeywords = trim((string)($d['seo_keywords'] ?? '')) ?: null;
+        $ogTitle = trim((string)($d['og_title'] ?? '')) ?: null;
+        $ogDescription = trim((string)($d['og_description'] ?? '')) ?: null;
+        $ogImagePath = trim((string)($d['og_image_path'] ?? '')) ?: null;
+        $schemaType = trim((string)($d['schema_type'] ?? 'ImageGallery'));
+        $schemaData = trim((string)($d['schema_data'] ?? '')) ?: null;
+        $canonicalUrl = trim((string)($d['canonical_url'] ?? '')) ?: null;
+        $robotsIndex = isset($d['robots_index']) ? 1 : 1; // Default to index
+        $robotsFollow = isset($d['robots_follow']) ? 1 : 1; // Default to follow
+        
         // Custom equipment fields
         $customCameras = trim((string)($d['custom_cameras'] ?? '')) ?: null;
         $customLenses = trim((string)($d['custom_lenses'] ?? '')) ?: null;
@@ -143,10 +156,16 @@ class AlbumsController extends BaseController
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
         $published_at = $is_published ? date('Y-m-d H:i:s') : null;
         $pdo = $this->db->pdo();
-        // Try with template_id and custom equipment fields
+        // Try with template_id, custom equipment fields, and SEO fields
         try {
-            $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, password_hash) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:cc,:cl,:cf,:cd,:clab,:dl,:ph)');
-            $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':dl'=>$allow_downloads, ':ph'=>$password_hash]);
+            $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, password_hash, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_path, schema_type, schema_data, canonical_url, robots_index, robots_follow) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:cc,:cl,:cf,:cd,:clab,:dl,:ph,:seo_title,:seo_desc,:seo_kw,:og_title,:og_desc,:og_img,:schema_type,:schema_data,:canonical_url,:robots_index,:robots_follow)');
+            $stmt->execute([
+                ':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':dl'=>$allow_downloads, ':ph'=>$password_hash,
+                ':seo_title'=>$seoTitle, ':seo_desc'=>$seoDescription, ':seo_kw'=>$seoKeywords,
+                ':og_title'=>$ogTitle, ':og_desc'=>$ogDescription, ':og_img'=>$ogImagePath,
+                ':schema_type'=>$schemaType, ':schema_data'=>$schemaData, ':canonical_url'=>$canonicalUrl,
+                ':robots_index'=>$robotsIndex, ':robots_follow'=>$robotsFollow
+            ]);
         } catch (\Throwable $e) {
             // Fallback for old DB schema without custom fields
             try {
@@ -451,6 +470,19 @@ class AlbumsController extends BaseController
         // Log all form data for debugging - REMOVE AFTER TESTING
         file_put_contents('/tmp/album_update_debug.log', "UPDATE Form data: " . print_r($d, true) . "\nLocationIds: " . print_r($locationIds, true) . "\n", FILE_APPEND | LOCK_EX);
         
+        // SEO fields
+        $seoTitle = trim((string)($d['seo_title'] ?? '')) ?: null;
+        $seoDescription = trim((string)($d['seo_description'] ?? '')) ?: null;
+        $seoKeywords = trim((string)($d['seo_keywords'] ?? '')) ?: null;
+        $ogTitle = trim((string)($d['og_title'] ?? '')) ?: null;
+        $ogDescription = trim((string)($d['og_description'] ?? '')) ?: null;
+        $ogImagePath = trim((string)($d['og_image_path'] ?? '')) ?: null;
+        $schemaType = trim((string)($d['schema_type'] ?? 'ImageGallery'));
+        $schemaData = trim((string)($d['schema_data'] ?? '')) ?: null;
+        $canonicalUrl = trim((string)($d['canonical_url'] ?? '')) ?: null;
+        $robotsIndex = isset($d['robots_index']) ? 1 : 0;
+        $robotsFollow = isset($d['robots_follow']) ? 1 : 0;
+        
         // Custom equipment fields  
         $customCameras = trim((string)($d['custom_cameras'] ?? '')) ?: null;
         $customLenses = trim((string)($d['custom_lenses'] ?? '')) ?: null;
@@ -465,12 +497,18 @@ class AlbumsController extends BaseController
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
         $published_at = $is_published ? (date('Y-m-d H:i:s')) : null;
         $pdo = $this->db->pdo();
-        // Try with template_id and custom equipment fields
+        // Try with template_id, custom equipment fields, and SEO fields
         try {
-            $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab WHERE id=:id');
-            $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':id'=>$id]);
+            $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab, seo_title=:seo_title, seo_description=:seo_desc, seo_keywords=:seo_kw, og_title=:og_title, og_description=:og_desc, og_image_path=:og_img, schema_type=:schema_type, schema_data=:schema_data, canonical_url=:canonical_url, robots_index=:robots_index, robots_follow=:robots_follow WHERE id=:id');
+            $stmt->execute([
+                ':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':id'=>$id,
+                ':seo_title'=>$seoTitle, ':seo_desc'=>$seoDescription, ':seo_kw'=>$seoKeywords,
+                ':og_title'=>$ogTitle, ':og_desc'=>$ogDescription, ':og_img'=>$ogImagePath,
+                ':schema_type'=>$schemaType, ':schema_data'=>$schemaData, ':canonical_url'=>$canonicalUrl,
+                ':robots_index'=>$robotsIndex, ':robots_follow'=>$robotsFollow
+            ]);
         } catch (\Throwable $e) {
-            // Fallback for old DB schema without custom fields
+            // Fallback for old DB schema without custom fields and SEO fields
             try {
                 $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti WHERE id=:id');
                 $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':id'=>$id]);
@@ -478,6 +516,19 @@ class AlbumsController extends BaseController
                 // Final fallback
                 $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o WHERE id=:id');
                 $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order, ':id'=>$id]);
+            }
+            
+            // Try to update SEO fields separately if main query failed
+            try {
+                $seoStmt = $pdo->prepare('UPDATE albums SET seo_title=:seo_title, seo_description=:seo_desc, seo_keywords=:seo_kw, og_title=:og_title, og_description=:og_desc, og_image_path=:og_img, schema_type=:schema_type, schema_data=:schema_data, canonical_url=:canonical_url, robots_index=:robots_index, robots_follow=:robots_follow WHERE id=:id');
+                $seoStmt->execute([
+                    ':seo_title'=>$seoTitle, ':seo_desc'=>$seoDescription, ':seo_kw'=>$seoKeywords,
+                    ':og_title'=>$ogTitle, ':og_desc'=>$ogDescription, ':og_img'=>$ogImagePath,
+                    ':schema_type'=>$schemaType, ':schema_data'=>$schemaData, ':canonical_url'=>$canonicalUrl,
+                    ':robots_index'=>$robotsIndex, ':robots_follow'=>$robotsFollow, ':id'=>$id
+                ]);
+            } catch (\Throwable $e3) {
+                // SEO fields don't exist yet, continue without error
             }
         }
         // Try to update downloads and password when columns exist
