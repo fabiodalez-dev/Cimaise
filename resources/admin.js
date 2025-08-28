@@ -141,7 +141,7 @@ function initUppyAreaUpload() {
     refreshGalleryArea();
   });
 
-  uppy.on('error', (error) => {
+uppy.on('error', (error) => {
     const statusEl = document.getElementById('upload-status');
     if (statusEl) statusEl.textContent = `Errore: ${error.message}`;
     
@@ -150,8 +150,6 @@ function initUppyAreaUpload() {
     }, 3000);
   });
 }
-
-document.addEventListener('DOMContentLoaded', () => { initUppyAreaUpload(); });
 
 // Initialize all TomSelect fields if present
 function initTomSelects() {
@@ -212,8 +210,6 @@ function initTomSelects() {
   make('select.tom-select', common);
   make('select[multiple]:not(.ts-hidden-accessible)', common);
 }
-
-document.addEventListener('DOMContentLoaded', initTomSelects);
 
 // Sortable grid and controls on edit page
 function initSortableGrid() {
@@ -409,6 +405,7 @@ window.AdminInit = function() {
   initTomSelects();
   initUppyAreaUpload();
   initSortableGrid();
+  bindGridButtons();
   initTinyMCE();
   initMediaModalOnEdit();
   initTooltips();
@@ -750,18 +747,17 @@ async function refreshGalleryArea() {
 
 function bindGridButtons() {
   const grid = document.getElementById('images-grid');
-  if (!grid || grid._gridButtonsBound) return;
-  grid._gridButtonsBound = true;
-  
-  grid.addEventListener('click', async (e) => {
-    const csrf = document.querySelector('input[name="csrf"]')?.value || '';
-    const albumId = grid.dataset.albumId;
-    const coverBtn = e.target.closest('[data-cover-id]');
-    const delBtn = e.target.closest('[data-delete-id]');
+  if (!grid) return;
+  const csrf = document.querySelector('input[name="csrf"]')?.value || '';
+  const albumId = grid.dataset.albumId;
 
-    if (coverBtn) {
+  // Bind cover buttons
+  grid.querySelectorAll('[data-cover-id]').forEach(btn => {
+    if (btn._boundCover) return;
+    btn._boundCover = true;
+    btn.addEventListener('click', async (e) => {
       e.preventDefault(); e.stopPropagation();
-      const id = coverBtn.getAttribute('data-cover-id');
+      const id = btn.getAttribute('data-cover-id');
       try {
         const res = await fetch(`${window.basePath || ''}/admin/albums/${albumId}/cover/${id}`, { method:'POST', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }});
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -770,30 +766,38 @@ function bindGridButtons() {
       } catch (err) {
         console.error('Cover set failed:', err);
         if (window.showToast) window.showToast('Errore impostazione cover', 'error');
+        // Fallback: full reload
+        try { window.location.reload(); } catch(_){ }
       }
-      return;
-    }
+    });
+  });
 
-    if (delBtn) {
+  // Bind delete buttons
+  grid.querySelectorAll('[data-delete-id]').forEach(btn => {
+    if (btn._boundDelete) return;
+    btn._boundDelete = true;
+    btn.addEventListener('click', async (e) => {
       e.preventDefault(); e.stopPropagation();
       if(!confirm('Eliminare questa immagine?')) return;
-      const id = delBtn.getAttribute('data-delete-id');
+      const id = btn.getAttribute('data-delete-id');
       try {
         const res = await fetch(`${window.basePath || ''}/admin/albums/${albumId}/images/${id}/delete`, { method:'POST', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }});
         if (res.ok) {
-          delBtn.closest('[data-id]')?.remove();
+          btn.closest('[data-id]')?.remove();
           if (window.refreshGalleryArea) await window.refreshGalleryArea();
           if (window.showToast) window.showToast('Immagine eliminata', 'success');
         } else {
           const t = await res.text().catch(()=> '');
           console.error('Delete failed:', res.status, t);
           if (window.showToast) window.showToast('Errore eliminazione', 'error');
+          try { window.location.reload(); } catch(_){ }
         }
       } catch (err) {
         console.error('Delete request error:', err);
         if (window.showToast) window.showToast('Errore eliminazione', 'error');
+        try { window.location.reload(); } catch(_){ }
       }
-    }
+    });
   });
 }
 
@@ -867,3 +871,8 @@ function rebindImageModalHandlers() {
   grid._modalClickHandler = newHandler;
   grid.addEventListener('click', newHandler);
 }
+
+// Expose functions globally for use in templates
+window.bindGridButtons = bindGridButtons;
+window.rebindBulkSelection = rebindBulkSelection;
+window.rebindImageModalHandlers = rebindImageModalHandlers;
