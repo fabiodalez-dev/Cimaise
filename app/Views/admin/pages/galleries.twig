@@ -4,15 +4,131 @@
   <div class="flex items-center justify-between mb-8">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Pages</h1>
-      <p class="text-gray-600 mt-1">Modifica la pagina <strong>Galleries</strong></p>
+      <p class="text-gray-600 mt-1">Modifica la pagina <strong>Galleries</strong> e configura i filtri</p>
     </div>
-    <a href="{{ base_path }}/galleries" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt mr-2"></i>Vedi pagina</a>
+    <div class="flex items-center gap-3">
+      <a href="{{ base_path }}/galleries" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt mr-2"></i>Vedi pagina</a>
+      <button id="preview-filters" class="btn-outline"><i class="fas fa-eye mr-2"></i>Anteprima filtri</button>
+    </div>
   </div>
 
   <div class="pb-20"> <!-- Add padding bottom for sticky footer -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- Editor -->
-      <div class="lg:col-span-2">
+      <div class="lg:col-span-2 space-y-6">
+        
+        <!-- Filter Configuration -->
+        <div class="card border-l-4 border-l-blue-500">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-sliders-h mr-3 text-blue-600"></i>
+              Configurazione Filtri
+            </h3>
+            
+            <div class="space-y-6">
+              <!-- Master Enable/Disable -->
+              <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <h4 class="font-medium text-gray-900">Abilita Sistema Filtri</h4>
+                  <p class="text-sm text-gray-600">Attiva o disattiva tutti i filtri sulla pagina galleries</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="filters-enabled" class="sr-only peer" {{ filter_settings.enabled ? 'checked' : '' }}>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              
+              <!-- Individual Filters -->
+              <div id="individual-filters" class="{{ filter_settings.enabled ? '' : 'opacity-50 pointer-events-none' }}">
+                <h4 class="font-medium text-gray-900 mb-3">Filtri Disponibili</h4>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {% set filter_configs = {
+                    'categories': { 'label': 'Categorie', 'icon': 'fas fa-folder', 'enabled': filter_settings.show_categories },
+                    'tags': { 'label': 'Tag', 'icon': 'fas fa-tags', 'enabled': filter_settings.show_tags },
+                    'cameras': { 'label': 'Fotocamere', 'icon': 'fas fa-camera', 'enabled': filter_settings.show_cameras },
+                    'lenses': { 'label': 'Obiettivi', 'icon': 'fas fa-dot-circle', 'enabled': filter_settings.show_lenses },
+                    'films': { 'label': 'Pellicole', 'icon': 'fas fa-film', 'enabled': filter_settings.show_films },
+                    'locations': { 'label': 'Località', 'icon': 'fas fa-map-marker-alt', 'enabled': filter_settings.show_locations },
+                    'year': { 'label': 'Anno', 'icon': 'fas fa-calendar-alt', 'enabled': filter_settings.show_year },
+                    'developers': { 'label': 'Sviluppatori', 'icon': 'fas fa-flask', 'enabled': filter_settings.show_developers|default(false) },
+                    'labs': { 'label': 'Laboratori', 'icon': 'fas fa-industry', 'enabled': filter_settings.show_labs|default(false) }
+                  } %}
+                  
+                  {% for key, config in filter_configs %}
+                  <div class="filter-toggle-item p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                    <label class="flex items-center cursor-pointer">
+                      <input type="checkbox" name="show_{{ key }}" value="1" class="sr-only peer filter-checkbox" {{ config.enabled ? 'checked' : '' }}>
+                      <div class="w-4 h-4 border-2 border-gray-300 rounded peer-checked:bg-blue-600 peer-checked:border-blue-600 flex items-center justify-center transition-colors">
+                        <i class="fas fa-check text-white text-xs opacity-0 peer-checked:opacity-100"></i>
+                      </div>
+                      <div class="ml-3 flex items-center">
+                        <i class="{{ config.icon }} text-gray-500 mr-2"></i>
+                        <span class="text-sm font-medium text-gray-900">{{ config.label }}</span>
+                      </div>
+                    </label>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              
+              <!-- Animation Settings -->
+              <div class="border-t pt-4">
+                <h4 class="font-medium text-gray-900 mb-3">Animazioni</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex items-center justify-between">
+                    <label class="text-sm text-gray-700">Abilita animazioni fade</label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="animation-enabled" class="sr-only peer" {{ filter_settings.animation_enabled ? 'checked' : '' }}>
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-700 mb-1">Durata animazione (s)</label>
+                    <input type="number" id="animation-duration" class="form-input" min="0.1" max="2" step="0.1" value="{{ filter_settings.animation_duration|default(0.6) }}">
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Grid Settings -->
+              <div class="border-t pt-4">
+                <h4 class="font-medium text-gray-900 mb-3">Layout Griglia</h4>
+                <div class="grid grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm text-gray-700 mb-1">Desktop</label>
+                    <select id="grid-desktop" class="form-input">
+                      {% for i in 1..6 %}
+                      <option value="{{ i }}" {{ filter_settings.grid_columns_desktop == i ? 'selected' : '' }}>{{ i }} colonne</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-700 mb-1">Tablet</label>
+                    <select id="grid-tablet" class="form-input">
+                      {% for i in 1..4 %}
+                      <option value="{{ i }}" {{ filter_settings.grid_columns_tablet == i ? 'selected' : '' }}>{{ i }} colonne</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-700 mb-1">Mobile</label>
+                    <select id="grid-mobile" class="form-input">
+                      {% for i in 1..2 %}
+                      <option value="{{ i }}" {{ filter_settings.grid_columns_mobile == i ? 'selected' : '' }}>{{ i }} colonne</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="flex justify-end">
+                <button type="button" id="save-filter-settings" class="btn-primary">
+                  <i class="fas fa-save mr-2"></i>Salva Configurazione Filtri
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <form method="post" action="{{ base_path }}/admin/pages/galleries" id="galleries-form" class="space-y-6">
         <input type="hidden" name="csrf" value="{{ csrf }}">
 
@@ -161,6 +277,23 @@
     </div>
   </div>
 
+  <!-- Preview Modal -->
+  <div id="filter-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div class="flex items-center justify-between p-6 border-b">
+          <h3 class="text-lg font-medium text-gray-900">Anteprima Filtri</h3>
+          <button id="close-preview-modal" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div id="preview-content" class="p-6 overflow-y-auto max-h-[70vh]">
+          <!-- Preview content will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Sticky Footer with Action Buttons -->
   <div class="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -169,6 +302,10 @@
           <button type="submit" form="galleries-form" class="btn-primary">
             <i class="fas fa-save mr-2"></i>
             Salva Impostazioni
+          </button>
+          <button id="preview-filters" class="btn-secondary">
+            <i class="fas fa-eye mr-2"></i>
+            Anteprima Filtri
           </button>
           <a href="{{ base_path }}/admin/pages" class="btn-secondary">
             <i class="fas fa-arrow-left mr-2"></i>
@@ -183,4 +320,362 @@
       </div>
     </div>
   </div>
+
+<script>
+// Filter settings management with GSAP animations
+class GalleriesFilterManager {
+  constructor() {
+    this.init();
+  }
+
+  init() {
+    this.bindEvents();
+    this.initAnimations();
+  }
+
+  bindEvents() {
+    // Master filter toggle
+    const masterToggle = document.getElementById('filters-enabled');
+    if (masterToggle) {
+      masterToggle.addEventListener('change', (e) => {
+        this.toggleFilters(e.target.checked);
+        this.autoSave();
+      });
+    }
+
+    // Individual filter checkboxes
+    document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', () => {
+        this.autoSave();
+      });
+    });
+
+    // Animation settings
+    const animationToggle = document.getElementById('animation-enabled');
+    if (animationToggle) {
+      animationToggle.addEventListener('change', () => {
+        this.autoSave();
+      });
+    }
+
+    const animationDuration = document.getElementById('animation-duration');
+    if (animationDuration) {
+      animationDuration.addEventListener('input', () => {
+        this.autoSave();
+      });
+    }
+
+    // Grid settings
+    ['grid-desktop', 'grid-tablet', 'grid-mobile'].forEach(id => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.addEventListener('change', () => {
+          this.autoSave();
+        });
+      }
+    });
+
+    // Save button
+    const saveButton = document.getElementById('save-filter-settings');
+    if (saveButton) {
+      saveButton.addEventListener('click', () => {
+        this.saveSettings();
+      });
+    }
+
+    // Preview button
+    const previewButton = document.getElementById('preview-filters');
+    if (previewButton) {
+      previewButton.addEventListener('click', () => {
+        this.showPreview();
+      });
+    }
+
+    // Close preview modal
+    const closeModal = document.getElementById('close-preview-modal');
+    if (closeModal) {
+      closeModal.addEventListener('click', () => {
+        this.closePreview();
+      });
+    }
+
+    // Close modal on backdrop click
+    const modal = document.getElementById('filter-preview-modal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          this.closePreview();
+        }
+      });
+    }
+  }
+
+  initAnimations() {
+    // Set initial animation states
+    gsap.set('.filter-toggle-item', { opacity: 0, y: 20 });
+    
+    // Animate items in
+    gsap.to('.filter-toggle-item', {
+      opacity: 1,
+      y: 0,
+      duration: 0.6,
+      stagger: 0.1,
+      ease: 'power2.out'
+    });
+  }
+
+  toggleFilters(enabled) {
+    const individualFilters = document.getElementById('individual-filters');
+    const duration = 0.6;
+
+    if (enabled) {
+      gsap.to(individualFilters, {
+        opacity: 1,
+        duration: duration,
+        ease: 'power2.out',
+        onComplete: () => {
+          individualFilters.classList.remove('pointer-events-none');
+        }
+      });
+    } else {
+      individualFilters.classList.add('pointer-events-none');
+      gsap.to(individualFilters, {
+        opacity: 0.5,
+        duration: duration,
+        ease: 'power2.out'
+      });
+    }
+
+    // Update info panel
+    this.updateInfoPanel();
+  }
+
+  autoSave() {
+    // Debounced auto-save functionality
+    clearTimeout(this.autoSaveTimeout);
+    this.autoSaveTimeout = setTimeout(() => {
+      this.saveSettings(true);
+    }, 1000);
+  }
+
+  async saveSettings(silent = false) {
+    const formData = new FormData();
+    
+    // Collect filter settings
+    const filtersEnabled = document.getElementById('filters-enabled')?.checked || false;
+    formData.append('filters_enabled', filtersEnabled ? '1' : '0');
+
+    // Individual filters
+    document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
+      formData.append(checkbox.name, checkbox.checked ? '1' : '0');
+    });
+
+    // Animation settings
+    const animationEnabled = document.getElementById('animation-enabled')?.checked || false;
+    const animationDuration = document.getElementById('animation-duration')?.value || '0.6';
+    formData.append('animation_enabled', animationEnabled ? '1' : '0');
+    formData.append('animation_duration', animationDuration);
+
+    // Grid settings
+    ['grid-desktop', 'grid-tablet', 'grid-mobile'].forEach(id => {
+      const element = document.getElementById(id);
+      if (element) {
+        formData.append(id.replace('-', '_'), element.value);
+      }
+    });
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('input[name="csrf"]')?.value;
+    if (csrfToken) {
+      formData.append('csrf', csrfToken);
+    }
+
+    try {
+      const response = await fetch('{{ base_path }}/admin/filter-settings/save', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        if (!silent) {
+          this.showNotification('Impostazioni salvate con successo', 'success');
+        }
+        this.updateInfoPanel();
+      } else {
+        this.showNotification('Errore nel salvataggio delle impostazioni', 'error');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      if (!silent) {
+        this.showNotification('Errore di connessione', 'error');
+      }
+    }
+  }
+
+  updateInfoPanel() {
+    // Update the info panel on the right with current settings
+    const filtersEnabled = document.getElementById('filters-enabled')?.checked || false;
+    const animationEnabled = document.getElementById('animation-enabled')?.checked || false;
+    
+    // Update status indicators with fade animation
+    const statusElements = document.querySelectorAll('.text-green-600, .text-red-600');
+    statusElements.forEach(el => {
+      gsap.to(el, {
+        opacity: 0,
+        duration: 0.3,
+        onComplete: () => {
+          // Update content
+          gsap.to(el, { opacity: 1, duration: 0.3 });
+        }
+      });
+    });
+  }
+
+  async showPreview() {
+    const modal = document.getElementById('filter-preview-modal');
+    const previewContent = document.getElementById('preview-content');
+    
+    // Show loading state
+    previewContent.innerHTML = `
+      <div class="flex items-center justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span class="ml-3 text-gray-600">Caricamento anteprima...</span>
+      </div>
+    `;
+    
+    // Show modal with animation
+    modal.classList.remove('hidden');
+    gsap.fromTo(modal, 
+      { opacity: 0 },
+      { opacity: 1, duration: 0.3 }
+    );
+    
+    gsap.fromTo(modal.querySelector('.bg-white'),
+      { scale: 0.9, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.3, delay: 0.1 }
+    );
+
+    try {
+      // Simulate preview generation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Generate preview HTML
+      const activeFilters = [];
+      document.querySelectorAll('.filter-checkbox:checked').forEach(checkbox => {
+        const label = checkbox.closest('.filter-toggle-item').querySelector('span').textContent;
+        activeFilters.push(label);
+      });
+      
+      previewContent.innerHTML = `
+        <div class="space-y-4">
+          <h4 class="font-medium text-gray-900">Filtri Attivi</h4>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+            ${activeFilters.map(filter => `
+              <div class="px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm">
+                ${filter}
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="border-t pt-4">
+            <h4 class="font-medium text-gray-900 mb-2">Anteprima Layout</h4>
+            <div class="bg-gray-100 rounded-lg p-4">
+              <div class="grid grid-cols-3 gap-4">
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                  <div class="h-32 bg-gradient-to-br from-blue-200 to-blue-300 rounded mb-2"></div>
+                  <div class="text-sm font-medium">Album Example 1</div>
+                </div>
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                  <div class="h-32 bg-gradient-to-br from-green-200 to-green-300 rounded mb-2"></div>
+                  <div class="text-sm font-medium">Album Example 2</div>
+                </div>
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                  <div class="h-32 bg-gradient-to-br from-purple-200 to-purple-300 rounded mb-2"></div>
+                  <div class="text-sm font-medium">Album Example 3</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Animate preview content
+      gsap.fromTo(previewContent.children,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.1 }
+      );
+      
+    } catch (error) {
+      console.error('Preview error:', error);
+      previewContent.innerHTML = `
+        <div class="text-center py-8">
+          <i class="fas fa-exclamation-triangle text-red-500 text-2xl mb-2"></i>
+          <p class="text-gray-600">Errore nel caricamento dell'anteprima</p>
+        </div>
+      `;
+    }
+  }
+
+  closePreview() {
+    const modal = document.getElementById('filter-preview-modal');
+    
+    gsap.to(modal, {
+      opacity: 0,
+      duration: 0.3,
+      onComplete: () => {
+        modal.classList.add('hidden');
+      }
+    });
+  }
+
+  showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${
+      type === 'success' ? 'bg-green-500 text-white' :
+      type === 'error' ? 'bg-red-500 text-white' :
+      'bg-blue-500 text-white'
+    }`;
+    notification.innerHTML = `
+      <div class="flex items-center">
+        <i class="fas ${
+          type === 'success' ? 'fa-check-circle' :
+          type === 'error' ? 'fa-exclamation-circle' :
+          'fa-info-circle'
+        } mr-2"></i>
+        ${message}
+      </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    gsap.fromTo(notification,
+      { opacity: 0, x: 100 },
+      { opacity: 1, x: 0, duration: 0.3 }
+    );
+    
+    // Auto remove
+    setTimeout(() => {
+      gsap.to(notification, {
+        opacity: 0,
+        x: 100,
+        duration: 0.3,
+        onComplete: () => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }
+      });
+    }, 3000);
+  }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  new GalleriesFilterManager();
+});
+</script>
 {% endblock %}
