@@ -223,13 +223,13 @@
       <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2" 
                data-gsap="gallery-card" 
                data-album-id="{{ album.id }}"
-               onclick="window.location.href='/album/{{ album.slug }}'">
+               onclick="window.location.href='{{ app_url }}/album/{{ album.slug }}'">
         
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
           {% if album.cover_image and (album.cover_image.preview_path or album.cover_image.original_path) %}
             {% set cover_path = album.cover_image.preview_path|default(album.cover_image.original_path) %}
-            <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}" 
+            <img src="{% if cover_path starts with '/' %}{{ app_url }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}" 
                  alt="{{ album.cover_image.alt_text|default(album.title)|e }}" 
                  class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                  loading="lazy">
