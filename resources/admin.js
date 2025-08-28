@@ -28,6 +28,10 @@ function initUppyAreaUpload() {
   const uppy = new Uppy({ autoProceed: true, restrictions: { allowedFileTypes: ['image/*'] } })
     .use(XHRUpload, { endpoint, fieldName: 'file', headers: { 'X-CSRF-Token': csrf, 'Accept':'application/json' } });
 
+  // Track instance globally for proper cleanup on SPA re-inits
+  if (!window.uppyInstances) window.uppyInstances = [];
+  window.uppyInstances.push(uppy);
+
   // Create progress indicator
   let progressEl = document.getElementById('upload-progress');
   if (!progressEl) {
@@ -67,7 +71,10 @@ function initUppyAreaUpload() {
     area.appendChild(input);
   }
 
-  area.addEventListener('click', () => input.click());
+  // Store click handler to detach on cleanup and prevent duplicates
+  const clickHandler = () => input.click();
+  area._uppyClickHandler = clickHandler;
+  area.addEventListener('click', clickHandler);
   input.addEventListener('change', () => {
     if (!input.files) return;
     const existing = new Set(uppy.getFiles().map(f=>`${f.name}|${f.size}`));
@@ -464,8 +471,18 @@ function cleanupExistingInstances() {
       delete el._sortableInstance;
     });
     
+    // Detach Uppy click handlers and remove hidden inputs to prevent double dialogs
     document.querySelectorAll('#uppy').forEach(el => {
-      delete el._uppyInitialized;
+      try {
+        if (el._uppyClickHandler) {
+          el.removeEventListener('click', el._uppyClickHandler);
+          delete el._uppyClickHandler;
+        }
+        el.querySelectorAll('input[type="file"].uppy-input').forEach(inp => inp.remove());
+        // Do not delete _uppyInitialized here to avoid duplicate re-inits on the same element
+      } catch(e) {
+        console.warn('Cleanup Uppy click/input failed:', e);
+      }
     });
     
     // Reset tooltip and dropdown flags
