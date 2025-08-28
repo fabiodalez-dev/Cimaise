@@ -11,11 +11,15 @@
           <p class="text-gray-600 mt-1">Aggiorna le informazioni e gestisci le immagini</p>
         </div>
         <div class="flex items-center gap-3">
-          <a href="{{ base_path }}/admin/albums" class="btn-secondary">
+          <a href="{{ base_path }}/admin/albums" class="btn-secondary" data-spa-link>
             <i class="fas fa-arrow-left mr-2"></i>
             Torna agli album
           </a>
-          <a href="{{ base_path }}/admin/settings" class="btn-secondary">
+          <a href="{{ base_path }}/album/{{ item.slug }}" class="btn-secondary" target="_blank" rel="noopener">
+            <i class="fas fa-eye mr-2"></i>
+            Vedi pagina
+          </a>
+          <a href="{{ base_path }}/admin/settings" class="btn-secondary" data-spa-link>
             <i class="fas fa-cog mr-2"></i>
             Impostazioni
           </a>
@@ -1188,8 +1192,7 @@
       toggle.addEventListener('click', handleSeoToggle);
     }
     
-    // Initialize on DOM ready
-    document.addEventListener('DOMContentLoaded', initializeAlbumPage);
+    // SPA will call initializeAlbumPage via window.pageInitializers.albums
     
     // Make initialization function globally available for SPA re-initialization
     if (!window.pageInitializers) {
@@ -1197,12 +1200,7 @@
     }
     window.pageInitializers.albums = initializeAlbumPage;
     
-    // Auto-initialize if this is loaded in SPA context
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeAlbumPage);
-    } else {
-      initializeAlbumPage();
-    }
+    // Do not auto-call here to avoid double init; SPA orchestrator calls the initializer.
   </script>
   <style>
     /* Accordion rotation transition */
