@@ -115,20 +115,85 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script>
-    (function(){
+    // Albums index page initialization - Compatible with SPA
+    function initializeAlbumsIndexPage() {
+      console.log('Initializing Albums index page...');
+      
+      initAlbumsTableSorting();
+      
+      console.log('Albums index page initialization completed');
+    }
+    
+    function initAlbumsTableSorting() {
       const tbody = document.getElementById('albums-tbody');
       const table = document.getElementById('albums-table');
-      if (!tbody || !table) return;
-      const mode = table.dataset.order || 'manual';
-      if (mode === 'manual') {
-        new Sortable(tbody, { animation: 150, draggable: 'tr' });
-        async function saveOrder(){
-          const ids = Array.from(tbody.querySelectorAll('tr[data-id]')).map(tr=>tr.getAttribute('data-id'));
-          await fetch(table.dataset.endpoint, { method:'POST', headers:{ 'Content-Type':'application/json', 'X-CSRF-Token': table.dataset.csrf, 'Accept':'application/json' }, body: JSON.stringify({ order: ids }) });
-        }
-        tbody.addEventListener('dragend', () => setTimeout(saveOrder, 50));
+      
+      if (!tbody || !table) {
+        console.warn('Albums table elements not found');
+        return;
       }
-    })();
+      
+      const mode = table.dataset.order || 'manual';
+      
+      if (mode === 'manual') {
+        // Cleanup existing Sortable instance if present
+        if (tbody._sortableInstance) {
+          try {
+            tbody._sortableInstance.destroy();
+          } catch(e) {
+            console.warn('Failed to destroy existing Sortable instance:', e);
+          }
+        }
+        
+        // Create new Sortable instance
+        tbody._sortableInstance = new Sortable(tbody, { 
+          animation: 150, 
+          draggable: 'tr',
+          onEnd: () => {
+            // Debounce the save order call
+            clearTimeout(tbody._saveTimeout);
+            tbody._saveTimeout = setTimeout(saveOrder, 100);
+          }
+        });
+        
+        async function saveOrder(){
+          try {
+            const ids = Array.from(tbody.querySelectorAll('tr[data-id]')).map(tr=>tr.getAttribute('data-id'));
+            await fetch(table.dataset.endpoint, { 
+              method:'POST', 
+              headers:{ 
+                'Content-Type':'application/json', 
+                'X-CSRF-Token': table.dataset.csrf, 
+                'Accept':'application/json' 
+              }, 
+              body: JSON.stringify({ order: ids }) 
+            });
+            if (window.showToast) window.showToast('Ordine album salvato', 'success');
+          } catch(error) {
+            console.error('Failed to save albums order:', error);
+            if (window.showToast) window.showToast('Errore salvataggio ordine', 'error');
+          }
+        }
+        
+        console.log('Albums table sorting initialized');
+      }
+    }
+    
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', initializeAlbumsIndexPage);
+    
+    // Make initialization function globally available for SPA re-initialization
+    if (!window.pageInitializers) {
+      window.pageInitializers = {};
+    }
+    window.pageInitializers.albumsIndex = initializeAlbumsIndexPage;
+    
+    // Auto-initialize if this is loaded in SPA context
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeAlbumsIndexPage);
+    } else {
+      initializeAlbumsIndexPage();
+    }
   </script>
 
   {% if pagination.pages > 1 %}
