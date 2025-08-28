@@ -998,6 +998,11 @@
       // Initialize SEO accordion
       initSeoAccordion();
       
+      // Initialize grid buttons (Cover/Delete)
+      if (typeof bindGridButtons === 'function') {
+        bindGridButtons();
+      }
+      
       console.log('Album edit page initialization completed');
     }
     
