@@ -9,9 +9,9 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script>window.basePath = '{{ base_path }}';</script>
   <style>
-    html, body {
-      height: 100%;
-      min-height: 100vh;
+    body {
+      margin: 0;
+      padding: 0;
     }
     .sidebar-link { 
       display: flex; 
@@ -366,7 +366,7 @@
     </div>
   </nav>
 
-  <div class="flex h-screen pt-16">
+  <div class="flex pt-16">
     <!-- Sidebar Overlay (Mobile/Tablet) -->
     <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden hidden"></div>
     
@@ -445,6 +445,9 @@
             <a href="{{ base_path }}/admin/settings" class="sidebar-link" data-spa-link>
               <i class="fas fa-cog"></i>Settings
             </a>
+            <a href="{{ base_path }}/admin/seo" class="sidebar-link" data-spa-link>
+              <i class="fas fa-search"></i>SEO Settings
+            </a>
             <a href="{{ base_path }}/admin/filter-settings" class="sidebar-link" data-spa-link>
               <i class="fas fa-sliders-h"></i>Filter Settings
             </a>
@@ -461,8 +464,8 @@
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 lg:flex-1 overflow-hidden">
-      <main class="p-4 lg:p-8 h-full overflow-y-auto" id="main-content">
+    <div class="flex-1 lg:flex-1">
+      <main class="p-4 lg:p-8" id="main-content">
         <div id="loading-indicator" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
           <div class="bg-white p-4 rounded-lg shadow-lg">
             <i class="fas fa-spinner fa-spin mr-2"></i>Loading...
@@ -827,21 +830,182 @@
       
       // Function to reinitialize scripts after content load
       function initializePageScripts() {
-        // Reinitialize any dynamic elements that might be in the new content
-        // This could include form handlers, modals, etc.
+        console.log('SPA: Initializing page scripts...');
         
         // Re-bind any click handlers for dynamic content
         const dynamicLinks = pageContent.querySelectorAll('a[href*="/admin/"]');
         dynamicLinks.forEach(link => {
-          if (!link.hasAttribute('data-spa-link') && !link.hasAttribute('target')) {
+          if (!link.hasAttribute('data-spa-link') && !link.hasAttribute('target') && !link.closest('form')) {
             link.addEventListener('click', handleDynamicLinkClick);
           }
         });
 
         // Call global admin initializer for widgets (TomSelect, Uppy, Sortable, etc.)
         if (window.AdminInit) {
-          try { window.AdminInit(); } catch(e) { console.error('AdminInit failed', e); }
+          try { 
+            window.AdminInit(); 
+            console.log('SPA: AdminInit completed successfully');
+          } catch(e) { 
+            console.error('SPA: AdminInit failed', e); 
+          }
+        } else {
+          console.warn('SPA: AdminInit function not found');
         }
+        
+        // Initialize any page-specific components
+        initPageSpecificComponents();
+        
+        // Call page-specific initializers based on current page
+        initPageSpecificInitializers();
+        
+        console.log('SPA: Page scripts initialization completed');
+      }
+      
+      // Initialize page-specific components
+      function initPageSpecificComponents() {
+        // Category/tag management pages
+        if (pageContent.querySelector('#categories-table, #tags-table')) {
+          initTableActions();
+        }
+        
+        // Album edit pages
+        if (pageContent.querySelector('#images-grid')) {
+          initImageGridActions();
+        }
+        
+        // Settings pages
+        if (pageContent.querySelector('form[data-settings]')) {
+          initSettingsForm();
+        }
+        
+        // Analytics pages
+        if (pageContent.querySelector('#analytics-charts')) {
+          initAnalyticsCharts();
+        }
+      }
+      
+      // Initialize page-specific initializers
+      function initPageSpecificInitializers() {
+        if (window.pageInitializers) {
+          const currentPath = window.location.pathname;
+          
+          // SEO settings page
+          if (currentPath.includes('/admin/seo') && window.pageInitializers.seo) {
+            try {
+              window.pageInitializers.seo();
+              console.log('SPA: SEO page initializer called');
+            } catch(e) {
+              console.error('SPA: SEO page initializer failed', e);
+            }
+          }
+          
+          // Analytics page
+          if (currentPath.includes('/admin/analytics') && window.pageInitializers.analytics) {
+            try {
+              window.pageInitializers.analytics();
+              console.log('SPA: Analytics page initializer called');
+            } catch(e) {
+              console.error('SPA: Analytics page initializer failed', e);
+            }
+          }
+          
+          // Albums main page (index)
+          if (currentPath === '/admin/albums' && window.pageInitializers.albumsIndex) {
+            try {
+              window.pageInitializers.albumsIndex();
+              console.log('SPA: Albums index page initializer called');
+            } catch(e) {
+              console.error('SPA: Albums index page initializer failed', e);
+            }
+          }
+          
+          // Albums edit page
+          if (currentPath.includes('/admin/albums/') && currentPath.includes('/edit') && window.pageInitializers.albums) {
+            try {
+              window.pageInitializers.albums();
+              console.log('SPA: Albums edit page initializer called');
+            } catch(e) {
+              console.error('SPA: Albums edit page initializer failed', e);
+            }
+          }
+          
+          // Album create page
+          if (currentPath.includes('/admin/albums/create') && window.pageInitializers.albumsCreate) {
+            try {
+              window.pageInitializers.albumsCreate();
+              console.log('SPA: Album create page initializer called');
+            } catch(e) {
+              console.error('SPA: Album create page initializer failed', e);
+            }
+          }
+          
+          // Settings page
+          if (currentPath.includes('/admin/settings') && window.pageInitializers.settings) {
+            try {
+              window.pageInitializers.settings();
+              console.log('SPA: Settings page initializer called');
+            } catch(e) {
+              console.error('SPA: Settings page initializer failed', e);
+            }
+          }
+        }
+      }
+      
+      // Table actions for categories/tags/etc
+      function initTableActions() {
+        const deleteButtons = pageContent.querySelectorAll('[data-delete-id]');
+        deleteButtons.forEach(btn => {
+          btn.addEventListener('click', handleTableDelete);
+        });
+      }
+      
+      // Image grid actions
+      function initImageGridActions() {
+        // This will be handled by AdminInit -> initSortableGrid
+        // But we can add additional grid-specific handlers here
+        const grid = pageContent.querySelector('#images-grid');
+        if (grid && !grid._gridInitialized) {
+          grid._gridInitialized = true;
+          // Add any additional grid event handlers
+        }
+      }
+      
+      // Settings form handlers
+      function initSettingsForm() {
+        const forms = pageContent.querySelectorAll('form[data-settings]');
+        forms.forEach(form => {
+          if (!form._settingsInitialized) {
+            form._settingsInitialized = true;
+            form.addEventListener('submit', handleSettingsSubmit);
+          }
+        });
+      }
+      
+      // Analytics charts initialization
+      function initAnalyticsCharts() {
+        // Initialize Chart.js if present
+        if (window.Chart && pageContent.querySelector('canvas')) {
+          console.log('SPA: Initializing analytics charts');
+          // Chart initialization will be handled by page-specific scripts
+        }
+      }
+      
+      // Event handlers
+      function handleTableDelete(e) {
+        e.preventDefault();
+        const id = e.target.getAttribute('data-delete-id');
+        const itemName = e.target.getAttribute('data-item-name') || 'item';
+        
+        if (confirm(`Are you sure you want to delete this ${itemName}?`)) {
+          // Handle delete action
+          console.log(`Deleting ${itemName} with ID: ${id}`);
+        }
+      }
+      
+      function handleSettingsSubmit(e) {
+        const form = e.target;
+        console.log('Settings form submitted:', form);
+        // Additional settings form handling if needed
       }
       
       // Handle clicks on dynamically loaded links
