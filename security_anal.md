@@ -131,3 +131,56 @@ Se vuoi, posso:
 - Integrare una sanitizzazione server-side per album.body/about_text.
 - Rifattorizzare generateGalleryCard() per usare textContent e URL con
 window.basePath.
+Sicurezza: valutazione e miglioramenti
+
+- Punti solidi:
+    - Query preparate e parametriche; niente SQL injection notevole.
+    - Upload hardening completo (MIME + magic number + dimensioni); varianti in /
+public/media.
+    - Download sicuro con prevenzione traversal, MIME check e filename sanitizzato.
+    - CSRF su POST/PUT/PATCH/DELETE via token o header. Logout protetto con POST
++ CSRF.
+    - Sessioni: HttpOnly, SameSite=Lax, Secure in produzione; session_regenerate_id
+al login.
+    - Header: HSTS, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy,
+CSP (da rafforzare).
+    - Header: HSTS, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy,
+CSP (da rafforzare).
+- 
+Rischi concreti e fix consigliati:
+    - Installer in produzione:
+    - File pubblici: `public/installer.php`, `public/simple-install.php`, `public/
+repair_install.php` (e duplicato `public/assets/installer.php`).
+    - Azione: rimuoverli (usa `bin/cleanup_leftovers.sh --apply --remove-installers`)
+o bloccarli nel web server.
+- XSS sui contenuti “raw”:
+    - Template con `|raw`: `frontend/album.twig`, `frontend/gallery.twig`, `frontend/
+about.twig`.
+    - Azione: sanificare lato server con whitelist (p, a[href|rel|target], strong/em,
+ul/ol/li, blockquote, h2/h3/h4, hr). Mantieni Twig autoescape altrove.
+- XSS DOM nelle card generate in JS:
+    - `galleries.twig` → `generateGalleryCard()` concatena HTML con titoli/estratti
+non escapati.
+    - Azione: creare i nodi via DOM API (`document.createElement`, `textContent`)
+invece di `innerHTML`, oppure sanificare le stringhe server-side.
+- CSP con unsafe-inline:
+    - Migrare script inline a bundle (Vite) e passare a CSP con nonce rimuovendo
+`unsafe-inline` appena possibile.
+- Esecuzione PHP in dir statiche:
+    - Aggiungi regole per negare PHP in `public/media` (Apache: `.htaccess` con
+`php_flag engine off`; Nginx: `location ^~ /media/ { location ~ \.php$ { return
+403; } }`).
+
+- Rate limiting:
+    - Login ha un middleware semplice su sessione/IP. Valuta store esterno (Redis) e
+policy più robuste. Aggiungi rate limit anche a /api/analytics/track.
+
+Cosa ho già fatto
+
+
+- Aggiunta .htaccess per public/media (o snippet Nginx)?
+- Sanitizzazione server-side dei campi |raw?
+- Refactor della generazione card gallerie in DOM-safe?
+- Sanitizzazione server-side dei contenuti HTML “raw” (album/about)?
+- Refactor della card gallery JS per usare textContent (DOM-safe) al posto di
+template string per evitare XSS DOM?
