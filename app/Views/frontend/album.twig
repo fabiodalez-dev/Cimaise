@@ -8,7 +8,7 @@
     {% if album.cover %}
     <div class="absolute inset-0 z-0">
         {% set cover_url = album.cover.variants|length > 0 ? (album.cover.variants|last.path) : album.cover.original_path %}
-        <img src="{% if cover_url starts with '/' %}{{ base_path }}{{ cover_url }}{% else %}{{ cover_url }}{% endif %}" alt="{{ album.title|e }}" class="w-full h-full object-cover">
+        <img src="{% if cover_url starts with '/' %}{{ app_url }}{{ cover_url }}{% else %}{{ cover_url }}{% endif %}" alt="{{ album.title|e }}" class="w-full h-full object-cover">
     </div>
     {% endif %}
     
