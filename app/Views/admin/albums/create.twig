@@ -405,89 +405,159 @@
   </div>
   <script>
     // TomSelect + TinyMCE are initialized by the Vite bundle (resources/admin.js)
-
-    // Create-first-then-upload flow
-    let createdAlbumId = null;
-    const form = document.getElementById('album-form');
-    const uploader = document.getElementById('uploader');
-    const input = document.getElementById('file-input');
-    const csrf = form.querySelector('input[name="csrf"]').value;
-
-    function gatherFormData(){
-      const fd = new URLSearchParams();
-      new FormData(form).forEach((v,k)=>{ if(k!=='csrf') fd.append(k, typeof v === 'string' ? v : String(v)); });
-      return fd.toString();
-    }
-    async function ensureAlbumId(){
-      if (createdAlbumId) return createdAlbumId;
-      const body = gatherFormData();
-      const res = await fetch(form.action, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'X-CSRF-Token': csrf, 'Accept':'application/json' }, body });
-      const data = await res.json();
-      if (!data || !data.id) throw new Error('Creazione album fallita');
-      createdAlbumId = data.id;
-      return createdAlbumId;
-    }
-    uploader.addEventListener('click', ()=> { input.click(); });
-    ['dragover','dragleave'].forEach(ev=>uploader.addEventListener(ev, e=>{ e.preventDefault(); uploader.classList.toggle('bg-gray-100', ev==='dragover'); }));
-    uploader.addEventListener('drop', async e=>{
-      e.preventDefault(); uploader.classList.remove('bg-gray-100');
-      if (!e.dataTransfer) return; const files = Array.from(e.dataTransfer.files);
-      await uploadFiles(files);
-    });
-    input.addEventListener('change', async ()=>{ await uploadFiles(Array.from(input.files||[])); input.value=''; });
-
-    async function uploadFiles(files){
-      if (!files.length) return;
-      // basic validation: require title and at least one category before auto-create
-      const titleEl = form.querySelector('input[name="title"]');
-      const catsEl = document.getElementById('album-categories');
-      const hasTitle = titleEl && titleEl.value.trim().length > 0;
-      const hasCat = catsEl && Array.from(catsEl.selectedOptions).length > 0;
-      if (!hasTitle || !hasCat) {
-        alert('Inserisci almeno Titolo e una Categoria prima di caricare immagini.');
-        return;
-      }
-      const id = await ensureAlbumId();
+  </script>
+  
+  <script>
+    // Album create page initialization - Compatible with SPA
+    function initializeAlbumCreatePage() {
+      console.log('Initializing Album create page...');
       
-      // Upload files and set first one as cover
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        const fd = new FormData(); 
-        fd.append('file', f);
-        
-        const response = await fetch(`{{ base_path }}/admin/albums/${id}/upload`, { 
-          method:'POST', 
-          headers:{ 'X-CSRF-Token': csrf, 'Accept':'application/json' }, 
-          body: fd 
-        });
-        
-        // Set the first uploaded image as cover (new album has no cover by default)
-        if (i === 0 && response.ok) {
-          const result = await response.json();
-          if (result && result.id) {
-            // Set the first uploaded image as cover
-            await fetch(`{{ base_path }}/admin/albums/${id}/cover/${result.id}`, { 
-              method:'POST', 
-              headers: { 'X-CSRF-Token': csrf, 'Accept':'application/json' }
-            });
-          }
-        }
-      }
+      // Initialize upload functionality
+      initUploadFunctionality();
       
-      // Redirect to edit to manage ordering and details
-      window.location.href = `/admin/albums/${id}/edit`;
+      console.log('Album create page initialization completed');
     }
     
-    // ESC key handling for image modal
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        const modal = document.getElementById('image-modal');
-        if (modal && !modal.classList.contains('hidden')) {
-          modal.classList.add('hidden');
-          modal.classList.remove('flex');
-        }
+    function initUploadFunctionality() {
+      // Get elements
+      const form = document.getElementById('album-form');
+      const uploader = document.getElementById('uploader');
+      const input = document.getElementById('file-input');
+      
+      if (!form || !uploader || !input) {
+        console.warn('Upload elements not found');
+        return;
       }
-    });
+      
+      const csrf = form.querySelector('input[name="csrf"]')?.value;
+      let createdAlbumId = null;
+      
+      function gatherFormData(){
+        const fd = new URLSearchParams();
+        new FormData(form).forEach((v,k)=>{ if(k!=='csrf') fd.append(k, typeof v === 'string' ? v : String(v)); });
+        return fd.toString();
+      }
+      
+      async function ensureAlbumId(){
+        if (createdAlbumId) return createdAlbumId;
+        const body = gatherFormData();
+        const res = await fetch(form.action, { 
+          method:'POST', 
+          headers:{ 
+            'Content-Type':'application/x-www-form-urlencoded', 
+            'X-CSRF-Token': csrf, 
+            'Accept':'application/json' 
+          }, 
+          body 
+        });
+        const data = await res.json();
+        if (!data || !data.id) throw new Error('Creazione album fallita');
+        createdAlbumId = data.id;
+        return createdAlbumId;
+      }
+      
+      // Remove existing listeners to prevent duplicates
+      uploader.removeEventListener('click', handleUploaderClick);
+      uploader.removeEventListener('dragover', handleDragOver);
+      uploader.removeEventListener('dragleave', handleDragLeave);
+      uploader.removeEventListener('drop', handleDrop);
+      input.removeEventListener('change', handleInputChange);
+      
+      // Add event listeners
+      uploader.addEventListener('click', handleUploaderClick);
+      uploader.addEventListener('dragover', handleDragOver);
+      uploader.addEventListener('dragleave', handleDragLeave);
+      uploader.addEventListener('drop', handleDrop);
+      input.addEventListener('change', handleInputChange);
+      
+      function handleUploaderClick() {
+        input.click();
+      }
+      
+      function handleDragOver(e) {
+        e.preventDefault();
+        uploader.classList.add('bg-gray-100');
+      }
+      
+      function handleDragLeave(e) {
+        e.preventDefault();
+        uploader.classList.remove('bg-gray-100');
+      }
+      
+      async function handleDrop(e) {
+        e.preventDefault();
+        uploader.classList.remove('bg-gray-100');
+        if (!e.dataTransfer) return;
+        const files = Array.from(e.dataTransfer.files);
+        await uploadFiles(files);
+      }
+      
+      async function handleInputChange() {
+        await uploadFiles(Array.from(input.files||[]));
+        input.value='';
+      }
+      
+      async function uploadFiles(files){
+        if (!files.length) return;
+        
+        // Basic validation: require title and at least one category before auto-create
+        const titleEl = form.querySelector('input[name="title"]');
+        const catsEl = document.getElementById('album-categories');
+        const hasTitle = titleEl && titleEl.value.trim().length > 0;
+        const hasCat = catsEl && Array.from(catsEl.selectedOptions).length > 0;
+        
+        if (!hasTitle || !hasCat) {
+          alert('Inserisci almeno Titolo e una Categoria prima di caricare immagini.');
+          return;
+        }
+        
+        const id = await ensureAlbumId();
+        
+        // Upload files and set first one as cover
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          const fd = new FormData(); 
+          fd.append('file', f);
+          
+          const response = await fetch(`{{ base_path }}/admin/albums/${id}/upload`, { 
+            method:'POST', 
+            headers:{ 'X-CSRF-Token': csrf, 'Accept':'application/json' }, 
+            body: fd 
+          });
+          
+          // Set the first uploaded image as cover (new album has no cover by default)
+          if (i === 0 && response.ok) {
+            const result = await response.json();
+            if (result && result.id) {
+              // Set the first uploaded image as cover
+              await fetch(`{{ base_path }}/admin/albums/${id}/cover/${result.id}`, { 
+                method:'POST', 
+                headers: { 'X-CSRF-Token': csrf, 'Accept':'application/json' }
+              });
+            }
+          }
+        }
+        
+        // Redirect to edit to manage ordering and details
+        window.location.href = `{{ base_path }}/admin/albums/${id}/edit`;
+      }
+    }
+    
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', initializeAlbumCreatePage);
+    
+    // Make initialization function globally available for SPA re-initialization
+    if (!window.pageInitializers) {
+      window.pageInitializers = {};
+    }
+    window.pageInitializers.albumsCreate = initializeAlbumCreatePage;
+    
+    // Auto-initialize if this is loaded in SPA context
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeAlbumCreatePage);
+    } else {
+      initializeAlbumCreatePage();
+    }
   </script>
   <style>
     /* TomSelect wrapper - no z-index, natural stacking */

@@ -378,7 +378,8 @@ class GalleryController extends BaseController
             'album_ref' => $albumRef,
             'categories' => $navCats,
             'page_title' => $galleryMeta['title'] . ' - ' . $template['name'],
-            'meta_description' => $galleryMeta['excerpt']
+            'meta_description' => $galleryMeta['excerpt'],
+            'current_url' => $request->getUri()->__toString()
         ]);
     }
 

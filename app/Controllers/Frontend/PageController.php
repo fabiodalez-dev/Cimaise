@@ -501,7 +501,8 @@ class PageController extends BaseController
             'parent_categories' => $this->getParentCategoriesForNavigation(),
             'page_title' => $galleryMeta['title'] . ' - ' . $template['name'],
             'meta_description' => $galleryMeta['excerpt'] ?: 'Photography album: ' . $galleryMeta['title'],
-            'meta_image' => $album['cover']['variants'][0]['path'] ?? null
+            'meta_image' => $album['cover']['variants'][0]['path'] ?? null,
+            'current_url' => $request->getUri()->__toString()
         ]);
     }
 

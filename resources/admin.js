@@ -148,10 +148,24 @@ document.addEventListener('DOMContentLoaded', () => { initUppyAreaUpload(); });
 
 // Initialize all TomSelect fields if present
 function initTomSelects() {
+  console.log('Initializing TomSelects...');
+  
   const make = (selector, opts = {}) => {
-    const el = document.querySelector(selector);
-    if (!el) return null;
-    try { return new TomSelect(el, opts); } catch { return null; }
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(el => {
+      // Skip if already initialized
+      if (el.tomselect) {
+        console.log(`TomSelect already initialized for ${selector}`);
+        return;
+      }
+      
+      try {
+        el.tomselect = new TomSelect(el, opts);
+        console.log(`TomSelect initialized for ${selector}`);
+      } catch(e) {
+        console.error(`Failed to initialize TomSelect for ${selector}:`, e);
+      }
+    });
   };
 
   const common = {
@@ -173,7 +187,7 @@ function initTomSelects() {
     labelField: 'name',
     searchField: 'name',
     load: (q, cb) => {
-      fetch(`/admin/api/tags?q=${encodeURIComponent(q || '')}`, { headers: { 'Accept': 'application/json' }})
+      fetch(`${window.basePath || ''}/admin/api/tags?q=${encodeURIComponent(q || '')}`, { headers: { 'Accept': 'application/json' }})
         .then(r => r.ok ? r.json() : []).then(cb).catch(() => cb());
     }
   });
@@ -186,30 +200,74 @@ function initTomSelects() {
   make('#album-developers', common);
   make('#album-labs', common);
   make('#album-locations', common);
+  
+  // Generic selects that might be in any admin page
+  make('select.tom-select', common);
+  make('select[multiple]:not(.ts-hidden-accessible)', common);
 }
 
 document.addEventListener('DOMContentLoaded', initTomSelects);
 
 // Sortable grid and controls on edit page
 function initSortableGrid() {
+  console.log('Initializing Sortable grid...');
+  
   const grid = document.getElementById('images-grid');
-  if (!grid) return;
+  if (!grid) {
+    console.log('No images-grid found, skipping Sortable initialization');
+    return;
+  }
+  
+  // Cleanup existing instance if present
+  if (grid._sortableInstance) {
+    try {
+      grid._sortableInstance.destroy();
+      console.log('Destroyed existing Sortable instance');
+    } catch(e) {
+      console.warn('Failed to destroy existing Sortable instance:', e);
+    }
+    delete grid._sortableInstance;
+  }
+  
   try {
-    new Sortable(grid, {
+    const sortableInstance = new Sortable(grid, {
       animation: 150,
       draggable: '[data-id]',
       onEnd: async () => {
         const ids = Array.from(grid.querySelectorAll('[data-id]')).map(el=>el.getAttribute('data-id'));
         const rel = grid.dataset.reorderEndpoint || '';
         const endpoint = rel.startsWith('/') ? `${window.basePath}${rel}` : `${window.basePath}/${rel}`;
-        await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json', 'X-CSRF-Token': grid.dataset.csrf, 'Accept':'application/json' }, body: JSON.stringify({ order: ids }) });
-        if (window.showToast) window.showToast('Ordine salvato', '');
+        try {
+          await fetch(endpoint, { 
+            method:'POST', 
+            headers:{ 
+              'Content-Type':'application/json', 
+              'X-CSRF-Token': grid.dataset.csrf, 
+              'Accept':'application/json' 
+            }, 
+            body: JSON.stringify({ order: ids }) 
+          });
+          if (window.showToast) window.showToast('Ordine salvato', 'success');
+        } catch(error) {
+          console.error('Failed to save order:', error);
+          if (window.showToast) window.showToast('Errore salvataggio ordine', 'error');
+        }
       }
     });
-  } catch {}
+    
+    // Store instance for cleanup
+    grid._sortableInstance = sortableInstance;
+    if (!window.sortableInstances) window.sortableInstances = [];
+    window.sortableInstances.push(sortableInstance);
+    
+    console.log('Sortable initialized successfully');
+  } catch(e) {
+    console.error('Failed to initialize Sortable:', e);
+  }
 
   const sortSelect = document.getElementById('sort-images');
-  if (sortSelect) {
+  if (sortSelect && !sortSelect._sortInitialized) {
+    sortSelect._sortInitialized = true;
     const parseDate = (s) => new Date(s || '1970-01-01T00:00:00Z').getTime();
     function sortGridBy(mode){
       const cards = Array.from(grid.children);
@@ -228,22 +286,51 @@ function initSortableGrid() {
   }
 
   const saveBtn = document.getElementById('save-order');
-  if (saveBtn) {
+  if (saveBtn && !saveBtn._saveInitialized) {
+    saveBtn._saveInitialized = true;
     saveBtn.addEventListener('click', async (e)=>{
       e.preventDefault();
       const ids = Array.from(grid.querySelectorAll('[data-id]')).map(el=>el.getAttribute('data-id'));
       const rel = grid.dataset.reorderEndpoint || '';
       const endpoint = rel.startsWith('/') ? `${window.basePath}${rel}` : `${window.basePath}/${rel}`;
-      await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json', 'X-CSRF-Token': grid.dataset.csrf, 'Accept':'application/json' }, body: JSON.stringify({ order: ids }) });
+      try {
+        await fetch(endpoint, { 
+          method:'POST', 
+          headers:{ 
+            'Content-Type':'application/json', 
+            'X-CSRF-Token': grid.dataset.csrf, 
+            'Accept':'application/json' 
+          }, 
+          body: JSON.stringify({ order: ids }) 
+        });
+        if (window.showToast) window.showToast('Ordine salvato manualmente', 'success');
+      } catch(error) {
+        console.error('Failed to save order manually:', error);
+        if (window.showToast) window.showToast('Errore salvataggio ordine', 'error');
+      }
     });
   }
 }
 
 // TinyMCE init on all richtext areas (GPL via npm)
 function initTinyMCE() {
+  console.log('Initializing TinyMCE...');
+  
   const areas = document.querySelectorAll('textarea.richtext');
-  if (!areas.length) return;
-  try { tinymce.remove(); } catch {}
+  if (!areas.length) {
+    console.log('No richtext areas found, skipping TinyMCE initialization');
+    return;
+  }
+  
+  // Remove existing instances to prevent conflicts
+  try { 
+    if (window.tinymce) {
+      tinymce.remove(); 
+      console.log('Removed existing TinyMCE instances');
+    }
+  } catch(e) {
+    console.warn('Failed to remove TinyMCE instances:', e);
+  }
   
   tinymce.init({
     selector: 'textarea.richtext',
@@ -284,6 +371,7 @@ function initTinyMCE() {
     promotion: false,
     setup: function (editor) {
       editor.on('init', function () {
+        console.log('TinyMCE editor initialized:', editor.id);
         // Force toolbar visibility
         const container = editor.getContainer();
         const toolbar = container.querySelector('.tox-toolbar');
@@ -291,22 +379,234 @@ function initTinyMCE() {
         if (header) header.style.display = 'block';
         if (toolbar) toolbar.style.display = 'flex';
       });
+      
+      editor.on('remove', function () {
+        console.log('TinyMCE editor removed:', editor.id);
+      });
     }
+  }).then(function(editors) {
+    console.log('TinyMCE initialized successfully for', editors.length, 'editors');
+  }).catch(function(error) {
+    console.error('TinyMCE initialization failed:', error);
   });
 }
 
 // Expose global initializer for SPA content loads
 window.AdminInit = function() {
+  console.log('AdminInit: Initializing admin components...');
+  
+  // Cleanup any existing instances to prevent duplicates
+  cleanupExistingInstances();
+  
+  // Initialize components in order
   initTomSelects();
   initUppyAreaUpload();
   initSortableGrid();
   initTinyMCE();
   initMediaModalOnEdit();
-  bindGridButtons();
+  initTooltips();
+  initDropdowns();
+  initFormValidation();
+  
+  console.log('AdminInit: All components initialized');
 };
+
+// Cleanup function to remove existing instances
+function cleanupExistingInstances() {
+  try {
+    // Cleanup TomSelect instances
+    document.querySelectorAll('.ts-control').forEach(el => {
+      const input = el.previousElementSibling;
+      if (input && input.tomselect) {
+        try {
+          input.tomselect.destroy();
+        } catch(e) {
+          console.warn('Failed to destroy TomSelect:', e);
+        }
+      }
+    });
+    
+    // Cleanup TinyMCE instances
+    if (window.tinymce) {
+      try {
+        tinymce.remove();
+      } catch(e) {
+        console.warn('Failed to remove TinyMCE:', e);
+      }
+    }
+    
+    // Cleanup Uppy instances
+    if (window.uppyInstances) {
+      window.uppyInstances.forEach(uppy => {
+        try { uppy.close(); } catch(e) { console.warn('Failed to close Uppy:', e); }
+      });
+      window.uppyInstances = [];
+    }
+    
+    // Cleanup Sortable instances
+    if (window.sortableInstances) {
+      window.sortableInstances.forEach(sortable => {
+        try { sortable.destroy(); } catch(e) { console.warn('Failed to destroy Sortable:', e); }
+      });
+      window.sortableInstances = [];
+    }
+    
+    // Reset initialization flags
+    document.querySelectorAll('#sort-images').forEach(el => {
+      delete el._sortInitialized;
+    });
+    
+    document.querySelectorAll('#save-order').forEach(el => {
+      delete el._saveInitialized;
+    });
+    
+    document.querySelectorAll('#images-grid').forEach(el => {
+      delete el._sortableInstance;
+    });
+    
+    document.querySelectorAll('#uppy').forEach(el => {
+      delete el._uppyInitialized;
+    });
+    
+    // Reset tooltip and dropdown flags
+    document.querySelectorAll('[data-tooltip]').forEach(el => {
+      delete el._tooltipInitialized;
+    });
+    
+    document.querySelectorAll('.dropdown').forEach(el => {
+      delete el._dropdownInitialized;
+    });
+    
+    document.querySelectorAll('form[data-validate]').forEach(el => {
+      delete el._validationInitialized;
+    });
+    
+    console.log('Cleanup completed successfully');
+    
+  } catch(e) {
+    console.warn('Cleanup warning:', e);
+  }
+}
+
+// Initialize tooltips
+function initTooltips() {
+  const tooltipElements = document.querySelectorAll('[data-tooltip]');
+  tooltipElements.forEach(el => {
+    if (!el._tooltipInitialized) {
+      el._tooltipInitialized = true;
+      el.addEventListener('mouseenter', showTooltip);
+      el.addEventListener('mouseleave', hideTooltip);
+    }
+  });
+}
+
+// Initialize dropdown menus
+function initDropdowns() {
+  const dropdowns = document.querySelectorAll('.dropdown');
+  dropdowns.forEach(dropdown => {
+    if (!dropdown._dropdownInitialized) {
+      dropdown._dropdownInitialized = true;
+      const trigger = dropdown.querySelector('.dropdown-trigger');
+      const content = dropdown.querySelector('.dropdown-content');
+      
+      if (trigger && content) {
+        trigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleDropdown(dropdown);
+        });
+      }
+    }
+  });
+}
+
+// Initialize form validation
+function initFormValidation() {
+  const forms = document.querySelectorAll('form[data-validate]');
+  forms.forEach(form => {
+    if (!form._validationInitialized) {
+      form._validationInitialized = true;
+      form.addEventListener('submit', validateForm);
+    }
+  });
+}
+
+// Helper functions for tooltips
+function showTooltip(e) {
+  const text = e.target.getAttribute('data-tooltip');
+  if (!text) return;
+  
+  const tooltip = document.createElement('div');
+  tooltip.className = 'tooltip-popup';
+  tooltip.textContent = text;
+  tooltip.style.cssText = `
+    position: absolute;
+    background: rgba(0,0,0,0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+  `;
+  
+  document.body.appendChild(tooltip);
+  
+  const rect = e.target.getBoundingClientRect();
+  tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+  tooltip.style.top = rect.top - tooltip.offsetHeight - 8 + 'px';
+  
+  e.target._tooltip = tooltip;
+}
+
+function hideTooltip(e) {
+  if (e.target._tooltip) {
+    e.target._tooltip.remove();
+    delete e.target._tooltip;
+  }
+}
+
+// Helper function for dropdown toggle
+function toggleDropdown(dropdown) {
+  const content = dropdown.querySelector('.dropdown-content');
+  const isOpen = content.classList.contains('show');
+  
+  // Close all other dropdowns
+  document.querySelectorAll('.dropdown-content.show').forEach(el => {
+    el.classList.remove('show');
+  });
+  
+  // Toggle current dropdown
+  if (!isOpen) {
+    content.classList.add('show');
+  }
+}
+
+// Helper function for form validation
+function validateForm(e) {
+  const form = e.target;
+  const requiredFields = form.querySelectorAll('[required]');
+  let isValid = true;
+  
+  requiredFields.forEach(field => {
+    if (!field.value.trim()) {
+      field.classList.add('error');
+      isValid = false;
+    } else {
+      field.classList.remove('error');
+    }
+  });
+  
+  if (!isValid) {
+    e.preventDefault();
+    showToast('Please fill in all required fields', 'error');
+  }
+}
 
 // Expose refreshGalleryArea globally
 window.refreshGalleryArea = refreshGalleryArea;
+// Expose rebindImageModalHandlers globally to prevent tree-shaking
+window.rebindImageModalHandlers = rebindImageModalHandlers;
 
 // Ensure all initializers run on first load (not only SPA swaps)
 document.addEventListener('DOMContentLoaded', () => {
