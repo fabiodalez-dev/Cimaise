@@ -701,6 +701,8 @@ function getCsrf(){ const el = document.querySelector('input[name="csrf"]'); ret
 // Refresh only the gallery grid after uploads
 async function refreshGalleryArea() {
   try {
+    console.log('🔄 refreshGalleryArea called');
+    
     // Show loading indicator
     let loadingEl = document.createElement('div');
     loadingEl.className = 'gallery-refresh-loading';
@@ -708,65 +710,17 @@ async function refreshGalleryArea() {
     loadingEl.innerHTML = '<div class="bg-white rounded-lg p-4 shadow-lg"><i class="fas fa-spinner fa-spin mr-2"></i>Aggiornamento galleria...</div>';
     document.body.appendChild(loadingEl);
     
-    // Get current album ID from dataset or URL
-    const albumId = document.querySelector('#uppy')?.dataset?.albumId || 
-                    window.location.pathname.match(/\/admin\/albums\/(\d+)/)?.[1];
+    const existingGrid = document.getElementById('images-grid');
+    console.log('📋 Existing grid found:', !!existingGrid);
     
-    // Ensure we have an empty grid structure if it doesn't exist
-    let existingGrid = document.getElementById('images-grid');
-    const galleryContainer = document.querySelector('.card .p-6');
-    const emptyMessage = galleryContainer?.querySelector('p.text-gray-500');
-    
-    if (!existingGrid && galleryContainer) {
-      // Create empty grid structure when album is empty
-      console.log('Creating empty grid structure...');
-      
-      // Remove empty message
-      if (emptyMessage) {
-        emptyMessage.remove();
-      }
-      
-      // Create bulk actions
-      const bulkActions = document.createElement('div');
-      bulkActions.className = 'flex items-center justify-between mt-6 mb-4';
-      bulkActions.innerHTML = `
-        <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
-          <input type="checkbox" id="select-all" class="rounded border-gray-300 text-black focus:ring-black">
-          Seleziona tutto (0 immagini)
-        </label>
-        <button id="bulk-delete" type="button" 
-                class="btn-outline-danger text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
-                disabled>
-          <i class="fas fa-trash mr-1"></i>
-          Elimina selezionate
-        </button>
-      `;
-      
-      // Create empty grid
-      const grid = document.createElement('div');
-      grid.id = 'images-grid';
-      grid.className = 'grid grid-cols-2 md:grid-cols-3 gap-4';
-      grid.dataset.reorderEndpoint = `${window.basePath || ''}/admin/albums/${albumId}/images/reorder`;
-      grid.dataset.csrf = document.querySelector('input[name="csrf"]')?.value || '';
-      grid.dataset.albumId = albumId || '';
-      
-      // Create helper text
-      const helperText = document.createElement('div');
-      helperText.className = 'text-gray-500 text-sm mt-2';
-      helperText.textContent = 'Trascina per riordinare oppure usa il selettore per ordinare per data/ID; clicca "Salva ordine" per persistere.';
-      
-      // Insert elements after the media library button
-      const mediaLibraryButton = galleryContainer.querySelector('.mt-3.text-right');
-      if (mediaLibraryButton && mediaLibraryButton.parentNode) {
-        mediaLibraryButton.parentNode.insertBefore(bulkActions, mediaLibraryButton.nextSibling);
-        bulkActions.parentNode.insertBefore(grid, bulkActions.nextSibling);
-        grid.parentNode.insertBefore(helperText, grid.nextSibling);
-      }
-      
-      existingGrid = grid;
+    if (!existingGrid) {
+      console.error('❌ images-grid element not found! The template should always include it now.');
+      if (loadingEl) loadingEl.remove();
+      return;
     }
     
-    // Now fetch the updated content
+    // Fetch the updated content
+    console.log('🌐 Fetching updated page content...');
     const res = await fetch(window.location.href, { headers: { 'Accept': 'text/html' }});
     if (!res.ok) throw new Error('Failed to fetch page');
     const html = await res.text();
@@ -774,8 +728,12 @@ async function refreshGalleryArea() {
     const newGrid = doc.querySelector('#images-grid');
     const newBulkActions = doc.querySelector('.flex.items-center.justify-between.mt-6.mb-4');
     
-    if (newGrid && existingGrid) {
+    console.log('📋 New grid found:', !!newGrid);
+    console.log('🔘 New bulk actions found:', !!newBulkActions);
+    
+    if (newGrid) {
       // Update grid content
+      console.log('✅ Updating grid content...');
       existingGrid.innerHTML = newGrid.innerHTML;
       // Update dataset attributes
       Object.assign(existingGrid.dataset, newGrid.dataset);
@@ -784,48 +742,39 @@ async function refreshGalleryArea() {
       if (newBulkActions) {
         const currentBulkActions = document.querySelector('.flex.items-center.justify-between.mt-6.mb-4');
         if (currentBulkActions) {
-          const labelText = newBulkActions.querySelector('label')?.textContent || '';
           const currentLabel = currentBulkActions.querySelector('label');
-          if (currentLabel) {
-            currentLabel.innerHTML = newBulkActions.querySelector('label')?.innerHTML || currentLabel.innerHTML;
+          const newLabel = newBulkActions.querySelector('label');
+          if (currentLabel && newLabel) {
+            currentLabel.innerHTML = newLabel.innerHTML;
+            console.log('🔘 Updated bulk actions label');
           }
         }
       }
       
       // Re-initialize all components that depend on the grid
+      console.log('🔧 Re-initializing components...');
       initSortableGrid();
       bindGridButtons();
       rebindBulkSelection();
       rebindImageModalHandlers();
       
+      console.log('✅ Gallery refresh completed successfully');
       if (window.showToast) window.showToast('Galleria aggiornata', 'success');
-    } else if (!newGrid && existingGrid) {
-      // No images anymore, revert to empty state
-      existingGrid.remove();
-      const bulkActions = document.querySelector('.flex.items-center.justify-between.mt-6.mb-4');
-      if (bulkActions) bulkActions.remove();
-      const helperText = document.querySelector('.text-gray-500.text-sm.mt-2');
-      if (helperText) helperText.remove();
-      
-      // Add empty message back
-      if (galleryContainer && !galleryContainer.querySelector('p.text-gray-500')) {
-        const emptyMsg = document.createElement('p');
-        emptyMsg.className = 'text-gray-500';
-        emptyMsg.textContent = 'Nessuna immagine in questo album.';
-        galleryContainer.appendChild(emptyMsg);
-      }
+    } else {
+      console.log('⚠️ No grid found in new content');
     }
     
     // Remove loading indicator
     if (loadingEl) loadingEl.remove();
     
   } catch (e) { 
-    console.error('Error refreshing gallery:', e);
+    console.error('❌ Error refreshing gallery:', e);
     // Remove loading indicator on error
     const loadingEl = document.querySelector('.gallery-refresh-loading');
     if (loadingEl) loadingEl.remove();
     
     // Fallback to full page reload if refresh fails
+    console.log('🔄 Falling back to full page reload');
     window.location.reload(); 
   }
 }
