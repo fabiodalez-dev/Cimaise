@@ -799,7 +799,7 @@
             mobileMenuLinks.forEach(link => {
                 const linkUrl = link.href.split('?')[0].split('#')[0];
                 if (link.href && linkUrl === currentUrl) {
-                    link.classList.add('bg-white', 'text-white');
+                    link.classList.add('bg-white', 'text-black');
                     link.setAttribute('aria-current', 'page');
                 }
             });
