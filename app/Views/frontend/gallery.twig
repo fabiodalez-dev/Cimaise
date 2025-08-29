@@ -179,6 +179,7 @@
               }
               history.pushState(null, '', basePath + '/album/' + albumRef + '?template=' + id);
               if (typeof initLightbox === 'function') { try { initLightbox(); } catch(e) {} }
+              if (typeof window.animateGalleryOnce === 'function') { try { window.animateGalleryOnce(); } catch(e){} }
             })
             .catch(function(err){ console.error(err); })
             .finally(function(){ delete btn.dataset.switchInProgress; });
@@ -833,6 +834,7 @@ document.querySelectorAll('.tpl-switch')?.forEach(a => {
         
         // Re-initialize the gallery layout
         initializeGalleryLayout();
+        if (typeof window.animateGalleryOnce === 'function') { try { window.animateGalleryOnce(); } catch(e){} }
         
         // Wait for components to initialize, then show content directly without animation
         setTimeout(() => {
