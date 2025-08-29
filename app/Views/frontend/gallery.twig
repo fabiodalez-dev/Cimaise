@@ -193,7 +193,7 @@
     <div id="images-gallery" class="masonry-fit-container">
       {% for image in images %}
       <div class="masonry-fit-item" style="--aspect-ratio: {{ image.width / image.height }}">
-        <a href="{{ image.lightbox_url|default(image.url) }}" 
+        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
            class="pswp-link image-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
@@ -213,15 +213,15 @@
         >
           <picture>
             {% if image.sources and image.sources.avif|length %}
-              <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
             {% endif %}
             {% if image.sources and image.sources.webp|length %}
-              <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
             {% endif %}
             {% if image.sources and image.sources.jpg|length %}
-              <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+              <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
             {% endif %}
-            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ app_url }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-auto object-contain" style="aspect-ratio: var(--aspect-ratio)" loading="lazy" decoding="async">
+            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-auto object-contain" style="aspect-ratio: var(--aspect-ratio)" loading="lazy" decoding="async">
           </picture>
         </a>
       </div>
@@ -235,7 +235,7 @@
         <div class="swiper-wrapper">
           {% for image in images %}
           <div class="swiper-slide relative">
-            <a href="{{ image.lightbox_url|default(image.url) }}" 
+            <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
                class="pswp-link image-item block h-[70vh] bg-neutral-100 rounded-xl overflow-hidden flex items-center justify-center"
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
@@ -255,13 +255,13 @@
             >
               <picture>
                 {% if image.sources and image.sources.avif|length %}
-                  <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+                  <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
                 {% endif %}
                 {% if image.sources and image.sources.webp|length %}
-                  <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+                  <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
                 {% endif %}
                 {% if image.sources and image.sources.jpg|length %}
-                  <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+                  <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
                 {% endif %}
                 <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" class="max-w-full max-h-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};" loading="lazy" decoding="async">
               </picture>
@@ -286,7 +286,7 @@
         <div class="swiper-wrapper">
           {% for image in images %}
           <div class="swiper-slide !w-20 !h-16 cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
-            <img src="{% if image.url starts with '/' %}{{ app_url }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="" class="w-full h-full object-contain rounded">
+            <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="" class="w-full h-full object-contain rounded">
           </div>
           {% endfor %}
         </div>
@@ -299,7 +299,7 @@
     <div id="images-gallery" class="grid {{ mobile_class|default('grid-cols-1') }} {{ tablet_class|default('md:grid-cols-2') }} {{ desktop_class|default('lg:grid-cols-3') }} gap-8">
       {% for image in images %}
       <div class="grid-minimal-item group">
-        <a href="{{ image.lightbox_url|default(image.url) }}" 
+        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
            class="pswp-link image-item block aspect-square bg-neutral-50 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
@@ -320,15 +320,15 @@
           <div class="relative w-full h-full">
             <picture>
               {% if image.sources and image.sources.avif|length %}
-                <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+                <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
               {% endif %}
               {% if image.sources and image.sources.webp|length %}
-                <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+                <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
               {% endif %}
               {% if image.sources and image.sources.jpg|length %}
-                <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+                <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
               {% endif %}
-              <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ app_url }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async">
+              <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async">
             </picture>
             <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
@@ -343,12 +343,12 @@
       {% for image in images %}
       {% set featured = loop.index0 % 6 == 0 or loop.index0 % 6 == 3 %}
       <div class="mosaic-item {{ featured ? 'mosaic-featured' : 'mosaic-normal' }}" data-index="{{ loop.index0 }}">
-        <a href="{{ image.lightbox_url|default(image.url) }}" 
+        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
            class="pswp-link image-item block w-full h-full bg-neutral-100 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:z-10 {{ featured ? 'flex items-center justify-center' : '' }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
-          <img src="{% if image.url starts with '/' %}{{ app_url }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full {{ featured ? 'object-contain max-w-full max-h-full' : 'object-cover' }}">
+          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full {{ featured ? 'object-contain max-w-full max-h-full' : 'object-cover' }}">
         </a>
       </div>
       {% endfor %}
@@ -361,7 +361,7 @@
         <div class="swiper-wrapper">
           {% for image in images %}
           <div class="swiper-slide !w-auto !h-[80vh] px-2">
-            <a href="{{ image.lightbox_url|default(image.url) }}" 
+            <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
                class="pswp-link image-item block h-full bg-neutral-100 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 relative flex items-center justify-center"
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
@@ -382,7 +382,7 @@
       {% set rotation = rotation_values[loop.index0 % 9] %}
       <div class="polaroid-item absolute" 
            style="--rotation: {{ rotation }}deg; transform: rotate(var(--rotation)); top: {{ (loop.index0 * 15) % 60 + 10 }}%; left: {{ (loop.index0 * 20) % 80 + 5 }}%;">
-        <a href="{{ image.lightbox_url|default(image.url) }}" 
+        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
            class="pswp-link image-item block bg-white p-3 pb-12 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 hover:z-50 relative"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
@@ -405,7 +405,7 @@
     <div id="images-gallery" class="masonry-grid">
       {% for image in images %}
       <div class="masonry-item">
-        <a href="{{ image.lightbox_url|default(image.url) }}" 
+        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
            class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
@@ -439,22 +439,22 @@
     <div id="images-gallery" class="grid {{ mobile_class }} {{ tablet_class }} {{ desktop_class }} gap-4">
       {% for image in images %}
       <div class="masonry-item">
-        <a href="{{ image.lightbox_url|default(image.url) }}" 
+        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
            class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
           <picture>
             {% if image.sources and image.sources.avif|length %}
-              <source type="image/avif" srcset="{{ image.sources.avif|join(', ') }}" sizes="100vw">
+              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
             {% endif %}
             {% if image.sources and image.sources.webp|length %}
-              <source type="image/webp" srcset="{{ image.sources.webp|join(', ') }}" sizes="100vw">
+              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
             {% endif %}
                 {% if image.sources and image.sources.jpg|length %}
-                  <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ') }}" sizes="100vw">
+                  <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
                 {% endif %}
-                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ app_url }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
           </picture>
         </a>
       </div>
