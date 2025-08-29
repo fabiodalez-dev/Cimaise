@@ -602,7 +602,7 @@
                         <div class="mobile-category-group rounded-md overflow-hidden">
                             {% if category.children|length > 0 %}
                                 <div class="flex items-center justify-between w-full text-left font-medium bg-white hover:bg-gray-50 transition-colors duration-200">
-                                    <a href="{{ base_path }}/category/{{ category.slug }}" class="flex-grow flex items-center gap-4 p-3">
+                                    <a href="{{ base_path }}/category/{{ category.slug }}" class="flex-grow flex items-center gap-4 p-3 w-full">
                                         {% if category.image_path and category.image_path != '' %}
                                             <div class="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                                                 <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
@@ -799,16 +799,8 @@
             mobileMenuLinks.forEach(link => {
                 const linkUrl = link.href.split('?')[0].split('#')[0];
                 if (link.href && linkUrl === currentUrl) {
-                    link.classList.add('bg-black', 'text-white');
+                    link.classList.add('bg-white', 'text-white');
                     link.setAttribute('aria-current', 'page');
-
-                    const parentGroup = link.closest('.mobile-category-group');
-                    if (parentGroup) {
-                        const toggleButton = parentGroup.querySelector('.mobile-category-toggle');
-                        if (toggleButton) {
-                            setTimeout(() => toggleButton.click(), 100); // Open parent submenu
-                        }
-                    }
                 }
             });
         });
