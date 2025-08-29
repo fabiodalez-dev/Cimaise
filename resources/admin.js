@@ -15,6 +15,9 @@ import 'tinymce/models/dom/model'
 import 'tinymce/skins/ui/oxide/skin.css'
 import 'tinymce/skins/content/default/content.css'
 
+// Import GSAP for animations
+import { gsap } from 'gsap'
+
 function initUppyAreaUpload() {
   const area = document.getElementById('uppy');
   if (!area) return;
