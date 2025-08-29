@@ -884,8 +884,23 @@
         }
       }
       
+      // Cleanup page-specific resources when navigating away
+      function cleanupPageSpecificResources() {
+        // Cleanup real-time analytics if leaving analytics pages
+        if (typeof window.cleanupRealTimeAnalytics === 'function' && 
+            window.currentPageType === 'analytics-realtime' &&
+            !window.location.pathname.includes('/admin/analytics/realtime')) {
+          console.log('SPA: Cleaning up real-time analytics...');
+          window.cleanupRealTimeAnalytics();
+          window.currentPageType = null;
+        }
+      }
+      
       // Initialize page-specific initializers
       function initPageSpecificInitializers() {
+        // Cleanup any previous page-specific resources
+        cleanupPageSpecificResources();
+        
         if (window.pageInitializers) {
           const currentPath = window.location.pathname;
           
