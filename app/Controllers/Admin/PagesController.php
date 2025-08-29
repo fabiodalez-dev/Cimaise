@@ -166,7 +166,18 @@ class PagesController extends BaseController
             'galleries.no_results_title' => (string)($svc->get('galleries.no_results_title', 'No galleries found') ?? 'No galleries found'),
             'galleries.no_results_text' => (string)($svc->get('galleries.no_results_text', 'We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.') ?? 'We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.'),
             'galleries.view_button_text' => (string)($svc->get('galleries.view_button_text', 'View') ?? 'View'),
+            // Global gallery page template (classic, hero, magazine)
+            'gallery.page_template' => (string)($svc->get('gallery.page_template', 'classic') ?? 'classic'),
+            // Default gallery template id (DB-driven layout)
+            'gallery.default_template_id' => $svc->get('gallery.default_template_id'),
         ];
+        // Load templates for dropdown (DB)
+        $templates = [];
+        try {
+            $templates = $this->db->pdo()->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
+        } catch (\Throwable) {
+            $templates = [];
+        }
         
         // Get current filter settings for reference
         $filterSettings = $this->getFilterSettings();
@@ -174,6 +185,7 @@ class PagesController extends BaseController
         return $this->view->render($response, 'admin/pages/galleries.twig', [
             'settings' => $settings,
             'filter_settings' => $filterSettings,
+            'templates' => $templates,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -194,6 +206,18 @@ class PagesController extends BaseController
         $svc->set('galleries.no_results_title', trim((string)($data['no_results_title'] ?? 'No galleries found')));
         $svc->set('galleries.no_results_text', trim((string)($data['no_results_text'] ?? 'We couldn\'t find any galleries matching your current filters.')));
         $svc->set('galleries.view_button_text', trim((string)($data['view_button_text'] ?? 'View')));
+
+        // Save global page template
+        $pageTemplate = (string)($data['page_template'] ?? 'classic');
+        if (!in_array($pageTemplate, ['classic','hero','magazine'], true)) { $pageTemplate = 'classic'; }
+        $svc->set('gallery.page_template', $pageTemplate);
+
+        // Save default gallery template id (DB)
+        $defaultTemplateId = null;
+        if (isset($data['default_template_id']) && $data['default_template_id'] !== '' && $data['default_template_id'] !== '0') {
+            $defaultTemplateId = (int)$data['default_template_id'];
+        }
+        $svc->set('gallery.default_template_id', $defaultTemplateId);
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Pagina Galleries salvata'];
         return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);

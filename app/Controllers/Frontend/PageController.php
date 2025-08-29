@@ -478,7 +478,23 @@ class PageController extends BaseController
             'show_date' => (int)($album['show_date'] ?? 1),
             'tags' => $tags,
             'equipment' => $equipment,
+            'cover' => $album['cover'] ?? null,
         ];
+
+        // Ensure cover is available (for hero layouts and meta image)
+        try {
+            if (!empty($album['cover_image_id'])) {
+                $stmtC = $pdo->prepare('SELECT * FROM images WHERE id = :id');
+                $stmtC->execute([':id' => $album['cover_image_id']]);
+                $cover = $stmtC->fetch();
+                if ($cover) {
+                    $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
+                    $variantsStmt->execute([':id' => $cover['id']]);
+                    $cover['variants'] = $variantsStmt->fetchAll();
+                    $album['cover'] = $cover;
+                }
+            }
+        } catch (\Throwable) {}
 
         // Available templates for switcher
         $availableTemplates = [];
@@ -488,8 +504,18 @@ class PageController extends BaseController
             $availableTemplates = $list;
         } catch (\Throwable) { $availableTemplates = []; }
 
-        // Use gallery template for consistent PhotoSwipe experience
-        return $this->view->render($response, 'frontend/gallery.twig', [
+        // Choose page template (classic, hero, magazine)
+        $settingsServiceForPage = new \App\Services\SettingsService($this->db);
+        $pageTemplate = (string)($settingsServiceForPage->get('gallery.page_template', 'classic') ?? 'classic');
+        $pageTemplate = in_array($pageTemplate, ['classic','hero','magazine'], true) ? $pageTemplate : 'classic';
+        $twigTemplate = match ($pageTemplate) {
+            'hero' => 'frontend/gallery_hero.twig',
+            'magazine' => 'frontend/gallery_magazine.twig',
+            default => 'frontend/gallery.twig',
+        };
+
+        // Use selected page template
+        return $this->view->render($response, $twigTemplate, [
             'album' => $galleryMeta,
             'images' => $images,
             'template_name' => $template['name'],
