@@ -16,6 +16,57 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- Editor -->
       <div class="lg:col-span-2 space-y-6">
+        <form method="post" action="{{ base_path }}/admin/pages/galleries" id="galleries-form" class="space-y-6">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+
+        <!-- Gallery Page Template Switcher -->
+        <div class="card border-l-4 border-l-black">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-palette mr-3 text-gray-700"></i>
+              Template Pagina Galleria
+            </h3>
+              {# The main form starts later; we only render fields here #}
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
+                  <input type="radio" name="page_template" value="classic" class="mt-1" {% if settings['gallery.page_template'] == 'classic' %}checked{% endif %}>
+                  <div>
+                    <div class="font-medium text-gray-900">Classic Grid</div>
+                    <div class="text-sm text-gray-600">Layout attuale minimale, B/N, con griglia o slideshow secondo template</div>
+                  </div>
+                </label>
+                <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
+                  <input type="radio" name="page_template" value="hero" class="mt-1" {% if settings['gallery.page_template'] == 'hero' %}checked{% endif %}>
+                  <div>
+                    <div class="font-medium text-gray-900">Hero Cover</div>
+                    <div class="text-sm text-gray-600">Cover grande con overlay, titolo, data e location; galleria sotto</div>
+                  </div>
+                </label>
+                <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
+                  <input type="radio" name="page_template" value="magazine" class="mt-1" {% if settings['gallery.page_template'] == 'magazine' %}checked{% endif %}>
+                  <div>
+                    <div class="font-medium text-gray-900">Magazine Split</div>
+                    <div class="text-sm text-gray-600">Colonna sinistra con testi/info in sticky; griglia a destra</div>
+                  </div>
+                </label>
+              </div>
+
+              <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Template Predefinito Gallery</label>
+                  <select name="default_template_id" class="form-input">
+                    <option value="">Nessun template predefinito</option>
+                    {% for template in templates %}
+                      {% set isSelected = template.id == settings['gallery.default_template_id'] %}
+                      <option value="{{ template.id }}" {% if isSelected %}selected{% endif %}>{{ template.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <p class="text-xs text-gray-500 mt-1">Usato quando un album non ha un template specifico</p>
+                </div>
+              </div>
+            {# Fields end; main form continues below #}
+          </div>
+        </div>
         
         <!-- Filter Configuration -->
         <div class="card border-l-4 border-l-blue-500">
@@ -129,7 +180,7 @@
           </div>
         </div>
         
-        <form method="post" action="{{ base_path }}/admin/pages/galleries" id="galleries-form" class="space-y-6">
+        {# form already opened above #}
         <input type="hidden" name="csrf" value="{{ csrf }}">
 
         <div class="card">
