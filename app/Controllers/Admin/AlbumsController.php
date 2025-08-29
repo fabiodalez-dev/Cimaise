@@ -109,7 +109,8 @@ class AlbumsController extends BaseController
         $categoryIds = array_map('intval', (array)($d['categories'] ?? []));
         $category_id = (int)($d['category_id'] ?? ($categoryIds[0] ?? 0));
         $excerpt = trim(strip_tags((string)($d['excerpt'] ?? ''))) ?: null;
-        $body = trim((string)($d['body'] ?? '')) ?: null;
+        $bodyRaw = trim((string)($d['body'] ?? '')) ?: null;
+        $body = $bodyRaw ? \App\Support\Sanitizer::html($bodyRaw) : null;
         $shoot_date = (string)($d['shoot_date'] ?? '') ?: null;
         $show_date = isset($d['show_date']) ? 1 : 0;
         $is_published = isset($d['is_published']) ? 1 : 0;
@@ -450,7 +451,8 @@ class AlbumsController extends BaseController
         $categoryIds = array_map('intval', (array)($d['categories'] ?? []));
         $category_id = (int)($d['category_id'] ?? ($categoryIds[0] ?? 0));
         $excerpt = trim(strip_tags((string)($d['excerpt'] ?? ''))) ?: null;
-        $body = trim((string)($d['body'] ?? '')) ?: null;
+        $bodyRaw = trim((string)($d['body'] ?? '')) ?: null;
+        $body = $bodyRaw ? \App\Support\Sanitizer::html($bodyRaw) : null;
         $shoot_date = (string)($d['shoot_date'] ?? '') ?: null;
         $show_date = isset($d['show_date']) ? 1 : 0;
         $is_published = isset($d['is_published']) ? 1 : 0;
