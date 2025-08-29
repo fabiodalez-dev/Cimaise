@@ -45,26 +45,38 @@
 
   <div class="max-w-3xl mx-auto prose prose-neutral mb-12">{{ album.body|raw }}</div>
 
+  {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 %}
   <div class="max-w-5xl mx-auto mb-8 p-4 bg-neutral-50 rounded-lg">
     <h3 class="text-sm font-medium mb-3 text-center">Equipment</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-xs text-neutral-600">
+      {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
       <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-camera"></i> Cameras</div>
-        <div class="space-y-1">{% for camera in album.equipment.cameras %}<div>{{ camera }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+        <div class="space-y-1">{% for camera in album.equipment.cameras %}<div>{{ camera }}</div>{% endfor %}</div>
       </div>
+      {% endif %}
+      {% if album.equipment.lenses is defined and album.equipment.lenses|length > 0 %}
       <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-dot-circle"></i> Lenses</div>
-        <div class="space-y-1">{% for lens in album.equipment.lenses %}<div>{{ lens }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+        <div class="space-y-1">{% for lens in album.equipment.lenses %}<div>{{ lens }}</div>{% endfor %}</div>
       </div>
+      {% endif %}
+      {% if album.equipment.film is defined and album.equipment.film|length > 0 %}
       <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-film"></i> Film</div>
-        <div class="space-y-1">{% for film in album.equipment.film %}<div>{{ film }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+        <div class="space-y-1">{% for film in album.equipment.film %}<div>{{ film }}</div>{% endfor %}</div>
       </div>
+      {% endif %}
+      {% if album.equipment.developers is defined and album.equipment.developers|length > 0 %}
       <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-flask"></i> Developers</div>
-        <div class="space-y-1">{% for dev in album.equipment.developers %}<div>{{ dev }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+        <div class="space-y-1">{% for dev in album.equipment.developers %}<div>{{ dev }}</div>{% endfor %}</div>
       </div>
+      {% endif %}
+      {% if album.equipment.labs is defined and album.equipment.labs|length > 0 %}
       <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-industry"></i> Labs</div>
-        <div class="space-y-1">{% for lab in album.equipment.labs %}<div>{{ lab }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+        <div class="space-y-1">{% for lab in album.equipment.labs %}<div>{{ lab }}</div>{% endfor %}</div>
       </div>
+      {% endif %}
     </div>
   </div>
+  {% endif %}
 
   {% set layout = template_settings.layout|default('grid') %}
   {% set masonry = template_settings.masonry|default(false) %}
