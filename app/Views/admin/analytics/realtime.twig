@@ -418,6 +418,13 @@ function updateRealTimeMetrics(data) {
 function updateActivityFeed(activities) {
   const container = document.getElementById('current-activity');
   
+  // If container doesn't exist (page navigated away), stop refresh
+  if (!container) {
+    console.warn('Activity feed container not found, stopping real-time updates');
+    stopAutoRefresh();
+    return;
+  }
+  
   if (activities.length === 0) {
     container.innerHTML = `
       <div class="text-center py-8 text-gray-500">
@@ -445,6 +452,13 @@ function updateActivityFeed(activities) {
 // Update popular pages
 function updatePopularPages(pages) {
   const container = document.getElementById('popular-pages');
+  
+  // If container doesn't exist (page navigated away), stop refresh
+  if (!container) {
+    console.warn('Popular pages container not found, stopping real-time updates');
+    stopAutoRefresh();
+    return;
+  }
   
   if (pages.length === 0) {
     container.innerHTML = `
@@ -542,5 +556,18 @@ document.addEventListener('DOMContentLoaded', function() {
 window.addEventListener('beforeunload', function() {
   stopAutoRefresh();
 });
+
+// SPA cleanup when leaving the page
+function cleanupRealTimeAnalytics() {
+  console.log('Cleaning up real-time analytics...');
+  stopAutoRefresh();
+  autoRefreshEnabled = false;
+}
+
+// Expose cleanup function globally for SPA navigation
+window.cleanupRealTimeAnalytics = cleanupRealTimeAnalytics;
+
+// Also expose current page identifier for SPA to detect analytics page
+window.currentPageType = 'analytics-realtime';
 </script>
 {% endblock %}
