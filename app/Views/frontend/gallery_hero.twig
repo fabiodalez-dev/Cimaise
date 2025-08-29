@@ -84,14 +84,14 @@
           {% if album.categories is defined and album.categories|length > 0 %}
             {% for cat in album.categories %}
               <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white/80 text-neutral-800 hover:bg-white transition-colors" title="{{ cat.name|e }}">
-                <span class="w-1.5 h-1.5 rounded-full bg-neutral-800"></span>{{ cat.name|e }}
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-800"></span>{{ cat.name|e }}
               </a>
             {% endfor %}
           {% endif %}
           {% if album.tags is defined and album.tags|length > 0 %}
             {% for tag in album.tags %}
             <span class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700" title="{{ tag.name|e }}">
-              <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>{{ tag.name|e }}
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-600"></span>{{ tag.name|e }}
             </span>
             {% endfor %}
           {% endif %}
@@ -324,6 +324,7 @@
           if (window.gallerySwiper?.destroy) { window.gallerySwiper.destroy(true,true); window.gallerySwiper = null; }
           if (window.galleryMasonry?.destroy) { window.galleryMasonry.destroy(); window.galleryMasonry = null; }
           if (typeof initializeGalleryLayout === 'function') initializeGalleryLayout();
+          if (typeof window.animateGalleryOnce === 'function') { try { window.animateGalleryOnce(); } catch(e){} }
           setTimeout(() => { galleryContainer.style.opacity = '1'; galleryContainer.style.transition = 'none'; }, 50);
         }, 50);
       })
