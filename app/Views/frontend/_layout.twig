@@ -1137,7 +1137,15 @@
 
         // Build PS items from anchors in current gallery
         function buildItemsFromAnchors(){
-            const anchors = Array.from(document.querySelectorAll('#images-gallery a.pswp-link'));
+            // Prefer anchors in the currently visible gallery wrapper and ignore duplicates
+            const hasMagazine = document.querySelector('#images-gallery .m-desktop-wrap, #images-gallery .m-mobile-wrap');
+            const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
+            const container = hasMagazine
+              ? (isDesktop && document.querySelector('#images-gallery .m-desktop-wrap')
+                  ? '#images-gallery .m-desktop-wrap'
+                  : '#images-gallery .m-mobile-wrap')
+              : '#images-gallery';
+            const anchors = Array.from(document.querySelectorAll(`${container} a.pswp-link:not(.pswp-is-duplicate)`));
             return anchors.map(x=>({
               src: x.getAttribute('href'),
               width: parseInt(x.getAttribute('data-pswp-width')||'1600',10),
@@ -1163,9 +1171,17 @@
                 destroyLightbox();
                 if (window.PhotoSwipeLightbox) {
                     const psCfg = (window.templateSettings && window.templateSettings.photoswipe) || {};
+                    const hasMagazine = document.querySelector('#images-gallery .m-desktop-wrap, #images-gallery .m-mobile-wrap');
+                    const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
+                    const gallerySelector = hasMagazine
+                      ? (isDesktop && document.querySelector('#images-gallery .m-desktop-wrap')
+                          ? '#images-gallery .m-desktop-wrap'
+                          : '#images-gallery .m-mobile-wrap')
+                      : '#images-gallery';
                     const lb = new PhotoSwipeLightbox({
-                        gallery: '#images-gallery',
-                        children: 'a.pswp-link',
+                        gallery: gallerySelector,
+                        // Exclude duplicates that are rendered for infinite scroll columns
+                        children: 'a.pswp-link:not(.pswp-is-duplicate)',
                         pswpModule: PhotoSwipe,
                         
                         // Modern image sizing and layout
@@ -1594,8 +1610,23 @@
             const a = e.target.closest('a.pswp-link');
             if (!a) return;
             e.preventDefault();
-            const anchors = Array.from(document.querySelectorAll('#images-gallery a.pswp-link'));
-            const idx = Math.max(0, anchors.indexOf(a));
+            // Normalize selection to current visible gallery and ignore duplicates
+            const hasMagazine = document.querySelector('#images-gallery .m-desktop-wrap, #images-gallery .m-mobile-wrap');
+            const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
+            const container = hasMagazine
+              ? (isDesktop && document.querySelector('#images-gallery .m-desktop-wrap')
+                  ? '#images-gallery .m-desktop-wrap'
+                  : '#images-gallery .m-mobile-wrap')
+              : '#images-gallery';
+            let anchors = Array.from(document.querySelectorAll(`${container} a.pswp-link:not(.pswp-is-duplicate)`));
+            let target = a;
+            if (a.classList.contains('pswp-is-duplicate')) {
+              // Map duplicate to its corresponding original by index within the same container
+              const dups = Array.from(document.querySelectorAll(`${container} a.pswp-link.pswp-is-duplicate`));
+              const di = dups.indexOf(a);
+              if (di > -1 && anchors[di]) target = anchors[di];
+            }
+            const idx = Math.max(0, anchors.indexOf(target));
             if (window.__pswpLightbox && typeof window.__pswpLightbox.loadAndOpen === 'function') {
                 window.__pswpLightbox.loadAndOpen(idx);
             } else {
