@@ -76,10 +76,8 @@
     {# Subtle light overlay for readability on top of blurred image #}
     <div class="absolute inset-0 z-10 pointer-events-none backdrop-blur-[1px]" style="background: linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.90) 83%, rgba(255,255,255,0.95) 100%);"></div>
 
-    {# Centered content: vertically + horizontally centered, with internal padding #}
-    <div class="relative z-20 flex items-center justify-center px-4 sm:px-6 lg:px-8" style="min-height:50vh; padding-top:3rem; padding-bottom:3rem">
-      <div class="max-w-5xl w-full text-center text-black px-4 md:px-8">
-        <div class="flex flex-col items-center justify-center" style="min-height:50vh;">
+    <div class="relative z-20 flex flex-col items-center max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 text-center text-black" style="min-height:50vh; padding-top:3rem; padding-bottom:3rem">
+      <div class="flex-grow flex flex-col items-center justify-center">
         <div class="mb-3 flex flex-wrap justify-center gap-2">
           {% if album.categories is defined and album.categories|length > 0 %}
             {% for cat in album.categories %}
@@ -115,46 +113,46 @@
         {% if album.excerpt %}
           <p class="mt-3 text-neutral-700 leading-relaxed text-base md:text-lg max-w-3xl mx-auto">{{ album.excerpt|e }}</p>
         {% endif %}
-        {# Equipment pinned to bottom of hero content #}
-        <div class="mt-auto pt-3 pb-2 flex flex-col md:flex-row md:flex-wrap md:items-center gap-3 md:gap-x-8 md:gap-y-2 text-[11px] md:text-xs text-neutral-800 justify-center">
-          {% if album.equipment.cameras|length > 0 %}
-          <div class="inline-flex items-center gap-1.5">
-            <i class="fas fa-camera fa-xs text-neutral-700"></i>
-            <span>{% for camera in album.equipment.cameras %}{{ camera }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-          </div>
-          {% endif %}
-          {% if album.equipment.lenses|length > 0 %}
-          <div class="inline-flex items-center gap-1.5">
-            <i class="fas fa-dot-circle fa-xs text-neutral-700"></i>
-            <span>{% for lens in album.equipment.lenses %}{{ lens }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-          </div>
-          {% endif %}
-          {% if album.equipment.film|length > 0 %}
-          <div class="inline-flex items-center gap-1.5">
-            <i class="fas fa-film fa-xs text-neutral-700"></i>
-            <span>{% for film in album.equipment.film %}{{ film }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-          </div>
-          {% endif %}
-          {% if album.equipment.developers|length > 0 %}
-          <div class="inline-flex items-center gap-1.5">
-            <i class="fas fa-flask fa-xs text-neutral-700"></i>
-            <span>{% for dev in album.equipment.developers %}{{ dev }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-          </div>
-          {% endif %}
-          {% if album.equipment.labs|length > 0 %}
-          <div class="inline-flex items-center gap-1.5">
-            <i class="fas fa-industry fa-xs text-neutral-700"></i>
-            <span>{% for lab in album.equipment.labs %}{{ lab }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
-          </div>
-          {% endif %}
+      </div>
+      
+      {# Equipment pinned to bottom of hero content #}
+      <div class="mt-auto pt-3 pb-2 flex flex-col md:flex-row md:flex-wrap md:items-center gap-3 md:gap-x-8 md:gap-y-2 text-[11px] md:text-xs text-neutral-800 justify-center">
+        {% if album.equipment.cameras|length > 0 %}
+        <div class="inline-flex items-center gap-1.5">
+          <i class="fas fa-camera fa-xs text-neutral-700"></i>
+          <span>{% for camera in album.equipment.cameras %}{{ camera }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
         </div>
+        {% endif %}
+        {% if album.equipment.lenses|length > 0 %}
+        <div class="inline-flex items-center gap-1.5">
+          <i class="fas fa-dot-circle fa-xs text-neutral-700"></i>
+          <span>{% for lens in album.equipment.lenses %}{{ lens }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
         </div>
+        {% endif %}
+        {% if album.equipment.film|length > 0 %}
+        <div class="inline-flex items-center gap-1.5">
+          <i class="fas fa-film fa-xs text-neutral-700"></i>
+          <span>{% for film in album.equipment.film %}{{ film }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
+        </div>
+        {% endif %}
+        {% if album.equipment.developers|length > 0 %}
+        <div class="inline-flex items-center gap-1.5">
+          <i class="fas fa-flask fa-xs text-neutral-700"></i>
+          <span>{% for dev in album.equipment.developers %}{{ dev }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
+        </div>
+        {% endif %}
+        {% if album.equipment.labs|length > 0 %}
+        <div class="inline-flex items-center gap-1.5">
+          <i class="fas fa-industry fa-xs text-neutral-700"></i>
+          <span>{% for lab in album.equipment.labs %}{{ lab }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
 </section>
 
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 md:pt-40 lg:pt-48 pb-24 md:pb-32 lg:pb-40">
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 lg:pt-48 pb-24 md:pb-32 lg:pb-40">
   {% if album.body %}
     <div class="max-w-3xl mx-auto prose prose-neutral py-12 md:py-16 lg:py-20">
       {{ album.body|raw }}

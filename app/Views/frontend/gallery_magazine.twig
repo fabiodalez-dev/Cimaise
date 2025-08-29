@@ -1,315 +1,383 @@
 {% extends "frontend/_layout.twig" %}
 
 {% block content %}
-{# =========================
-   HERO (immutato)
-   ========================= #}
-<section class="relative" style="min-height:50vh">
-  {% set hero_url = '' %}
-  {% if album.cover_image is defined and album.cover_image %}
-    {% set candidate = album.cover_image.preview_path ?? album.cover_image.original_path ?? album.cover_image.path ?? null %}
-    {% if candidate %}
-      {% set hero_url = candidate starts with '/' ? (base_path ~ candidate) : candidate %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="max-w-4xl mx-auto text-center pb-12">
+    <div class="mb-4 flex flex-wrap gap-2 justify-center">
+      {% if album.categories is defined and album.categories|length > 0 %}
+        {% for cat in album.categories %}
+        <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ cat.name|e }}">
+          <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ cat.name|e }}
+        </a>
+        {% endfor %}
+      {% endif %}
+      {% if album.tags is defined and album.tags|length > 0 %}
+        {% for tag in album.tags %}
+        <span class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700" title="{{ tag.name|e }}">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-700"></span>{{ tag.name|e }}
+        </span>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <h1 class="text-3xl md:text-4xl font-light text-black mb-6">{{ album.title|e }}</h1>
+
+    {% if album.shoot_date or album.equipment.locations|length > 0 %}
+    <div class="flex items-center justify-center gap-6 text-sm text-neutral-600 mb-6">
+      {% if album.shoot_date and album.show_date == 1 %}
+        <div class="flex items-center gap-2">
+          <i class="fas fa-calendar-alt text-neutral-500"></i>
+          <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('d M Y') }}</time>
+        </div>
+      {% endif %}
+      {% if album.equipment.locations|length > 0 %}
+        <div class="flex items-center gap-2">
+          <i class="fas fa-map-marker-alt text-neutral-500"></i>
+          <span>{{ album.equipment.locations|join(', ') }}</span>
+        </div>
+      {% endif %}
+    </div>
     {% endif %}
-  {% endif %}
-  {% if not hero_url and album.cover is defined and album.cover %}
-    {% if album.cover.variants is defined and album.cover.variants|length %}
-      {% set max_w = 0 %}
-      {% for v in album.cover.variants %}
-        {% if v.path is defined and v.path and v.width is defined and v.width > max_w and not (v.path starts with '/storage/') %}
-          {% set hero_url = v.path starts with '/' ? (base_path ~ v.path) : v.path %}
-          {% set max_w = v.width %}
-        {% endif %}
-      {% endfor %}
+
+    {% if album.excerpt %}
+      <p class="text-lg text-neutral-600 leading-relaxed mb-6">{{ album.excerpt|e }}</p>
     {% endif %}
-    {% if not hero_url %}
-      {% set cand2 = album.cover.path ?? album.cover.url ?? null %}
-      {% if cand2 %}{% set hero_url = cand2 starts with '/' ? (base_path ~ cand2) : cand2 %}{% endif %}
-    {% endif %}
-  {% endif %}
-  {% if not hero_url and images is defined and images|length %}
-    {% set firstImg = images[0] %}
-    {% set cand4 = firstImg.fallback_src ?? firstImg.url ?? null %}
-    {% if cand4 %}{% set hero_url = cand4 starts with '/' ? (base_path ~ cand4) : cand4 %}{% endif %}
+  </div>
+
+  {% if album.body %}
+    <div class="max-w-3xl mx-auto prose prose-neutral mb-12">{{ album.body|raw }}</div>
   {% endif %}
 
-  {% set hero_has_image = hero_url is not empty %}
-  <div class="relative overflow-hidden bg-neutral-900" style="min-height:50vh">
-    {% if hero_has_image %}
-      <img src="{{ hero_url }}" alt="{{ album.title|e }}" class="absolute inset-0 w-full h-full object-cover object-center select-none blur-sm md:blur md:scale-105" loading="eager" fetchpriority="high" decoding="async">
-    {% endif %}
-    <div class="absolute inset-0 z-10 pointer-events-none backdrop-blur-[1px]" style="background: linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.70) 45%, rgba(255,255,255,0.55) 100%);"></div>
-    <div class="relative z-20 flex items-center justify-center px-4 sm:px-6 lg:px-8" style="min-height:50vh; padding-top:3rem; padding-bottom:3rem">
-      <div class="max-w-5xl w-full text-center text-black px-4 md:px-8">
-        <div class="mb-3 flex flex-wrap justify-center gap-2">
-          {% if album.categories is defined and album.categories|length > 0 %}
-            {% for cat in album.categories %}
-              <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white/80 text-neutral-800 hover:bg-white transition-colors" title="{{ cat.name|e }}">
-                <span class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-800"></span>{{ cat.name|e }}
-              </a>
-            {% endfor %}
-          {% endif %}
-          {% if album.tags is defined and album.tags|length > 0 %}
-            {% for tag in album.tags %}
-              <span class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700" title="{{ tag.name|e }}">
-                <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-600"></span>{{ tag.name|e }}
-              </span>
-            {% endfor %}
-          {% endif %}
-        </div>
-        <h1 class="text-3xl md:text-5xl font-light tracking-tight leading-tight">{{ album.title|e }}</h1>
-        <div class="mt-3 text-sm md:text-base text-neutral-700 flex flex-col sm:flex-row items-center justify-center gap-3">
-          {% if album.shoot_date and album.show_date == 1 %}
-            <span class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white/80 text-black text-xs md:text-sm">
-              <i class="fas fa-calendar-alt text-xs text-neutral-700"></i>
-              <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('d M Y') }}</time>
-            </span>
-          {% endif %}
-          {% if album.equipment.locations|length > 0 %}
-            <span class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white/80 text-black text-xs md:text-sm">
-              <i class="fas fa-map-marker-alt text-xs text-neutral-700"></i>
-              {{ album.equipment.locations|join(', ') }}
-            </span>
-          {% endif %}
-        </div>
-        {% if album.excerpt %}
-          <p class="mt-3 text-neutral-700 leading-relaxed text-base md:text-lg max-w-3xl mx-auto">{{ album.excerpt|e }}</p>
-        {% endif %}
+  <div class="max-w-5xl mx-auto mb-10 p-4 bg-neutral-50 rounded-lg">
+    <h3 class="text-sm font-medium mb-3 text-center">Equipment</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-xs text-neutral-600">
+      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-camera"></i> Cameras</div>
+        <div class="space-y-1">{% for camera in album.equipment.cameras %}<div>{{ camera }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+      </div>
+      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-dot-circle"></i> Lenses</div>
+        <div class="space-y-1">{% for lens in album.equipment.lenses %}<div>{{ lens }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+      </div>
+      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-film"></i> Film</div>
+        <div class="space-y-1">{% for film in album.equipment.film %}<div>{{ film }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+      </div>
+      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-flask"></i> Developers</div>
+        <div class="space-y-1">{% for dev in album.equipment.developers %}<div>{{ dev }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
+      </div>
+      <div><div class="font-medium mb-1 flex items-center gap-2"><i class="fas fa-industry"></i> Labs</div>
+        <div class="space-y-1">{% for lab in album.equipment.labs %}<div>{{ lab }}</div>{% else %}<div class="text-neutral-400">—</div>{% endfor %}</div>
       </div>
     </div>
   </div>
-</section>
 
-{# Descrizione #}
-{% if album.body %}
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10">
-  <div class="max-w-3xl mx-auto prose prose-neutral">
-    {{ album.body|raw }}
-  </div>
-</section>
-{% endif %}
+  {# ===== Masonry vero (3 colonne autoscroll) ===== #}
 
-{# =========================
-   MACRO IMMAGINI
-   ========================= #}
-{% macro m_picture(image, base_path, album) %}
-  <picture class="block w-full h-full">
-    {% if image.sources is defined and image.sources.avif is defined and image.sources.avif|length %}
-      <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set p = src|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
-    {% endif %}
-    {% if image.sources is defined and image.sources.webp is defined and image.sources.webp|length %}
-      <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set p = src|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
-    {% endif %}
-    {% if image.sources is defined and image.sources.jpg is defined and image.sources.jpg|length %}
-      <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set p = src|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
-    {% endif %}
-    {% set img_src = image.fallback_src|default(image.url) %}
-    <img
-      src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"
-      alt="{{ image.alt|default(album.title)|e }}"
-      width="{{ image.width|default(1600) }}"
-      height="{{ image.height|default(1067) }}"
-      loading="lazy"
-      decoding="async"
-      class="w-full h-full object-cover block"
-    >
-  </picture>
-{% endmacro %}
+  {% macro pic(image, base_path, album) %}
+    <picture class="block w-full h-full">
+      {% if image.sources is defined and image.sources.avif is defined and image.sources.avif|length %}
+        <source type="image/avif" srcset="{% for s in image.sources.avif %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
+      {% endif %}
+      {% if image.sources is defined and image.sources.webp is defined and image.sources.webp|length %}
+        <source type="image/webp" srcset="{% for s in image.sources.webp %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
+      {% endif %}
+      {% if image.sources is defined and image.sources.jpg is defined and image.sources.jpg|length %}
+        <source type="image/jpeg" srcset="{% for s in image.sources.jpg %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
+      {% endif %}
+      {% set img_src = image.fallback_src|default(image.url) %}
+      <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"
+           alt="{{ image.alt|default(album.title)|e }}"
+           width="{{ image.width|default(1600) }}" height="{{ image.height|default(1067) }}"
+           loading="lazy" decoding="async" class="w-full h-full object-cover block">
+    </picture>
+  {% endmacro %}
 
-{% macro m_item(image, clickable, base_path, album) %}
-  {% set w = image.width|default(1600) %}
-  {% set h = image.height|default(1067) %}
-  {% set href_src = image.lightbox_url|default(image.url) %}
-  <div class="m-item group rounded-xl overflow-hidden shadow-sm relative" style="aspect-ratio: {{ w }} / {{ h }};">
-    {% if clickable %}
-      <a
-        href="{{ href_src starts with('/') ? (base_path ~ href_src) : href_src }}"
-        class="pswp-link block w-full h-full"
-        data-pswp-width="{{ w }}"
-        data-pswp-height="{{ h }}"
-        data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-        style="display:block;width:100%;height:100%;"
-      >
-        {{ _self.m_picture(image, base_path, album) }}
+  {% macro item(image, clickable, base_path, album, extra_class = '') %}
+    {% set w = image.width|default(1600) %}
+    {% set h = image.height|default(1067) %}
+    {% set href_src = image.lightbox_url|default(image.url) %}
+    <div class="m-item group rounded-xl overflow-hidden shadow-sm relative" style="aspect-ratio: {{ w }} / {{ h }};">
+      {% if clickable %}
+      <a href="{{ href_src starts with('/') ? (base_path ~ href_src) : href_src }}"
+         class="pswp-link block w-full h-full {{ extra_class }}"
+         data-pswp-width="{{ w }}"
+         data-pswp-height="{{ h }}"
+         data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
+         style="display:block;width:100%;height:100%;position:relative;z-index:1;">
+        {{ _self.pic(image, base_path, album) }}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/18 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+        {% if image.caption %}
+        <div class="absolute bottom-3 left-3 right-3 flex items-center gap-2 bg-black/55 backdrop-blur-sm text-white rounded px-2.5 py-1.5 text-xs opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 pointer-events-none">
+          <i class="fas fa-expand-alt text-white/80"></i>
+          <span class="truncate">{{ image.caption }}</span>
+        </div>
+        {% endif %}
       </a>
-    {% else %}
-      {{ _self.m_picture(image, base_path, album) }}
+      {% else %}
+        {{ _self.pic(image, base_path, album) }}
+      {% endif %}
+    </div>
+  {% endmacro %}
+
+  {% import _self as G %}
+
+  {% set col1 = [] %}{% set col2 = [] %}{% set col3 = [] %}
+  {% for i, image in images %}
+    {% if i % 3 == 0 %}{% set col1 = col1|merge([image]) %}
+    {% elseif i % 3 == 1 %}{% set col2 = col2|merge([image]) %}
+    {% else %}{% set col3 = col3|merge([image]) %}
     {% endif %}
+  {% endfor %}
 
-    <div class="absolute inset-0 bg-gradient-to-t from-black/22 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+  <section class="relative mt-10">
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-28 z-20 masonry-veil-top"></div>
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-28 z-20 masonry-veil-bottom"></div>
 
-    {% if image.caption %}
-      <div class="absolute bottom-3 left-3 right-3 flex items-center gap-2 bg-black/60 backdrop-blur-sm text-white rounded px-2.5 py-1.5 text-xs opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-        <i class="fas fa-expand-alt text-white/80"></i>
-        <span class="truncate">{{ image.caption }}</span>
+    <div id="images-gallery" class="relative pswp-gallery">
+      <div class="m-mobile-wrap">
+        <div class="m-mobile">
+          {% for image in images %}
+            <div class="m-cell">{{ G.item(image, true, base_path, album) }}</div>
+          {% endfor %}
+        </div>
       </div>
-    {% endif %}
-  </div>
-{% endmacro %}
 
-{% import _self as M %}
-
-{# Split 3 colonne #}
-{% set col1 = [] %}{% set col2 = [] %}{% set col3 = [] %}
-{% for i, image in images %}
-  {% if i % 3 == 0 %}
-    {% set col1 = col1|merge([image]) %}
-  {% elseif i % 3 == 1 %}
-    {% set col2 = col2|merge([image]) %}
-  {% else %}
-    {% set col3 = col3|merge([image]) %}
-  {% endif %}
-{% endfor %}
-
-{# =========================
-   GALLERIA (con id #images-gallery per PhotoSwipe)
-   ========================= #}
-<section class="relative mt-10">
-  <div class="pointer-events-none absolute inset-x-0 top-0 h-40 z-20 masonry-veil-top"></div>
-  <div class="pointer-events-none absolute inset-x-0 bottom-0 h-40 z-20 masonry-veil-bottom"></div>
-
-  <div id="images-gallery" class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    {# MOBILE: 1 col senza autoscroll #}
-    <div class="m-mobile-wrap">
-      <div class="m-mobile">
-        {% for image in images %}
-          <div class="m-cell">
-            {{ M.m_item(image, true, base_path, album) }}
+      <div class="m-desktop-wrap gap-6 perspective">
+        {% set cols = [col1, col2, col3] %}
+        {% for col in cols %}
+          {% set idx = loop.index0 %}
+          {% set dur = idx == 0 ? '60s' : (idx == 1 ? '72s' : '84s') %}
+          {% set dir = idx == 1 ? 'up' : 'down' %}
+          <div class="m-col" data-direction="{{ dir }}" style="--m-duration: {{ dur }}; --m-delay: 0s;">
+            <div class="m-track">
+              {% for image in col %}
+                <div class="m-cell">{{ G.item(image, true, base_path, album) }}</div>
+              {% endfor %}
+              {% for image in col %}
+                <div class="m-cell">{{ G.item(image, true, base_path, album, 'pswp-is-duplicate') }}</div>
+              {% endfor %}
+            </div>
           </div>
         {% endfor %}
       </div>
     </div>
-
-    {# DESKTOP: 3 colonne autoscroll con velocità/direzioni diverse #}
-    <div class="m-desktop-wrap gap-6 perspective">
-      {% set cols = [col1, col2, col3] %}
-      {% for col in cols %}
-        {% set idx = loop.index0 %}
-        <div
-          class="m-col"
-          data-direction="{{ idx == 1 ? 'up' : 'down' }}"
-          data-speed="{{ idx == 0 ? 26 : (idx == 1 ? 20 : 32) }}"
-          data-delay="{{ idx == 0 ? 0 : (idx == 1 ? 1.2 : 2.4) }}"
-        >
-          <div class="m-track">
-            {# passata 1 (cliccabile) #}
-            {% for image in col %}
-              <div class="m-cell">
-                {{ M.m_item(image, true, base_path, album) }}
-              </div>
-            {% endfor %}
-            {# passata 2 (non cliccabile) #}
-            {% for image in col %}
-              <div class="m-cell">
-                {{ M.m_item(image, false, base_path, album) }}
-              </div>
-            {% endfor %}
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
+  </section>
+</div>
 
 <style>
-/* --- Toggle mobile/desktop SENZA Tailwind --- */
 .m-mobile-wrap { display:block; }
 .m-desktop-wrap { display:none; }
 @media (min-width:768px){
   .m-mobile-wrap { display:none !important; }
   .m-desktop-wrap { display:flex !important; }
 }
-
-/* prospettiva soft */
 .perspective { transform: perspective(1100px) rotateX(0.6deg); }
 
-/* mobile masonry (columns) */
+/* mobile masonry via columns */
 .m-mobile { column-count: 1; column-gap: 1.25rem; }
 .m-cell { break-inside: avoid; margin-bottom: 1.25rem; }
 
-/* desktop colonne auto-scroll */
+/* desktop columns autoscroll */
 .m-col { position: relative; flex: 1 1 0; height: 140vh; overflow: hidden; }
 .m-track { position: absolute; top: 0; left: 0; right: 0; will-change: transform; }
 .m-col .m-cell { margin-bottom: 1.25rem; }
 
 /* item */
-.m-item { width: 100%; height: 100%; transition: transform .32s cubic-bezier(.25,.8,.25,1), box-shadow .32s; }
-.m-item:hover { transform: translateZ(0) scale(1.015); box-shadow: 0 12px 28px rgba(0,0,0,.15); }
+.m-item { width: 100%; height: 100%; transition: transform .28s cubic-bezier(.25,.8,.25,1), box-shadow .28s; }
+.m-item:hover { transform: translateZ(0) scale(1.012); box-shadow: 0 12px 28px rgba(0,0,0,.14); }
 .m-item img { backface-visibility: hidden; }
 
-/* autoscroll */
-.m-col[data-direction="down"] .m-track { animation: mScrollDown var(--m-duration, 26s) linear infinite; animation-delay: var(--m-delay, 0s); }
-.m-col[data-direction="up"] .m-track   { animation: mScrollUp   var(--m-duration, 26s) linear infinite; animation-delay: var(--m-delay, 0s); }
+/* autoscroll (parte subito con vars inline) */
+.m-col[data-direction="down"] .m-track { animation: mScrollDown var(--m-duration) linear infinite; animation-delay: var(--m-delay); }
+.m-col[data-direction="up"]   .m-track { animation: mScrollUp   var(--m-duration) linear infinite; animation-delay: var(--m-delay); }
 @keyframes mScrollDown { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
 @keyframes mScrollUp   { 0% { transform: translateY(-50%); } 100% { transform: translateY(0); } }
 
 /* pausa on hover */
 .perspective:hover .m-track { animation-play-state: paused; }
 
-/* veli curvi bianchi */
+/* veli curvi leggeri */
 .masonry-veil-top {
-  background:
-    radial-gradient(120% 80% at 50% -20%, rgba(255,255,255,.98) 0%, rgba(255,255,255,.82) 40%, transparent 70%);
+  background: radial-gradient(120% 70% at 50% -20%, rgba(255,255,255,.34) 0%, rgba(255,255,255,.10) 40%, rgba(255,255,255,0) 72%);
 }
 .masonry-veil-bottom {
-  background:
-    radial-gradient(120% 80% at 50% 120%, rgba(255,255,255,.98) 0%, rgba(255,255,255,.82) 40%, transparent 70%);
+  background: radial-gradient(120% 70% at 50% 120%, rgba(255,255,255,.34) 0%, rgba(255,255,255,.10) 40%, rgba(255,255,255,0) 72%);
 }
 
 /* perf */
 .m-track { backface-visibility: hidden; transform-style: preserve-3d; }
 
-/* optional: su mobile niente prospettiva/animazione colonne desktop (già nascoste comunque) */
 @media (max-width: 767px) {
   .perspective { transform: none; }
 }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  // Init (o re-init) PhotoSwipe Lightbox – stesso pattern dell’altra pagina
-  if (typeof window.initLightbox !== 'function') {
-    window.initLightbox = function initLightbox() {
-      try {
-        if (window._galleryLightbox && typeof window._galleryLightbox.destroy === 'function') {
-          window._galleryLightbox.destroy();
-          window._galleryLightbox = null;
-        }
-        if (typeof PhotoSwipeLightbox === 'undefined') {
-          console.warn('PhotoSwipeLightbox non trovato: assicurati di includere JS/CSS come nell’altra pagina.');
-          return;
-        }
-        // Se hai il core global (UMD)
-        var cfg = {
-          gallery: '#images-gallery',
-          children: 'a.pswp-link',
-          pswpModule: (typeof PhotoSwipe !== 'undefined') ? PhotoSwipe : undefined
-        };
-        // Se usi ESM dinamico e hai un path globale, scommenta e imposta il tuo path:
-        // cfg.pswpModule = () => import('{{ base_path }}/assets/js/photoswipe.esm.js');
+/* === DEBUG + FIX ROBUSTI PHOTOSWIPE === */
+(function(){
+  const DEBUG = false; // metti a false per silenziare
 
-        var lb = new PhotoSwipeLightbox(cfg);
-        lb.init();
-        window._galleryLightbox = lb;
-      } catch(e){ console.error('initLightbox error:', e); }
-    }
+  function dlog(...args){ if (DEBUG) console.log('[LB]', ...args); }
+  function dwarn(...args){ if (DEBUG) console.warn('[LB]', ...args); }
+  function derr(...args){ if (DEBUG) console.error('[LB]', ...args); }
+
+  // Init robusto, idempotente, con retry ed auto-reinit su DOM changes
+  let _lbInstance = null;
+  let _initRuns = 0;
+
+  function destroyLB(){
+    try{
+      if (_lbInstance && typeof _lbInstance.destroy === 'function'){ _lbInstance.destroy(); }
+    }catch(e){ derr('destroy error', e); }
+    _lbInstance = null;
   }
 
-  // chiama sempre
-  try { window.initLightbox(); } catch(e){ console.log(e); }
+  function reallyInit(){
+    _initRuns++;
+    
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    const gallerySelector = isDesktop ? '.m-desktop-wrap' : '.m-mobile-wrap';
+    const galleryEl = document.querySelector(gallerySelector);
 
-  // Imposta durate/delay per colonna
-  const cols = document.querySelectorAll('.m-col');
-  cols.forEach(col => {
-    const speed = parseFloat(col.getAttribute('data-speed')) || 26; // seconds
-    const delay = parseFloat(col.getAttribute('data-delay')) || 0;
-    col.style.setProperty('--m-duration', speed + 's');
-    col.style.setProperty('--m-delay', delay + 's');
+    if (!galleryEl) {
+      dwarn('No active gallery container found for selector:', gallerySelector);
+      return false;
+    }
+
+    const childrenSelector = 'a.pswp-link' + (isDesktop ? ':not(.pswp-is-duplicate)' : '');
+    const links = galleryEl.querySelectorAll(childrenSelector);
+    
+    dlog('init attempt', _initRuns, 'gallery:', gallerySelector, 'links:', links.length);
+
+    if (!links.length){
+      dwarn('no gallery links found for lightbox');
+      return false;
+    }
+
+    // sicurezza: rende click-through overlay interni all’item
+    galleryEl.querySelectorAll('.m-item [class*="absolute"]').forEach(el=>{
+      el.style.pointerEvents = 'none';
+    });
+
+    // se hai una tua initLightbox, usala
+    if (typeof initLightbox === 'function'){
+      try{
+        destroyLB();
+        initLightbox(); // This would need to be aware of the new context
+        dlog('initLightbox() chiamato');
+      }catch(e){ derr('initLightbox threw', e); }
+      return true;
+    }
+
+    // fallback PS v5 UMD
+    if (typeof PhotoSwipeLightbox !== 'undefined' && typeof PhotoSwipe !== 'undefined'){
+      destroyLB();
+      _lbInstance = new PhotoSwipeLightbox({
+        gallery: gallerySelector,
+        children: childrenSelector,
+        pswpModule: PhotoSwipe,
+        showHideAnimationType: 'fade'
+      });
+      _lbInstance.addFilter('caption', (c, item)=>{
+        const el = item && item.el;
+        return (el && el.getAttribute('data-pswp-caption')) || c || '';
+      });
+      _lbInstance.init();
+      dlog('PhotoSwipeLightbox init fallback OK on', gallerySelector);
+      return true;
+    }
+
+    dwarn('PhotoSwipe non presente; assicurati che sia caricato nel layout.');
+    return false;
+  }
+
+  // Wrapper con retry
+  function initWithRetry(){
+    let ok = reallyInit();
+    if (ok) return;
+    setTimeout(()=>{ if (!ok) ok = reallyInit(); }, 300);
+    setTimeout(()=>{ if (!ok) ok = reallyInit(); }, 1000);
+  }
+
+  // Re-init al cambio DOM
+  const mo = new MutationObserver((mutations)=>{
+    for (const m of mutations){
+      if (m.type === 'childList'){
+        const target = m.target;
+        if (target && (target.id === 'images-gallery' || target.closest && target.closest('#images-gallery'))){
+          dlog('DOM changed → reinit');
+          initWithRetry();
+          break;
+        }
+      }
+    }
   });
 
-  // Pausa animazioni fuori viewport
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const gallery = document.getElementById('images-gallery');
+    if (gallery) mo.observe(gallery, { childList:true, subtree:true });
+
+    // Listener unificato per click
+    document.addEventListener('click', function (ev) {
+      // Parte 1: Gestione click su duplicati (solo per desktop)
+      const dupLink = ev.target.closest('.m-desktop-wrap a.pswp-link.pswp-is-duplicate');
+      if (dupLink) {
+        ev.preventDefault();
+        const desktopContainer = dupLink.closest('.m-desktop-wrap');
+        if (!desktopContainer) return;
+
+        const allOriginals = Array.from(desktopContainer.querySelectorAll('a.pswp-link:not(.pswp-is-duplicate)'));
+        const allDuplicates = Array.from(desktopContainer.querySelectorAll('a.pswp-link.pswp-is-duplicate'));
+        const index = allDuplicates.indexOf(dupLink);
+
+        if (index > -1 && allOriginals[index]) {
+          dlog('Redirecting click from desktop duplicate to original', { from: dupLink, to: allOriginals[index] });
+          allOriginals[index].click();
+        }
+        return; // Click gestito, non fare altro
+      }
+
+      // Parte 2: Log e fix per i link originali (se necessario)
+      const a = ev.target.closest('a.pswp-link');
+      if (!a) return;
+
+      dlog('click on pswp-link', a);
+      
+      // Rende sempre-validi width/height per PSWP (se mancanti)
+      const hasW = a.hasAttribute('data-pswp-width');
+      const hasH = a.hasAttribute('data-pswp-height');
+      if (!hasW || !hasH) {
+        const img = a.querySelector('img');
+        if (img) {
+          const w = img.naturalWidth || img.width;
+          const h = img.naturalHeight || img.height;
+          if (w && h) {
+            a.setAttribute('data-pswp-width', w);
+            a.setAttribute('data-pswp-height', h);
+            dlog('auto-set size', {a, w, h});
+          } else {
+            dwarn('no natural size found', a);
+          }
+        }
+      }
+    }, true);
+
+    initWithRetry();
+  });
+
+  // API pubblica comoda da console
+  window.__LB_DEBUG = {
+    reinit: initWithRetry,
+    destroy: destroyLB,
+    getInstance: () => _lbInstance
+  };
+})();
+</script>
+
+<script>
+/* Altre finezze: pause fuori viewport & reduce-motion (come prima) */
+document.addEventListener('DOMContentLoaded', function(){
+  const cols = document.querySelectorAll('.m-col');
   if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(entries => {
+    const io = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         const track = entry.target.querySelector('.m-track');
         if (!track) return;
@@ -319,12 +387,8 @@ document.addEventListener('DOMContentLoaded', () => {
     cols.forEach(c => io.observe(c));
   }
 
-  // Accessibilità: reduce motion
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    cols.forEach(c => {
-      const track = c.querySelector('.m-track');
-      if (track) track.style.animationDuration = '120s';
-    });
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.m-col .m-track').forEach(t => t.style.animationDuration = '120s');
   }
 });
 </script>
