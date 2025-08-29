@@ -2,53 +2,161 @@
 
 {% block content %}
 {# Hero cover with overlay, title, meta and body; gallery below #}
-<section class="relative">
-  {% set cover = album.cover ?? null %}
+<section class="relative" style="min-height:50vh">
+  {# --- Robust hero image selection (cover_image -> cover.variants -> cover.path/url -> first album image) --- #}
   {% set hero_url = '' %}
-  {% if cover and cover.variants is defined and cover.variants|length %}
-    {% set max_w = 0 %}
-    {% for v in cover.variants %}
-      {% if v.path and (v.path starts with '/') and (not (v.path starts with '/storage/')) and v.width is defined and v.width > max_w %}
-        {% set hero_url = base_path ~ v.path %}
-        {% set max_w = v.width %}
+
+  {# 1) cover_image (admin uses img.preview_path in the grid) #}
+  {% if album.cover_image is defined and album.cover_image %}
+    {% set candidate = album.cover_image.preview_path ?? album.cover_image.original_path ?? album.cover_image.path ?? null %}
+    {% if candidate %}
+      {% if candidate starts with '/' %}
+        {% set hero_url = base_path ~ candidate %}
+      {% else %}
+        {% set hero_url = candidate %}
       {% endif %}
-    {% endfor %}
+    {% endif %}
   {% endif %}
-  <div class="relative h-[60vh] md:h-[70vh] overflow-hidden bg-neutral-900" style="{% if hero_url %}background-image:url('{{ hero_url }}');{% endif %} background-size:cover; background-position:center;">
-    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20"></div>
-    <div class="absolute inset-0 flex items-end">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-10">
-        <div class="max-w-3xl text-white">
-          <div class="mb-4 flex flex-wrap gap-2">
-            {% if album.categories is defined and album.categories|length > 0 %}
-              {% for cat in album.categories %}
-              <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 transition-colors" title="{{ cat.name|e }}">
-                <span class="w-1.5 h-1.5 rounded-full bg-white"></span>{{ cat.name|e }}
-              </a>
-              {% endfor %}
-            {% endif %}
-          </div>
-          <h1 class="text-3xl md:text-5xl font-light tracking-tight">{{ album.title|e }}</h1>
-          <div class="mt-4 text-sm md:text-base text-neutral-200 flex flex-wrap gap-x-6 gap-y-2">
-            {% if album.shoot_date and album.show_date == 1 %}
-              <span class="inline-flex items-center gap-2"><i class="fas fa-calendar-alt text-neutral-300"></i><time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('d M Y') }}</time></span>
-            {% endif %}
-            {% if album.equipment.locations is defined and album.equipment.locations|length > 0 %}
-              <span class="inline-flex items-center gap-2"><i class="fas fa-map-marker-alt text-neutral-300"></i>{{ album.equipment.locations|join(', ') }}</span>
-            {% endif %}
-          </div>
-          {% if album.excerpt %}
-            <p class="mt-6 text-neutral-200/90 leading-relaxed">{{ album.excerpt|e }}</p>
+
+  {# 2) album.cover.variants (original template style) #}
+  {% if not hero_url and album.cover is defined and album.cover %}
+    {% if album.cover.variants is defined and album.cover.variants|length %}
+      {% set max_w = 0 %}
+      {% for v in album.cover.variants %}
+        {% if v.path is defined and v.path and v.width is defined and v.width > max_w and not (v.path starts with '/storage/') %}
+          {% set cand = v.path %}
+          {% if cand starts with '/' %}
+            {% set hero_url = base_path ~ cand %}
+          {% else %}
+            {% set hero_url = cand %}
           {% endif %}
+          {% set max_w = v.width %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {# fallback to cover.path or cover.url #}
+    {% if not hero_url %}
+      {% set cand2 = album.cover.path ?? album.cover.url ?? null %}
+      {% if cand2 %}
+        {% if cand2 starts with '/' %}
+          {% set hero_url = base_path ~ cand2 %}
+        {% else %}
+          {% set hero_url = cand2 %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+
+  {# 3) last resort: first image in album.images (if injected) or from images collection #}
+  {% if not hero_url and album.images is defined and album.images|length %}
+    {% set firstImg = album.images[0] %}
+    {% set cand3 = firstImg.preview_path ?? firstImg.original_path ?? firstImg.path ?? null %}
+    {% if cand3 %}
+      {% set hero_url = cand3 starts with '/' ? (base_path ~ cand3) : cand3 %}
+    {% endif %}
+  {% endif %}
+  {% if not hero_url and images is defined and images|length %}
+    {% set firstImg = images[0] %}
+    {% set cand4 = firstImg.fallback_src ?? firstImg.url ?? null %}
+    {% if cand4 %}
+      {% set hero_url = cand4 starts with '/' ? (base_path ~ cand4) : cand4 %}
+    {% endif %}
+  {% endif %}
+
+  {% set hero_has_image = hero_url is not empty %}
+
+  {# --- HERO WRAPPER: much taller, content centered, padding added --- #}
+  <div class="relative overflow-hidden bg-neutral-900" style="min-height:50vh">
+    {% if hero_has_image %}
+      <img src="{{ hero_url }}" alt="{{ album.title|e }}" class="absolute inset-0 w-full h-full object-cover object-center select-none blur-sm md:blur md:scale-105" loading="eager" fetchpriority="high" decoding="async">
+    {% else %}
+      <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-900"></div>
+    {% endif %}
+
+    {# Subtle light overlay for readability on top of blurred image #}
+    <div class="absolute inset-0 z-10 pointer-events-none backdrop-blur-[1px]" style="background: linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.90) 83%, rgba(255,255,255,0.95) 100%);"></div>
+
+    {# Centered content: vertically + horizontally centered, with internal padding #}
+    <div class="relative z-20 flex items-center justify-center px-4 sm:px-6 lg:px-8" style="min-height:50vh; padding-top:3rem; padding-bottom:3rem">
+      <div class="max-w-5xl w-full text-center text-black px-4 md:px-8">
+        <div class="flex flex-col items-center justify-center" style="min-height:50vh;">
+        <div class="mb-3 flex flex-wrap justify-center gap-2">
+          {% if album.categories is defined and album.categories|length > 0 %}
+            {% for cat in album.categories %}
+              <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white/80 text-neutral-800 hover:bg-white transition-colors" title="{{ cat.name|e }}">
+                <span class="w-1.5 h-1.5 rounded-full bg-neutral-800"></span>{{ cat.name|e }}
+              </a>
+            {% endfor %}
+          {% endif %}
+          {% if album.tags is defined and album.tags|length > 0 %}
+            {% for tag in album.tags %}
+            <span class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700" title="{{ tag.name|e }}">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>{{ tag.name|e }}
+            </span>
+            {% endfor %}
+          {% endif %}
+        </div>
+        <h1 class="text-3xl md:text-5xl font-light tracking-tight leading-tight">{{ album.title|e }}</h1>
+        <div class="mt-3 text-sm md:text-base text-neutral-700 flex flex-col sm:flex-row items-center justify-center gap-3">
+          {% if album.shoot_date and album.show_date == 1 %}
+            <span class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white/80 text-black text-xs md:text-sm">
+              <i class="fas fa-calendar-alt text-xs text-neutral-700"></i>
+              <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('d M Y') }}</time>
+            </span>
+          {% endif %}
+          {% if album.equipment.locations is defined and album.equipment.locations|length > 0 %}
+            <span class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white/80 text-black text-xs md:text-sm">
+              <i class="fas fa-map-marker-alt text-xs text-neutral-700"></i>
+              {{ album.equipment.locations|join(', ') }}
+            </span>
+          {% endif %}
+        </div>
+
+        {% if album.excerpt %}
+          <p class="mt-3 text-neutral-700 leading-relaxed text-base md:text-lg max-w-3xl mx-auto">{{ album.excerpt|e }}</p>
+        {% endif %}
+        {# Equipment pinned to bottom of hero content #}
+        <div class="mt-auto pt-3 pb-2 flex flex-col md:flex-row md:flex-wrap md:items-center gap-3 md:gap-x-8 md:gap-y-2 text-[11px] md:text-xs text-neutral-800 justify-center">
+          {% if album.equipment.cameras|length > 0 %}
+          <div class="inline-flex items-center gap-1.5">
+            <i class="fas fa-camera fa-xs text-neutral-700"></i>
+            <span>{% for camera in album.equipment.cameras %}{{ camera }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
+          </div>
+          {% endif %}
+          {% if album.equipment.lenses|length > 0 %}
+          <div class="inline-flex items-center gap-1.5">
+            <i class="fas fa-dot-circle fa-xs text-neutral-700"></i>
+            <span>{% for lens in album.equipment.lenses %}{{ lens }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
+          </div>
+          {% endif %}
+          {% if album.equipment.film|length > 0 %}
+          <div class="inline-flex items-center gap-1.5">
+            <i class="fas fa-film fa-xs text-neutral-700"></i>
+            <span>{% for film in album.equipment.film %}{{ film }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
+          </div>
+          {% endif %}
+          {% if album.equipment.developers|length > 0 %}
+          <div class="inline-flex items-center gap-1.5">
+            <i class="fas fa-flask fa-xs text-neutral-700"></i>
+            <span>{% for dev in album.equipment.developers %}{{ dev }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
+          </div>
+          {% endif %}
+          {% if album.equipment.labs|length > 0 %}
+          <div class="inline-flex items-center gap-1.5">
+            <i class="fas fa-industry fa-xs text-neutral-700"></i>
+            <span>{% for lab in album.equipment.labs %}{{ lab }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
+          </div>
+          {% endif %}
+        </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 md:pt-40 lg:pt-48 pb-24 md:pb-32 lg:pb-40">
   {% if album.body %}
-    <div class="max-w-3xl mx-auto prose prose-neutral">
+    <div class="max-w-3xl mx-auto prose prose-neutral py-12 md:py-16 lg:py-20">
       {{ album.body|raw }}
     </div>
   {% endif %}
@@ -127,12 +235,16 @@
     const layout = window.templateSettings?.layout || 'grid';
     const masonry = window.templateSettings?.masonry || false;
     if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
-      const slideshowThumbs = new Swiper('.slideshow-thumbs', { spaceBetween: 10, slidesPerView: 'auto', freeMode: true, watchSlidesProgress: true });
+      let slideshowThumbs = null;
+      const thumbsEl = document.querySelector('.slideshow-thumbs');
+      if (thumbsEl) {
+        slideshowThumbs = new Swiper(thumbsEl, { spaceBetween: 10, slidesPerView: 'auto', freeMode: true, watchSlidesProgress: true });
+      }
       window.gallerySwiper = new Swiper('.slideshow-pro', {
         spaceBetween: 10,
         navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
         pagination: { el: '.swiper-pagination', clickable: true },
-        thumbs: { swiper: slideshowThumbs },
+        thumbs: slideshowThumbs ? { swiper: slideshowThumbs } : undefined,
         loop: true,
         autoplay: window.templateSettings?.slideshow?.autoplay ? { delay: window.templateSettings?.slideshow?.delay || 5000, disableOnInteraction: false } : false,
         effect: 'fade', fadeEffect: { crossFade: true }

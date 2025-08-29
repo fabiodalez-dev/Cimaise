@@ -161,7 +161,8 @@
         idx++;
       }
       container.appendChild(frag);
-      imagesLoaded(newElems, function(){
+      imagesLoaded(container, function(){
+        // Ensure Masonry knows about new elements
         window.galleryMasonry.appended(newElems);
         window.galleryMasonry.layout();
         // Trim old nodes
@@ -184,12 +185,16 @@
     const layout = window.templateSettings?.layout || 'grid';
     const masonry = window.templateSettings?.masonry || false;
     if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
-      const slideshowThumbs = new Swiper('.slideshow-thumbs', { spaceBetween: 10, slidesPerView: 'auto', freeMode: true, watchSlidesProgress: true });
+      let slideshowThumbs = null;
+      const thumbsEl = document.querySelector('.slideshow-thumbs');
+      if (thumbsEl) {
+        slideshowThumbs = new Swiper(thumbsEl, { spaceBetween: 10, slidesPerView: 'auto', freeMode: true, watchSlidesProgress: true });
+      }
       window.gallerySwiper = new Swiper('.slideshow-pro', {
         spaceBetween: 10,
         navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
         pagination: { el: '.swiper-pagination', clickable: true },
-        thumbs: { swiper: slideshowThumbs },
+        thumbs: slideshowThumbs ? { swiper: slideshowThumbs } : undefined,
         loop: true,
         autoplay: window.templateSettings?.slideshow?.autoplay ? { delay: window.templateSettings?.slideshow?.delay || 5000, disableOnInteraction: false } : false,
         effect: 'fade', fadeEffect: { crossFade: true }
