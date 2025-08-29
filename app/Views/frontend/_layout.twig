@@ -957,7 +957,8 @@
         gsap.registerPlugin(ScrollTrigger);
         
         // Animate elements on scroll with stagger effect - exclude header and mega menu images
-        gsap.utils.toArray('main .album-card, main .image-item, .gallery-container .image-item').forEach((el, index) => {
+        // Avoid animating #images-gallery items to prevent flicker
+        gsap.utils.toArray('main .album-card, .gallery-container .image-item').forEach((el, index) => {
             gsap.from(el, {
                 opacity: 0,
                 y: 30,
@@ -968,10 +969,32 @@
                     trigger: el,
                     start: "top 85%",
                     end: "bottom 15%",
-                    toggleActions: "play none none none"
+                    toggleActions: "play none none none",
+                    once: true
                 }
             });
         });
+
+        // One-time entrance animation for gallery items
+        window.animateGalleryOnce = function() {
+            if (typeof gsap === 'undefined') return;
+            const container = document.getElementById('images-gallery');
+            if (!container) return;
+            const nodes = Array.from(container.querySelectorAll('.image-item')).filter(n => !n.hasAttribute('data-animated'));
+            if (!nodes.length) return;
+            // Mark as animated to avoid double-run on same nodes
+            nodes.forEach(n => n.setAttribute('data-animated','1'));
+            gsap.from(nodes, {
+                opacity: 0,
+                y: 24,
+                duration: 0.6,
+                stagger: 0.03,
+                ease: 'power2.out'
+            });
+        };
+
+        // Initialize gallery entrance animation on load (no scroll trigger)
+        window.animateGalleryOnce();
         
         // Enhanced header scroll behavior with smooth transitions
         let lastScroll = 0;
@@ -1127,6 +1150,9 @@
                 });
             });
         }
+
+        // Global flag: animate gallery items once on scroll
+        window.galleryAnimateOnScroll = true;
 
         // Build PS items from anchors in current gallery
         function buildItemsFromAnchors(){
