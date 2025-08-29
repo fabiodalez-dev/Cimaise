@@ -585,58 +585,64 @@
         </div>
         
         <!-- Mobile Navigation Panel -->
-        <div id="mobile-menu" class="lg:hidden border-t border-gray-200 bg-white/98 backdrop-blur-md hidden overflow-hidden">
-            <div class="px-4 py-6 space-y-6 max-h-[calc(100vh-80px)] overflow-y-auto">
+        <div id="mobile-menu" class="lg:hidden border-t border-gray-200 bg-white/98 backdrop-blur-md hidden overflow-y-auto" style="max-height: calc(100vh - 80px);">
+            <div class="px-2 py-4 space-y-4">
                 <!-- Main Navigation -->
-                <div class="space-y-4">
-                    <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">Home</a>
-                    <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">All Galleries</a>
-                    <a href="{{ about_url }}" class="block text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">About</a>
+                <div class="px-2 space-y-1">
+                    <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">Home</a>
+                    <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">All Galleries</a>
+                    <a href="{{ about_url }}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">About</a>
                 </div>
                 
                 <!-- Mobile Categories -->
-                <div>
-                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-4">Categories</div>
-                    <div class="space-y-3">
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 px-3">Categories</div>
+                    <div class="space-y-1">
                         {% for category in parent_categories|default([]) %}
-                        <div class="mobile-category-group">
+                        <div class="mobile-category-group rounded-md overflow-hidden">
                             {% if category.children|length > 0 %}
-                                <button class="mobile-category-toggle w-full text-left flex items-center justify-between text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2" 
-                                        data-category-id="{{ category.id }}">
-                                    <div class="flex items-center gap-3">
+                                <div class="flex items-center justify-between w-full text-left font-medium bg-white hover:bg-gray-50 transition-colors duration-200">
+                                    <a href="{{ base_path }}/category/{{ category.slug }}" class="flex-grow flex items-center gap-4 p-3">
                                         {% if category.image_path and category.image_path != '' %}
-                                            <div class="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                                            <div class="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                                                 <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
                                             </div>
                                         {% else %}
-                                            <div class="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                                <i class="fas fa-folder text-xs text-gray-400"></i>
+                                            <div class="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                                <i class="fas fa-folder text-base text-gray-400"></i>
                                             </div>
                                         {% endif %}
-                                        <span>{{ category.name|e }}</span>
-                                    </div>
-                                    <i class="fas fa-chevron-right text-xs transition-transform duration-200"></i>
-                                </button>
+                                        <span class="text-sm text-gray-900">{{ category.name|e }}</span>
+                                    </a>
+                                    <button class="mobile-category-toggle flex-shrink-0 w-12 h-12 flex items-center justify-center text-gray-500 hover:text-black" data-category-id="{{ category.id }}">
+                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300"></i>
+                                    </button>
+                                </div>
                                 
-                                <div class="mobile-subcategories hidden pl-11 mt-2 space-y-2" data-parent="{{ category.id }}">
-                                    {% for child in category.children %}
-                                        <a href="{{ base_path }}/category/{{ child.slug }}" class="block text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200 py-1">
-                                            {{ child.name|e }}
-                                        </a>
-                                    {% endfor %}
+                                <div class="mobile-subcategories hidden overflow-hidden transition-all duration-300 ease-in-out bg-gray-50/70">
+                                    <div class="pt-2 pb-3 pl-8 pr-2">
+                                        <div class="border-l-2 border-gray-200 pl-6 space-y-1">
+                                            {% for child in category.children %}
+                                                <a href="{{ base_path }}/category/{{ child.slug }}" class="flex items-center gap-3 text-sm text-gray-600 hover:text-black p-2 rounded-md hover:bg-gray-200/60 transition-colors duration-200">
+                                                    <i class="fas fa-level-up-alt fa-xs text-gray-400 -rotate-90"></i>
+                                                    <span>{{ child.name|e }}</span>
+                                                </a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
                                 </div>
                             {% else %}
-                                <a href="{{ base_path }}/category/{{ category.slug }}" class="flex items-center gap-3 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200 py-2">
+                                <a href="{{ base_path }}/category/{{ category.slug }}" class="flex items-center gap-4 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors duration-200 p-3 rounded-md">
                                     {% if category.image_path and category.image_path != '' %}
-                                        <div class="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                                        <div class="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                                             <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
                                         </div>
                                     {% else %}
-                                        <div class="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                            <i class="fas fa-folder text-xs text-gray-400"></i>
+                                        <div class="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                            <i class="fas fa-folder text-base text-gray-400"></i>
                                         </div>
                                     {% endif %}
-                                    <span>{{ category.name|e }}</span>
+                                    <span class="text-gray-900">{{ category.name|e }}</span>
                                 </a>
                             {% endif %}
                         </div>
@@ -646,8 +652,8 @@
                 
                 <!-- Mobile Filters -->
                 <div class="pt-4 border-t border-gray-200">
-                    <button id="mobile-filters-toggle" class="flex items-center gap-2 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors duration-200">
-                        <i class="fas fa-filter text-xs"></i>
+                    <button id="mobile-filters-toggle" class="w-full flex items-center gap-3 text-sm font-medium text-gray-900 hover:bg-gray-100 p-3 rounded-md transition-colors duration-200">
+                        <i class="fas fa-filter text-xs w-10 text-center"></i>
                         <span>Show Filters</span>
                     </button>
                 </div>
@@ -740,91 +746,74 @@
     <!-- App JS -->
     <script>
         // Enhanced Mobile menu with animations
-        document.getElementById('mobile-menu-toggle')?.addEventListener('click', function() {
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Menu Toggle
+            const menuToggle = document.getElementById('mobile-menu-toggle');
             const menu = document.getElementById('mobile-menu');
-            const icon = this.querySelector('i');
-            
-            if (menu.classList.contains('hidden')) {
-                menu.classList.remove('hidden');
-                // Animate in
-                requestAnimationFrame(() => {
-                    menu.style.opacity = '0';
-                    menu.style.transform = 'translateY(-10px)';
-                    requestAnimationFrame(() => {
-                        menu.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                        menu.style.opacity = '1';
-                        menu.style.transform = 'translateY(0)';
-                    });
-                });
-                // Animate burger to X
-                if (icon) {
-                    icon.style.transform = 'rotate(90deg)';
-                }
-            } else {
-                // Animate out
-                menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-                menu.style.opacity = '0';
-                menu.style.transform = 'translateY(-10px)';
-                setTimeout(() => {
-                    menu.classList.add('hidden');
-                }, 200);
-                // Animate X back to burger
-                if (icon) {
-                    icon.style.transform = 'rotate(0deg)';
-                }
-            }
-        });
-        
-        // Enhanced Mobile category toggles with smooth animations
-        document.querySelectorAll('.mobile-category-toggle').forEach(button => {
-            button.addEventListener('click', () => {
-                const categoryId = button.dataset.categoryId;
-                const subcategories = document.querySelector(`[data-parent="${categoryId}"]`);
-                const icon = button.querySelector('i');
-                
-                if (subcategories) {
-                    if (subcategories.classList.contains('hidden')) {
-                        subcategories.classList.remove('hidden');
-                        // Smooth expand animation
-                        subcategories.style.maxHeight = '0px';
-                        subcategories.style.opacity = '0';
-                        subcategories.style.overflow = 'hidden';
-                        subcategories.style.transition = 'max-height 0.3s ease, opacity 0.3s ease';
-                        
+            if (menuToggle && menu) {
+                menuToggle.addEventListener('click', function() {
+                    const isOpening = menu.classList.contains('hidden');
+                    if (isOpening) {
+                        menu.classList.remove('hidden');
                         requestAnimationFrame(() => {
-                            subcategories.style.maxHeight = subcategories.scrollHeight + 'px';
-                            subcategories.style.opacity = '1';
+                            menu.style.maxHeight = menu.scrollHeight + 'px';
+                            menu.style.opacity = '1';
                         });
-                        
-                        if (icon) {
-                            icon.style.transition = 'transform 0.3s ease';
-                            icon.style.transform = 'rotate(90deg)';
-                        }
                     } else {
-                        // Smooth collapse animation
-                        subcategories.style.maxHeight = subcategories.scrollHeight + 'px';
-                        subcategories.style.transition = 'max-height 0.3s ease, opacity 0.3s ease';
-                        
-                        requestAnimationFrame(() => {
+                        menu.style.maxHeight = '0px';
+                        menu.style.opacity = '0';
+                        setTimeout(() => menu.classList.add('hidden'), 300);
+                    }
+                });
+            }
+
+            // 2. Sub-category Toggles
+            document.querySelectorAll('.mobile-category-toggle').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const group = button.closest('.mobile-category-group');
+                    if (!group) return;
+
+                    const subcategories = group.querySelector('.mobile-subcategories');
+                    const icon = button.querySelector('i');
+                    
+                    if (subcategories) {
+                        if (subcategories.classList.contains('hidden')) {
+                            subcategories.classList.remove('hidden');
+                            requestAnimationFrame(() => {
+                                subcategories.style.maxHeight = subcategories.scrollHeight + 'px';
+                            });
+                            if (icon) icon.style.transform = 'rotate(180deg)';
+                        } else {
                             subcategories.style.maxHeight = '0px';
-                            subcategories.style.opacity = '0';
-                        });
-                        
-                        setTimeout(() => {
-                            subcategories.classList.add('hidden');
-                            subcategories.style.maxHeight = '';
-                            subcategories.style.opacity = '';
-                            subcategories.style.overflow = '';
-                        }, 300);
-                        
-                        if (icon) {
-                            icon.style.transition = 'transform 0.3s ease';
-                            icon.style.transform = 'rotate(0deg)';
+                            if (icon) icon.style.transform = 'rotate(0deg)';
+                            setTimeout(() => subcategories.classList.add('hidden'), 300);
+                        }
+                    }
+                });
+            });
+
+            // 3. Active Page Indicator
+            const currentUrl = window.location.href.split('?')[0].split('#')[0];
+            const mobileMenuLinks = menu ? menu.querySelectorAll('a') : [];
+            mobileMenuLinks.forEach(link => {
+                const linkUrl = link.href.split('?')[0].split('#')[0];
+                if (link.href && linkUrl === currentUrl) {
+                    link.classList.add('bg-black', 'text-white');
+                    link.setAttribute('aria-current', 'page');
+
+                    const parentGroup = link.closest('.mobile-category-group');
+                    if (parentGroup) {
+                        const toggleButton = parentGroup.querySelector('.mobile-category-toggle');
+                        if (toggleButton) {
+                            setTimeout(() => toggleButton.click(), 100); // Open parent submenu
                         }
                     }
                 }
             });
         });
+
+        
         
         // Enhanced Desktop mega menu with category data and images
         const megaMenuData = {
