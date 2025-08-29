@@ -1,0 +1,222 @@
+{% extends "frontend/_layout.twig" %}
+
+{% block content %}
+{# Hero cover with overlay, title, meta and body; gallery below #}
+<section class="relative">
+  {% set cover = album.cover ?? null %}
+  {% set hero_url = '' %}
+  {% if cover and cover.variants is defined and cover.variants|length %}
+    {% set max_w = 0 %}
+    {% for v in cover.variants %}
+      {% if v.path and (v.path starts with '/') and (not (v.path starts with '/storage/')) and v.width is defined and v.width > max_w %}
+        {% set hero_url = base_path ~ v.path %}
+        {% set max_w = v.width %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  <div class="relative h-[60vh] md:h-[70vh] overflow-hidden bg-neutral-900" style="{% if hero_url %}background-image:url('{{ hero_url }}');{% endif %} background-size:cover; background-position:center;">
+    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20"></div>
+    <div class="absolute inset-0 flex items-end">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-10">
+        <div class="max-w-3xl text-white">
+          <div class="mb-4 flex flex-wrap gap-2">
+            {% if album.categories is defined and album.categories|length > 0 %}
+              {% for cat in album.categories %}
+              <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 transition-colors" title="{{ cat.name|e }}">
+                <span class="w-1.5 h-1.5 rounded-full bg-white"></span>{{ cat.name|e }}
+              </a>
+              {% endfor %}
+            {% endif %}
+          </div>
+          <h1 class="text-3xl md:text-5xl font-light tracking-tight">{{ album.title|e }}</h1>
+          <div class="mt-4 text-sm md:text-base text-neutral-200 flex flex-wrap gap-x-6 gap-y-2">
+            {% if album.shoot_date and album.show_date == 1 %}
+              <span class="inline-flex items-center gap-2"><i class="fas fa-calendar-alt text-neutral-300"></i><time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('d M Y') }}</time></span>
+            {% endif %}
+            {% if album.equipment.locations is defined and album.equipment.locations|length > 0 %}
+              <span class="inline-flex items-center gap-2"><i class="fas fa-map-marker-alt text-neutral-300"></i>{{ album.equipment.locations|join(', ') }}</span>
+            {% endif %}
+          </div>
+          {% if album.excerpt %}
+            <p class="mt-6 text-neutral-200/90 leading-relaxed">{{ album.excerpt|e }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  {% if album.body %}
+    <div class="max-w-3xl mx-auto prose prose-neutral">
+      {{ album.body|raw }}
+    </div>
+  {% endif %}
+
+  {# Template switcher (same behavior as gallery.twig) #}
+  {% if available_templates|length > 0 %}
+  <div class="mt-8 mb-4 flex justify-end">
+    <div class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm">
+      {% for template in available_templates %}
+        <button type="button" class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" title="{{ template.name }}" aria-label="{{ template.name }}">
+          {% if template.settings.layout == 'masonry_fit' %}
+            <i class="fas fa-expand-arrows-alt"></i>
+          {% elseif template.settings.layout == 'slideshow' and 'swiper' in template.libs %}
+            <i class="fas fa-play-circle"></i>
+          {% elseif template.settings.layout == 'slideshow' %}
+            <i class="fas fa-images"></i>
+          {% elseif template.settings.layout == 'grid' and template.settings.spacing == 'large' %}
+            <i class="fas fa-border-none"></i>
+          {% elseif template.settings.layout == 'mosaic' %}
+            <i class="fas fa-puzzle-piece"></i>
+          {% elseif template.settings.layout == 'carousel' %}
+            <i class="fas fa-arrows-alt-h"></i>
+          {% elseif template.settings.layout == 'polaroid' %}
+            <i class="fas fa-camera-retro"></i>
+          {% elseif template.settings.layout == 'fullscreen' %}
+            <i class="fas fa-expand"></i>
+          {% elseif template.settings.layout == 'grid' %}
+            {% if template.settings.masonry %}
+              <i class="fas fa-grip-vertical"></i>
+            {% else %}
+              {% set tpl_desktop_cols = template.settings.columns.desktop|default(3) %}
+              {% if tpl_desktop_cols <= 2 %}
+                <i class="fas fa-pause"></i>
+              {% elseif tpl_desktop_cols == 3 %}
+                <i class="fas fa-th"></i>
+              {% elseif tpl_desktop_cols >= 5 %}
+                <i class="fas fa-grip-horizontal"></i>
+              {% else %}
+                <i class="fas fa-th"></i>
+              {% endif %}
+            {% endif %}
+          {% else %}
+            <i class="fas fa-th"></i>
+          {% endif %}
+        </button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# Gallery container. We reuse the same dynamic partial and JS contract #}
+  {% set layout = template_settings.layout|default('grid') %}
+  {% set masonry = template_settings.masonry|default(false) %}
+  {% set cols = template_settings.columns is defined ? template_settings.columns : {'desktop':3,'tablet':2,'mobile':1} %}
+  {% set desktop_cols = (cols.desktop|default(3))|round %}
+  {% set tablet_cols = (cols.tablet|default(2))|round %}
+  {% set mobile_cols = (cols.mobile|default(1))|round %}
+
+  {% set mobile_class = mobile_cols >= 6 ? 'grid-cols-6' : (mobile_cols == 5 ? 'grid-cols-5' : (mobile_cols == 4 ? 'grid-cols-4' : (mobile_cols == 3 ? 'grid-cols-3' : (mobile_cols == 2 ? 'grid-cols-2' : 'grid-cols-1')))) %}
+  {% set tablet_class = tablet_cols >= 6 ? 'md:grid-cols-6' : (tablet_cols == 5 ? 'md:grid-cols-5' : (tablet_cols == 4 ? 'md:grid-cols-4' : (tablet_cols == 3 ? 'md:grid-cols-3' : (tablet_cols == 2 ? 'md:grid-cols-2' : 'md:grid-cols-1')))) %}
+  {% set desktop_class = desktop_cols >= 6 ? 'lg:grid-cols-6' : (desktop_cols == 5 ? 'lg:grid-cols-5' : (desktop_cols == 4 ? 'lg:grid-cols-4' : (desktop_cols == 3 ? 'lg:grid-cols-3' : (desktop_cols == 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1')))) %}
+
+  <div id="images-gallery" class="{{ layout == 'slideshow' ? 'swiper slideshow-pro max-w-6xl mx-auto' : (layout == 'fullscreen' ? 'grid grid-cols-1 lg:grid-cols-2 gap-2' : (masonry ? 'masonry-grid' : 'grid ' ~ mobile_class ~ ' ' ~ tablet_class ~ ' ' ~ desktop_class ~ ' gap-6')) }}">
+    {% include 'frontend/_gallery_content.twig' with { images: images, template_settings: template_settings } %}
+  </div>
+</section>
+
+<script>
+  var basePath = '{{ base_path }}';
+  // Trigger same init used in gallery.twig after load
+  window.addEventListener('DOMContentLoaded', function(){
+    if (typeof initializeGalleryLayout === 'function') { try { initializeGalleryLayout(); } catch(e){} }
+  });
+  // Layout initializer copied from classic template (slideshow/masonry/carousel support)
+  function initializeGalleryLayout() {
+    const layout = window.templateSettings?.layout || 'grid';
+    const masonry = window.templateSettings?.masonry || false;
+    if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
+      const slideshowThumbs = new Swiper('.slideshow-thumbs', { spaceBetween: 10, slidesPerView: 'auto', freeMode: true, watchSlidesProgress: true });
+      window.gallerySwiper = new Swiper('.slideshow-pro', {
+        spaceBetween: 10,
+        navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+        pagination: { el: '.swiper-pagination', clickable: true },
+        thumbs: { swiper: slideshowThumbs },
+        loop: true,
+        autoplay: window.templateSettings?.slideshow?.autoplay ? { delay: window.templateSettings?.slideshow?.delay || 5000, disableOnInteraction: false } : false,
+        effect: 'fade', fadeEffect: { crossFade: true }
+      });
+    } else if (layout === 'carousel' && typeof Swiper !== 'undefined') {
+      window.gallerySwiper = new Swiper('.carousel-flow', { slidesPerView: 'auto', spaceBetween: 20, centeredSlides: true, freeMode: true, grabCursor: true, mousewheel: { thresholdDelta: 70, forceToAxis: true }, breakpoints: { 640:{spaceBetween:30}, 1024:{spaceBetween:40} } });
+    } else if (layout === 'polaroid') {
+      const polaroidItems = document.querySelectorAll('.polaroid-item');
+      if (window.innerWidth > 768) {
+        polaroidItems.forEach((item) => {
+          const randomX = Math.random() * 80 + 5; const randomY = Math.random() * 60 + 10; const randomRotation = (Math.random() - 0.5) * 16;
+          item.style.left = randomX + '%'; item.style.top = randomY + '%'; item.style.transform = `rotate(${randomRotation}deg)`; item.style.zIndex = Math.floor(Math.random() * 10) + 1;
+        });
+      }
+    } else if (masonry && typeof Masonry !== 'undefined') {
+      const container = document.getElementById('images-gallery');
+      if (container) {
+        imagesLoaded(container, function(){
+          window.galleryMasonry = new Masonry(container, { itemSelector: '.masonry-item', percentPosition: true });
+          setTimeout(() => {
+            container.querySelectorAll('img').forEach(img => { img.style.opacity = '1'; img.style.transition = 'none'; });
+            container.querySelectorAll('.image-item').forEach(item => { item.style.opacity = '1'; item.style.transform = 'scale(1)'; item.style.transition = 'none'; });
+          }, 50);
+        });
+      }
+    }
+    setTimeout(() => { const gc = document.getElementById('images-gallery'); if (gc) { gc.querySelectorAll('.image-item').forEach(item => { item.style.opacity = '1'; item.style.transform = 'scale(1)'; item.style.transition = 'none'; }); } }, 100);
+  }
+  // Delegated handler for template switches (AJAX) with class update
+  document.addEventListener('click', function(event) {
+    const el = event.target.closest('.tpl-switch');
+    if (!el) return;
+    event.preventDefault();
+    if (el.dataset.switchInProgress === '1') return;
+    el.dataset.switchInProgress = '1';
+    const galleryContainer = document.getElementById('images-gallery');
+    const templateId = el.getAttribute('data-template-id') || (new URL(el.href, window.location.origin)).searchParams.get('template');
+    const albumRef = el.getAttribute('data-album-ref') || window.location.pathname.split('/').pop();
+    if (!galleryContainer || !templateId || !albumRef) { delete el.dataset.switchInProgress; return; }
+    const original = galleryContainer.innerHTML;
+    galleryContainer.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div></div>';
+    document.querySelectorAll('.tpl-switch').forEach(btn => { btn.classList.remove('bg-black','text-white'); btn.classList.add('text-neutral-700','hover:bg-neutral-100'); });
+    el.classList.remove('text-neutral-700','hover:bg-neutral-100'); el.classList.add('bg-black','text-white');
+    const fetchUrl = `${basePath}/api/gallery/template?album=${encodeURIComponent(albumRef)}&template=${encodeURIComponent(templateId)}`;
+    fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(html => {
+        galleryContainer.style.opacity = '0';
+        galleryContainer.innerHTML = html;
+        const m = html.match(/window\.templateSettings\s*=\s*({[\s\S]*?});/);
+        if (m) { try { window.templateSettings = JSON.parse(m[1]); } catch(e) { console.error(e); } }
+        // Update container classes based on new template settings
+        const newLayout = window.templateSettings?.layout || 'grid';
+        const newMasonry = !!window.templateSettings?.masonry;
+        const idKeep = galleryContainer.id;
+        galleryContainer.className = '';
+        if (newLayout === 'slideshow') {
+          galleryContainer.className = 'swiper slideshow-pro max-w-6xl mx-auto';
+        } else if (newLayout === 'fullscreen') {
+          galleryContainer.className = 'grid grid-cols-1 lg:grid-cols-2 gap-2';
+        } else if (newMasonry) {
+          galleryContainer.className = 'masonry-grid';
+        } else {
+          const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
+          let d = Math.round(cols.desktop || 3), t = Math.round(cols.tablet || 2), mcols = Math.round(cols.mobile || 1);
+          const mc = mcols>=6?'grid-cols-6':mcols==5?'grid-cols-5':mcols==4?'grid-cols-4':mcols==3?'grid-cols-3':mcols==2?'grid-cols-2':'grid-cols-1';
+          const tc = t>=6?'md:grid-cols-6':t==5?'md:grid-cols-5':t==4?'md:grid-cols-4':t==3?'md:grid-cols-3':t==2?'md:grid-cols-2':'md:grid-cols-1';
+          const dc = d>=6?'lg:grid-cols-6':d==5?'lg:grid-cols-5':d==4?'lg:grid-cols-4':d==3?'lg:grid-cols-3':d==2?'lg:grid-cols-2':'lg:grid-cols-1';
+          galleryContainer.className = `grid ${mc} ${tc} ${dc} gap-6`;
+        }
+        galleryContainer.id = idKeep;
+        // Update URL
+        try { history.pushState(null, '', `${basePath}/album/${albumRef}?template=${templateId}`); } catch(e){}
+        // Re-init
+        setTimeout(() => {
+          if (typeof initLightbox === 'function') initLightbox();
+          if (window.gallerySwiper?.destroy) { window.gallerySwiper.destroy(true,true); window.gallerySwiper = null; }
+          if (window.galleryMasonry?.destroy) { window.galleryMasonry.destroy(); window.galleryMasonry = null; }
+          if (typeof initializeGalleryLayout === 'function') initializeGalleryLayout();
+          setTimeout(() => { galleryContainer.style.opacity = '1'; galleryContainer.style.transition = 'none'; }, 50);
+        }, 50);
+      })
+      .catch(err => { console.error('Template switch failed', err); galleryContainer.innerHTML = original; galleryContainer.style.opacity = '1'; })
+      .finally(() => { delete el.dataset.switchInProgress; });
+  });
+</script>
+{% endblock %}
