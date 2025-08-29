@@ -256,6 +256,7 @@
           if (window.gallerySwiper?.destroy) { window.gallerySwiper.destroy(true,true); window.gallerySwiper = null; }
           if (window.galleryMasonry?.destroy) { window.galleryMasonry.destroy(); window.galleryMasonry = null; }
           if (typeof initializeGalleryLayout === 'function') initializeGalleryLayout();
+          if (typeof window.animateGalleryOnce === 'function') { try { window.animateGalleryOnce(); } catch(e){} }
           initInfiniteMasonry();
           setTimeout(() => { galleryContainer.style.opacity = '1'; galleryContainer.style.transition = 'none'; }, 50);
         }, 50);
