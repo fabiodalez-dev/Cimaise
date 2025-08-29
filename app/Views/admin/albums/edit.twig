@@ -123,24 +123,24 @@
                 <button type="button" id="open-media-library" class="btn-secondary"><i class="fas fa-images mr-2"></i>Carica da galleria</button>
               </div>
 
-              {% if images %}
-                <!-- Bulk Actions -->
-                <div class="flex items-center justify-between mt-6 mb-4">
-                  <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <input type="checkbox" id="select-all" class="rounded border-gray-300 text-black focus:ring-black">
-                    Seleziona tutto ({{ images|length }} immagini)
-                  </label>
-                  <button id="bulk-delete" type="button" 
-                          class="btn-outline-danger text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
-                          disabled>
-                    <i class="fas fa-trash mr-1"></i>
-                    Elimina selezionate
-                  </button>
-                </div>
+              <!-- Bulk Actions - Always present -->
+              <div class="flex items-center justify-between mt-6 mb-4">
+                <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <input type="checkbox" id="select-all" class="rounded border-gray-300 text-black focus:ring-black">
+                  Seleziona tutto ({{ images|length }} immagini)
+                </label>
+                <button id="bulk-delete" type="button" 
+                        class="btn-outline-danger text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+                        disabled>
+                  <i class="fas fa-trash mr-1"></i>
+                  Elimina selezionate
+                </button>
+              </div>
 
-                <!-- Images Grid -->
-                <div id="images-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4" 
-                     data-reorder-endpoint="{{ base_path }}/admin/albums/{{ item.id }}/images/reorder" data-csrf="{{ csrf }}" data-album-id="{{ item.id }}">
+              <!-- Images Grid - Always present -->
+              <div id="images-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4" 
+                   data-reorder-endpoint="{{ base_path }}/admin/albums/{{ item.id }}/images/reorder" data-csrf="{{ csrf }}" data-album-id="{{ item.id }}">
+                {% if images %}
                   {% for img in images %}
                     <div class="border rounded overflow-hidden group" data-id="{{ img.id }}" data-created="{{ img.created_at }}" data-sort="{{ img.sort_order }}"
                          data-src="{{ img.original_path }}" data-w="{{ img.width }}" data-h="{{ img.height }}"
@@ -162,11 +162,14 @@
                       </div>
                     </div>
                   {% endfor %}
-                </div>
-                <div class="text-gray-500 text-sm mt-2">Trascina per riordinare oppure usa il selettore per ordinare per data/ID; clicca “Salva ordine” per persistere.</div>
-              {% else %}
-                <p class="text-gray-500">Nessuna immagine in questo album.</p>
-              {% endif %}
+                {% else %}
+                  <!-- Empty state message inside the grid -->
+                  <div class="col-span-full text-center py-8">
+                    <p class="text-gray-500">Nessuna immagine in questo album.</p>
+                  </div>
+                {% endif %}
+              </div>
+              <div class="text-gray-500 text-sm mt-2">Trascina per riordinare oppure usa il selettore per ordinare per data/ID; clicca "Salva ordine" per persistere.</div>
             </div>
           </div>
 
