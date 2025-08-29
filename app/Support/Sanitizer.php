@@ -6,15 +6,76 @@ namespace App\Support;
 final class Sanitizer
 {
     /**
-     * Allow a minimal set of formatting tags and safe attributes.
+     * Sanitize HTML content, allowing a safe subset of tags and attributes.
+     * This prevents XSS by parsing the HTML and rebuilding it with a whitelist.
      */
-    public static function html(string $html): string
+    public static function html(string $dirtyHtml): string
     {
-        if ($html === '') return '';
-        $allowed = '<p><br><strong><em><b><i><ul><ol><li><blockquote><a><h2><h3><h4><hr>';
-        $san = strip_tags($html, $allowed);
-        // Remove on* event handlers and javascript: URLs
-        $san = preg_replace('/\s+on[a-zA-Z]+\s*=\s*(["\"])?.*?\1/i', '', $san ?? '');
+        if (trim($dirtyHtml) === '') {
+            return '';
+        }
+
+        $allowedTags = [
+            'p', 'br', 'strong', 'em', 'b', 'i', 'ul', 'ol', 'li',
+            'blockquote', 'h2', 'h3', 'h4', 'hr', 'a'
+        ];
+
+        $allowedAttributes = [
+            'a' => ['href', 'title', 'target', 'rel']
+        ];
+
+        // Use DOMDocument to parse HTML to prevent regex-based bypasses
+        $dom = new \DOMDocument();
+        // Suppress warnings for malformed HTML, as we are cleaning it
+        @$dom->loadHTML('<div>' . $dirtyHtml . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+
+        $body = $dom->getElementsByTagName('body')->item(0);
+        if (!$body) return '';
+
+        self::sanitizeNode($body, $allowedTags, $allowedAttributes);
+
+        // Extract the sanitized HTML
+        $cleanHtml = '';
+        foreach ($body->firstChild->childNodes as $node) {
+            $cleanHtml .= $dom->saveHTML($node);
+        }
+
+        return $cleanHtml;
+    }
+
+    private static function sanitizeNode(\DOMNode $node, array $allowedTags, array $allowedAttributes): void
+    {
+        if ($node->hasChildNodes()) {
+            // Iterate backwards to safely remove nodes
+            for ($i = $node->childNodes->length - 1; $i >= 0; $i--) {
+                self::sanitizeNode($node->childNodes->item($i), $allowedTags, $allowedAttributes);
+            }
+        }
+
+        if ($node->nodeType === XML_ELEMENT_NODE) {
+            if (!in_array(strtolower($node->nodeName), $allowedTags)) {
+                $node->parentNode->removeChild($node);
+                return;
+            }
+
+            if ($node->hasAttributes()) {
+                foreach (iterator_to_array($node->attributes) as $attr) {
+                    $attrName = strtolower($attr->name);
+                    $allowed = $allowedAttributes[strtolower($node->nodeName)] ?? [];
+
+                    if (!in_array($attrName, $allowed)) {
+                        $node->removeAttribute($attr->name);
+                    } elseif ($attrName === 'href') {
+                        // For hrefs, ensure they are safe URLs (http, https, mailto)
+                        $url = $attr->value;
+                        if (!preg_match('~^(https?://|mailto:|/|#)~i', $url)) {
+                            $node->removeAttribute($attr->name);
+                        }
+                    }
+                }
+            }
+        }
+    }"\"])?.*?\1/i', '', $san ?? '');
         $san = preg_replace('/(href|src)\s*=\s*(["\"])javascript:[^\2]*\2/i', '$1="#"', $san ?? '');
         // Remove style attributes to keep design consistent
         $san = preg_replace('/\sstyle\s*=\s*(["\"]).*?\1/i', '', $san ?? '');
