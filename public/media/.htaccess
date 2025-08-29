@@ -1,24 +1,13 @@
+# Disable PHP engine in this directory for security.
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+
 <IfModule mod_php.c>
-  php_flag engine off
+    php_flag engine off
 </IfModule>
 
-# Disallow execution of PHP and CGI in this folder
-<FilesMatch "\.ph(p[0-9]?|tml)$">
-  Require all denied
+# For servers that don't use mod_php, this is another layer.
+<FilesMatch "\.(php|phar|phtml|sh|cgi)$">
+    Require all denied
 </FilesMatch>
-
-<IfModule mod_alias.c>
-  RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8
-  RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8
-</IfModule>
-
-# Optional: prevent script execution in various ways
-Options -ExecCGI
-AddType text/plain .php .phtml .php3 .php4 .php5 .php7 .php8
-
-# Cache media aggressively (adjust as needed)
-<IfModule mod_headers.c>
-  Header set X-Content-Type-Options "nosniff"
-  Header set Cache-Control "public, max-age=31536000, immutable"
-</IfModule>
-

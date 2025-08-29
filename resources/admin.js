@@ -28,8 +28,22 @@ function initUppyAreaUpload() {
   
   const endpoint = area.dataset.endpoint;
   const csrf = area.dataset.csrf;
-  const uppy = new Uppy({ autoProceed: true, restrictions: { allowedFileTypes: ['image/*'] } })
-    .use(XHRUpload, { endpoint, fieldName: 'file', headers: { 'X-CSRF-Token': csrf, 'Accept':'application/json' } });
+  const uppy = new Uppy({
+    autoProceed: true,
+    restrictions: {
+      // Keep client restrictions aligned with server-side validation
+      allowedFileTypes: ['image/jpeg', 'image/png', 'image/webp']
+    }
+  })
+    .use(XHRUpload, {
+      endpoint,
+      fieldName: 'file',
+      headers: {
+        'X-CSRF-Token': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      }
+    });
 
   // Track instance globally for proper cleanup on SPA re-inits
   if (!window.uppyInstances) window.uppyInstances = [];
@@ -142,6 +156,20 @@ function initUppyAreaUpload() {
     }, 2000);
     
     refreshGalleryArea();
+  });
+
+  // Surface server-side errors (400, etc.) instead of generic network error
+  uppy.on('upload-error', (file, error, response) => {
+    try {
+      const msg = (response && response.body && (response.body.error || response.body.message))
+        || (response && typeof response === 'string' && response)
+        || (error && error.message)
+        || 'Errore di upload';
+      if (window.showToast) window.showToast(msg, 'error');
+      console.error('Upload error:', msg, { file, error, response });
+    } catch (e) {
+      console.error('Upload error (parse failed):', error, response);
+    }
   });
 
 uppy.on('error', (error) => {
