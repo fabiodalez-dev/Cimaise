@@ -702,36 +702,121 @@ function getCsrf(){ const el = document.querySelector('input[name="csrf"]'); ret
 async function refreshGalleryArea() {
   try {
     // Show loading indicator
-    const grid = document.getElementById('images-grid');
-    if (grid) {
-      const loadingEl = document.createElement('div');
-      loadingEl.className = 'gallery-refresh-loading';
-      loadingEl.style.cssText = 'position: fixed; inset: 0; background: rgba(0, 0, 0, 0.2); display: flex; align-items: center; justify-content: center; z-index: 50;';
-      loadingEl.innerHTML = '<div class="bg-white rounded-lg p-4 shadow-lg"><i class="fas fa-spinner fa-spin mr-2"></i>Aggiornamento galleria...</div>';
-      document.body.appendChild(loadingEl);
+    let loadingEl = document.createElement('div');
+    loadingEl.className = 'gallery-refresh-loading';
+    loadingEl.style.cssText = 'position: fixed; inset: 0; background: rgba(0, 0, 0, 0.2); display: flex; align-items: center; justify-content: center; z-index: 50;';
+    loadingEl.innerHTML = '<div class="bg-white rounded-lg p-4 shadow-lg"><i class="fas fa-spinner fa-spin mr-2"></i>Aggiornamento galleria...</div>';
+    document.body.appendChild(loadingEl);
+    
+    // Get current album ID from dataset or URL
+    const albumId = document.querySelector('#uppy')?.dataset?.albumId || 
+                    window.location.pathname.match(/\/admin\/albums\/(\d+)/)?.[1];
+    
+    // Ensure we have an empty grid structure if it doesn't exist
+    let existingGrid = document.getElementById('images-grid');
+    const galleryContainer = document.querySelector('.card .p-6');
+    const emptyMessage = galleryContainer?.querySelector('p.text-gray-500');
+    
+    if (!existingGrid && galleryContainer) {
+      // Create empty grid structure when album is empty
+      console.log('Creating empty grid structure...');
+      
+      // Remove empty message
+      if (emptyMessage) {
+        emptyMessage.remove();
+      }
+      
+      // Create bulk actions
+      const bulkActions = document.createElement('div');
+      bulkActions.className = 'flex items-center justify-between mt-6 mb-4';
+      bulkActions.innerHTML = `
+        <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+          <input type="checkbox" id="select-all" class="rounded border-gray-300 text-black focus:ring-black">
+          Seleziona tutto (0 immagini)
+        </label>
+        <button id="bulk-delete" type="button" 
+                class="btn-outline-danger text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+                disabled>
+          <i class="fas fa-trash mr-1"></i>
+          Elimina selezionate
+        </button>
+      `;
+      
+      // Create empty grid
+      const grid = document.createElement('div');
+      grid.id = 'images-grid';
+      grid.className = 'grid grid-cols-2 md:grid-cols-3 gap-4';
+      grid.dataset.reorderEndpoint = `${window.basePath || ''}/admin/albums/${albumId}/images/reorder`;
+      grid.dataset.csrf = document.querySelector('input[name="csrf"]')?.value || '';
+      grid.dataset.albumId = albumId || '';
+      
+      // Create helper text
+      const helperText = document.createElement('div');
+      helperText.className = 'text-gray-500 text-sm mt-2';
+      helperText.textContent = 'Trascina per riordinare oppure usa il selettore per ordinare per data/ID; clicca "Salva ordine" per persistere.';
+      
+      // Insert elements after the media library button
+      const mediaLibraryButton = galleryContainer.querySelector('.mt-3.text-right');
+      if (mediaLibraryButton && mediaLibraryButton.parentNode) {
+        mediaLibraryButton.parentNode.insertBefore(bulkActions, mediaLibraryButton.nextSibling);
+        bulkActions.parentNode.insertBefore(grid, bulkActions.nextSibling);
+        grid.parentNode.insertBefore(helperText, grid.nextSibling);
+      }
+      
+      existingGrid = grid;
     }
     
+    // Now fetch the updated content
     const res = await fetch(window.location.href, { headers: { 'Accept': 'text/html' }});
     if (!res.ok) throw new Error('Failed to fetch page');
     const html = await res.text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const newGrid = doc.querySelector('#images-grid');
+    const newBulkActions = doc.querySelector('.flex.items-center.justify-between.mt-6.mb-4');
     
-    if (newGrid && grid) {
+    if (newGrid && existingGrid) {
       // Update grid content
-      grid.innerHTML = newGrid.innerHTML;
+      existingGrid.innerHTML = newGrid.innerHTML;
+      // Update dataset attributes
+      Object.assign(existingGrid.dataset, newGrid.dataset);
+      
+      // Update bulk actions count if they exist
+      if (newBulkActions) {
+        const currentBulkActions = document.querySelector('.flex.items-center.justify-between.mt-6.mb-4');
+        if (currentBulkActions) {
+          const labelText = newBulkActions.querySelector('label')?.textContent || '';
+          const currentLabel = currentBulkActions.querySelector('label');
+          if (currentLabel) {
+            currentLabel.innerHTML = newBulkActions.querySelector('label')?.innerHTML || currentLabel.innerHTML;
+          }
+        }
+      }
       
       // Re-initialize all components that depend on the grid
       initSortableGrid();
       bindGridButtons();
       rebindBulkSelection();
-      rebindImageModalHandlers(); // Add this new function
+      rebindImageModalHandlers();
       
       if (window.showToast) window.showToast('Galleria aggiornata', 'success');
+    } else if (!newGrid && existingGrid) {
+      // No images anymore, revert to empty state
+      existingGrid.remove();
+      const bulkActions = document.querySelector('.flex.items-center.justify-between.mt-6.mb-4');
+      if (bulkActions) bulkActions.remove();
+      const helperText = document.querySelector('.text-gray-500.text-sm.mt-2');
+      if (helperText) helperText.remove();
+      
+      // Add empty message back
+      if (galleryContainer && !galleryContainer.querySelector('p.text-gray-500')) {
+        const emptyMsg = document.createElement('p');
+        emptyMsg.className = 'text-gray-500';
+        emptyMsg.textContent = 'Nessuna immagine in questo album.';
+        galleryContainer.appendChild(emptyMsg);
+      }
     }
     
     // Remove loading indicator
-    const loadingEl = document.querySelector('.gallery-refresh-loading');
     if (loadingEl) loadingEl.remove();
     
   } catch (e) { 
