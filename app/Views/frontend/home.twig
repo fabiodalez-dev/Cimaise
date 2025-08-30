@@ -77,7 +77,7 @@
                 {% set cols = [col1, col2, col3] %}
                 {% for col in cols %}
                     {% set idx = loop.index0 %}
-                    {% set dur = idx == 0 ? '90s' : (idx == 1 ? '105s' : '120s') %}
+                    {% set dur = idx == 0 ? '60s' : (idx == 1 ? '75s' : '90s') %}
                     {% set dir = idx == 1 ? 'up' : 'down' %}
                     <div class="home-col" data-direction="{{ dir }}" style="--home-duration: {{ dur }}; --home-delay: 0s;">
                         <div class="home-track">
@@ -340,11 +340,17 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 
-  // Stagger animation start for smoother effect
+  // Force immediate animation start (no delays)
   homeCols.forEach((col, index) => {
     const track = col.querySelector('.home-track');
     if (track) {
-      track.style.animationDelay = `${index * 0.5}s`;
+      const dur = getComputedStyle(col).getPropertyValue('--home-duration').trim() || '60s';
+      const dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
+      const anim = (dir === 'up' ? 'homeScrollUp' : 'homeScrollDown') + ' ' + dur + ' linear infinite';
+      
+      track.style.animation = anim;
+      track.style.animationDelay = '0s'; // Immediate start
+      track.style.animationPlayState = 'running';
     }
   });
 });

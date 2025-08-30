@@ -308,74 +308,73 @@
   }
   function initMagazineAutoscroll() {
     try {
-      console.log('initMagazineAutoscroll called');
+      console.log('initMagazineAutoscroll called - Enhanced responsive version');
       var container = document.getElementById('images-gallery') || document;
-      var isDesktop = window.matchMedia('(min-width: 768px)').matches;
+      
+      // Responsive display management
+      var isMobile = window.matchMedia('(max-width: 767px)').matches;
+      var isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
+      var isDesktop = window.matchMedia('(min-width: 1200px)').matches;
+      
       var mob = container.querySelector('.m-mobile-wrap');
+      var tablet = container.querySelector('.m-tablet-wrap');
       var desk = container.querySelector('.m-desktop-wrap');
       
-      console.log('Found mobile wrapper:', !!mob, 'desktop wrapper:', !!desk);
+      console.log('Found wrappers - Mobile:', !!mob, 'Tablet:', !!tablet, 'Desktop:', !!desk);
+      console.log('Screen size - Mobile:', isMobile, 'Tablet:', isTablet, 'Desktop:', isDesktop);
       
-      if (mob && desk) {
-        if (isDesktop) {
-          mob.style.display = 'none';
-          desk.style.display = 'flex';
-          desk.style.gap = desk.style.gap || '24px';
-        } else {
-          mob.style.display = 'block';
-          desk.style.display = 'none';
-        }
-      }
+      // Set appropriate display for each wrapper
+      if (mob) mob.style.display = isMobile ? 'block' : 'none';
+      if (tablet) tablet.style.display = isTablet ? 'flex' : 'none';
+      if (desk) desk.style.display = isDesktop ? 'flex' : 'none';
       
-      // Force setup column styles
+      // Force setup column styles for all columns
       container.querySelectorAll('.m-col').forEach(function(col){
-        if (!col.style.height) col.style.height = '140vh';
+        if (!col.style.height) {
+          if (col.classList.contains('m-tablet-col')) {
+            col.style.height = '130vh';
+          } else {
+            col.style.height = '140vh';
+          }
+        }
         col.style.overflow = 'hidden';
         col.style.position = 'relative';
       });
       
-      // Reset and restart desktop animations
-      document.querySelectorAll('.m-col').forEach(function(col){
-        var track = col.querySelector('.m-track');
-        if (!track) return;
+      // Reset and restart mobile track animation
+      var mobileTrack = container.querySelector('.m-mobile-track');
+      if (mobileTrack) {
+        mobileTrack.style.animation = 'none';
+        mobileTrack.offsetHeight; // Force reflow
+        
+        var mobileDur = getComputedStyle(mobileTrack.closest('.m-mobile-wrap')).getPropertyValue('--m-duration').trim() || '45s';
+        mobileTrack.style.animation = 'mScrollDown ' + mobileDur + ' linear infinite';
+        mobileTrack.style.animationPlayState = 'running';
+        console.log('Mobile track animated:', mobileDur);
+      }
+      
+      // Reset and restart all column animations (tablet + desktop)
+      container.querySelectorAll('.m-col .m-track').forEach(function(track){
+        var col = track.closest('.m-col');
+        if (!col) return;
         
         // Clear existing animation first
         track.style.animation = 'none';
         track.offsetHeight; // Force reflow
         
         var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
-        var cs = getComputedStyle(col);
-        var dur = (cs.getPropertyValue('--m-duration') || '60s').trim();
-        if (!dur || dur === '60s') dur = '60s';
-        
-        console.log('Setting animation for col:', dir, dur);
+        var dur = (getComputedStyle(col).getPropertyValue('--m-duration') || '60s').trim();
+        if (!dur) dur = '60s';
         
         var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
         track.style.animation = anim;
         track.style.animationPlayState = 'running';
+        
+        var colType = col.classList.contains('m-tablet-col') ? 'Tablet' : 'Desktop';
+        console.log(colType + ' column animated:', dir, dur);
       });
       
-      // Reset and restart mobile animations
-      document.querySelectorAll('.m-mobile-wrap').forEach(function(mwrap){
-        var track = mwrap.querySelector('.m-mobile-track');
-        if (!track) return;
-        
-        // Clear existing animation first
-        track.style.animation = 'none';
-        track.offsetHeight; // Force reflow
-        
-        var cs = getComputedStyle(mwrap);
-        var dur = (cs.getPropertyValue('--m-duration') || '60s').trim();
-        if (!dur || dur === '60s') dur = '60s';
-        
-        console.log('Setting mobile animation:', dur);
-        
-        var anim = 'mScrollDown ' + dur + ' linear infinite';
-        track.style.animation = anim;
-        track.style.animationPlayState = 'running';
-      });
-      
-      console.log('Magazine autoscroll initialization complete');
+      console.log('Enhanced Magazine autoscroll initialization complete');
     } catch(e) { 
       console.error('initMagazineAutoscroll error:', e); 
     }
