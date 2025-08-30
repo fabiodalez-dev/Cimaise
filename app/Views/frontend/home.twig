@@ -13,28 +13,122 @@
         </p>
     </div>
 
-    <!-- Albums grid -->
-    <div id="albums-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    {% if all_images|length > 0 %}
+    <!-- Infinite Scroll Gallery -->
+    <section class="relative mb-32" style="height: 200vh;">
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-40 z-20 home-veil-top"></div>
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 h-40 z-20 home-veil-bottom"></div>
+
+        {% macro home_pic(image, base_path) %}
+            <picture class="block w-full h-full">
+                {% if image.sources is defined and image.sources.avif is defined and image.sources.avif|length %}
+                    <source type="image/avif" srcset="{% for s in image.sources.avif %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
+                {% endif %}
+                {% if image.sources is defined and image.sources.webp is defined and image.sources.webp|length %}
+                    <source type="image/webp" srcset="{% for s in image.sources.webp %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
+                {% endif %}
+                {% if image.sources is defined and image.sources.jpg is defined and image.sources.jpg|length %}
+                    <source type="image/jpeg" srcset="{% for s in image.sources.jpg %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
+                {% endif %}
+                {% set img_src = image.fallback_src|default(image.url) %}
+                <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"
+                     alt="{{ image.alt|default(image.album_title)|e }}"
+                     width="{{ image.width|default(1600) }}" height="{{ image.height|default(1067) }}"
+                     loading="lazy" decoding="async" class="w-full h-full object-cover block">
+            </picture>
+        {% endmacro %}
+
+        {% macro home_item(image, base_path) %}
+            {% set w = image.width|default(1600) %}
+            {% set h = image.height|default(1067) %}
+            <div class="home-item group rounded-xl overflow-hidden shadow-sm relative transition-transform hover:scale-105 duration-300" style="aspect-ratio: {{ w }} / {{ h }};">
+                <a href="{{ base_path }}/album/{{ image.album_slug }}" 
+                   class="block w-full h-full relative z-10">
+                    {{ _self.home_pic(image, base_path) }}
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between bg-black/60 backdrop-blur-sm text-white rounded px-3 py-2 text-sm opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                        <span class="truncate font-medium">{{ image.album_title|e }}</span>
+                        <i class="fas fa-external-link-alt text-white/80 ml-2 flex-shrink-0"></i>
+                    </div>
+                </a>
+            </div>
+        {% endmacro %}
+
+        {% import _self as H %}
+
+        {% set col1 = [] %}{% set col2 = [] %}{% set col3 = [] %}
+        {% for i, image in all_images %}
+            {% if i % 3 == 0 %}{% set col1 = col1|merge([image]) %}
+            {% elseif i % 3 == 1 %}{% set col2 = col2|merge([image]) %}
+            {% else %}{% set col3 = col3|merge([image]) %}
+            {% endif %}
+        {% endfor %}
+
+        <div id="home-infinite-gallery" class="relative h-full">
+            <div class="home-mobile-wrap">
+                <div class="home-mobile">
+                    {% for image in all_images %}
+                        <div class="home-cell">{{ H.home_item(image, base_path) }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="home-desktop-wrap gap-6 perspective h-full">
+                {% set cols = [col1, col2, col3] %}
+                {% for col in cols %}
+                    {% set idx = loop.index0 %}
+                    {% set dur = idx == 0 ? '90s' : (idx == 1 ? '105s' : '120s') %}
+                    {% set dir = idx == 1 ? 'up' : 'down' %}
+                    <div class="home-col" data-direction="{{ dir }}" style="--home-duration: {{ dur }}; --home-delay: 0s;">
+                        <div class="home-track">
+                            {% for image in col %}
+                                <div class="home-cell">{{ H.home_item(image, base_path) }}</div>
+                            {% endfor %}
+                            {% for image in col %}
+                                <div class="home-cell">{{ H.home_item(image, base_path) }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Albums Section -->
+    <section class="pt-16">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-light text-black mb-4">
+                Latest Albums
+            </h2>
+            <p class="text-lg text-neutral-600 max-w-xl mx-auto">
+                Discover my recent photographic work, from analog experiments to digital explorations.
+            </p>
+        </div>
+        
+        <!-- Albums grid -->
+        <div id="albums-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for album in albums %}
             {% include "frontend/_album_card.twig" %}
         {% endfor %}
-    </div>
-    
-    {% if albums|length == 0 %}
-    <div class="text-center py-20">
-        <h2 class="text-2xl font-light text-neutral-600 mb-4">No albums yet</h2>
-        <p class="text-neutral-500">Check back soon for new work.</p>
-    </div>
-    {% endif %}
-    
-    <!-- Load more -->
-    {% if albums|length > 0 and has_more %}
-    <div class="text-center mt-12">
-        <button id="load-more" class="bg-black text-white px-6 py-3 hover:bg-neutral-800 transition-colors" data-page="2">
-            Load More
-        </button>
-    </div>
-    {% endif %}
+        </div>
+        
+        {% if albums|length == 0 %}
+        <div class="text-center py-20">
+            <h2 class="text-2xl font-light text-neutral-600 mb-4">No albums yet</h2>
+            <p class="text-neutral-500">Check back soon for new work.</p>
+        </div>
+        {% endif %}
+        
+        <!-- Load more -->
+        {% if albums|length > 0 and has_more %}
+        <div class="text-center mt-12">
+            <button id="load-more" class="bg-black text-white px-6 py-3 hover:bg-neutral-800 transition-colors" data-page="2">
+                Load More
+            </button>
+        </div>
+        {% endif %}
+    </section>
 
 </div>
 {% endblock %}
@@ -136,6 +230,112 @@ document.getElementById('clear-filters')?.addEventListener('click', function() {
     document.getElementById('filter-sort').value = 'published_desc';
     document.getElementById('filter-search').value = '';
     document.getElementById('apply-filters').click();
+});
+</script>
+
+<style>
+/* Home Infinite Scroll Styles */
+.home-mobile-wrap { display:block; }
+.home-desktop-wrap { display:none; }
+@media (min-width:768px){
+  .home-mobile-wrap { display:none !important; }
+  .home-desktop-wrap { display:flex !important; }
+}
+.perspective { transform: perspective(1200px) rotateX(1deg); }
+
+/* mobile masonry via columns */
+.home-mobile { column-count: 1; column-gap: 1.5rem; }
+@media (min-width: 640px) {
+  .home-mobile { column-count: 2; }
+}
+.home-cell { break-inside: avoid; margin-bottom: 1.5rem; }
+
+/* desktop columns autoscroll with taller height */
+.home-col { position: relative; flex: 1 1 0; height: 100%; overflow: hidden; }
+.home-track { position: absolute; top: 0; left: 0; right: 0; will-change: transform; }
+.home-col .home-cell { margin-bottom: 1.5rem; }
+
+/* item hover effects */
+.home-item { width: 100%; height: 100%; transition: transform .3s cubic-bezier(.25,.8,.25,1), box-shadow .3s; }
+.home-item:hover { box-shadow: 0 15px 35px rgba(0,0,0,.15); }
+.home-item img { backface-visibility: hidden; }
+
+/* autoscroll animations (slower for taller viewport) */
+.home-col[data-direction="down"] .home-track { 
+  animation: homeScrollDown var(--home-duration) linear infinite; 
+  animation-delay: var(--home-delay); 
+}
+.home-col[data-direction="up"] .home-track { 
+  animation: homeScrollUp var(--home-duration) linear infinite; 
+  animation-delay: var(--home-delay); 
+}
+@keyframes homeScrollDown { 
+  0% { transform: translateY(0); } 
+  100% { transform: translateY(-50%); } 
+}
+@keyframes homeScrollUp { 
+  0% { transform: translateY(-50%); } 
+  100% { transform: translateY(0); } 
+}
+
+/* pause on hover */
+.perspective:hover .home-track { animation-play-state: paused; }
+
+/* enhanced gradient veils for taller section */
+.home-veil-top {
+  background: radial-gradient(140% 80% at 50% -30%, rgba(255,255,255,.45) 0%, rgba(255,255,255,.15) 50%, rgba(255,255,255,0) 80%);
+}
+.home-veil-bottom {
+  background: radial-gradient(140% 80% at 50% 130%, rgba(255,255,255,.45) 0%, rgba(255,255,255,.15) 50%, rgba(255,255,255,0) 80%);
+}
+
+/* performance optimizations */
+.home-track { backface-visibility: hidden; transform-style: preserve-3d; }
+
+@media (max-width: 767px) {
+  .perspective { transform: none; }
+}
+
+/* Responsive heights for mobile */
+@media (max-width: 767px) {
+  section[style*="height: 200vh"] {
+    height: 120vh !important;
+  }
+}
+</style>
+
+<script>
+/* Home Infinite Scroll Performance & Interaction */
+document.addEventListener('DOMContentLoaded', function(){
+  const homeCols = document.querySelectorAll('.home-col');
+  
+  // Pause animation when out of viewport for performance
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const track = entry.target.querySelector('.home-track');
+        if (!track) return;
+        track.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
+      });
+    }, { threshold: 0.05 });
+    
+    homeCols.forEach(col => io.observe(col));
+  }
+
+  // Respect reduced motion preferences
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.home-col .home-track').forEach(track => {
+      track.style.animationDuration = '200s'; // Much slower for accessibility
+    });
+  }
+
+  // Stagger animation start for smoother effect
+  homeCols.forEach((col, index) => {
+    const track = col.querySelector('.home-track');
+    if (track) {
+      track.style.animationDelay = `${index * 0.5}s`;
+    }
+  });
 });
 </script>
 {% endblock %}

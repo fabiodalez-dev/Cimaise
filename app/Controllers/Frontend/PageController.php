@@ -105,11 +105,29 @@ class PageController extends BaseController
         $stmt->execute();
         $tags = $stmt->fetchAll();
         
+        // Get all images from published albums for infinite scroll
+        $stmt = $pdo->prepare('
+            SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id
+            FROM images i 
+            JOIN albums a ON a.id = i.album_id 
+            WHERE a.is_published = 1 
+            ORDER BY a.published_at DESC, i.sort_order ASC, i.id ASC 
+            LIMIT 150
+        ');
+        $stmt->execute();
+        $allImages = $stmt->fetchAll();
+        
+        // Process images with responsive sources
+        foreach ($allImages as &$image) {
+            $image = $this->processImageSources($image);
+        }
+        
         return $this->view->render($response, 'frontend/home.twig', [
             'albums' => $albums,
             'categories' => $categories,
             'parent_categories' => $parentCategories,
             'tags' => $tags,
+            'all_images' => $allImages,
             'has_more' => $hasMore,
             'total_albums' => $totalAlbums,
             'page_title' => 'Portfolio',
@@ -986,6 +1004,49 @@ class PageController extends BaseController
         } else {
             return '1/' . (int)round(1 / $f);
         }
+    }
+
+    private function processImageSources(array $image): array
+    {
+        $pdo = $this->db->pdo();
+        
+        // Get image variants for responsive sources
+        try {
+            $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
+            $variantsStmt->execute([':id' => $image['id']]);
+            $variants = $variantsStmt->fetchAll();
+            
+            // Build responsive sources
+            $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
+            foreach ($variants as $variant) {
+                $format = $variant['format'] ?? 'jpg';
+                if (isset($sources[$format]) && !empty($variant['path']) && !str_starts_with($variant['path'], '/storage/')) {
+                    $sources[$format][] = $variant['path'] . ' ' . (int)$variant['width'] . 'w';
+                }
+            }
+            
+            $image['sources'] = $sources;
+            $image['variants'] = $variants;
+            
+            // Set fallback URL (best available variant)
+            $fallbackUrl = $image['original_path'];
+            foreach ($variants as $variant) {
+                if (!empty($variant['path']) && !str_starts_with($variant['path'], '/storage/')) {
+                    $fallbackUrl = $variant['path'];
+                    break;
+                }
+            }
+            $image['fallback_src'] = $fallbackUrl;
+            
+        } catch (\Throwable $e) {
+            error_log('Error processing image sources: ' . $e->getMessage());
+            // Fallback to basic image data
+            $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
+            $image['variants'] = [];
+            $image['fallback_src'] = $image['original_path'];
+        }
+        
+        return $image;
     }
     
     private function buildCategoryHierarchy(array $allCategories): array
