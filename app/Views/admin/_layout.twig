@@ -233,8 +233,12 @@
             <i class="fas fa-bars"></i>
           </button>
           
-          <i class="fas fa-camera text-2xl text-black mr-3"></i>
-          <h1 class="text-xl font-semibold text-black">photoCMS</h1>
+          {% if site_logo %}
+            <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('photoCMS')|e }}" class="h-7 w-auto mr-3">
+          {% else %}
+            <i class="fas fa-camera text-2xl text-black mr-3"></i>
+            <h1 class="text-xl font-semibold text-black">{{ site_title|default('photoCMS') }}</h1>
+          {% endif %}
         </div>
         
         <!-- User Administration Area -->

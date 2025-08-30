@@ -497,7 +497,13 @@
                 <!-- Left: Logo and Desktop Navigation -->
                 <div class="flex items-center gap-8">
                     <h1 class="text-xl font-semibold">
-                        <a href="{{ base_path }}/" class="hover:text-gray-600 transition-colors duration-200">Portfolio</a>
+                        <a href="{{ base_path }}/" class="hover:text-gray-600 transition-colors duration-200 flex items-center gap-3">
+                            {% if site_logo %}
+                              <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Portfolio')|e }}" class="h-12 w-auto">
+                            {% else %}
+                              {{ site_title|default('Portfolio') }}
+                            {% endif %}
+                        </a>
                     </h1>
                     
                     <!-- Desktop Navigation -->

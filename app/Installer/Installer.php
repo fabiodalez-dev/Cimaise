@@ -473,6 +473,7 @@ class Installer
         error_log('Installer: Setting application settings with data: ' . print_r($data, true));
         $settings = [
             'site.title' => $data['site_title'] ?? 'photoCMS',
+            'site.logo' => $data['site_logo'] ?? null,
             'site.description' => $data['site_description'] ?? 'Professional Photography Portfolio',
             'site.copyright' => $data['site_copyright'] ?? '© ' . date('Y') . ' Photography Portfolio',
             'site.email' => $data['site_email'] ?? '',
