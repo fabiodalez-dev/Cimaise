@@ -15,7 +15,7 @@
 
     {% if all_images|length > 0 %}
     <!-- Infinite Scroll Gallery -->
-    <section class="relative mb-32" style="height: 200vh;">
+    <section class="home-infinite-section relative mb-32" style="height: 200vh;">
         <div class="pointer-events-none absolute inset-x-0 top-0 h-40 z-20 home-veil-top"></div>
         <div class="pointer-events-none absolute inset-x-0 bottom-0 h-40 z-20 home-veil-bottom"></div>
 
@@ -93,10 +93,13 @@
             </div>
         </div>
     </section>
+    
+    <!-- Spacer -->
+    <div class="home-infinite-spacer h-24"></div>
     {% endif %}
 
     <!-- Albums Section -->
-    <section class="pt-16">
+    <section class="pt-8">
         <div class="text-center mb-12">
             <h2 class="text-3xl md:text-4xl font-light text-black mb-4">
                 Latest Albums
@@ -300,6 +303,14 @@ document.getElementById('clear-filters')?.addEventListener('click', function() {
 @media (max-width: 767px) {
   section[style*="height: 200vh"] {
     height: 120vh !important;
+  }
+}
+
+/* Hide infinite scroll on mobile and tablet */
+@media (max-width: 1023px) {
+  .home-infinite-section,
+  .home-infinite-spacer {
+    display: none !important;
   }
 }
 </style>
