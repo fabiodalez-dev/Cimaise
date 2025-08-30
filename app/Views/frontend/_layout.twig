@@ -486,6 +486,113 @@
             opacity: 1 !important;
             transform: scale(1) !important;
         }
+
+        /* PhotoSwipe White Theme - Clean & Minimal */
+        .pswp {
+            --pswp-bg: #ffffff !important;
+            --pswp-icon-color: #000 !important;
+            --pswp-icon-color-secondary: #000 !important;
+        }
+        
+        .pswp__bg {
+            background: var(--pswp-bg) !important;
+        }
+        
+        /* Remove all shadows and outlines */
+        .pswp__icn-shadow {
+            display: none !important;
+        }
+        
+        .pswp__button {
+            box-shadow: none !important;
+            text-shadow: none !important;
+            color: #000 !important;
+        }
+        
+        /* Download button - force black color */
+        .pswp__button--download-button {
+            color: #000 !important;
+        }
+        
+        .pswp__button--download-button i,
+        .pswp__button--download-button svg,
+        .pswp__button--download-button * {
+            color: #000 !important;
+            fill: #000 !important;
+            stroke: #000 !important;
+        }
+        
+        /* Counter - remove text-shadow */
+        .pswp__counter {
+            height: 30px;
+            margin-top: 15px;
+            margin-inline-start: 20px;
+            font-size: 14px;
+            line-height: 30px;
+            color: var(--pswp-icon-color);
+            text-shadow: none !important;
+            opacity: 0.85;
+        }
+        
+        /* Bullets indicator - black dots */
+        .pswp__bullets-indicator {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            position: absolute !important;
+            bottom: 30px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            gap: 8px !important;
+        }
+        
+        .pswp__bullet {
+            width: 8px !important;
+            height: 8px !important;
+            border-radius: 50% !important;
+            background: #ccc !important;
+            border: none !important;
+            cursor: pointer !important;
+            transition: background 0.2s !important;
+        }
+        
+        .pswp__bullet--active {
+            background: #000 !important;
+        }
+        
+        /* Image centering */
+        .pswp__img {
+            object-fit: contain !important;
+            object-position: center !important;
+        }
+        
+        .pswp__content {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        /* Caption - minimal */
+        .pswp__custom-caption {
+            background: none !important;
+            color: #000 !important;
+            border: none !important;
+            padding: 16px !important;
+            text-align: center !important;
+        }
+        
+        .pswp__custom-caption .cc-title {
+            color: #000 !important;
+            font-weight: 600 !important;
+        }
+        
+        .pswp__custom-caption .cc-item {
+            color: #000 !important;
+        }
+        
+        .pswp__custom-caption .cc-item i {
+            color: #000 !important;
+        }
     </style>
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">
