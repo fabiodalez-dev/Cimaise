@@ -160,16 +160,19 @@ function initUppyAreaUpload() {
 
   // Surface server-side errors (400, etc.) instead of generic network error
   uppy.on('upload-error', (file, error, response) => {
+    let msg = 'Errore di upload';
     try {
-      const msg = (response && response.body && (response.body.error || response.body.message))
-        || (response && typeof response === 'string' && response)
-        || (error && error.message)
-        || 'Errore di upload';
-      if (window.showToast) window.showToast(msg, 'error');
-      console.error('Upload error:', msg, { file, error, response });
-    } catch (e) {
-      console.error('Upload error (parse failed):', error, response);
-    }
+      if (response && response.body) {
+        msg = response.body.error || response.body.message || msg;
+      } else if (response && response.response) {
+        // XHRUpload may expose raw XHR as response
+        const text = response.responseText || response.response || '';
+        try { const j = JSON.parse(text); msg = j.error || j.message || msg; } catch {}
+      }
+      if (error && error.message && (!msg || msg === 'Errore di upload')) msg = error.message;
+    } catch {}
+    if (window.showToast) window.showToast(msg, 'error');
+    console.error('Upload error:', msg, { file, error, response });
   });
 
 uppy.on('error', (error) => {
