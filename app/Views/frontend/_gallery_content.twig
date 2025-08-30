@@ -44,7 +44,7 @@
        class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
-       data-pswp-caption="{% if image.caption %}{{ image.caption|e('html_attr') }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}&lt;div class=&quot;mt-2 text-sm text-gray-300&quot;&gt;{% if image.custom_camera or image.camera_name %}&lt;i class=&quot;fas fa-camera mr-1&quot;&gt;&lt;/i&gt;{{ image.custom_camera|default(image.camera_name)|e('html_attr') }}{% endif %}{% if image.custom_lens or image.lens_name %} &lt;i class=&quot;fas fa-dot-circle mr-1&quot;&gt;&lt;/i&gt;{{ image.custom_lens|default(image.lens_name)|e('html_attr') }}{% endif %}{% if image.custom_film or image.film_name %} &lt;i class=&quot;fas fa-film mr-1&quot;&gt;&lt;/i&gt;{{ image.custom_film|default(image.film_name)|e('html_attr') }}{% endif %}{% if image.location_name %} &lt;i class=&quot;fas fa-map-marker-alt mr-1&quot;&gt;&lt;/i&gt;{{ image.location_name|e('html_attr') }}{% endif %}&lt;/div&gt;{% endif %}"
+       data-pswp-caption=""
        data-title="{{ image.caption|default('')|e }}"
        data-alt="{{ image.alt|default('')|e }}"
        data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
@@ -70,6 +70,22 @@
         {% endif %}
         <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
       </picture>
+      <div class="hidden-caption-content">
+        {% if image.caption %}<div class="mb-1">{{ image.caption }}</div>{% endif %}
+        {% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name or image.developer_name or image.lab_name or image.iso or image.shutter_speed or image.aperture %}
+        <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm">
+          {% if image.custom_camera or image.camera_name %}<span class="inline-flex items-center"><i class="fas fa-camera mr-1"></i>{{ image.custom_camera|default(image.camera_name) }}</span>{% endif %}
+          {% if image.custom_lens or image.lens_name %}<span class="inline-flex items-center"><i class="fas fa-dot-circle mr-1"></i>{{ image.custom_lens|default(image.lens_name) }}</span>{% endif %}
+          {% if image.custom_film or image.film_name %}<span class="inline-flex items-center"><i class="fas fa-film mr-1"></i>{{ image.custom_film|default(image.film_name) }}</span>{% endif %}
+          {% if image.location_name %}<span class="inline-flex items-center"><i class="fas fa-map-marker-alt mr-1"></i>{{ image.location_name }}</span>{% endif %}
+          {% if image.developer_name %}<span class="inline-flex items-center"><i class="fas fa-flask mr-1"></i>{{ image.developer_name }}</span>{% endif %}
+          {% if image.lab_name %}<span class="inline-flex items-center"><i class="fas fa-industry mr-1"></i>{{ image.lab_name }}</span>{% endif %}
+          {% if image.iso %}<span class="inline-flex items-center"><i class="fas fa-signal mr-1"></i>ISO {{ image.iso }}</span>{% endif %}
+          {% if image.shutter_speed %}<span class="inline-flex items-center"><i class="far fa-clock mr-1"></i>{{ image.shutter_speed }}</span>{% endif %}
+          {% if image.aperture %}<span class="inline-flex items-center"><i class="fas fa-circle-half-stroke mr-1"></i>f/{{ image.aperture }}</span>{% endif %}
+        </div>
+        {% endif %}
+      </div>
     </a>
     </div>
     {% endfor %}
@@ -84,7 +100,7 @@
        class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
-       data-pswp-caption="{% if image.caption %}{{ image.caption|e('html_attr') }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}&lt;div class=&quot;mt-2 text-sm text-gray-300&quot;&gt;{% if image.custom_camera or image.camera_name %}&lt;i class=&quot;fas fa-camera mr-1&quot;&gt;&lt;/i&gt;{{ image.custom_camera|default(image.camera_name)|e('html_attr') }}{% endif %}{% if image.custom_lens or image.lens_name %} &lt;i class=&quot;fas fa-dot-circle mr-1&quot;&gt;&lt;/i&gt;{{ image.custom_lens|default(image.lens_name)|e('html_attr') }}{% endif %}{% if image.custom_film or image.film_name %} &lt;i class=&quot;fas fa-film mr-1&quot;&gt;&lt;/i&gt;{{ image.custom_film|default(image.film_name)|e('html_attr') }}{% endif %}{% if image.location_name %} &lt;i class=&quot;fas fa-map-marker-alt mr-1&quot;&gt;&lt;/i&gt;{{ image.location_name|e('html_attr') }}{% endif %}&lt;/div&gt;{% endif %}"
+       data-pswp-caption=""
        data-title="{{ image.caption|default('')|e }}"
        data-alt="{{ image.alt|default('')|e }}"
        data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
@@ -110,6 +126,22 @@
         {% endif %}
         <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
       </picture>
+      <div class="hidden-caption-content">
+        {% if image.caption %}<div class="mb-1">{{ image.caption }}</div>{% endif %}
+        {% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name or image.developer_name or image.lab_name or image.iso or image.shutter_speed or image.aperture %}
+        <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm">
+          {% if image.custom_camera or image.camera_name %}<span class="inline-flex items-center"><i class="fas fa-camera mr-1"></i>{{ image.custom_camera|default(image.camera_name) }}</span>{% endif %}
+          {% if image.custom_lens or image.lens_name %}<span class="inline-flex items-center"><i class="fas fa-dot-circle mr-1"></i>{{ image.custom_lens|default(image.lens_name) }}</span>{% endif %}
+          {% if image.custom_film or image.film_name %}<span class="inline-flex items-center"><i class="fas fa-film mr-1"></i>{{ image.custom_film|default(image.film_name) }}</span>{% endif %}
+          {% if image.location_name %}<span class="inline-flex items-center"><i class="fas fa-map-marker-alt mr-1"></i>{{ image.location_name }}</span>{% endif %}
+          {% if image.developer_name %}<span class="inline-flex items-center"><i class="fas fa-flask mr-1"></i>{{ image.developer_name }}</span>{% endif %}
+          {% if image.lab_name %}<span class="inline-flex items-center"><i class="fas fa-industry mr-1"></i>{{ image.lab_name }}</span>{% endif %}
+          {% if image.iso %}<span class="inline-flex items-center"><i class="fas fa-signal mr-1"></i>ISO {{ image.iso }}</span>{% endif %}
+          {% if image.shutter_speed %}<span class="inline-flex items-center"><i class="far fa-clock mr-1"></i>{{ image.shutter_speed }}</span>{% endif %}
+          {% if image.aperture %}<span class="inline-flex items-center"><i class="fas fa-circle-half-stroke mr-1"></i>f/{{ image.aperture }}</span>{% endif %}
+        </div>
+        {% endif %}
+      </div>
     </a>
   </div>
   {% endfor %}
@@ -157,7 +189,7 @@
        class="pswp-link aspect-square bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
-       data-pswp-caption="{% if image.caption %}{{ image.caption|e('html_attr') }}{% endif %}{% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name %}&lt;div class=&quot;mt-2 text-sm text-gray-300&quot;&gt;{% if image.custom_camera or image.camera_name %}&lt;i class=&quot;fas fa-camera mr-1&quot;&gt;&lt;/i&gt;{{ image.custom_camera|default(image.camera_name)|e('html_attr') }}{% endif %}{% if image.custom_lens or image.lens_name %} &lt;i class=&quot;fas fa-dot-circle mr-1&quot;&gt;&lt;/i&gt;{{ image.custom_lens|default(image.lens_name)|e('html_attr') }}{% endif %}{% if image.custom_film or image.film_name %} &lt;i class=&quot;fas fa-film mr-1&quot;&gt;&lt;/i&gt;{{ image.custom_film|default(image.film_name)|e('html_attr') }}{% endif %}{% if image.location_name %} &lt;i class=&quot;fas fa-map-marker-alt mr-1&quot;&gt;&lt;/i&gt;{{ image.location_name|e('html_attr') }}{% endif %}&lt;/div&gt;{% endif %}"
+       data-pswp-caption=""
        data-title="{{ image.caption|default('')|e }}"
        data-alt="{{ image.alt|default('')|e }}"
        data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
@@ -183,6 +215,22 @@
         {% endif %}
         <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
       </picture>
+      <div class="hidden-caption-content">
+        {% if image.caption %}<div class="mb-1">{{ image.caption }}</div>{% endif %}
+        {% if image.custom_camera or image.camera_name or image.custom_lens or image.lens_name or image.custom_film or image.film_name or image.location_name or image.developer_name or image.lab_name or image.iso or image.shutter_speed or image.aperture %}
+        <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm">
+          {% if image.custom_camera or image.camera_name %}<span class="inline-flex items-center"><i class="fas fa-camera mr-1"></i>{{ image.custom_camera|default(image.camera_name) }}</span>{% endif %}
+          {% if image.custom_lens or image.lens_name %}<span class="inline-flex items-center"><i class="fas fa-dot-circle mr-1"></i>{{ image.custom_lens|default(image.lens_name) }}</span>{% endif %}
+          {% if image.custom_film or image.film_name %}<span class="inline-flex items-center"><i class="fas fa-film mr-1"></i>{{ image.custom_film|default(image.film_name) }}</span>{% endif %}
+          {% if image.location_name %}<span class="inline-flex items-center"><i class="fas fa-map-marker-alt mr-1"></i>{{ image.location_name }}</span>{% endif %}
+          {% if image.developer_name %}<span class="inline-flex items-center"><i class="fas fa-flask mr-1"></i>{{ image.developer_name }}</span>{% endif %}
+          {% if image.lab_name %}<span class="inline-flex items-center"><i class="fas fa-industry mr-1"></i>{{ image.lab_name }}</span>{% endif %}
+          {% if image.iso %}<span class="inline-flex items-center"><i class="fas fa-signal mr-1"></i>ISO {{ image.iso }}</span>{% endif %}
+          {% if image.shutter_speed %}<span class="inline-flex items-center"><i class="far fa-clock mr-1"></i>{{ image.shutter_speed }}</span>{% endif %}
+          {% if image.aperture %}<span class="inline-flex items-center"><i class="fas fa-circle-half-stroke mr-1"></i>f/{{ image.aperture }}</span>{% endif %}
+        </div>
+        {% endif %}
+      </div>
     </a>
   </div>
   {% endfor %}

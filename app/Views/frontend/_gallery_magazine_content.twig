@@ -17,6 +17,41 @@
 
 {% import _self as G %}
 
+{# Minimal caption + equipment (black text/icons) #}
+{% macro caption(image) %}
+  {% set bits = [] %}
+  {% if image.custom_camera or image.camera_name %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-camera mr-1"></i>' ~ (image.custom_camera|default(image.camera_name))|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.custom_lens or image.lens_name %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-dot-circle mr-1"></i>' ~ (image.custom_lens|default(image.lens_name))|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.custom_film or image.film_name %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-film mr-1"></i>' ~ (image.custom_film|default(image.film_name))|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.location_name %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-map-marker-alt mr-1"></i>' ~ image.location_name|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.developer_name %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-flask mr-1"></i>' ~ image.developer_name|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.lab_name %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-industry mr-1"></i>' ~ image.lab_name|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.iso %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-signal mr-1"></i>ISO ' ~ image.iso|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.shutter_speed %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="far fa-clock mr-1"></i>' ~ image.shutter_speed|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.aperture %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-circle-half-stroke mr-1"></i>f/' ~ image.aperture|e ~ '</span>']) %}
+  {% endif %}
+  {% set head = image.caption ? '<div class="mb-1 text-black">' ~ image.caption|e ~ '</div>' : '' %}
+  {% set line = bits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">' ~ bits|join(' ') ~ '</div>') : '' %}
+  {{ (head ~ line)|raw }}
+{% endmacro %}
+
 {# Distribuzione intelligente delle immagini per responsive #}
 {% set col1 = [] %}{% set col2 = [] %}{% set col3 = [] %}
 {% for i, image in images %}
@@ -47,8 +82,9 @@
       <div class="m-mobile-track">
         {% for image in images %}
           <div class="m-cell">
-            <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}" data-pswp-index="{{ loop.index0 }}">
+            <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="" data-pswp-index="{{ loop.index0 }}">
               {{ G.pic(image, base_path, album) }}
+              <div class="hidden-caption-content">{{ G.caption(image) }}</div>
             </a>
           </div>
         {% endfor %}
@@ -56,6 +92,49 @@
           <div class="m-cell">
             <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}" data-pswp-index="{{ loop.index0 }}">
               {{ G.pic(image, base_path, album) }}
+              <div class="hidden-caption-content">
+                {% if image.caption %}
+                  <div class="caption-title">{{ image.caption|e }}</div>
+                {% endif %}
+                <div class="caption-metadata">
+                  {% if image.camera_make or image.camera_model or image.custom_camera %}
+                    <div class="metadata-item">
+                      <i class="fas fa-camera"></i>
+                      <span>{{ image.custom_camera|default((image.camera_make ~ ' ' ~ image.camera_model)|trim) }}</span>
+                    </div>
+                  {% endif %}
+                  {% if image.lens_brand or image.lens_model or image.custom_lens %}
+                    <div class="metadata-item">
+                      <i class="fas fa-eye"></i>
+                      <span>{{ image.custom_lens|default((image.lens_brand ~ ' ' ~ image.lens_model)|trim) }}</span>
+                    </div>
+                  {% endif %}
+                  {% if image.film_brand or image.film_name or image.custom_film %}
+                    <div class="metadata-item">
+                      <i class="fas fa-film"></i>
+                      <span>{{ image.custom_film|default((image.film_brand ~ ' ' ~ image.film_name)|trim) }}</span>
+                    </div>
+                  {% endif %}
+                  {% if image.location_name %}
+                    <div class="metadata-item">
+                      <i class="fas fa-map-marker-alt"></i>
+                      <span>{{ image.location_name }}</span>
+                    </div>
+                  {% endif %}
+                  {% if image.iso or image.shutter_speed or image.aperture %}
+                    <div class="metadata-item">
+                      <i class="fas fa-cog"></i>
+                      <span>
+                        {% set settings = [] %}
+                        {% if image.iso %}{% set settings = settings|merge(['ISO ' ~ image.iso]) %}{% endif %}
+                        {% if image.shutter_speed %}{% set settings = settings|merge([image.shutter_speed]) %}{% endif %}
+                        {% if image.aperture %}{% set settings = settings|merge(['f/' ~ image.aperture]) %}{% endif %}
+                        {{ settings|join(' • ') }}
+                      </span>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
             </a>
           </div>
         {% endfor %}
@@ -74,8 +153,9 @@
         <div class="m-track">
           {% for image in col %}
             <div class="m-cell">
-              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
                 {{ G.pic(image, base_path, album) }}
+                <div class="hidden-caption-content">{{ G.caption(image) }}</div>
               </a>
             </div>
           {% endfor %}
@@ -102,8 +182,9 @@
         <div class="m-track">
           {% for image in col %}
             <div class="m-cell">
-              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
                 {{ G.pic(image, base_path, album) }}
+                <div class="hidden-caption-content">{{ G.caption(image) }}</div>
               </a>
             </div>
           {% endfor %}
@@ -386,139 +467,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if (gallery) observer.observe(gallery);
   }
   
-  // Custom lightbox initialization to handle duplicate items
-  function initCustomLightbox() {
-    const links = document.querySelectorAll('.pswp-link:not(.pswp-is-duplicate)'); // Solo i link originali
-    if (!links.length) return;
-    
-    links.forEach((link, index) => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Build gallery items from non-duplicate links only
-        const items = Array.from(links).map(l => ({
-          src: l.href,
-          width: parseInt(l.dataset.pswpWidth) || 1600,
-          height: parseInt(l.dataset.pswpHeight) || 1067,
-          title: l.dataset.pswpCaption || ''
-        }));
-        
-        if (typeof PhotoSwipe !== 'undefined') {
-          const pswp = new PhotoSwipe({
-            gallery: items,
-            index: index,
-            showHideOpacity: false,
-            bgOpacity: 0.1,
-            padding: { top: 60, bottom: 60, left: 80, right: 80 },
-            imageClickAction: 'close',
-            tapAction: 'close',
-            doubleTapAction: false,
-            
-            // Disable zoom functionality
-            maxZoomLevel: 1,
-            wheelToZoom: false,
-            
-            // Custom SVG icons - smaller arrows
-            arrowPrevSVG: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 24 24" width="24" height="24"><path d="M15 6 L9 12 L15 18" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-            arrowNextSVG: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 24 24" width="24" height="24"><path d="M9 6 L15 12 L9 18" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-            closeSVG: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 32 32" width="32" height="32"><path d="M8 8 L24 24 M24 8 L8 24" stroke="#000" stroke-width="3" stroke-linecap="round"/></svg>'
-          });
-          
-          // Register custom UI elements
-          pswp.on('uiRegister', function() {
-            // Custom counter with black text
-            pswp.ui.registerElement({
-              name: 'counter',
-              order: 5,
-              onInit: (el, pswp) => {
-                const updateCounter = () => {
-                  el.innerText = `${pswp.currIndex + 1} / ${pswp.getNumItems()}`;
-                };
-                pswp.on('change', updateCounter);
-                updateCounter();
-              }
-            });
-            
-            // Download button
-            pswp.ui.registerElement({
-              name: 'download-button',
-              order: 8,
-              isButton: true,
-              tagName: 'a',
-              html: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 24 24" width="24" height="24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-              onInit: (el, pswp) => {
-                el.setAttribute('download', '');
-                el.setAttribute('target', '_blank');
-                el.setAttribute('rel', 'noopener');
-                el.setAttribute('title', 'Download image');
-                
-                const updateDownloadLink = () => {
-                  el.href = pswp.currSlide.data.src;
-                };
-                
-                pswp.on('change', updateDownloadLink);
-                updateDownloadLink();
-              }
-            });
-            
-            // Custom bullets indicator
-            pswp.ui.registerElement({
-              name: 'bulletsIndicator',
-              className: 'pswp__bullets-indicator',
-              appendTo: 'wrapper',
-              onInit: (el, pswp) => {
-                const bullets = [];
-                let bullet;
-                let prevIndex = -1;
-
-                for (let i = 0; i < pswp.getNumItems(); i++) {
-                  bullet = document.createElement('div');
-                  bullet.className = 'pswp__bullet';
-                  bullet.onclick = (e) => {
-                    pswp.goTo(bullets.indexOf(e.target));
-                  };
-                  el.appendChild(bullet);
-                  bullets.push(bullet);
-                }
-
-                pswp.on('change', () => {
-                  if (prevIndex >= 0) {
-                    bullets[prevIndex].classList.remove('pswp__bullet--active');
-                  }
-                  bullets[pswp.currIndex].classList.add('pswp__bullet--active');
-                  prevIndex = pswp.currIndex;
-                });
-              }
-            });
-          });
-          
-          pswp.init();
-        }
-      });
-    });
-    
-    // Handle clicks on duplicate items - redirect to original
-    document.querySelectorAll('.pswp-is-duplicate').forEach(duplicate => {
-      duplicate.addEventListener('click', function(e) {
-        e.preventDefault();
-        const originalIndex = parseInt(this.dataset.pswpIndex);
-        const originalLink = document.querySelector(`.pswp-link:not(.pswp-is-duplicate)[data-pswp-index="${originalIndex}"]`);
-        if (originalLink) {
-          originalLink.click();
-        }
-      });
-    });
-  }
-  
-  // Initialize custom lightbox
-  try { 
-    if (typeof PhotoSwipe !== 'undefined') {
-      initCustomLightbox();
-    } else if (typeof initLightbox === 'function') {
-      initLightbox(); 
-    }
-  } catch(e) { 
-    console.error('PhotoSwipe init error:', e); 
-  }
+  // No lightbox - just magazine animation
+  console.log('Magazine Split: Gallery without lightbox initialized');
 });
 </script>

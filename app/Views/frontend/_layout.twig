@@ -593,6 +593,81 @@
         .pswp__custom-caption .cc-item i {
             color: #000 !important;
         }
+        
+        /* Hidden caption content */
+        .hidden-caption-content {
+            display: none !important;
+        }
+        
+        /* Custom caption styling with metadata - DEBUG */
+        .pswp__custom-caption {
+            background: rgba(255, 0, 0, 0.8) !important; /* RED per debug */
+            color: #fff !important;
+            width: calc(100% - 32px) !important;
+            max-width: 600px !important;
+            padding: 16px 20px !important;
+            border-radius: 12px !important;
+            position: absolute !important;
+            left: 50% !important;
+            bottom: 20px !important;
+            transform: translateX(-50%) !important;
+            border: 2px solid #ff0000 !important;
+            z-index: 9999 !important;
+            font-size: 16px !important;
+        }
+        
+        .pswp__custom-caption .caption-title {
+            color: #000 !important;
+            font-weight: 600 !important;
+            font-size: 16px !important;
+            margin-bottom: 12px !important;
+        }
+        
+        .pswp__custom-caption .caption-metadata {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+        }
+        
+        .pswp__custom-caption .metadata-item {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            color: #333 !important;
+            font-size: 14px !important;
+        }
+        
+        .pswp__custom-caption .metadata-item i {
+            color: #000 !important;
+            width: 16px !important;
+            text-align: center !important;
+            flex-shrink: 0 !important;
+        }
+        
+        .pswp__custom-caption .metadata-item span {
+            color: #000 !important;
+        }
+        
+        /* Mobile responsive caption */
+        @media (max-width: 768px) {
+            .pswp__custom-caption {
+                width: calc(100% - 24px) !important;
+                max-width: none !important;
+                padding: 12px 16px !important;
+                font-size: 14px !important;
+                bottom: 16px !important;
+            }
+            
+            .pswp__custom-caption .caption-title {
+                font-size: 15px !important;
+                margin-bottom: 10px !important;
+            }
+            
+            .pswp__custom-caption .metadata-item {
+                font-size: 13px !important;
+                gap: 6px !important;
+            }
+        }
     </style>
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">
@@ -1284,13 +1359,17 @@
                 destroyLightbox();
                 if (window.PhotoSwipeLightbox) {
                     const psCfg = (window.templateSettings && window.templateSettings.photoswipe) || {};
-                    const hasMagazine = document.querySelector('#images-gallery .m-desktop-wrap, #images-gallery .m-mobile-wrap');
-                    const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
-                    const gallerySelector = hasMagazine
-                      ? (isDesktop && document.querySelector('#images-gallery .m-desktop-wrap')
-                          ? '#images-gallery .m-desktop-wrap'
-                          : '#images-gallery .m-mobile-wrap')
-                      : '#images-gallery';
+                    // Pick appropriate gallery root for Magazine template wrappers
+                    let gallerySelector = '#images-gallery';
+                    if (document.querySelector('#images-gallery .m-desktop-wrap, #images-gallery .m-tablet-wrap, #images-gallery .m-mobile-wrap')) {
+                      if (document.querySelector('#images-gallery .m-desktop-wrap')) {
+                        gallerySelector = '#images-gallery .m-desktop-wrap';
+                      } else if (document.querySelector('#images-gallery .m-tablet-wrap')) {
+                        gallerySelector = '#images-gallery .m-tablet-wrap';
+                      } else if (document.querySelector('#images-gallery .m-mobile-wrap')) {
+                        gallerySelector = '#images-gallery .m-mobile-wrap';
+                      }
+                    }
                     const lb = new PhotoSwipeLightbox({
                         gallery: gallerySelector,
                         // Exclude duplicates that are rendered for infinite scroll columns
@@ -1712,8 +1791,8 @@
           .pswp__custom-caption { z-index: 28; }
           .pswp__custom-caption .cc-title { font-weight:600; margin-bottom:6px; }
           .pswp__custom-caption .cc-line { display:inline-flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-          .pswp__custom-caption .cc-item { display:inline-flex; gap:6px; align-items:center; color:#f3f4f6; }
-          .pswp__custom-caption .cc-item i { color:#fff; }
+          .pswp__custom-caption .cc-item { display:inline-flex; gap:6px; align-items:center; color:#000; }
+          .pswp__custom-caption .cc-item i { color:#000; }
           .pswp__custom-caption .cc-sep { opacity:.6; margin: 0 6px; }
         `;
         document.head.appendChild(pswpStyle);
