@@ -132,7 +132,7 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            bottom: 24px;
+            bottom: 56px;
             max-width: 95vw;
             color: #fff;
             text-align: center;
@@ -142,14 +142,14 @@
             background: rgba(0,0,0,0.7);
             padding: 12px 20px;
             border-radius: 6px;
-            backdrop-filter: blur(10px);
+            /* removed blur for clarity and performance */
         }
         
         /* Responsive adjustments per caption */
         @media (max-width: 640px) {
             .pswp__custom-caption {
                 max-width: 98vw;
-                bottom: 16px;
+                bottom: 36px;
                 padding: 8px 12px;
                 font-size: 13px;
             }
@@ -1271,10 +1271,12 @@
               width: parseInt(x.getAttribute('data-pswp-width')||'1600',10),
               height: parseInt(x.getAttribute('data-pswp-height')||'1067',10),
               caption_html: (function(){
+                const dp = x.getAttribute('data-pswp-caption');
+                if (dp && dp.trim()) return dp;
                 const h = x.querySelector('.hidden-caption-content');
                 if (h && h.innerHTML.trim()) return h.innerHTML;
                 const img = x.querySelector('img');
-                return (img && img.getAttribute('alt')) || x.getAttribute('data-pswp-caption') || '';
+                return (img && img.getAttribute('alt')) || '';
               })()
             }));
         }
@@ -1314,7 +1316,7 @@
                         pswpModule: PhotoSwipe,
                         
                         // Modern image sizing and layout
-                        bgOpacity: (typeof psCfg.bgOpacity === 'number') ? psCfg.bgOpacity : 0.9,
+                        bgOpacity: (typeof psCfg.bgOpacity === 'number') ? psCfg.bgOpacity : 0.95,
                         spacing: (typeof psCfg.spacing === 'number') ? psCfg.spacing : 0.12,
                         allowPanToNext: !!psCfg.allowPanToNext,
                         loop: !!psCfg.loop,
@@ -1392,7 +1394,7 @@
                                 el.className = 'pswp__custom-caption pswp__hide-on-close';
                                 el.style.cssText = `
                                     position: absolute; left: 50%; transform: translateX(-50%);
-                                    bottom: 18px; width: min(1100px, calc(100% - 24px));
+                                    bottom: 56px; width: min(1100px, calc(100% - 24px));
                                     background: transparent; color: #fff; padding: 0 8px;
                                     font-size: 14px; line-height: 1.5; text-align: center;
                                     pointer-events: none; opacity: 0; transition: opacity 0.2s ease;
@@ -1417,18 +1419,25 @@
                                 };
                                 const renderCaption = () => {
                                   const curr = lb.pswp.currSlide && lb.pswp.currSlide.data && lb.pswp.currSlide.data.element;
-                                  let captionHTML = '';
-                                  if (curr) {
-                                    const hidden = curr.querySelector('.hidden-caption-content');
-                                    if (hidden && hidden.innerHTML) {
-                                      captionHTML = hidden.innerHTML;
-                                    } else {
-                                      const img = curr.querySelector('img');
-                                      captionHTML = (img && img.getAttribute('alt')) || curr.getAttribute('data-pswp-caption') || '';
-                                    }
-                                  }
-                                  el.innerHTML = captionHTML || '';
-                                  el.style.opacity = captionHTML && captionHTML.trim() ? '1' : '0';
+                                  if (!curr) { el.innerHTML=''; el.style.opacity='0'; return; }
+                                  const ds = curr.dataset || {};
+                                  const esc = (s)=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                                  const head = esc(ds.title || ds.alt || '');
+                                  const piece = (icon, val) => val ? `<span class="inline-flex items-center"><i class="${icon} mr-1"></i>${esc(val)}</span>` : '';
+                                  const line = [
+                                    piece('fas fa-camera', ds.camera),
+                                    piece('fas fa-dot-circle', ds.lens),
+                                    piece('fas fa-film', ds.film),
+                                    piece('fas fa-flask', ds.developer),
+                                    piece('fas fa-industry', ds.lab),
+                                    piece('fas fa-map-marker-alt', ds.location),
+                                    piece('fas fa-signal', ds.iso ? ('ISO ' + ds.iso) : ''),
+                                    piece('far fa-clock', ds.shutter),
+                                    piece('fas fa-circle-half-stroke', ds.aperture ? ('f/' + ds.aperture) : '')
+                                  ].filter(Boolean).join(' ');
+                                  const html = (head ? `<div class="mb-1 text-black">${head}</div>` : '') + (line ? `<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">${line}</div>` : '');
+                                  el.innerHTML = html;
+                                  el.style.opacity = html.trim() ? '1' : '0';
                                 };
                                 lb.pswp.on('change', renderCaption);
                                 lb.pswp.on('openingAnimationEnd', renderCaption);
@@ -1569,7 +1578,7 @@
                     pswpModule: PhotoSwipe,
                     
                     // Modern configuration matching main lightbox
-                    bgOpacity: 0.9,
+                    bgOpacity: 0.95,
                     spacing: 0.12,
                     allowPanToNext: true,
                     loop: !!psCfg.loop,
@@ -1637,7 +1646,7 @@
                       index: startIndex,
                       showHideAnimationType: 'fade',
                       allowPanToNext: !!psCfg.allowPanToNext,
-                      bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.85,
+                      bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.95,
                       loop: !!psCfg.loop
                   });
                   // Custom caption overlay for PhotoSwipe
@@ -1736,19 +1745,14 @@
             const a = e.target.closest('a.pswp-link');
             if (!a) return;
             e.preventDefault();
-            // Normalize selection to current visible gallery and ignore duplicates
-            const hasMagazine = document.querySelector('#images-gallery .m-desktop-wrap, #images-gallery .m-mobile-wrap');
-            const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
-            const container = hasMagazine
-              ? (isDesktop && document.querySelector('#images-gallery .m-desktop-wrap')
-                  ? '#images-gallery .m-desktop-wrap'
-                  : '#images-gallery .m-mobile-wrap')
-              : '#images-gallery';
-            let anchors = Array.from(document.querySelectorAll(`${container} a.pswp-link:not(.pswp-is-duplicate)`));
+            // Pick the container based on clicked anchor context to ensure correct indexing
+            const wrap = a.closest('.m-desktop-wrap, .m-tablet-wrap, .m-mobile-wrap');
+            const containerEl = wrap || document.getElementById('images-gallery');
+            let anchors = Array.from(containerEl.querySelectorAll('a.pswp-link:not(.pswp-is-duplicate)'));
             let target = a;
             if (a.classList.contains('pswp-is-duplicate')) {
               // Map duplicate to its corresponding original by index within the same container
-              const dups = Array.from(document.querySelectorAll(`${container} a.pswp-link.pswp-is-duplicate`));
+              const dups = Array.from(containerEl.querySelectorAll('a.pswp-link.pswp-is-duplicate'));
               const di = dups.indexOf(a);
               if (di > -1 && anchors[di]) target = anchors[di];
             }
@@ -1762,10 +1766,12 @@
                     width: parseInt(anchor.getAttribute('data-pswp-width') || '1600', 10),
                     height: parseInt(anchor.getAttribute('data-pswp-height') || '1067', 10),
                     caption_html: (function(){
+                      const dp = anchor.getAttribute('data-pswp-caption');
+                      if (dp && dp.trim()) return dp;
                       const h = anchor.querySelector('.hidden-caption-content');
                       if (h && h.innerHTML.trim()) return h.innerHTML;
                       const img = anchor.querySelector('img');
-                      return (img && img.getAttribute('alt')) || anchor.getAttribute('data-pswp-caption') || '';
+                      return (img && img.getAttribute('alt')) || '';
                     })()
                 }));
                 openLightboxAt(idx);
