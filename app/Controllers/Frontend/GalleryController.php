@@ -244,12 +244,7 @@ class GalleryController extends BaseController
                 foreach ($rows as $r) {
                     $fmt = $r['format'];
                     if (isset($sources[$fmt])) {
-                        // Add base_path to each source URL
-                        $sourcePath = $r['path'];
-                        if (str_starts_with($sourcePath, '/')) {
-                            $sourcePath = $this->basePath . $sourcePath;
-                        }
-                        $sources[$fmt][] = $sourcePath . ' ' . (int)$r['width'] . 'w';
+                        $sources[$fmt][] = $r['path'] . ' ' . (int)$r['width'] . 'w';
                     }
                 }
             } catch (\Throwable) {}
@@ -491,12 +486,7 @@ class GalleryController extends BaseController
                     foreach ($rows as $r) {
                         $fmt = $r['format'];
                         if (isset($sources[$fmt])) {
-                            // Add base_path to each source URL
-                            $sourcePath = $r['path'];
-                            if (str_starts_with($sourcePath, '/')) {
-                                $sourcePath = $this->basePath . $sourcePath;
-                            }
-                            $sources[$fmt][] = $sourcePath . ' ' . (int)$r['width'] . 'w';
+                            $sources[$fmt][] = $r['path'] . ' ' . (int)$r['width'] . 'w';
                         }
                     }
                 } catch (\Throwable $e) {
@@ -514,13 +504,6 @@ class GalleryController extends BaseController
                     $lightboxUrl = $bestUrl; 
                 }
                 
-                // Apply base_path to URLs if they start with /
-                if (str_starts_with((string)$bestUrl, '/')) {
-                    $bestUrl = $this->basePath . $bestUrl;
-                }
-                if (str_starts_with((string)$lightboxUrl, '/')) {
-                    $lightboxUrl = $this->basePath . $lightboxUrl;
-                }
 
                 $images[] = [
                     'id' => (int)$img['id'],
