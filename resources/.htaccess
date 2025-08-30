@@ -1,0 +1,31 @@
+# RESOURCES DIRECTORY SECURITY
+# Block access to uncompiled resources and development files
+
+# Deny all access to resource files
+<Files "*">
+    Require all denied
+</Files>
+
+# Block source files
+<FilesMatch "\.(js|css|scss|sass|less|ts|tsx|vue|jsx)$">
+    Require all denied
+</FilesMatch>
+
+# Block development configuration
+<FilesMatch "\.(json|yml|yaml|xml|config)$">
+    Require all denied
+</FilesMatch>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+</IfModule>
+
+# Prevent directory browsing
+Options -Indexes -ExecCGI
+
+# Block access to hidden files
+<FilesMatch "^\\.">
+    Require all denied
+</FilesMatch>
