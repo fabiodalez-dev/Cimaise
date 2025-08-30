@@ -41,6 +41,38 @@ This repository hosts a minimalist, high‑performance photography CMS built wit
 - Maintain plan.md with Backlog/Doing/Done/Log; reference TASK‑### in commits/PRs
 - Prefer SSR, minimal JS, and indexed queries; prioritize performance and SEO
 
+### Base Path & URL Handling
+**CRITICAL**: This CMS must support subdirectory installations (e.g., `https://example.com/portfolio/`).
+
+**Template Rules**:
+- **URLs starting with `/`** → ALWAYS use `{{ base_path }}{{ url }}` in templates
+- **Relative/external URLs** → Use directly without base_path
+- **Pattern to use**: `{% if url starts with '/' %}{{ base_path }}{{ url }}{% else %}{{ url }}{% endif %}`
+
+**Examples**:
+```twig
+{# ✅ CORRECT - handles subdirectory installs #}
+<a href="{% if album.slug starts with '/' %}{{ base_path }}{{ album.slug }}{% else %}{{ album.slug }}{% endif %}">
+<img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}">
+<source srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+
+{# ❌ WRONG - breaks in subdirectories #}
+<a href="{{ album.slug }}">
+<img src="{{ image.url }}">
+<source srcset="{{ image.sources.webp|join(', ') }}">
+```
+
+**Controller Rules**:
+- **DO NOT** add `basePath` in controllers - let templates handle it
+- Controllers should return raw URLs from database
+- Templates apply `base_path` logic consistently
+
+**Special Cases**:
+- **Lightbox URLs**: Apply same logic as regular URLs
+- **Srcset URLs**: Split by space, apply base_path to URL part only
+- **Analytics/API endpoints**: Already handled in `_layout.twig`
+- **Media files**: `/media/image.jpg` → `{{ base_path }}/media/image.jpg`
+
 # Portfolio CMS — Specifica Tecnica (PHP/MySQL, minimalista B/N)
 
 > Versione: 1.0 — Autore: Fabio (con il mio aiuto). Obiettivo: CMS veloce, moderno, SEO‑friendly, con backend pulito per **album/progetti**, **categorie**, **tag** e **metadati fotografici** (fotocamera, lente, pellicola, sviluppo, laboratorio, scanner, ecc.). Frontend dinamico (GSAP), filtri AJAX, immagini ottimizzate (AVIF/WebP/JPEG). Niente barocchismi.
