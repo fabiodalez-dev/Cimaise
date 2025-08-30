@@ -1,0 +1,37 @@
+{% macro build(image) %}
+  {# First line: optional caption/title #}
+  {% set head = image.caption ? '<div class="mb-1 text-black">' ~ image.caption|e ~ '</div>' : '' %}
+  {# Equipment line: black icons + black text #}
+  {% set bits = [] %}
+  {% if image.custom_camera or image.camera_name or image.camera %}
+    {% set cam = image.custom_camera|default(image.camera_name|default(image.camera)) %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-camera mr-1"></i>' ~ cam|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.custom_lens or image.lens_name or image.lens %}
+    {% set ln = image.custom_lens|default(image.lens_name|default(image.lens)) %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-dot-circle mr-1"></i>' ~ ln|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.custom_film or image.film_name %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-film mr-1"></i>' ~ (image.custom_film|default(image.film_name))|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.location_name %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-map-marker-alt mr-1"></i>' ~ image.location_name|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.developer_name %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-flask mr-1"></i>' ~ image.developer_name|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.lab_name %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-industry mr-1"></i>' ~ image.lab_name|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.iso %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-signal mr-1"></i>ISO ' ~ image.iso|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.shutter_speed %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="far fa-clock mr-1"></i>' ~ image.shutter_speed|e ~ '</span>']) %}
+  {% endif %}
+  {% if image.aperture %}
+    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-circle-half-stroke mr-1"></i>f/' ~ image.aperture|e ~ '</span>']) %}
+  {% endif %}
+  {% set line = bits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">' ~ bits|join(' ') ~ '</div>') : '' %}
+  {{ (head ~ line)|raw }}
+{% endmacro %}
