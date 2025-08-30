@@ -10,14 +10,36 @@
       <div><label class="block text-sm font-medium text-gray-700 mb-1">ISO</label><input class="form-input" type="number" name="iso" value="{{ item.iso }}"></div>
       <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Formato</label>
         <select name="format" class="form-input">
-          {% for f in ['35mm','120','4x5','8x10','other'] %}<option value="{{ f }}" {% if item.format==f %}selected{% endif %}>{{ f }}</option>{% endfor %}
+          {% for f in ['35mm','120','4x5','8x10','instant','instant_mini','instant_square','instant_wide','digital','other'] %}<option value="{{ f }}" {% if item.format==f %}selected{% endif %}>{% if f == 'instant_mini' %}Instant Mini{% elseif f == 'instant_square' %}Instant Square{% elseif f == 'instant_wide' %}Instant Wide{% else %}{{ f|title }}{% endif %}</option>{% endfor %}
         </select>
       </div>
       <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
         <select name="type" class="form-input">
-          <option value="bw" {% if item.type=='bw' %}selected{% endif %}>B/W</option>
-          <option value="color_negative" {% if item.type=='color_negative' %}selected{% endif %}>C-41</option>
-          <option value="color_reversal" {% if item.type=='color_reversal' %}selected{% endif %}>E-6</option>
+          <optgroup label="B/W">
+            <option value="bw_negative" {% if item.type=='bw_negative' %}selected{% endif %}>B/W Negative (tradizionale)</option>
+            <option value="bw_chromogenic" {% if item.type=='bw_chromogenic' %}selected{% endif %}>B/W Chromogenic (C-41)</option>
+            <option value="bw_reversal" {% if item.type=='bw_reversal' %}selected{% endif %}>B/W Reversal (slide)</option>
+            <option value="bw_infrared" {% if item.type=='bw_infrared' %}selected{% endif %}>B/W Infrared</option>
+            <!-- Legacy compatibility -->
+            <option value="bw" {% if item.type=='bw' %}selected{% endif %}>B/W (legacy)</option>
+          </optgroup>
+          <optgroup label="Colore">
+            <option value="c41_color_negative" {% if item.type=='c41_color_negative' %}selected{% endif %}>C-41 Color Negative</option>
+            <option value="e6_slide" {% if item.type=='e6_slide' %}selected{% endif %}>E-6 Slide/Diapositiva</option>
+            <option value="ecn2_cinema" {% if item.type=='ecn2_cinema' %}selected{% endif %}>ECN-2 Cinema</option>
+            <!-- Legacy compatibility -->
+            <option value="color_negative" {% if item.type=='color_negative' %}selected{% endif %}>C-41 (legacy)</option>
+            <option value="color_reversal" {% if item.type=='color_reversal' %}selected{% endif %}>E-6 (legacy)</option>
+          </optgroup>
+          <optgroup label="Instant">
+            <option value="instant_integral" {% if item.type=='instant_integral' %}selected{% endif %}>Instant (Polaroid/Instax)</option>
+          </optgroup>
+          <optgroup label="Digitale">
+            <option value="digital" {% if item.type=='digital' %}selected{% endif %}>Digitale</option>
+          </optgroup>
+          <optgroup label="Altro/Sperimentale">
+            <option value="other" {% if item.type=='other' %}selected{% endif %}>Altro/Sperimentale</option>
+          </optgroup>
         </select>
       </div>
     </div>

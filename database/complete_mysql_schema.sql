@@ -397,6 +397,72 @@ INSERT INTO `settings` (`id`, `key`, `value`, `type`, `created_at`, `updated_at`
 (325, 'seo.lazy_load_images', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (326, 'seo.structured_data_format', 'json-ld', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37');
 
+-- Insert film types data
+INSERT INTO `films` (`id`, `brand`, `name`, `iso`, `format`, `type`) VALUES
+-- B/W Negative tradizionale  
+(1, 'Ilford', 'HP5 Plus', 400, '35mm', 'bw_negative'),
+(2, 'Kodak', 'Tri-X', 400, '35mm', 'bw_negative'), 
+(3, 'Kodak', 'T-Max 100', 100, '35mm', 'bw_negative'),
+(4, 'Kodak', 'T-Max 400', 400, '35mm', 'bw_negative'),
+(5, 'Foma', 'Fomapan 100', 100, '35mm', 'bw_negative'),
+(6, 'Foma', 'Fomapan 200', 200, '35mm', 'bw_negative'),
+(7, 'Foma', 'Fomapan 400', 400, '35mm', 'bw_negative'),
+
+-- B/W Chromogenic (C-41)
+(8, 'Ilford', 'XP2 Super', 400, '35mm', 'bw_chromogenic'),
+
+-- C-41 Color Negative
+(9, 'Kodak', 'Portra 160', 160, '35mm', 'c41_color_negative'),
+(10, 'Kodak', 'Portra 400', 400, '35mm', 'c41_color_negative'),
+(11, 'Kodak', 'Ektar 100', 100, '35mm', 'c41_color_negative'),
+(12, 'Kodak', 'Gold 200', 200, '35mm', 'c41_color_negative'),
+(13, 'Kodak', 'Ultramax 400', 400, '35mm', 'c41_color_negative'),
+(14, 'Fujifilm', 'Superia 400', 400, '35mm', 'c41_color_negative'),
+(15, 'Lomography', 'Color Negative 100', 100, '35mm', 'c41_color_negative'),
+
+-- E-6 Slide/Diapositiva
+(16, 'Fujifilm', 'Provia 100F', 100, '35mm', 'e6_slide'),
+(17, 'Fujifilm', 'Velvia 50', 50, '35mm', 'e6_slide'),
+(18, 'Fujifilm', 'Velvia 100', 100, '35mm', 'e6_slide'),
+(19, 'Kodak', 'Ektachrome E100', 100, '35mm', 'e6_slide'),
+
+-- B/W Reversal
+(20, 'Foma', 'Fomapan R100', 100, '35mm', 'bw_reversal'),
+(21, 'ADOX', 'Scala 160', 160, '35mm', 'bw_reversal'),
+
+-- ECN-2 Cinema
+(22, 'Kodak', 'Vision3 50D', 50, '35mm', 'ecn2_cinema'),
+(23, 'Kodak', 'Vision3 250D', 250, '35mm', 'ecn2_cinema'), 
+(24, 'Kodak', 'Vision3 500T', 500, '35mm', 'ecn2_cinema'),
+(25, 'ORWO', 'NC400', 400, '35mm', 'ecn2_cinema'),
+(26, 'ORWO', 'NC500', 500, '35mm', 'ecn2_cinema'),
+
+-- Instant
+(27, 'Polaroid', 'SX-70', NULL, 'instant', 'instant_integral'),
+(28, 'Polaroid', '600', NULL, 'instant', 'instant_integral'),
+(29, 'Polaroid', 'i-Type', NULL, 'instant', 'instant_integral'),
+(30, 'Fujifilm', 'Instax Mini', NULL, 'instant_mini', 'instant_integral'),
+(31, 'Fujifilm', 'Instax Square', NULL, 'instant_square', 'instant_integral'),
+(32, 'Fujifilm', 'Instax Wide', NULL, 'instant_wide', 'instant_integral'),
+
+-- Special/Experimental
+(33, 'Rollei', 'Infrared 400', 400, '35mm', 'bw_infrared'),
+(34, 'Ilford', 'SFX 200', 200, '35mm', 'bw_infrared'),
+
+-- Digitale
+(35, 'Canon', 'Digital Camera', NULL, 'digital', 'digital'),
+(36, 'Nikon', 'Digital Camera', NULL, 'digital', 'digital'),
+(37, 'Sony', 'Digital Camera', NULL, 'digital', 'digital'),
+(38, 'Fujifilm', 'Digital Camera', NULL, 'digital', 'digital'),
+(39, 'Leica', 'Digital Camera', NULL, 'digital', 'digital'),
+
+-- Altro/Sperimentale
+(40, 'Custom', 'Altro/Sperimentale', NULL, 'other', 'other'),
+(41, 'Expired', 'Pellicola Scaduta', NULL, 'other', 'other'),
+(42, 'Cross-processed', 'Cross Processing', NULL, 'other', 'other'),
+(43, 'Redscale', 'Redscale', NULL, '35mm', 'other'),
+(44, 'Double Exposure', 'Doppia Esposizione', NULL, 'other', 'other');
+
 INSERT INTO `templates` (`id`, `name`, `slug`, `description`, `settings`, `libs`, `created_at`) VALUES
 (7, 'Grid Classica', 'grid-classica', 'Layout a griglia responsivo - desktop 3 colonne, tablet 2, mobile 1', '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]', '2025-08-25 14:21:20'),
 (8, 'Masonry Portfolio', 'masonry-portfolio', 'Layout masonry responsivo per portfolio - desktop 4 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":4,"tablet":3,"mobile":2},"masonry":true,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.1,"allowPanToNext":true}}', '["photoswipe","masonry"]', '2025-08-25 14:21:20'),
@@ -409,6 +475,7 @@ INSERT INTO `templates` (`id`, `name`, `slug`, `description`, `settings`, `libs`
 ALTER TABLE `categories` AUTO_INCREMENT = 10;
 ALTER TABLE `settings` AUTO_INCREMENT = 327;
 ALTER TABLE `templates` AUTO_INCREMENT = 13;
+ALTER TABLE `films` AUTO_INCREMENT = 45;
 
 -- Analytics system tables
 -- photoCMS Analytics Migration
