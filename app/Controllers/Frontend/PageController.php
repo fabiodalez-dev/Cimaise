@@ -276,10 +276,17 @@ class PageController extends BaseController
             if (!empty($album['custom_films'])) {
                 $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
             } else {
-                $filmStmt = $pdo->prepare('SELECT f.brand, f.name FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
+                $filmStmt = $pdo->prepare('SELECT f.brand, f.name, f.iso, f.format FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
                 $filmStmt->execute([':a' => $album['id']]);
                 $films = $filmStmt->fetchAll();
-                $equipment['film'] = array_map(fn($f) => trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? '')), $films);
+                $equipment['film'] = array_map(function($f) {
+                    $name = trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? ''));
+                    return [
+                        'name' => $name,
+                        'iso' => $f['iso'] ?? null,
+                        'format' => $f['format'] ?? null
+                    ];
+                }, $films);
             }
             
             if (!empty($album['custom_developers'])) {
@@ -356,10 +363,21 @@ class PageController extends BaseController
                     $image['lab_name'] = $s->fetchColumn() ?: null;
                 }
                 if (!empty($image['film_id'])) {
-                    $s = $pdo->prepare('SELECT brand, name FROM films WHERE id = :id');
+                    $s = $pdo->prepare('SELECT brand, name, iso, format FROM films WHERE id = :id');
                     $s->execute([':id' => $image['film_id']]);
                     $fr = $s->fetch();
-                    if ($fr) { $image['film_name'] = trim(($fr['brand'] ?? '') . ' ' . ($fr['name'] ?? '')); }
+                    if ($fr) {
+                        $nameOnly = trim((string)($fr['name'] ?? ''));
+                        $brand = trim((string)($fr['brand'] ?? ''));
+                        $image['film_name'] = trim(($brand !== '' ? ($brand . ' ') : '') . $nameOnly);
+                        $iso = isset($fr['iso']) && $fr['iso'] !== '' ? (string)(int)$fr['iso'] : '';
+                        $fmt = (string)($fr['format'] ?? '');
+                        $parts = [];
+                        if ($iso !== '') { $parts[] = $iso; }
+                        if ($fmt !== '') { $parts[] = $fmt; }
+                        $suffix = count($parts) ? (' (' . implode(' - ', $parts) . ')') : '';
+                        $image['film_display'] = ($nameOnly !== '' ? $nameOnly : $image['film_name']) . $suffix;
+                    }
                 }
                 if (!empty($image['location_id'])) {
                     $s = $pdo->prepare('SELECT name FROM locations WHERE id = :id');
@@ -639,10 +657,21 @@ class PageController extends BaseController
                         $ir['lab_name'] = $s->fetchColumn() ?: null;
                     }
                     if (!empty($ir['film_id'])) {
-                        $s = $pdo->prepare('SELECT brand, name FROM films WHERE id = :id');
+                        $s = $pdo->prepare('SELECT brand, name, iso, format FROM films WHERE id = :id');
                         $s->execute([':id' => $ir['film_id']]);
                         $fr = $s->fetch();
-                        if ($fr) { $ir['film_name'] = trim(($fr['brand'] ?? '') . ' ' . ($fr['name'] ?? '')); }
+                        if ($fr) {
+                            $nameOnly = trim((string)($fr['name'] ?? ''));
+                            $brand = trim((string)($fr['brand'] ?? ''));
+                            $ir['film_name'] = trim(($brand !== '' ? ($brand . ' ') : '') . $nameOnly);
+                            $iso = isset($fr['iso']) && $fr['iso'] !== '' ? (string)(int)$fr['iso'] : '';
+                            $fmt = (string)($fr['format'] ?? '');
+                            $parts = [];
+                            if ($iso !== '') { $parts[] = $iso; }
+                            if ($fmt !== '') { $parts[] = $fmt; }
+                            $suffix = count($parts) ? (' (' . implode(' - ', $parts) . ')') : '';
+                            $ir['film_display'] = ($nameOnly !== '' ? $nameOnly : $ir['film_name']) . $suffix;
+                        }
                     }
                     if (!empty($ir['location_id'])) {
                         $s = $pdo->prepare('SELECT name FROM locations WHERE id = :id');
@@ -698,6 +727,7 @@ class PageController extends BaseController
                     'lens_name' => $img['lens_name'] ?? '',
                     'custom_film' => $img['custom_film'] ?? '',
                     'film_name' => $img['film_name'] ?? '',
+                    'film_display' => $img['film_display'] ?? ($img['film_name'] ?? ''),
                     'developer_name' => $img['developer_name'] ?? '',
                     'lab_name' => $img['lab_name'] ?? '',
                     'location_name' => $img['location_name'] ?? '',
