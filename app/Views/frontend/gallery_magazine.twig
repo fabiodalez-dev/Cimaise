@@ -105,10 +105,10 @@
   {% macro item(image, clickable, base_path, album, extra_class = '') %}
     {% set w = image.width|default(1600) %}
     {% set h = image.height|default(1067) %}
-    {% set href_src = image.lightbox_url|default(image.url) %}
+    {% set href_src = image.lightbox_url|default(image.url) %}{% set href_src = href_src starts with '/' ? base_path ~ href_src : href_src %}
     <div class="m-item group rounded-xl overflow-hidden shadow-sm relative" style="aspect-ratio: {{ w }} / {{ h }};">
       {% if clickable %}
-      <a href="{{ href_src starts with('/') ? (base_path ~ href_src) : href_src }}"
+      <a href="{{ href_src }}"
          class="pswp-link block w-full h-full {{ extra_class }}"
          data-pswp-width="{{ w }}"
          data-pswp-height="{{ h }}"
