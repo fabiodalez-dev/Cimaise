@@ -435,6 +435,7 @@ window.AdminInit = function() {
   // Initialize components in order
   initTomSelects();
   initUppyAreaUpload();
+  initLogoUpload();
   initSortableGrid();
   bindGridButtons();
   initTinyMCE();
@@ -532,6 +533,66 @@ function cleanupExistingInstances() {
     
   } catch(e) {
     console.warn('Cleanup warning:', e);
+  }
+}
+
+// Logo upload in Settings page
+function initLogoUpload(){
+  const area = document.getElementById('logo-uppy');
+  const hidden = document.getElementById('site_logo');
+  const preview = document.getElementById('site-logo-preview');
+  const clearBtn = document.getElementById('site-logo-clear');
+  if (!area || !hidden) return;
+  if (area._uppyInitialized) return; area._uppyInitialized = true;
+  const endpoint = area.dataset.endpoint;
+  const csrf = area.dataset.csrf;
+  const uppy = new Uppy({
+    autoProceed: true,
+    restrictions: { allowedFileTypes: ['image/png','image/jpeg','image/webp'] }
+  }).use(XHRUpload, {
+    endpoint,
+    fieldName: 'file',
+    headers: { 'X-CSRF-Token': csrf, 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' }
+  });
+  if (!window.uppyInstances) window.uppyInstances = [];
+  window.uppyInstances.push(uppy);
+
+  let input = area.querySelector('input[type="file"].uppy-input');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/png,image/jpeg,image/webp'; input.style.display='none'; input.classList.add('uppy-input');
+    area.appendChild(input);
+  }
+  area.addEventListener('click', ()=> input.click());
+  input.addEventListener('change', ()=>{ if (input.files && input.files[0]) { try{ uppy.addFile({ name: input.files[0].name, type: input.files[0].type, data: input.files[0] }); }catch{} input.value=''; } });
+  area.addEventListener('dragover', e=>{ e.preventDefault(); area.classList.add('bg-gray-100'); });
+  area.addEventListener('dragleave', ()=> area.classList.remove('bg-gray-100'));
+  area.addEventListener('drop', e=>{ e.preventDefault(); area.classList.remove('bg-gray-100'); const f=e.dataTransfer?.files?.[0]; if (f) { try{ uppy.addFile({ name:f.name, type:f.type, data:f }); }catch{} } });
+
+  uppy.on('complete', (res)=>{
+    const first = res.successful && res.successful[0];
+    const body = first && first.response && (first.response.body || {});
+    if (body && body.ok && body.path) {
+      hidden.value = body.path;
+      if (preview) { preview.src = (window.basePath || '') + body.path; preview.classList.remove('hidden'); }
+      if (clearBtn) clearBtn.classList.remove('hidden');
+      if (window.showToast) window.showToast('Logo aggiornato', 'success');
+    } else {
+      if (window.showToast) window.showToast('Upload logo fallito', 'error');
+    }
+  });
+  uppy.on('upload-error', (file, err, resp)=>{
+    const msg = (resp && resp.body && (resp.body.error||resp.body.message)) || (err && err.message) || 'Errore upload logo';
+    if (window.showToast) window.showToast(msg, 'error');
+  });
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      hidden.value = '';
+      if (preview) preview.classList.add('hidden');
+      if (window.showToast) window.showToast('Logo rimosso (salva per applicare)', 'info');
+    });
   }
 }
 

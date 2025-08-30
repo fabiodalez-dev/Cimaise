@@ -29,7 +29,7 @@
 
 <p class="text-muted">Configure your site's basic information</p>
 
-<form method="post" action="{{ base_path }}/install/settings">
+<form method="post" action="{{ base_path }}/install/settings" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     
     <div class="mb-3">
@@ -58,6 +58,12 @@
                 <div class="form-text">For contact form submissions</div>
             </div>
         </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="site-logo" class="form-label">Site Logo (optional)</label>
+        <input type="file" id="site-logo" class="form-control" name="site_logo" accept="image/png,image/jpeg,image/webp">
+        <div class="form-text">PNG/JPG/WebP. If omitted, the site title will be used.</div>
     </div>
     
     <div class="alert alert-info">

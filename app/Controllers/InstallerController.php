@@ -213,6 +213,38 @@ class InstallerController
         }
         
         $data = (array)$request->getParsedBody();
+
+        // Handle optional logo upload (no Uppy). Store as '/media/site/<file>'
+        try {
+            $files = $request->getUploadedFiles();
+            $logo = $files['site_logo'] ?? null;
+            if ($logo && $logo->getError() === UPLOAD_ERR_OK) {
+                $stream = $logo->getStream();
+                if (method_exists($stream, 'rewind')) { $stream->rewind(); }
+                $contents = (string)$stream->getContents();
+                if ($contents !== '') {
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $mime = $finfo->buffer($contents) ?: '';
+                    $allowed = ['image/png'=>'.png','image/jpeg'=>'.jpg','image/webp'=>'.webp'];
+                    if (isset($allowed[$mime])) {
+                        $info = @getimagesizefromstring($contents);
+                        if ($info !== false) {
+                            $hash = sha1($contents) ?: bin2hex(random_bytes(20));
+                            $ext = $allowed[$mime];
+                            $destDir = dirname(__DIR__, 2) . '/public/media';
+                            if (!is_dir($destDir)) { @mkdir($destDir, 0775, true); }
+                            $destPath = $destDir . '/logo-' . $hash . $ext;
+                            if (@file_put_contents($destPath, $contents) === false) {
+                                throw new \RuntimeException('Failed to write uploaded logo');
+                            }
+                            $data['site_logo'] = '/media/' . basename($destPath);
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Ignore logo errors during install; proceed without a logo
+        }
         
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');

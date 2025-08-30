@@ -206,6 +206,12 @@ $app->post('/admin/albums/{id}/upload', function (Request $request, Response $re
     $controller = new \App\Controllers\Admin\UploadController($container['db']);
     return $controller->uploadToAlbum($request, $response, $args);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+// Settings: upload site logo
+$app->post('/admin/settings/logo-upload', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UploadController($container['db']);
+    return $controller->uploadSiteLogo($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/api/tags', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\ApiController($container['db']);
     return $controller->tags($request, $response);

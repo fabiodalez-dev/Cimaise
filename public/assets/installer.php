@@ -342,6 +342,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'site_email' => trim($_POST['site_email'] ?? ''),
             'timezone' => $_POST['timezone'] ?? 'Europe/Rome'
         ];
+
+        // Optional logo upload
+        if (!empty($_FILES['site_logo']) && isset($_FILES['site_logo']['tmp_name']) && is_uploaded_file($_FILES['site_logo']['tmp_name'])) {
+            try {
+                $tmp = $_FILES['site_logo']['tmp_name'];
+                $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmp) ?: '';
+                $allowed = ['image/png'=>'.png','image/jpeg'=>'.jpg','image/webp'=>'.webp'];
+                if (isset($allowed[$mime])) {
+                    $bytes = file_get_contents($tmp);
+                    if ($bytes !== false) {
+                        $info = @getimagesizefromstring($bytes);
+                        if ($info !== false) {
+                            $hash = sha1($bytes);
+                            $ext = $allowed[$mime];
+                            $destDir = $rootPath . '/public/media';
+                            if (!is_dir($destDir)) { @mkdir($destDir, 0755, true); }
+                            $destPath = $destDir . '/logo-' . $hash . $ext;
+                            if (file_put_contents($destPath, $bytes) !== false) {
+                                $settingsData['site_logo'] = '/media/' . basename($destPath);
+                            }
+                        }
+                    }
+                }
+            } catch (Throwable $e) {
+                // ignore logo errors in installer
+            }
+        }
         
         if (empty($settingsData['site_title'])) $errors['site_title'] = 'Site title is required';
         
@@ -450,13 +477,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'site.description' => $settingsData['site_description'],
                 'site.copyright' => $settingsData['site_copyright'],
                 'site.email' => $settingsData['site_email'],
+                'site.logo' => $settingsData['site_logo'] ?? null,
             ];
             
             foreach ($settingsToUpdate as $key => $value) {
-                if (!empty($value)) {
-                    $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)');
-                    $stmt->execute([$key, $value, date('Y-m-d H:i:s')]);
-                }
+                $encoded = json_encode($value, JSON_UNESCAPED_SLASHES);
+                $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
+                $now = date('Y-m-d H:i:s');
+                $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings (key, value, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?)');
+                $stmt->execute([$key, $encoded, $type, $now, $now]);
             }
             
             // Create required directories
@@ -1007,7 +1036,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                         <h2 class="text-2xl font-light text-black mb-6">Site Settings</h2>
                         <p class="text-gray-600 mb-8">Configure your site's basic information and preferences.</p>
                         
-                        <form method="post" action="installer.php?step=settings">
+                        <form method="post" action="installer.php?step=settings" enctype="multipart/form-data">
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Site Title</label>
                                 <input type="text" name="site_title" class="form-input w-full <?= isset($settingsErrors['site_title']) ? 'error' : '' ?>" 
@@ -1023,6 +1052,12 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                 <textarea name="site_description" class="form-input w-full" rows="3" 
                                           placeholder="A beautiful photography portfolio"><?= htmlspecialchars($settingsFormData['site_description'] ?? 'A beautiful photography portfolio') ?></textarea>
                                 <div class="text-sm text-gray-500 mt-1">A short description for SEO and social media</div>
+                            </div>
+
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Site Logo (optional)</label>
+                                <input type="file" name="site_logo" accept="image/png,image/jpeg,image/webp" class="form-input w-full">
+                                <div class="text-sm text-gray-500 mt-1">PNG/JPG/WebP. If omitted, the site title will be used.</div>
                             </div>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

@@ -7,6 +7,7 @@ INSERT INTO settings (`key`, `value`, type, created_at, updated_at) VALUES
 ('gallery.default_template', 'grid-classica', 'string', NOW(), NOW()),
 ('gallery.images_per_page', '24', 'number', NOW(), NOW()),
 ('site.maintenance_mode', 'false', 'boolean', NOW(), NOW()),
+('site.logo', 'null', 'null', NOW(), NOW()),
 ('site.allow_registration', 'false', 'boolean', NOW(), NOW()),
 ('upload.max_file_size', '10485760', 'number', NOW(), NOW()),
 ('upload.allowed_types', '["jpg","jpeg","png","gif","webp","avif"]', 'string', NOW(), NOW())

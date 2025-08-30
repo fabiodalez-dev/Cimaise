@@ -52,6 +52,7 @@ class SettingsService
             'visibility' => ['public' => true],
             'gallery.default_template_id' => null,
             'site.title' => 'photoCMS',
+            'site.logo' => null,
             'site.description' => 'Professional Photography Portfolio',
             'site.copyright' => '© 2024 Photography Portfolio',
             'site.email' => '',
@@ -61,4 +62,3 @@ class SettingsService
         ];
     }
 }
-

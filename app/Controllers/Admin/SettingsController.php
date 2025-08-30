@@ -80,6 +80,7 @@ class SettingsController extends BaseController
         // Site settings
         $siteSettings = [
             'title' => trim((string)($data['site_title'] ?? '')),
+            'logo' => ($data['site_logo'] ?? '') !== '' ? (string)$data['site_logo'] : null,
             'description' => trim((string)($data['site_description'] ?? '')),
             'copyright' => trim((string)($data['site_copyright'] ?? '')),
             'email' => trim((string)($data['site_email'] ?? ''))
@@ -100,6 +101,7 @@ class SettingsController extends BaseController
         $svc->set('image.breakpoints', $breakpoints);
         $svc->set('gallery.default_template_id', $defaultTemplateId);
         $svc->set('site.title', $siteSettings['title']);
+        $svc->set('site.logo', $siteSettings['logo']);
         $svc->set('site.description', $siteSettings['description']);  
         $svc->set('site.copyright', $siteSettings['copyright']);
         $svc->set('site.email', $siteSettings['email']);
@@ -142,4 +144,3 @@ class SettingsController extends BaseController
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
     }
 }
-
