@@ -1,0 +1,21 @@
+# EXECUTABLE SCRIPTS SECURITY
+# Block access to command-line scripts and executables
+
+# Deny all access to executable files
+<Files "*">
+    Require all denied
+</Files>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+</IfModule>
+
+# Prevent directory browsing
+Options -Indexes -ExecCGI
+
+# Block access to hidden files
+<FilesMatch "^\\.">
+    Require all denied
+</FilesMatch>

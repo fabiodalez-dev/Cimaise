@@ -1,5 +1,53 @@
+# COMPREHENSIVE VENDOR DIRECTORY SECURITY
+# Block access to Composer dependencies and third-party libraries
+
 # Deny all access to vendor files
 <Files "*">
-    Order Allow,Deny
-    Deny from all
+    Require all denied
 </Files>
+
+# Specifically block sensitive configuration files
+<FilesMatch "\.(php|json|lock|md|txt|xml|yml|yaml|ini|log|dist|neon)$">
+    Require all denied
+</FilesMatch>
+
+# Block Composer files
+<FilesMatch "(composer\.(json|lock)|autoload\.php|installed\.(json|php)|platform_check\.php)">
+    Require all denied
+</FilesMatch>
+
+# Block package configuration and documentation
+<FilesMatch "\.(gitignore|gitattributes|travis\.yml|phpunit\.xml|ruleset\.xml|changelog|readme|license)$">
+    Require all denied
+</FilesMatch>
+
+# Prevent directory browsing
+Options -Indexes -ExecCGI
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Cache-Control "no-cache, no-store, must-revalidate"
+</IfModule>
+
+# Block access to hidden files and directories
+<FilesMatch "^\\.">
+    Require all denied
+</FilesMatch>
+
+# Block access to version control directories
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} \.(git|svn|hg)(/|$) [NC]
+    RewriteRule . - [F,L]
+</IfModule>
+
+# Disable PHP execution as additional security layer
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+
+# Remove server signature
+ServerSignature Off
