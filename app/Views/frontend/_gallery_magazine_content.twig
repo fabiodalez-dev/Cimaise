@@ -407,9 +407,91 @@ document.addEventListener('DOMContentLoaded', function(){
           const pswp = new PhotoSwipe({
             gallery: items,
             index: index,
-            showHideOpacity: true,
-            bgOpacity: 0.8
+            showHideOpacity: false,
+            bgOpacity: 0.1,
+            padding: { top: 60, bottom: 60, left: 80, right: 80 },
+            imageClickAction: 'close',
+            tapAction: 'close',
+            doubleTapAction: false,
+            
+            // Disable zoom functionality
+            maxZoomLevel: 1,
+            wheelToZoom: false,
+            
+            // Custom SVG icons - smaller arrows
+            arrowPrevSVG: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 24 24" width="24" height="24"><path d="M15 6 L9 12 L15 18" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            arrowNextSVG: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 24 24" width="24" height="24"><path d="M9 6 L15 12 L9 18" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            closeSVG: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 32 32" width="32" height="32"><path d="M8 8 L24 24 M24 8 L8 24" stroke="#000" stroke-width="3" stroke-linecap="round"/></svg>'
           });
+          
+          // Register custom UI elements
+          pswp.on('uiRegister', function() {
+            // Custom counter with black text
+            pswp.ui.registerElement({
+              name: 'counter',
+              order: 5,
+              onInit: (el, pswp) => {
+                const updateCounter = () => {
+                  el.innerText = `${pswp.currIndex + 1} / ${pswp.getNumItems()}`;
+                };
+                pswp.on('change', updateCounter);
+                updateCounter();
+              }
+            });
+            
+            // Download button
+            pswp.ui.registerElement({
+              name: 'download-button',
+              order: 8,
+              isButton: true,
+              tagName: 'a',
+              html: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 24 24" width="24" height="24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+              onInit: (el, pswp) => {
+                el.setAttribute('download', '');
+                el.setAttribute('target', '_blank');
+                el.setAttribute('rel', 'noopener');
+                el.setAttribute('title', 'Download image');
+                
+                const updateDownloadLink = () => {
+                  el.href = pswp.currSlide.data.src;
+                };
+                
+                pswp.on('change', updateDownloadLink);
+                updateDownloadLink();
+              }
+            });
+            
+            // Custom bullets indicator
+            pswp.ui.registerElement({
+              name: 'bulletsIndicator',
+              className: 'pswp__bullets-indicator',
+              appendTo: 'wrapper',
+              onInit: (el, pswp) => {
+                const bullets = [];
+                let bullet;
+                let prevIndex = -1;
+
+                for (let i = 0; i < pswp.getNumItems(); i++) {
+                  bullet = document.createElement('div');
+                  bullet.className = 'pswp__bullet';
+                  bullet.onclick = (e) => {
+                    pswp.goTo(bullets.indexOf(e.target));
+                  };
+                  el.appendChild(bullet);
+                  bullets.push(bullet);
+                }
+
+                pswp.on('change', () => {
+                  if (prevIndex >= 0) {
+                    bullets[prevIndex].classList.remove('pswp__bullet--active');
+                  }
+                  bullets[pswp.currIndex].classList.add('pswp__bullet--active');
+                  prevIndex = pswp.currIndex;
+                });
+              }
+            });
+          });
+          
           pswp.init();
         }
       });
