@@ -19,11 +19,40 @@ class UploadController extends BaseController
     public function uploadToAlbum(Request $request, Response $response, array $args): Response
     {
         $albumId = (int)($args['id'] ?? 0);
+        // Validate album exists
+        try {
+            $check = $this->db->pdo()->prepare('SELECT id FROM albums WHERE id = :id');
+            $check->execute([':id'=>$albumId]);
+            if (!$check->fetch()) {
+                $response->getBody()->write(json_encode(['ok'=>false,'error'=>'Album not found']));
+                return $response->withStatus(404)->withHeader('Content-Type','application/json');
+            }
+        } catch (\Throwable) {
+            // Ignore DB errors here; proceed and let ingest fail if necessary
+        }
         // CSRF is enforced by middleware; here we only handle the payload
         $files = $request->getUploadedFiles();
         $file = $files['file'] ?? null;
+        
         if (!$file) {
             $response->getBody()->write(json_encode(['ok'=>false,'error'=>'No file']));
+            return $response->withStatus(400)->withHeader('Content-Type','application/json');
+        }
+        
+        // Check for upload errors
+        $uploadError = $file->getError();
+        if ($uploadError !== UPLOAD_ERR_OK) {
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => 'File troppo grande (supera upload_max_filesize)',
+                UPLOAD_ERR_FORM_SIZE => 'File troppo grande (supera MAX_FILE_SIZE)',
+                UPLOAD_ERR_PARTIAL => 'Upload incompleto',
+                UPLOAD_ERR_NO_FILE => 'Nessun file caricato',
+                UPLOAD_ERR_NO_TMP_DIR => 'Cartella temporanea mancante',
+                UPLOAD_ERR_CANT_WRITE => 'Errore di scrittura su disco',
+                UPLOAD_ERR_EXTENSION => 'Upload bloccato da estensione PHP'
+            ];
+            $errorMsg = $errorMessages[$uploadError] ?? "Errore upload sconosciuto: $uploadError";
+            $response->getBody()->write(json_encode(['ok'=>false,'error'=>$errorMsg]));
             return $response->withStatus(400)->withHeader('Content-Type','application/json');
         }
         
