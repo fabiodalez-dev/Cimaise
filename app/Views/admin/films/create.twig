@@ -10,12 +10,45 @@
       <div><label class="block text-sm font-medium text-gray-700 mb-1">ISO</label><input class="form-input" type="number" name="iso"></div>
       <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Formato</label>
         <select name="format" class="form-input">
-          <option value="35mm">35mm</option><option value="120">120</option><option value="4x5">4x5</option><option value="8x10">8x10</option><option value="other">other</option>
+          <option value="35mm" selected>35mm</option>
+          <option value="120">120</option>
+          <option value="4x5">4x5</option>
+          <option value="8x10">8x10</option>
+          <option value="instant">Instant</option>
+          <option value="instant_mini">Instant Mini</option>
+          <option value="instant_square">Instant Square</option>
+          <option value="instant_wide">Instant Wide</option>
+          <option value="digital">Digital</option>
+          <option value="other">Other</option>
         </select>
       </div>
       <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
         <select name="type" class="form-input">
-          <option value="bw">B/W</option><option value="color_negative">C-41</option><option value="color_reversal">E-6</option>
+          <optgroup label="B/W">
+            <option value="bw_negative">B/W Negative (tradizionale)</option>
+            <option value="bw_chromogenic">B/W Chromogenic (C-41)</option>
+            <option value="bw_reversal">B/W Reversal (slide)</option>
+            <option value="bw_infrared">B/W Infrared</option>
+            <!-- Legacy compatibility -->
+            <option value="bw">B/W (legacy)</option>
+          </optgroup>
+          <optgroup label="Colore">
+            <option value="c41_color_negative" selected>C-41 Color Negative</option>
+            <option value="e6_slide">E-6 Slide/Diapositiva</option>
+            <option value="ecn2_cinema">ECN-2 Cinema</option>
+            <!-- Legacy compatibility -->
+            <option value="color_negative">C-41 (legacy)</option>
+            <option value="color_reversal">E-6 (legacy)</option>
+          </optgroup>
+          <optgroup label="Instant">
+            <option value="instant_integral">Instant (Polaroid/Instax)</option>
+          </optgroup>
+          <optgroup label="Digitale">
+            <option value="digital">Digitale</option>
+          </optgroup>
+          <optgroup label="Altro/Sperimentale">
+            <option value="other">Altro/Sperimentale</option>
+          </optgroup>
         </select>
       </div>
     </div>
