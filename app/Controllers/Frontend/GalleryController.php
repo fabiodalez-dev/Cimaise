@@ -546,11 +546,21 @@ class GalleryController extends BaseController
                 ];
             }
 
-            // Render only the gallery part (not the full page)
-            return $this->view->render($response, 'frontend/_gallery_content.twig', [
+            // Render the appropriate gallery partial based on template
+            $templateFile = 'frontend/_gallery_content.twig';
+            $templateData = [
                 'images' => $images,
                 'template_settings' => $templateSettings
-            ]);
+            ];
+            
+            // Use Magazine template for template ID 9 or layout 'magazine'
+            if ($templateId === 9 || ($templateSettings['layout'] ?? '') === 'magazine') {
+                $templateFile = 'frontend/_gallery_magazine_content.twig';
+                $templateData['album'] = $album; // Magazine template needs album data
+                $templateData['base_path'] = $this->basePath;
+            }
+            
+            return $this->view->render($response, $templateFile, $templateData);
             
         } catch (\Throwable $e) {
             // Log the actual error for debugging
