@@ -599,75 +599,7 @@
             display: none !important;
         }
         
-        /* Custom caption styling with metadata - DEBUG */
-        .pswp__custom-caption {
-            background: rgba(255, 0, 0, 0.8) !important; /* RED per debug */
-            color: #fff !important;
-            width: calc(100% - 32px) !important;
-            max-width: 600px !important;
-            padding: 16px 20px !important;
-            border-radius: 12px !important;
-            position: absolute !important;
-            left: 50% !important;
-            bottom: 20px !important;
-            transform: translateX(-50%) !important;
-            border: 2px solid #ff0000 !important;
-            z-index: 9999 !important;
-            font-size: 16px !important;
-        }
-        
-        .pswp__custom-caption .caption-title {
-            color: #000 !important;
-            font-weight: 600 !important;
-            font-size: 16px !important;
-            margin-bottom: 12px !important;
-        }
-        
-        .pswp__custom-caption .caption-metadata {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 8px !important;
-        }
-        
-        .pswp__custom-caption .metadata-item {
-            display: flex !important;
-            align-items: center !important;
-            gap: 8px !important;
-            color: #333 !important;
-            font-size: 14px !important;
-        }
-        
-        .pswp__custom-caption .metadata-item i {
-            color: #000 !important;
-            width: 16px !important;
-            text-align: center !important;
-            flex-shrink: 0 !important;
-        }
-        
-        .pswp__custom-caption .metadata-item span {
-            color: #000 !important;
-        }
-        
-        /* Mobile responsive caption */
-        @media (max-width: 768px) {
-            .pswp__custom-caption {
-                width: calc(100% - 24px) !important;
-                max-width: none !important;
-                padding: 12px 16px !important;
-                font-size: 14px !important;
-                bottom: 16px !important;
-            }
-            
-            .pswp__custom-caption .caption-title {
-                font-size: 15px !important;
-                margin-bottom: 10px !important;
-            }
-            
-            .pswp__custom-caption .metadata-item {
-                font-size: 13px !important;
-                gap: 6px !important;
-            }
-        }
+        /* Removed debug red caption block */
     </style>
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">
@@ -1338,7 +1270,12 @@
               src: x.getAttribute('href'),
               width: parseInt(x.getAttribute('data-pswp-width')||'1600',10),
               height: parseInt(x.getAttribute('data-pswp-height')||'1067',10),
-              caption_html: x.getAttribute('data-pswp-caption')||''
+              caption_html: (function(){
+                const h = x.querySelector('.hidden-caption-content');
+                if (h && h.innerHTML.trim()) return h.innerHTML;
+                const img = x.querySelector('img');
+                return (img && img.getAttribute('alt')) || x.getAttribute('data-pswp-caption') || '';
+              })()
             }));
         }
         function destroyLightbox(){
@@ -1476,28 +1413,25 @@
                                     const iso = a.getAttribute('data-iso') || '';
                                     const sh = a.getAttribute('data-shutter') || '';
                                     const ap = a.getAttribute('data-aperture') || '';
-                                    const proc = a.getAttribute('data-process') || '';
-                                    const head = esc(title) || esc(alt);
-                                    const line = [
-                                      piece('fa-solid fa-camera', camera),
-                                      piece('fa-solid fa-dot-circle', lens),
-                                      piece('fa-solid fa-film', film),
-                                      piece('fa-solid fa-flask', dev),
-                                      piece('fa-solid fa-industry', lab),
-                                      piece('fa-solid fa-map-marker-alt', loc),
-                                      piece('fa-solid fa-signal', iso ? 'ISO ' + iso : ''),
-                                      piece('fa-regular fa-clock', sh),
-                                      piece('fa-solid fa-circle-half-stroke', ap ? 'f/' + ap : ''),
-                                      piece('fa-solid fa-recycle', proc)
-                                    ].filter(Boolean).join('<span class=\"cc-sep\">•</span>');
-                                    el.innerHTML = `
-                                      ${head ? `<div class=\"cc-title\">${head}</div>` : ''}
-                                      ${line ? `<div class=\"cc-line\">${line}</div>` : ''}
-                                    `;
-                                    el.style.opacity = (head || line) ? '1' : '0';
+                                // Replace with minimal hidden-caption/alt logic
                                 };
-                                pswp.on('change', updateCaption);
-                                pswp.on('openingAnimationEnd', updateCaption);
+                                const renderCaption = () => {
+                                  const curr = lb.pswp.currSlide && lb.pswp.currSlide.data && lb.pswp.currSlide.data.element;
+                                  let captionHTML = '';
+                                  if (curr) {
+                                    const hidden = curr.querySelector('.hidden-caption-content');
+                                    if (hidden && hidden.innerHTML) {
+                                      captionHTML = hidden.innerHTML;
+                                    } else {
+                                      const img = curr.querySelector('img');
+                                      captionHTML = (img && img.getAttribute('alt')) || curr.getAttribute('data-pswp-caption') || '';
+                                    }
+                                  }
+                                  el.innerHTML = captionHTML || '';
+                                  el.style.opacity = captionHTML && captionHTML.trim() ? '1' : '0';
+                                };
+                                lb.pswp.on('change', renderCaption);
+                                lb.pswp.on('openingAnimationEnd', renderCaption);
                             }
                         });
 
@@ -1827,7 +1761,12 @@
                     src: anchor.getAttribute('href'),
                     width: parseInt(anchor.getAttribute('data-pswp-width') || '1600', 10),
                     height: parseInt(anchor.getAttribute('data-pswp-height') || '1067', 10),
-                    caption_html: anchor.getAttribute('data-pswp-caption') || ''
+                    caption_html: (function(){
+                      const h = anchor.querySelector('.hidden-caption-content');
+                      if (h && h.innerHTML.trim()) return h.innerHTML;
+                      const img = anchor.querySelector('img');
+                      return (img && img.getAttribute('alt')) || anchor.getAttribute('data-pswp-caption') || '';
+                    })()
                 }));
                 openLightboxAt(idx);
             }
