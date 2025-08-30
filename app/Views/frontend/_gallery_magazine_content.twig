@@ -1,0 +1,132 @@
+{# Magazine Split gallery content (partial) #}
+{% macro pic(image, base_path, album) %}
+  <picture class="block w-full h-full">
+    {% if image.sources is defined and image.sources.avif is defined and image.sources.avif|length %}
+      <source type="image/avif" srcset="{% for s in image.sources.avif %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
+    {% endif %}
+    {% if image.sources is defined and image.sources.webp is defined and image.sources.webp|length %}
+      <source type="image/webp" srcset="{% for s in image.sources.webp %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
+    {% endif %}
+    {% if image.sources is defined and image.sources.jpg is defined and image.sources.jpg|length %}
+      <source type="image/jpeg" srcset="{% for s in image.sources.jpg %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw">
+    {% endif %}
+    {% set img_src = image.fallback_src|default(image.url) %}
+    <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+  </picture>
+{% endmacro %}
+
+{% import _self as G %}
+
+{% set col1 = [] %}{% set col2 = [] %}{% set col3 = [] %}
+{% for i, image in images %}
+  {% if i % 3 == 0 %}{% set col1 = col1|merge([image]) %}
+  {% elseif i % 3 == 1 %}{% set col2 = col2|merge([image]) %}
+  {% else %}{% set col3 = col3|merge([image]) %}
+  {% endif %}
+{% endfor %}
+
+{% set mag = template_settings.magazine|default({}) %}
+{% set durs = mag.durations|default([60,72,84]) %}
+{% set gap = mag.gap|default(20) %}
+
+<div class="relative pswp-gallery">
+  <div class="m-mobile-wrap" style="--m-duration: {{ durs[0]|default(60) }}s">
+    <div class="m-mobile">
+      <div class="m-mobile-track">
+        {% for image in images %}
+          <div class="m-cell">
+            <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
+              {{ G.pic(image, base_path, album) }}
+            </a>
+          </div>
+        {% endfor %}
+        {% for image in images %}
+          <div class="m-cell">
+            <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
+              {{ G.pic(image, base_path, album) }}
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="m-desktop-wrap gap-6 perspective" style="gap: {{ gap }}px">
+    {% set cols = [col1, col2, col3] %}
+    {% for col in cols %}
+      {% set idx = loop.index0 %}
+      {% set dur = durs[idx]|default(60) ~ 's' %}
+      {% set dir = idx == 1 ? 'up' : 'down' %}
+      <div class="m-col" data-direction="{{ dir }}" style="--m-duration: {{ dur }}; --m-delay: 0s;">
+        <div class="m-track">
+          {% for image in col %}
+            <div class="m-cell">
+              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
+                {{ G.pic(image, base_path, album) }}
+              </a>
+            </div>
+          {% endfor %}
+          {% for image in col %}
+            <div class="m-cell">
+              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}">
+                {{ G.pic(image, base_path, album) }}
+              </a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="pointer-events-none absolute inset-x-0 top-0 h-28 z-20 masonry-veil-top"></div>
+  <div class="pointer-events-none absolute inset-x-0 bottom-0 h-28 z-20 masonry-veil-bottom"></div>
+</div>
+
+<style>
+.m-mobile-wrap { display:block; }
+.m-desktop-wrap { display:none; }
+@media (min-width:768px){ .m-mobile-wrap { display:none !important; } .m-desktop-wrap { display:flex !important; } }
+.perspective { transform: perspective(1100px) rotateX(0.6deg); }
+.m-mobile { overflow: hidden; }
+.m-mobile-track { will-change: transform; animation: mScrollDown var(--m-duration) linear infinite; }
+.m-cell { break-inside: avoid; margin-bottom: 1.25rem; }
+.m-col { position: relative; flex: 1 1 0; height: 140vh; overflow: hidden; }
+.m-track { position: absolute; top: 0; left: 0; right: 0; will-change: transform; }
+.m-col .m-cell { margin-bottom: 1.25rem; }
+.m-item { width: 100%; height: 100%; transition: transform .28s cubic-bezier(.25,.8,.25,1), box-shadow .28s; }
+.m-item:hover { transform: translateZ(0) scale(1.012); box-shadow: 0 12px 28px rgba(0,0,0,.14); }
+.m-item img { backface-visibility: hidden; }
+.m-col[data-direction="down"] .m-track { animation: mScrollDown var(--m-duration) linear infinite; animation-delay: var(--m-delay); animation-play-state: running; }
+.m-col[data-direction="up"] .m-track { animation: mScrollUp var(--m-duration) linear infinite; animation-delay: var(--m-delay); animation-play-state: running; }
+@keyframes mScrollDown { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
+@keyframes mScrollUp   { 0% { transform: translateY(-50%); } 100% { transform: translateY(0); } }
+.masonry-veil-top { background: radial-gradient(120% 70% at 50% -20%, rgba(255,255,255,.34) 0%, rgba(255,255,255,.10) 40%, rgba(255,255,255,0) 72%); }
+.masonry-veil-bottom { background: radial-gradient(120% 70% at 50% 120%, rgba(255,255,255,.34) 0%, rgba(255,255,255,.10) 40%, rgba(255,255,255,0) 72%); }
+@media (max-width: 767px) { .perspective { transform: none; } }
+</style>
+
+<script>
+window.templateSettings = {{ template_settings|json_encode|raw }};
+</script>
+
+<script>
+// Ensure animations run (no pause on hover by default)
+try { document.querySelectorAll('.m-track').forEach(t => t.style.animationPlayState = 'running'); } catch(e){}
+
+// Minimal init hook: rely on global initLightbox if present
+try { if (typeof initLightbox === 'function') initLightbox(); } catch(e){}
+
+// Fallback: force inline animation on tracks in case CSS vars are ignored
+document.addEventListener('DOMContentLoaded', function(){
+  try {
+    document.querySelectorAll('.m-col').forEach(function(col){
+      var track = col.querySelector('.m-track');
+      if (!track) return;
+      var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
+      var dur = getComputedStyle(col).getPropertyValue('--m-duration').trim() || '60s';
+      var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
+      track.style.animation = anim;
+      track.style.animationPlayState = 'running';
+    });
+  } catch(e) { console.error(e); }
+});
+</script>
