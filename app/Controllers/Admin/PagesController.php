@@ -212,12 +212,8 @@ class PagesController extends BaseController
         if (!in_array($pageTemplate, ['classic','hero','magazine'], true)) { $pageTemplate = 'classic'; }
         $svc->set('gallery.page_template', $pageTemplate);
 
-        // Save default gallery template id (DB)
-        $defaultTemplateId = null;
-        if (isset($data['default_template_id']) && $data['default_template_id'] !== '' && $data['default_template_id'] !== '0') {
-            $defaultTemplateId = (int)$data['default_template_id'];
-        }
-        $svc->set('gallery.default_template_id', $defaultTemplateId);
+        // Default gallery template selector moved to global Settings page.
+        // Intentionally ignore any incoming default_template_id here to keep a single source of truth.
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Pagina Galleries salvata'];
         return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);

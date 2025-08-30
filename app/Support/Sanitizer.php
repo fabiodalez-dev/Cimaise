@@ -75,11 +75,5 @@ final class Sanitizer
                 }
             }
         }
-    }"\"])?.*?\1/i', '', $san ?? '');
-        $san = preg_replace('/(href|src)\s*=\s*(["\"])javascript:[^\2]*\2/i', '$1="#"', $san ?? '');
-        // Remove style attributes to keep design consistent
-        $san = preg_replace('/\sstyle\s*=\s*(["\"]).*?\1/i', '', $san ?? '');
-        return $san ?? '';
     }
 }
-
