@@ -16,6 +16,7 @@
 {% endmacro %}
 
 {% import _self as G %}
+{% import 'frontend/_caption.twig' as Caption %}
 
 {# Minimal caption + equipment (black text/icons) #}
 {% macro caption(image) %}
@@ -82,59 +83,15 @@
       <div class="m-mobile-track">
         {% for image in images %}
           <div class="m-cell">
-            <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="" data-pswp-index="{{ loop.index0 }}">
+            <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-pswp-index="{{ loop.index0 }}">
               {{ G.pic(image, base_path, album) }}
-              <div class="hidden-caption-content">{{ G.caption(image) }}</div>
             </a>
           </div>
         {% endfor %}
         {% for image in images %}
           <div class="m-cell">
-            <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}" data-pswp-index="{{ loop.index0 }}">
+            <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-pswp-index="{{ loop.index0 }}">
               {{ G.pic(image, base_path, album) }}
-              <div class="hidden-caption-content">
-                {% if image.caption %}
-                  <div class="caption-title">{{ image.caption|e }}</div>
-                {% endif %}
-                <div class="caption-metadata">
-                  {% if image.camera_make or image.camera_model or image.custom_camera %}
-                    <div class="metadata-item">
-                      <i class="fas fa-camera"></i>
-                      <span>{{ image.custom_camera|default((image.camera_make ~ ' ' ~ image.camera_model)|trim) }}</span>
-                    </div>
-                  {% endif %}
-                  {% if image.lens_brand or image.lens_model or image.custom_lens %}
-                    <div class="metadata-item">
-                      <i class="fas fa-eye"></i>
-                      <span>{{ image.custom_lens|default((image.lens_brand ~ ' ' ~ image.lens_model)|trim) }}</span>
-                    </div>
-                  {% endif %}
-                  {% if image.film_brand or image.film_name or image.custom_film %}
-                    <div class="metadata-item">
-                      <i class="fas fa-film"></i>
-                      <span>{{ image.custom_film|default((image.film_brand ~ ' ' ~ image.film_name)|trim) }}</span>
-                    </div>
-                  {% endif %}
-                  {% if image.location_name %}
-                    <div class="metadata-item">
-                      <i class="fas fa-map-marker-alt"></i>
-                      <span>{{ image.location_name }}</span>
-                    </div>
-                  {% endif %}
-                  {% if image.iso or image.shutter_speed or image.aperture %}
-                    <div class="metadata-item">
-                      <i class="fas fa-cog"></i>
-                      <span>
-                        {% set settings = [] %}
-                        {% if image.iso %}{% set settings = settings|merge(['ISO ' ~ image.iso]) %}{% endif %}
-                        {% if image.shutter_speed %}{% set settings = settings|merge([image.shutter_speed]) %}{% endif %}
-                        {% if image.aperture %}{% set settings = settings|merge(['f/' ~ image.aperture]) %}{% endif %}
-                        {{ settings|join(' • ') }}
-                      </span>
-                    </div>
-                  {% endif %}
-                </div>
-              </div>
             </a>
           </div>
         {% endfor %}
@@ -153,15 +110,14 @@
         <div class="m-track">
           {% for image in col %}
             <div class="m-cell">
-              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
                 {{ G.pic(image, base_path, album) }}
-                <div class="hidden-caption-content">{{ G.caption(image) }}</div>
               </a>
             </div>
           {% endfor %}
           {% for image in col %}
             <div class="m-cell">
-              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
                 {{ G.pic(image, base_path, album) }}
               </a>
             </div>
@@ -190,7 +146,7 @@
           {% endfor %}
           {% for image in col %}
             <div class="m-cell">
-              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+              <a href="{{ image.lightbox_url|default(image.url) }}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
                 {{ G.pic(image, base_path, album) }}
               </a>
             </div>
