@@ -100,6 +100,33 @@
           </div>
         </div>
 
+        {% if item.id == 9 %}
+        <div class="card p-6">
+          <h2 class="text-lg font-medium text-gray-900 mb-4">Impostazioni Magazine Split</h2>
+          <p class="text-sm text-gray-600 mb-4">Scorrimento verticale continuo di 3 colonne. Configura durate e gap.</p>
+          {% set mag = item.settings.magazine|default({}) %}
+          {% set durs = mag.durations|default([60,72,84]) %}
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Durata Colonna 1 (s)</label>
+              <input class="form-input" type="number" name="mag_duration_1" min="10" max="300" step="1" value="{{ durs[0]|default(60) }}">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Durata Colonna 2 (s)</label>
+              <input class="form-input" type="number" name="mag_duration_2" min="10" max="300" step="1" value="{{ durs[1]|default(72) }}">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Durata Colonna 3 (s)</label>
+              <input class="form-input" type="number" name="mag_duration_3" min="10" max="300" step="1" value="{{ durs[2]|default(84) }}">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Gap (px)</label>
+              <input class="form-input" type="number" name="mag_gap" min="0" max="80" step="1" value="{{ mag.gap|default(20) }}">
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
         <div class="card p-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">Impostazioni PhotoSwipe</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

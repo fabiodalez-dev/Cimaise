@@ -708,9 +708,16 @@ class PageController extends BaseController
             }
 
             // Render only the gallery part (not the full page)
-            return $this->view->render($response, 'frontend/_gallery_content.twig', [
+            $partial = 'frontend/_gallery_content.twig';
+            try {
+                if ((int)($template['id'] ?? 0) === 9 || (($template['slug'] ?? '') === 'magazine-split')) {
+                    $partial = 'frontend/_gallery_magazine_content.twig';
+                }
+            } catch (\Throwable) {}
+            return $this->view->render($response, $partial, [
                 'images' => $images,
-                'template_settings' => $templateSettings
+                'template_settings' => $templateSettings,
+                'album' => [ 'title' => $album['title'] ?? '', 'excerpt' => $album['excerpt'] ?? '' ],
             ]);
             
         } catch (\Throwable $e) {
