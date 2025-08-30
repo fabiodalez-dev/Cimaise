@@ -112,6 +112,20 @@ class TemplatesController extends BaseController
             ]
         ];
 
+        // Magazine-specific settings for template id 9
+        if ($id === 9) {
+            $magDur1 = (int)($data['mag_duration_1'] ?? 60);
+            $magDur2 = (int)($data['mag_duration_2'] ?? 72);
+            $magDur3 = (int)($data['mag_duration_3'] ?? 84);
+            $magGap = (int)($data['mag_gap'] ?? 20);
+            $settings['layout'] = $data['layout'] ?? 'magazine';
+            $settings['masonry'] = true;
+            $settings['magazine'] = [
+                'durations' => [max(10,$magDur1), max(10,$magDur2), max(10,$magDur3)],
+                'gap' => max(0, min(80, $magGap)),
+            ];
+        }
+
         $libs = ['photoswipe'];
         if ($settings['masonry']) {
             $libs[] = 'masonry';
