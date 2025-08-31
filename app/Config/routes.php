@@ -432,6 +432,11 @@ $app->post('/admin/categories/{id}', function (Request $request, Response $respo
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->update($request, $response, $args);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->put('/admin/categories/{id}', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
+    return $controller->update($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/categories/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\CategoriesController($container['db'], Twig::fromRequest($request));
     return $controller->delete($request, $response, $args);
