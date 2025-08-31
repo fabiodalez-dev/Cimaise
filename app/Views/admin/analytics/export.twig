@@ -253,20 +253,43 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create export URL
     const exportUrl = `{{ base_path }}/admin/analytics/export?${params.toString()}`;
     
-    // Trigger download
-    window.location.href = exportUrl;
+    // Trigger download via AJAX to avoid page navigation
+    fetch(exportUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Export failed');
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = getFileName(params);
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      })
+      .catch(error => {
+        console.error('Export error:', error);
+        // Fallback to direct download
+        window.location.href = exportUrl;
+      })
+      .finally(() => {
+        // Reset button
+        const button = form.querySelector('button[type="submit"]');
+        const originalText = button.innerHTML;
+        button.innerHTML = originalText;
+        button.disabled = false;
+      });
     
     // Show feedback
     const button = form.querySelector('button[type="submit"]');
     const originalText = button.innerHTML;
     button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
     button.disabled = true;
-    
-    // Reset button after delay
-    setTimeout(() => {
-      button.innerHTML = originalText;
-      button.disabled = false;
-    }, 3000);
   });
   
   // Update format options based on data type
@@ -284,6 +307,87 @@ document.addEventListener('DOMContentLoaded', function() {
       // Raw data types work well with CSV
       formatInputs[0].checked = true; // CSV
     }
+  });
+  
+  // Generate filename based on export parameters
+  function getFileName(params) {
+    const type = params.get('type') || 'data';
+    const format = params.get('format') || 'csv';
+    const startDate = params.get('start_date') || 'start';
+    const endDate = params.get('end_date') || 'end';
+    
+    // Format dates to YYYY-MM-DD
+    const startDateFormatted = startDate.replace(/-/g, '');
+    const endDateFormatted = endDate.replace(/-/g, '');
+    
+    return `analytics_${type}_${startDateFormatted}_to_${endDateFormatted}.${format}`;
+  }
+});
+
+// Also handle quick export links with AJAX
+document.addEventListener('DOMContentLoaded', function() {
+  const quickExportLinks = document.querySelectorAll('a[href*="/admin/analytics/export"]');
+  
+  quickExportLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      const exportUrl = this.href;
+      
+      // Show loading state
+      const originalText = this.innerHTML;
+      this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Loading...';
+      const originalClasses = this.className;
+      this.className = originalClasses.replace('btn-secondary', 'btn-primary');
+      
+      // Trigger download via AJAX
+      fetch(exportUrl)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Export failed');
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          // Extract filename from Content-Disposition header or URL
+          const contentDisposition = response.headers.get('Content-Disposition');
+          let filename = 'analytics_export';
+          
+          if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['\"]).*?\2|[^;\n]*)/);
+            if (filenameMatch && filenameMatch[1]) {
+              filename = filenameMatch[1].replace(/['"]/g, '');
+            }
+          } else {
+            // Fallback to URL-based filename
+            const url = new URL(exportUrl);
+            const params = new URLSearchParams(url.search);
+            const type = params.get('type') || 'data';
+            const format = params.get('format') || 'csv';
+            filename = `analytics_${type}_export.${format}`;
+          }
+          
+          // Create download link
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        })
+        .catch(error => {
+          console.error('Export error:', error);
+          // Fallback to direct download
+          window.location.href = exportUrl;
+        })
+        .finally(() => {
+          // Reset button
+          this.innerHTML = originalText;
+          this.className = originalClasses;
+        });
+    });
   });
 });
 </script>

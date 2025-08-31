@@ -543,9 +543,9 @@ class AnalyticsService
 
             // Generate CSV
             $output = fopen('php://temp', 'r+');
-            fputcsv($output, $headers);
+            fputcsv($output, $headers, ',', '"', '\\');
             foreach ($data as $row) {
-                fputcsv($output, $row);
+                fputcsv($output, $row, ',', '"', '\\');
             }
             rewind($output);
             $csv = stream_get_contents($output);
