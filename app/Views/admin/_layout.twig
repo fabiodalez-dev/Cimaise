@@ -808,9 +808,57 @@
             
             setTimeout(() => {
               pageContent.innerHTML = content.innerHTML;
-              
+
+              // Execute inline scripts from the loaded content (so pageInitializers/openImageModal get defined)
+              try {
+                const scripts = Array.from(content.querySelectorAll('script'));
+                for (const s of scripts) {
+                  const sc = document.createElement('script');
+                  // Preserve type/module if present
+                  if (s.type) sc.type = s.type;
+                  // Avoid reloading main admin bundle
+                  const src = s.getAttribute('src');
+                  if (src) {
+                    if (src.includes('/assets/admin.js')) continue;
+                    sc.src = src;
+                    sc.async = false;
+                  } else {
+                    sc.text = s.textContent || '';
+                  }
+                  document.body.appendChild(sc);
+                  // Clean up script tag after execution to avoid clutter
+                  setTimeout(() => sc.remove(), 0);
+                }
+              } catch (e) {
+                console.warn('SPA: Failed executing inline scripts', e);
+              }
+
               // Reinitialize any JavaScript that might be needed
               initializePageScripts();
+
+              // Safety fallback: if critical initializers did not attach, force a full reload
+              try {
+                const href = url;
+                const needsAlbumModal = pageContent.querySelector('#images-grid');
+                const needsCategoriesDnD = pageContent.querySelector('#categories-container');
+                let fallback = false;
+                if (needsAlbumModal && typeof window.openImageModal !== 'function') {
+                  console.warn('SPA: openImageModal missing after init, forcing full reload');
+                  fallback = true;
+                }
+                if (needsCategoriesDnD) {
+                  // Heuristic: Sortable usually registers instances; if none, fallback
+                  const hasSortable = Array.isArray(window.sortableInstances) && window.sortableInstances.length > 0;
+                  if (!hasSortable) {
+                    console.warn('SPA: Sortable not initialized, forcing full reload');
+                    fallback = true;
+                  }
+                }
+                if (fallback) {
+                  window.location.href = href;
+                  return; // stop further processing
+                }
+              } catch (e) { /* ignore */ }
               
               // Fade in new content
               pageContent.style.opacity = '1';

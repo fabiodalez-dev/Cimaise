@@ -13,6 +13,10 @@ class PhotoCMSAnalytics {
             ...options
         };
 
+        // Guard state to auto-disable after repeated failures
+        this.failureCount = 0;
+        this.disabled = false;
+
         this.sessionId = this.generateSessionId();
         this.startTime = Date.now();
         this.lastActivity = Date.now();
@@ -25,6 +29,18 @@ class PhotoCMSAnalytics {
      * Initialize tracking
      */
     init() {
+        // Quick health check to avoid noisy errors if endpoint is misrouted
+        try {
+            fetch(this.options.endpoint.replace(/\/track$/, '/ping'), { method: 'GET', cache: 'no-store' })
+                .then(r => {
+                    if (!r.ok && r.status !== 204) {
+                        this.disabled = true;
+                        this.log('Analytics disabled: ping failed', { status: r.status });
+                    }
+                })
+                .catch(() => { this.disabled = true; });
+        } catch(e) {}
+
         if (this.options.trackPageViews) {
             this.trackPageView();
         }
@@ -242,7 +258,9 @@ class PhotoCMSAnalytics {
      * Bind page unload events
      */
     bindUnloadEvents() {
+        const self = this;
         const sendFinalData = () => {
+            if (self.disabled) return;
             const timeOnPage = Date.now() - this.startTime;
             const data = {
                 type: 'page_end',
@@ -289,6 +307,7 @@ class PhotoCMSAnalytics {
      */
     async sendData(data) {
         try {
+            if (this.disabled) return;
             const response = await fetch(this.options.endpoint, {
                 method: 'POST',
                 headers: {
@@ -299,7 +318,19 @@ class PhotoCMSAnalytics {
             });
 
             if (!response.ok) {
+                // Increase failure count on 4xx/5xx; auto-disable after 2 failures
+                this.failureCount += 1;
+                if (this.failureCount >= 2) {
+                    this.disabled = true;
+                    this.options.trackEvents = false;
+                    if (this.timeOnPageInterval) { clearInterval(this.timeOnPageInterval); this.timeOnPageInterval = null; }
+                    this.log('Analytics disabled after repeated errors', { status: response.status });
+                    return;
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
+            } else {
+                // Reset failures on success
+                this.failureCount = 0;
             }
 
             this.log('Data sent successfully', data);

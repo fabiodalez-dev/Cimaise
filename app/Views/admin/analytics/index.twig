@@ -484,7 +484,7 @@ new Chart(deviceCtx, {
 // Browser Chart
 const browserCtx = document.getElementById('browserChart').getContext('2d');
 new Chart(browserCtx, {
-  type: 'horizontalBar',
+  type: 'bar',
   data: {
     labels: chartsData.browsers.map(item => item.browser),
     datasets: [{
