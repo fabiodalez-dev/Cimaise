@@ -809,60 +809,61 @@
             setTimeout(() => {
               pageContent.innerHTML = content.innerHTML;
 
-              // Execute inline scripts from the loaded content (so pageInitializers/openImageModal get defined)
-              try {
-                const scripts = Array.from(content.querySelectorAll('script'));
-                for (const s of scripts) {
-                  const sc = document.createElement('script');
-                  // Preserve type/module if present
-                  if (s.type) sc.type = s.type;
-                  // Avoid reloading main admin bundle
-                  const src = s.getAttribute('src');
-                  if (src) {
-                    if (src.includes('/assets/admin.js')) continue;
-                    sc.src = src;
-                    sc.async = false;
-                  } else {
-                    sc.text = s.textContent || '';
+              // Execute scripts from the loaded content in order, wait for externals, then init
+              (async () => {
+                try {
+                  const scripts = Array.from(content.querySelectorAll('script'));
+                  for (const s of scripts) {
+                    const sc = document.createElement('script');
+                    if (s.type) sc.type = s.type;
+                    const src = s.getAttribute('src');
+                    if (src) {
+                      if (src.includes('/assets/admin.js')) continue; // skip main bundle
+                      sc.src = src;
+                      sc.async = false;
+                      const done = new Promise(resolve => {
+                        sc.onload = () => resolve();
+                        sc.onerror = () => resolve(); // continue on error
+                      });
+                      document.body.appendChild(sc);
+                      await done;
+                      setTimeout(() => sc.remove(), 0);
+                    } else {
+                      sc.text = s.textContent || '';
+                      document.body.appendChild(sc);
+                      setTimeout(() => sc.remove(), 0);
+                    }
                   }
-                  document.body.appendChild(sc);
-                  // Clean up script tag after execution to avoid clutter
-                  setTimeout(() => sc.remove(), 0);
+                } catch (e) {
+                  // Keep going even if some inline scripts fail
                 }
-              } catch (e) {
-                console.warn('SPA: Failed executing inline scripts', e);
-              }
 
-              // Reinitialize any JavaScript that might be needed
-              initializePageScripts();
+                // Reinitialize any JavaScript that might be needed
+                initializePageScripts();
 
-              // Safety fallback: if critical initializers did not attach, force a full reload
-              try {
-                const href = url;
-                const needsAlbumModal = pageContent.querySelector('#images-grid');
-                const needsCategoriesDnD = pageContent.querySelector('#categories-container');
-                let fallback = false;
-                if (needsAlbumModal && typeof window.openImageModal !== 'function') {
-                  console.warn('SPA: openImageModal missing after init, forcing full reload');
-                  fallback = true;
-                }
-                if (needsCategoriesDnD) {
-                  // Heuristic: Sortable usually registers instances; if none, fallback
-                  const hasSortable = Array.isArray(window.sortableInstances) && window.sortableInstances.length > 0;
-                  if (!hasSortable) {
-                    console.warn('SPA: Sortable not initialized, forcing full reload');
+                // Safety fallback: if critical initializers did not attach, force a full reload
+                try {
+                  const href = url;
+                  const needsAlbumModal = pageContent.querySelector('#images-grid');
+                  const needsCategoriesDnD = pageContent.querySelector('#categories-container');
+                  let fallback = false;
+                  if (needsAlbumModal && typeof window.openImageModal !== 'function') {
                     fallback = true;
                   }
-                }
-                if (fallback) {
-                  window.location.href = href;
-                  return; // stop further processing
-                }
-              } catch (e) { /* ignore */ }
-              
-              // Fade in new content
-              pageContent.style.opacity = '1';
-              hideLoading();
+                  if (needsCategoriesDnD) {
+                    const hasSortable = Array.isArray(window.sortableInstances) && window.sortableInstances.length > 0;
+                    if (!hasSortable) fallback = true;
+                  }
+                  if (fallback) {
+                    window.location.href = href;
+                    return;
+                  }
+                } catch (e) {}
+
+                // Fade in new content
+                pageContent.style.opacity = '1';
+                hideLoading();
+              })();
             }, 150);
           } else {
             throw new Error('Could not find content in response');
@@ -894,12 +895,7 @@
 
         // Call global admin initializer for widgets (TomSelect, Uppy, Sortable, etc.)
         if (window.AdminInit) {
-          try { 
-            window.AdminInit(); 
-            console.log('SPA: AdminInit completed successfully');
-          } catch(e) { 
-            console.error('SPA: AdminInit failed', e); 
-          }
+          try { window.AdminInit(); } catch(e) { console.error('Admin init failed', e); }
         } else {
           console.warn('SPA: AdminInit function not found');
         }
@@ -910,7 +906,7 @@
         // Call page-specific initializers based on current page
         initPageSpecificInitializers();
         
-        console.log('SPA: Page scripts initialization completed');
+        
       }
       
       // Initialize page-specific components
@@ -942,7 +938,7 @@
         if (typeof window.cleanupRealTimeAnalytics === 'function' && 
             window.currentPageType === 'analytics-realtime' &&
             !window.location.pathname.includes('/admin/analytics/realtime')) {
-          console.log('SPA: Cleaning up real-time analytics...');
+          
           window.cleanupRealTimeAnalytics();
           window.currentPageType = null;
         }
@@ -960,7 +956,7 @@
           if (currentPath.includes('/admin/seo') && window.pageInitializers.seo) {
             try {
               window.pageInitializers.seo();
-              console.log('SPA: SEO page initializer called');
+              
             } catch(e) {
               console.error('SPA: SEO page initializer failed', e);
             }
@@ -970,7 +966,7 @@
           if (currentPath.includes('/admin/analytics') && window.pageInitializers.analytics) {
             try {
               window.pageInitializers.analytics();
-              console.log('SPA: Analytics page initializer called');
+              
             } catch(e) {
               console.error('SPA: Analytics page initializer failed', e);
             }
@@ -980,7 +976,7 @@
           if (currentPath === '/admin/albums' && window.pageInitializers.albumsIndex) {
             try {
               window.pageInitializers.albumsIndex();
-              console.log('SPA: Albums index page initializer called');
+              
             } catch(e) {
               console.error('SPA: Albums index page initializer failed', e);
             }
@@ -990,7 +986,7 @@
           if (currentPath.includes('/admin/albums/') && currentPath.includes('/edit') && window.pageInitializers.albums) {
             try {
               window.pageInitializers.albums();
-              console.log('SPA: Albums edit page initializer called');
+              
             } catch(e) {
               console.error('SPA: Albums edit page initializer failed', e);
             }
@@ -1000,7 +996,7 @@
           if (currentPath.includes('/admin/albums/create') && window.pageInitializers.albumsCreate) {
             try {
               window.pageInitializers.albumsCreate();
-              console.log('SPA: Album create page initializer called');
+              
             } catch(e) {
               console.error('SPA: Album create page initializer failed', e);
             }
@@ -1010,7 +1006,7 @@
           if (currentPath.includes('/admin/settings') && window.pageInitializers.settings) {
             try {
               window.pageInitializers.settings();
-              console.log('SPA: Settings page initializer called');
+              
             } catch(e) {
               console.error('SPA: Settings page initializer failed', e);
             }
@@ -1117,6 +1113,30 @@
       // Add smooth transition to page content
       pageContent.style.transition = 'opacity 0.15s ease-in-out';
     });
+  </script>
+  <script>
+    // Suppress verbose SPA/admin debug logs without affecting errors
+    (function(){
+      var origLog = console.log;
+      var patterns = [
+        /^SPA:\s*/i,
+        /^AdminInit:/i,
+        /Cleanup completed successfully/i,
+        /Initializing TomSelects/i,
+        /Initializing Sortable/i,
+        /No images-grid/i,
+        /Initializing TinyMCE/i,
+        /No richtext areas/i,
+        /completed successfully$/i
+      ];
+      console.log = function(){
+        try {
+          var str = Array.prototype.join.call(arguments, ' ');
+          for (var i=0;i<patterns.length;i++) if (patterns[i].test(str)) return;
+        } catch(e){}
+        return origLog.apply(console, arguments);
+      };
+    })();
   </script>
   <script type="module" src="{{ base_path }}/assets/admin.js"></script>
 </body>
