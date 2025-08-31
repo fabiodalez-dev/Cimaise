@@ -702,6 +702,11 @@ $app->post('/api/analytics/track', function (Request $request, Response $respons
     return $controller->track($request, $response);
 });
 
+// Lightweight health check to verify routing in subdirectories
+$app->get('/api/analytics/ping', function (Request $request, Response $response) {
+    return $response->withStatus(204);
+});
+
 // Frontend API (public)
 $app->get('/api/albums', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Frontend\ApiController($container['db'], Twig::fromRequest($request));
