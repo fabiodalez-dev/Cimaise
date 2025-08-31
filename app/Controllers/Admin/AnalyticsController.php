@@ -149,7 +149,8 @@ class AnalyticsController
     public function export(Request $request, Response $response): Response
     {
         // If GET request, show export page
-        if ($request->getMethod() === 'GET' && !$request->getQueryParam('type')) {
+        $queryParams = $request->getQueryParams();
+        if ($request->getMethod() === 'GET' && !isset($queryParams['type'])) {
             return $this->twig->render($response, 'admin/analytics/export.twig', [
                 'csrf' => $_SESSION['csrf'] ?? ''
             ]);
@@ -289,13 +290,18 @@ class AnalyticsController
         $body = $request->getBody()->getContents();
         $data = json_decode($body, true);
         
+        // Even if data is empty or invalid, return 204 to avoid browser errors
         if (!$data) {
-            return $response->withStatus(400);
+            return $response->withStatus(204);
         }
 
         try {
             switch ($data['type'] ?? '') {
                 case 'pageview':
+                    // Track 404 pages specifically
+                    if (!empty($data['is_404']) || ($data['page_type'] ?? '') === '404') {
+                        $data['page_type'] = '404';
+                    }
                     $this->analytics->trackPageView($data);
                     break;
                     
@@ -327,6 +333,7 @@ class AnalyticsController
         } catch (\Exception $e) {
             error_log('Analytics tracking error: ' . $e->getMessage());
             // Return 204 instead of 500 to avoid breaking frontend functionality
+            // Even in case of errors, we don't want the browser to show network errors
             return $response->withStatus(204);
         }
     }

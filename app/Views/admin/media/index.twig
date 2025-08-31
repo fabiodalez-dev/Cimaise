@@ -11,11 +11,11 @@
     </form>
   </div>
 
-  <div class="flex gap-6 min-h-screen">
-    <!-- Main content area -->
-    <div class="flex-1">
+  <div class="flex gap-6 min-h-screen flex-col lg:flex-row">
+    <!-- Main content area - larger on desktop -->
+    <div class="flex-1 lg:flex-[3]">
       <!-- Toolbar -->
-      <div class="flex items-center justify-between mb-4 bg-white rounded-lg border border-gray-200 px-4 py-3">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 bg-white rounded-lg border border-gray-200 px-4 py-3">
         <div class="flex items-center gap-4">
           <label class="inline-flex items-center gap-2 text-sm font-medium">
             <input type="checkbox" id="media-select-all" class="rounded border-gray-300 text-black focus:ring-black">
@@ -23,19 +23,21 @@
           </label>
           <div class="text-sm text-gray-500" id="total-count">{{ items|length }} elementi</div>
         </div>
-        <div class="flex items-center gap-2">
-          <select id="media-attach-album" class="form-input text-sm">
+        <div class="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 w-full sm:w-auto">
+          <select id="media-attach-album" class="form-input text-sm min-w-0 sm:min-w-[200px] w-full sm:w-auto">
             <option value="">— Aggiungi ad album —</option>
             {% for a in albums %}
               <option value="{{ a.id }}">{{ a.title }}</option>
             {% endfor %}
           </select>
-          <button id="media-attach-btn" class="btn-primary text-sm" disabled>
-            <i class="fas fa-plus mr-1"></i>Aggiungi
-          </button>
-          <button id="media-delete-btn" class="btn-outline-danger text-sm" disabled>
-            <i class="fas fa-trash mr-1"></i>Elimina
-          </button>
+          <div class="flex gap-2 w-full sm:w-auto">
+            <button id="media-attach-btn" class="btn-primary text-sm flex-1 sm:flex-none" disabled>
+              <i class="fas fa-plus mr-1"></i>Aggiungi
+            </button>
+            <button id="media-delete-btn" class="btn-outline-danger text-sm flex-1 sm:flex-none" disabled>
+              <i class="fas fa-trash mr-1"></i>Elimina
+            </button>
+          </div>
         </div>
       </div>
 
@@ -44,10 +46,10 @@
     </div>
 
     <!-- Sidebar for image details -->
-    <div id="media-sidebar" class="w-80 bg-white rounded-lg border border-gray-200 hidden flex-shrink-0">
+    <div id="media-sidebar" class="w-full lg:w-96 bg-white rounded-lg border border-gray-200 hidden flex-shrink-0 max-w-full flex-col">
       <div class="p-4 border-b border-gray-200 relative">
-        <h3 class="font-semibold text-gray-900">Dettagli Immagine</h3>
-        <button id="sidebar-close" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+        <h3 class="font-semibold text-gray-900 mb-4">Dettagli Immagine</h3>
+        <button id="sidebar-close" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100" type="button">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -82,10 +84,10 @@
           <div class="border-t pt-4">
             <h4 class="font-medium text-gray-900 mb-3">Metadati Fotografici</h4>
             
-            <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-3">
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Camera</label>
-                <select name="camera_id" id="sidebar-camera" class="form-input text-sm">
+                <select name="camera_id" id="sidebar-camera" class="form-input text-sm w-full">
                   <option value="">—</option>
                   {% for camera in cameras %}
                     <option value="{{ camera.id }}">{{ camera.make }} {{ camera.model }}</option>
@@ -95,7 +97,7 @@
               
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Lens</label>
-                <select name="lens_id" id="sidebar-lens" class="form-input text-sm">
+                <select name="lens_id" id="sidebar-lens" class="form-input text-sm w-full">
                   <option value="">—</option>
                   {% for lens in lenses %}
                     <option value="{{ lens.id }}">{{ lens.brand }} {{ lens.model }}</option>
@@ -105,7 +107,7 @@
 
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Film</label>
-                <select name="film_id" id="sidebar-film" class="form-input text-sm">
+                <select name="film_id" id="sidebar-film" class="form-input text-sm w-full">
                   <option value="">—</option>
                   {% for film in films %}
                     <option value="{{ film.id }}">{{ film.brand }} {{ film.name }}</option>
@@ -115,7 +117,7 @@
 
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Developer</label>
-                <select name="developer_id" id="sidebar-developer" class="form-input text-sm">
+                <select name="developer_id" id="sidebar-developer" class="form-input text-sm w-full">
                   <option value="">—</option>
                   {% for dev in developers %}
                     <option value="{{ dev.id }}">{{ dev.name }}</option>
@@ -125,7 +127,7 @@
 
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Lab</label>
-                <select name="lab_id" id="sidebar-lab" class="form-input text-sm">
+                <select name="lab_id" id="sidebar-lab" class="form-input text-sm w-full">
                   <option value="">—</option>
                   {% for lab in labs %}
                     <option value="{{ lab.id }}">{{ lab.name }}</option>
@@ -135,7 +137,7 @@
 
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Location</label>
-                <select name="location_id" id="sidebar-location" class="form-input text-sm">
+                <select name="location_id" id="sidebar-location" class="form-input text-sm w-full">
                   <option value="">—</option>
                   {% for loc in locations %}
                     <option value="{{ loc.id }}">{{ loc.name }}</option>
@@ -144,18 +146,18 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-2 mt-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">ISO</label>
-                <input type="number" name="iso" id="sidebar-iso" class="form-input text-sm">
+                <input type="number" name="iso" id="sidebar-iso" class="form-input text-sm w-full">
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Shutter</label>
-                <input type="text" name="shutter_speed" id="sidebar-shutter" class="form-input text-sm" placeholder="1/125">
+                <input type="text" name="shutter_speed" id="sidebar-shutter" class="form-input text-sm w-full" placeholder="1/125">
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Aperture</label>
-                <input type="number" step="0.1" name="aperture" id="sidebar-aperture" class="form-input text-sm" placeholder="2.8">
+                <input type="number" step="0.1" name="aperture" id="sidebar-aperture" class="form-input text-sm w-full" placeholder="2.8">
               </div>
             </div>
           </div>
@@ -247,6 +249,7 @@
       function openSidebar(imageId, cardElement) {
         currentImageId = imageId;
         sidebar.classList.remove('hidden');
+        sidebar.classList.add('flex');
         
         // Get image data from card attributes
         const img = cardElement.querySelector('img');
@@ -286,10 +289,52 @@
         document.getElementById('sidebar-aperture').value = cardElement.getAttribute('data-aperture') || '';
       }
 
-      // Close sidebar
-      sidebarClose?.addEventListener('click', () => {
-        sidebar.classList.add('hidden');
-        currentImageId = null;
+      // Close sidebar function
+      function closeSidebar() {
+        if (sidebar) {
+          sidebar.classList.add('hidden');
+          sidebar.classList.remove('flex');
+          currentImageId = null;
+        }
+      }
+
+      // Close sidebar events
+      if (sidebarClose) {
+        // Remove any existing event listeners to prevent duplicates
+        const newCloseButton = sidebarClose.cloneNode(true);
+        sidebarClose.parentNode.replaceChild(newCloseButton, sidebarClose);
+        newCloseButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeSidebar();
+        });
+      }
+      
+      // Close sidebar when clicking outside
+      document.addEventListener('click', (e) => {
+        // Handle direct clicks on close button
+        if (e.target.closest('#sidebar-close')) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeSidebar();
+          return;
+        }
+        
+        // Close sidebar when clicking outside
+        if (sidebar && !sidebar.classList.contains('hidden') && 
+            !sidebar.contains(e.target) && 
+            e.target !== sidebar &&
+            !e.target.closest('[data-media-id]') &&
+            !e.target.closest('#sidebar-close')) {
+          closeSidebar();
+        }
+      });
+      
+      // Close sidebar with Escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar && !sidebar.classList.contains('hidden')) {
+          closeSidebar();
+        }
       });
 
       // Sidebar form submission
@@ -400,4 +445,29 @@
       updateSelectionUI();
     })();
   </script>
+  <style>
+    #media-sidebar {
+      flex-direction: column !important;
+    }
+    
+    /* Ensure proper z-index for close button */
+    #sidebar-close {
+      z-index: 10;
+      position: absolute !important;
+    }
+    
+    /* Fix for mobile responsiveness */
+    @media (max-width: 1023px) {
+      #media-sidebar {
+        position: fixed !important;
+        top: 1rem !important;
+        right: 1rem !important;
+        left: 1rem !important;
+        bottom: 1rem !important;
+        z-index: 1000 !important;
+        height: auto !important;
+        max-height: calc(100vh - 2rem) !important;
+      }
+    }
+  </style>
 {% endblock %}

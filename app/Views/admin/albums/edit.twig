@@ -10,7 +10,7 @@
           <h1 class="text-3xl font-bold text-black">Modifica Album</h1>
           <p class="text-gray-600 mt-1">Aggiorna le informazioni e gestisci le immagini</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <a href="{{ base_path }}/admin/albums" class="btn-secondary" data-spa-link>
             <i class="fas fa-arrow-left mr-2"></i>
             Torna agli album
@@ -383,15 +383,15 @@
               <p class="text-gray-600 text-sm mt-1">Data, template e visibilità</p>
             </div>
             <div class="p-6 space-y-4">
-              <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-black mb-2">Data scatto</label>
-                  <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                  <input class="form-input border-gray-300 focus:border-black focus:ring-black w-full" 
                          type="date" name="shoot_date" value="{{ item.shoot_date }}">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-black mb-2">Ordine</label>
-                  <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                  <input class="form-input border-gray-300 focus:border-black focus:ring-black w-full" 
                          type="number" name="sort_order" value="{{ item.sort_order }}" 
                          placeholder="0">
                 </div>
