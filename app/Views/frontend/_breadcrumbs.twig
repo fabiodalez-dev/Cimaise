@@ -1,0 +1,74 @@
+{# Simple, subdirectory-safe breadcrumbs renderer + JSON-LD #}
+{% set items = [] %}
+
+{# Home always #}
+{% set items = items|merge([{ label: 'Home', url: '/' }]) %}
+
+{# Category page #}
+{% if category is defined and category.slug is defined %}
+  {% set items = items|merge([{ label: category.name, url: '/category/' ~ category.slug }]) %}
+{% endif %}
+
+{# Tag page #}
+{% if tag is defined and tag.slug is defined %}
+  {% set items = items|merge([{ label: '#' ~ tag.name, url: '/tag/' ~ tag.slug }]) %}
+{% endif %}
+
+{# Album page #}
+{% if album is defined and album.title is defined and (album.category is defined and album.category.slug is defined) %}
+  {# Ensure category breadcrumb appears before album if not already added #}
+  {% if items|length == 1 %}
+    {% set items = items|merge([{ label: album.category.name, url: '/category/' ~ album.category.slug }]) %}
+  {% endif %}
+  {% set items = items|merge([{ label: album.title, url: canonical_url|default(current_url)|default('') }]) %}
+{% endif %}
+
+{# About page #}
+{% if about_title is defined and about_title %}
+  {% set items = items|merge([{ label: about_title, url: canonical_url|default(current_url)|default('/about') }]) %}
+{% endif %}
+
+{# Fallback: if we only have Home and a page_title, add it as current #}
+{% if items|length == 1 and page_title is defined and page_title %}
+  {% set items = items|merge([{ label: page_title, url: canonical_url|default(current_url)|default('') }]) %}
+{% endif %}
+
+<nav aria-label="Breadcrumb" class="text-sm text-neutral-600">
+  <ol class="flex flex-wrap items-center gap-2">
+    {% for it in items %}
+      <li class="flex items-center">
+        {% if loop.first == false %}<span class="mx-2 text-neutral-400">›</span>{% endif %}
+        {% if it.url %}
+          {% if it.url starts with '/' %}
+            <a href="{{ base_path }}{{ it.url }}" class="hover:text-black">{{ it.label|e }}</a>
+          {% else %}
+            <a href="{{ it.url }}" class="hover:text-black">{{ it.label|e }}</a>
+          {% endif %}
+        {% else %}
+          <span>{{ it.label|e }}</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</nav>
+
+{# JSON-LD BreadcrumbList #}
+{% if items|length > 1 %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {% for it in items %}
+      {
+        "@type": "ListItem",
+        "position": {{ loop.index }},
+        "name": {{ it.label|json_encode|raw }},
+        "item": {{ (it.url starts with('/') ? (canonical_base|default('') ~ it.url) : it.url)|json_encode|raw }}
+      }{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endif %}
+

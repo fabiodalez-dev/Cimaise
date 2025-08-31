@@ -301,9 +301,9 @@
                 <div class="category-name">{{ category.name }}</div>
                 
                 <div class="category-actions">
-                  <a class="action-btn edit" data-edit="{{ category.id }}" title="Quick Edit" href="{{ base_path }}/admin/categories/{{ category.id }}/edit">
+                  <button class="action-btn edit" data-edit="{{ category.id }}" title="Quick Edit">
                     <i class="fas fa-edit"></i>
-                  </a>
+                  </button>
                   <form method="post" action="{{ base_path }}/admin/categories/{{ category.id }}/delete" class="inline" onsubmit="return confirm('Delete this category?')">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
                     <button class="action-btn delete" title="Delete">
@@ -453,6 +453,7 @@
 
         <form id="modal-cat-form" method="post" action="#" enctype="multipart/form-data">
           <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="_method" value="PUT">
           <input type="hidden" id="modal-cat-id" value="">
 
           <div class="px-6 py-5 space-y-4">
@@ -700,6 +701,7 @@
       const btn = e.target.closest('[data-edit]');
       if (!btn) return;
       e.preventDefault();
+      e.stopPropagation();
       const id = btn.getAttribute('data-edit');
       try {
         const res = await fetch(window.basePath + '/admin/api/category/' + id, { headers: { 'Accept': 'application/json' } });
@@ -708,6 +710,11 @@
         openCategoryModal(data);
       } catch (error) {
         console.error('Failed to load category data:', error);
+        if (window.showToast) {
+          window.showToast('Errore nel caricamento dei dati della categoria', 'error');
+        } else {
+          alert('Errore nel caricamento dei dati della categoria');
+        }
       }
     });
     
@@ -888,6 +895,7 @@
       const uploadZone = document.getElementById('modal-upload-zone');
       const uploadPreview = document.getElementById('modal-upload-preview');
       const uploadPreviewImg = document.getElementById('modal-upload-preview-img');
+      const form = document.getElementById('modal-cat-form');
 
       function closeModal() {
         modal.classList.add('hidden');
@@ -926,6 +934,41 @@
           document.getElementById('modal-current-image').classList.add('hidden');
         };
         reader.readAsDataURL(file);
+      }
+
+      // Handle form submission
+      if (form) {
+        form.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          const id = document.getElementById('modal-cat-id').value;
+          if (!id) return;
+          
+          const formData = new FormData(form);
+          
+          try {
+            const response = await fetch(window.basePath + '/admin/categories/' + id, {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'X-CSRF-Token': csrfToken
+              }
+            });
+            
+            if (response.ok) {
+              closeModal();
+              // Reload the page to show updated data
+              window.location.reload();
+            } else {
+              const errorText = await response.text();
+              console.error('Update failed:', errorText);
+              alert('Errore durante l\'aggiornamento della categoria');
+            }
+          } catch (error) {
+            console.error('Update error:', error);
+            alert('Errore durante l\'aggiornamento della categoria');
+          }
+        });
       }
     }
 
