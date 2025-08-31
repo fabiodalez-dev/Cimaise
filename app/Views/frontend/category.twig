@@ -1,6 +1,9 @@
 {% extends "frontend/_layout.twig" %}
 
 {% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  {% include 'frontend/_breadcrumbs.twig' %}
+</div>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     
     <!-- Category header -->
@@ -50,4 +53,16 @@
     </div>
 </section>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": {{ category.name|json_encode|raw }},
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  "description": {{ meta_description|default('')|json_encode|raw }}
+}
+</script>
 {% endblock %}
