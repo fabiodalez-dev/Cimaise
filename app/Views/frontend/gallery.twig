@@ -218,6 +218,14 @@
                 el.className = 'grid grid-cols-1 lg:grid-cols-2 gap-2';
               } else if (s.masonry) {
                 el.className = 'masonry-grid';
+                try {
+                  var d = Math.round((s.columns && s.columns.desktop) || 3);
+                  var t = Math.round((s.columns && s.columns.tablet) || 2);
+                  var mcols = Math.round((s.columns && s.columns.mobile) || 1);
+                  el.style.setProperty('--cols-desktop', d);
+                  el.style.setProperty('--cols-tablet', t);
+                  el.style.setProperty('--cols-mobile', mcols);
+                } catch(e) { console.warn('Failed to set masonry column vars', e); }
               } else {
                 var d = Math.round((s.columns && s.columns.desktop) || 3);
                 var t = Math.round((s.columns && s.columns.tablet) || 2);
@@ -490,7 +498,7 @@
 
   {# DEFAULT: Standard masonry #}
   {% elseif masonry %}
-    <div id="images-gallery" class="masonry-grid">
+    <div id="images-gallery" class="masonry-grid" style="--cols-desktop: {{ desktop_cols }}; --cols-tablet: {{ tablet_cols }}; --cols-mobile: {{ mobile_cols }};">
       {% for image in images %}
       <div class="masonry-item">
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
@@ -709,7 +717,8 @@ function initializeGalleryLayout() {
   }
   
   // DEFAULT: Standard masonry for backward compatibility
-  else if (masonry && typeof Masonry !== 'undefined') {
+  // Only use Masonry JS when layout explicitly needs JS masonry (not grid+columns)
+  else if (masonry && (layout === 'masonry' || window.templateSettings?.masonry_js === true) && typeof Masonry !== 'undefined') {
     const container = document.getElementById('images-gallery');
     if (container) {
       imagesLoaded(container, function(){ 
