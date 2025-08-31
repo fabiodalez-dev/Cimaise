@@ -68,11 +68,12 @@ class PhotoCMSAnalytics {
      */
     getPageData() {
         const url = new URL(window.location.href);
+        const pageType = this.detectPageType();
         
         return {
             page_url: url.pathname + url.search,
             page_title: document.title,
-            page_type: this.detectPageType(),
+            page_type: pageType,
             album_id: this.extractAlbumId(),
             category_id: this.extractCategoryId(),
             tag_id: this.extractTagId(),
@@ -80,7 +81,8 @@ class PhotoCMSAnalytics {
             viewport_height: window.innerHeight,
             referrer: document.referrer,
             user_agent: navigator.userAgent,
-            landing_page: sessionStorage.getItem('photocms_landing_page') || url.pathname
+            landing_page: sessionStorage.getItem('photocms_landing_page') || url.pathname,
+            is_404: pageType === '404' || document.title.includes('404') || document.title.includes('Not Found')
         };
     }
 
@@ -89,6 +91,12 @@ class PhotoCMSAnalytics {
      */
     detectPageType() {
         const path = window.location.pathname;
+        
+        // Check if this is a 404 page
+        if (document.title.includes('404') || document.title.includes('Not Found') || 
+            document.querySelector('.error-404') || document.querySelector('[data-page="404"]')) {
+            return '404';
+        }
         
         if (path === '/' || path === '/index.php') return 'home';
         if (path.includes('/album/')) return 'album';
@@ -285,9 +293,9 @@ class PhotoCMSAnalytics {
     }
 
     /**
-     * Send data to server
+     * Send data to server with retry logic
      */
-    async sendData(data) {
+    async sendData(data, retryCount = 0) {
         try {
             const response = await fetch(this.options.endpoint, {
                 method: 'POST',
@@ -298,13 +306,44 @@ class PhotoCMSAnalytics {
                 keepalive: true
             });
 
+            // For 404 pages, we want to track them even if the endpoint returns an error
+            // But we should still log the error for debugging
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Special handling for 404 pages - log but don't treat as critical error
+                if (data.page_type === '404' || data.is_404) {
+                    this.log('404 page tracked (endpoint returned ' + response.status + ')', data);
+                } else {
+                    // For non-404 errors, we still want to know about them but not show them prominently
+                    this.log('Data sent (endpoint returned ' + response.status + ')', data);
+                }
+                
+                // Retry logic for server errors (5xx) but not for client errors (4xx)
+                if (response.status >= 500 && retryCount < 2) {
+                    setTimeout(() => {
+                        this.sendData(data, retryCount + 1);
+                    }, Math.pow(2, retryCount) * 1000); // Exponential backoff
+                }
+            } else {
+                this.log('Data sent successfully', data);
             }
-
-            this.log('Data sent successfully', data);
         } catch (error) {
-            this.log('Error sending data', error);
+            // For 404 pages, we don't want to show errors to users
+            if (data.page_type !== '404' && !data.is_404) {
+                // For non-404 errors, log them but use console.debug to reduce visibility
+                console.debug('[PhotoCMS Analytics] Network error sending data:', error.message);
+                
+                // Retry logic for network errors
+                if (retryCount < 2) {
+                    setTimeout(() => {
+                        this.sendData(data, retryCount + 1);
+                    }, Math.pow(2, retryCount) * 1000); // Exponential backoff
+                }
+            } else {
+                // For 404 pages, use even less visibility
+                if (this.options.debug) {
+                    console.debug('[PhotoCMS Analytics] 404 page tracked (network error)', error.message);
+                }
+            }
         }
     }
 
@@ -313,7 +352,12 @@ class PhotoCMSAnalytics {
      */
     log(message, data = null) {
         if (this.options.debug) {
-            console.log(`[PhotoCMS Analytics] ${message}`, data);
+            // For 404 tracking, use console.debug instead of console.log to reduce visibility
+            if (message.includes('404')) {
+                console.debug(`[PhotoCMS Analytics] ${message}`, data);
+            } else {
+                console.log(`[PhotoCMS Analytics] ${message}`, data);
+            }
         }
     }
 
@@ -342,6 +386,13 @@ class PhotoCMSAnalytics {
 window.addEventListener('DOMContentLoaded', () => {
     // Check if analytics is enabled (can be set by server)
     if (window.photoCMSAnalyticsEnabled !== false) {
-        window.photoCMSAnalytics = new PhotoCMSAnalytics(window.photoCMSAnalyticsConfig || {});
+        try {
+            window.photoCMSAnalytics = new PhotoCMSAnalytics(window.photoCMSAnalyticsConfig || {});
+        } catch (error) {
+            // Silently fail if analytics initialization fails
+            if (window.photoCMSAnalyticsConfig && window.photoCMSAnalyticsConfig.debug) {
+                console.debug('[PhotoCMS Analytics] Failed to initialize:', error.message);
+            }
+        }
     }
 });
