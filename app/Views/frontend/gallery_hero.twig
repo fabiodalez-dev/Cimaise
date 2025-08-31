@@ -243,7 +243,8 @@
       {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
     </div>
   {% else %}
-    <div id="images-gallery" class="{{ layout == 'slideshow' ? 'swiper slideshow-pro max-w-6xl mx-auto' : (layout == 'fullscreen' ? 'grid grid-cols-1 lg:grid-cols-2 gap-2' : (masonry ? 'masonry-grid' : 'grid ' ~ mobile_class ~ ' ' ~ tablet_class ~ ' ' ~ desktop_class ~ ' gap-6')) }}">
+    <div id="images-gallery" class="{{ layout == 'slideshow' ? 'swiper slideshow-pro max-w-6xl mx-auto' : (layout == 'fullscreen' ? 'grid grid-cols-1 lg:grid-cols-2 gap-2' : (masonry ? 'masonry-grid' : 'grid ' ~ mobile_class ~ ' ' ~ tablet_class ~ ' ' ~ desktop_class ~ ' gap-6')) }}"
+         {% if masonry %}style="--cols-desktop: {{ desktop_cols }}; --cols-tablet: {{ tablet_cols }}; --cols-mobile: {{ mobile_cols }};"{% endif %}>
       {% include 'frontend/_gallery_content.twig' with { images: images, template_settings: template_settings } %}
     </div>
   {% endif %}
@@ -313,7 +314,7 @@
           item.style.left = randomX + '%'; item.style.top = randomY + '%'; item.style.transform = `rotate(${randomRotation}deg)`; item.style.zIndex = Math.floor(Math.random() * 10) + 1;
         });
       }
-    } else if (masonry && typeof Masonry !== 'undefined') {
+    } else if (masonry && (layout === 'masonry' || window.templateSettings?.masonry_js === true) && typeof Masonry !== 'undefined') {
       const container = document.getElementById('images-gallery');
       if (container) {
         imagesLoaded(container, function(){
@@ -436,6 +437,13 @@
           galleryContainer.className = 'grid grid-cols-1 lg:grid-cols-2 gap-2';
         } else if (newMasonry) {
           galleryContainer.className = 'masonry-grid';
+          try {
+            const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
+            let d = Math.round(cols.desktop || 3), t = Math.round(cols.tablet || 2), mcols = Math.round(cols.mobile || 1);
+            galleryContainer.style.setProperty('--cols-desktop', d);
+            galleryContainer.style.setProperty('--cols-tablet', t);
+            galleryContainer.style.setProperty('--cols-mobile', mcols);
+          } catch(e) { console.warn('Failed to set masonry column vars (hero)', e); }
         } else {
           const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
           let d = Math.round(cols.desktop || 3), t = Math.round(cols.tablet || 2), mcols = Math.round(cols.mobile || 1);
