@@ -222,6 +222,11 @@ class AnalyticsController
     public function apiRealtime(Request $request, Response $response): Response
     {
         try {
+            $driver = 'mysql';
+            try { $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) ?: 'mysql'; } catch (\Throwable) {}
+            $isSqlite = ($driver === 'sqlite');
+            $minus5min = $isSqlite ? 'datetime("now", "-5 minutes")' : 'DATE_SUB(NOW(), INTERVAL 5 MINUTE)';
+            $minus1h   = $isSqlite ? 'datetime("now", "-1 hour")'     : 'DATE_SUB(NOW(), INTERVAL 1 HOUR)';
             // Get current visitors (last 5 minutes)
             $stmt = $this->db->prepare('
                 SELECT 
@@ -232,7 +237,7 @@ class AnalyticsController
                     p.page_title
                 FROM analytics_sessions s
                 LEFT JOIN analytics_pageviews p ON s.session_id = p.session_id
-                WHERE s.last_activity >= datetime("now", "-5 minutes")
+                WHERE s.last_activity >= ' . $minus5min . '
                 GROUP BY s.country_code, p.page_url
                 ORDER BY s.last_activity DESC
                 LIMIT 10
@@ -244,7 +249,7 @@ class AnalyticsController
             $stmt = $this->db->prepare('
                 SELECT page_url, page_title, COUNT(*) as views
                 FROM analytics_pageviews
-                WHERE viewed_at >= datetime("now", "-1 hour")
+                WHERE viewed_at >= ' . $minus1h . '
                 GROUP BY page_url
                 ORDER BY views DESC
                 LIMIT 5
@@ -276,9 +281,7 @@ class AnalyticsController
      */
     public function track(Request $request, Response $response): Response
     {
-        // Temporary fix: just return 204 to stop the 400 errors
-        return $response->withStatus(204); // No content
-        
+        // Storage enabled: process payload and persist (returns 204 on success/fallback)
         if (!$this->analytics->isEnabled()) {
             return $response->withStatus(204); // No content
         }

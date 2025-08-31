@@ -11,12 +11,26 @@ class AnalyticsService
     private PDO $db;
     private array $settings;
     private ?Reader $geoReader = null;
+    private string $driver = 'mysql';
 
     public function __construct(PDO $db)
     {
         $this->db = $db;
+        try { $this->driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) ?: 'mysql'; } catch (\Throwable) { $this->driver = 'mysql'; }
         $this->loadSettings();
         $this->initGeoReader();
+    }
+
+    private function isSqlite(): bool { return $this->driver === 'sqlite'; }
+    private function nowMinusHoursExpr(int $hours): string
+    {
+        return $this->isSqlite()
+            ? 'datetime("now", "-' . (int)$hours . ' hours")'
+            : 'DATE_SUB(NOW(), INTERVAL ' . (int)$hours . ' HOUR)';
+    }
+    private function todayExpr(): string
+    {
+        return $this->isSqlite() ? 'DATE("now")' : 'CURDATE()';
     }
 
     /**
@@ -345,7 +359,7 @@ class AnalyticsService
                     COUNT(DISTINCT session_id) as active_sessions,
                     COUNT(*) as pageviews_24h
                 FROM analytics_pageviews 
-                WHERE viewed_at >= datetime("now", "-24 hours")
+                WHERE viewed_at >= ' . $this->nowMinusHoursExpr(24) . '
             ');
             $stmt->execute();
             $realtime = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -358,7 +372,7 @@ class AnalyticsService
                     AVG(s.duration) as avg_duration
                 FROM analytics_sessions s
                 LEFT JOIN analytics_pageviews p ON s.session_id = p.session_id
-                WHERE DATE(s.started_at) = DATE("now")
+                WHERE DATE(s.started_at) = ' . $this->todayExpr() . '
             ');
             $stmt->execute();
             $today = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -367,7 +381,7 @@ class AnalyticsService
             $stmt = $this->db->prepare('
                 SELECT page_url, page_title, COUNT(*) as views
                 FROM analytics_pageviews 
-                WHERE DATE(viewed_at) = DATE("now")
+                WHERE DATE(viewed_at) = ' . $this->todayExpr() . '
                 GROUP BY page_url 
                 ORDER BY views DESC 
                 LIMIT 5
@@ -379,7 +393,7 @@ class AnalyticsService
             $stmt = $this->db->prepare('
                 SELECT country_code, COUNT(*) as sessions
                 FROM analytics_sessions 
-                WHERE DATE(started_at) = DATE("now") AND country_code IS NOT NULL
+                WHERE DATE(started_at) = ' . $this->todayExpr() . ' AND country_code IS NOT NULL
                 GROUP BY country_code 
                 ORDER BY sessions DESC 
                 LIMIT 5
@@ -614,13 +628,11 @@ class AnalyticsService
     {
         try {
             $retentionDays = $this->getSetting('data_retention_days', 365);
-            
-            $stmt = $this->db->prepare('
-                DELETE FROM analytics_sessions 
-                WHERE started_at < datetime("now", "-' . $retentionDays . ' days")
-            ');
+            $expr = $this->isSqlite()
+                ? 'datetime("now", "-' . (int)$retentionDays . ' days")'
+                : 'DATE_SUB(NOW(), INTERVAL ' . (int)$retentionDays . ' DAY)';
+            $stmt = $this->db->prepare('DELETE FROM analytics_sessions WHERE started_at < ' . $expr);
             $stmt->execute();
-            
             return $stmt->rowCount();
         } catch (\PDOException $e) {
             // Analytics tables don't exist - return 0

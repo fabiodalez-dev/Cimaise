@@ -1829,6 +1829,7 @@
     <script src="{{ base_path }}/assets/js/analytics.js"></script>
     <script>
         // Initialize analytics with site configuration
+        // Enable by default; JS guard will self-disable if endpoint fails
         window.photoCMSAnalyticsEnabled = true;
         window.photoCMSAnalyticsConfig = {
             endpoint: '{{ base_path }}/api/analytics/track',
