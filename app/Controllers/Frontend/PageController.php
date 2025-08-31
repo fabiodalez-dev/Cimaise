@@ -15,6 +15,57 @@ class PageController extends BaseController
         parent::__construct();
     }
 
+    private function buildSeo(Request $request, string $title, string $description = '', ?string $imagePath = null): array
+    {
+        $svc = new \App\Services\SettingsService($this->db);
+        $siteName = (string)($svc->get('seo.site_title', 'Portfolio') ?? 'Portfolio');
+        $ogSite = (string)($svc->get('seo.og_site_name', $siteName) ?? $siteName);
+        $robots = (string)($svc->get('seo.robots_default', 'index,follow') ?? 'index,follow');
+        $canonicalBase = (string)($svc->get('seo.canonical_base_url', '') ?? '');
+        $logo = (string)($svc->get('site.logo', '') ?? '');
+        // Schema-related settings
+        $schema = [
+            'author_name' => (string)($svc->get('seo.author_name', '') ?? ''),
+            'author_url' => (string)($svc->get('seo.author_url', '') ?? ''),
+            'organization_name' => (string)($svc->get('seo.organization_name', '') ?? ''),
+            'organization_url' => (string)($svc->get('seo.organization_url', '') ?? ''),
+            'photographer_job_title' => (string)($svc->get('seo.photographer_job_title', 'Professional Photographer') ?? 'Professional Photographer'),
+            'photographer_services' => (string)($svc->get('seo.photographer_services', 'Professional Photography Services') ?? 'Professional Photography Services'),
+            'photographer_same_as' => (string)($svc->get('seo.photographer_same_as', '') ?? ''),
+        ];
+
+        $uri = $request->getUri();
+        $path = $uri->getPath();
+        $base = rtrim($canonicalBase !== '' ? $canonicalBase : ($uri->getScheme() . '://' . $uri->getHost() . ($this->basePath ?: '')), '/');
+        $canonicalUrl = $base . $path;
+
+        $pageTitle = trim($title) !== '' ? ($title . ' — ' . $siteName) : $siteName;
+        $desc = trim(strip_tags($description));
+        if ($desc !== '') { $desc = mb_substr($desc, 0, 160); }
+
+        $metaImg = $imagePath ?: $logo;
+        if ($metaImg) {
+            if (!str_starts_with((string)$metaImg, 'http')) {
+                if (str_starts_with((string)$metaImg, '/')) { $metaImg = $base . $metaImg; }
+                else { $metaImg = $base . '/' . ltrim((string)$metaImg, '/'); }
+            }
+        } else {
+            $metaImg = '';
+        }
+
+        return [
+            'page_title' => $pageTitle,
+            'meta_description' => $desc,
+            'meta_image' => $metaImg,
+            'canonical_url' => $canonicalUrl,
+            'canonical_base' => $base,
+            'og_site_name' => $ogSite,
+            'robots' => $robots,
+            'current_url' => $uri->__toString(),
+            'schema' => $schema,
+        ];
+    }
+
     private function normalizeTemplateSettings(array $templateSettings): array
     {
         // Normalize possibly nested columns structure to flat integers
@@ -122,6 +173,7 @@ class PageController extends BaseController
             $image = $this->processImageSources($image);
         }
         
+        $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
         return $this->view->render($response, 'frontend/home.twig', [
             'albums' => $albums,
             'categories' => $categories,
@@ -130,8 +182,13 @@ class PageController extends BaseController
             'all_images' => $allImages,
             'has_more' => $hasMore,
             'total_albums' => $totalAlbums,
-            'page_title' => 'Portfolio',
-            'meta_description' => 'Photography portfolio showcasing analog and digital work'
+            'page_title' => $seo['page_title'],
+            'meta_description' => $seo['meta_description'],
+            'meta_image' => $seo['meta_image'],
+            'current_url' => $seo['current_url'],
+            'canonical_url' => $seo['canonical_url'],
+            'og_site_name' => $seo['og_site_name'],
+            'robots' => $seo['robots']
         ]);
     }
 
@@ -551,6 +608,10 @@ class PageController extends BaseController
         };
 
         // Use selected page template
+        // SEO for album page: use album title and excerpt; cover image as OG
+        $coverPath = null;
+        try { $coverPath = $album['cover']['variants'][0]['path'] ?? null; } catch (\Throwable) {}
+        $seoMeta = $this->buildSeo($request, (string)$album['title'], (string)($album['excerpt'] ?? ''), $coverPath);
         return $this->view->render($response, $twigTemplate, [
             'album' => $galleryMeta,
             'images' => $images,
@@ -561,10 +622,13 @@ class PageController extends BaseController
             'album_ref' => $albumRef,
             'categories' => $navCategories,
             'parent_categories' => $this->getParentCategoriesForNavigation(),
-            'page_title' => $galleryMeta['title'] . ' - ' . $template['name'],
-            'meta_description' => $galleryMeta['excerpt'] ?: 'Photography album: ' . $galleryMeta['title'],
-            'meta_image' => $album['cover']['variants'][0]['path'] ?? null,
-            'current_url' => $request->getUri()->__toString()
+            'page_title' => $seoMeta['page_title'],
+            'meta_description' => $seoMeta['meta_description'],
+            'meta_image' => $seoMeta['meta_image'],
+            'current_url' => $seoMeta['current_url'],
+            'canonical_url' => $seoMeta['canonical_url'],
+            'og_site_name' => $seoMeta['og_site_name'],
+            'robots' => $seoMeta['robots']
         ]);
     }
 
@@ -793,13 +857,19 @@ class PageController extends BaseController
         $stmt->execute();
         $categories = $stmt->fetchAll();
         
+        $seo = $this->buildSeo($request, (string)$category['name'], 'Photography albums in category: ' . $category['name']);
         return $this->view->render($response, 'frontend/category.twig', [
             'category' => $category,
             'albums' => $albums,
             'categories' => $categories,
             'parent_categories' => $this->getParentCategoriesForNavigation(),
-            'page_title' => $category['name'] . ' - Portfolio',
-            'meta_description' => 'Photography albums in category: ' . $category['name']
+            'page_title' => $seo['page_title'],
+            'meta_description' => $seo['meta_description'],
+            'meta_image' => $seo['meta_image'],
+            'current_url' => $seo['current_url'],
+            'canonical_url' => $seo['canonical_url'],
+            'og_site_name' => $seo['og_site_name'],
+            'robots' => $seo['robots']
         ]);
     }
 
@@ -855,14 +925,20 @@ class PageController extends BaseController
         $navStmt->execute();
         $navCategories = $navStmt->fetchAll();
 
+        $seo = $this->buildSeo($request, '#' . $tag['name'], 'Photography albums tagged with: ' . $tag['name']);
         return $this->view->render($response, 'frontend/tag.twig', [
             'tag' => $tag,
             'albums' => $albums,
             'tags' => $tags,
             'categories' => $navCategories,
             'parent_categories' => $this->getParentCategoriesForNavigation(),
-            'page_title' => '#' . $tag['name'] . ' - Portfolio',
-            'meta_description' => 'Photography albums tagged with: ' . $tag['name']
+            'page_title' => $seo['page_title'],
+            'meta_description' => $seo['meta_description'],
+            'meta_image' => $seo['meta_image'],
+            'current_url' => $seo['current_url'],
+            'canonical_url' => $seo['canonical_url'],
+            'og_site_name' => $seo['og_site_name'],
+            'robots' => $seo['robots']
         ]);
     }
 
@@ -889,11 +965,20 @@ class PageController extends BaseController
         $contactSent = isset($q['sent']);
         $contactError = isset($q['error']);
 
+        // About SEO: use about text trimmed, and about photo as OG; fallback to logo handled in builder
+        $shortAbout = trim(strip_tags($aboutText));
+        if ($shortAbout !== '') { $shortAbout = mb_substr($shortAbout, 0, 160); }
+        $seo = $this->buildSeo($request, $aboutTitle, $shortAbout, $aboutPhoto ?: null);
         return $this->view->render($response, 'frontend/about.twig', [
             'categories' => $navCategories,
             'parent_categories' => $this->getParentCategoriesForNavigation(),
-            'page_title' => $aboutTitle . ' — Portfolio',
-            'meta_description' => 'About the photographer',
+            'page_title' => $seo['page_title'],
+            'meta_description' => $seo['meta_description'],
+            'meta_image' => $seo['meta_image'],
+            'current_url' => $seo['current_url'],
+            'canonical_url' => $seo['canonical_url'],
+            'og_site_name' => $seo['og_site_name'],
+            'robots' => $seo['robots'],
             'about_text' => $aboutText,
             'about_photo_url' => $aboutPhoto,
             'about_footer_text' => $aboutFooter,

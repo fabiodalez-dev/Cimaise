@@ -2,6 +2,7 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  {% include 'frontend/_breadcrumbs.twig' %}
   <div class="max-w-4xl mx-auto text-center pb-12">
     <div class="mb-4 flex flex-wrap gap-2 justify-center">
       {% if album.categories is defined and album.categories|length > 0 %}
@@ -1167,4 +1168,40 @@ document.addEventListener('click', function(event) {
     })
     .finally(() => { delete el.dataset.switchInProgress; });
 });
+
+// JSON-LD will be appended below
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ImageGallery",
+  "name": {{ album.title|json_encode|raw }},
+  {% if album.excerpt %}"about": {{ album.excerpt|striptags|json_encode|raw }},{% endif %}
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  "image": [
+    {% for image in images|slice(0,10) %}
+      {% set src = image.fallback_src|default(image.url) %}
+      {% if src starts with 'http' %}
+        {{ src|json_encode|raw }}
+      {% else %}
+        {{ ((canonical_base|default('')) ~ (src starts with '/' ? src : '/' ~ src))|json_encode|raw }}
+      {% endif %}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type":"ListItem","position":1,"name":"Home","item": {{ (canonical_base|default('') ~ '/')|json_encode|raw }} }{% if album.category is defined and album.category.slug is defined %},
+    {"@type":"ListItem","position":2,"name": {{ album.category.name|json_encode|raw }}, "item": {{ (canonical_base|default('') ~ '/category/' ~ album.category.slug)|json_encode|raw }} },
+    {"@type":"ListItem","position":3,"name": {{ album.title|json_encode|raw }}, "item": {{ (canonical_url|default(current_url))|json_encode|raw }} }
+    {% else %},
+    {"@type":"ListItem","position":2,"name": {{ album.title|json_encode|raw }}, "item": {{ (canonical_url|default(current_url))|json_encode|raw }} }
+    {% endif %}
+  ]
+}
+</script>
 {% endblock %}
