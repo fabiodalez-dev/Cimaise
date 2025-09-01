@@ -13,7 +13,7 @@
       <input type="hidden" name="csrf" value="{{ csrf }}">
       
       <!-- Preview Section -->
-      <div class="card" id="preview-section" style="display: none;">
+      <div class="card" id="preview-section">
         <div class="p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
             <i class="fas fa-eye mr-3 text-gray-600"></i>
@@ -180,14 +180,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Only create if we have more than 1 item and Sortable is available
     if (typeof Sortable !== 'undefined' && previewButtons.children.length > 1) {
-      previewSortableInstance = Sortable.create(previewButtons, {
-        animation: 150,
-        ghostClass: 'sortable-ghost',
-        chosenClass: 'sortable-chosen',
-        dragClass: 'sortable-drag',
-        onEnd: function(evt) {
-          updateOrderInput();
-        }
+      try {
+        previewSortableInstance = Sortable.create(previewButtons, {
+          animation: 150,
+          ghostClass: 'sortable-ghost',
+          chosenClass: 'sortable-chosen',
+          dragClass: 'sortable-drag',
+          onEnd: function(evt) {
+            updateOrderInput();
+          }
+        });
+        console.log('Sortable initialized successfully');
+      } catch(e) {
+        console.warn('Failed to initialize Sortable:', e);
+      }
+    } else {
+      console.warn('Sortable not available or not enough items:', {
+        sortableAvailable: typeof Sortable !== 'undefined',
+        itemCount: previewButtons.children.length
       });
     }
     
@@ -275,8 +285,16 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Checkbox', checkbox.id, 'checked:', checkbox.checked);
   });
   
+  // Force update after a short delay to ensure everything is loaded
   updateCount();
   updatePreview();
+  
+  // Additional debug after preview update
+  setTimeout(function() {
+    console.log('Preview section display:', previewSection.style.display);
+    console.log('Preview buttons count:', previewButtons.children.length);
+    console.log('Preview buttons HTML:', previewButtons.innerHTML);
+  }, 100);
 });
 </script>
 
