@@ -652,6 +652,57 @@
         }
         
         /* Removed debug red caption block */
+        
+        /* Custom Social Sharing Styles */
+        .social-sharing {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .social-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .social-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            color: #000;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .social-btn:hover {
+            transform: translateY(-2px);
+            color: #333;
+        }
+        
+        .social-btn i {
+            font-size: 16px;
+        }
+        
+        /* Individual social media colors on hover */
+        .social-btn.behance:hover { color: #1769ff; }
+        .social-btn.whatsapp:hover { color: #25d366; }
+        .social-btn.facebook:hover { color: #0866ff; }
+        .social-btn.x:hover { color: #000; }
+        .social-btn.deviantart:hover { color: #475c4d; }
+        .social-btn.instagram:hover { color: #e23367; }
+        .social-btn.pinterest:hover { color: #CB2027; }
+        .social-btn.telegram:hover { color: #179cde; }
+        .social-btn.threads:hover { color: #000; }
+        .social-btn.bluesky:hover { color: #1083fe; }
     </style>
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">

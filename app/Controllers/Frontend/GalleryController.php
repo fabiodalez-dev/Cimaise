@@ -363,6 +363,76 @@ class GalleryController extends BaseController
             $navCats = $pdo->query('SELECT id, name, slug FROM categories ORDER BY sort_order, name')->fetchAll() ?: [];
         } catch (\Throwable) {}
 
+        // Get cover image for Open Graph
+        $coverImage = null;
+        if (!empty($album['cover_image_id'])) {
+            // Use designated cover image
+            try {
+                $stmt = $pdo->prepare('
+                    SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
+                    FROM images i
+                    LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "lg" AND iv.format = "jpg"
+                    WHERE i.id = :id
+                ');
+                $stmt->execute([':id' => $album['cover_image_id']]);
+                $cover = $stmt->fetch();
+                if ($cover) {
+                    $coverImage = $cover['preview_path'] ?: $cover['original_path'];
+                }
+            } catch (\Throwable) {}
+        }
+        
+        // Fallback to first image if no cover image set
+        if (!$coverImage && !empty($images)) {
+            $coverImage = $images[0]['lightbox_url'] ?? $images[0]['url'] ?? null;
+        }
+        
+        // Ensure cover image is a full URL for Open Graph
+        $metaImage = null;
+        if ($coverImage) {
+            if (str_starts_with($coverImage, 'http')) {
+                $metaImage = $coverImage;
+            } else {
+                // Build full URL
+                $scheme = $request->getUri()->getScheme();
+                $host = $request->getUri()->getHost();
+                $port = $request->getUri()->getPort();
+                $portStr = ($port && $port != 80 && $port != 443) ? ":$port" : '';
+                
+                $baseUrl = "{$scheme}://{$host}{$portStr}";
+                $metaImage = $baseUrl . (str_starts_with($coverImage, '/') ? $coverImage : '/' . $coverImage);
+            }
+        }
+
+        // Get social sharing settings
+        $settingsService = new \App\Services\SettingsService($this->db);
+        $enabledSocials = $settingsService->get('social.enabled', []);
+        if (!is_array($enabledSocials)) {
+            $enabledSocials = ['behance', 'whatsapp', 'facebook', 'x', 'deviantart', 'instagram', 'pinterest', 'telegram', 'threads', 'bluesky'];
+        }
+        
+        // Get social order
+        $socialOrder = $settingsService->get('social.order', []);
+        if (!is_array($socialOrder)) {
+            $socialOrder = $enabledSocials;
+        }
+        
+        // Use order for enabled socials
+        $orderedSocials = [];
+        foreach ($socialOrder as $social) {
+            if (in_array($social, $enabledSocials)) {
+                $orderedSocials[] = $social;
+            }
+        }
+        // Add any enabled socials not in the order
+        foreach ($enabledSocials as $social) {
+            if (!in_array($social, $orderedSocials)) {
+                $orderedSocials[] = $social;
+            }
+        }
+        
+        $availableSocials = $this->getAvailableSocials();
+
         return $this->view->render($response, 'frontend/gallery.twig', [
             'album' => $galleryMeta,
             'images' => $images,
@@ -374,7 +444,11 @@ class GalleryController extends BaseController
             'categories' => $navCats,
             'page_title' => $galleryMeta['title'] . ' - ' . $template['name'],
             'meta_description' => $galleryMeta['excerpt'],
-            'current_url' => $request->getUri()->__toString()
+            'meta_image' => $metaImage,
+            'canonical_url' => $request->getUri()->__toString(),
+            'current_url' => $request->getUri()->__toString(),
+            'enabled_socials' => $orderedSocials,
+            'available_socials' => $availableSocials
         ]);
     }
 
@@ -588,5 +662,401 @@ class GalleryController extends BaseController
         }
         
         return $templateSettings;
+    }
+
+    private function getAvailableSocials(): array
+    {
+        return [
+            'addtofavorites' => [
+                'name' => 'Add to Favorites',
+                'icon' => 'fa fa-star',
+                'color' => '#F9A600',
+                'url' => '#'
+            ],
+            'behance' => [
+                'name' => 'Behance',
+                'icon' => 'fab fa-behance',
+                'color' => '#1769ff',
+                'url' => 'https://www.behance.net/gallery/share?title={title}&url={url}'
+            ],
+            'bitbucket' => [
+                'name' => 'Bitbucket',
+                'icon' => 'fab fa-bitbucket',
+                'color' => '#205081',
+                'url' => '#'
+            ],
+            'blogger' => [
+                'name' => 'Blogger',
+                'icon' => 'fab fa-blogger-b',
+                'color' => '#FF6501',
+                'url' => 'https://www.blogger.com/blog_this.pyra?t&u={url}&n={title}'
+            ],
+            'bluesky' => [
+                'name' => 'Bluesky',
+                'icon' => 'fab fa-bluesky',
+                'color' => '#1083fe',
+                'url' => 'https://bsky.app/intent/compose?text={title} {url}'
+            ],
+            'codepen' => [
+                'name' => 'CodePen',
+                'icon' => 'fab fa-codepen',
+                'color' => '#000',
+                'url' => '#'
+            ],
+            'comments' => [
+                'name' => 'Comments',
+                'icon' => 'fa fa-comments',
+                'color' => '#333',
+                'url' => '#'
+            ],
+            'delicious' => [
+                'name' => 'Delicious',
+                'icon' => 'fab fa-delicious',
+                'color' => '#3274D1',
+                'url' => 'https://delicious.com/save?url={url}&title={title}'
+            ],
+            'deviantart' => [
+                'name' => 'DeviantArt',
+                'icon' => 'fab fa-deviantart',
+                'color' => '#475c4d',
+                'url' => 'https://www.deviantart.com/users/outgoing?{url}'
+            ],
+            'digg' => [
+                'name' => 'Digg',
+                'icon' => 'fab fa-digg',
+                'color' => '#000',
+                'url' => 'https://digg.com/submit?url={url}&title={title}'
+            ],
+            'discord' => [
+                'name' => 'Discord',
+                'icon' => 'fab fa-discord',
+                'color' => '#7289da',
+                'url' => '#'
+            ],
+            'dribbble' => [
+                'name' => 'Dribbble',
+                'icon' => 'fab fa-dribbble',
+                'color' => '#ea4c89',
+                'url' => '#'
+            ],
+            'email' => [
+                'name' => 'Email',
+                'icon' => 'fa fa-envelope',
+                'color' => '#000',
+                'url' => 'mailto:?subject={title}&body={url}'
+            ],
+            'etsy' => [
+                'name' => 'Etsy',
+                'icon' => 'fab fa-etsy',
+                'color' => '#f1641e',
+                'url' => '#'
+            ],
+            'facebook' => [
+                'name' => 'Facebook',
+                'icon' => 'fab fa-facebook-f',
+                'color' => '#0866ff',
+                'url' => 'https://www.facebook.com/sharer/sharer.php?u={url}'
+            ],
+            'fbmessenger' => [
+                'name' => 'Facebook Messenger',
+                'icon' => 'fab fa-facebook-messenger',
+                'color' => '#0866ff',
+                'url' => 'https://www.facebook.com/dialog/send?link={url}'
+            ],
+            'flickr' => [
+                'name' => 'Flickr',
+                'icon' => 'fab fa-flickr',
+                'color' => '#1c9be9',
+                'url' => '#'
+            ],
+            'flipboard' => [
+                'name' => 'Flipboard',
+                'icon' => 'fab fa-flipboard',
+                'color' => '#F52828',
+                'url' => 'https://share.flipboard.com/bookmarklet/popout?v=2&url={url}&title={title}'
+            ],
+            'github' => [
+                'name' => 'GitHub',
+                'icon' => 'fab fa-github',
+                'color' => '#333',
+                'url' => '#'
+            ],
+            'google' => [
+                'name' => 'Google',
+                'icon' => 'fab fa-google',
+                'color' => '#3A7CEC',
+                'url' => '#'
+            ],
+            'googleplus' => [
+                'name' => 'Google+',
+                'icon' => 'fab fa-google-plus-g',
+                'color' => '#DB483B',
+                'url' => 'https://plus.google.com/share?url={url}'
+            ],
+            'hackernews' => [
+                'name' => 'Hacker News',
+                'icon' => 'fab fa-hacker-news',
+                'color' => '#FF6500',
+                'url' => 'https://news.ycombinator.com/submitlink?u={url}&t={title}'
+            ],
+            'houzz' => [
+                'name' => 'Houzz',
+                'icon' => 'fab fa-houzz',
+                'color' => '#4dbc15',
+                'url' => '#'
+            ],
+            'instagram' => [
+                'name' => 'Instagram',
+                'icon' => 'fab fa-instagram',
+                'color' => '#e23367',
+                'url' => 'https://www.instagram.com/'
+            ],
+            'line' => [
+                'name' => 'Line',
+                'icon' => 'fab fa-line',
+                'color' => '#00C300',
+                'url' => 'https://lineit.line.me/share/ui?url={url}&text={title}'
+            ],
+            'linkedin' => [
+                'name' => 'LinkedIn',
+                'icon' => 'fab fa-linkedin-in',
+                'color' => '#0274B3',
+                'url' => 'https://www.linkedin.com/sharing/share-offsite/?url={url}'
+            ],
+            'mastodon' => [
+                'name' => 'Mastodon',
+                'icon' => 'fab fa-mastodon',
+                'color' => '#6364ff',
+                'url' => '#'
+            ],
+            'medium' => [
+                'name' => 'Medium',
+                'icon' => 'fab fa-medium',
+                'color' => '#02b875',
+                'url' => 'https://medium.com/new-story?url={url}&title={title}'
+            ],
+            'mix' => [
+                'name' => 'Mix',
+                'icon' => 'fab fa-mix',
+                'color' => '#ff8226',
+                'url' => 'https://mix.com/add?url={url}&title={title}'
+            ],
+            'odnoklassniki' => [
+                'name' => 'Odnoklassniki',
+                'icon' => 'fab fa-odnoklassniki',
+                'color' => '#F2720C',
+                'url' => 'https://connect.ok.ru/dk?st.cmd=WidgetSharePreview&st.shareUrl={url}&st.comments={title}'
+            ],
+            'patreon' => [
+                'name' => 'Patreon',
+                'icon' => 'fab fa-patreon',
+                'color' => '#e85b46',
+                'url' => '#'
+            ],
+            'paypal' => [
+                'name' => 'PayPal',
+                'icon' => 'fab fa-paypal',
+                'color' => '#0070ba',
+                'url' => '#'
+            ],
+            'pdf' => [
+                'name' => 'PDF',
+                'icon' => 'fa fa-file-pdf',
+                'color' => '#E61B2E',
+                'url' => '#'
+            ],
+            'phone' => [
+                'name' => 'Phone',
+                'icon' => 'fa fa-phone',
+                'color' => '#1A73E8',
+                'url' => '#'
+            ],
+            'pinterest' => [
+                'name' => 'Pinterest',
+                'icon' => 'fab fa-pinterest',
+                'color' => '#CB2027',
+                'url' => 'https://pinterest.com/pin/create/button/?url={url}&description={title}'
+            ],
+            'pocket' => [
+                'name' => 'Pocket',
+                'icon' => 'fab fa-get-pocket',
+                'color' => '#EF4056',
+                'url' => 'https://getpocket.com/save?url={url}&title={title}'
+            ],
+            'podcast' => [
+                'name' => 'Podcast',
+                'icon' => 'fa fa-podcast',
+                'color' => '#7224d8',
+                'url' => '#'
+            ],
+            'print' => [
+                'name' => 'Print',
+                'icon' => 'fa fa-print',
+                'color' => '#6D9F00',
+                'url' => 'javascript:window.print()'
+            ],
+            'reddit' => [
+                'name' => 'Reddit',
+                'icon' => 'fab fa-reddit',
+                'color' => '#FF5600',
+                'url' => 'https://www.reddit.com/submit?url={url}&title={title}'
+            ],
+            'renren' => [
+                'name' => 'Renren',
+                'icon' => 'fab fa-renren',
+                'color' => '#005EAC',
+                'url' => 'https://www.connect.renren.com/share/sharer?url={url}&title={title}'
+            ],
+            'rss' => [
+                'name' => 'RSS',
+                'icon' => 'fa fa-rss',
+                'color' => '#FF7B0A',
+                'url' => '#'
+            ],
+            'shortlink' => [
+                'name' => 'Short Link',
+                'icon' => 'fa fa-link',
+                'color' => '#333',
+                'url' => '#'
+            ],
+            'skype' => [
+                'name' => 'Skype',
+                'icon' => 'fab fa-skype',
+                'color' => '#00AFF0',
+                'url' => 'https://web.skype.com/share?url={url}&text={title}'
+            ],
+            'sms' => [
+                'name' => 'SMS',
+                'icon' => 'fa fa-sms',
+                'color' => '#35d54f',
+                'url' => 'sms:?body={title} {url}'
+            ],
+            'snapchat' => [
+                'name' => 'Snapchat',
+                'icon' => 'fab fa-snapchat',
+                'color' => '#FFFC00',
+                'url' => '#'
+            ],
+            'soundcloud' => [
+                'name' => 'SoundCloud',
+                'icon' => 'fab fa-soundcloud',
+                'color' => '#f50',
+                'url' => '#'
+            ],
+            'stackoverflow' => [
+                'name' => 'Stack Overflow',
+                'icon' => 'fab fa-stack-overflow',
+                'color' => '#F48024',
+                'url' => '#'
+            ],
+            'quora' => [
+                'name' => 'Quora',
+                'icon' => 'fab fa-quora',
+                'color' => '#b92b27',
+                'url' => 'https://www.quora.com/share?url={url}&title={title}'
+            ],
+            'telegram' => [
+                'name' => 'Telegram',
+                'icon' => 'fab fa-telegram-plane',
+                'color' => '#179cde',
+                'url' => 'https://t.me/share/url?url={url}&text={title}'
+            ],
+            'threads' => [
+                'name' => 'Threads',
+                'icon' => 'fab fa-threads',
+                'color' => '#000',
+                'url' => 'https://www.threads.net/intent/post?text={title} {url}'
+            ],
+            'tiktok' => [
+                'name' => 'TikTok',
+                'icon' => 'fab fa-tiktok',
+                'color' => '#010101',
+                'url' => '#'
+            ],
+            'tumblr' => [
+                'name' => 'Tumblr',
+                'icon' => 'fab fa-tumblr',
+                'color' => '#314358',
+                'url' => 'https://www.tumblr.com/widgets/share/tool?shareSource=legacy&canonicalUrl={url}&title={title}'
+            ],
+            'twitch' => [
+                'name' => 'Twitch',
+                'icon' => 'fab fa-twitch',
+                'color' => '#4b367c',
+                'url' => '#'
+            ],
+            'twitter' => [
+                'name' => 'Twitter',
+                'icon' => 'fab fa-twitter',
+                'color' => '#1da1f2',
+                'url' => 'https://twitter.com/intent/tweet?text={title}&url={url}'
+            ],
+            'viber' => [
+                'name' => 'Viber',
+                'icon' => 'fab fa-viber',
+                'color' => '#574e92',
+                'url' => 'viber://forward?text={title} {url}'
+            ],
+            'vimeo' => [
+                'name' => 'Vimeo',
+                'icon' => 'fab fa-vimeo',
+                'color' => '#00ADEF',
+                'url' => '#'
+            ],
+            'vkontakte' => [
+                'name' => 'VKontakte',
+                'icon' => 'fab fa-vk',
+                'color' => '#4C75A3',
+                'url' => 'https://vk.com/share.php?url={url}&title={title}'
+            ],
+            'wechat' => [
+                'name' => 'WeChat',
+                'icon' => 'fab fa-weixin',
+                'color' => '#7BB32E',
+                'url' => '#'
+            ],
+            'weibo' => [
+                'name' => 'Weibo',
+                'icon' => 'fab fa-weibo',
+                'color' => '#E6162D',
+                'url' => 'https://service.weibo.com/share/share.php?url={url}&title={title}'
+            ],
+            'whatsapp' => [
+                'name' => 'WhatsApp',
+                'icon' => 'fab fa-whatsapp',
+                'color' => '#25d366',
+                'url' => 'https://wa.me/?text={title} {url}'
+            ],
+            'x' => [
+                'name' => 'X (Twitter)',
+                'icon' => 'fab fa-x-twitter',
+                'color' => '#000',
+                'url' => 'https://twitter.com/intent/tweet?text={title}&url={url}'
+            ],
+            'xing' => [
+                'name' => 'Xing',
+                'icon' => 'fab fa-xing',
+                'color' => '#006567',
+                'url' => 'https://www.xing.com/app/user?op=share;url={url};title={title}'
+            ],
+            'yahoomail' => [
+                'name' => 'Yahoo Mail',
+                'icon' => 'fab fa-yahoo',
+                'color' => '#4A00A1',
+                'url' => 'https://compose.mail.yahoo.com/?to=&subject={title}&body={url}'
+            ],
+            'youtube' => [
+                'name' => 'YouTube',
+                'icon' => 'fab fa-youtube',
+                'color' => '#ff0000',
+                'url' => '#'
+            ],
+            'more' => [
+                'name' => 'More',
+                'icon' => 'fa fa-share-nodes',
+                'color' => 'green',
+                'url' => 'javascript:navigator.share({title: "{title}", url: "{url}"})'
+            ]
+        ];
     }
 }

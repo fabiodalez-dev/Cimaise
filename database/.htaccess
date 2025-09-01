@@ -1,34 +1,5 @@
-# COMPREHENSIVE DATABASE SECURITY
-# Block all database files and sensitive data
-
-# Deny all access to database directory
+# Deny all access to database files
 <Files "*">
-    Require all denied
+    Order Allow,Deny
+    Deny from all
 </Files>
-
-# Block specific database file extensions
-<FilesMatch "\.(sqlite|sqlite3|db|sql|dump|backup|bak|log)$">
-    Require all denied
-</FilesMatch>
-
-# Block database template and schema files
-<FilesMatch "\.(md|txt|json)$">
-    Require all denied
-</FilesMatch>
-
-# Security headers for any leaked responses
-<IfModule mod_headers.c>
-    Header always set X-Content-Type-Options nosniff
-    Header always set X-Frame-Options DENY
-    Header always set X-XSS-Protection "1; mode=block"
-</IfModule>
-
-# Prevent directory browsing
-Options -Indexes
-
-# Block common attack patterns
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteCond %{THE_REQUEST} \s/+database/ [NC]
-    RewriteRule . - [F,L]
-</IfModule>
