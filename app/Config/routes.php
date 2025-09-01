@@ -299,6 +299,16 @@ $app->post('/admin/seo/sitemap', function (Request $request, Response $response)
     return $controller->generateSitemap($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+// Social Settings
+$app->get('/admin/social', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\SocialController($container['db'], Twig::fromRequest($request));
+    return $controller->show($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/social', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\SocialController($container['db'], Twig::fromRequest($request));
+    return $controller->save($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
 // Diagnostics
 $app->get('/admin/diagnostics', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\DiagnosticsController($container['db'], Twig::fromRequest($request));
