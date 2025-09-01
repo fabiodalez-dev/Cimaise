@@ -154,37 +154,37 @@
 
 function initAdminSocialPage() {
   try { console.log('[social] initAdminSocialPage start'); } catch(e){}
-  const checkboxes = document.querySelectorAll('.social-checkbox');
-  const selectAllBtn = document.getElementById('select-all');
-  const deselectAllBtn = document.getElementById('deselect-all');
-  const selectedCount = document.getElementById('selected-count');
+  
+  // Check if required elements exist
   const previewButtons = document.getElementById('preview-buttons');
   const previewSection = document.getElementById('preview-section');
   const orderInput = document.getElementById('social-order-input');
+  const selectAllBtn = document.getElementById('select-all');
+  const deselectAllBtn = document.getElementById('deselect-all');
+  const selectedCount = document.getElementById('selected-count');
   
+  // If essential elements are missing, exit early
+  if (!previewButtons || !previewSection || !orderInput) {
+    console.warn('[social] Essential elements missing, exiting init');
+    return;
+  }
+  
+  const checkboxes = document.querySelectorAll('.social-checkbox');
   const socialConfigs = {{ available_socials|json_encode|raw }};
   const currentOrder = {{ social_order|json_encode|raw }};
   const enabledFromServer = {{ enabled_socials|json_encode|raw }};
-  const csrfToken = document.querySelector('input[name="csrf"]').value;
-
-  try {
-    console.log('[social] DOM elements:', {
-      checkboxes: checkboxes.length,
-      selectAllBtn: !!selectAllBtn,
-      deselectAllBtn: !!deselectAllBtn,
-      previewButtons: !!previewButtons,
-      orderInput: !!orderInput
-    });
-    console.log('[social] configs keys:', Object.keys(socialConfigs||{}));
-    console.log('[social] currentOrder:', currentOrder);
-    console.log('[social] enabledFromServer:', enabledFromServer);
-  } catch(e){}
+  const csrfToken = document.querySelector('input[name="csrf"]') ? document.querySelector('input[name="csrf"]').value : '';
+  
   let previewSortableInstance = null;
   
   function updateCount() {
-    const checked = document.querySelectorAll('.social-checkbox:checked').length;
-    selectedCount.textContent = `${checked} selected`;
-    try { console.log('[social] updateCount ->', checked); } catch(e){}
+    const checkedCount = document.querySelectorAll('.social-checkbox:checked').length;
+    if (selectedCount) {
+      selectedCount.textContent = `${checkedCount} selected`;
+    }
+    try { 
+      console.log('[social] updateCount ->', checkedCount); 
+    } catch(e){}
   }
   
   function updatePreview() {
@@ -197,27 +197,27 @@ function initAdminSocialPage() {
     
     // Check which socials are actually selected (checkbox checked)
     const selectedSocials = [];
-    currentSortableOrder.forEach(function(social) {
-      const checkbox = document.getElementById('social_' + social);
-      if (checkbox && checkbox.checked) {
-        selectedSocials.push(social);
+    const allCheckboxes = document.querySelectorAll('.social-checkbox');
+    
+    // First, collect all checked socials in order
+    allCheckboxes.forEach(function(checkbox) {
+      if (checkbox.checked) {
+        const socialKey = checkbox.id.replace('social_', '');
+        selectedSocials.push(socialKey);
       }
     });
-    if (selectedSocials.length === 0 && Array.isArray(enabledFromServer) && enabledFromServer.length) {
-      // Fallback: use server enabled list if no checkbox-based selection
-      enabledFromServer.forEach(function(s){ if (currentSortableOrder.includes(s)) selectedSocials.push(s); });
-    }
-    try { console.log('[social] selectedSocials:', selectedSocials); } catch(e){}
     
-    // Show/hide preview section based on actual selections
-    if (selectedSocials.length > 0) {
-      previewSection.style.display = 'block';
-    } else {
+    // If no socials are checked, hide the preview
+    if (selectedSocials.length === 0) {
       previewSection.style.display = 'none';
       try { console.log('[social] no selected socials -> hide preview'); } catch(e){}
       return;
     }
     
+    // Show the preview section
+    previewSection.style.display = 'block';
+    
+    // Display selected socials in the correct order
     selectedSocials.forEach(function(social) {
       const config = socialConfigs[social];
       
@@ -225,20 +225,15 @@ function initAdminSocialPage() {
         const button = document.createElement('div');
         button.className = 'social-btn ' + social + ' sortable-preview-item cursor-move';
         button.dataset.social = social;
-        button.title = 'Share on ' + config.name + ' (drag to reorder)';
+        button.title = config.name;
         button.innerHTML = '<i class="' + config.icon + '"></i>';
         
         previewButtons.appendChild(button);
       }
     });
     
-    if (previewButtons.children.length === 0) {
-      previewButtons.innerHTML = '<span class="text-gray-500 text-sm italic">No social networks selected</span>';
-      previewSection.style.display = 'none';
-    } else {
-      // Initialize sortable for preview
-      initPreviewSortable();
-    }
+    // Initialize sortable for preview
+    initPreviewSortable();
 
     // Save current state in real-time
     saveRealtime();
@@ -247,11 +242,16 @@ function initAdminSocialPage() {
   function initPreviewSortable() {
     // Destroy existing instance
     if (previewSortableInstance) {
-      previewSortableInstance.destroy();
+      try {
+        previewSortableInstance.destroy();
+      } catch(e) {
+        console.warn('[social] Failed to destroy existing Sortable instance:', e);
+      }
+      previewSortableInstance = null;
     }
     
     // Only create if we have more than 1 item and Sortable is available
-    if (typeof Sortable !== 'undefined' && previewButtons.children.length > 1) {
+    if (typeof Sortable !== 'undefined' && previewButtons && previewButtons.children.length > 1) {
       try {
         previewSortableInstance = Sortable.create(previewButtons, {
           animation: 150,
@@ -260,70 +260,68 @@ function initAdminSocialPage() {
           dragClass: 'sortable-drag',
           onEnd: function(evt) {
             updateOrderInput();
+            saveRealtime(); // Save when order changes
           }
         });
-        try { console.log('[social] Sortable initialized'); } catch(e){}
+        try { console.log('[social] Sortable initialized for preview'); } catch(e){}
       } catch(e) {
-        try { console.warn('[social] Failed to init Sortable:', e); } catch(_){ }
+        try { console.warn('[social] Failed to init Sortable for preview:', e); } catch(_){ }
       }
     } else {
-      try { console.warn('[social] Sortable not available or not enough items', {sortableAvailable: typeof Sortable !== 'undefined', itemCount: previewButtons.children.length}); } catch(_){ }
+      try { 
+        console.warn('[social] Sortable not available or not enough items for preview', {
+          sortableAvailable: typeof Sortable !== 'undefined', 
+          itemCount: previewButtons ? previewButtons.children.length : 0
+        }); 
+      } catch(_){ }
+      
       // Retry once after a short delay if Sortable isn't loaded yet
       setTimeout(function(){
-        if (typeof Sortable !== 'undefined' && previewButtons.children.length > 1) {
+        if (typeof Sortable !== 'undefined' && previewButtons && previewButtons.children.length > 1) {
           try {
             previewSortableInstance = Sortable.create(previewButtons, {
               animation: 150,
-              onEnd: function(){ updateOrderInput(); saveRealtime(); }
+              onEnd: function(){ 
+                updateOrderInput(); 
+                saveRealtime(); 
+              }
             });
-          } catch(e){}
+            try { console.log('[social] Sortable initialized for preview (delayed)'); } catch(e){}
+          } catch(e){
+            console.warn('[social] Failed to init Sortable for preview (delayed):', e);
+          }
         }
-      }, 150);
+      }, 300);
     }
 
     updateOrderInput();
   }
   
   function getCurrentOrder() {
-    // Get order from preview buttons if they exist
+    // Get order from preview buttons if they exist and are sortable
     const previewItems = previewButtons.querySelectorAll('.sortable-preview-item');
     if (previewItems.length > 0) {
       const order = [];
       previewItems.forEach(function(item) {
-        order.push(item.dataset.social);
+        if (item.dataset.social) {
+          order.push(item.dataset.social);
+        }
       });
       try { console.log('[social] current order from preview:', order); } catch(e){}
       return order;
     }
     
-    // Fallback to current order or checked socials
-    const checkedSocials = getCheckedSocials();
-    if (currentOrder && currentOrder.length > 0) {
-      // Filter current order to only include checked socials, then add new ones
-      const orderedChecked = [];
-      currentOrder.forEach(function(social) {
-        if (checkedSocials.includes(social)) {
-          orderedChecked.push(social);
-        }
-      });
-      // Add newly checked socials not in current order
-      checkedSocials.forEach(function(social) {
-        if (!orderedChecked.includes(social)) {
-          orderedChecked.push(social);
-        }
-      });
-    try { console.log('[social] orderedChecked:', orderedChecked); } catch(e){}
-    return orderedChecked;
-  }
-    
-    return checkedSocials;
+    // Fallback to checked socials in document order
+    return getCheckedSocials();
   }
   
   function getCheckedSocials() {
     const selected = [];
-    checkboxes.forEach(function(checkbox) {
+    const allCheckboxes = document.querySelectorAll('.social-checkbox');
+    allCheckboxes.forEach(function(checkbox) {
       if (checkbox.checked) {
-        selected.push(checkbox.id.replace('social_', ''));
+        const key = checkbox.id.replace('social_', '');
+        selected.push(key);
       }
     });
     return selected;
@@ -340,33 +338,64 @@ function initAdminSocialPage() {
     const enabled = getCheckedSocials();
     const order = getCurrentOrder();
     const payload = { enabled: enabled, order: order };
+    
     if (saveTimer) clearTimeout(saveTimer);
+    
     saveTimer = setTimeout(function(){
+      // Validate CSRF token exists
+      if (!csrfToken) {
+        console.warn('[social] CSRF token missing, cannot save');
+        return;
+      }
+      
       fetch('{{ base_path }}/admin/social', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept':'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': csrfToken },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Accept':'application/json', 
+          'X-Requested-With': 'XMLHttpRequest', 
+          'X-CSRF-Token': csrfToken 
+        },
         body: JSON.stringify(payload)
-      }).then(r => r.json()).then(j => {
-        try { console.log('[social] saved', j); } catch(e){}
-      }).catch(e => { try { console.warn('[social] save error', e); } catch(_){ } });
-    }, 100);
+      })
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function(json) {
+        try { 
+          console.log('[social] saved successfully', json); 
+        } catch(e){}
+      })
+      .catch(function(error) {
+        try { 
+          console.warn('[social] save error', error); 
+        } catch(_){ }
+      });
+    }, 300); // Debounce to 300ms
   }
   
-  selectAllBtn.addEventListener('click', function() {
-    checkboxes.forEach(function(checkbox) {
-      checkbox.checked = true;
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener('click', function() {
+      checkboxes.forEach(function(checkbox) {
+        checkbox.checked = true;
+      });
+      updateCount();
+      updatePreview();
     });
-    updateCount();
-    updatePreview();
-  });
+  }
   
-  deselectAllBtn.addEventListener('click', function() {
-    checkboxes.forEach(function(checkbox) {
-      checkbox.checked = false;
+  if (deselectAllBtn) {
+    deselectAllBtn.addEventListener('click', function() {
+      checkboxes.forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+      updateCount();
+      updatePreview();
     });
-    updateCount();
-    updatePreview();
-  });
+  }
   
   checkboxes.forEach(function(checkbox) {
     checkbox.addEventListener('change', function() {
@@ -374,6 +403,10 @@ function initAdminSocialPage() {
       updatePreview();
     });
   });
+  
+  // Ensure initial state is correct
+  updateCount();
+  updatePreview();
   
   // Initialize: ensure checkboxes reflect server-enabled list
   try {
@@ -383,7 +416,9 @@ function initAdminSocialPage() {
         checkbox.checked = enabledFromServer.includes(key);
       });
     }
-  } catch(e) {}
+  } catch(e) {
+    console.warn('[social] Failed to initialize checkboxes from server data:', e);
+  }
 
   // First render
   updateCount();
