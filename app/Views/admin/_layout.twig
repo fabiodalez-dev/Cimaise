@@ -815,7 +815,10 @@
               // Execute scripts from the loaded content in order, wait for externals, then init
               (async () => {
                 try {
-                  const scripts = Array.from(content.querySelectorAll('script'));
+                  // Collect scripts from the fetched document (not just #page-content),
+                  // because Twig's "scripts" block is rendered outside #page-content.
+                  const scripts = Array.from(doc.querySelectorAll('script'));
+                  try { console.log('SPA: executing page scripts count =', scripts.length); } catch(e){}
                   for (const s of scripts) {
                     const sc = document.createElement('script');
                     if (s.type) sc.type = s.type;
@@ -982,6 +985,15 @@
               
             } catch(e) {
               console.error('SPA: Albums index page initializer failed', e);
+            }
+          }
+
+          // Social settings page
+          if (currentPath.includes('/admin/social') && window.pageInitializers.social) {
+            try {
+              window.pageInitializers.social();
+            } catch(e) {
+              console.error('SPA: Social page initializer failed', e);
             }
           }
           
