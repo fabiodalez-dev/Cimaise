@@ -183,6 +183,9 @@
     </div>
   {% endif %}
 
+  {# Social Sharing #}
+  {% include 'frontend/_social_sharing.twig' %}
+
   {# Template switcher (same behavior as gallery.twig) #}
   {% if available_templates|length > 0 %}
   <div class="mt-8 mb-4 flex justify-end">

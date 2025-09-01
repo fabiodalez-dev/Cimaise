@@ -395,7 +395,11 @@ INSERT INTO `settings` (`id`, `key`, `value`, `type`, `created_at`, `updated_at`
 (323, 'seo.image_acquire_license_page', '', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (324, 'seo.preload_critical_images', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (325, 'seo.lazy_load_images', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
-(326, 'seo.structured_data_format', 'json-ld', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37');
+(326, 'seo.structured_data_format', 'json-ld', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+
+-- Social sharing settings
+(327, 'social.enabled', '[]', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(328, 'social.order', '[]', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37');
 
 -- Insert film types data
 INSERT INTO `films` (`id`, `brand`, `name`, `iso`, `format`, `type`) VALUES
@@ -473,7 +477,7 @@ INSERT INTO `templates` (`id`, `name`, `slug`, `description`, `settings`, `libs`
 
 -- Set AUTO_INCREMENT values to match the SQLite sequence
 ALTER TABLE `categories` AUTO_INCREMENT = 10;
-ALTER TABLE `settings` AUTO_INCREMENT = 327;
+ALTER TABLE `settings` AUTO_INCREMENT = 329;
 ALTER TABLE `templates` AUTO_INCREMENT = 13;
 ALTER TABLE `films` AUTO_INCREMENT = 45;
 
