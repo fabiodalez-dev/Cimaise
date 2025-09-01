@@ -479,8 +479,4 @@ class SocialController extends BaseController
         ];
     }
 
-    private function getDefaultEnabledSocials(): array
-    {
-        return ['behance', 'whatsapp', 'facebook', 'x', 'deviantart', 'instagram', 'pinterest', 'telegram', 'threads', 'bluesky'];
-    }
 }
