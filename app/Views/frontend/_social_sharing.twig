@@ -1,0 +1,38 @@
+{# Social Sharing Template #}
+{% if enabled_socials is defined and enabled_socials|length > 0 %}
+<div class="social-sharing mt-8 mb-8">
+  <div class="max-w-4xl mx-auto text-center">
+    <div class="social-buttons">
+      {% for social in enabled_socials %}
+        {% set config = available_socials[social] %}
+        {% if config %}
+          {% set share_url = config.url %}
+          {% set title_encoded = album.title|url_encode %}
+          {% set url_encoded = canonical_url|default(current_url)|url_encode %}
+          
+          {% if share_url != '#' and not (share_url starts with 'javascript:') %}
+            {% set share_url = share_url|replace({'{title}': title_encoded, '{url}': url_encoded}) %}
+            <a href="{{ share_url }}" 
+               target="_blank" rel="noopener noreferrer" 
+               class="social-btn {{ social }}" 
+               title="Share on {{ config.name }}">
+              <i class="{{ config.icon }}"></i>
+            </a>
+          {% elseif share_url starts with 'javascript:' %}
+            <a href="{{ share_url|replace({'{title}': album.title, '{url}': canonical_url|default(current_url)}) }}" 
+               class="social-btn {{ social }}" 
+               title="{{ config.name }}">
+              <i class="{{ config.icon }}"></i>
+            </a>
+          {% else %}
+            <span class="social-btn {{ social }}" 
+                  title="{{ config.name }} (Display only)">
+              <i class="{{ config.icon }}"></i>
+            </span>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
