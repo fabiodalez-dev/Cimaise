@@ -79,8 +79,31 @@ class SocialController extends BaseController
         $svc->set('social.enabled', $enabledSocials);
         $svc->set('social.order', $socialOrder);
         
+        // AJAX request support: return JSON instead of redirect
+        $isAjax = false;
+        try {
+            $hdr = $request->getHeaderLine('X-Requested-With');
+            $acc = $request->getHeaderLine('Accept');
+            $isAjax = (stripos($hdr, 'XMLHttpRequest') !== false) || (stripos($acc, 'application/json') !== false);
+        } catch (\Throwable) {}
+
+        if ($isAjax) {
+            $payload = json_encode([
+                'ok' => true,
+                'enabled' => $enabledSocials,
+                'order' => $socialOrder,
+            ]);
+            $response->getBody()->write($payload);
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
         $_SESSION['flash'][] = ['type'=>'success','message'=>'Impostazioni social salvate correttamente'];
         return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
+    }
+
+    private function getDefaultEnabledSocials(): array
+    {
+        return ['behance','whatsapp','facebook','x','deviantart','instagram','pinterest','telegram','threads','bluesky'];
     }
 
     private function getAvailableSocials(): array

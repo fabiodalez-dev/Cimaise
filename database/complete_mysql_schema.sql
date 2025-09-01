@@ -398,8 +398,8 @@ INSERT INTO `settings` (`id`, `key`, `value`, `type`, `created_at`, `updated_at`
 (326, 'seo.structured_data_format', 'json-ld', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 
 -- Social sharing settings
-(327, 'social.enabled', '["behance","whatsapp","facebook","x","deviantart","instagram","pinterest","telegram","threads","bluesky"]', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
-(328, 'social.order', '["behance","whatsapp","facebook","x","deviantart","instagram","pinterest","telegram","threads","bluesky"]', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37');
+(327, 'social.enabled', '["bluesky","facebook","pinterest","telegram","threads","whatsapp","x"]', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(328, 'social.order', '["bluesky","facebook","pinterest","telegram","threads","whatsapp","x"]', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37');
 
 -- Insert film types data
 INSERT INTO `films` (`id`, `brand`, `name`, `iso`, `format`, `type`) VALUES
