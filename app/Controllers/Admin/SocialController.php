@@ -45,28 +45,60 @@ class SocialController extends BaseController
 
     public function save(Request $request, Response $response): Response
     {
-        $data = (array)$request->getParsedBody();
+        // Support both form-encoded and JSON payloads
+        $data = (array)($request->getParsedBody() ?? []);
+        $contentType = strtolower($request->getHeaderLine('Content-Type'));
+        if (str_contains($contentType, 'application/json')) {
+            try {
+                $raw = (string)$request->getBody();
+                if ($raw !== '') {
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) {
+                        $data = $decoded;
+                    }
+                }
+            } catch (\Throwable) {
+                // fall back to parsed body if JSON decoding fails
+            }
+        }
         $svc = new SettingsService($this->db);
         
-        // Get enabled social networks from form data
+        // Determine enabled socials
         $enabledSocials = [];
         $availableSocials = $this->getAvailableSocials();
-        
-        foreach ($availableSocials as $social => $config) {
-            if (isset($data['social_' . $social])) {
-                $enabledSocials[] = $social;
+        $availableKeys = array_keys($availableSocials);
+
+        // Case 1: JSON payload with explicit enabled list
+        if (isset($data['enabled']) && is_array($data['enabled'])) {
+            // sanitize: keep only valid keys and preserve order
+            foreach ($data['enabled'] as $key) {
+                if (in_array($key, $availableKeys, true)) {
+                    $enabledSocials[] = $key;
+                }
+            }
+        } else {
+            // Case 2: form fields social_<key>=on
+            foreach ($availableSocials as $social => $config) {
+                if (isset($data['social_' . $social])) {
+                    $enabledSocials[] = $social;
+                }
             }
         }
         
         // Get social order from form data (if provided)
         $socialOrder = [];
-        if (isset($data['social_order']) && is_string($data['social_order'])) {
+        if (isset($data['order']) && is_array($data['order'])) {
+            $orderData = array_values(array_filter($data['order'], fn($k) => in_array($k, $availableKeys, true)));
+            // Filter order to only include enabled socials, preserve provided order
+            $socialOrder = array_values(array_intersect($orderData, $enabledSocials));
+            // Add any enabled socials not in the order to the end
+            $socialOrder = array_values(array_merge($socialOrder, array_diff($enabledSocials, $socialOrder)));
+        } elseif (isset($data['social_order']) && is_string($data['social_order'])) {
             $orderData = json_decode($data['social_order'], true);
             if (is_array($orderData)) {
-                // Filter order to only include enabled socials
-                $socialOrder = array_intersect($orderData, $enabledSocials);
-                // Add any enabled socials not in the order to the end
-                $socialOrder = array_merge($socialOrder, array_diff($enabledSocials, $socialOrder));
+                $orderData = array_values(array_filter($orderData, fn($k) => in_array($k, $availableKeys, true)));
+                $socialOrder = array_values(array_intersect($orderData, $enabledSocials));
+                $socialOrder = array_values(array_merge($socialOrder, array_diff($enabledSocials, $socialOrder)));
             }
         }
         
