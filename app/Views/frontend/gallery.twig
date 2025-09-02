@@ -44,7 +44,7 @@
     <p class="text-lg text-neutral-600 leading-relaxed mb-6">{{ album.excerpt|e }}</p>
   </div>
 
-  <div class="max-w-3xl mx-auto prose prose-neutral mb-12">{{ album.body|raw }}</div>
+  <div class="max-w-3xl mx-auto prose prose-neutral mb-12">{{ album.body|safe_html }}</div>
   
   {# Social Sharing #}
   {% include 'frontend/_social_sharing.twig' %}
