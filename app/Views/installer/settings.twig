@@ -65,14 +65,31 @@
         <input type="file" id="site-logo" class="form-control" name="site_logo" accept="image/png,image/jpeg,image/webp">
         <div class="form-text">PNG/JPG/WebP. If omitted, the site title will be used.</div>
     </div>
+
+    <div class="mb-3">
+        <label for="default-template" class="form-label">Default Gallery Template</label>
+        <select id="default-template" class="form-control" name="default_template_slug">
+            <option value="">No default template (choose manually for each album)</option>
+            <option value="grid-classica" {{ default_template_slug == 'grid-classica' ? 'selected' : '' }}>Grid Classica — Clean responsive grid (3/2/1 cols)</option>
+            <option value="masonry-portfolio" {{ default_template_slug == 'masonry-portfolio' ? 'selected' : '' }}>Masonry Portfolio — Pinterest-style dynamic layout</option>
+            <option value="slideshow-minimal" {{ default_template_slug == 'slideshow-minimal' ? 'selected' : '' }}>Slideshow Minimal — Minimal slideshow with basic controls</option>
+            <option value="gallery-fullscreen" {{ default_template_slug == 'gallery-fullscreen' ? 'selected' : '' }}>Gallery Fullscreen — Immersive fullscreen gallery</option>
+            <option value="grid-compatta" {{ default_template_slug == 'grid-compatta' ? 'selected' : '' }}>Grid Compatta — Compact grid (5/3/2 cols)</option>
+            <option value="grid-ampia" {{ default_template_slug == 'grid-ampia' ? 'selected' : '' }}>Grid Ampia — Large images (2/1/1 cols)</option>
+        </select>
+        <div class="form-text">
+            This template will be used when creating new albums that don't have a specific template assigned.
+            You can change this later and assign different templates to individual albums.
+        </div>
+    </div>
     
     <div class="alert alert-info">
         <h5><i class="fas fa-lightbulb me-2"></i>Default Content</h5>
         <p>The installer will automatically create:</p>
         <ul class="mb-0">
             <li>A default "Foto" category</li>
-            <li>Six professional gallery templates</li>
-            <li>Basic image format settings</li>
+            <li>Six professional gallery templates (listed above)</li>
+            <li>Basic image format settings optimized for photography</li>
         </ul>
     </div>
     
