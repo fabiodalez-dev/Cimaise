@@ -282,43 +282,29 @@ class AnalyticsController
      */
     public function track(Request $request, Response $response): Response
     {
-        // Basic IP-based rate limiting (file-based, per-minute)
-        try {
-            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-            $key = 'analytics_' . preg_replace('/[^a-z0-9:\.]/i','_', $ip);
-            $dir = dirname(__DIR__, 3) . '/storage/tmp';
-            if (!is_dir($dir)) @mkdir($dir, 0775, true);
-            $file = $dir . '/' . $key . '.json';
-            $now = time();
-            $bucket = ['ts' => $now, 'c' => 0];
-            if (file_exists($file)) {
-                $raw = @file_get_contents($file);
-                $bucket = json_decode($raw ?: '', true) ?: $bucket;
-            }
-            // Reset every 60s
-            if (($now - (int)($bucket['ts'] ?? 0)) > 60) { $bucket = ['ts' => $now, 'c' => 0]; }
-            $bucket['c'] = (int)($bucket['c'] ?? 0) + 1;
-            // Limit: 120 req/min per IP
-            if ($bucket['c'] > 120) {
-                @file_put_contents($file, json_encode($bucket));
-                return $response->withStatus(204);
-            }
-            @file_put_contents($file, json_encode($bucket));
-        } catch (\Throwable $e) {
-            // Ignore limiter errors
-        }
-
         // Storage enabled: process payload and persist (returns 204 on success/fallback)
         if (!$this->analytics->isEnabled()) {
             return $response->withStatus(204); // No content
         }
 
         $body = $request->getBody()->getContents();
+        
+        // Enhanced input validation
+        if (strlen($body) > 8192) { // Max 8KB payload
+            return $response->withStatus(413); // Payload too large
+        }
+        
         $data = json_decode($body, true);
         
         // Even if data is empty or invalid, return 204 to avoid browser errors
-        if (!$data) {
+        if (!$data || !is_array($data)) {
             return $response->withStatus(204);
+        }
+
+        // Validate and sanitize input data
+        $data = $this->validateAndSanitizeAnalyticsData($data);
+        if ($data === null) {
+            return $response->withStatus(204); // Invalid data, but don't error
         }
 
         try {
@@ -471,5 +457,116 @@ class AnalyticsController
             // Analytics tables don't exist - return empty array
             return [];
         }
+    }
+
+    /**
+     * Validate and sanitize analytics data
+     */
+    private function validateAndSanitizeAnalyticsData(array $data): ?array
+    {
+        // Check required type field
+        $type = $data['type'] ?? '';
+        if (!in_array($type, ['pageview', 'event', 'heartbeat', 'page_end'])) {
+            return null;
+        }
+
+        // Sanitize common fields
+        $sanitized = ['type' => $type];
+        
+        // Common validation rules
+        $stringFields = [
+            'page_url' => 2048,      // Max URL length
+            'page_title' => 200,     // Reasonable title length  
+            'page_type' => 50,
+            'session_id' => 128,     // Reasonable session ID length
+            'event_type' => 50,
+            'event_category' => 100,
+            'event_action' => 100,
+            'event_label' => 200,
+            'user_agent' => 512,
+            'referrer' => 2048
+        ];
+
+        foreach ($stringFields as $field => $maxLen) {
+            if (isset($data[$field])) {
+                $value = trim((string)$data[$field]);
+                // Basic XSS prevention: no HTML tags or JavaScript
+                $value = strip_tags($value);
+                if (strpos($value, 'javascript:') !== false || strpos($value, 'data:') !== false) {
+                    $value = ''; // Remove dangerous protocols
+                }
+                // Trim to max length
+                if (strlen($value) > $maxLen) {
+                    $value = substr($value, 0, $maxLen);
+                }
+                if ($value !== '') {
+                    $sanitized[$field] = $value;
+                }
+            }
+        }
+
+        // Validate integer fields
+        $intFields = [
+            'album_id', 'category_id', 'tag_id', 'image_id', 
+            'viewport_width', 'viewport_height', 'time_on_page', 'event_value'
+        ];
+        
+        foreach ($intFields as $field) {
+            if (isset($data[$field])) {
+                $value = filter_var($data[$field], FILTER_VALIDATE_INT);
+                if ($value !== false && $value >= 0) {
+                    $sanitized[$field] = $value;
+                }
+            }
+        }
+
+        // Validate boolean fields
+        $boolFields = ['is_404', 'is_bounce'];
+        foreach ($boolFields as $field) {
+            if (isset($data[$field])) {
+                $sanitized[$field] = (bool)$data[$field];
+            }
+        }
+
+        // Type-specific validation
+        switch ($type) {
+            case 'pageview':
+                // Pageviews should have at least a URL
+                if (empty($sanitized['page_url'])) {
+                    return null;
+                }
+                break;
+                
+            case 'event':
+                // Events should have category and action
+                if (empty($sanitized['event_category']) || empty($sanitized['event_action'])) {
+                    return null;
+                }
+                break;
+                
+            case 'heartbeat':
+            case 'page_end':
+                // These should have session_id and time data
+                if (empty($sanitized['session_id'])) {
+                    return null;
+                }
+                break;
+        }
+
+        // Additional security: remove any suspicious patterns
+        foreach ($sanitized as $key => $value) {
+            if (is_string($value)) {
+                // Remove common attack patterns
+                $dangerous = ['<script', 'javascript:', 'vbscript:', 'onload=', 'onerror=', 'onclick='];
+                foreach ($dangerous as $pattern) {
+                    if (stripos($value, $pattern) !== false) {
+                        unset($sanitized[$key]);
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $sanitized;
     }
 }
