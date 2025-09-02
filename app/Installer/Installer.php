@@ -474,14 +474,34 @@ class Installer
      */
     private function setApplicationSettings(array $data): void
     {
-        error_log('Installer: Setting application settings with data: ' . print_r($data, true));
+        // Resolve default template ID
+        $defaultTemplateId = null;
+        try {
+            // Prefer slug provided by installer UI (robust across seeds/IDs)
+            $slug = trim((string)($data['default_template_slug'] ?? ''));
+            if ($slug !== '') {
+                $stmt = $this->db->pdo()->prepare('SELECT id FROM templates WHERE slug = :slug LIMIT 1');
+                $stmt->execute([':slug' => $slug]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row && isset($row['id'])) {
+                    $defaultTemplateId = (int)$row['id'];
+                }
+            }
+            // Fallback: accept numeric id if provided (legacy path)
+            if ($defaultTemplateId === null && !empty($data['default_template_id'])) {
+                $defaultTemplateId = (int)$data['default_template_id'];
+            }
+        } catch (\Throwable $e) {
+            // If anything goes wrong resolving the slug, leave as null
+        }
+
         $settings = [
             'site.title' => $data['site_title'] ?? 'photoCMS',
             'site.logo' => $data['site_logo'] ?? null,
             'site.description' => $data['site_description'] ?? 'Professional Photography Portfolio',
             'site.copyright' => $data['site_copyright'] ?? '© ' . date('Y') . ' Photography Portfolio',
             'site.email' => $data['site_email'] ?? '',
-            'gallery.default_template_id' => null,
+            'gallery.default_template_id' => $defaultTemplateId,
             'image.formats' => ['avif' => true, 'webp' => true, 'jpg' => true],
             'image.quality' => ['avif' => 50, 'webp' => 75, 'jpg' => 85],
             'image.breakpoints' => ['sm' => 768, 'md' => 1200, 'lg' => 1920, 'xl' => 2560, 'xxl' => 3840],
@@ -494,7 +514,17 @@ class Installer
         foreach ($settings as $key => $value) {
             error_log('Installer: Setting key: ' . $key . ' with value: ' . print_r($value, true));
             $encodedValue = json_encode($value, JSON_UNESCAPED_SLASHES);
-            $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
+            if (is_null($value)) {
+                $type = 'null';
+            } elseif (is_bool($value)) {
+                $type = 'boolean';
+            } elseif (is_int($value)) {
+                $type = 'number';
+            } elseif (is_array($value)) {
+                $type = 'array';
+            } else {
+                $type = 'string';
+            }
             error_log('Installer: Encoded value: ' . $encodedValue . ', type: ' . $type);
             
             if ($this->db->isSqlite()) {
