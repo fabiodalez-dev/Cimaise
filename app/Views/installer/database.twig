@@ -35,7 +35,7 @@
     <div class="mb-3">
       <label class="form-label">Database Type</label>
       <div class="row g-3" id="db-connection-cards">
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
           <label class="card p-3 h-100 cursor-pointer border {% if db_connection == 'sqlite' %}border-primary{% else %}border-secondary{% endif %}" style="user-select:none;">
             <div class="d-flex align-items-center mb-2">
               <i class="fas fa-database me-2"></i>
@@ -45,7 +45,7 @@
             <input type="radio" name="db_connection" value="sqlite" id="db-conn-sqlite" class="form-check-input mt-0" {% if db_connection == 'sqlite' %}checked{% endif %}>
           </label>
         </div>
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
           <label class="card p-3 h-100 cursor-pointer border {% if db_connection == 'mysql' %}border-primary{% else %}border-secondary{% endif %}" style="user-select:none;">
             <div class="d-flex align-items-center mb-2">
               <i class="fas fa-server me-2"></i>
@@ -113,10 +113,10 @@
     </div>
     
     <div id="sqlite-fields" {% if db_connection == 'mysql' %}style="display: none;"{% endif %}>
-        <div class="mb-3">
-            <label for="db-database-sqlite" class="form-label">Database File Path</label>
-            <input type="text" id="db-database-sqlite" class="form-control" name="db_database" value="{{ db_database }}" required>
-            <div class="form-text">Full path to the SQLite database file</div>
+        <input type="hidden" name="db_database" value="{{ db_database }}">
+        <div class="alert alert-light border">
+            <div class="d-flex align-items-center mb-1"><i class="fas fa-file-alt me-2"></i><strong>SQLite database path</strong></div>
+            <div class="text-muted small">{{ db_database }}</div>
         </div>
     </div>
     
