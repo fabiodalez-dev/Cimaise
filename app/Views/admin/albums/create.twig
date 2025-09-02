@@ -148,7 +148,6 @@
                   <div class="text-sm text-amber-800">
                     <div class="font-medium">Prima di caricare le immagini:</div>
                     <ul class="list-disc list-inside mt-1 text-xs space-y-0.5">
-                      <li>Inserisci il <strong>Titolo</strong> dell'album</li>
                       <li>Seleziona almeno una <strong>Categoria</strong></li>
                       <li>Le immagini verranno caricate automaticamente dopo la creazione</li>
                     </ul>
@@ -534,13 +533,41 @@
         });
         return fd.toString();
       }
+
+      function prepareCreatePayload(){
+        const formData = new FormData(form);
+        // Require at least one category; title is optional
+        const cats = formData.getAll('categories[]');
+        if (!cats || cats.length === 0) {
+          throw new Error('missing_category');
+        }
+        // Auto-title if missing
+        let title = (formData.get('title') || '').toString().trim();
+        if (!title) {
+          const d = new Date();
+          title = 'Album ' + d.toLocaleDateString('it-IT') + ' ' + d.toLocaleTimeString('it-IT');
+          formData.set('title', title);
+        }
+        // Build payload
+        const enc = new URLSearchParams();
+        formData.forEach((v,k)=>{ if (k !== 'csrf') enc.append(k, typeof v === 'string' ? v : String(v)); });
+        return enc.toString();
+      }
       
       async function ensureAlbumId(){
         if (createdAlbumId) return createdAlbumId;
         
         showProgress('Creazione album...');
         
-        const body = gatherFormData();
+        let body;
+        try { body = prepareCreatePayload(); } catch(e){
+          if (e && e.message === 'missing_category') {
+            if (window.showToast) showToast('Seleziona almeno una Categoria', 'error'); else alert('Seleziona almeno una Categoria');
+            hideProgress();
+            throw e;
+          }
+          throw e;
+        }
         const res = await fetch(form.action, { 
           method:'POST', 
           headers:{ 
@@ -612,20 +639,12 @@
         if (!files.length) return;
         if (isUploading) return;
         
-        // Basic validation: require title and at least one category before auto-create
-        const titleEl = form.querySelector('input[name="title"]');
-        const catsElDesktop = document.getElementById('album-categories');
-        const catsElMobile = document.getElementById('album-categories-mobile');
-        const catsEl = catsElDesktop || catsElMobile; // Use whichever is visible
-        const hasTitle = titleEl && titleEl.value.trim().length > 0;
-        const hasCat = catsEl && Array.from(catsEl.selectedOptions).length > 0;
-        
-        if (!hasTitle || !hasCat) {
-          if (window.showToast) {
-            showToast('Inserisci almeno Titolo e una Categoria prima di caricare immagini', 'error');
-          } else {
-            alert('Inserisci almeno Titolo e una Categoria prima di caricare immagini.');
-          }
+        // Validation: require at least one category. Title is optional.
+        const fdCheck = new FormData(form);
+        const cats = fdCheck.getAll('categories[]');
+        const hasCat = cats && cats.length > 0;
+        if (!hasCat) {
+          if (window.showToast) showToast('Seleziona almeno una Categoria', 'error'); else alert('Seleziona almeno una Categoria');
           return;
         }
         
