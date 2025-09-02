@@ -29,14 +29,15 @@ final class Sanitizer
         // Suppress warnings for malformed HTML, as we are cleaning it
         @$dom->loadHTML('<div>' . $dirtyHtml . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 
-        $body = $dom->getElementsByTagName('body')->item(0);
-        if (!$body) return '';
+        // Get the root element (the div we wrapped around the content)
+        $root = $dom->documentElement;
+        if (!$root) return '';
 
-        self::sanitizeNode($body, $allowedTags, $allowedAttributes);
+        self::sanitizeNode($root, $allowedTags, $allowedAttributes);
 
         // Extract the sanitized HTML
         $cleanHtml = '';
-        foreach ($body->firstChild->childNodes as $node) {
+        foreach ($root->childNodes as $node) {
             $cleanHtml .= $dom->saveHTML($node);
         }
 
