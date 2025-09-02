@@ -57,13 +57,12 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         // Process the request
         $response = $handler->handle($request);
         
-        // Track failed attempts based on response
-        if ($this->isFailedAttempt($request, $response)) {
+        // First clear on success, then record failures
+        if ($this->isSuccessfulAttempt($request, $response)) {
+            $this->clearAttempts($filePath);
+        } elseif ($this->isFailedAttempt($request, $response)) {
             $attempts[] = $now;
             $this->saveAttempts($filePath, $attempts);
-        } elseif ($this->isSuccessfulAttempt($request, $response)) {
-            // Clear attempts on successful login
-            $this->clearAttempts($filePath);
         }
 
         return $response;
@@ -155,19 +154,24 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
     {
         $path = $request->getUri()->getPath();
         
-        // For login endpoints
+        // For login endpoints handle precisely
         if (str_contains($path, '/login')) {
-            // Failed login: either redirect with error or response contains error text
-            if ($response->getStatusCode() === 302) {
-                // Check if redirecting due to error (session flash messages are set)
-                return true; // Assume failed if redirecting from login POST
+            $status = $response->getStatusCode();
+            if ($status === 302) {
+                $location = $response->getHeaderLine('Location');
+                // Redirecting back to login implies failure; redirecting to /admin implies success
+                if (str_contains($location, '/login')) {
+                    return true;
+                }
+                return false;
             }
-            
+
             // Check response body for error indicators
             $body = (string)$response->getBody();
             return str_contains($body, 'Credenziali non valide') ||
                    str_contains($body, 'Invalid credentials') ||
-                   str_contains($body, 'Login failed');
+                   str_contains($body, 'Login failed') ||
+                   str_contains($body, 'Account disattivato');
         }
         
         // For other endpoints, consider 4xx errors as failed attempts
