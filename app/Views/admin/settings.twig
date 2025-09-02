@@ -152,12 +152,13 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Template Predefinito</label>
           
+          
           {% set pageTpl = settings['gallery.page_template']|default('classic') %}
           {% set disableDefault = pageTpl == 'magazine' %}
           <select name="default_template_id" class="form-input {{ disableDefault ? 'bg-gray-100 cursor-not-allowed' : '' }}" {{ disableDefault ? 'disabled' : '' }}>
             <option value="">Nessun template predefinito</option>
             {% for template in templates %}
-              {% set isSelected = template.id == settings['gallery.default_template_id'] %}
+              {% set isSelected = (template.id ~ '') == (settings['gallery.default_template_id'] ~ '') %}
               <option value="{{ template.id }}" {% if isSelected %}selected{% endif %}>{{ template.name }}</option>
             {% endfor %}
           </select>
