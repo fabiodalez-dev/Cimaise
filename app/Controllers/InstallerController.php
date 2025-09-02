@@ -169,8 +169,17 @@ class InstallerController
         
         // Store admin config in session
         $_SESSION['install_admin_config'] = $data;
+
+        // Pre-fill settings to avoid duplicate step; post-setup will refine later
+        $_SESSION['install_settings_config'] = [
+            'site_title' => 'photoCMS',
+            'site_description' => 'Professional Photography Portfolio',
+            'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
+            'site_email' => '',
+            'site_logo' => null,
+        ];
         
-        return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+        return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
     }
     
     /**
