@@ -342,14 +342,110 @@ class InstallerController
             // Force session write to ensure flash message is saved
             session_write_close();
             
-            error_log('runInstall: Redirecting to /admin/login');
-            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
+            error_log('runInstall: Redirecting to /install/post-setup');
+            return $response->withHeader('Location', $this->basePath . '/install/post-setup')->withStatus(302);
         } catch (\Throwable $e) {
             error_log('runInstall: Installation failed: ' . $e->getMessage());
             error_log('runInstall: Stack trace: ' . $e->getTraceAsString());
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Installation failed: ' . $e->getMessage()];
             return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
         }
+    }
+
+    /**
+     * Post-install setup: site settings after DB and seeds are ready
+     */
+    public function showPostSetup(Request $request, Response $response, $db): Response
+    {
+        // If not installed yet, go to installer
+        if (!$this->installer->isInstalled()) {
+            return $response->withHeader('Location', $this->basePath . '/install')->withStatus(302);
+        }
+        
+        // Fetch available templates from DB, if any
+        $templates = [];
+        try {
+            if ($db) {
+                $stmt = $db->pdo()->query('SELECT id, name FROM templates ORDER BY id ASC');
+                $templates = $stmt->fetchAll();
+            }
+        } catch (\Throwable) {}
+        
+        return $this->view->render($response, 'installer/post_setup.twig', [
+            'site_title' => 'photoCMS',
+            'site_description' => 'Professional Photography Portfolio',
+            'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
+            'site_email' => '',
+            'templates' => $templates,
+            'csrf' => $_SESSION['csrf'] ?? ''
+        ]);
+    }
+
+    public function processPostSetup(Request $request, Response $response, $db): Response
+    {
+        if (!$this->installer->isInstalled()) {
+            return $response->withHeader('Location', $this->basePath . '/install')->withStatus(302);
+        }
+        $data = (array)$request->getParsedBody();
+        // Verify CSRF token
+        $csrf = (string)($data['csrf'] ?? '');
+        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
+            return $response->withHeader('Location', $this->basePath . '/install/post-setup')->withStatus(302);
+        }
+        
+        // Optional logo upload
+        try {
+            $files = $request->getUploadedFiles();
+            $logo = $files['site_logo'] ?? null;
+            if ($logo && $logo->getError() === UPLOAD_ERR_OK) {
+                $stream = $logo->getStream(); if (method_exists($stream,'rewind')) $stream->rewind();
+                $contents = (string)$stream->getContents();
+                if ($contents !== '') {
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $mime = $finfo->buffer($contents) ?: '';
+                    $allowed = ['image/png'=>'.png','image/jpeg'=>'.jpg','image/webp'=>'.webp'];
+                    if (isset($allowed[$mime])) {
+                        $info = @getimagesizefromstring($contents);
+                        if ($info !== false) {
+                            $hash = sha1($contents) ?: bin2hex(random_bytes(20));
+                            $ext = $allowed[$mime];
+                            $destDir = dirname(__DIR__, 2) . '/public/media';
+                            if (!is_dir($destDir)) { @mkdir($destDir, 0775, true); }
+                            $destPath = $destDir . '/logo-' . $hash . $ext;
+                            @file_put_contents($destPath, $contents);
+                            $data['site_logo'] = '/media/' . basename($destPath);
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable) {}
+        
+        // Persist settings via direct DB writes (same schema as SettingsService)
+        $toSet = [
+            'site.title' => (string)($data['site_title'] ?? 'photoCMS'),
+            'site.logo' => $data['site_logo'] ?? null,
+            'site.description' => (string)($data['site_description'] ?? 'Professional Photography Portfolio'),
+            'site.copyright' => (string)($data['site_copyright'] ?? ('© ' . date('Y') . ' Photography Portfolio')),
+            'site.email' => (string)($data['site_email'] ?? ''),
+        ];
+        if (!empty($data['default_template_id'])) {
+            $toSet['gallery.default_template_id'] = (int)$data['default_template_id'];
+        }
+        try {
+            foreach ($toSet as $key => $value) {
+                $encoded = json_encode($value, JSON_UNESCAPED_SLASHES);
+                $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
+                $stmt = $db->pdo()->prepare('INSERT OR REPLACE INTO settings(`key`,`value`,`type`,`created_at`,`updated_at`) VALUES(:k,:v,:t,datetime(\'now\'),datetime(\'now\'))');
+                $stmt->execute([':k'=>$key, ':v'=>$encoded, ':t'=>$type]);
+            }
+        } catch (\Throwable $e) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Failed to save settings: ' . $e->getMessage()];
+            return $response->withHeader('Location', $this->basePath . '/install/post-setup')->withStatus(302);
+        }
+        
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Setup completed! You can now log in.'];
+        return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
     }
     
     /**
