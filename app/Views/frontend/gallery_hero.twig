@@ -71,7 +71,7 @@
   {# --- HERO WRAPPER: much taller, content centered, padding added --- #}
   <div class="relative overflow-hidden bg-neutral-900" style="min-height:50vh">
     {% if hero_has_image %}
-      <img src="{{ hero_url }}" alt="{{ album.title|e }}" class="absolute inset-0 w-full h-full object-cover object-center select-none blur-sm md:blur md:scale-105" loading="eager" fetchpriority="high" decoding="async">
+      <img src="{{ hero_url }}" alt="{{ album.title|e }}" class="js-hero-parallax absolute inset-0 w-full h-full object-cover object-center select-none blur-sm md:blur md:scale-105" loading="eager" fetchpriority="high" decoding="async">
     {% else %}
       <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-900"></div>
     {% endif %}
@@ -478,6 +478,10 @@
       .finally(() => { delete el.dataset.switchInProgress; });
   });
   </script>
+{% block scripts %}
+  {{ parent() }}
+  <script type="module" src="{{ base_path }}/assets/js/hero.js"></script>
+{% endblock %}
   {# JSON-LD: ImageGallery + Breadcrumbs #}
   <script type="application/ld+json">
   {
