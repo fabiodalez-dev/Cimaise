@@ -72,11 +72,11 @@ $app->post('/install/run', function (Request $request, Response $response) use (
 // Post-install setup (site settings)
 $app->get('/install/post-setup', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-    return $controller->showPostSetup($request, $response, $container['db'] ?? null);
+    return $controller->showPostSetup($request, $response);
 });
 $app->post('/install/post-setup', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-    return $controller->processPostSetup($request, $response, $container['db'] ?? null);
+    return $controller->processPostSetup($request, $response);
 });
 }
 
