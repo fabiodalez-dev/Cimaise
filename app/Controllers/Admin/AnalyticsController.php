@@ -282,6 +282,32 @@ class AnalyticsController
      */
     public function track(Request $request, Response $response): Response
     {
+        // Basic IP-based rate limiting (file-based, per-minute)
+        try {
+            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            $key = 'analytics_' . preg_replace('/[^a-z0-9:\.]/i','_', $ip);
+            $dir = dirname(__DIR__, 3) . '/storage/tmp';
+            if (!is_dir($dir)) @mkdir($dir, 0775, true);
+            $file = $dir . '/' . $key . '.json';
+            $now = time();
+            $bucket = ['ts' => $now, 'c' => 0];
+            if (file_exists($file)) {
+                $raw = @file_get_contents($file);
+                $bucket = json_decode($raw ?: '', true) ?: $bucket;
+            }
+            // Reset every 60s
+            if (($now - (int)($bucket['ts'] ?? 0)) > 60) { $bucket = ['ts' => $now, 'c' => 0]; }
+            $bucket['c'] = (int)($bucket['c'] ?? 0) + 1;
+            // Limit: 120 req/min per IP
+            if ($bucket['c'] > 120) {
+                @file_put_contents($file, json_encode($bucket));
+                return $response->withStatus(204);
+            }
+            @file_put_contents($file, json_encode($bucket));
+        } catch (\Throwable $e) {
+            // Ignore limiter errors
+        }
+
         // Storage enabled: process payload and persist (returns 204 on success/fallback)
         if (!$this->analytics->isEnabled()) {
             return $response->withStatus(204); // No content

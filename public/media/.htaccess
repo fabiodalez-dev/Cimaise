@@ -1,13 +1,10 @@
-# Disable PHP engine in this directory for security.
 <IfModule mod_php7.c>
-    php_flag engine off
+  php_flag engine off
 </IfModule>
-
-<IfModule mod_php.c>
-    php_flag engine off
+<IfModule mod_php8.c>
+  php_flag engine off
 </IfModule>
-
-# For servers that don't use mod_php, this is another layer.
-<FilesMatch "\.(php|phar|phtml|sh|cgi)$">
-    Require all denied
+<FilesMatch "\.(php|phar|phtml)$">
+  Require all denied
 </FilesMatch>
+Options -Indexes

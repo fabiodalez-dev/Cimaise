@@ -33,7 +33,7 @@
     <input type="hidden" name="csrf" value="{{ csrf }}">
     
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
             <div class="mb-3">
                 <label for="admin-name" class="form-label">Full Name</label>
                 <input type="text" id="admin-name" class="form-control" name="admin_name" autocomplete="name" value="{{ install_admin_data.admin_name|default('') }}" required>
@@ -42,7 +42,7 @@
                 {% endif %}
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
             <div class="mb-3">
                 <label for="admin-email" class="form-label">Email Address</label>
                 <input type="email" id="admin-email" class="form-control" name="admin_email" autocomplete="email" value="{{ install_admin_data.admin_email|default('') }}" required>
@@ -54,7 +54,7 @@
     </div>
     
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
             <div class="mb-3">
                 <label for="admin-password" class="form-label">Password</label>
                 <input type="password" id="admin-password" class="form-control" name="admin_password" autocomplete="new-password" required>
@@ -64,7 +64,7 @@
                 {% endif %}
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
             <div class="mb-3">
                 <label for="admin-password-confirm" class="form-label">Confirm Password</label>
                 <input type="password" id="admin-password-confirm" class="form-control" name="admin_password_confirm" autocomplete="new-password" required>

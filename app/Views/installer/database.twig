@@ -33,12 +33,30 @@
     <input type="hidden" name="csrf" value="{{ csrf }}">
     
     <div class="mb-3">
-        <label for="db-connection" class="form-label">Database Type</label>
-        <select class="form-select" name="db_connection" id="db-connection">
-            <option value="sqlite" {% if db_connection == 'sqlite' %}selected{% endif %}>SQLite (Recommended for beginners)</option>
-            <option value="mysql" {% if db_connection == 'mysql' %}selected{% endif %}>MySQL/MariaDB</option>
-        </select>
-        <div class="form-text">SQLite is easier to set up, MySQL offers better performance for large sites</div>
+      <label class="form-label">Database Type</label>
+      <div class="row g-3" id="db-connection-cards">
+        <div class="col-12 col-md-6">
+          <label class="card p-3 h-100 cursor-pointer border {% if db_connection == 'sqlite' %}border-primary{% else %}border-secondary{% endif %}" style="user-select:none;">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-database me-2"></i>
+              <strong class="mb-0">SQLite</strong>
+            </div>
+            <p class="text-muted small mb-2">Single file, zero-config. Perfect to start quickly.</p>
+            <input type="radio" name="db_connection" value="sqlite" id="db-conn-sqlite" class="form-check-input mt-0" {% if db_connection == 'sqlite' %}checked{% endif %}>
+          </label>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="card p-3 h-100 cursor-pointer border {% if db_connection == 'mysql' %}border-primary{% else %}border-secondary{% endif %}" style="user-select:none;">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-server me-2"></i>
+              <strong class="mb-0">MySQL / MariaDB</strong>
+            </div>
+            <p class="text-muted small mb-2">For larger sites and multi-user environments.</p>
+            <input type="radio" name="db_connection" value="mysql" id="db-conn-mysql" class="form-check-input mt-0" {% if db_connection == 'mysql' %}checked{% endif %}>
+          </label>
+        </div>
+      </div>
+      <div class="form-text mt-2">You can migrate from SQLite to MySQL later if needed.</div>
     </div>
     
     <div id="mysql-fields" {% if db_connection != 'mysql' %}style="display: none;"{% endif %}>
@@ -95,10 +113,10 @@
     </div>
     
     <div id="sqlite-fields" {% if db_connection == 'mysql' %}style="display: none;"{% endif %}>
-        <div class="mb-3">
-            <label for="db-database-sqlite" class="form-label">Database File Path</label>
-            <input type="text" id="db-database-sqlite" class="form-control" name="db_database" value="{{ db_database }}" required>
-            <div class="form-text">Full path to the SQLite database file</div>
+        <input type="hidden" name="db_database" value="{{ db_database }}">
+        <div class="alert alert-light border">
+            <div class="d-flex align-items-center mb-1"><i class="fas fa-file-alt me-2"></i><strong>SQLite database path</strong></div>
+            <div class="text-muted small">{{ db_database }}</div>
         </div>
     </div>
     
@@ -114,14 +132,18 @@
 {% endblock %}
 {% block scripts %}
 <script>
-document.getElementById('db-connection').addEventListener('change', function() {
-    if (this.value === 'mysql') {
-        document.getElementById('mysql-fields').style.display = 'block';
-        document.getElementById('sqlite-fields').style.display = 'none';
-    } else {
-        document.getElementById('mysql-fields').style.display = 'none';
-        document.getElementById('sqlite-fields').style.display = 'block';
-    }
-});
+(function(){
+  function toggle(val){
+    const showMy = val === 'mysql';
+    document.getElementById('mysql-fields').style.display = showMy ? 'block':'none';
+    document.getElementById('sqlite-fields').style.display = showMy ? 'none':'block';
+  }
+  const rSqlite = document.getElementById('db-conn-sqlite');
+  const rMysql = document.getElementById('db-conn-mysql');
+  if (rSqlite && rMysql){
+    rSqlite.addEventListener('change', ()=> toggle('sqlite'));
+    rMysql.addEventListener('change', ()=> toggle('mysql'));
+  }
+})();
 </script>
 {% endblock %}
