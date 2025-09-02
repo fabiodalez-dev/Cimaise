@@ -19,7 +19,7 @@
         {% endif %}
         <div class="mt-6 text-lg leading-8">
           {% if about_text %}
-            <div>{{ about_text|raw }}</div>
+            <div>{{ about_text|safe_html }}</div>
           {% else %}
             <p class="text-neutral-600">Aggiungi il tuo testo di presentazione dall'area admin → Pagine.</p>
           {% endif %}
@@ -47,7 +47,7 @@
 
         <div class="mt-12 border border-neutral-200 rounded-lg p-6">
           <h2 class="text-2xl font-semibold">{{ contact_title|default('Contatti')|e }}</h2>
-          <p class="text-sm text-neutral-600 mt-1">{% if contact_intro %}{{ contact_intro|raw }}{% elseif about_footer_text %}{{ about_footer_text|raw }}{% else %}Per collaborazioni e commissioni, contattami via email o social.{% endif %}</p>
+          <p class="text-sm text-neutral-600 mt-1">{% if contact_intro %}{{ contact_intro|safe_html }}{% elseif about_footer_text %}{{ about_footer_text|safe_html }}{% else %}Per collaborazioni e commissioni, contattami via email o social.{% endif %}</p>
           <form method="post" action="{{ about_url }}/contact" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <div>
