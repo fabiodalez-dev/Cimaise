@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# photoCMS cleanup utility — removes leftover/test/backup files.
+# photoCMS cleanup utility — removes leftover/test/backup files or resets install.
 #
 # Usage:
-#   bin/cleanup_leftovers.sh           # dry-run (shows what would be removed)
-#   bin/cleanup_leftovers.sh --apply   # actually delete
+#   bin/cleanup_leftovers.sh                 # dry-run (shows what would be removed)
+#   bin/cleanup_leftovers.sh --apply         # actually delete
+#   bin/cleanup_leftovers.sh --apply --reset-install  # purge photos + .env + database
 #
 # Optional flags:
-#   --remove-installers  Remove standalone installers in public/ (keep Slim routes only)
-#   --remove-sitemaps    Remove placeholder sitemap files in public/
-#   --remove-dev         Remove dev/demo helpers under bin/dev/
+#   --remove-installers   Remove standalone installers in public/ (keep Slim routes only)
+#   --remove-sitemaps     Remove placeholder sitemap files in public/
+#   --remove-dev          Remove dev/demo helpers under bin/dev/
+#   --reset-install       Purge originals + variants, delete .env and database/database.sqlite
 
 APPLY=0
 REMOVE_INSTALLERS=0
 REMOVE_SITEMAPS=0
 REMOVE_DEV=0
+RESET_INSTALL=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -23,6 +26,7 @@ for arg in "$@"; do
     --remove-installers) REMOVE_INSTALLERS=1 ;;
     --remove-sitemaps) REMOVE_SITEMAPS=1 ;;
     --remove-dev) REMOVE_DEV=1 ;;
+    --reset-install) RESET_INSTALL=1 ;;
     *) echo "Unknown option: $arg" >&2; exit 1 ;;
   esac
 done
@@ -38,6 +42,56 @@ rm_path() {
     else
       say "would remove: $p"
     fi
+  fi
+}
+
+empty_dir_preserve_htaccess() {
+  local d="$1";
+  if [[ -d "$d" ]]; then
+    if [[ $APPLY -eq 1 ]]; then
+      # Remove everything except .htaccess
+      find "$d" -mindepth 1 -maxdepth 1 ! -name '.htaccess' -exec rm -rf {} +
+      say "emptied (preserved .htaccess): $d"
+    else
+      say "would empty (preserve .htaccess): $d/*"
+    fi
+  fi
+}
+
+write_htaccess() {
+  local target="$1";
+  local kind="$2"; # media|storage
+  if [[ $APPLY -eq 1 ]]; then
+    mkdir -p "$(dirname "$target")"
+    if [[ "$kind" == "media" ]]; then
+      cat > "$target" <<'HTACC'
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+  php_flag engine off
+</IfModule>
+<FilesMatch "\.(php|phar|phtml)$">
+  Require all denied
+</FilesMatch>
+Options -Indexes
+HTACC
+    else
+      # storage: deny direct access
+      cat > "$target" <<'HTACC'
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+  php_flag engine off
+</IfModule>
+Require all denied
+Options -Indexes
+HTACC
+    fi
+    say "wrote security .htaccess: $target"
+  else
+    say "would write security .htaccess: $target ($kind)"
   fi
 }
 
@@ -101,3 +155,30 @@ else
   say "cleanup complete."
 fi
 
+# 9) Reset installation (purge media/originals + remove .env and database)
+if [[ $RESET_INSTALL -eq 1 ]]; then
+  MEDIA_DIR="$ROOT_DIR/public/media"
+  ORIG_DIR="$ROOT_DIR/storage/originals"
+  TMP_DIR="$ROOT_DIR/storage/tmp"
+  ENV_FILE="$ROOT_DIR/.env"
+  DB_FILE="$ROOT_DIR/database/database.sqlite"
+
+  empty_dir_preserve_htaccess "$MEDIA_DIR"
+  empty_dir_preserve_htaccess "$ORIG_DIR"
+  empty_dir_preserve_htaccess "$TMP_DIR"
+
+  rm_path "$ENV_FILE"
+  rm_path "$DB_FILE"
+
+  # Recreate critical dirs & .htaccess just in case
+  if [[ $APPLY -eq 1 ]]; then
+    mkdir -p "$MEDIA_DIR" "$ORIG_DIR" "$TMP_DIR"
+    # Write security .htaccess files if missing
+    [[ -f "$MEDIA_DIR/.htaccess" ]] || write_htaccess "$MEDIA_DIR/.htaccess" media
+    [[ -f "$ORIG_DIR/.htaccess" ]] || write_htaccess "$ORIG_DIR/.htaccess" storage
+    [[ -f "$TMP_DIR/.htaccess" ]]   || write_htaccess "$TMP_DIR/.htaccess" storage
+    say "recreated directories and ensured .htaccess: $MEDIA_DIR $ORIG_DIR $TMP_DIR"
+  else
+    say "would recreate directories and .htaccess: $MEDIA_DIR $ORIG_DIR $TMP_DIR"
+  fi
+fi

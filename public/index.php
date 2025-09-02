@@ -18,8 +18,8 @@ $isInstallerRoute = strpos($requestUri, '/install') !== false || strpos($request
 $isAdminRoute = strpos($requestUri, '/admin') !== false;
 $isLoginRoute = strpos($requestUri, '/login') !== false;
 
-// Check if already installed (only for non-installer routes, not admin routes, and not login routes)
-if (!$isInstallerRoute && !$isAdminRoute && !$isLoginRoute) {
+// Check if already installed (for all routes except installer itself)
+if (!$isInstallerRoute) {
     // Check if installed by looking for .env file (not .env.example) and database
     $root = dirname(__DIR__);
     $installed = false;
@@ -81,21 +81,12 @@ if (!$isInstallerRoute && !$isAdminRoute && !$isLoginRoute) {
     if (!$installed) {
         // Avoid redirect loop - check if we're already on install page
         if (strpos($_SERVER['REQUEST_URI'], '/install') === false) {
-            // Get the base path for the installer redirect
             $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
             $scriptDir = dirname($scriptPath);
             $basePath = $scriptDir === '/' ? '' : $scriptDir;
-            
-            // Try simple installer first, fallback to main installer
-            if (file_exists(__DIR__ . '/simple-installer.php')) {
-                http_response_code(302);
-                header('Location: ' . $basePath . '/simple-installer.php');
-                exit;
-            } else {
-                http_response_code(302);
-                header('Location: ' . $basePath . '/installer.php');
-                exit;
-            }
+            http_response_code(302);
+            header('Location: ' . $basePath . '/install');
+            exit;
         }
     }
 }
@@ -141,6 +132,7 @@ $twig = Twig::create(__DIR__ . '/../app/Views', ['cache' => false]);
 
 // Add custom Twig extensions
 $twig->getEnvironment()->addExtension(new \App\Extensions\AnalyticsTwigExtension());
+$twig->getEnvironment()->addExtension(new \App\Extensions\SecurityTwigExtension());
 
 $app->add(TwigMiddleware::create($app, $twig));
 

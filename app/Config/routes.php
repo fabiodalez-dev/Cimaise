@@ -68,12 +68,24 @@ $app->post('/install/run', function (Request $request, Response $response) use (
     $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
     return $controller->runInstall($request, $response);
 });
+
+// Post-install setup (site settings)
 }
 
 // Frontend pages
 $app->get('/', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
     return $controller->home($request, $response);
+});
+
+// Post-install setup (must be available after install)
+$app->get('/install/post-setup', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->showPostSetup($request, $response);
+});
+$app->post('/install/post-setup', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->processPostSetup($request, $response);
 });
 
 $app->get('/album/{slug}', function (Request $request, Response $response, array $args) use ($container) {

@@ -1,8 +1,8 @@
 <IfModule mod_php7.c>
-  php_flag engine off
+    php_flag engine off
 </IfModule>
 <IfModule mod_php8.c>
-  php_flag engine off
+    php_flag engine off
 </IfModule>
-Require all denied
 Options -Indexes
+Require all denied

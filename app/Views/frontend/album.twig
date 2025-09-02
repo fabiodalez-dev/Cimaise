@@ -173,7 +173,7 @@
     <!-- Album body -->
     {% if album.body %}
     <div class="max-w-3xl mx-auto prose prose-neutral mb-12">
-        {{ album.body|raw }}
+        {{ album.body|safe_html }}
     </div>
     {% endif %}
     

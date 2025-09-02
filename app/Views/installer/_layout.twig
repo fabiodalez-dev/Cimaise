@@ -69,6 +69,7 @@
         .card {
             border: none;
             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            animation: fadeInUp .35s ease both;
         }
         .btn-primary {
             background-color: #212529;
@@ -78,6 +79,15 @@
             background-color: #000;
             border-color: #000;
         }
+
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translate3d(0, 8px, 0); }
+          to   { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        .step-number { transition: transform .2s ease; }
+        .step.active .step-number { transform: scale(1.05); }
+        .step-indicator { position: relative; }
+        .step-indicator .step { transition: color .2s ease; }
     </style>
 </head>
 <body>
