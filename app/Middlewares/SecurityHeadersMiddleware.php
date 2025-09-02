@@ -13,7 +13,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
     public function process(Request $request, Handler $handler): Response
     {
         $response = $handler->handle($request);
-        $csp = "default-src 'self'; "
+        $csp = "upgrade-insecure-requests; default-src 'self'; "
              . "img-src 'self' data: blob:; "
              . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
              . "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
