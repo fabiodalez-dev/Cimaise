@@ -624,90 +624,93 @@ function updateGalleries(albums) {
 }
 
 function generateGalleryCard(album) {
-    const coverImage = album.cover_image;
-    const tags = album.tags || [];
-    
-    return `
-        <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2" 
-                 data-album-id="${album.id}"
-                 onclick="window.location.href=window.basePath + '/album/' + album.slug">
-            
-            <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
-                ${coverImage ? 
-                    `<img src="${window.basePath && (coverImage.preview_path || coverImage.original_path || '').startsWith('/') ? window.basePath + (coverImage.preview_path || coverImage.original_path || '') : (coverImage.preview_path || coverImage.original_path || '')}" 
-                         alt="${coverImage.alt_text || album.title}" 
-                         class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                         loading="lazy">` :
-                    `<div class="w-full h-full flex items-center justify-center text-gray-400">
-                        <i class="fas fa-images text-4xl"></i>
-                    </div>`
-                }
-                
-                ${album.images_count > 0 ? 
-                    `<div class="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
-                        <i class="fas fa-images mr-1"></i>
-                        ${album.images_count}
-                    </div>` : ''
-                }
-                
-                ${album.category_name ? 
-                    `<div class="absolute top-4 left-4 bg-white/90 text-black px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">
-                        ${album.category_name}
-                    </div>` : ''
-                }
-            </div>
-            
-            <div class="p-6">
-                <h3 class="text-xl font-semibold text-black mb-3 group-hover:text-gray-700 transition-colors duration-200 line-clamp-2">
-                    ${album.title}
-                </h3>
-                
-                ${album.excerpt ? 
-                    `<p class="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
-                        ${album.excerpt}
-                    </p>` : ''
-                }
-                
-                <div class="flex items-center justify-between text-sm text-gray-500">
-                    <div class="flex items-center gap-4">
-                        ${album.shoot_date ? 
-                            `<span class="flex items-center gap-1">
-                                <i class="fas fa-calendar text-xs"></i>
-                                ${new Date(album.shoot_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                            </span>` : ''
-                        }
-                        
-                        ${tags.length > 0 ? 
-                            `<span class="flex items-center gap-1">
-                                <i class="fas fa-tag text-xs"></i>
-                                ${tags.length} tag${tags.length !== 1 ? 's' : ''}
-                            </span>` : ''
-                        }
-                    </div>
-                    
-                    <div class="flex items-center text-black group-hover:translate-x-1 transition-transform duration-200">
-                        <span class="text-xs font-medium mr-1">${window.pageTexts.viewButtonText}</span>
-                        <i class="fas fa-arrow-right text-xs"></i>
-                    </div>
-                </div>
-                
-                ${tags.length > 0 ? 
-                    `<div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
-                        ${tags.slice(0, 3).map(tag => 
-                            `<span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors">
-                                #${tag.name}
-                            </span>`
-                        ).join('')}
-                        ${tags.length > 3 ? 
-                            `<span class="inline-block text-gray-400 text-xs px-2 py-1">
-                                +${tags.length - 3} more
-                            </span>` : ''
-                        }
-                    </div>` : ''
-                }
-            </div>
-        </article>
-    `;
+    const esc = (s)=> String(s==null?'':s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\"/g,'&quot;').replace(/'/g,'&#039;');
+    const coverImage = album.cover_image || {};
+    const tags = Array.isArray(album.tags) ? album.tags : [];
+    const imgPath = (coverImage.preview_path || coverImage.original_path || '');
+    const safeSrc = imgPath.startsWith('/') && window.basePath ? (window.basePath + imgPath) : imgPath;
+    const title = esc(album.title);
+    const excerpt = esc(album.excerpt || '');
+    const category = esc(album.category_name || '');
+    const alt = esc(coverImage.alt_text || album.title || '');
+    const slug = esc(album.slug);
+
+    const wrapper = document.createElement('article');
+    wrapper.className = 'gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2';
+    wrapper.setAttribute('data-album-id', String(album.id||''));
+    wrapper.addEventListener('click', ()=>{ window.location.href = window.basePath + '/album/' + slug; });
+
+    const rel = document.createElement('div');
+    rel.className = 'relative aspect-[4/3] overflow-hidden bg-gray-100';
+    if (safeSrc) {
+        const img = document.createElement('img');
+        img.src = safeSrc; img.alt = alt;
+        img.className = 'w-full h-full object-cover transition-transform duration-700 group-hover:scale-110';
+        img.loading = 'lazy';
+        rel.appendChild(img);
+    } else {
+        const ph = document.createElement('div');
+        ph.className = 'w-full h-full flex items-center justify-center text-gray-400';
+        ph.innerHTML = '<i class="fas fa-images text-4xl"></i>';
+        rel.appendChild(ph);
+    }
+    if ((album.images_count||0) > 0){
+        const badge = document.createElement('div');
+        badge.className = 'absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm';
+        badge.innerHTML = '<i class="fas fa-images mr-1"></i>' + esc(album.images_count);
+        rel.appendChild(badge);
+    }
+    if (category){
+        const cat = document.createElement('div');
+        cat.className = 'absolute top-4 left-4 bg-white/90 text-black px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm';
+        cat.textContent = category;
+        rel.appendChild(cat);
+    }
+
+    const content = document.createElement('div');
+    content.className = 'p-6';
+    const h3 = document.createElement('h3');
+    h3.className = 'text-xl font-semibold text-black mb-3 group-hover:text-gray-700 transition-colors duration-200 line-clamp-2';
+    h3.textContent = title; content.appendChild(h3);
+    if (excerpt){
+        const p = document.createElement('p');
+        p.className = 'text-gray-600 mb-4 line-clamp-3 leading-relaxed';
+        p.textContent = excerpt; content.appendChild(p);
+    }
+
+    const meta = document.createElement('div');
+    meta.className = 'flex items-center justify-between text-sm text-gray-500';
+    const left = document.createElement('div'); left.className = 'flex items-center gap-4';
+    if (album.shoot_date){
+        const span = document.createElement('span'); span.className='flex items-center gap-1';
+        span.innerHTML = '<i class="fas fa-calendar text-xs"></i>' + new Date(album.shoot_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        left.appendChild(span);
+    }
+    if (tags.length){
+        const span = document.createElement('span'); span.className='flex items-center gap-1';
+        span.innerHTML = '<i class="fas fa-tag text-xs"></i>' + esc(tags.length) + ' ' + (tags.length !== 1 ? 'tags' : 'tag');
+        left.appendChild(span);
+    }
+    meta.appendChild(left);
+    const right = document.createElement('div'); right.className = 'flex items-center text-black group-hover:translate-x-1 transition-transform duration-200';
+    const viewTxt = document.createElement('span'); viewTxt.className='text-xs font-medium mr-1'; viewTxt.textContent = window.pageTexts.viewButtonText; right.appendChild(viewTxt);
+    const arrow = document.createElement('i'); arrow.className='fas fa-arrow-right text-xs'; right.appendChild(arrow);
+    meta.appendChild(right);
+    content.appendChild(meta);
+
+    if (tags.length){
+        const wrap = document.createElement('div'); wrap.className='flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100';
+        tags.slice(0,3).forEach(t=>{ const s=document.createElement('span'); s.className='inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors'; s.textContent = '#' + (t && t.name ? t.name : ''); wrap.appendChild(s); });
+        if (tags.length>3){ const more=document.createElement('span'); more.className='inline-block text-gray-400 text-xs px-2 py-1'; more.textContent = '+' + (tags.length-3) + ' more'; wrap.appendChild(more); }
+        content.appendChild(wrap);
+    }
+
+    wrapper.appendChild(rel); wrapper.appendChild(content);
+    const div = document.createElement('div');
+    div.appendChild(wrapper);
+    return div.innerHTML;
 }
 
 function updateActiveFilters(filters) {
