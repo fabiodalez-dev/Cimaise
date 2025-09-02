@@ -87,13 +87,19 @@ if (!$isInstallerRoute && !$isAdminRoute && !$isLoginRoute) {
             $basePath = $scriptDir === '/' ? '' : $scriptDir;
             
             // Try simple installer first, fallback to main installer
-            if (file_exists(__DIR__ . '/simple-installer.php')) {
+            $appEnv = $_ENV['APP_ENV'] ?? 'production';
+            if ($appEnv !== 'production' && file_exists(__DIR__ . '/simple-installer.php')) {
                 http_response_code(302);
                 header('Location: ' . $basePath . '/simple-installer.php');
                 exit;
-            } else {
+            } elseif ($appEnv !== 'production') {
                 http_response_code(302);
                 header('Location: ' . $basePath . '/installer.php');
+                exit;
+            } else {
+                // In production, block installer access
+                http_response_code(404);
+                echo 'Not Found';
                 exit;
             }
         }
@@ -141,6 +147,7 @@ $twig = Twig::create(__DIR__ . '/../app/Views', ['cache' => false]);
 
 // Add custom Twig extensions
 $twig->getEnvironment()->addExtension(new \App\Extensions\AnalyticsTwigExtension());
+$twig->getEnvironment()->addExtension(new \App\Extensions\SecurityTwigExtension());
 
 $app->add(TwigMiddleware::create($app, $twig));
 
