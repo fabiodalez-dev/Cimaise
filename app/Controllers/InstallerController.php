@@ -355,7 +355,7 @@ class InstallerController
     /**
      * Post-install setup: site settings after DB and seeds are ready
      */
-    public function showPostSetup(Request $request, Response $response, $db): Response
+    public function showPostSetup(Request $request, Response $response): Response
     {
         // If not installed yet, go to installer
         if (!$this->installer->isInstalled()) {
@@ -365,10 +365,9 @@ class InstallerController
         // Fetch available templates from DB, if any
         $templates = [];
         try {
-            if ($db) {
-                $stmt = $db->pdo()->query('SELECT id, name FROM templates ORDER BY id ASC');
-                $templates = $stmt->fetchAll();
-            }
+            $dbi = $this->resolveDb();
+            $stmt = $dbi->pdo()->query('SELECT id, name FROM templates ORDER BY id ASC');
+            $templates = $stmt->fetchAll();
         } catch (\Throwable) {}
         
         return $this->view->render($response, 'installer/post_setup.twig', [
@@ -381,7 +380,7 @@ class InstallerController
         ]);
     }
 
-    public function processPostSetup(Request $request, Response $response, $db): Response
+    public function processPostSetup(Request $request, Response $response): Response
     {
         if (!$this->installer->isInstalled()) {
             return $response->withHeader('Location', $this->basePath . '/install')->withStatus(302);
@@ -433,11 +432,19 @@ class InstallerController
             $toSet['gallery.default_template_id'] = (int)$data['default_template_id'];
         }
         try {
+            $dbi = $this->resolveDb();
+            $pdo = $dbi->pdo();
+            $isSqlite = $dbi->isSqlite();
             foreach ($toSet as $key => $value) {
                 $encoded = json_encode($value, JSON_UNESCAPED_SLASHES);
                 $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
-                $stmt = $db->pdo()->prepare('INSERT OR REPLACE INTO settings(`key`,`value`,`type`,`created_at`,`updated_at`) VALUES(:k,:v,:t,datetime(\'now\'),datetime(\'now\'))');
-                $stmt->execute([':k'=>$key, ':v'=>$encoded, ':t'=>$type]);
+                if ($isSqlite) {
+                    $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings(`key`,`value`,`type`,`created_at`,`updated_at`) VALUES(:k,:v,:t,datetime(\'now\'),datetime(\'now\'))');
+                    $stmt->execute([':k'=>$key, ':v'=>$encoded, ':t'=>$type]);
+                } else {
+                    $stmt = $pdo->prepare('INSERT INTO settings(`key`,`value`,`type`,`created_at`,`updated_at`) VALUES(:k,:v,:t,NOW(),NOW()) ON DUPLICATE KEY UPDATE `value`=:v2, `type`=:t2, `updated_at`=NOW()');
+                    $stmt->execute([':k'=>$key, ':v'=>$encoded, ':t'=>$type, ':v2'=>$encoded, ':t2'=>$type]);
+                }
             }
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Failed to save settings: ' . $e->getMessage()];
@@ -446,6 +453,35 @@ class InstallerController
         
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Setup completed! You can now log in.'];
         return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
+    }
+
+    private function resolveDb(): \App\Support\Database
+    {
+        $root = dirname(__DIR__, 2);
+        // Try to read .env manually
+        $env = @file($root . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $vars = [];
+        foreach ($env as $line) {
+            if (strpos($line, '=') !== false && strpos(ltrim($line), '#') !== 0) {
+                [$k, $v] = explode('=', $line, 2);
+                $vars[trim($k)] = trim($v);
+            }
+        }
+        $conn = $vars['DB_CONNECTION'] ?? 'sqlite';
+        if ($conn === 'sqlite') {
+            $dbPath = $vars['DB_DATABASE'] ?? 'database/database.sqlite';
+            if ($dbPath[0] !== '/') { $dbPath = $root . '/' . $dbPath; }
+            return new \App\Support\Database(database: $dbPath, isSqlite: true);
+        }
+        return new \App\Support\Database(
+            host: $vars['DB_HOST'] ?? '127.0.0.1',
+            port: (int)($vars['DB_PORT'] ?? 3306),
+            database: $vars['DB_DATABASE'] ?? 'photocms',
+            username: $vars['DB_USERNAME'] ?? 'root',
+            password: $vars['DB_PASSWORD'] ?? '',
+            charset: $vars['DB_CHARSET'] ?? 'utf8mb4',
+            collation: $vars['DB_COLLATION'] ?? 'utf8mb4_unicode_ci',
+        );
     }
     
     /**
