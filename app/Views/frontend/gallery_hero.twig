@@ -116,6 +116,10 @@
         {% if album.excerpt %}
           <p class="mt-3 text-neutral-700 leading-relaxed text-base md:text-lg max-w-3xl mx-auto">{{ album.excerpt|e }}</p>
         {% endif %}
+        
+        {% if album.body %}
+          <div class="max-w-3xl mx-auto prose prose-neutral mt-6">{{ album.body|safe_html }}</div>
+        {% endif %}
       </div>
       
       {# Equipment pinned to bottom of hero content #}
