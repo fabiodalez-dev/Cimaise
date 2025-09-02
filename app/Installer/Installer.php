@@ -627,9 +627,11 @@ class Installer
     private function createInstallerBlockingHtaccess(): void
     {
         try {
-            $installerDir = dirname(__DIR__, 2) . '/public';
-            $htaccessPath = $installerDir . '/.htaccess-installer-block';
-            
+            $rootDir = dirname(__DIR__, 2);
+            // 1) Public path hardening (block legacy installer entrypoints)
+            $publicDir = $rootDir . '/public';
+            $htaccessPath = $publicDir . '/.htaccess-installer-block';
+
             $htaccessContent = <<<'HTACCESS'
 # Installer security block - created after successful installation
 # This prevents access to installer files in production
@@ -647,11 +649,45 @@ class Installer
 # by using a separate .htaccess-installer-block file
 HTACCESS;
 
-            $result = file_put_contents($htaccessPath, $htaccessContent);
+            $result = @file_put_contents($htaccessPath, $htaccessContent);
             if ($result === false) {
                 error_log('Warning: Failed to create installer blocking .htaccess');
             } else {
-                error_log('Installer: Created installer blocking .htaccess with ' . $result . ' bytes');
+                error_log('Installer: Created public/.htaccess-installer-block with ' . $result . ' bytes');
+            }
+
+            // 2) Protect app/Views/installer templates if webroot is misconfigured
+            $viewsInstallerDir = $rootDir . '/app/Views/installer';
+            if (is_dir($viewsInstallerDir)) {
+                $viewsHtaccess = $viewsInstallerDir . '/.htaccess';
+                $viewsContent = <<<'HTACCESS'
+# Deny direct access to installer views
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Deny from all
+</IfModule>
+Options -Indexes
+HTACCESS;
+                @file_put_contents($viewsHtaccess, $viewsContent);
+            }
+
+            // 3) Protect app/Installer directory (including Installer.php)
+            $appInstallerDir = $rootDir . '/app/Installer';
+            if (is_dir($appInstallerDir)) {
+                $appInstallerHt = $appInstallerDir . '/.htaccess';
+                $appInstallerContent = <<<'HTACCESS'
+# Deny direct access to installer classes
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Deny from all
+</IfModule>
+Options -Indexes
+HTACCESS;
+                @file_put_contents($appInstallerHt, $appInstallerContent);
             }
         } catch (\Throwable $e) {
             error_log('Warning: Failed to create installer blocking .htaccess: ' . $e->getMessage());
