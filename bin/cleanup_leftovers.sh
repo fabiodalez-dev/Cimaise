@@ -45,14 +45,53 @@ rm_path() {
   fi
 }
 
-empty_dir() {
+empty_dir_preserve_htaccess() {
   local d="$1";
   if [[ -d "$d" ]]; then
     if [[ $APPLY -eq 1 ]]; then
-      find "$d" -mindepth 1 -maxdepth 1 -exec rm -rf {} + && say "emptied: $d"
+      # Remove everything except .htaccess
+      find "$d" -mindepth 1 -maxdepth 1 ! -name '.htaccess' -exec rm -rf {} +
+      say "emptied (preserved .htaccess): $d"
     else
-      say "would empty: $d/*"
+      say "would empty (preserve .htaccess): $d/*"
     fi
+  fi
+}
+
+write_htaccess() {
+  local target="$1";
+  local kind="$2"; # media|storage
+  if [[ $APPLY -eq 1 ]]; then
+    mkdir -p "$(dirname "$target")"
+    if [[ "$kind" == "media" ]]; then
+      cat > "$target" <<'HTACC'
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+  php_flag engine off
+</IfModule>
+<FilesMatch "\.(php|phar|phtml)$">
+  Require all denied
+</FilesMatch>
+Options -Indexes
+HTACC
+    else
+      # storage: deny direct access
+      cat > "$target" <<'HTACC'
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+  php_flag engine off
+</IfModule>
+Require all denied
+Options -Indexes
+HTACC
+    fi
+    say "wrote security .htaccess: $target"
+  else
+    say "would write security .htaccess: $target ($kind)"
   fi
 }
 
@@ -124,18 +163,22 @@ if [[ $RESET_INSTALL -eq 1 ]]; then
   ENV_FILE="$ROOT_DIR/.env"
   DB_FILE="$ROOT_DIR/database/database.sqlite"
 
-  empty_dir "$MEDIA_DIR"
-  empty_dir "$ORIG_DIR"
-  empty_dir "$TMP_DIR"
+  empty_dir_preserve_htaccess "$MEDIA_DIR"
+  empty_dir_preserve_htaccess "$ORIG_DIR"
+  empty_dir_preserve_htaccess "$TMP_DIR"
 
   rm_path "$ENV_FILE"
   rm_path "$DB_FILE"
 
-  # Recreate critical dirs just in case
+  # Recreate critical dirs & .htaccess just in case
   if [[ $APPLY -eq 1 ]]; then
     mkdir -p "$MEDIA_DIR" "$ORIG_DIR" "$TMP_DIR"
-    say "recreated directories: $MEDIA_DIR $ORIG_DIR $TMP_DIR"
+    # Write security .htaccess files if missing
+    [[ -f "$MEDIA_DIR/.htaccess" ]] || write_htaccess "$MEDIA_DIR/.htaccess" media
+    [[ -f "$ORIG_DIR/.htaccess" ]] || write_htaccess "$ORIG_DIR/.htaccess" storage
+    [[ -f "$TMP_DIR/.htaccess" ]]   || write_htaccess "$TMP_DIR/.htaccess" storage
+    say "recreated directories and ensured .htaccess: $MEDIA_DIR $ORIG_DIR $TMP_DIR"
   else
-    say "would recreate directories: $MEDIA_DIR $ORIG_DIR $TMP_DIR"
+    say "would recreate directories and .htaccess: $MEDIA_DIR $ORIG_DIR $TMP_DIR"
   fi
 fi
