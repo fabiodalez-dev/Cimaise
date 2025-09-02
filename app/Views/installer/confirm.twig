@@ -78,6 +78,37 @@
 
 <div class="card mb-3">
     <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-wand-magic-sparkles me-2"></i>Finalize Your Site (optional)</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Site Title</label>
+                <input type="text" class="form-control" name="site_title" value="{{ settings_config.site_title|default('photoCMS') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Contact Email</label>
+                <input type="email" class="form-control" name="site_email" value="{{ settings_config.site_email|default('') }}">
+            </div>
+            <div class="col-12">
+                <label class="form-label">Site Description</label>
+                <textarea class="form-control" name="site_description" rows="2">{{ settings_config.site_description|default('Professional Photography Portfolio') }}</textarea>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Copyright</label>
+                <input type="text" class="form-control" name="site_copyright" value="{{ settings_config.site_copyright|default('© ' ~ "now"|date('Y') ~ ' Photography Portfolio') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Site Logo (optional)</label>
+                <input type="file" class="form-control" name="site_logo" accept="image/png,image/jpeg,image/webp">
+            </div>
+        </div>
+        <div class="form-text mt-2">You can change these values later in Admin → Settings.</div>
+    </div>
+    
+</div>
+<div class="card mb-3">
+    <div class="card-header">
         <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Site Settings</h5>
     </div>
     <div class="card-body">
@@ -109,7 +140,7 @@
     </ul>
 </div>
 
-<form method="post" action="{{ base_path }}/install/run" id="install-form">
+<form method="post" action="{{ base_path }}/install/run" id="install-form" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     
     <div class="d-grid gap-2 d-md-flex justify-content-md-between">
