@@ -619,4 +619,21 @@ Mostra caption + lista metadati (processo, pellicola, camera/lente, ISO/tempo/di
 - Filtri AJAX su album e galleria (processo, pellicola, camera, ecc.).  
 - Admin semplice, bianco/nero, con drag&drop e inline edit.
 
-#VERSIONE ATTUALE
+## Reset
+Script di reset installazione
+    - bin/cleanup_leftovers.sh ora supporta
+il reset completo:
+    - Opzione: --reset-install
+    - Funziona con --apply; in dry-run
+mostra cosa farebbe.
+    - Azioni:
+      - Svuota public/media (varianti),
+storage/originals (originali) e storage/tmp
+      - Rimuove .env e database/
+database.sqlite
+      - Ricrea le directory vuote
+- Esempi:
+    - Dry-run: bin/cleanup_leftovers.sh
+--reset-install
+    - Apply: bin/cleanup_leftovers.sh
+--apply --reset-install

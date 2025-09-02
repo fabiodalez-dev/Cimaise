@@ -45,7 +45,7 @@
   </div>
 
   {% if album.body %}
-    <div class="max-w-3xl mx-auto prose prose-neutral mb-12">{{ album.body|raw }}</div>
+    <div class="max-w-3xl mx-auto prose prose-neutral mb-12">{{ album.body|safe_html }}</div>
   {% endif %}
 
   {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 %}

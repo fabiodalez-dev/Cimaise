@@ -523,7 +523,7 @@ class Installer
             $stmt = $this->db->pdo()->prepare(
                 'INSERT INTO categories (name, slug, sort_order, created_at) VALUES (?, ?, ?, datetime(\'now\'))'
             );
-            $result = $stmt->execute(['Foto', 'foto', 0]);
+            $result = $stmt->execute(['Photo', 'photo', 0]);
             error_log('Installer: Category insertion result: ' . ($result ? 'true' : 'false'));
         } else {
             error_log('Installer: Inserting category into MySQL database');
@@ -531,8 +531,8 @@ class Installer
                 'INSERT INTO categories (name, slug, sort_order, created_at) VALUES (:name, :slug, :sort_order, NOW())'
             );
             $result = $stmt->execute([
-                ':name' => 'Foto',
-                ':slug' => 'foto',
+                ':name' => 'Photo',
+                ':slug' => 'photo',
                 ':sort_order' => 0
             ]);
             error_log('Installer: Category insertion result: ' . ($result ? 'true' : 'false'));
