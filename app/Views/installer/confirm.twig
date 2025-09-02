@@ -93,6 +93,17 @@
             
             <dt class="col-sm-3">Email</dt>
             <dd class="col-sm-9">{{ settings_config.site_email ?: 'Not set' }}</dd>
+            
+            <dt class="col-sm-3">Default Template</dt>
+            <dd class="col-sm-9">
+                {% set selected_slug = settings_config.default_template_slug|default('') %}
+                {% if selected_slug %}
+                    {% set template = templates|filter(t => t.slug == selected_slug)|first %}
+                    {{ template ? template.name : selected_slug }}
+                {% else %}
+                    No default template
+                {% endif %}
+            </dd>
         </dl>
     </div>
 </div>

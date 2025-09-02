@@ -50,10 +50,10 @@
   {% if templates|length > 0 %}
   <div class="mb-3">
     <label class="form-label">Default Gallery Template (optional)</label>
-    <select class="form-control" name="default_template_id">
+    <select class="form-control" name="default_template_slug">
       <option value="">No default template</option>
       {% for t in templates %}
-      <option value="{{ t.id }}">{{ t.name }}</option>
+      <option value="{{ t.slug }}">{{ t.name }}</option>
       {% endfor %}
     </select>
     <div class="form-text">Used when an album has no specific template.</div>
