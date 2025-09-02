@@ -170,6 +170,9 @@ if [[ $RESET_INSTALL -eq 1 ]]; then
   rm_path "$ENV_FILE"
   rm_path "$DB_FILE"
 
+  # Remove installer blocking .htaccess to allow re-installation
+  rm_path "$ROOT_DIR/public/.htaccess-installer-block"
+
   # Recreate critical dirs & .htaccess just in case
   if [[ $APPLY -eq 1 ]]; then
     mkdir -p "$MEDIA_DIR" "$ORIG_DIR" "$TMP_DIR"

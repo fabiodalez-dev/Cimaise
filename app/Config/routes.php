@@ -191,7 +191,7 @@ $app->get('/admin/login', function (Request $request, Response $response) use ($
 $app->post('/admin/login', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
     return $controller->login($request, $response);
-})->add(new RateLimitMiddleware(5, 600));
+})->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 5, 600, 'login'));
 
 $app->post('/admin/logout', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
@@ -727,7 +727,7 @@ $app->get('/api/admin/analytics/realtime', function (Request $request, Response 
 $app->post('/api/analytics/track', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
     return $controller->track($request, $response);
-});
+})->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 60, 60, 'analytics'));
 
 // Lightweight health check to verify routing in subdirectories
 $app->get('/api/analytics/ping', function (Request $request, Response $response) {

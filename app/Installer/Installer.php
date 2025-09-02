@@ -167,6 +167,10 @@ class Installer
             error_log('Installer: .env file created');
             
             error_log('Installer: Installation process completed successfully');
+            
+            // 8. Create installer blocking .htaccess for security
+            $this->createInstallerBlockingHtaccess();
+            
             return true;
         } catch (\Throwable $e) {
             error_log('Installation failed: ' . $e->getMessage());
@@ -585,5 +589,42 @@ class Installer
         }
         
         error_log('Installer: .env file created successfully with ' . $result . ' bytes written');
+    }
+    
+    /**
+     * Create .htaccess file to block installer access after installation
+     */
+    private function createInstallerBlockingHtaccess(): void
+    {
+        try {
+            $installerDir = dirname(__DIR__, 2) . '/public';
+            $htaccessPath = $installerDir . '/.htaccess-installer-block';
+            
+            $htaccessContent = <<<'HTACCESS'
+# Installer security block - created after successful installation
+# This prevents access to installer files in production
+
+<FilesMatch "^(installer|simple-install|repair_install)\.php$">
+    Require all denied
+</FilesMatch>
+
+# Additional protection against common installer patterns
+<FilesMatch "^install.*\.php$">
+    Require all denied
+</FilesMatch>
+
+# Allow the blocking rule to be removed by cleanup script
+# by using a separate .htaccess-installer-block file
+HTACCESS;
+
+            $result = file_put_contents($htaccessPath, $htaccessContent);
+            if ($result === false) {
+                error_log('Warning: Failed to create installer blocking .htaccess');
+            } else {
+                error_log('Installer: Created installer blocking .htaccess with ' . $result . ' bytes');
+            }
+        } catch (\Throwable $e) {
+            error_log('Warning: Failed to create installer blocking .htaccess: ' . $e->getMessage());
+        }
     }
 }
