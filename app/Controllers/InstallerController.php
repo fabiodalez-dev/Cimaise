@@ -189,11 +189,16 @@ class InstallerController
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
         
+        // Get previous data if returning from confirmation step
+        $previousData = $_SESSION['install_settings_config'] ?? [];
+        
         return $this->view->render($response, 'installer/settings.twig', [
-            'site_title' => 'photoCMS',
-            'site_description' => 'Professional Photography Portfolio',
-            'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
-            'site_email' => '',
+            'site_title' => $previousData['site_title'] ?? 'photoCMS',
+            'site_description' => $previousData['site_description'] ?? 'Professional Photography Portfolio',
+            'site_copyright' => $previousData['site_copyright'] ?? '© ' . date('Y') . ' Photography Portfolio',
+            'site_email' => $previousData['site_email'] ?? '',
+            // Prefer slug going forward (IDs can vary by seed/db)
+            'default_template_slug' => $previousData['default_template_slug'] ?? '',
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -254,8 +259,23 @@ class InstallerController
             return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
         }
         
-        // Store settings config in session
-        $_SESSION['install_settings_config'] = $data;
+        // Normalize: convert legacy numeric selection to slug for robustness
+        $normalized = $data;
+        if (!isset($normalized['default_template_slug'])) {
+            $idToSlug = [
+                '1' => 'grid-classica',
+                '2' => 'masonry-portfolio',
+                '3' => 'slideshow-minimal',
+                '4' => 'gallery-fullscreen',
+                '5' => 'grid-compatta',
+                '6' => 'grid-ampia',
+            ];
+            $idStr = isset($normalized['default_template_id']) ? (string)$normalized['default_template_id'] : '';
+            if (isset($idToSlug[$idStr])) {
+                $normalized['default_template_slug'] = $idToSlug[$idStr];
+            }
+        }
+        $_SESSION['install_settings_config'] = $normalized;
         
         return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
     }
@@ -277,10 +297,21 @@ class InstallerController
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
         
+        // Template list (slug-based) for confirmation view
+        $templates = [
+            ['slug' => 'grid-classica', 'name' => 'Grid Classica'],
+            ['slug' => 'masonry-portfolio', 'name' => 'Masonry Portfolio'],
+            ['slug' => 'slideshow-minimal', 'name' => 'Slideshow Minimal'],
+            ['slug' => 'gallery-fullscreen', 'name' => 'Gallery Fullscreen'],
+            ['slug' => 'grid-compatta', 'name' => 'Grid Compatta'],
+            ['slug' => 'grid-ampia', 'name' => 'Grid Ampia'],
+        ];
+
         return $this->view->render($response, 'installer/confirm.twig', [
             'db_config' => $_SESSION['install_db_config'],
             'admin_config' => $_SESSION['install_admin_config'],
             'settings_config' => $_SESSION['install_settings_config'],
+            'templates' => $templates,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -367,7 +398,7 @@ class InstallerController
         $templates = [];
         try {
             $dbi = $this->resolveDb();
-            $stmt = $dbi->pdo()->query('SELECT id, name FROM templates ORDER BY id ASC');
+            $stmt = $dbi->pdo()->query('SELECT id, slug, name FROM templates ORDER BY id ASC');
             $templates = $stmt->fetchAll();
         } catch (\Throwable) {}
         
@@ -429,7 +460,18 @@ class InstallerController
             'site.copyright' => (string)($data['site_copyright'] ?? ('© ' . date('Y') . ' Photography Portfolio')),
             'site.email' => (string)($data['site_email'] ?? ''),
         ];
-        if (!empty($data['default_template_id'])) {
+        if (!empty($data['default_template_slug'])) {
+            try {
+                $dbi2 = $this->resolveDb();
+                $stmt2 = $dbi2->pdo()->prepare('SELECT id FROM templates WHERE slug = :slug LIMIT 1');
+                $stmt2->execute([':slug' => (string)$data['default_template_slug']]);
+                $row2 = $stmt2->fetch(\PDO::FETCH_ASSOC);
+                if ($row2 && isset($row2['id'])) {
+                    $toSet['gallery.default_template_id'] = (int)$row2['id'];
+                }
+            } catch (\Throwable) {}
+        } elseif (!empty($data['default_template_id'])) {
+            // legacy fallback if some old form posts numeric id
             $toSet['gallery.default_template_id'] = (int)$data['default_template_id'];
         }
         try {
