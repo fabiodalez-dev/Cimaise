@@ -87,7 +87,6 @@ class InstallerController
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
         
-        // Parse POST fields + optional file upload
         $data = (array)$request->getParsedBody();
         
         // Verify CSRF token
@@ -327,41 +326,11 @@ class InstallerController
         }
         
         try {
-            // Optional logo upload coming from confirm page
-            try {
-                $files = $request->getUploadedFiles();
-                $logo = $files['site_logo'] ?? null;
-                if ($logo && $logo->getError() === UPLOAD_ERR_OK) {
-                    $stream = $logo->getStream();
-                    if (method_exists($stream, 'rewind')) { $stream->rewind(); }
-                    $contents = (string)$stream->getContents();
-                    if ($contents !== '') {
-                        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                        $mime = $finfo->buffer($contents) ?: '';
-                        $allowed = ['image/png'=>'.png','image/jpeg'=>'.jpg','image/webp'=>'.webp'];
-                        if (isset($allowed[$mime])) {
-                            $info = @getimagesizefromstring($contents);
-                            if ($info !== false) {
-                                $hash = sha1($contents) ?: bin2hex(random_bytes(20));
-                                $ext = $allowed[$mime];
-                                $destDir = dirname(__DIR__, 2) . '/public/media';
-                                if (!is_dir($destDir)) { @mkdir($destDir, 0775, true); }
-                                $destPath = $destDir . '/logo-' . $hash . $ext;
-                                @file_put_contents($destPath, $contents);
-                                $data['site_logo'] = '/media/' . basename($destPath);
-                            }
-                        }
-                    }
-                }
-            } catch (\Throwable) {}
-
             // Combine all configuration data
             $installData = array_merge(
                 $_SESSION['install_db_config'],
                 $_SESSION['install_admin_config'],
-                $_SESSION['install_settings_config'],
-                // Allow overrides from confirm page (site title, email, etc.)
-                $data
+                $_SESSION['install_settings_config']
             );
             
             error_log('runInstall: Starting installation process with data: ' . print_r($installData, true));
@@ -382,8 +351,8 @@ class InstallerController
             // Force session write to ensure flash message is saved
             session_write_close();
             
-            error_log('runInstall: Redirecting to /admin/login');
-            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
+            error_log('runInstall: Redirecting to /install/post-setup');
+            return $response->withHeader('Location', $this->basePath . '/install/post-setup')->withStatus(302);
         } catch (\Throwable $e) {
             error_log('runInstall: Installation failed: ' . $e->getMessage());
             error_log('runInstall: Stack trace: ' . $e->getTraceAsString());
