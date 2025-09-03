@@ -16,8 +16,8 @@
     <!-- Floating Gallery - Organic & Elegant -->
     <section class="home-infinite-section relative mb-32 overflow-hidden" style="height: 120vh;">
         <!-- Soft white veils (top/bottom) to fade into nothingness -->
-        <div class="pointer-events-none absolute inset-x-0 top-0 h-16 z-20 home-veil-top"></div>
-        <div class="pointer-events-none absolute inset-x-0 bottom-0 h-16 z-20 home-veil-bottom"></div>
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-10 z-20 home-veil-top"></div>
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 h-10 z-20 home-veil-bottom"></div>
 
         {% macro home_pic(image, base_path, priority=false) %}
             <picture class="block w-full h-full">
@@ -215,18 +215,27 @@ window.basePath = '{{ base_path }}';
 @keyframes homeScrollDown { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(0, -50%, 0); } }
 @keyframes homeScrollUp { 0% { transform: translate3d(0, -50%, 0); } 100% { transform: translate3d(0, 0, 0); } }
 
-/* Pause on hover */
-.perspective:hover .home-track { animation-play-state: paused; cursor: grab; }
-.perspective:active .home-track { cursor: grabbing; }
+/* Pause only the hovered column */
+.home-col:hover .home-track { animation-play-state: paused; cursor: grab; }
+.home-col:active .home-track { cursor: grabbing; }
 
 /* Veils */
-.home-veil-top { background: radial-gradient(140% 80% at 50% -30%, rgba(255,255,255,.45) 0%, rgba(255,255,255,.15) 50%, rgba(255,255,255,0) 80%); }
-.home-veil-bottom { background: radial-gradient(140% 80% at 50% 130%, rgba(255,255,255,.45) 0%, rgba(255,255,255,.15) 50%, rgba(255,255,255,0) 80%); }
+.home-veil-top { background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,.85) 50%, rgba(255,255,255,0) 100%); }
+.home-veil-bottom { background: linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,.85) 50%, rgba(255,255,255,0) 100%); }
 
 /* Item hover effects & overlay */
 .home-item { width: 100%; height: 100%; transition: transform .3s cubic-bezier(.25,.8,.25,1), box-shadow .3s; }
 .home-item:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 12px 32px rgba(0,0,0,.15); }
 .home-item img { backface-visibility: hidden; }
+
+/* Entry state: hide all items initially, reveal gradually */
+.entry-init .home-item { opacity: 0; filter: blur(4px); transform: scale(0.985); }
+.home-item.home-item--revealed { opacity: 1; filter: blur(0); transform: scale(1); transition: opacity .9s ease, filter .9s ease, transform .9s ease; }
+
+/* Entry reveal on load: target a limited set to avoid FOUC */
+.entry-init .home-item.entry-target { opacity: 0; filter: blur(3px); transform: scale(0.985); }
+.home-item.home-item--revealed { opacity: 1; filter: blur(0); transform: scale(1); transition: opacity .9s ease, filter .9s ease, transform .9s ease; }
+
 
 /* Albums Horizontal Infinite Carousel */
 .albums-carousel-container {
@@ -355,20 +364,16 @@ window.basePath = '{{ base_path }}';
 
 /* Soft elegant gradient veils */
 .home-veil-top {
-  background: linear-gradient(180deg, 
-    rgba(255,255,255,0.9) 0%, 
-    rgba(255,255,255,0.7) 30%, 
-    rgba(255,255,255,0.3) 70%, 
+  background: linear-gradient(180deg,
+    rgba(255,255,255,1) 0%,
+    rgba(255,255,255,0.9) 55%,
     rgba(255,255,255,0) 100%);
-  backdrop-filter: blur(1px);
 }
 .home-veil-bottom {
-  background: linear-gradient(0deg, 
-    rgba(255,255,255,0.9) 0%, 
-    rgba(255,255,255,0.7) 30%, 
-    rgba(255,255,255,0.3) 70%, 
+  background: linear-gradient(0deg,
+    rgba(255,255,255,1) 0%,
+    rgba(255,255,255,0.9) 55%,
     rgba(255,255,255,0) 100%);
-  backdrop-filter: blur(1px);
 }
 
 /* performance optimizations */
@@ -415,6 +420,29 @@ window.basePath = '{{ base_path }}';
 /* Scrolling Gallery with Entry Animation */
 document.addEventListener('DOMContentLoaded', function(){
   const homeCols = document.querySelectorAll('.home-col');
+
+  const gallery = document.getElementById('home-infinite-gallery');
+  // Entry reveal: random order, hide all initially
+  if (gallery) {
+    gallery.classList.add('entry-init');
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    const scope = isDesktop ? document.querySelector('.home-desktop-wrap') : document.querySelector('.home-mobile-wrap');
+    let items = scope ? Array.from(scope.querySelectorAll('.home-item')) : [];
+    // Fisher–Yates shuffle
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    const base = 120; // initial delay
+    const step = 140; // cadence between items
+    items.forEach((el, i) => {
+      setTimeout(() => { el.classList.add('home-item--revealed'); }, base + i * step);
+    });
+    setTimeout(() => { gallery.classList.remove('entry-init'); }, base + items.length * step + 800);
+  }
+    setTimeout(() => { gallery.classList.remove('entry-init'); }, startDelay + t + 800);
+  }
+
   if (homeCols.length) {
     // Pause animation when out of viewport for performance
     if ('IntersectionObserver' in window) {
