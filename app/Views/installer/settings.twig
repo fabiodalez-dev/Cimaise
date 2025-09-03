@@ -67,6 +67,24 @@
     </div>
 
     <div class="mb-3">
+        <label class="form-label">Gallery Page Layout</label>
+        <div class="d-flex flex-wrap">
+            <div class="form-check me-3">
+                <input class="form-check-input" type="radio" name="gallery_page_template" id="layout_classic" value="classic" checked>
+                <label class="form-check-label" for="layout_classic">Classic</label>
+            </div>
+            <div class="form-check me-3">
+                <input class="form-check-input" type="radio" name="gallery_page_template" id="layout_hero" value="hero">
+                <label class="form-check-label" for="layout_hero">Hero</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="gallery_page_template" id="layout_magazine" value="magazine">
+                <label class="form-check-label" for="layout_magazine">Magazine</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
         <label for="default-template" class="form-label">Default Gallery Template</label>
         <select id="default-template" class="form-control" name="default_template_slug">
             <option value="">No default template (choose manually for each album)</option>
@@ -102,4 +120,32 @@
         </button>
     </div>
 </form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pageTemplateRadios = document.querySelectorAll('input[name="gallery_page_template"]');
+    const defaultTemplateSelect = document.getElementById('default-template');
+
+    function toggleDefaultTemplate(layout) {
+        if (layout === 'magazine') {
+            defaultTemplateSelect.disabled = true;
+            defaultTemplateSelect.value = '';
+        } else {
+            defaultTemplateSelect.disabled = false;
+        }
+    }
+
+    pageTemplateRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            toggleDefaultTemplate(this.value);
+        });
+    });
+
+    // Initial check
+    const currentLayout = document.querySelector('input[name="gallery_page_template"]:checked').value;
+    toggleDefaultTemplate(currentLayout);
+});
+</script>
 {% endblock %}
