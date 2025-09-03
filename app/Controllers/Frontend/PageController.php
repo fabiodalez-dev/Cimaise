@@ -250,48 +250,69 @@ class PageController extends BaseController
 
         $albumRef = $album['slug'] ?? (string)$album['id'];
 
-        // Use selected template or album template as default
-        if ($templateId === null && !empty($album['template_id'])) {
-            $templateId = (int)$album['template_id'];
+        $templateIdFromUrl = (int)($params['template'] ?? 0);
+        $finalTemplateId = null;
+        $template = null;
+        $templateSettings = [];
+
+        // 1. Check for a valid template ID from the URL
+        if ($templateIdFromUrl > 0) {
+            $stmt = $pdo->prepare('SELECT * FROM templates WHERE id = ?');
+            $stmt->execute([$templateIdFromUrl]);
+            $templateFromUrl = $stmt->fetch() ?: null;
+            if ($templateFromUrl) {
+                $template = $templateFromUrl;
+                $finalTemplateId = $templateIdFromUrl;
+            }
         }
-        if (!$templateId) {
-            // Use default template from settings
+
+        // 2. If no valid URL template, use the one assigned to the album
+        if ($finalTemplateId === null && !empty($album['template_id'])) {
+            $finalTemplateId = (int)$album['template_id'];
+            // The template data might already be joined in the main album query
+            if (!empty($album['template_name'])) {
+                $template = [
+                    'id' => $album['template_id'],
+                    'name' => $album['template_name'],
+                    'slug' => $album['template_slug'],
+                    'settings' => $album['template_settings'],
+                    'libs' => $album['template_libs'],
+                ];
+            }
+        }
+
+        // 3. If still no template, use the site-wide default
+        if ($finalTemplateId === null) {
             $settingsService = new \App\Services\SettingsService($this->db);
             $defaultTemplateId = $settingsService->get('gallery.default_template_id');
-            
             if ($defaultTemplateId) {
-                // Use the predefined template from settings
-                $templateId = (int)$defaultTemplateId;
-                $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
-                $tplStmt->execute([':id' => $templateId]);
-                $template = $tplStmt->fetch();
-                
-                if ($template) {
-                    $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
-                    $templateSettings = $this->normalizeTemplateSettings($templateSettings);
-                } else {
-                    // No template found, use basic grid fallback
-                    $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
-                    $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
-                }
-            } else {
-                // No default template set, use basic grid fallback
-                $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
-                $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
-            }
-        } else {
-            $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
-            $tplStmt->execute([':id' => $templateId]);
-            $template = $tplStmt->fetch();
-            if (!$template) {
-                // Fallback to basic grid
-                $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
-                $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
-            } else {
-                $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
-                $templateSettings = $this->normalizeTemplateSettings($templateSettings);
+                $finalTemplateId = (int)$defaultTemplateId;
             }
         }
+
+        // 4. Fetch the template data if we have an ID but no data yet
+        if ($finalTemplateId > 0 && $template === null) {
+            $stmt = $pdo->prepare('SELECT * FROM templates WHERE id = ?');
+            $stmt->execute([$finalTemplateId]);
+            $template = $stmt->fetch() ?: null;
+        }
+
+        // 5. Decode settings or use a fallback
+        if ($template && !empty($template['settings'])) {
+            $templateSettings = json_decode($template['settings'], true) ?: [];
+        } else {
+            // Final fallback to a basic grid if no template could be resolved at all
+            $template = [
+                'id' => 0,
+                'name' => 'Grid Semplice',
+                'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])
+            ];
+            $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
+        }
+
+        // Normalize settings
+        $templateSettings = $this->normalizeTemplateSettings($templateSettings);
+        $templateId = $finalTemplateId;
 
         // Tags
         $tagsStmt = $pdo->prepare('SELECT t.* FROM tags t JOIN album_tag at ON at.tag_id = t.id WHERE at.album_id = :id ORDER BY t.name ASC');
@@ -473,14 +494,10 @@ class PageController extends BaseController
             $related = $this->enrichAlbum($related);
         }
         
-        // Process template settings
-        $templateSettings = null;
+        // Get template libraries from the resolved template
         $templateLibs = [];
-        if ($album['template_settings']) {
-            $templateSettings = json_decode($album['template_settings'], true) ?: null;
-        }
-        if ($album['template_libs']) {
-            $templateLibs = json_decode($album['template_libs'], true) ?: [];
+        if ($template && !empty($template['libs'])) {
+            $templateLibs = json_decode($template['libs'], true) ?: [];
         }
         
         // Categories for header menu
