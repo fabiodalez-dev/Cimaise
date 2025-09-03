@@ -41,6 +41,22 @@ This repository hosts a minimalist, high‑performance photography CMS built wit
 - Maintain plan.md with Backlog/Doing/Done/Log; reference TASK‑### in commits/PRs
 - Prefer SSR, minimal JS, and indexed queries; prioritize performance and SEO
 
+### Home Page Partials (frontend/home)
+- `_hero.twig`: headline + subtitle for the home page.
+- `_infinite_gallery.twig`: vertical scrolling gallery (3/2/1 columns). Each column loops all images with offsets; no gaps. Overlay on hover links to album.
+- `_albums_carousel.twig`: horizontal infinite carousel of latest albums; duplicates items to ensure no empty space; supports drag; desktop autoplay; mobile gestures; left/right arrows.
+- `_styles.twig`: all styles for home (veils, columns, entry reveal, carousel). Veils use: `background: linear-gradient(180deg, rgb(255 255 255) 0%, rgb(255 255 255) 77%, rgb(255 255 255 / 12%) 100%)` (inverse for bottom).
+
+### Home Page JS (Vite entries)
+- `resources/js/home.js`: boots Lenis and imports:
+  - `resources/js/home-gallery.js`: entry reveal (random order; all items revealed within ~6s), column drag, per-column hover pause and smooth ramp resume, IO pause.
+  - `resources/js/albums-carousel.js`: infinite carousel (desktop autoplay, mobile drag, arrows), no whitespace gaps; intentional narrow spacer between sequences for rhythm.
+
+Tuning:
+- Entry reveal duration cap: adjust `totalMs` in `home-gallery.js` (default 6000ms). The step is computed as `max(8ms, totalMs / N)` so all items appear within target time.
+- Carousel repeats: tweak `repeats` in `_albums_carousel.twig`. Spacing via `mx-*` on `.album-carousel-item`.
+
+
 ### Base Path & URL Handling
 **CRITICAL**: This CMS must support subdirectory installations (e.g., `https://example.com/portfolio/`).
 
