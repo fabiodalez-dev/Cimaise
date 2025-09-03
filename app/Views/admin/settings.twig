@@ -94,31 +94,41 @@
           Site Configuration
         </h3>
         
+        <!-- Logo Upload Section (Full Width) -->
+        <div class="mb-8">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Site Logo</label>
+          <input type="hidden" id="site_logo" name="site_logo" value="{{ settings['site.logo'] ?? '' }}">
+          <div class="flex flex-col md:flex-row items-start gap-6">
+            <div class="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+              {% if settings['site.logo'] %}
+                <img id="site-logo-preview" src="{{ base_path ~ settings['site.logo'] }}" alt="Logo" class="max-w-full max-h-full">
+              {% else %}
+                <img id="site-logo-preview" src="" alt="Logo" class="max-w-full max-h-full hidden">
+                <span class="text-xs text-gray-500">Nessun logo</span>
+              {% endif %}
+            </div>
+            <div class="flex-1">
+              <div id="logo-uppy" data-endpoint="{{ base_path }}/admin/settings/logo-upload" data-csrf="{{ csrf }}" 
+                   class="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
+                <div class="flex flex-col items-center justify-center gap-2">
+                  <i class="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
+                  <div class="font-medium">Carica un nuovo logo</div>
+                  <div class="text-sm text-gray-500">Formati supportati: PNG, JPG, WebP (dimensione consigliata: 200x200px)</div>
+                </div>
+              </div>
+              <button id="site-logo-clear" type="button" class="mt-3 text-sm text-red-600 hover:underline {{ settings['site.logo'] ? '' : 'hidden' }}">
+                <i class="fas fa-trash mr-1"></i>Rimuovi logo corrente
+              </button>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Se non impostato, verrà usato il titolo del sito.</p>
+        </div>
+        
+        <!-- Other Site Settings (Grid Layout) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Site Title</label>
             <input type="text" name="site_title" value="{{ settings['site.title'] ?? 'photoCMS' }}" class="form-input">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Site Logo</label>
-            <input type="hidden" id="site_logo" name="site_logo" value="{{ settings['site.logo'] ?? '' }}">
-            <div class="flex items-center gap-4">
-              <div class="w-24 h-24 border rounded bg-white flex items-center justify-center overflow-hidden">
-                {% if settings['site.logo'] %}
-                  <img id="site-logo-preview" src="{{ base_path ~ settings['site.logo'] }}" alt="Logo" class="max-w-full max-h-full">
-                {% else %}
-                  <img id="site-logo-preview" src="" alt="Logo" class="max-w-full max-h-full hidden">
-                  <span class="text-xs text-gray-500">Nessun logo</span>
-                {% endif %}
-              </div>
-              <div id="logo-uppy" data-endpoint="{{ base_path }}/admin/settings/logo-upload" data-csrf="{{ csrf }}" 
-                   class="flex-1 border-2 border-dashed rounded-lg p-4 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
-                   Clicca o trascina per caricare (PNG/JPG/WebP)
-              </div>
-            </div>
-            <button id="site-logo-clear" type="button" class="mt-2 text-xs text-red-600 hover:underline {{ settings['site.logo'] ? '' : 'hidden' }}">Rimuovi logo</button>
-            <p class="text-xs text-gray-500 mt-1">Se non impostato, verrà usato il titolo del sito.</p>
           </div>
           
           <div>
@@ -139,6 +149,39 @@
       </div>
     </div>
 
+    <!-- Gallery Page Template -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-palette mr-3 text-gray-700"></i>
+          Template Pagina Galleria
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
+            <input type="radio" name="gallery_page_template" value="classic" class="mt-1" {% if settings['gallery.page_template']|default('classic') == 'classic' %}checked{% endif %}>
+            <div>
+              <div class="font-medium text-gray-900">Classic Grid</div>
+              <div class="text-sm text-gray-600">Layout attuale minimale, B/N, con griglia o slideshow secondo template</div>
+            </div>
+          </label>
+          <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
+            <input type="radio" name="gallery_page_template" value="hero" class="mt-1" {% if settings['gallery.page_template'] == 'hero' %}checked{% endif %}>
+            <div>
+              <div class="font-medium text-gray-900">Hero Cover</div>
+              <div class="text-sm text-gray-600">Cover grande con overlay, titolo, data e location; galleria sotto</div>
+            </div>
+          </label>
+          <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
+            <input type="radio" name="gallery_page_template" value="magazine" class="mt-1" {% if settings['gallery.page_template'] == 'magazine' %}checked{% endif %}>
+            <div>
+              <div class="font-medium text-gray-900">Magazine Split</div>
+              <div class="text-sm text-gray-600">Colonna sinistra con testi/info in sticky; griglia a destra</div>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- Default Gallery Template -->
     <div class="card">
       <div class="p-6">
@@ -149,7 +192,7 @@
         <p class="text-sm text-gray-600 mb-6">Impostazioni utilizzate quando un album non ha un template specifico assegnato</p>
         
         <!-- Debug Information -->
-        <div>
+        <div class="default-template-container">
           <label class="block text-sm font-medium text-gray-700 mb-2">Template Predefinito</label>
           
           
@@ -347,6 +390,63 @@ function handleImageGeneration(event) {
   });
   
   return false;
+}
+
+// Handle page template changes for default template selector
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle page template changes for default template selector
+  const pageTemplateRadios = document.querySelectorAll('input[name="gallery_page_template"]');
+  const defaultTemplateSelect = document.querySelector('select[name="default_template_id"]');
+  
+  if (pageTemplateRadios.length > 0 && defaultTemplateSelect) {
+    // Add event listeners to all page template radios
+    pageTemplateRadios.forEach(radio => {
+      radio.addEventListener('change', function() {
+        updateDefaultTemplateSelector(this.value);
+      });
+    });
+    
+    // Set initial state based on currently selected radio
+    const selectedRadio = document.querySelector('input[name="gallery_page_template"]:checked');
+    if (selectedRadio) {
+      updateDefaultTemplateSelector(selectedRadio.value);
+    }
+  }
+});
+
+function updateDefaultTemplateSelector(selectedValue) {
+  const defaultTemplateSelect = document.querySelector('select[name="default_template_id"]');
+  const defaultTemplateContainer = defaultTemplateSelect?.closest('.default-template-container');
+  
+  if (defaultTemplateSelect && defaultTemplateContainer) {
+    if (selectedValue === 'magazine') {
+      // Disable the selector
+      defaultTemplateSelect.disabled = true;
+      defaultTemplateSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+      defaultTemplateContainer.classList.add('opacity-75');
+      
+      // Show disabled message
+      let msg = defaultTemplateContainer.querySelector('.template-disabled-message');
+      if (!msg) {
+        msg = document.createElement('div');
+        msg.className = 'template-disabled-message text-xs text-gray-500 mt-2 p-3 bg-gray-50 rounded border border-gray-200';
+        msg.innerHTML = '<i class="fas fa-info-circle mr-1"></i>Con <strong>Magazine Split</strong> come layout pagina, questo selettore non è applicabile e viene disabilitato.';
+        defaultTemplateContainer.appendChild(msg);
+      }
+      msg.style.display = 'block';
+    } else {
+      // Enable the selector
+      defaultTemplateSelect.disabled = false;
+      defaultTemplateSelect.classList.remove('bg-gray-100', 'cursor-not-allowed');
+      defaultTemplateContainer.classList.remove('opacity-75');
+      
+      // Hide disabled message
+      const msg = defaultTemplateContainer.querySelector('.template-disabled-message');
+      if (msg) {
+        msg.style.display = 'none';
+      }
+    }
+  }
 }
 </script>
 {% endblock %}

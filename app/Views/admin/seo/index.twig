@@ -26,8 +26,31 @@
     </div>
   </div>
 
+  <!-- Sticky Footer with Action Buttons -->
+  <div class="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <button type="submit" form="seo-form" class="btn-primary">
+            <i class="fas fa-save mr-2"></i>
+            Save Settings
+          </button>
+          <a href="{{ base_path }}/admin" class="btn-secondary">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Dashboard
+          </a>
+        </div>
+        
+        <div class="text-sm text-gray-500">
+          <i class="fas fa-info-circle mr-1"></i>
+          Configure SEO settings for your photography portfolio
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Content -->
-  <div class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-48">
     <form id="seo-form" method="post" action="{{ base_path }}/admin/seo" class="space-y-8">
       <input type="hidden" name="csrf" value="{{ csrf }}">
 

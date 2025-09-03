@@ -99,6 +99,13 @@ class SettingsController extends BaseController
         $svc->set('image.quality', $quality);
         $svc->set('image.preview', $preview);
         $svc->set('image.breakpoints', $breakpoints);
+        
+        $galleryPageTemplate = $data['gallery_page_template'] ?? 'classic';
+        if (!in_array($galleryPageTemplate, ['classic', 'hero', 'magazine'])) {
+            $galleryPageTemplate = 'classic';
+        }
+        $svc->set('gallery.page_template', $galleryPageTemplate);
+
         $svc->set('gallery.default_template_id', $defaultTemplateId);
         $svc->set('site.title', $siteSettings['title']);
         $svc->set('site.logo', $siteSettings['logo']);
