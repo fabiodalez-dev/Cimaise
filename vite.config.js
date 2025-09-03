@@ -10,11 +10,13 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'js/hero': path.resolve(__dirname, 'resources/js/hero.js'),
+        'js/home': path.resolve(__dirname, 'resources/js/home.js'),
       },
       output: {
         // keep folder/name stable (no hash) to match Twig includes
         entryFileNames: (chunk) => {
           if (chunk.name === 'js/hero') return 'js/hero.js'
+          if (chunk.name === 'js/home') return 'js/home.js'
           return '[name].js'
         },
         assetFileNames: '[name][extname]',
@@ -22,4 +24,3 @@ export default defineConfig({
     },
   },
 })
-
