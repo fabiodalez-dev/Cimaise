@@ -8,9 +8,42 @@
       <h1 class="text-2xl font-bold text-gray-900">Social Sharing</h1>
       <p class="text-gray-600 mt-1">Seleziona e ordina i social di condivisione</p>
     </div>
+    <div class="flex items-center gap-3">
+      <button type="submit" form="social-form" class="btn-primary">
+        <i class="fas fa-save mr-2"></i>
+        Salva Impostazioni
+      </button>
+      <a href="{{ base_path }}/admin" class="btn-secondary">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Dashboard
+      </a>
+    </div>
   </div>
 
-  <div class="space-y-8 pb-24">
+  <!-- Sticky Footer with Action Buttons -->
+  <div class="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <button type="submit" form="social-form" class="btn-primary">
+            <i class="fas fa-save mr-2"></i>
+            Salva Impostazioni
+          </button>
+          <a href="{{ base_path }}/admin" class="btn-secondary">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Dashboard
+          </a>
+        </div>
+        
+        <div class="text-sm text-gray-500">
+          <i class="fas fa-info-circle mr-1"></i>
+          Configura i social sharing del sito
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y-8 pb-48">
     <form id="social-form" action="{{ base_path }}/admin/social" method="post" class="space-y-8">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <input type="hidden" name="social_order" id="social-order-input" value="{{ social_order|json_encode|raw }}">

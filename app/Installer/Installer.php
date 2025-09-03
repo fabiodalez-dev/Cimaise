@@ -501,6 +501,7 @@ class Installer
             'site.description' => $data['site_description'] ?? 'Professional Photography Portfolio',
             'site.copyright' => $data['site_copyright'] ?? '© ' . date('Y') . ' Photography Portfolio',
             'site.email' => $data['site_email'] ?? '',
+            'gallery.page_template' => $data['gallery_page_template'] ?? 'classic',
             'gallery.default_template_id' => $defaultTemplateId,
             'image.formats' => ['avif' => true, 'webp' => true, 'jpg' => true],
             'image.quality' => ['avif' => 50, 'webp' => 75, 'jpg' => 85],

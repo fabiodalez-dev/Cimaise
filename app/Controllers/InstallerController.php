@@ -275,6 +275,11 @@ class InstallerController
                 $normalized['default_template_slug'] = $idToSlug[$idStr];
             }
         }
+        $galleryPageTemplate = $data['gallery_page_template'] ?? 'classic';
+        if (!in_array($galleryPageTemplate, ['classic', 'hero', 'magazine'])) {
+            $galleryPageTemplate = 'classic';
+        }
+        $normalized['gallery_page_template'] = $galleryPageTemplate;
         $_SESSION['install_settings_config'] = $normalized;
         
         return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
