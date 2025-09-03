@@ -1,6 +1,6 @@
 <article class="album-card group cursor-pointer" data-album-id="{{ album.id }}">
   <a href="{{ base_path }}/album/{{ album.slug }}" class="block">
-    <div class="aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm">
+    <div class="aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm relative">
       {% if album.cover %}
         <picture>
           {% set variants_avif = [] %}
@@ -33,6 +33,21 @@
                decoding="async"
                class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
         </picture>
+
+        {% if album.category_name %}
+        <div class="absolute top-2 left-2">
+          {% if album.category_slug %}
+          <a href="{{ base_path }}/category/{{ album.category_slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50/95 text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ album.category_name|e }}">
+            <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ album.category_name|e }}
+          </a>
+          {% else %}
+          <span class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50/95 text-neutral-700" title="{{ album.category_name|e }}">
+            <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ album.category_name|e }}
+          </span>
+          {% endif %}
+        </div>
+        {% endif %}
+
       {% else %}
         <div class="w-full h-full bg-neutral-200 flex items-center justify-center">
           <span class="text-neutral-400 text-sm">No cover</span>
@@ -46,22 +61,18 @@
       </h3>
       
       <div class="flex flex-wrap items-center gap-1 mt-1 text-sm text-neutral-600">
-        <span class="category">{{ album.category_name|e }}</span>
-        
         {% if album.tags %}
-          <span class="text-neutral-400">•</span>
           {% for tag in album.tags %}
             <span class="tag">#{{ tag.name|e }}</span>{% if not loop.last %},{% endif %}
           {% endfor %}
         {% endif %}
-        
         {% if album.shoot_date %}
-          <span class="text-neutral-400">•</span>
+          {% if album.tags %}<span class="text-neutral-400">•</span>{% endif %}
           <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('Y') }}</time>
         {% endif %}
       </div>
       
-      {% if album.excerpt %}
+{% if album.excerpt %}
         <p class="mt-2 text-sm text-neutral-600 line-clamp-2">
           {{ album.excerpt|e }}
         </p>

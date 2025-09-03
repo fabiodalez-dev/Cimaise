@@ -1,0 +1,31 @@
+<section class="pt-8 pb-16">
+  <div class="text-center mb-12">
+    <h2 class="text-3xl md:text-4xl font-light text-black mb-4">Latest Albums</h2>
+    <p class="text-lg text-neutral-600 max-w-xl mx-auto">Discover my recent photographic work, from analog experiments to digital explorations.</p>
+  </div>
+
+  {% if albums|length > 0 %}
+  <div class="albums-carousel-container relative overflow-hidden">
+    <div class="albums-carousel-track cursor-grab active:cursor-grabbing" id="albums-carousel">
+      {% set repeats = 6 %}
+      {% for r in 1..repeats %}
+        {% for album in albums %}
+          <div class="album-carousel-item flex-shrink-0 w-80 md:w-96 mx-12">
+            {% include "frontend/_album_card.twig" %}
+          </div>
+        {% endfor %}
+      {% endfor %}
+        <div class="album-carousel-item flex-shrink-0 w-16 md:w-24 mx-12"></div>
+    </div>
+    <div class="albums-edge-left"></div>
+    <div class="albums-edge-right"></div>
+    <button class="albums-arrow albums-arrow-left" aria-label="Previous" type="button">&#10094;</button>
+    <button class="albums-arrow albums-arrow-right" aria-label="Next" type="button">&#10095;</button>
+  </div>
+  {% else %}
+  <div class="text-center py-20">
+    <h2 class="text-2xl font-light text-neutral-600 mb-4">No albums yet</h2>
+    <p class="text-neutral-500">Check back soon for new work.</p>
+  </div>
+  {% endif %}
+</section>
