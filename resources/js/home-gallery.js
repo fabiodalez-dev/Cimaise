@@ -4,6 +4,30 @@ function onReady(fn){ if (document.readyState !== 'loading') fn(); else document
 onReady(() => {
   const gallery = document.getElementById('home-infinite-gallery');
   const homeCols = document.querySelectorAll('.home-col');
+
+  // Ensure each desktop column has a unique random order while keeping seamless loop
+  (function randomizeColumns(){
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    if (!isDesktop) return;
+    homeCols.forEach((col) => {
+      const track = col.querySelector('.home-track');
+      if (!track) return;
+      const cells = Array.from(track.children);
+      if (cells.length < 2) return;
+      const half = Math.floor(cells.length / 2);
+      // Take first half as the base sequence
+      const base = cells.slice(0, half);
+      // Shuffle base (Fisher–Yates)
+      for (let i = base.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [base[i], base[j]] = [base[j], base[i]];
+      }
+      // Rebuild: shuffled base + identical clone for seamless -50% loop
+      track.innerHTML = '';
+      base.forEach(node => track.appendChild(node));
+      base.forEach(node => track.appendChild(node.cloneNode(true)));
+    });
+  })();
   if (gallery) {
     gallery.classList.add('entry-init');
     const isDesktop = window.matchMedia('(min-width: 768px)').matches;
