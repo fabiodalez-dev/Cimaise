@@ -1,6 +1,47 @@
 {% extends "frontend/_layout.twig" %}
 
 {% block content %}
+
+{# ImageGallery Schema for SEO #}
+{% if images|length > 0 %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ImageGallery",
+  "name": {{ album.title|json_encode|raw }},
+  {% if album.excerpt %}"description": {{ album.excerpt|json_encode|raw }},{% endif %}
+  {% if canonical_url %}"url": {{ canonical_url|json_encode|raw }},{% endif %}
+  {% if album.shoot_date %}"datePublished": {{ album.shoot_date|json_encode|raw }},{% endif %}
+  {% if album.updated_at %}"dateModified": {{ album.updated_at|json_encode|raw }},{% endif %}
+  {% if schema is defined and schema.author_name %}"author": {
+    "@type": "Person",
+    "name": {{ schema.author_name|json_encode|raw }}
+  },{% endif %}
+  "associatedMedia": [
+    {% for image in images %}
+    {
+      "@type": "ImageObject",
+      "contentUrl": "{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}",
+      {% if image.alt_text %}"description": {{ image.alt_text|json_encode|raw }},{% endif %}
+      {% if image.caption %}"caption": {{ image.caption|json_encode|raw }},{% endif %}
+      {% if image.width and image.height %}"width": {{ image.width }},
+      "height": {{ image.height }},{% endif %}
+      "encodingFormat": "image/jpeg",
+      {% if image.exif_date_taken %}"datePublished": {{ image.exif_date_taken|json_encode|raw }},{% endif %}
+      {% if schema is defined and schema.author_name %}"creator": {
+        "@type": "Person",
+        "name": {{ schema.author_name|json_encode|raw }}
+      },{% endif %}
+      {% if schema is defined and schema.image_copyright_notice %}"copyrightNotice": {{ schema.image_copyright_notice|json_encode|raw }},{% endif %}
+      {% if schema is defined and schema.image_license_url %}"license": {{ schema.image_license_url|json_encode|raw }},{% endif %}
+      {% if schema is defined and schema.image_acquire_license_page %}"acquireLicensePage": {{ schema.image_acquire_license_page|json_encode|raw }},{% endif %}
+      "thumbnailUrl": "{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endif %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}
 </div>
