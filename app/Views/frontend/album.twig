@@ -64,7 +64,7 @@
     <!-- Content Overlay -->
     <div class="relative z-20 text-center text-white max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Breadcrumbs -->
-        <nav class="mb-6" aria-label="Breadcrumb">
+        <nav class="mb-6" aria-label="Breadcrumb" data-gsap="breadcrumb">
             <ol class="flex items-center justify-center space-x-2 text-sm opacity-80">
                 <li><a href="{{ base_path }}/" class="hover:text-white transition-colors">Home</a></li>
                 <li><span class="mx-2">/</span></li>
@@ -73,19 +73,19 @@
                 <li class="text-white font-medium" aria-current="page">{{ album.title|e }}</li>
             </ol>
         </nav>
-        
-        <h1 class="text-4xl md:text-6xl font-light mb-6">
+
+        <h1 class="text-4xl md:text-6xl font-light mb-6" data-gsap="hero-title">
             {{ album.title|e }}
         </h1>
-        
+
         {% if album.excerpt %}
-        <p class="text-xl md:text-2xl mb-8 opacity-90 leading-relaxed">
+        <p class="text-xl md:text-2xl mb-8 opacity-90 leading-relaxed" data-gsap="hero-excerpt">
             {{ album.excerpt|e }}
         </p>
         {% endif %}
-        
+
         <!-- Categories, Tags, Location in hero -->
-        <div class="flex flex-wrap justify-center gap-6 text-sm mb-6 opacity-80">
+        <div class="flex flex-wrap justify-center gap-6 text-sm mb-6 opacity-80" data-gsap="hero-meta">
             {% if album.categories is defined and album.categories|length > 0 %}
             <div class="flex items-center">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,9 +124,9 @@
                 {{ album.images_count }} {{ album.images_count == 1 ? 'image' : 'images' }}
             </div>
         </div>
-        
+
         {% if album.tags %}
-        <div class="flex flex-wrap justify-center gap-2">
+        <div class="flex flex-wrap justify-center gap-2" data-gsap="hero-tags">
             {% for tag in album.tags %}
             <a href="{{ base_path }}/tag/{{ tag.slug }}" class="text-xs text-white hover:text-gray-300 border border-white border-opacity-30 rounded px-2 py-1 transition-colors hover:border-opacity-50">
                 #{{ tag.name|e }}
@@ -155,23 +155,23 @@
     
     <!-- Album header -->
     <div class="max-w-4xl mx-auto text-center pb-12">
-        <div class="mb-4">
+        <div class="mb-4" data-gsap="category">
             <a href="{{ base_path }}/category/{{ album.category_slug }}" class="text-sm text-neutral-600 hover:text-black transition-colors">
                 {{ album.category_name|e }}
             </a>
         </div>
-        
-        <h1 class="text-3xl md:text-4xl font-light text-black mb-6">
+
+        <h1 class="text-3xl md:text-4xl font-light text-black mb-6" data-gsap="title">
             {{ album.title|e }}
         </h1>
-        
+
         {% if album.excerpt %}
-        <p class="text-lg text-neutral-600 leading-relaxed mb-6">
+        <p class="text-lg text-neutral-600 leading-relaxed mb-6" data-gsap="excerpt">
             {{ album.excerpt|e }}
         </p>
         {% endif %}
-        
-        <div class="flex flex-wrap justify-center gap-4 text-sm text-neutral-500 mb-6">
+
+        <div class="flex flex-wrap justify-center gap-4 text-sm text-neutral-500 mb-6" data-gsap="meta">
             {% if album.shoot_date %}
             <div class="flex items-center">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,9 +198,9 @@
                 {{ album.images_count }} {{ album.images_count == 1 ? 'image' : 'images' }}
             </div>
         </div>
-        
+
         {% if album.tags %}
-        <div class="flex flex-wrap justify-center gap-2">
+        <div class="flex flex-wrap justify-center gap-2" data-gsap="tags">
             {% for tag in album.tags %}
             <a href="{{ base_path }}/tag/{{ tag.slug }}" class="text-xs text-neutral-500 hover:text-black border border-neutral-200 rounded px-2 py-1 transition-colors">
                 #{{ tag.name|e }}
@@ -210,10 +210,10 @@
         {% endif %}
     </div>
 {% endif %}
-    
+
     <!-- Album body -->
     {% if album.body %}
-    <div class="max-w-3xl mx-auto prose prose-neutral mb-12">
+    <div class="max-w-3xl mx-auto prose prose-neutral mb-12" data-gsap="body">
         {{ album.body|safe_html }}
     </div>
     {% endif %}
@@ -324,11 +324,11 @@
 
 <!-- Related albums -->
 {% if related_albums|length > 0 %}
-<section class="border-t border-neutral-200 mt-16 pt-16">
+<section class="border-t border-neutral-200 mt-16 pt-16" data-gsap="related-section">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl font-light text-center mb-12">More from {{ album.category_name|e }}</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <h2 class="text-2xl font-light text-center mb-12" data-gsap="related-title">More from {{ album.category_name|e }}</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-gsap="related-grid">
             {% for related in related_albums %}
                 {% include "frontend/_album_card.twig" with {'album': related} %}
             {% endfor %}
@@ -429,5 +429,143 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
 });
 
 // Initialize PhotoSwipe lightbox (handled by main layout)
+
+// Elegant GSAP Animations
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion || typeof gsap === 'undefined') {
+        // Skip animations if reduced motion is preferred or GSAP not loaded
+        return;
+    }
+
+    // Register ScrollTrigger
+    if (typeof ScrollTrigger !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+    }
+
+    // Hero/Header entrance animations with stagger
+    const headerElements = [
+        '[data-gsap="breadcrumb"]',
+        '[data-gsap="category"]',
+        '[data-gsap="hero-title"]',
+        '[data-gsap="title"]'
+    ];
+
+    headerElements.forEach((selector, index) => {
+        const el = document.querySelector(selector);
+        if (el) {
+            gsap.from(el, {
+                opacity: 0,
+                y: 20,
+                duration: 0.6,
+                delay: index * 0.1,
+                ease: 'power2.out'
+            });
+        }
+    });
+
+    // Excerpt and metadata with slight delay
+    const metaElements = [
+        '[data-gsap="hero-excerpt"]',
+        '[data-gsap="excerpt"]',
+        '[data-gsap="hero-meta"]',
+        '[data-gsap="meta"]',
+        '[data-gsap="hero-tags"]',
+        '[data-gsap="tags"]',
+        '[data-gsap="body"]'
+    ];
+
+    metaElements.forEach((selector, index) => {
+        const el = document.querySelector(selector);
+        if (el) {
+            gsap.from(el, {
+                opacity: 0,
+                y: 15,
+                duration: 0.5,
+                delay: 0.4 + (index * 0.08),
+                ease: 'power2.out'
+            });
+        }
+    });
+
+    // Image gallery items with staggered entrance
+    const imageGallery = document.getElementById('images-gallery');
+    if (imageGallery) {
+        const imageItems = imageGallery.querySelectorAll('.image-item, .masonry-item, .swiper-slide');
+
+        if (imageItems.length > 0) {
+            gsap.from(imageItems, {
+                opacity: 0,
+                y: 30,
+                duration: 0.7,
+                stagger: {
+                    amount: 0.6,
+                    from: 'start',
+                    ease: 'power2.out'
+                },
+                delay: 0.7,
+                ease: 'power2.out'
+            });
+        }
+    }
+
+    // Related albums section with scroll trigger
+    const relatedTitle = document.querySelector('[data-gsap="related-title"]');
+    if (relatedTitle && typeof ScrollTrigger !== 'undefined') {
+        gsap.from(relatedTitle, {
+            opacity: 0,
+            y: 20,
+            duration: 0.6,
+            ease: 'power2.out',
+            scrollTrigger: {
+                trigger: relatedTitle,
+                start: 'top 90%',
+                once: true
+            }
+        });
+    }
+
+    // Related album cards with stagger
+    const relatedGrid = document.querySelector('[data-gsap="related-grid"]');
+    if (relatedGrid && typeof ScrollTrigger !== 'undefined') {
+        const cards = relatedGrid.querySelectorAll('.album-card');
+        if (cards.length > 0) {
+            gsap.from(cards, {
+                opacity: 0,
+                y: 30,
+                duration: 0.7,
+                stagger: 0.1,
+                ease: 'power2.out',
+                scrollTrigger: {
+                    trigger: relatedGrid,
+                    start: 'top 85%',
+                    once: true
+                }
+            });
+        }
+    }
+
+    // Subtle hover enhancement for image items (optional, GPU-accelerated)
+    const allImageItems = document.querySelectorAll('.image-item');
+    allImageItems.forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            gsap.to(this, {
+                scale: 1.02,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        });
+
+        item.addEventListener('mouseleave', function() {
+            gsap.to(this, {
+                scale: 1,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        });
+    });
+});
 
 {% endblock %}
