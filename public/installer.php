@@ -115,6 +115,7 @@ function createStorageDirectories($rootPath) {
         $rootPath . '/storage',
         $rootPath . '/storage/originals',
         $rootPath . '/storage/tmp',
+        $rootPath . '/storage/logs',
         $rootPath . '/public/media',
         $rootPath . '/public/media/categories',
         $rootPath . '/public/media/about',
@@ -134,6 +135,7 @@ function createStorageDirectories($rootPath) {
     $keepFiles = [
         $rootPath . '/storage/originals/.gitkeep',
         $rootPath . '/storage/tmp/.gitkeep',
+        $rootPath . '/storage/logs/.gitkeep',
         $rootPath . '/public/media/.gitkeep'
     ];
     
