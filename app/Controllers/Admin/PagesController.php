@@ -28,6 +28,13 @@ class PagesController extends BaseController
         
         $pages = [
             [
+                'slug' => 'home',
+                'title' => 'Home',
+                'description' => 'Homepage: hero section, gallery and albums carousel',
+                'edit_url' => $this->basePath . '/admin/pages/home',
+                'public_url' => '/',
+            ],
+            [
                 'slug' => 'about',
                 'title' => 'About',
                 'description' => 'Pagina di presentazione: bio, foto, social, contatti',
@@ -45,6 +52,51 @@ class PagesController extends BaseController
         return $this->view->render($response, 'admin/pages/index.twig', [
             'pages' => $pages,
         ]);
+    }
+
+    public function homeForm(Request $request, Response $response): Response
+    {
+        $svc = new SettingsService($this->db);
+        $settings = [
+            'home.hero_title' => (string)($svc->get('home.hero_title', 'Portfolio') ?? 'Portfolio'),
+            'home.hero_subtitle' => (string)($svc->get('home.hero_subtitle', 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.') ?? 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.'),
+            'home.albums_title' => (string)($svc->get('home.albums_title', 'Latest Albums') ?? 'Latest Albums'),
+            'home.albums_subtitle' => (string)($svc->get('home.albums_subtitle', 'Discover my recent photographic work, from analog experiments to digital explorations.') ?? 'Discover my recent photographic work, from analog experiments to digital explorations.'),
+            'home.empty_title' => (string)($svc->get('home.empty_title', 'No albums yet') ?? 'No albums yet'),
+            'home.empty_text' => (string)($svc->get('home.empty_text', 'Check back soon for new work.') ?? 'Check back soon for new work.'),
+        ];
+        return $this->view->render($response, 'admin/pages/home.twig', [
+            'settings' => $settings,
+            'csrf' => $_SESSION['csrf'] ?? ''
+        ]);
+    }
+
+    public function saveHome(Request $request, Response $response): Response
+    {
+        $data = (array)$request->getParsedBody();
+        $csrf = (string)($data['csrf'] ?? '');
+
+        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            return $response->withHeader('Location', $this->redirect('/admin/pages/home'))->withStatus(302);
+        }
+
+        $svc = new SettingsService($this->db);
+
+        // Hero section
+        $svc->set('home.hero_title', trim((string)($data['hero_title'] ?? 'Portfolio')) ?: 'Portfolio');
+        $svc->set('home.hero_subtitle', trim((string)($data['hero_subtitle'] ?? '')));
+
+        // Albums carousel section
+        $svc->set('home.albums_title', trim((string)($data['albums_title'] ?? 'Latest Albums')) ?: 'Latest Albums');
+        $svc->set('home.albums_subtitle', trim((string)($data['albums_subtitle'] ?? '')));
+
+        // Empty state
+        $svc->set('home.empty_title', trim((string)($data['empty_title'] ?? 'No albums yet')) ?: 'No albums yet');
+        $svc->set('home.empty_text', trim((string)($data['empty_text'] ?? 'Check back soon for new work.')) ?: 'Check back soon for new work.');
+
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Home page saved successfully.'];
+        return $response->withHeader('Location', $this->redirect('/admin/pages/home'))->withStatus(302);
     }
 
     public function aboutForm(Request $request, Response $response): Response

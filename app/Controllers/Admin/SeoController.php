@@ -188,9 +188,10 @@ class SeoController extends BaseController
             // Generate sitemap XML
             $svc = new SettingsService($this->db);
             $seoBaseUrl = $svc->get('seo.canonical_base_url', '');
+            $seoBaseUrl = is_string($seoBaseUrl) ? trim($seoBaseUrl) : '';
 
             // Use SEO canonical URL or fallback to BaseUrlService
-            $baseUrl = !empty($seoBaseUrl) ? rtrim($seoBaseUrl, '/') : BaseUrlService::getCurrentBaseUrl();
+            $baseUrl = $seoBaseUrl !== '' ? rtrim($seoBaseUrl, '/') : BaseUrlService::getCurrentBaseUrl();
 
             $sitemap = $this->generateSitemapXml($baseUrl, $albums, $categories);
             
