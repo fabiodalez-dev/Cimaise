@@ -41,19 +41,40 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label class="block text-sm font-medium text-black mb-2">Titolo <span class="text-red-500">*</span></label>
-                  <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                         type="text" name="title" required 
+                  <input class="form-input border-gray-300 focus:border-black focus:ring-black"
+                         type="text" name="title" required
                          placeholder="Inserisci il titolo dell'album">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-black mb-2">Slug URL</label>
-                  <input class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm" 
-                         type="text" name="slug" 
+                  <input class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm"
+                         type="text" name="slug"
                          placeholder="url-friendly-slug (auto se vuoto)">
                   <p class="text-xs text-gray-500 mt-1">Lascia vuoto per generazione automatica</p>
                 </div>
               </div>
-              
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-sm font-medium text-black mb-2">Categorie <span class="text-red-500">*</span></label>
+                  <select name="categories[]" id="album-categories" class="form-input" multiple required>
+                    {% for c in categories %}
+                      <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <p class="text-xs text-gray-500 mt-1">Seleziona una o più categorie</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-black mb-2">Tag</label>
+                  <select class="form-input" name="tags[]" id="album-tags" multiple>
+                    {% for t in tags %}
+                      <option value="{{ t.id }}">{{ t.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <p class="text-xs text-gray-500 mt-1">Tag opzionali per categorizzazione avanzata</p>
+                </div>
+              </div>
+
               <div>
                 <label class="block text-sm font-medium text-black mb-2">Descrizione Breve</label>
                 <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
@@ -69,38 +90,6 @@
                           name="body" rows="32" 
                           placeholder="Descrizione completa con formattazione..."></textarea>
                 <p class="text-xs text-gray-500 mt-1">Supporta formattazione ricca: grassetto, corsivo, elenchi, link</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Categories Card - Mobile Priority -->
-          <div class="card block xl:hidden">
-            <div class="p-6 border-b border-gray-200">
-              <h2 class="text-lg font-semibold text-black flex items-center">
-                <i class="fas fa-tags mr-3 text-gray-600"></i>
-                Categorie e Tag
-              </h2>
-              <p class="text-gray-600 text-sm mt-1">Organizza l'album con categorie e tag</p>
-            </div>
-            <div class="p-6 space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-black mb-2">Categorie <span class="text-red-500">*</span></label>
-                <select name="categories[]" id="album-categories-mobile" class="form-input" multiple required>
-                  {% for c in categories %}
-                    <option value="{{ c.id }}">{{ c.name }}</option>
-                  {% endfor %}
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Seleziona una o più categorie</p>
-              </div>
-              
-              <div>
-                <label class="block text-sm font-medium text-black mb-2">Tag</label>
-                <select class="form-input" name="tags[]" id="album-tags-mobile" multiple>
-                  {% for t in tags %}
-                    <option value="{{ t.id }}">{{ t.name }}</option>
-                  {% endfor %}
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Tag opzionali per categorizzazione avanzata</p>
               </div>
             </div>
           </div>
@@ -168,38 +157,6 @@
 
         <!-- Sidebar -->
         <div class="xl:col-span-3 space-y-6">
-          <!-- Categories and Tags Card - Desktop Only -->
-          <div class="card hidden xl:block">
-            <div class="p-6 border-b border-gray-200">
-              <h2 class="text-lg font-semibold text-black flex items-center">
-                <i class="fas fa-tags mr-3 text-gray-600"></i>
-                Categorie e Tag
-              </h2>
-              <p class="text-gray-600 text-sm mt-1">Organizza l'album con categorie e tag</p>
-            </div>
-            <div class="p-6 space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-black mb-2">Categorie <span class="text-red-500">*</span></label>
-                <select name="categories[]" id="album-categories" class="form-input" multiple required>
-                  {% for c in categories %}
-                    <option value="{{ c.id }}">{{ c.name }}</option>
-                  {% endfor %}
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Seleziona una o più categorie</p>
-              </div>
-              
-              <div>
-                <label class="block text-sm font-medium text-black mb-2">Tag</label>
-                <select class="form-input" name="tags[]" id="album-tags" multiple>
-                  {% for t in tags %}
-                    <option value="{{ t.id }}">{{ t.name }}</option>
-                  {% endfor %}
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Tag opzionali per categorizzazione avanzata</p>
-              </div>
-            </div>
-          </div>
-
           <!-- Publishing Settings Card -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
@@ -210,20 +167,19 @@
               <p class="text-gray-600 text-sm mt-1">Data, template e visibilità</p>
             </div>
             <div class="p-6 space-y-4">
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-black mb-2">Data scatto</label>
-                  <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                         type="date" name="shoot_date">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-black mb-2">Ordine</label>
-                  <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                         type="number" name="sort_order" value="0" 
-                         placeholder="0">
-                </div>
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Data scatto</label>
+                <input class="form-input border-gray-300 focus:border-black focus:ring-black"
+                       type="date" name="shoot_date">
               </div>
-              
+
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">Ordine</label>
+                <input class="form-input border-gray-300 focus:border-black focus:ring-black"
+                       type="number" name="sort_order" value="0"
+                       placeholder="0">
+              </div>
+
               <div>
                 <label class="block text-sm font-medium text-black mb-2">Template</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="template_id">
