@@ -17,8 +17,6 @@
     <!-- Preconnect for External Resources (includes dns-prefetch in modern browsers) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
     
     <!-- Open Graph -->
     <meta property="og:title" content="{{ page_title|e }}">
@@ -153,10 +151,10 @@
     <link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css">
     
     <!-- Swiper CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.css">
 
     <!-- Font Awesome (icons) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
     
     <!-- JS flag class on <html> if needed elsewhere -->
     <script>(function(){ document.documentElement.classList.add('js'); })();</script>
@@ -1029,15 +1027,15 @@
     <!-- PhotoSwipe lightbox (local) loaded dynamically in JS -->
     
     <!-- Swiper.js -->
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    
+    <script src="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.js"></script>
+
     <!-- GSAP -->
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/ScrollTrigger.min.js"></script>
-    
+    <script src="{{ base_path }}/assets/vendor/gsap/gsap.min.js"></script>
+    <script src="{{ base_path }}/assets/vendor/gsap/ScrollTrigger.min.js"></script>
+
     <!-- imagesLoaded + Masonry -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.imagesloaded/5.0.0/imagesloaded.pkgd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/masonry/4.2.2/masonry.pkgd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+    <script src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
     
     <!-- App JS -->
     <script>
