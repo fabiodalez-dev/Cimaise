@@ -88,7 +88,7 @@ class ImagesGenerateVariantsCommand extends Command
                 $progressBar->setMessage("Processing image #{$imgId}");
 
                 try {
-                    $stats = $uploadService->generateVariantsForImage($imgId);
+                    $stats = $uploadService->generateVariantsForImage($imgId, $force);
                     $totalStats['generated'] += $stats['generated'];
                     $totalStats['failed'] += $stats['failed'];
                     $totalStats['skipped'] += $stats['skipped'];
