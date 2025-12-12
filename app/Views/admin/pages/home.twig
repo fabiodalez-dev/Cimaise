@@ -1,0 +1,109 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Pages — Home{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Pages</h1>
+      <p class="text-gray-600 mt-1">Edit <strong>Home</strong> page texts</p>
+    </div>
+    <a href="{{ base_path }}/" class="btn-secondary" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt mr-2"></i>View page</a>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Editor -->
+    <div class="lg:col-span-2">
+      <form method="post" action="{{ base_path }}/admin/pages/home" class="space-y-6">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+
+        <div class="card">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-star mr-3 text-gray-600"></i>
+              Hero Section
+            </h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Title</label>
+                <input type="text" name="hero_title" class="form-input" placeholder="Portfolio" value="{{ settings['home.hero_title']|default('Portfolio')|e('html_attr') }}">
+                <p class="text-xs text-gray-500 mt-1">Main heading displayed at the top of the homepage</p>
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Subtitle</label>
+                <textarea name="hero_subtitle" rows="3" class="form-input" placeholder="A collection of analog and digital photography...">{{ settings['home.hero_subtitle']|default('') }}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Brief description shown below the main title</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-images mr-3 text-gray-600"></i>
+              Albums Carousel Section
+            </h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Section Title</label>
+                <input type="text" name="albums_title" class="form-input" placeholder="Latest Albums" value="{{ settings['home.albums_title']|default('Latest Albums')|e('html_attr') }}">
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Section Subtitle</label>
+                <textarea name="albums_subtitle" rows="2" class="form-input" placeholder="Discover my recent photographic work...">{{ settings['home.albums_subtitle']|default('') }}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-folder-open mr-3 text-gray-600"></i>
+              Empty State
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">Text displayed when there are no albums to show</p>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Empty State Title</label>
+                <input type="text" name="empty_title" class="form-input" placeholder="No albums yet" value="{{ settings['home.empty_title']|default('No albums yet')|e('html_attr') }}">
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Empty State Message</label>
+                <input type="text" name="empty_text" class="form-input" placeholder="Check back soon for new work." value="{{ settings['home.empty_text']|default('Check back soon for new work.')|e('html_attr') }}">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+          <a href="{{ base_path }}/admin/pages" class="btn-secondary">Cancel</a>
+          <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>Save</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Info panel -->
+    <div class="lg:col-span-1">
+      <div class="card">
+        <div class="p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Homepage Structure</h3>
+          <p class="text-sm text-gray-600 mb-4">The homepage consists of three main sections:</p>
+          <ul class="text-sm text-gray-600 space-y-2">
+            <li class="flex items-start">
+              <i class="fas fa-star text-gray-400 mr-2 mt-1"></i>
+              <span><strong>Hero</strong> - Title and subtitle introducing your portfolio</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-th text-gray-400 mr-2 mt-1"></i>
+              <span><strong>Infinite Gallery</strong> - Auto-scrolling mosaic of images from your albums</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-images text-gray-400 mr-2 mt-1"></i>
+              <span><strong>Albums Carousel</strong> - Horizontal carousel featuring your latest albums</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
