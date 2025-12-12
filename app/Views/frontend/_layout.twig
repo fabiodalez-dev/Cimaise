@@ -24,14 +24,14 @@
     <meta property="og:description" content="{{ meta_description|e }}">
     {% endif %}
     {% if meta_image %}
-    <meta property="og:image" content="{{ meta_image }}">
+    <meta property="og:image" content="{{ meta_image|e('html_attr') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="{{ page_title|e }}">
     {% endif %}
     <meta property="og:type" content="{{ og_type|default('website') }}">
-    <meta property="og:url" content="{{ canonical_url|default(current_url) }}">
-    {% if og_locale %}<meta property="og:locale" content="{{ og_locale }}">{% endif %}
+    <meta property="og:url" content="{{ canonical_url|default(current_url)|e('html_attr') }}">
+    {% if og_locale %}<meta property="og:locale" content="{{ og_locale|e('html_attr') }}">{% endif %}
     <meta property="og:site_name" content="{{ og_site_name|default(site_title)|default('Portfolio')|e }}">
 
     <!-- Twitter Cards -->
@@ -39,11 +39,11 @@
     <meta name="twitter:title" content="{{ page_title|e }}">
     {% if meta_description %}<meta name="twitter:description" content="{{ meta_description|e }}">{% endif %}
     {% if meta_image %}
-    <meta name="twitter:image" content="{{ meta_image }}">
+    <meta name="twitter:image" content="{{ meta_image|e('html_attr') }}">
     <meta name="twitter:image:alt" content="{{ page_title|e }}">
     {% endif %}
-    {% if twitter_site %}<meta name="twitter:site" content="{{ twitter_site }}">{% endif %}
-    {% if twitter_creator %}<meta name="twitter:creator" content="{{ twitter_creator }}">{% endif %}
+    {% if twitter_site %}<meta name="twitter:site" content="{{ twitter_site|e('html_attr') }}">{% endif %}
+    {% if twitter_creator %}<meta name="twitter:creator" content="{{ twitter_creator|e('html_attr') }}">{% endif %}
 
     <!-- Canonical & Robots -->
     {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
@@ -129,8 +129,8 @@
       {% if schema.local_business_geo_lat and schema.local_business_geo_lng %}
       "geo": {
         "@type": "GeoCoordinates",
-        "latitude": {{ schema.local_business_geo_lat }},
-        "longitude": {{ schema.local_business_geo_lng }}
+        "latitude": {{ schema.local_business_geo_lat|json_encode|raw }},
+        "longitude": {{ schema.local_business_geo_lng|json_encode|raw }}
       },
       {% endif %}
       {% if schema.local_business_opening_hours %}"openingHours": {{ schema.local_business_opening_hours|json_encode|raw }},{% endif %}
@@ -798,7 +798,7 @@
                     <nav class="hidden lg:flex items-center gap-6" id="desktop-nav">
                         <a href="{{ base_path }}/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">Home</a>
                         <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">All Galleries</a>
-                        <a href="{{ about_url }}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">About</a>
+                        <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">About</a>
                         
                         <!-- Categories Mega Menu -->
                         <div class="relative" id="categories-dropdown">
@@ -861,6 +861,14 @@
                 
                 <!-- Right Side Actions -->
                 <div class="flex items-center gap-4">
+                    {% if is_admin %}
+                    <!-- Admin Dashboard Button -->
+                    <a href="{{ base_path }}/admin" class="flex items-center gap-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 transition-colors duration-200 py-2 px-4 rounded-md">
+                        <i class="fas fa-cog text-xs"></i>
+                        <span>Admin</span>
+                    </a>
+                    {% endif %}
+
                     <!-- Filters Toggle -->
                     <button id="filters-toggle" class="hidden md:flex items-center gap-2 text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2 px-3 rounded-md hover:bg-gray-50">
                         <i class="fas fa-filter text-xs"></i>
@@ -885,7 +893,12 @@
                 <div class="px-2 space-y-1">
                     <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">Home</a>
                     <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">All Galleries</a>
-                    <a href="{{ about_url }}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">About</a>
+                    <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">About</a>
+                    {% if is_admin %}
+                    <a href="{{ base_path }}/admin" class="block text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-md p-3 transition-colors duration-200">
+                        <i class="fas fa-cog mr-2"></i>Admin Dashboard
+                    </a>
+                    {% endif %}
                 </div>
                 
                 <!-- Mobile Categories -->

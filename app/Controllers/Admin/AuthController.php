@@ -230,7 +230,7 @@ class AuthController extends BaseController
         }
 
         try {
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $hashedPassword = password_hash($newPassword, PASSWORD_ARGON2ID);
             $now = $this->db->nowExpression();
             $stmt = $this->db->pdo()->prepare(
                 "UPDATE users SET password_hash = :password_hash, updated_at = {$now} WHERE id = :id"
