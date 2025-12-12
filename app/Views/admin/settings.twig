@@ -213,6 +213,26 @@
       </div>
     </div>
 
+    <!-- Lightbox Settings -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-search-plus mr-3 text-gray-600"></i>
+          Lightbox Settings
+        </h3>
+
+        <div class="space-y-4">
+          <label class="flex items-start">
+            <input type="checkbox" name="show_exif_lightbox" id="show_exif_lightbox" class="rounded border-gray-300 text-black focus:ring-black mt-1" {% if settings['lightbox.show_exif'] %}checked{% endif %}>
+            <span class="ml-3">
+              <span class="text-sm font-medium text-gray-900 block">Mostra dati EXIF nel lightbox</span>
+              <span class="text-xs text-gray-600 block mt-1">Visualizza informazioni fotografiche (camera, obiettivo, ISO, apertura, tempo di scatto) quando si apre un'immagine nel lightbox</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- Performance Settings -->
     <div class="card">
       <div class="p-6">
