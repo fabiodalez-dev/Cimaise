@@ -554,13 +554,15 @@
       }
 
       function createFileProgressElement(file, index) {
+        // Sanitize filename to prevent XSS
+        const safeName = file.name.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const div = document.createElement('div');
         div.id = `file-progress-${index}`;
         div.className = 'bg-white border border-gray-200 rounded-lg p-3';
         div.innerHTML = `
           <div class="flex items-center justify-between mb-1">
-            <span class="text-sm text-gray-700 truncate flex-1 mr-2" title="${file.name}">
-              <i class="fas fa-image text-gray-400 mr-2"></i>${file.name}
+            <span class="text-sm text-gray-700 truncate flex-1 mr-2" title="${safeName}">
+              <i class="fas fa-image text-gray-400 mr-2"></i>${safeName}
             </span>
             <span class="text-xs text-gray-500 file-status">In attesa...</span>
           </div>
@@ -715,6 +717,9 @@
           const fd = new FormData();
           fd.append('file', file);
 
+          // Set timeout for large file uploads (5 minutes)
+          xhr.timeout = 300000;
+
           xhr.upload.addEventListener('progress', (e) => {
             if (e.lengthComputable) {
               const percent = Math.round((e.loaded / e.total) * 100);
@@ -739,6 +744,11 @@
           xhr.addEventListener('error', () => {
             updateFileProgress(index, 100, 'Errore ✗');
             reject(new Error('Network error'));
+          });
+
+          xhr.addEventListener('timeout', () => {
+            updateFileProgress(index, 0, 'Timeout ✗');
+            reject(new Error('Upload timeout'));
           });
 
           xhr.open('POST', `{{ base_path }}/admin/albums/${albumId}/upload`);
@@ -806,10 +816,18 @@
           // Set first image as cover
           if (firstImageId) {
             showProgress('Impostazione copertina...');
-            await fetch(`{{ base_path }}/admin/albums/${id}/cover/${firstImageId}`, {
-              method: 'POST',
-              headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }
-            });
+            try {
+              const coverRes = await fetch(`{{ base_path }}/admin/albums/${id}/cover/${firstImageId}`, {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }
+              });
+              if (!coverRes.ok) {
+                console.error('Errore impostazione copertina:', coverRes.status);
+              }
+            } catch (coverError) {
+              console.error('Errore impostazione copertina:', coverError);
+              // Non-fatal: continue anyway, album is created
+            }
           }
 
           showProgress('Completato! Reindirizzamento...');
