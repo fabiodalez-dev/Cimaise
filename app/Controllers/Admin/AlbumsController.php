@@ -852,10 +852,21 @@ class AlbumsController extends BaseController
             return $response->withStatus(400);
         }
         $pdo = $this->db->pdo();
+
+        // Get source image
         $rowStmt = $pdo->prepare('SELECT * FROM images WHERE id = :id');
         $rowStmt->execute([':id'=>$sourceId]);
         $src = $rowStmt->fetch();
         if (!$src) return $response->withStatus(404);
+
+        // Check for duplicates: same file_hash already in this album
+        $dupStmt = $pdo->prepare('SELECT id FROM images WHERE album_id = :album AND file_hash = :hash LIMIT 1');
+        $dupStmt->execute([':album' => $albumId, ':hash' => $src['file_hash']]);
+        if ($dupStmt->fetch()) {
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Immagine già presente nell\'album']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(409);
+        }
+
         // Duplicate row for target album
         $ins = $pdo->prepare('INSERT INTO images(album_id, original_path, file_hash, width, height, mime, alt_text, caption, exif, camera_id, lens_id, film_id, developer_id, lab_id, custom_camera, custom_lens, custom_film, custom_development, custom_lab, custom_scanner, scan_resolution_dpi, scan_bit_depth, process, development_date, iso, shutter_speed, aperture, sort_order)
                               VALUES(:album,:p,:h,:w,:hh,:m,:alt,:cap,:ex,:cam,:lens,:film,:dev,:lab,:ccam,:clens,:cfilm,:cdev,:clab,:cscan,:dpi,:bit,:proc,:ddate,:iso,:sh,:ap,:sort)');
@@ -890,6 +901,28 @@ class AlbumsController extends BaseController
             ':sort'=>0,
         ]);
         $newId = (int)$pdo->lastInsertId();
+
+        // Copy image variants from source to new image
+        $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :source_id');
+        $variantsStmt->execute([':source_id' => $sourceId]);
+        $variants = $variantsStmt->fetchAll();
+
+        if ($variants && count($variants) > 0) {
+            $insertVariant = $pdo->prepare('INSERT INTO image_variants (image_id, variant, format, path, width, height, size, created_at) VALUES (:image_id, :variant, :format, :path, :width, :height, :size, :created_at)');
+            foreach ($variants as $v) {
+                $insertVariant->execute([
+                    ':image_id' => $newId,
+                    ':variant' => $v['variant'],
+                    ':format' => $v['format'],
+                    ':path' => $v['path'],
+                    ':width' => $v['width'],
+                    ':height' => $v['height'],
+                    ':size' => $v['size'],
+                    ':created_at' => $v['created_at'] ?? date('Y-m-d H:i:s'),
+                ]);
+            }
+        }
+
         $response->getBody()->write(json_encode(['ok'=>true,'id'=>$newId]));
         return $response->withHeader('Content-Type','application/json');
     }

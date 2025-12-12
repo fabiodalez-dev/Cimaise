@@ -868,10 +868,14 @@ function initMediaModalOnEdit() {
     const fd = new URLSearchParams(); fd.append('csrf', getCsrf()); fd.append('image_id', id);
     try {
       const res = await fetch(`${window.basePath || ''}/admin/albums/${albumId}/images/attach`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'}, body: fd.toString() });
-      if (res.ok) { 
-        hide(); 
-        if (window.showToast) window.showToast('Immagine aggiunta','success'); 
-        refreshGalleryArea(); 
+      if (res.ok) {
+        hide();
+        if (window.showToast) window.showToast('Immagine aggiunta','success');
+        refreshGalleryArea();
+      } else if (res.status === 409) {
+        // Duplicate image
+        const data = await res.json().catch(() => ({}));
+        if (window.showToast) window.showToast(data.error || 'Immagine già presente nell\'album', 'error');
       } else {
         console.error('Failed to attach image:', res.status, res.statusText);
         if (window.showToast) window.showToast('Errore aggiunta immagine','error');
@@ -885,27 +889,23 @@ function initMediaModalOnEdit() {
 
 function getCsrf(){ const el = document.querySelector('input[name="csrf"]'); return el ? el.value : ''; }
 
-// Refresh only the gallery grid after uploads
+// Refresh only the gallery grid after uploads (smooth, no flicker)
 async function refreshGalleryArea() {
   try {
     console.log('🔄 refreshGalleryArea called');
-    
-    // Show loading indicator
-    let loadingEl = document.createElement('div');
-    loadingEl.className = 'gallery-refresh-loading';
-    loadingEl.style.cssText = 'position: fixed; inset: 0; background: rgba(0, 0, 0, 0.2); display: flex; align-items: center; justify-content: center; z-index: 50;';
-    loadingEl.innerHTML = '<div class="bg-white rounded-lg p-4 shadow-lg"><i class="fas fa-spinner fa-spin mr-2"></i>Aggiornamento galleria...</div>';
-    document.body.appendChild(loadingEl);
-    
+
     const existingGrid = document.getElementById('images-grid');
     console.log('📋 Existing grid found:', !!existingGrid);
-    
+
     if (!existingGrid) {
       console.error('❌ images-grid element not found! The template should always include it now.');
-      if (loadingEl) loadingEl.remove();
       return;
     }
-    
+
+    // Fade out grid slightly while loading (no overlay, no flicker)
+    existingGrid.style.transition = 'opacity 0.15s ease';
+    existingGrid.style.opacity = '0.6';
+
     // Fetch the updated content
     console.log('🌐 Fetching updated page content...');
     const res = await fetch(window.location.href, { headers: { 'Accept': 'text/html' }});
@@ -914,17 +914,17 @@ async function refreshGalleryArea() {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const newGrid = doc.querySelector('#images-grid');
     const newBulkActions = doc.querySelector('.flex.items-center.justify-between.mt-6.mb-4');
-    
+
     console.log('📋 New grid found:', !!newGrid);
     console.log('🔘 New bulk actions found:', !!newBulkActions);
-    
+
     if (newGrid) {
       // Update grid content
       console.log('✅ Updating grid content...');
       existingGrid.innerHTML = newGrid.innerHTML;
       // Update dataset attributes
       Object.assign(existingGrid.dataset, newGrid.dataset);
-      
+
       // Update bulk actions count if they exist
       if (newBulkActions) {
         const currentBulkActions = document.querySelector('.flex.items-center.justify-between.mt-6.mb-4');
@@ -937,32 +937,32 @@ async function refreshGalleryArea() {
           }
         }
       }
-      
+
       // Re-initialize all components that depend on the grid
       console.log('🔧 Re-initializing components...');
       initSortableGrid();
       bindGridButtons();
       rebindBulkSelection();
       rebindImageModalHandlers();
-      
+
+      // Fade grid back in
+      existingGrid.style.opacity = '1';
+
       console.log('✅ Gallery refresh completed successfully');
-      if (window.showToast) window.showToast('Galleria aggiornata', 'success');
     } else {
       console.log('⚠️ No grid found in new content');
+      existingGrid.style.opacity = '1';
     }
-    
-    // Remove loading indicator
-    if (loadingEl) loadingEl.remove();
-    
-  } catch (e) { 
+
+  } catch (e) {
     console.error('❌ Error refreshing gallery:', e);
-    // Remove loading indicator on error
-    const loadingEl = document.querySelector('.gallery-refresh-loading');
-    if (loadingEl) loadingEl.remove();
-    
+    // Restore opacity on error
+    const existingGrid = document.getElementById('images-grid');
+    if (existingGrid) existingGrid.style.opacity = '1';
+
     // Fallback to full page reload if refresh fails
     console.log('🔄 Falling back to full page reload');
-    window.location.reload(); 
+    window.location.reload();
   }
 }
 
