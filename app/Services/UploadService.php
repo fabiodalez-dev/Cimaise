@@ -208,7 +208,6 @@ class UploadService
             // LEGACY MODE: Generate all variants synchronously (SLOW but complete)
             $haveImagick = class_exists(\Imagick::class);
             $variantsGenerated = 0;
-            $totalVariants = count($breakpoints) * count(array_filter($formats));
 
             foreach ($breakpoints as $variant => $targetW) {
                 $targetW = (int)$targetW;
@@ -349,8 +348,9 @@ class UploadService
     /**
      * Generate variants for an image that was uploaded in fast mode
      * Returns array with statistics: ['generated' => int, 'failed' => int, 'skipped' => int]
+     * @param bool $force Force regeneration of existing variants
      */
-    public function generateVariantsForImage(int $imageId): array
+    public function generateVariantsForImage(int $imageId, bool $force = false): array
     {
         $pdo = $this->db->pdo();
 
@@ -388,8 +388,8 @@ class UploadService
                 $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                 $destPath = $mediaDir . "/{$imageId}_{$variant}.{$fmt}";
 
-                // Skip if variant already exists
-                if (is_file($destPath)) {
+                // Skip if variant already exists (unless force is enabled)
+                if (is_file($destPath) && !$force) {
                     $stats['skipped']++;
                     continue;
                 }
