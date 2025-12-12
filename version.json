@@ -1,0 +1,23 @@
+{
+    "name": "photoCMS",
+    "version": "1.0.0",
+    "description": "Professional Photography Portfolio CMS - A modern, minimalist content management system designed for photographers to showcase their work with elegant galleries, advanced image processing, and comprehensive SEO optimization.",
+    "author": "Fabio",
+    "license": "MIT",
+    "php_minimum": "8.0.0",
+    "database": {
+        "supported": ["sqlite", "mysql"],
+        "default": "sqlite"
+    },
+    "features": [
+        "Multi-database support (SQLite/MySQL)",
+        "Responsive image processing (AVIF, WebP, JPEG)",
+        "Multiple gallery templates",
+        "Film photography metadata support",
+        "SEO optimization with structured data",
+        "Built-in analytics",
+        "Social sharing integration"
+    ],
+    "release_date": "2025-12-12",
+    "repository": "https://github.com/fabiodalez-dev/photoCMS"
+}
