@@ -6,7 +6,7 @@
     <title>{{ page_title|e }}</title>
 
     {% if meta_description %}
-    <meta name="description" content="{{ meta_description|e }}">
+    <meta name="description" content="{{ meta_description|e('html_attr') }}">
     {% endif %}
 
     <!-- Favicon & App Icons -->
@@ -19,28 +19,28 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
     <!-- Open Graph -->
-    <meta property="og:title" content="{{ page_title|e }}">
+    <meta property="og:title" content="{{ page_title|e('html_attr') }}">
     {% if meta_description %}
-    <meta property="og:description" content="{{ meta_description|e }}">
+    <meta property="og:description" content="{{ meta_description|e('html_attr') }}">
     {% endif %}
     {% if meta_image %}
     <meta property="og:image" content="{{ meta_image|e('html_attr') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="{{ page_title|e }}">
+    <meta property="og:image:alt" content="{{ page_title|e('html_attr') }}">
     {% endif %}
     <meta property="og:type" content="{{ og_type|default('website') }}">
     <meta property="og:url" content="{{ canonical_url|default(current_url)|e('html_attr') }}">
     {% if og_locale %}<meta property="og:locale" content="{{ og_locale|e('html_attr') }}">{% endif %}
-    <meta property="og:site_name" content="{{ og_site_name|default(site_title)|default('Portfolio')|e }}">
+    <meta property="og:site_name" content="{{ og_site_name|default(site_title)|default('Portfolio')|e('html_attr') }}">
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="{{ twitter_card|default('summary_large_image') }}">
-    <meta name="twitter:title" content="{{ page_title|e }}">
-    {% if meta_description %}<meta name="twitter:description" content="{{ meta_description|e }}">{% endif %}
+    <meta name="twitter:title" content="{{ page_title|e('html_attr') }}">
+    {% if meta_description %}<meta name="twitter:description" content="{{ meta_description|e('html_attr') }}">{% endif %}
     {% if meta_image %}
     <meta name="twitter:image" content="{{ meta_image|e('html_attr') }}">
-    <meta name="twitter:image:alt" content="{{ page_title|e }}">
+    <meta name="twitter:image:alt" content="{{ page_title|e('html_attr') }}">
     {% endif %}
     {% if twitter_site %}<meta name="twitter:site" content="{{ twitter_site|e('html_attr') }}">{% endif %}
     {% if twitter_creator %}<meta name="twitter:creator" content="{{ twitter_creator|e('html_attr') }}">{% endif %}
@@ -1115,20 +1115,13 @@
         
         
         // Enhanced Desktop mega menu with category data and images
-        const megaMenuData = {
-            {% for category in parent_categories|default([]) %}
-            {{ category.id }}: {
-                name: "{{ category.name|e }}",
-                slug: "{{ category.slug }}",
-                image: "{{ category.image_path ? category.image_path : '' }}",
-                children: [
-                    {% for child in category.children %}
-                    { name: "{{ child.name|e }}", slug: "{{ child.slug }}" }{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                ]
-            }{% if not loop.last %},{% endif %}
-            {% endfor %}
-        };
+        const megaMenuData = {{ parent_categories|default([])|map(c => {
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            image: c.image_path ?? '',
+            children: c.children|default([])|map(ch => { name: ch.name, slug: ch.slug })
+        })|reduce((acc, c) => acc|merge({ (c.id): c }), {})|json_encode|raw }};
         
         // Enhanced Desktop categories mega menu with animations
         (function(){
@@ -1808,9 +1801,6 @@
                       const it = items[pswp.currIndex];
                       if (!it) return;
                       
-                      // Debug: log caption data
-                      console.log('Caption data for image:', it);
-                      
                       // Remove previous caption
                       if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl);
                       
@@ -1842,9 +1832,6 @@
                   function updatePsCaption(){
                     const it = items[lightbox.currIndex];
                     if (!it) return;
-                    
-                    // Debug: log caption data
-                    console.log('Fallback caption data for image:', it);
                     
                     // Remove previous caption
                     if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl);
