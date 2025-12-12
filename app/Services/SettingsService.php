@@ -36,7 +36,9 @@ class SettingsService
 
     public function set(string $key, mixed $value): void
     {
-        $stmt = $this->db->pdo()->prepare('INSERT OR REPLACE INTO settings(`key`,`value`,`type`,`updated_at`) VALUES(:k, :v, :t, datetime(\'now\'))');
+        $replace = $this->db->replaceKeyword();
+        $now = $this->db->nowExpression();
+        $stmt = $this->db->pdo()->prepare("{$replace} INTO settings(`key`,`value`,`type`,`updated_at`) VALUES(:k, :v, :t, {$now})");
         $encodedValue = json_encode($value, JSON_UNESCAPED_SLASHES);
         $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
         $stmt->execute([':k' => $key, ':v' => $encodedValue, ':t' => $type]);
