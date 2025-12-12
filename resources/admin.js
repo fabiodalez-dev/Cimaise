@@ -18,6 +18,16 @@ import 'tinymce/skins/content/default/content.css'
 // Import GSAP for animations
 import { gsap } from 'gsap'
 
+/**
+ * Initialize the custom image upload area: configures an Uppy instance (XHRUpload with CSRF),
+ * builds a hidden file input, enables drag-and-drop, renders a total + per-file progress panel,
+ * and wires event handlers to surface progress, errors, and completion (which triggers gallery refresh).
+ *
+ * This function is idempotent for the same area element (guards against double initialization).
+ * It registers the Uppy instance on window.uppyInstances for external cleanup and uses the following
+ * DOM elements/ids when present or created: #uppy (area), #upload-progress (progress panel),
+ * #upload-file-list, #upload-bar-total, #upload-counter, and #upload-status.
+ */
 function initUppyAreaUpload() {
   const area = document.getElementById('uppy');
   if (!area) return;
