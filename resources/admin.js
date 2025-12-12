@@ -134,13 +134,15 @@ function initUppyAreaUpload() {
 
   // Helper to create file progress element
   function createFileProgressEl(file) {
+    // Sanitize filename to prevent XSS
+    const safeName = file.name.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const div = document.createElement('div');
     div.id = `file-prog-${file.id}`;
     div.className = 'bg-gray-50 border border-gray-200 rounded p-2';
     div.innerHTML = `
       <div class="flex items-center justify-between mb-1">
-        <span class="text-xs text-gray-700 truncate flex-1 mr-2" title="${file.name}">
-          <i class="fas fa-image text-gray-400 mr-1"></i>${file.name}
+        <span class="text-xs text-gray-700 truncate flex-1 mr-2" title="${safeName}">
+          <i class="fas fa-image text-gray-400 mr-1"></i>${safeName}
         </span>
         <span class="text-xs text-gray-500 file-status">In attesa...</span>
       </div>
