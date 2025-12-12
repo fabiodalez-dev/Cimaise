@@ -36,9 +36,8 @@
     {% endif %}
     <meta property="og:type" content="{{ og_type|default('website') }}">
     <meta property="og:url" content="{{ canonical_url|default(current_url) }}">
-    {% if og_site_name %}<meta property="og:site_name" content="{{ og_site_name|e }}">{% endif %}
     {% if og_locale %}<meta property="og:locale" content="{{ og_locale }}">{% endif %}
-    <meta property="og:site_name" content="{{ site_title|default('Portfolio') }}">
+    <meta property="og:site_name" content="{{ og_site_name|default(site_title)|default('Portfolio')|e }}">
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="{{ twitter_card|default('summary_large_image') }}">
