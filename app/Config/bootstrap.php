@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use App\Support\Database;
+use App\Support\PluginManager;
 use Dotenv\Dotenv;
 
 if (!function_exists('envv')) {
@@ -43,6 +44,10 @@ if ($connection === 'sqlite') {
         collation: (string)envv('DB_COLLATION', 'utf8mb4_unicode_ci'),
     );
 }
+
+// Initialize Plugin Manager and load plugins
+$pluginManager = PluginManager::getInstance();
+$pluginManager->setDatabase($db);
 
 return [
     'db' => $db,

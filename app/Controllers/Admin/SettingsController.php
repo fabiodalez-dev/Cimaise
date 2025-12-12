@@ -93,12 +93,16 @@ class SettingsController extends BaseController
         
         $paginationLimit = max(1, min(100, (int)($data['pagination_limit'] ?? 12)));
         $cacheTtl = max(1, min(168, (int)($data['cache_ttl'] ?? 24)));
-        
+
+        // Lightbox settings
+        $showExif = isset($data['show_exif_lightbox']);
+
         // Save all settings
         $svc->set('image.formats', $formats);
         $svc->set('image.quality', $quality);
         $svc->set('image.preview', $preview);
         $svc->set('image.breakpoints', $breakpoints);
+        $svc->set('lightbox.show_exif', $showExif);
         
         $galleryPageTemplate = $data['gallery_page_template'] ?? 'classic';
         if (!in_array($galleryPageTemplate, ['classic', 'hero', 'magazine'])) {
