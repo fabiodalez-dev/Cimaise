@@ -162,12 +162,13 @@
       </div>
     </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="no-referrer"></script>
+  <script src="{{ base_path }}/assets/vendor/tinymce/tinymce.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function(){
       if (window.tinymce) {
         tinymce.init({
           selector: 'textarea.richtext',
+          base_url: (window.basePath || '') + '/assets/vendor/tinymce',
           menubar: false,
           statusbar: false,
           branding: false,

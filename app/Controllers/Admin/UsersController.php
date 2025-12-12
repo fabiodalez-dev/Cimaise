@@ -100,7 +100,7 @@ class UsersController extends BaseController
         }
         
         // Create user
-        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        $passwordHash = password_hash($password, PASSWORD_ARGON2ID);
         $stmt = $this->db->pdo()->prepare('
             INSERT INTO users (email, first_name, last_name, password_hash, role, is_active) 
             VALUES (:email, :first_name, :last_name, :password_hash, :role, :is_active)
@@ -202,15 +202,16 @@ class UsersController extends BaseController
         }
         
         // Update user
+        $now = $this->db->nowExpression();
         if (!empty($password)) {
-            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $this->db->pdo()->prepare('
-                UPDATE users 
-                SET email = :email, first_name = :first_name, last_name = :last_name, 
+            $passwordHash = password_hash($password, PASSWORD_ARGON2ID);
+            $stmt = $this->db->pdo()->prepare("
+                UPDATE users
+                SET email = :email, first_name = :first_name, last_name = :last_name,
                     password_hash = :password_hash, role = :role, is_active = :is_active,
-                    updated_at = datetime("now")
+                    updated_at = {$now}
                 WHERE id = :id
-            ');
+            ");
             $params = [
                 ':email' => $email,
                 ':first_name' => $firstName,
@@ -221,12 +222,12 @@ class UsersController extends BaseController
                 ':id' => $id
             ];
         } else {
-            $stmt = $this->db->pdo()->prepare('
-                UPDATE users 
-                SET email = :email, first_name = :first_name, last_name = :last_name, 
-                    role = :role, is_active = :is_active, updated_at = datetime("now")
+            $stmt = $this->db->pdo()->prepare("
+                UPDATE users
+                SET email = :email, first_name = :first_name, last_name = :last_name,
+                    role = :role, is_active = :is_active, updated_at = {$now}
                 WHERE id = :id
-            ');
+            ");
             $params = [
                 ':email' => $email,
                 ':first_name' => $firstName,
@@ -324,7 +325,8 @@ class UsersController extends BaseController
         }
         
         // Toggle status
-        $stmt = $this->db->pdo()->prepare('UPDATE users SET is_active = :status, updated_at = datetime("now") WHERE id = :id');
+        $now = $this->db->nowExpression();
+        $stmt = $this->db->pdo()->prepare("UPDATE users SET is_active = :status, updated_at = {$now} WHERE id = :id");
         try {
             $stmt->execute([':status' => $newStatus, ':id' => $id]);
             $statusText = $newStatus ? 'attivato' : 'disattivato';
