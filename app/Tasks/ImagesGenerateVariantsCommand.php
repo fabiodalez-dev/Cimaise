@@ -106,8 +106,9 @@ class ImagesGenerateVariantsCommand extends Command
             $output->writeln('');
 
             // Print summary
+            $forceIndicator = $force ? ' <fg=magenta>(FORCE MODE)</>' : '';
             $output->writeln('<info>════════════════════════════════════════</info>');
-            $output->writeln('<info>         GENERATION SUMMARY            </info>');
+            $output->writeln("<info>         GENERATION SUMMARY</info>{$forceIndicator}");
             $output->writeln('<info>════════════════════════════════════════</info>');
             $output->writeln(sprintf('<fg=green>✓ Generated: %d variants</>', $totalStats['generated']));
             $output->writeln(sprintf('<fg=yellow>⊘ Skipped:   %d variants (already exist)</>', $totalStats['skipped']));

@@ -14,14 +14,11 @@
     <link rel="apple-touch-icon" href="{{ base_path }}/assets/favico.ico">
     <meta name="theme-color" content="#ffffff">
 
-    <!-- DNS Prefetch & Preconnect for External Resources -->
+    <!-- Preconnect for External Resources (includes dns-prefetch in modern browsers) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
-    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     
     <!-- Open Graph -->
     <meta property="og:title" content="{{ page_title|e }}">
@@ -141,7 +138,7 @@
       {% if schema.local_business_opening_hours %}"openingHours": {{ schema.local_business_opening_hours|json_encode|raw }},{% endif %}
       "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
       {% if meta_image %}"image": {{ meta_image|json_encode|raw }},{% endif %}
-      "priceRange": "$$"
+      "priceRange": {{ (schema.local_business_price_range|default('$$'))|json_encode|raw }}
     }
     </script>
     {% endif %}

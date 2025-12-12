@@ -200,60 +200,13 @@ class UploadService
         // Full variants generated in background via: php bin/console images:generate-variants
         // This reduces upload time from ~15s to ~1s per image
 
-        // For backward compatibility and immediate functionality, optionally generate all variants
-        // Set FAST_UPLOAD=true in .env to enable fast mode
-        $fastUploadMode = ($_ENV['FAST_UPLOAD'] ?? 'true') === 'true';
+        // For backward compatibility, legacy mode (all variants sync) is the default
+        // Set FAST_UPLOAD=true in .env to enable fast mode (recommended for large uploads)
+        $fastUploadMode = ($_ENV['FAST_UPLOAD'] ?? 'false') === 'true';
 
         if (!$fastUploadMode) {
-            // LEGACY MODE: Generate all variants synchronously (SLOW but complete)
-            $haveImagick = class_exists(\Imagick::class);
-            $variantsGenerated = 0;
-
-            foreach ($breakpoints as $variant => $targetW) {
-                $targetW = (int)$targetW;
-                foreach (['avif','webp','jpg'] as $fmt) {
-                    if (empty($formats[$fmt])) continue;
-
-                    $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
-                    $destPath = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
-
-                    // Skip if JPG sm variant already exists (created above)
-                    if ($fmt === 'jpg' && $variant === 'sm' && is_file($destPath)) {
-                        $variantsGenerated++;
-                        continue;
-                    }
-
-                    @mkdir(dirname($destPath), 0775, true);
-                    $ok = false;
-
-                    // Try generation based on format and available libraries
-                    if ($fmt === 'jpg') {
-                        $ok = $this->resizeWithImagickOrGd($dest, $destPath, $targetW, 'jpeg', (int)($quality['jpg'] ?? 85));
-                    } elseif ($fmt === 'webp') {
-                        if ($haveImagick) {
-                            $ok = $this->resizeWithImagick($dest, $destPath, $targetW, 'webp', (int)($quality['webp'] ?? 75));
-                        } else {
-                            // GD WebP fallback if available
-                            if (function_exists('imagewebp')) {
-                                $ok = $this->resizeWithGdWebp($dest, $destPath, $targetW, (int)($quality['webp'] ?? 75));
-                            }
-                        }
-                    } elseif ($fmt === 'avif' && $haveImagick) {
-                        $ok = $this->resizeWithImagick($dest, $destPath, $targetW, 'avif', (int)($quality['avif'] ?? 50));
-                    }
-
-                    if ($ok && is_file($destPath)) {
-                        $size = (int)filesize($destPath);
-                        [$vw, $vh] = getimagesize($destPath) ?: [$targetW, 0];
-                        $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
-                            ->execute([$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, (int)$vh, $size]);
-                        $variantsGenerated++;
-                    } else {
-                        // Log warning for failed generation
-                        error_log("Failed to generate {$fmt} variant {$variant} for image {$imageId}");
-                    }
-                }
-            }
+            // LEGACY MODE: Generate all variants synchronously (complete but slower)
+            $this->generateVariantsForImage($imageId, false);
         }
 
         // Set as cover if album doesn't have one yet
