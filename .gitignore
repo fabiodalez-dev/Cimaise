@@ -1,5 +1,50 @@
+# Environment files (contain secrets!)
+.env
+.env.local
+.env.*.local
+
+# Database files (each installation creates its own)
+database/database.sqlite
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build artifacts
+public/assets/*.js.map
+public/assets/*.css.map
+
+# User uploaded content
+public/media/*
+!public/media/.gitkeep
+storage/originals/*
+!storage/originals/.gitkeep
+storage/tmp/*
+!storage/tmp/.gitkeep
+
+# Logs
+*.log
+storage/logs/*
+!storage/logs/.gitkeep
+
+# OS files
 .DS_Store
-app/Views/.DS_Store
-Archive.zip
+*/.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archives
+*.zip
+*.tar.gz
+
+# Debug/test files
 reset_app.php
-Archive 2.zip
+phpinfo.php
+
+# Cache
+.cache/
