@@ -1,0 +1,186 @@
+{% extends "admin/_layout.twig" %}
+
+{% block title %}Plugin - photoCMS{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="flex justify-between items-center">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Plugin</h1>
+      <p class="text-gray-600 mt-2">Gestisci i plugin installati e disponibili per photoCMS</p>
+    </div>
+    <div class="flex items-center space-x-4">
+      <div class="text-sm text-gray-600">
+        <i class="fas fa-puzzle-piece mr-2"></i>
+        <strong>{{ plugins|length }}</strong> plugin totali
+      </div>
+      <div class="text-sm text-gray-600">
+        <i class="fas fa-check-circle text-green-600 mr-2"></i>
+        <strong>{{ plugins|filter(p => p.is_active)|length }}</strong> attivi
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats -->
+{% if stats %}
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4">
+    <div class="text-sm text-gray-600">Hooks Registrati</div>
+    <div class="text-2xl font-bold text-gray-900">{{ stats.total_hooks }}</div>
+  </div>
+  <div class="card p-4">
+    <div class="text-sm text-gray-600">Callbacks Totali</div>
+    <div class="text-2xl font-bold text-gray-900">{{ stats.total_callbacks }}</div>
+  </div>
+  <div class="card p-4">
+    <div class="text-sm text-gray-600">Plugin Caricati</div>
+    <div class="text-2xl font-bold text-gray-900">{{ stats.plugins_count }}</div>
+  </div>
+  <div class="card p-4">
+    <div class="text-sm text-gray-600">Cache Entries</div>
+    <div class="text-2xl font-bold text-gray-900">{{ stats.cache_entries }}</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Plugin List -->
+<div class="card">
+  <div class="p-6 border-b border-gray-200">
+    <h2 class="text-lg font-semibold text-gray-900">Plugin Disponibili</h2>
+    <p class="text-sm text-gray-600 mt-1">Tutti i plugin trovati nella directory plugins/</p>
+  </div>
+
+  {% if plugins|length > 0 %}
+    <div class="divide-y divide-gray-200">
+      {% for slug, plugin in plugins %}
+        <div class="p-6 hover:bg-gray-50 transition-colors">
+          <div class="flex items-start justify-between">
+            <!-- Plugin Info -->
+            <div class="flex-1">
+              <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-white text-xl font-bold">
+                  {{ plugin.name|slice(0, 2)|upper }}
+                </div>
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900">{{ plugin.name }}</h3>
+                  <div class="flex items-center space-x-3 mt-1">
+                    <span class="text-sm text-gray-500">v{{ plugin.version }}</span>
+                    {% if plugin.author %}
+                      <span class="text-sm text-gray-500">by {{ plugin.author }}</span>
+                    {% endif %}
+
+                    <!-- Status Badges -->
+                    {% if plugin.is_active %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <i class="fas fa-check-circle mr-1"></i> Attivo
+                      </span>
+                    {% elseif plugin.is_installed %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <i class="fas fa-pause-circle mr-1"></i> Disattivato
+                      </span>
+                    {% else %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        <i class="fas fa-circle mr-1"></i> Non Installato
+                      </span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              {% if plugin.description %}
+                <p class="text-sm text-gray-600 mt-3 ml-15">{{ plugin.description }}</p>
+              {% endif %}
+
+              <div class="flex items-center space-x-4 mt-3 ml-15 text-xs text-gray-500">
+                <div><i class="fas fa-folder mr-1"></i> {{ plugin.slug }}</div>
+                {% if plugin.installed_at %}
+                  <div><i class="fas fa-clock mr-1"></i> Installato il {{ plugin.installed_at|date('d/m/Y H:i') }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center space-x-2 ml-6">
+              {% if not plugin.is_installed %}
+                <!-- Install Button -->
+                <form method="post" action="{{ base_path }}/admin/plugins/install" class="inline">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <input type="hidden" name="slug" value="{{ slug }}">
+                  <button type="submit" class="btn-primary btn-sm">
+                    <i class="fas fa-download mr-2"></i>Installa
+                  </button>
+                </form>
+              {% else %}
+                {% if plugin.is_active %}
+                  <!-- Deactivate Button -->
+                  <form method="post" action="{{ base_path }}/admin/plugins/deactivate" class="inline" onsubmit="return confirm('Disattivare questo plugin?')">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <input type="hidden" name="slug" value="{{ slug }}">
+                    <button type="submit" class="btn-secondary btn-sm">
+                      <i class="fas fa-pause mr-2"></i>Disattiva
+                    </button>
+                  </form>
+                {% else %}
+                  <!-- Activate Button -->
+                  <form method="post" action="{{ base_path }}/admin/plugins/activate" class="inline">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <input type="hidden" name="slug" value="{{ slug }}">
+                    <button type="submit" class="btn-primary btn-sm">
+                      <i class="fas fa-play mr-2"></i>Attiva
+                    </button>
+                  </form>
+                {% endif %}
+
+                <!-- Uninstall Button -->
+                <form method="post" action="{{ base_path }}/admin/plugins/uninstall" class="inline" onsubmit="return confirm('Sei sicuro di voler disinstallare questo plugin? Questa azione non può essere annullata.')">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <input type="hidden" name="slug" value="{{ slug }}">
+                  <button type="submit" class="btn-outline-danger btn-sm">
+                    <i class="fas fa-trash mr-2"></i>Disinstalla
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="p-12 text-center">
+      <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-puzzle-piece text-3xl text-gray-400"></i>
+      </div>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun Plugin Trovato</h3>
+      <p class="text-gray-600 mb-6">Non ci sono plugin disponibili nella directory <code class="bg-gray-100 px-2 py-1 rounded">plugins/</code></p>
+      <a href="https://github.com/photoCMS/plugins" target="_blank" class="btn-primary">
+        <i class="fas fa-download mr-2"></i>Scarica Plugin
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Documentation -->
+<div class="mt-6 card p-6">
+  <h3 class="text-lg font-semibold text-gray-900 mb-3">
+    <i class="fas fa-book text-blue-600 mr-2"></i>Documentazione Plugin
+  </h3>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <a href="{{ base_path }}/PLUGIN_DEVELOPMENT.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all">
+      <i class="fas fa-code text-blue-600 text-xl mb-2"></i>
+      <div class="font-medium text-gray-900">Guida Sviluppo</div>
+      <div class="text-sm text-gray-600">Come creare un plugin</div>
+    </a>
+    <a href="{{ base_path }}/HOOKS_REFERENCE.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:shadow-md transition-all">
+      <i class="fas fa-list text-green-600 text-xl mb-2"></i>
+      <div class="font-medium text-gray-900">Riferimento Hooks</div>
+      <div class="text-sm text-gray-600">60 hooks disponibili</div>
+    </a>
+    <a href="{{ base_path }}/PLUGINS_AND_FEATURES_IDEAS.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-purple-500 hover:shadow-md transition-all">
+      <i class="fas fa-lightbulb text-purple-600 text-xl mb-2"></i>
+      <div class="font-medium text-gray-900">Idee & Features</div>
+      <div class="text-sm text-gray-600">25 plugin + 25 features</div>
+    </a>
+  </div>
+</div>
+{% endblock %}
