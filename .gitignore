@@ -9,6 +9,7 @@ database/database.sqlite
 # Dependencies
 node_modules/
 vendor/
+!public/assets/vendor/
 
 # Build artifacts
 public/assets/*.js.map
