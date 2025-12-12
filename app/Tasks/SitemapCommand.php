@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Tasks;
 
+use App\Services\BaseUrlService;
+use App\Services\SettingsService;
 use App\Support\Database;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -21,12 +23,20 @@ class SitemapCommand extends Command
     protected function configure(): void
     {
         $this->setDescription('Generate sitemap.xml and robots.txt files')
-             ->addOption('base-url', 'u', InputOption::VALUE_REQUIRED, 'Base URL for the site', 'https://example.com');
+             ->addOption('base-url', 'u', InputOption::VALUE_OPTIONAL, 'Base URL for the site (uses SEO settings or APP_URL if not provided)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $baseUrl = rtrim((string)$input->getOption('base-url'), '/');
+        // Get base URL from: CLI option > SEO settings > BaseUrlService (APP_URL or auto-detect)
+        $cliBaseUrl = $input->getOption('base-url');
+
+        $settingsService = new SettingsService($this->db);
+        $seoBaseUrl = $settingsService->get('seo.canonical_base_url', '');
+
+        $baseUrl = $cliBaseUrl ?: ($seoBaseUrl ?: BaseUrlService::getCurrentBaseUrl());
+        $baseUrl = rtrim($baseUrl, '/');
+
         $publicDir = dirname(__DIR__, 2) . '/public';
         
         $output->writeln('Building sitemap...');

@@ -15,9 +15,9 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
         $response = $handler->handle($request);
         $csp = "upgrade-insecure-requests; default-src 'self'; "
              . "img-src 'self' data: blob:; "
-             . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
-             . "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
-             . "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; "
+             . "script-src 'self' 'unsafe-inline'; "
+             . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+             . "font-src 'self' https://fonts.gstatic.com data:; "
              . "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
         
         return $response

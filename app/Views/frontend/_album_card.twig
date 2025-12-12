@@ -17,11 +17,17 @@
             {% endif %}
           {% endfor %}
           
+          {# Sizes ottimizzate per album cards grid:
+             - Desktop (1280px+): 3-4 colonne = 30vw
+             - Laptop (1024px+): 3 colonne = 32vw
+             - Tablet (768px+): 2 colonne = 48vw
+             - Mobile (640px+): 1 colonna = 95vw
+             - Mobile small: full width = 100vw #}
           {% if variants_avif %}
-            <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 90vw">
+            <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1280px) 28vw, (min-width: 1024px) 30vw, (min-width: 768px) 46vw, (min-width: 640px) 95vw, 100vw">
           {% endif %}
           {% if variants_webp %}
-            <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 90vw">
+            <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1280px) 28vw, (min-width: 1024px) 30vw, (min-width: 768px) 46vw, (min-width: 640px) 95vw, 100vw">
           {% endif %}
           
           {% set card_img_url = album.cover.variants[0].path ?? album.cover.original_path %}

@@ -21,7 +21,8 @@ class DashboardController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
         }
         return $this->view->render($response, 'admin/dashboard.twig', [
-            'userId' => $_SESSION['admin_id']
+            'userId' => $_SESSION['admin_id'],
+            'userName' => $_SESSION['admin_name'] ?? ''
         ]);
     }
 }

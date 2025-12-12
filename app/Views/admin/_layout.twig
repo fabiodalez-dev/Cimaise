@@ -6,7 +6,7 @@
   <title>{% block title %}Admin — photoCMS{% endblock %}</title>
   <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/admin.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
   <script>window.basePath = '{{ base_path }}';</script>
   <style>
     body {
@@ -220,7 +220,7 @@
     .ts-dropdown { z-index: 99999; }
   </style>
   <!-- PhotoSwipe CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.css">
+  <link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/dist/photoswipe.css">
 </head>
 <body class="bg-gray-50">
   <!-- Header -->

@@ -110,4 +110,41 @@ class Database
     {
         return $this->isSqlite ? 'INSERT OR IGNORE' : 'INSERT IGNORE';
     }
+
+    // Helper for portable current timestamp in SQL
+    public function nowExpression(): string
+    {
+        return $this->isSqlite ? 'datetime("now")' : 'NOW()';
+    }
+
+    // Helper for portable date/time interval subtraction
+    public function dateSubExpression(string $interval, int $value): string
+    {
+        if ($this->isSqlite) {
+            return "datetime(\"now\", \"-{$value} {$interval}\")";
+        }
+        $mysqlInterval = match (strtolower($interval)) {
+            'hours', 'hour' => 'HOUR',
+            'days', 'day' => 'DAY',
+            'minutes', 'minute' => 'MINUTE',
+            'seconds', 'second' => 'SECOND',
+            'weeks', 'week' => 'WEEK',
+            'months', 'month' => 'MONTH',
+            'years', 'year' => 'YEAR',
+            default => strtoupper($interval),
+        };
+        return "DATE_SUB(NOW(), INTERVAL {$value} {$mysqlInterval})";
+    }
+
+    // Helper for portable year extraction from date column
+    public function yearExpression(string $column): string
+    {
+        return $this->isSqlite ? "strftime('%Y', {$column})" : "YEAR({$column})";
+    }
+
+    // Helper for INSERT OR REPLACE / REPLACE INTO
+    public function replaceKeyword(): string
+    {
+        return $this->isSqlite ? 'INSERT OR REPLACE' : 'REPLACE';
+    }
 }

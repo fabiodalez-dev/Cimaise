@@ -1,7 +1,7 @@
 <section class="pt-8 pb-16">
   <div class="text-center mb-12">
-    <h2 class="text-3xl md:text-4xl font-light text-black mb-4">Latest Albums</h2>
-    <p class="text-lg text-neutral-600 max-w-xl mx-auto">Discover my recent photographic work, from analog experiments to digital explorations.</p>
+    <h2 class="text-3xl md:text-4xl font-light text-black mb-4">{{ home_settings.albums_title|default('Latest Albums')|e }}</h2>
+    <p class="text-lg text-neutral-600 max-w-xl mx-auto">{{ home_settings.albums_subtitle|default('Discover my recent photographic work, from analog experiments to digital explorations.')|e }}</p>
   </div>
 
   {% if albums|length > 0 %}
@@ -24,8 +24,8 @@
   </div>
   {% else %}
   <div class="text-center py-20">
-    <h2 class="text-2xl font-light text-neutral-600 mb-4">No albums yet</h2>
-    <p class="text-neutral-500">Check back soon for new work.</p>
+    <h2 class="text-2xl font-light text-neutral-600 mb-4">{{ home_settings.empty_title|default('No albums yet')|e }}</h2>
+    <p class="text-neutral-500">{{ home_settings.empty_text|default('Check back soon for new work.')|e }}</p>
   </div>
   {% endif %}
 </section>
