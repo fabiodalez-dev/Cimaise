@@ -368,6 +368,15 @@ $app->get('/admin/pages', function (Request $request, Response $response) use ($
     $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
     return $controller->index($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+// Home page edit
+$app->get('/admin/pages/home', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+    return $controller->homeForm($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/pages/home', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+    return $controller->saveHome($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 // About page edit
 $app->get('/admin/pages/about', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
