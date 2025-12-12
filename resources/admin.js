@@ -402,7 +402,9 @@ function initTinyMCE() {
       .tox .tox-editor-header { display: block !important; }
     `,
     valid_elements: 'p,br,strong/b,em/i,ul,ol,li,blockquote,a[href|target|rel],h2,h3,h4,hr',
-    height: 600,
+    height: 700,
+    min_height: 500,
+    max_height: 1000,
     resize: true,
     toolbar_mode: 'wrap',
     promotion: false,
