@@ -18,6 +18,16 @@ import 'tinymce/skins/content/default/content.css'
 // Import GSAP for animations
 import { gsap } from 'gsap'
 
+/**
+ * Initialize the custom image upload area: configures an Uppy instance (XHRUpload with CSRF),
+ * builds a hidden file input, enables drag-and-drop, renders a total + per-file progress panel,
+ * and wires event handlers to surface progress, errors, and completion (which triggers gallery refresh).
+ *
+ * This function is idempotent for the same area element (guards against double initialization).
+ * It registers the Uppy instance on window.uppyInstances for external cleanup and uses the following
+ * DOM elements/ids when present or created: #uppy (area), #upload-progress (progress panel),
+ * #upload-file-list, #upload-bar-total, #upload-counter, and #upload-status.
+ */
 function initUppyAreaUpload() {
   const area = document.getElementById('uppy');
   if (!area) return;
@@ -49,32 +59,36 @@ function initUppyAreaUpload() {
   if (!window.uppyInstances) window.uppyInstances = [];
   window.uppyInstances.push(uppy);
 
-  // Create progress indicator
+  // Create progress indicator with file list
   let progressEl = document.getElementById('upload-progress');
   if (!progressEl) {
     progressEl = document.createElement('div');
     progressEl.id = 'upload-progress';
-    progressEl.className = 'hidden fixed top-4 right-4 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50 min-w-[300px]';
+    progressEl.className = 'hidden fixed top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-xl p-4 z-50 min-w-[350px] max-w-[400px]';
     progressEl.innerHTML = `
-      <div class="flex items-center gap-3">
-        <i class="fas fa-cloud-upload-alt text-blue-500"></i>
-        <div class="flex-1">
-          <div class="text-sm font-medium text-gray-900">Caricamento in corso...</div>
-          <div class="text-xs text-gray-500" id="upload-status">0% - Preparazione...</div>
-        </div>
-        <div class="w-12 h-12 relative">
-          <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-            <path d="m18,2.0845 a 15.9155,15.9155 0 0,1 0,31.831 a 15.9155,15.9155 0 0,1 0,-31.831" fill="none" stroke="#e5e7eb" stroke-width="3"/>
-            <path id="upload-progress-circle" d="m18,2.0845 a 15.9155,15.9155 0 0,1 0,31.831 a 15.9155,15.9155 0 0,1 0,-31.831" fill="none" stroke="#3b82f6" stroke-width="3" stroke-dasharray="0, 100"/>
-          </svg>
-          <div class="absolute inset-0 flex items-center justify-center">
-            <span class="text-xs font-bold text-gray-900" id="upload-percentage">0%</span>
+      <div class="space-y-3">
+        <!-- Header with overall progress -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-black" id="upload-spinner"></div>
+            <span class="text-sm font-medium text-gray-900">Caricamento in corso</span>
           </div>
+          <span class="text-sm text-gray-600" id="upload-counter">0 / 0</span>
         </div>
+        <!-- Total progress bar -->
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="upload-bar-total" class="bg-black h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div class="text-xs text-gray-500" id="upload-status">Preparazione...</div>
+        <!-- Individual file progress list -->
+        <div id="upload-file-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
       </div>
     `;
     document.body.appendChild(progressEl);
   }
+
+  // Track files for individual progress
+  let fileProgressMap = new Map();
 
   // Hidden file input to trigger on click while preserving UI
   let input = area.querySelector('input[type="file"].uppy-input');
@@ -118,43 +132,111 @@ function initUppyAreaUpload() {
     });
   });
 
+  // Helper to create file progress element
+  function createFileProgressEl(file) {
+    // Sanitize filename to prevent XSS
+    const safeName = file.name.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const div = document.createElement('div');
+    div.id = `file-prog-${file.id}`;
+    div.className = 'bg-gray-50 border border-gray-200 rounded p-2';
+    div.innerHTML = `
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-gray-700 truncate flex-1 mr-2" title="${safeName}">
+          <i class="fas fa-image text-gray-400 mr-1"></i>${safeName}
+        </span>
+        <span class="text-xs text-gray-500 file-status">In attesa...</span>
+      </div>
+      <div class="w-full bg-gray-100 rounded-full h-1">
+        <div class="file-bar bg-gray-400 h-1 rounded-full transition-all duration-150" style="width: 0%"></div>
+      </div>
+    `;
+    return div;
+  }
+
+  // Helper to update file progress
+  function updateFileEl(fileId, percent, status, isError = false, isComplete = false) {
+    const div = document.getElementById(`file-prog-${fileId}`);
+    if (!div) return;
+    const bar = div.querySelector('.file-bar');
+    const statusEl = div.querySelector('.file-status');
+    if (bar) {
+      bar.style.width = `${percent}%`;
+      if (isComplete) bar.className = 'file-bar bg-green-500 h-1 rounded-full transition-all duration-150';
+      else if (isError) bar.className = 'file-bar bg-red-500 h-1 rounded-full transition-all duration-150';
+      else if (percent > 0) bar.className = 'file-bar bg-black h-1 rounded-full transition-all duration-150';
+    }
+    if (statusEl && status) {
+      statusEl.textContent = status;
+      if (isComplete) statusEl.className = 'text-xs text-green-600 file-status';
+      else if (isError) statusEl.className = 'text-xs text-red-600 file-status';
+      else statusEl.className = 'text-xs text-gray-500 file-status';
+    }
+  }
+
+  // Helper to update total progress
+  function updateTotalProgress() {
+    const files = uppy.getFiles();
+    const total = files.length;
+    const completed = files.filter(f => f.progress?.uploadComplete).length;
+    const counterEl = document.getElementById('upload-counter');
+    const barEl = document.getElementById('upload-bar-total');
+    if (counterEl) counterEl.textContent = `${completed} / ${total}`;
+    if (barEl) barEl.style.width = `${total > 0 ? (completed / total) * 100 : 0}%`;
+  }
+
   // Progress event handlers
+  uppy.on('file-added', (file) => {
+    const listEl = document.getElementById('upload-file-list');
+    if (listEl) {
+      listEl.appendChild(createFileProgressEl(file));
+    }
+    fileProgressMap.set(file.id, 0);
+    updateTotalProgress();
+  });
+
   uppy.on('upload-start', () => {
     progressEl.classList.remove('hidden');
     const statusEl = document.getElementById('upload-status');
-    const percentageEl = document.getElementById('upload-percentage');
-    const circleEl = document.getElementById('upload-progress-circle');
-    
-    if (statusEl) statusEl.textContent = '0% - Avvio caricamento...';
-    if (percentageEl) percentageEl.textContent = '0%';
-    if (circleEl) circleEl.setAttribute('stroke-dasharray', '0, 100');
+    if (statusEl) statusEl.textContent = 'Avvio caricamento...';
+    updateTotalProgress();
   });
 
   uppy.on('upload-progress', (file, progress) => {
     const percentage = Math.round((progress.bytesUploaded / progress.bytesTotal) * 100);
+    updateFileEl(file.id, percentage, `${percentage}%`);
+    fileProgressMap.set(file.id, percentage);
+
     const statusEl = document.getElementById('upload-status');
-    const percentageEl = document.getElementById('upload-percentage');
-    const circleEl = document.getElementById('upload-progress-circle');
-    
-    if (statusEl) statusEl.textContent = `${percentage}% - Caricamento ${file.name}`;
-    if (percentageEl) percentageEl.textContent = `${percentage}%`;
-    if (circleEl) circleEl.setAttribute('stroke-dasharray', `${percentage}, 100`);
+    if (statusEl) statusEl.textContent = `Caricamento ${file.name}...`;
+  });
+
+  uppy.on('upload-success', (file) => {
+    updateFileEl(file.id, 100, 'Completato ✓', false, true);
+    fileProgressMap.set(file.id, 100);
+    updateTotalProgress();
   });
 
   uppy.on('complete', (result) => {
     const statusEl = document.getElementById('upload-status');
-    const percentageEl = document.getElementById('upload-percentage');
-    const circleEl = document.getElementById('upload-progress-circle');
-    
-    if (statusEl) statusEl.textContent = '100% - Completato!';
-    if (percentageEl) percentageEl.textContent = '100%';
-    if (circleEl) circleEl.setAttribute('stroke-dasharray', '100, 100');
-    
-    // Hide progress after 2 seconds
+    const spinnerEl = document.getElementById('upload-spinner');
+
+    if (statusEl) statusEl.textContent = `Completato! ${result.successful?.length || 0} file caricati`;
+    if (spinnerEl) spinnerEl.className = 'rounded-full h-5 w-5 bg-green-500 flex items-center justify-center text-white text-xs';
+    if (spinnerEl) spinnerEl.innerHTML = '<i class="fas fa-check"></i>';
+
+    // Hide progress after 2.5 seconds and clear file list
     setTimeout(() => {
       progressEl.classList.add('hidden');
-    }, 2000);
-    
+      const listEl = document.getElementById('upload-file-list');
+      if (listEl) listEl.innerHTML = '';
+      fileProgressMap.clear();
+      // Reset spinner
+      if (spinnerEl) {
+        spinnerEl.className = 'animate-spin rounded-full h-5 w-5 border-b-2 border-black';
+        spinnerEl.innerHTML = '';
+      }
+    }, 2500);
+
     refreshGalleryArea();
   });
 
@@ -171,16 +253,24 @@ function initUppyAreaUpload() {
       }
       if (error && error.message && (!msg || msg === 'Errore di upload')) msg = error.message;
     } catch {}
+
+    // Update individual file progress to show error
+    updateFileEl(file.id, 100, 'Errore ✗', true, false);
+    updateTotalProgress();
+
     if (window.showToast) window.showToast(msg, 'error');
     console.error('Upload error:', msg, { file, error, response });
   });
 
-uppy.on('error', (error) => {
+  uppy.on('error', (error) => {
     const statusEl = document.getElementById('upload-status');
     if (statusEl) statusEl.textContent = `Errore: ${error.message}`;
-    
+
     setTimeout(() => {
       progressEl.classList.add('hidden');
+      const listEl = document.getElementById('upload-file-list');
+      if (listEl) listEl.innerHTML = '';
+      fileProgressMap.clear();
     }, 3000);
   });
 }
