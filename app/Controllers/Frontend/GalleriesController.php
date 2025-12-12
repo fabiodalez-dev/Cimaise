@@ -265,7 +265,8 @@ class GalleriesController extends BaseController
         }
         
         if (!empty($filters['year'])) {
-            $conditions[] = "strftime('%Y', a.shoot_date) = ?";
+            $yearExpr = $this->db->yearExpression('a.shoot_date');
+            $conditions[] = "{$yearExpr} = ?";
             $params[] = (string)$filters['year'];
         }
         
@@ -423,14 +424,14 @@ class GalleriesController extends BaseController
         $stmt->execute();
         $locations = $stmt->fetchAll();
         
-        // Get years
-        $stmt = $pdo->prepare("
-            SELECT DISTINCT strftime('%Y', shoot_date) as year, COUNT(*) as albums_count
-            FROM albums 
+        // Get years (use database-specific year extraction)
+        $yearExpr = $this->db->yearExpression('shoot_date');
+        $yearSql = "SELECT DISTINCT {$yearExpr} as year, COUNT(*) as albums_count
+            FROM albums
             WHERE is_published = 1 AND shoot_date IS NOT NULL
             GROUP BY year
-            ORDER BY year DESC
-        ");
+            ORDER BY year DESC";
+        $stmt = $pdo->prepare($yearSql);
         $stmt->execute();
         $years = $stmt->fetchAll();
         
