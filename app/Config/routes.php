@@ -396,6 +396,32 @@ $app->post('/admin/pages/galleries', function (Request $request, Response $respo
     return $controller->saveGalleries($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+// Plugins management
+$app->get('/admin/plugins', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PluginsController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/plugins/install', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PluginsController($container['db'], Twig::fromRequest($request));
+    return $controller->install($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/plugins/uninstall', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PluginsController($container['db'], Twig::fromRequest($request));
+    return $controller->uninstall($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/plugins/activate', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PluginsController($container['db'], Twig::fromRequest($request));
+    return $controller->activate($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/plugins/deactivate', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PluginsController($container['db'], Twig::fromRequest($request));
+    return $controller->deactivate($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
 // Albums CRUD
 $app->get('/admin/albums', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
