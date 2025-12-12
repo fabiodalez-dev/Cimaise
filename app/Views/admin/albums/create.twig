@@ -128,17 +128,25 @@
               
               <input type="file" id="file-input" multiple accept="image/*" class="hidden">
               
-              <!-- Upload Progress -->
-              <div id="upload-progress" class="hidden mt-4">
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div class="flex items-center gap-3">
-                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                    <div>
-                      <div class="text-sm font-medium text-blue-800">Caricamento in corso...</div>
-                      <div class="text-xs text-blue-600" id="progress-text">Preparazione upload...</div>
+              <!-- Upload Progress Container -->
+              <div id="upload-progress" class="hidden mt-4 space-y-3">
+                <!-- Overall Progress -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-3">
+                      <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                      <span class="text-sm font-medium text-gray-900">Caricamento in corso</span>
                     </div>
+                    <span class="text-sm text-gray-600" id="progress-counter">0 / 0</span>
                   </div>
+                  <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div id="progress-bar-total" class="bg-black h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-2" id="progress-text">Preparazione upload...</div>
                 </div>
+
+                <!-- Individual File Progress List -->
+                <div id="file-progress-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
               </div>
 
               <!-- Validation Notice -->
@@ -512,17 +520,83 @@
       const csrf = form.querySelector('input[name="csrf"]')?.value;
       let createdAlbumId = null;
       let isUploading = false;
-      
+
+      // Progress elements
+      const progressCounter = document.getElementById('progress-counter');
+      const progressBarTotal = document.getElementById('progress-bar-total');
+      const fileProgressList = document.getElementById('file-progress-list');
+
       function showProgress(text) {
         if (progressDiv && progressText) {
           progressText.textContent = text;
           progressDiv.classList.remove('hidden');
         }
       }
-      
+
       function hideProgress() {
         if (progressDiv) {
           progressDiv.classList.add('hidden');
+        }
+        // Clear file progress list
+        if (fileProgressList) {
+          fileProgressList.innerHTML = '';
+        }
+      }
+
+      function updateTotalProgress(completed, total) {
+        if (progressCounter) {
+          progressCounter.textContent = `${completed} / ${total}`;
+        }
+        if (progressBarTotal) {
+          const percent = total > 0 ? (completed / total) * 100 : 0;
+          progressBarTotal.style.width = `${percent}%`;
+        }
+      }
+
+      function createFileProgressElement(file, index) {
+        const div = document.createElement('div');
+        div.id = `file-progress-${index}`;
+        div.className = 'bg-white border border-gray-200 rounded-lg p-3';
+        div.innerHTML = `
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm text-gray-700 truncate flex-1 mr-2" title="${file.name}">
+              <i class="fas fa-image text-gray-400 mr-2"></i>${file.name}
+            </span>
+            <span class="text-xs text-gray-500 file-status">In attesa...</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-1.5">
+            <div class="file-progress-bar bg-gray-400 h-1.5 rounded-full transition-all duration-150" style="width: 0%"></div>
+          </div>
+        `;
+        return div;
+      }
+
+      function updateFileProgress(index, percent, status) {
+        const div = document.getElementById(`file-progress-${index}`);
+        if (!div) return;
+
+        const bar = div.querySelector('.file-progress-bar');
+        const statusEl = div.querySelector('.file-status');
+
+        if (bar) {
+          bar.style.width = `${percent}%`;
+          if (percent > 0 && percent < 100) {
+            bar.className = 'file-progress-bar bg-black h-1.5 rounded-full transition-all duration-150';
+          } else if (percent >= 100) {
+            bar.className = 'file-progress-bar bg-green-500 h-1.5 rounded-full transition-all duration-150';
+          }
+        }
+
+        if (statusEl && status) {
+          statusEl.textContent = status;
+          if (status.includes('Completato')) {
+            statusEl.className = 'text-xs text-green-600 file-status';
+          } else if (status.includes('Errore')) {
+            statusEl.className = 'text-xs text-red-600 file-status';
+            if (bar) bar.className = 'file-progress-bar bg-red-500 h-1.5 rounded-full transition-all duration-150';
+          } else {
+            statusEl.className = 'text-xs text-gray-500 file-status';
+          }
         }
       }
       
@@ -635,10 +709,51 @@
         input.value='';
       }
       
+      function uploadFileWithProgress(file, albumId, index) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          const fd = new FormData();
+          fd.append('file', file);
+
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const percent = Math.round((e.loaded / e.total) * 100);
+              updateFileProgress(index, percent, `${percent}%`);
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              updateFileProgress(index, 100, 'Completato ✓');
+              try {
+                resolve(JSON.parse(xhr.responseText));
+              } catch {
+                resolve({});
+              }
+            } else {
+              updateFileProgress(index, 100, 'Errore ✗');
+              reject(new Error(`Upload failed: ${xhr.status}`));
+            }
+          });
+
+          xhr.addEventListener('error', () => {
+            updateFileProgress(index, 100, 'Errore ✗');
+            reject(new Error('Network error'));
+          });
+
+          xhr.open('POST', `{{ base_path }}/admin/albums/${albumId}/upload`);
+          xhr.setRequestHeader('X-CSRF-Token', csrf);
+          xhr.setRequestHeader('Accept', 'application/json');
+          xhr.send(fd);
+
+          updateFileProgress(index, 0, 'Caricamento...');
+        });
+      }
+
       async function uploadFiles(files){
         if (!files.length) return;
         if (isUploading) return;
-        
+
         // Validation: require at least one category. Title is optional.
         const fdCheck = new FormData(form);
         const cats = fdCheck.getAll('categories[]');
@@ -647,57 +762,68 @@
           if (window.showToast) showToast('Seleziona almeno una Categoria', 'error'); else alert('Seleziona almeno una Categoria');
           return;
         }
-        
+
         isUploading = true;
         uploader.classList.add('pointer-events-none', 'opacity-50');
-        
+
+        // Clear and prepare progress list
+        if (fileProgressList) {
+          fileProgressList.innerHTML = '';
+          files.forEach((file, index) => {
+            fileProgressList.appendChild(createFileProgressElement(file, index));
+          });
+        }
+
+        showProgress('Preparazione caricamento...');
+        updateTotalProgress(0, files.length);
+
         try {
           const id = await ensureAlbumId();
-          
-          // Upload files with progress
+          let completedCount = 0;
+          let firstImageId = null;
+
+          // Upload files sequentially with visual progress
           for (let i = 0; i < files.length; i++) {
             const f = files[i];
-            showProgress(`Caricamento immagine ${i + 1} di ${files.length}: ${f.name}`);
-            
-            const fd = new FormData(); 
-            fd.append('file', f);
-            
-            const response = await fetch(`{{ base_path }}/admin/albums/${id}/upload`, { 
-              method:'POST', 
-              headers:{ 'X-CSRF-Token': csrf, 'Accept':'application/json' }, 
-              body: fd 
-            });
-            
-            if (!response.ok) {
-              console.error(`Errore upload ${f.name}:`, await response.text());
-              continue;
-            }
-            
-            // Set the first uploaded image as cover (new album has no cover by default)
-            if (i === 0) {
-              const result = await response.json();
-              if (result && result.id) {
-                showProgress('Impostazione immagine di copertina...');
-                await fetch(`{{ base_path }}/admin/albums/${id}/cover/${result.id}`, { 
-                  method:'POST', 
-                  headers: { 'X-CSRF-Token': csrf, 'Accept':'application/json' }
-                });
+            showProgress(`Caricamento ${i + 1} di ${files.length}...`);
+
+            try {
+              const result = await uploadFileWithProgress(f, id, i);
+              completedCount++;
+              updateTotalProgress(completedCount, files.length);
+
+              // Save first image ID for cover
+              if (i === 0 && result && result.id) {
+                firstImageId = result.id;
               }
+            } catch (error) {
+              console.error(`Errore upload ${f.name}:`, error);
+              completedCount++;
+              updateTotalProgress(completedCount, files.length);
             }
           }
-          
-          showProgress('Reindirizzamento alla pagina di modifica...');
-          
+
+          // Set first image as cover
+          if (firstImageId) {
+            showProgress('Impostazione copertina...');
+            await fetch(`{{ base_path }}/admin/albums/${id}/cover/${firstImageId}`, {
+              method: 'POST',
+              headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }
+            });
+          }
+
+          showProgress('Completato! Reindirizzamento...');
+
           // Show success message if available
           if (window.showToast) {
             showToast(`Album creato con ${files.length} immagini!`, 'success');
           }
-          
+
           // Small delay to show completion message
           setTimeout(() => {
             window.location.href = `{{ base_path }}/admin/albums/${id}/edit`;
-          }, 1000);
-          
+          }, 1200);
+
         } catch (error) {
           console.error('Upload error:', error);
           const message = error.message || 'Errore durante il caricamento';
@@ -706,7 +832,7 @@
           } else {
             alert(message);
           }
-          
+
           hideProgress();
           isUploading = false;
           uploader.classList.remove('pointer-events-none', 'opacity-50');
