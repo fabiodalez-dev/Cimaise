@@ -36,7 +36,7 @@
       <label class="form-label">Database Type</label>
       <div class="row g-3" id="db-connection-cards">
         <div class="col-12 col-md-6">
-          <label class="card p-3 h-100 cursor-pointer border {% if db_connection == 'sqlite' %}border-primary{% else %}border-secondary{% endif %}" style="user-select:none;">
+          <label class="card p-3 h-100 cursor-pointer border {% if db_connection == 'sqlite' %}border-dark{% else %}border-secondary{% endif %}" style="user-select:none;">
             <div class="d-flex align-items-center mb-2">
               <i class="fas fa-database me-2"></i>
               <strong class="mb-0">SQLite</strong>
@@ -46,7 +46,7 @@
           </label>
         </div>
         <div class="col-12 col-md-6">
-          <label class="card p-3 h-100 cursor-pointer border {% if db_connection == 'mysql' %}border-primary{% else %}border-secondary{% endif %}" style="user-select:none;">
+          <label class="card p-3 h-100 cursor-pointer border {% if db_connection == 'mysql' %}border-dark{% else %}border-secondary{% endif %}" style="user-select:none;">
             <div class="d-flex align-items-center mb-2">
               <i class="fas fa-server me-2"></i>
               <strong class="mb-0">MySQL / MariaDB</strong>
