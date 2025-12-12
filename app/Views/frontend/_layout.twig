@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang|default('it') }}" class="h-full">
+<html lang="{{ lang|default('it')|e('html_attr') }}" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,13 +29,13 @@
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="{{ page_title|e('html_attr') }}">
     {% endif %}
-    <meta property="og:type" content="{{ og_type|default('website') }}">
+    <meta property="og:type" content="{{ og_type|default('website')|e('html_attr') }}">
     <meta property="og:url" content="{{ canonical_url|default(current_url)|e('html_attr') }}">
     {% if og_locale %}<meta property="og:locale" content="{{ og_locale|e('html_attr') }}">{% endif %}
     <meta property="og:site_name" content="{{ og_site_name|default(site_title)|default('Portfolio')|e('html_attr') }}">
 
     <!-- Twitter Cards -->
-    <meta name="twitter:card" content="{{ twitter_card|default('summary_large_image') }}">
+    <meta name="twitter:card" content="{{ twitter_card|default('summary_large_image')|e('html_attr') }}">
     <meta name="twitter:title" content="{{ page_title|e('html_attr') }}">
     {% if meta_description %}<meta name="twitter:description" content="{{ meta_description|e('html_attr') }}">{% endif %}
     {% if meta_image %}
@@ -46,8 +46,8 @@
     {% if twitter_creator %}<meta name="twitter:creator" content="{{ twitter_creator|e('html_attr') }}">{% endif %}
 
     <!-- Canonical & Robots -->
-    {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
-    <meta name="robots" content="{{ robots|default('index,follow') }}">
+    {% if canonical_url %}<link rel="canonical" href="{{ canonical_url|e('html_attr') }}">{% endif %}
+    <meta name="robots" content="{{ robots|default('index,follow')|e('html_attr') }}">
 
     {# Organization/Person JSON-LD from SEO settings (if provided) #}
     {% if schema is defined and (schema.author_name or schema.organization_name) %}
@@ -97,11 +97,12 @@
       "@type": "BreadcrumbList",
       "itemListElement": [
         {% for crumb in breadcrumbs %}
+        {% set crumbUrl = crumb.url starts with '/' ? base_path ~ crumb.url : crumb.url %}
         {
           "@type": "ListItem",
           "position": {{ loop.index }},
           "name": {{ crumb.name|json_encode|raw }},
-          "item": {{ crumb.url|json_encode|raw }}
+          "item": {{ crumbUrl|json_encode|raw }}
         }{% if not loop.last %},{% endif %}
         {% endfor %}
       ]
@@ -119,10 +120,10 @@
       {% if schema.local_business_address %}
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": {{ schema.local_business_address|json_encode|raw }},
-        "addressLocality": {{ schema.local_business_city|json_encode|raw }},
-        "postalCode": {{ schema.local_business_postal_code|json_encode|raw }},
-        "addressCountry": {{ schema.local_business_country|json_encode|raw }}
+        "streetAddress": {{ schema.local_business_address|json_encode|raw }}
+        {% if schema.local_business_city %},"addressLocality": {{ schema.local_business_city|json_encode|raw }}{% endif %}
+        {% if schema.local_business_postal_code %},"postalCode": {{ schema.local_business_postal_code|json_encode|raw }}{% endif %}
+        {% if schema.local_business_country %},"addressCountry": {{ schema.local_business_country|json_encode|raw }}{% endif %}
       },
       {% endif %}
       {% if schema.local_business_phone %}"telephone": {{ schema.local_business_phone|json_encode|raw }},{% endif %}
