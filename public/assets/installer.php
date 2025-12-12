@@ -115,6 +115,7 @@ function createStorageDirectories($rootPath) {
         $rootPath . '/storage',
         $rootPath . '/storage/originals',
         $rootPath . '/storage/tmp',
+        $rootPath . '/storage/logs',
         $rootPath . '/public/media',
         $rootPath . '/public/media/categories',
         $rootPath . '/public/media/about',
@@ -134,6 +135,7 @@ function createStorageDirectories($rootPath) {
     $keepFiles = [
         $rootPath . '/storage/originals/.gitkeep',
         $rootPath . '/storage/tmp/.gitkeep',
+        $rootPath . '/storage/logs/.gitkeep',
         $rootPath . '/public/media/.gitkeep'
     ];
     
@@ -497,8 +499,8 @@ $requirementsPassed = !in_array(false, array_values($requirements));
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>photoCMS Installer</title>
-    <link rel="stylesheet" href="app.css">
-    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="assets/app.css">
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;

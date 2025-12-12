@@ -100,7 +100,7 @@ class UsersController extends BaseController
         }
         
         // Create user
-        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        $passwordHash = password_hash($password, PASSWORD_ARGON2ID);
         $stmt = $this->db->pdo()->prepare('
             INSERT INTO users (email, first_name, last_name, password_hash, role, is_active) 
             VALUES (:email, :first_name, :last_name, :password_hash, :role, :is_active)
@@ -204,7 +204,7 @@ class UsersController extends BaseController
         // Update user
         $now = $this->db->nowExpression();
         if (!empty($password)) {
-            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+            $passwordHash = password_hash($password, PASSWORD_ARGON2ID);
             $stmt = $this->db->pdo()->prepare("
                 UPDATE users
                 SET email = :email, first_name = :first_name, last_name = :last_name,

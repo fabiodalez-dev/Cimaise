@@ -6,7 +6,7 @@
       <h1 class="text-2xl font-bold text-gray-900">Pages</h1>
       <p class="text-gray-600 mt-1">Edit <strong>Home</strong> page texts</p>
     </div>
-    <a href="{{ base_path }}/" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt mr-2"></i>View page</a>
+    <a href="{{ base_path }}/" class="btn-secondary" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt mr-2"></i>View page</a>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -24,7 +24,7 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm text-gray-700 mb-1">Title</label>
-                <input type="text" name="hero_title" class="form-input" placeholder="Portfolio" value="{{ settings['home.hero_title']|default('Portfolio') }}">
+                <input type="text" name="hero_title" class="form-input" placeholder="Portfolio" value="{{ settings['home.hero_title']|default('Portfolio')|e('html_attr') }}">
                 <p class="text-xs text-gray-500 mt-1">Main heading displayed at the top of the homepage</p>
               </div>
               <div>
@@ -45,7 +45,7 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm text-gray-700 mb-1">Section Title</label>
-                <input type="text" name="albums_title" class="form-input" placeholder="Latest Albums" value="{{ settings['home.albums_title']|default('Latest Albums') }}">
+                <input type="text" name="albums_title" class="form-input" placeholder="Latest Albums" value="{{ settings['home.albums_title']|default('Latest Albums')|e('html_attr') }}">
               </div>
               <div>
                 <label class="block text-sm text-gray-700 mb-1">Section Subtitle</label>
@@ -65,11 +65,11 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm text-gray-700 mb-1">Empty State Title</label>
-                <input type="text" name="empty_title" class="form-input" placeholder="No albums yet" value="{{ settings['home.empty_title']|default('No albums yet') }}">
+                <input type="text" name="empty_title" class="form-input" placeholder="No albums yet" value="{{ settings['home.empty_title']|default('No albums yet')|e('html_attr') }}">
               </div>
               <div>
                 <label class="block text-sm text-gray-700 mb-1">Empty State Message</label>
-                <input type="text" name="empty_text" class="form-input" placeholder="Check back soon for new work." value="{{ settings['home.empty_text']|default('Check back soon for new work.') }}">
+                <input type="text" name="empty_text" class="form-input" placeholder="Check back soon for new work." value="{{ settings['home.empty_text']|default('Check back soon for new work.')|e('html_attr') }}">
               </div>
             </div>
           </div>
