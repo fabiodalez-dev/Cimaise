@@ -176,7 +176,8 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     $twig->getEnvironment()->addGlobal('site_logo', null);
 }
 
-
+// Expose admin status for frontend header
+$twig->getEnvironment()->addGlobal('is_admin', isset($_SESSION['admin_id']) && $_SESSION['admin_id'] > 0);
 
 // Routes (pass container and app)
 $routes = require __DIR__ . '/../app/Config/routes.php';

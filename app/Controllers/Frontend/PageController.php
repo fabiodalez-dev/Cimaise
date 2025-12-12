@@ -97,7 +97,18 @@ class PageController extends BaseController
     public function home(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
-        
+
+        // Fetch home page settings
+        $svc = new \App\Services\SettingsService($this->db);
+        $homeSettings = [
+            'hero_title' => (string)($svc->get('home.hero_title', 'Portfolio') ?? 'Portfolio'),
+            'hero_subtitle' => (string)($svc->get('home.hero_subtitle', 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.') ?? 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.'),
+            'albums_title' => (string)($svc->get('home.albums_title', 'Latest Albums') ?? 'Latest Albums'),
+            'albums_subtitle' => (string)($svc->get('home.albums_subtitle', 'Discover my recent photographic work, from analog experiments to digital explorations.') ?? 'Discover my recent photographic work, from analog experiments to digital explorations.'),
+            'empty_title' => (string)($svc->get('home.empty_title', 'No albums yet') ?? 'No albums yet'),
+            'empty_text' => (string)($svc->get('home.empty_text', 'Check back soon for new work.') ?? 'Check back soon for new work.'),
+        ];
+
         // Pagination parameters
         $perPage = 12;
         
@@ -182,6 +193,7 @@ class PageController extends BaseController
             'all_images' => $allImages,
             'has_more' => $hasMore,
             'total_albums' => $totalAlbums,
+            'home_settings' => $homeSettings,
             'page_title' => $seo['page_title'],
             'meta_description' => $seo['meta_description'],
             'meta_image' => $seo['meta_image'],

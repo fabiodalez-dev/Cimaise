@@ -4,7 +4,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   {% include 'frontend/_breadcrumbs.twig' %}
   <div class="max-w-4xl mx-auto text-center pb-12">
-    <div class="mb-4 flex flex-wrap gap-2 justify-center">
+    <div class="mb-4 flex flex-wrap gap-2 justify-center" data-gsap="categories">
       {% if album.categories is defined and album.categories|length > 0 %}
         {% for cat in album.categories %}
         <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ cat.name|e }}">
@@ -20,11 +20,11 @@
         {% endfor %}
       {% endif %}
     </div>
-    <h1 class="text-3xl md:text-4xl font-light text-black mb-6">{{ album.title|e }}</h1>
-    
+    <h1 class="text-3xl md:text-4xl font-light text-black mb-6" data-gsap="title">{{ album.title|e }}</h1>
+
     {# Album metadata: date and locations #}
     {% if album.shoot_date or album.equipment.locations|length > 0 %}
-    <div class="flex items-center justify-center gap-6 text-sm text-neutral-600 mb-6">
+    <div class="flex items-center justify-center gap-6 text-sm text-neutral-600 mb-6" data-gsap="meta">
       {% if album.shoot_date and album.show_date == 1 %}
         <div class="flex items-center gap-2">
           <i class="fas fa-calendar-alt text-neutral-500"></i>
@@ -40,12 +40,12 @@
       {% endif %}
     </div>
     {% endif %}
-    
-    <p class="text-lg text-neutral-600 leading-relaxed mb-6">{{ album.excerpt|e }}</p>
+
+    <p class="text-lg text-neutral-600 leading-relaxed mb-6" data-gsap="excerpt">{{ album.excerpt|e }}</p>
   </div>
 
   {% if album.body %}
-    <div class="max-w-3xl mx-auto prose prose-neutral mb-12">{{ album.body|safe_html }}</div>
+    <div class="max-w-3xl mx-auto prose prose-neutral mb-12" data-gsap="body">{{ album.body|safe_html }}</div>
   {% endif %}
   
   {# Social Sharing #}
@@ -71,8 +71,8 @@
   
   {% set equipment_count = equipment_items|length %}
   {% set grid_cols = equipment_count <= 3 ? equipment_count : 3 %}
-  
-  <div class="max-w-5xl mx-auto mb-8 p-4 bg-neutral-50 rounded-lg">
+
+  <div class="max-w-5xl mx-auto mb-8 p-4 bg-neutral-50 rounded-lg" data-gsap="equipment">
     <h3 class="text-sm font-medium mb-3 text-center">Equipment</h3>
     <div class="grid grid-cols-1 {% if equipment_count > 1 %}md:grid-cols-{{ equipment_count <= 2 ? equipment_count : 2 }}{% endif %} {% if equipment_count > 2 %}lg:grid-cols-{{ grid_cols }}{% endif %} gap-4 text-xs text-neutral-600">
       {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
@@ -821,6 +821,111 @@ document.addEventListener('click', function(event) {
       galleryContainer.style.opacity = '1';
     })
     .finally(() => { delete el.dataset.switchInProgress; });
+});
+
+// Elegant GSAP Animations for Gallery
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion || typeof gsap === 'undefined') {
+        return;
+    }
+
+    // Register ScrollTrigger
+    if (typeof ScrollTrigger !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+    }
+
+    // Header entrance animations with stagger
+    const headerElements = [
+        '[data-gsap="categories"]',
+        '[data-gsap="title"]',
+        '[data-gsap="meta"]',
+        '[data-gsap="excerpt"]',
+        '[data-gsap="body"]'
+    ];
+
+    headerElements.forEach((selector, index) => {
+        const el = document.querySelector(selector);
+        if (el) {
+            gsap.from(el, {
+                opacity: 0,
+                y: 20,
+                duration: 0.6,
+                delay: index * 0.1,
+                ease: 'power2.out'
+            });
+        }
+    });
+
+    // Equipment section
+    const equipment = document.querySelector('[data-gsap="equipment"]');
+    if (equipment) {
+        gsap.from(equipment, {
+            opacity: 0,
+            y: 20,
+            duration: 0.6,
+            delay: 0.5,
+            ease: 'power2.out'
+        });
+    }
+
+    // Template switcher buttons
+    const templateSwitcher = document.querySelector('.tpl-switch');
+    if (templateSwitcher && templateSwitcher.parentElement) {
+        gsap.from(templateSwitcher.parentElement, {
+            opacity: 0,
+            x: 20,
+            duration: 0.5,
+            delay: 0.6,
+            ease: 'power2.out'
+        });
+    }
+
+    // Image gallery items with staggered entrance
+    setTimeout(() => {
+        const imageGallery = document.getElementById('images-gallery');
+        if (imageGallery) {
+            const imageItems = imageGallery.querySelectorAll('.image-item, .masonry-item, .swiper-slide, .polaroid-item, .mosaic-item, .grid-minimal-item');
+
+            if (imageItems.length > 0) {
+                gsap.from(imageItems, {
+                    opacity: 0,
+                    y: 30,
+                    duration: 0.7,
+                    stagger: {
+                        amount: Math.min(0.8, imageItems.length * 0.03),
+                        from: 'start',
+                        ease: 'power2.out'
+                    },
+                    ease: 'power2.out'
+                });
+            }
+        }
+    }, 100);
+
+    // Subtle hover enhancement for image items (GPU-accelerated)
+    const allImageItems = document.querySelectorAll('.image-item, .pswp-link');
+    allImageItems.forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('polaroid-item')) {
+                gsap.to(this, {
+                    scale: 1.015,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            }
+        });
+
+        item.addEventListener('mouseleave', function() {
+            gsap.to(this, {
+                scale: 1,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        });
+    });
 });
 
 // JSON-LD will be appended below

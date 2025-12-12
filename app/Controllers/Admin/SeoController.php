@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
+use App\Services\BaseUrlService;
 use App\Services\SettingsService;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -186,12 +187,11 @@ class SeoController extends BaseController
 
             // Generate sitemap XML
             $svc = new SettingsService($this->db);
-            $baseUrl = rtrim($svc->get('seo.canonical_base_url', ''), '/');
-            
-            if (empty($baseUrl)) {
-                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Please set a canonical base URL in SEO settings first'];
-                return $response->withHeader('Location', $this->redirect('/admin/seo'))->withStatus(302);
-            }
+            $seoBaseUrl = $svc->get('seo.canonical_base_url', '');
+            $seoBaseUrl = is_string($seoBaseUrl) ? trim($seoBaseUrl) : '';
+
+            // Use SEO canonical URL or fallback to BaseUrlService
+            $baseUrl = $seoBaseUrl !== '' ? rtrim($seoBaseUrl, '/') : BaseUrlService::getCurrentBaseUrl();
 
             $sitemap = $this->generateSitemapXml($baseUrl, $albums, $categories);
             

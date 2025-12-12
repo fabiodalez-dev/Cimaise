@@ -18,6 +18,11 @@ class AuthController extends BaseController
 
     public function showLogin(Request $request, Response $response): Response
     {
+        // Redirect to dashboard if already logged in
+        if (isset($_SESSION['admin_id'])) {
+            return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
+        }
+
         return $this->view->render($response, 'admin/login.twig', [
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
@@ -72,7 +77,8 @@ class AuthController extends BaseController
         }
 
         // Update last login timestamp
-        $updateStmt = $this->db->pdo()->prepare('UPDATE users SET last_login = datetime("now") WHERE id = :id');
+        $now = $this->db->nowExpression();
+        $updateStmt = $this->db->pdo()->prepare("UPDATE users SET last_login = {$now} WHERE id = :id");
         $updateStmt->execute([':id' => $user['id']]);
 
         session_regenerate_id(true);
@@ -158,8 +164,9 @@ class AuthController extends BaseController
         }
 
         try {
+            $now = $this->db->nowExpression();
             $stmt = $this->db->pdo()->prepare(
-                'UPDATE users SET first_name = :first_name, last_name = :last_name, email = :email, updated_at = datetime("now") WHERE id = :id'
+                "UPDATE users SET first_name = :first_name, last_name = :last_name, email = :email, updated_at = {$now} WHERE id = :id"
             );
             $stmt->execute([
                 ':first_name' => $firstName,
@@ -223,9 +230,10 @@ class AuthController extends BaseController
         }
 
         try {
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $hashedPassword = password_hash($newPassword, PASSWORD_ARGON2ID);
+            $now = $this->db->nowExpression();
             $stmt = $this->db->pdo()->prepare(
-                'UPDATE users SET password_hash = :password_hash, updated_at = datetime("now") WHERE id = :id'
+                "UPDATE users SET password_hash = :password_hash, updated_at = {$now} WHERE id = :id"
             );
             $stmt->execute([
                 ':password_hash' => $hashedPassword,
