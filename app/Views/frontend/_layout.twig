@@ -1,37 +1,53 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="{{ lang|default('it')|e('html_attr') }}" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title|e }}</title>
-    
+
     {% if meta_description %}
-    <meta name="description" content="{{ meta_description|e }}">
+    <meta name="description" content="{{ meta_description|e('html_attr') }}">
     {% endif %}
+
+    <!-- Favicon & App Icons -->
+    <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favico.ico">
+    <link rel="apple-touch-icon" href="{{ base_path }}/assets/favico.ico">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- Preconnect for External Resources (includes dns-prefetch in modern browsers) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
     <!-- Open Graph -->
-    <meta property="og:title" content="{{ page_title|e }}">
+    <meta property="og:title" content="{{ page_title|e('html_attr') }}">
     {% if meta_description %}
-    <meta property="og:description" content="{{ meta_description|e }}">
+    <meta property="og:description" content="{{ meta_description|e('html_attr') }}">
     {% endif %}
     {% if meta_image %}
-    <meta property="og:image" content="{{ meta_image }}">
+    <meta property="og:image" content="{{ meta_image|e('html_attr') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{{ page_title|e('html_attr') }}">
     {% endif %}
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ canonical_url|default(current_url) }}">
-    {% if og_site_name %}<meta property="og:site_name" content="{{ og_site_name|e }}">{% endif %}
+    <meta property="og:type" content="{{ og_type|default('website')|e('html_attr') }}">
+    <meta property="og:url" content="{{ canonical_url|default(current_url)|e('html_attr') }}">
+    {% if og_locale %}<meta property="og:locale" content="{{ og_locale|e('html_attr') }}">{% endif %}
+    <meta property="og:site_name" content="{{ og_site_name|default(site_title)|default('Portfolio')|e('html_attr') }}">
 
     <!-- Twitter Cards -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ page_title|e }}">
-    {% if meta_description %}<meta name="twitter:description" content="{{ meta_description|e }}">{% endif %}
-    {% if meta_image %}<meta name="twitter:image" content="{{ meta_image }}">{% endif %}
+    <meta name="twitter:card" content="{{ twitter_card|default('summary_large_image')|e('html_attr') }}">
+    <meta name="twitter:title" content="{{ page_title|e('html_attr') }}">
+    {% if meta_description %}<meta name="twitter:description" content="{{ meta_description|e('html_attr') }}">{% endif %}
+    {% if meta_image %}
+    <meta name="twitter:image" content="{{ meta_image|e('html_attr') }}">
+    <meta name="twitter:image:alt" content="{{ page_title|e('html_attr') }}">
+    {% endif %}
+    {% if twitter_site %}<meta name="twitter:site" content="{{ twitter_site|e('html_attr') }}">{% endif %}
+    {% if twitter_creator %}<meta name="twitter:creator" content="{{ twitter_creator|e('html_attr') }}">{% endif %}
 
     <!-- Canonical & Robots -->
-    {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
-    <meta name="robots" content="{{ robots|default('index,follow') }}">
+    {% if canonical_url %}<link rel="canonical" href="{{ canonical_url|e('html_attr') }}">{% endif %}
+    <meta name="robots" content="{{ robots|default('index,follow')|e('html_attr') }}">
 
     {# Organization/Person JSON-LD from SEO settings (if provided) #}
     {% if schema is defined and (schema.author_name or schema.organization_name) %}
@@ -72,6 +88,59 @@
     }
     </script>
     {% endif %}
+
+    {# BreadcrumbList Schema #}
+    {% if breadcrumbs is defined and breadcrumbs|length > 0 and schema is defined and schema.breadcrumbs_enabled %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {% for crumb in breadcrumbs %}
+        {% set crumbUrl = crumb.url starts with '/' ? base_path ~ crumb.url : crumb.url %}
+        {
+          "@type": "ListItem",
+          "position": {{ loop.index }},
+          "name": {{ crumb.name|json_encode|raw }},
+          "item": {{ crumbUrl|json_encode|raw }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }
+    </script>
+    {% endif %}
+
+    {# LocalBusiness Schema (if enabled) #}
+    {% if schema is defined and schema.local_business_enabled %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": {{ schema.local_business_type|default('ProfessionalService')|json_encode|raw }},
+      "name": {{ schema.local_business_name|json_encode|raw }},
+      {% if schema.local_business_address %}
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": {{ schema.local_business_address|json_encode|raw }}
+        {% if schema.local_business_city %},"addressLocality": {{ schema.local_business_city|json_encode|raw }}{% endif %}
+        {% if schema.local_business_postal_code %},"postalCode": {{ schema.local_business_postal_code|json_encode|raw }}{% endif %}
+        {% if schema.local_business_country %},"addressCountry": {{ schema.local_business_country|json_encode|raw }}{% endif %}
+      },
+      {% endif %}
+      {% if schema.local_business_phone %}"telephone": {{ schema.local_business_phone|json_encode|raw }},{% endif %}
+      {% if schema.local_business_geo_lat and schema.local_business_geo_lng %}
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": {{ schema.local_business_geo_lat|json_encode|raw }},
+        "longitude": {{ schema.local_business_geo_lng|json_encode|raw }}
+      },
+      {% endif %}
+      {% if schema.local_business_opening_hours %}"openingHours": {{ schema.local_business_opening_hours|json_encode|raw }},{% endif %}
+      "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+      {% if meta_image %}"image": {{ meta_image|json_encode|raw }},{% endif %}
+      "priceRange": {{ (schema.local_business_price_range|default('$$'))|json_encode|raw }}
+    }
+    </script>
+    {% endif %}
     
     <!-- Fonts: use system stack to comply with CSP -->
     
@@ -83,10 +152,10 @@
     <link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css">
     
     <!-- Swiper CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.css">
 
     <!-- Font Awesome (icons) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
     
     <!-- JS flag class on <html> if needed elsewhere -->
     <script>(function(){ document.documentElement.classList.add('js'); })();</script>
@@ -730,7 +799,7 @@
                     <nav class="hidden lg:flex items-center gap-6" id="desktop-nav">
                         <a href="{{ base_path }}/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">Home</a>
                         <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">All Galleries</a>
-                        <a href="{{ about_url }}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">About</a>
+                        <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">About</a>
                         
                         <!-- Categories Mega Menu -->
                         <div class="relative" id="categories-dropdown">
@@ -793,6 +862,14 @@
                 
                 <!-- Right Side Actions -->
                 <div class="flex items-center gap-4">
+                    {% if is_admin %}
+                    <!-- Admin Dashboard Button -->
+                    <a href="{{ base_path }}/admin" class="flex items-center gap-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 transition-colors duration-200 py-2 px-4 rounded-md">
+                        <i class="fas fa-cog text-xs"></i>
+                        <span>Admin</span>
+                    </a>
+                    {% endif %}
+
                     <!-- Filters Toggle -->
                     <button id="filters-toggle" class="hidden md:flex items-center gap-2 text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2 px-3 rounded-md hover:bg-gray-50">
                         <i class="fas fa-filter text-xs"></i>
@@ -817,7 +894,12 @@
                 <div class="px-2 space-y-1">
                     <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">Home</a>
                     <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">All Galleries</a>
-                    <a href="{{ about_url }}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">About</a>
+                    <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">About</a>
+                    {% if is_admin %}
+                    <a href="{{ base_path }}/admin" class="block text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-md p-3 transition-colors duration-200">
+                        <i class="fas fa-cog mr-2"></i>Admin Dashboard
+                    </a>
+                    {% endif %}
                 </div>
                 
                 <!-- Mobile Categories -->
@@ -959,15 +1041,15 @@
     <!-- PhotoSwipe lightbox (local) loaded dynamically in JS -->
     
     <!-- Swiper.js -->
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    
+    <script src="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.js"></script>
+
     <!-- GSAP -->
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/ScrollTrigger.min.js"></script>
-    
+    <script src="{{ base_path }}/assets/vendor/gsap/gsap.min.js"></script>
+    <script src="{{ base_path }}/assets/vendor/gsap/ScrollTrigger.min.js"></script>
+
     <!-- imagesLoaded + Masonry -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.imagesloaded/5.0.0/imagesloaded.pkgd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/masonry/4.2.2/masonry.pkgd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+    <script src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
     
     <!-- App JS -->
     <script>
@@ -1034,20 +1116,13 @@
         
         
         // Enhanced Desktop mega menu with category data and images
-        const megaMenuData = {
-            {% for category in parent_categories|default([]) %}
-            {{ category.id }}: {
-                name: "{{ category.name|e }}",
-                slug: "{{ category.slug }}",
-                image: "{{ category.image_path ? category.image_path : '' }}",
-                children: [
-                    {% for child in category.children %}
-                    { name: "{{ child.name|e }}", slug: "{{ child.slug }}" }{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                ]
-            }{% if not loop.last %},{% endif %}
-            {% endfor %}
-        };
+        const megaMenuData = {{ parent_categories|default([])|map(c => {
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            image: c.image_path ?? '',
+            children: c.children|default([])|map(ch => { name: ch.name, slug: ch.slug })
+        })|reduce((acc, c) => acc|merge({ (c.id): c }), {})|json_encode|raw }};
         
         // Enhanced Desktop categories mega menu with animations
         (function(){
@@ -1727,9 +1802,6 @@
                       const it = items[pswp.currIndex];
                       if (!it) return;
                       
-                      // Debug: log caption data
-                      console.log('Caption data for image:', it);
-                      
                       // Remove previous caption
                       if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl);
                       
@@ -1761,9 +1833,6 @@
                   function updatePsCaption(){
                     const it = items[lightbox.currIndex];
                     if (!it) return;
-                    
-                    // Debug: log caption data
-                    console.log('Fallback caption data for image:', it);
                     
                     // Remove previous caption
                     if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl);
@@ -1929,6 +1998,9 @@
         }
         function fallbackClose(){ const o = document.getElementById('slb-overlay'); if (o) o.classList.remove('active'); }
     </script>
+
+    <!-- Smooth Scroll (Lenis) -->
+    <script type="module" src="{{ base_path }}/assets/js/smooth-scroll.js"></script>
 
     <!-- Analytics Tracking (Cookieless) -->
     <script src="{{ base_path }}/assets/js/analytics.js"></script>
