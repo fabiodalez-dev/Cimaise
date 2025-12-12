@@ -167,10 +167,6 @@ class Installer
             error_log('Installer: .env file created');
             
             error_log('Installer: Installation process completed successfully');
-            
-            // 8. Create installer blocking .htaccess for security
-            $this->createInstallerBlockingHtaccess();
-            
             return true;
         } catch (\Throwable $e) {
             error_log('Installation failed: ' . $e->getMessage());
@@ -474,35 +470,14 @@ class Installer
      */
     private function setApplicationSettings(array $data): void
     {
-        // Resolve default template ID
-        $defaultTemplateId = null;
-        try {
-            // Prefer slug provided by installer UI (robust across seeds/IDs)
-            $slug = trim((string)($data['default_template_slug'] ?? ''));
-            if ($slug !== '') {
-                $stmt = $this->db->pdo()->prepare('SELECT id FROM templates WHERE slug = :slug LIMIT 1');
-                $stmt->execute([':slug' => $slug]);
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($row && isset($row['id'])) {
-                    $defaultTemplateId = (int)$row['id'];
-                }
-            }
-            // Fallback: accept numeric id if provided (legacy path)
-            if ($defaultTemplateId === null && !empty($data['default_template_id'])) {
-                $defaultTemplateId = (int)$data['default_template_id'];
-            }
-        } catch (\Throwable $e) {
-            // If anything goes wrong resolving the slug, leave as null
-        }
-
+        error_log('Installer: Setting application settings with data: ' . print_r($data, true));
         $settings = [
             'site.title' => $data['site_title'] ?? 'photoCMS',
             'site.logo' => $data['site_logo'] ?? null,
             'site.description' => $data['site_description'] ?? 'Professional Photography Portfolio',
             'site.copyright' => $data['site_copyright'] ?? '© ' . date('Y') . ' Photography Portfolio',
             'site.email' => $data['site_email'] ?? '',
-            'gallery.page_template' => $data['gallery_page_template'] ?? 'classic',
-            'gallery.default_template_id' => $defaultTemplateId,
+            'gallery.default_template_id' => null,
             'image.formats' => ['avif' => true, 'webp' => true, 'jpg' => true],
             'image.quality' => ['avif' => 50, 'webp' => 75, 'jpg' => 85],
             'image.breakpoints' => ['sm' => 768, 'md' => 1200, 'lg' => 1920, 'xl' => 2560, 'xxl' => 3840],
@@ -515,17 +490,7 @@ class Installer
         foreach ($settings as $key => $value) {
             error_log('Installer: Setting key: ' . $key . ' with value: ' . print_r($value, true));
             $encodedValue = json_encode($value, JSON_UNESCAPED_SLASHES);
-            if (is_null($value)) {
-                $type = 'null';
-            } elseif (is_bool($value)) {
-                $type = 'boolean';
-            } elseif (is_int($value)) {
-                $type = 'number';
-            } elseif (is_array($value)) {
-                $type = 'array';
-            } else {
-                $type = 'string';
-            }
+            $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
             error_log('Installer: Encoded value: ' . $encodedValue . ', type: ' . $type);
             
             if ($this->db->isSqlite()) {
@@ -620,78 +585,5 @@ class Installer
         }
         
         error_log('Installer: .env file created successfully with ' . $result . ' bytes written');
-    }
-    
-    /**
-     * Create .htaccess file to block installer access after installation
-     */
-    private function createInstallerBlockingHtaccess(): void
-    {
-        try {
-            $rootDir = dirname(__DIR__, 2);
-            // 1) Public path hardening (block legacy installer entrypoints)
-            $publicDir = $rootDir . '/public';
-            $htaccessPath = $publicDir . '/.htaccess-installer-block';
-
-            $htaccessContent = <<<'HTACCESS'
-# Installer security block - created after successful installation
-# This prevents access to installer files in production
-
-<FilesMatch "^(installer|simple-install|repair_install)\.php$">
-    Require all denied
-</FilesMatch>
-
-# Additional protection against common installer patterns
-<FilesMatch "^install.*\.php$">
-    Require all denied
-</FilesMatch>
-
-# Allow the blocking rule to be removed by cleanup script
-# by using a separate .htaccess-installer-block file
-HTACCESS;
-
-            $result = @file_put_contents($htaccessPath, $htaccessContent);
-            if ($result === false) {
-                error_log('Warning: Failed to create installer blocking .htaccess');
-            } else {
-                error_log('Installer: Created public/.htaccess-installer-block with ' . $result . ' bytes');
-            }
-
-            // 2) Protect app/Views/installer templates if webroot is misconfigured
-            $viewsInstallerDir = $rootDir . '/app/Views/installer';
-            if (is_dir($viewsInstallerDir)) {
-                $viewsHtaccess = $viewsInstallerDir . '/.htaccess';
-                $viewsContent = <<<'HTACCESS'
-# Deny direct access to installer views
-<IfModule mod_authz_core.c>
-  Require all denied
-</IfModule>
-<IfModule !mod_authz_core.c>
-  Deny from all
-</IfModule>
-Options -Indexes
-HTACCESS;
-                @file_put_contents($viewsHtaccess, $viewsContent);
-            }
-
-            // 3) Protect app/Installer directory (including Installer.php)
-            $appInstallerDir = $rootDir . '/app/Installer';
-            if (is_dir($appInstallerDir)) {
-                $appInstallerHt = $appInstallerDir . '/.htaccess';
-                $appInstallerContent = <<<'HTACCESS'
-# Deny direct access to installer classes
-<IfModule mod_authz_core.c>
-  Require all denied
-</IfModule>
-<IfModule !mod_authz_core.c>
-  Deny from all
-</IfModule>
-Options -Indexes
-HTACCESS;
-                @file_put_contents($appInstallerHt, $appInstallerContent);
-            }
-        } catch (\Throwable $e) {
-            error_log('Warning: Failed to create installer blocking .htaccess: ' . $e->getMessage());
-        }
     }
 }
