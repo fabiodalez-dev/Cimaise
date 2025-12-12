@@ -1,14 +1,16 @@
 <?php
+declare(strict_types=1);
 /**
  * photoCMS Universal Installer
- * 
+ *
  * Comprehensive multi-step installer supporting MySQL and SQLite
  * with the app's minimal black/white/silver design
  */
 
 session_start();
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
 
 $rootPath = dirname(__DIR__);
 $dbPath = $rootPath . '/database/database.sqlite';
@@ -77,14 +79,20 @@ function testDatabaseConnection($config) {
             $dbPath = dirname(__DIR__) . '/database/' . $config['database'];
             $pdo = new PDO('sqlite:' . $dbPath);
         } else {
+            // Validate MySQL database name (prevent SQL injection)
+            $dbName = (string)($config['database'] ?? '');
+            if (!preg_match('/^[A-Za-z0-9_]+$/', $dbName)) {
+                throw new InvalidArgumentException('Invalid MySQL database name. Use only letters, numbers and underscores.');
+            }
+
             $dsn = "mysql:host={$config['host']};port={$config['port']};charset=utf8mb4";
             $pdo = new PDO($dsn, $config['username'], $config['password']);
-            
+
             // Try to create database if it doesn't exist
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['database']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-            $pdo->exec("USE `{$config['database']}`");
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $pdo->exec("USE `{$dbName}`");
         }
-        
+
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return ['success' => true, 'pdo' => $pdo];
     } catch (Exception $e) {
@@ -115,6 +123,7 @@ function createStorageDirectories($rootPath) {
         $rootPath . '/storage',
         $rootPath . '/storage/originals',
         $rootPath . '/storage/tmp',
+        $rootPath . '/storage/logs',
         $rootPath . '/public/media',
         $rootPath . '/public/media/categories',
         $rootPath . '/public/media/about',
@@ -134,6 +143,7 @@ function createStorageDirectories($rootPath) {
     $keepFiles = [
         $rootPath . '/storage/originals/.gitkeep',
         $rootPath . '/storage/tmp/.gitkeep',
+        $rootPath . '/storage/logs/.gitkeep',
         $rootPath . '/public/media/.gitkeep'
     ];
     
@@ -432,7 +442,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $firstName = $nameParts[0];
             $lastName = $nameParts[1] ?? '';
             
-            $hashedPassword = password_hash($adminData['password'], PASSWORD_DEFAULT);
+            $hashedPassword = password_hash($adminData['password'], PASSWORD_ARGON2ID);
             $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, role, is_active, first_name, last_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
                 $adminData['email'],
@@ -497,8 +507,8 @@ $requirementsPassed = !in_array(false, array_values($requirements));
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>photoCMS Installer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="assets/app.css">
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
