@@ -133,6 +133,7 @@ $twig = Twig::create(__DIR__ . '/../app/Views', ['cache' => false]);
 // Add custom Twig extensions
 $twig->getEnvironment()->addExtension(new \App\Extensions\AnalyticsTwigExtension());
 $twig->getEnvironment()->addExtension(new \App\Extensions\SecurityTwigExtension());
+$twig->getEnvironment()->addExtension(new \App\Extensions\HooksTwigExtension());
 
 $app->add(TwigMiddleware::create($app, $twig));
 
