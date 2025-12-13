@@ -422,6 +422,11 @@ $app->post('/admin/plugins/deactivate', function (Request $request, Response $re
     return $controller->deactivate($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+$app->post('/admin/plugins/upload', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PluginsController($container['db'], Twig::fromRequest($request));
+    return $controller->upload($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
 // Albums CRUD
 $app->get('/admin/albums', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
