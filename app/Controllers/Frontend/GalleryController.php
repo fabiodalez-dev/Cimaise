@@ -40,8 +40,8 @@ class GalleryController extends BaseController
         $album = $stmt->fetch();
         if (!$album) {
             return $this->view->render($response->withStatus(404), 'frontend/404.twig', [
-                'page_title' => '404 — Album non trovato',
-                'meta_description' => 'Album non trovato o non pubblicato'
+                'page_title' => '404 — Album not found',
+                'meta_description' => 'Album not found or unpublished'
             ]);
         }
         // Password protection
@@ -57,7 +57,7 @@ class GalleryController extends BaseController
                 return $this->view->render($response, 'frontend/album_password.twig', [
                     'album' => $album,
                     'categories' => $navCategories,
-                    'page_title' => $album['title'] . ' — Protetto',
+                    'page_title' => $album['title'] . ' — Protected',
                     'error' => $error,
                     'csrf' => $_SESSION['csrf'] ?? ''
                 ]);
@@ -85,12 +85,12 @@ class GalleryController extends BaseController
                     $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
                 } else {
                     // No template found, use basic grid fallback
-                    $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
+                    $template = ['name' => 'Simple Grid', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
                     $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
                 }
             } else {
                 // No default template set, use basic grid fallback
-                $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
+                $template = ['name' => 'Simple Grid', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
                 $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
             }
         } else {
@@ -99,7 +99,7 @@ class GalleryController extends BaseController
             $template = $tplStmt->fetch();
             if (!$template) {
                 // Fallback to basic grid
-                $template = ['name' => 'Grid Semplice', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
+                $template = ['name' => 'Simple Grid', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
                 $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
             } else {
                 $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];

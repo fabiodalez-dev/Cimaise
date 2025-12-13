@@ -421,34 +421,34 @@ class PluginManager
     public function installPlugin(string $slug, string $pluginsDir): array
     {
         if (!$this->db) {
-            return ['success' => false, 'message' => 'Database non disponibile'];
+            return ['success' => false, 'message' => 'Database not available'];
         }
 
         $pluginPath = $pluginsDir . '/' . $slug;
         $pluginFile = $pluginPath . '/plugin.php';
 
         if (!file_exists($pluginFile)) {
-            return ['success' => false, 'message' => 'Plugin non trovato'];
+            return ['success' => false, 'message' => 'Plugin not found'];
         }
 
         try {
-            // Leggi metadata
+            // Read metadata
             $metadata = $this->parsePluginMetadata($pluginFile);
 
-            // Controlla se già installato
+            // Check if already installed
             $existing = $this->getPluginStatus($slug);
 
             if ($existing && $existing['is_installed']) {
-                return ['success' => false, 'message' => 'Plugin già installato'];
+                return ['success' => false, 'message' => 'Plugin already installed'];
             }
 
-            // Esegui hook install se presente
+            // Execute install hook if present
             $installHook = $pluginPath . '/install.php';
             if (file_exists($installHook)) {
                 require_once $installHook;
             }
 
-            // Salva nel database (MySQL compatible)
+            // Save to database (MySQL compatible)
             $replaceKw = $this->db->replaceKeyword();
             $nowExpr = $this->db->nowExpression();
             $stmt = $this->db->pdo()->prepare("
@@ -466,56 +466,56 @@ class PluginManager
                 $pluginPath
             ]);
 
-            return ['success' => true, 'message' => 'Plugin installato con successo'];
+            return ['success' => true, 'message' => 'Plugin installed successfully'];
         } catch (\Throwable $e) {
             error_log("Error installing plugin '{$slug}': " . $e->getMessage());
-            return ['success' => false, 'message' => 'Errore durante l\'installazione: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Error during installation: ' . $e->getMessage()];
         }
     }
 
     /**
-     * Disinstalla un plugin
+     * Uninstall a plugin
      */
     public function uninstallPlugin(string $slug, string $pluginsDir): array
     {
         if (!$this->db) {
-            return ['success' => false, 'message' => 'Database non disponibile'];
+            return ['success' => false, 'message' => 'Database not available'];
         }
 
         try {
             $pluginPath = $pluginsDir . '/' . $slug;
 
-            // Esegui hook uninstall se presente
+            // Execute uninstall hook if present
             $uninstallHook = $pluginPath . '/uninstall.php';
             if (file_exists($uninstallHook)) {
                 require_once $uninstallHook;
             }
 
-            // Rimuovi dal database
+            // Remove from database
             $stmt = $this->db->pdo()->prepare('DELETE FROM plugin_status WHERE slug = ?');
             $stmt->execute([$slug]);
 
-            return ['success' => true, 'message' => 'Plugin disinstallato con successo'];
+            return ['success' => true, 'message' => 'Plugin uninstalled successfully'];
         } catch (\Throwable $e) {
             error_log("Error uninstalling plugin '{$slug}': " . $e->getMessage());
-            return ['success' => false, 'message' => 'Errore durante la disinstallazione: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Error during uninstallation: ' . $e->getMessage()];
         }
     }
 
     /**
-     * Attiva un plugin
+     * Activate a plugin
      */
     public function activatePlugin(string $slug): array
     {
         if (!$this->db) {
-            return ['success' => false, 'message' => 'Database non disponibile'];
+            return ['success' => false, 'message' => 'Database not available'];
         }
 
         try {
             $status = $this->getPluginStatus($slug);
 
             if (!$status || !$status['is_installed']) {
-                return ['success' => false, 'message' => 'Plugin non installato'];
+                return ['success' => false, 'message' => 'Plugin not installed'];
             }
 
             $stmt = $this->db->pdo()->prepare('
@@ -525,20 +525,20 @@ class PluginManager
             ');
             $stmt->execute([$slug]);
 
-            return ['success' => true, 'message' => 'Plugin attivato con successo'];
+            return ['success' => true, 'message' => 'Plugin activated successfully'];
         } catch (\Throwable $e) {
             error_log("Error activating plugin '{$slug}': " . $e->getMessage());
-            return ['success' => false, 'message' => 'Errore durante l\'attivazione: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Error during activation: ' . $e->getMessage()];
         }
     }
 
     /**
-     * Disattiva un plugin
+     * Deactivate a plugin
      */
     public function deactivatePlugin(string $slug): array
     {
         if (!$this->db) {
-            return ['success' => false, 'message' => 'Database non disponibile'];
+            return ['success' => false, 'message' => 'Database not available'];
         }
 
         try {
@@ -549,15 +549,15 @@ class PluginManager
             ');
             $stmt->execute([$slug]);
 
-            return ['success' => true, 'message' => 'Plugin disattivato con successo'];
+            return ['success' => true, 'message' => 'Plugin deactivated successfully'];
         } catch (\Throwable $e) {
             error_log("Error deactivating plugin '{$slug}': " . $e->getMessage());
-            return ['success' => false, 'message' => 'Errore durante la disattivazione: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Error during deactivation: ' . $e->getMessage()];
         }
     }
 
     /**
-     * Ottiene tutti i plugin installati
+     * Get all installed plugins
      */
     public function getInstalledPlugins(): array
     {

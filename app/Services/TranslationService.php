@@ -1,0 +1,394 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Support\Database;
+use PDO;
+
+class TranslationService
+{
+    private array $cache = [];
+    private bool $loaded = false;
+
+    public function __construct(private Database $db) {}
+
+    /**
+     * Get all translations
+     */
+    public function all(): array
+    {
+        $this->loadAll();
+        return $this->cache;
+    }
+
+    /**
+     * Get translations grouped by context
+     */
+    public function allGrouped(): array
+    {
+        $stmt = $this->db->pdo()->query(
+            'SELECT `id`, `text_key`, `text_value`, `context`, `description`
+             FROM frontend_texts
+             ORDER BY `context`, `text_key`'
+        );
+
+        $grouped = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $context = $row['context'] ?? 'general';
+            if (!isset($grouped[$context])) {
+                $grouped[$context] = [];
+            }
+            $grouped[$context][] = $row;
+        }
+        return $grouped;
+    }
+
+    /**
+     * Get a translation by key with optional parameter interpolation
+     */
+    public function get(string $key, array $params = [], ?string $default = null): string
+    {
+        $this->loadAll();
+
+        $value = $this->cache[$key] ?? $default ?? $key;
+
+        // Parameter interpolation: {param} -> value
+        if (!empty($params)) {
+            foreach ($params as $name => $val) {
+                $value = str_replace('{' . $name . '}', (string)$val, $value);
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Get a single translation record by ID
+     */
+    public function find(int $id): ?array
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT * FROM frontend_texts WHERE id = :id'
+        );
+        $stmt->execute([':id' => $id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ?: null;
+    }
+
+    /**
+     * Get a single translation record by key
+     */
+    public function findByKey(string $key): ?array
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT * FROM frontend_texts WHERE text_key = :key'
+        );
+        $stmt->execute([':key' => $key]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ?: null;
+    }
+
+    /**
+     * Set/update a translation
+     */
+    public function set(string $key, string $value, string $context = 'general', ?string $description = null): void
+    {
+        $replace = $this->db->replaceKeyword();
+        $now = $this->db->nowExpression();
+
+        $stmt = $this->db->pdo()->prepare(
+            "{$replace} INTO frontend_texts (text_key, text_value, context, description, updated_at)
+             VALUES (:key, :value, :context, :description, {$now})"
+        );
+
+        $stmt->execute([
+            ':key' => $key,
+            ':value' => $value,
+            ':context' => $context,
+            ':description' => $description
+        ]);
+
+        // Update cache
+        $this->cache[$key] = $value;
+    }
+
+    /**
+     * Update a translation by ID
+     */
+    public function update(int $id, array $data): bool
+    {
+        $now = $this->db->nowExpression();
+
+        $stmt = $this->db->pdo()->prepare(
+            "UPDATE frontend_texts
+             SET text_value = :value, context = :context, description = :description, updated_at = {$now}
+             WHERE id = :id"
+        );
+
+        $result = $stmt->execute([
+            ':id' => $id,
+            ':value' => $data['text_value'],
+            ':context' => $data['context'] ?? 'general',
+            ':description' => $data['description'] ?? null
+        ]);
+
+        // Invalidate cache
+        $this->loaded = false;
+        $this->cache = [];
+
+        return $result;
+    }
+
+    /**
+     * Create a new translation
+     */
+    public function create(array $data): int
+    {
+        $now = $this->db->nowExpression();
+
+        $stmt = $this->db->pdo()->prepare(
+            "INSERT INTO frontend_texts (text_key, text_value, context, description, created_at, updated_at)
+             VALUES (:key, :value, :context, :description, {$now}, {$now})"
+        );
+
+        $stmt->execute([
+            ':key' => $data['text_key'],
+            ':value' => $data['text_value'],
+            ':context' => $data['context'] ?? 'general',
+            ':description' => $data['description'] ?? null
+        ]);
+
+        // Invalidate cache
+        $this->loaded = false;
+        $this->cache = [];
+
+        return (int)$this->db->pdo()->lastInsertId();
+    }
+
+    /**
+     * Delete a translation
+     */
+    public function delete(int $id): bool
+    {
+        $stmt = $this->db->pdo()->prepare('DELETE FROM frontend_texts WHERE id = :id');
+        $result = $stmt->execute([':id' => $id]);
+
+        // Invalidate cache
+        $this->loaded = false;
+        $this->cache = [];
+
+        return $result;
+    }
+
+    /**
+     * Get all unique contexts
+     */
+    public function getContexts(): array
+    {
+        $stmt = $this->db->pdo()->query(
+            'SELECT DISTINCT context FROM frontend_texts ORDER BY context'
+        );
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * Search translations
+     */
+    public function search(string $query): array
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT * FROM frontend_texts
+             WHERE text_key LIKE :q OR text_value LIKE :q OR description LIKE :q
+             ORDER BY context, text_key'
+        );
+        $stmt->execute([':q' => '%' . $query . '%']);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Load all translations into cache
+     */
+    private function loadAll(): void
+    {
+        if ($this->loaded) {
+            return;
+        }
+
+        try {
+            $stmt = $this->db->pdo()->query('SELECT text_key, text_value FROM frontend_texts');
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $this->cache[$row['text_key']] = $row['text_value'];
+            }
+            $this->loaded = true;
+        } catch (\PDOException $e) {
+            // Table might not exist yet
+            $this->loaded = true;
+        }
+    }
+
+    /**
+     * Clear the cache
+     */
+    public function clearCache(): void
+    {
+        $this->loaded = false;
+        $this->cache = [];
+    }
+
+    /**
+     * Get default translations for seeding
+     */
+    public static function getDefaults(): array
+    {
+        return [
+            // Navigation
+            ['nav.home', 'Home', 'navigation', 'Main navigation home link'],
+            ['nav.galleries', 'Galleries', 'navigation', 'Main navigation galleries link'],
+            ['nav.about', 'About', 'navigation', 'Main navigation about link'],
+            ['nav.contact', 'Contact', 'navigation', 'Main navigation contact link'],
+            ['nav.back', 'Back', 'navigation', 'Back button text'],
+            ['nav.menu', 'Menu', 'navigation', 'Mobile menu button'],
+            ['nav.close', 'Close', 'navigation', 'Close button text'],
+
+            // Filters
+            ['filter.all', 'All', 'filter', 'Show all items filter'],
+            ['filter.category', 'Category', 'filter', 'Category filter label'],
+            ['filter.categories', 'Categories', 'filter', 'Categories filter label'],
+            ['filter.year', 'Year', 'filter', 'Year filter label'],
+            ['filter.date', 'Date', 'filter', 'Date filter label'],
+            ['filter.location', 'Location', 'filter', 'Location filter label'],
+            ['filter.tag', 'Tag', 'filter', 'Tag filter label'],
+            ['filter.tags', 'Tags', 'filter', 'Tags filter label'],
+            ['filter.search', 'Search', 'filter', 'Search filter label'],
+            ['filter.clear', 'Clear filters', 'filter', 'Clear all filters button'],
+            ['filter.no_results', 'No results found', 'filter', 'No results message'],
+            ['filter.results_count', '{count} results', 'filter', 'Results count with parameter'],
+
+            // Album/Gallery
+            ['album.photos', 'Photos', 'album', 'Photos label'],
+            ['album.photo', 'Photo', 'album', 'Single photo label'],
+            ['album.photo_count', '{count} photos', 'album', 'Photo count with parameter'],
+            ['album.view_gallery', 'View Gallery', 'album', 'View gallery button'],
+            ['album.view_all', 'View All', 'album', 'View all button'],
+            ['album.download', 'Download', 'album', 'Download button'],
+            ['album.share', 'Share', 'album', 'Share button'],
+            ['album.info', 'Info', 'album', 'Info button'],
+            ['album.details', 'Details', 'album', 'Details section title'],
+            ['album.description', 'Description', 'album', 'Description label'],
+            ['album.date', 'Date', 'album', 'Date label'],
+            ['album.location', 'Location', 'album', 'Location label'],
+            ['album.camera', 'Camera', 'album', 'Camera label'],
+            ['album.lens', 'Lens', 'album', 'Lens label'],
+            ['album.settings', 'Settings', 'album', 'Camera settings label'],
+            ['album.empty', 'This gallery is empty', 'album', 'Empty gallery message'],
+            ['album.private', 'Private Gallery', 'album', 'Private gallery label'],
+            ['album.password_protected', 'Password Protected', 'album', 'Password protected label'],
+            ['album.enter_password', 'Enter Password', 'album', 'Enter password prompt'],
+            ['album.wrong_password', 'Wrong password', 'album', 'Wrong password error'],
+
+            // Pagination
+            ['pagination.previous', 'Previous', 'pagination', 'Previous page button'],
+            ['pagination.next', 'Next', 'pagination', 'Next page button'],
+            ['pagination.first', 'First', 'pagination', 'First page button'],
+            ['pagination.last', 'Last', 'pagination', 'Last page button'],
+            ['pagination.page', 'Page', 'pagination', 'Page label'],
+            ['pagination.of', 'of', 'pagination', 'Page X of Y separator'],
+            ['pagination.showing', 'Showing {from} to {to} of {total}', 'pagination', 'Showing range text'],
+
+            // Dates
+            ['date.january', 'January', 'date', 'Month name'],
+            ['date.february', 'February', 'date', 'Month name'],
+            ['date.march', 'March', 'date', 'Month name'],
+            ['date.april', 'April', 'date', 'Month name'],
+            ['date.may', 'May', 'date', 'Month name'],
+            ['date.june', 'June', 'date', 'Month name'],
+            ['date.july', 'July', 'date', 'Month name'],
+            ['date.august', 'August', 'date', 'Month name'],
+            ['date.september', 'September', 'date', 'Month name'],
+            ['date.october', 'October', 'date', 'Month name'],
+            ['date.november', 'November', 'date', 'Month name'],
+            ['date.december', 'December', 'date', 'Month name'],
+            ['date.today', 'Today', 'date', 'Today label'],
+            ['date.yesterday', 'Yesterday', 'date', 'Yesterday label'],
+            ['date.days_ago', '{count} days ago', 'date', 'Days ago with parameter'],
+
+            // Footer
+            ['footer.copyright', '© {year} All rights reserved', 'footer', 'Copyright text with year parameter'],
+            ['footer.powered_by', 'Powered by photoCMS', 'footer', 'Powered by text'],
+            ['footer.privacy', 'Privacy Policy', 'footer', 'Privacy policy link'],
+            ['footer.terms', 'Terms of Service', 'footer', 'Terms link'],
+
+            // Lightbox
+            ['lightbox.close', 'Close', 'lightbox', 'Close lightbox button'],
+            ['lightbox.previous', 'Previous', 'lightbox', 'Previous image button'],
+            ['lightbox.next', 'Next', 'lightbox', 'Next image button'],
+            ['lightbox.zoom_in', 'Zoom In', 'lightbox', 'Zoom in button'],
+            ['lightbox.zoom_out', 'Zoom Out', 'lightbox', 'Zoom out button'],
+            ['lightbox.fullscreen', 'Fullscreen', 'lightbox', 'Fullscreen button'],
+            ['lightbox.exit_fullscreen', 'Exit Fullscreen', 'lightbox', 'Exit fullscreen button'],
+            ['lightbox.download', 'Download', 'lightbox', 'Download button'],
+            ['lightbox.slideshow', 'Slideshow', 'lightbox', 'Slideshow button'],
+            ['lightbox.stop_slideshow', 'Stop Slideshow', 'lightbox', 'Stop slideshow button'],
+            ['lightbox.image_count', 'Image {current} of {total}', 'lightbox', 'Image counter with parameters'],
+
+            // Social Share
+            ['share.facebook', 'Share on Facebook', 'share', 'Facebook share button'],
+            ['share.twitter', 'Share on Twitter', 'share', 'Twitter share button'],
+            ['share.pinterest', 'Pin on Pinterest', 'share', 'Pinterest share button'],
+            ['share.linkedin', 'Share on LinkedIn', 'share', 'LinkedIn share button'],
+            ['share.email', 'Share via Email', 'share', 'Email share button'],
+            ['share.copy_link', 'Copy Link', 'share', 'Copy link button'],
+            ['share.link_copied', 'Link copied!', 'share', 'Link copied confirmation'],
+
+            // Search
+            ['search.placeholder', 'Search...', 'search', 'Search input placeholder'],
+            ['search.button', 'Search', 'search', 'Search button text'],
+            ['search.no_results', 'No results found for "{query}"', 'search', 'No search results message'],
+            ['search.results_for', 'Results for "{query}"', 'search', 'Search results title'],
+            ['search.clear', 'Clear search', 'search', 'Clear search button'],
+
+            // Errors
+            ['error.404', 'Page not found', 'error', '404 error title'],
+            ['error.404_message', 'The page you are looking for does not exist.', 'error', '404 error message'],
+            ['error.500', 'Server error', 'error', '500 error title'],
+            ['error.500_message', 'Something went wrong. Please try again later.', 'error', '500 error message'],
+            ['error.generic', 'An error occurred', 'error', 'Generic error title'],
+            ['error.go_home', 'Go to Homepage', 'error', 'Go home button'],
+
+            // Contact Form
+            ['contact.title', 'Contact', 'contact', 'Contact form title'],
+            ['contact.name', 'Name', 'contact', 'Name field label'],
+            ['contact.email', 'Email', 'contact', 'Email field label'],
+            ['contact.subject', 'Subject', 'contact', 'Subject field label'],
+            ['contact.message', 'Message', 'contact', 'Message field label'],
+            ['contact.send', 'Send Message', 'contact', 'Submit button text'],
+            ['contact.sending', 'Sending...', 'contact', 'Sending state text'],
+            ['contact.success', 'Message sent successfully!', 'contact', 'Success message'],
+            ['contact.error', 'Failed to send message. Please try again.', 'contact', 'Error message'],
+            ['contact.required', 'This field is required', 'contact', 'Required field error'],
+            ['contact.invalid_email', 'Please enter a valid email address', 'contact', 'Invalid email error'],
+
+            // Meta/SEO
+            ['meta.home_title', 'Photography Portfolio', 'meta', 'Home page title'],
+            ['meta.home_description', 'Professional photography portfolio showcasing creative work', 'meta', 'Home page meta description'],
+            ['meta.gallery_title', '{name} - Gallery', 'meta', 'Gallery page title with parameter'],
+
+            // General
+            ['general.loading', 'Loading...', 'general', 'Loading indicator text'],
+            ['general.load_more', 'Load More', 'general', 'Load more button'],
+            ['general.show_less', 'Show Less', 'general', 'Show less button'],
+            ['general.read_more', 'Read More', 'general', 'Read more link'],
+            ['general.see_all', 'See All', 'general', 'See all link'],
+            ['general.yes', 'Yes', 'general', 'Yes confirmation'],
+            ['general.no', 'No', 'general', 'No confirmation'],
+            ['general.ok', 'OK', 'general', 'OK button'],
+            ['general.cancel', 'Cancel', 'general', 'Cancel button'],
+            ['general.save', 'Save', 'general', 'Save button'],
+            ['general.delete', 'Delete', 'general', 'Delete button'],
+            ['general.edit', 'Edit', 'general', 'Edit button'],
+            ['general.submit', 'Submit', 'general', 'Submit button'],
+            ['general.reset', 'Reset', 'general', 'Reset button'],
+        ];
+    }
+}

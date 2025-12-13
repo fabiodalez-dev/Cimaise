@@ -1,5 +1,5 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Modifica album — photoCMS{% endblock %}
+{% block title %}Edit Album — photoCMS{% endblock %}
 {% block content %}
 {# Hook: admin_album_edit_before - Before the entire edit page #}
 {{ do_action('admin_album_edit_before', {album: item, base_path: base_path}) }}
@@ -10,21 +10,21 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-black">Modifica Album</h1>
-          <p class="text-gray-600 mt-1">Aggiorna le informazioni e gestisci le immagini</p>
+          <h1 class="text-3xl font-bold text-black">Edit Album</h1>
+          <p class="text-gray-600 mt-1">Update information and manage images</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
           <a href="{{ base_path }}/admin/albums" class="btn-secondary" data-spa-link>
             <i class="fas fa-arrow-left mr-2"></i>
-            Torna agli album
+            Back to albums
           </a>
           <a href="{{ base_path }}/album/{{ item.slug }}" class="btn-secondary" target="_blank" rel="noopener">
             <i class="fas fa-eye mr-2"></i>
-            Vedi pagina
+            View page
           </a>
           <a href="{{ base_path }}/admin/settings" class="btn-secondary" data-spa-link>
             <i class="fas fa-cog mr-2"></i>
-            Impostazioni
+            Settings
           </a>
           {# Hook: admin_album_edit_header_actions - Add custom header buttons #}
           {{ do_action('admin_album_edit_header_actions', {album: item, base_path: base_path}) }}
@@ -46,37 +46,37 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-info-circle mr-3 text-gray-600"></i>
-                Informazioni Base
+                Basic Information
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Titolo, descrizione e contenuto dell'album</p>
+              <p class="text-gray-600 text-sm mt-1">Title, description and album content</p>
             </div>
             <div class="p-6 space-y-6">
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Titolo <span class="text-red-500">*</span></label>
+                  <label class="block text-sm font-medium text-black mb-2">Title <span class="text-red-500">*</span></label>
                   <input class="form-input border-gray-300 focus:border-black focus:ring-black"
                          type="text" name="title" value="{{ item.title }}" required
-                         placeholder="Inserisci il titolo dell'album">
+                         placeholder="Enter album title">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-black mb-2">Slug URL</label>
                   <input class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm"
                          type="text" name="slug" value="{{ item.slug }}"
                          placeholder="url-friendly-slug">
-                  <p class="text-xs text-gray-500 mt-1">Lascia vuoto per generazione automatica</p>
+                  <p class="text-xs text-gray-500 mt-1">Leave empty for automatic generation</p>
                 </div>
               </div>
 
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Categorie <span class="text-red-500">*</span></label>
+                  <label class="block text-sm font-medium text-black mb-2">Categories <span class="text-red-500">*</span></label>
                   <select name="categories[]" id="album-categories" class="form-input" multiple required>
                     {% set selectedCats = categoryIds|default([item.category_id ? item.category_id : 0]) %}
                     {% for c in categories %}
                       <option value="{{ c.id }}" {% if c.id in selectedCats %}selected{% endif %}>{{ c.name }}</option>
                     {% endfor %}
                   </select>
-                  <p class="text-xs text-gray-500 mt-1">Seleziona una o più categorie</p>
+                  <p class="text-xs text-gray-500 mt-1">Select one or more categories</p>
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-black mb-2">Tag</label>
@@ -85,25 +85,25 @@
                       <option value="{{ t.id }}" {% if t.id in tagIds %}selected{% endif %}>{{ t.name }}</option>
                     {% endfor %}
                   </select>
-                  <p class="text-xs text-gray-500 mt-1">Tag opzionali per categorizzazione avanzata</p>
+                  <p class="text-xs text-gray-500 mt-1">Optional tags for advanced categorization</p>
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Descrizione Breve</label>
+                <label class="block text-sm font-medium text-black mb-2">Short Description</label>
                 <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
                           name="excerpt" rows="4" 
-                          placeholder="Breve descrizione che appare nelle anteprime..."
+                          placeholder="Short description that appears in previews..."
                           maxlength="150">{{ item.excerpt|striptags }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Massimo 150 caratteri per una visualizzazione ottimale. Solo testo semplice.</p>
+                <p class="text-xs text-gray-500 mt-1">Maximum 150 characters for optimal display. Plain text only.</p>
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Contenuto Completo</label>
+                <label class="block text-sm font-medium text-black mb-2">Full Content</label>
                 <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black"
                           name="body" rows="32"
-                          placeholder="Descrizione completa con formattazione...">{{ item.body }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Supporta formattazione ricca: grassetto, corsivo, elenchi, link</p>
+                          placeholder="Full description with formatting...">{{ item.body }}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Supports rich formatting: bold, italic, lists, links</p>
               </div>
 
               {# Hook: admin_album_form_basic_info_fields - Add custom fields inside basic info card #}
@@ -121,21 +121,21 @@
                 <div>
                   <h2 class="text-lg font-semibold text-black flex items-center">
                     <i class="fas fa-images mr-3 text-gray-600"></i>
-                    Gestione Immagini
+                    Image Management
                   </h2>
-                  <p class="text-gray-600 text-sm mt-1">Carica e organizza le immagini dell'album</p>
+                  <p class="text-gray-600 text-sm mt-1">Upload and organize album images</p>
                 </div>
                 <div class="flex items-center gap-3">
                   <select id="sort-images" class="form-input text-sm py-2">
-                    <option value="manual">Ordine manuale</option>
-                    <option value="created_newest">Data (più recenti)</option>
-                    <option value="created_oldest">Data (più vecchie)</option>
-                    <option value="id_asc">ID crescente</option>
-                    <option value="id_desc">ID decrescente</option>
+                    <option value="manual">Manual order</option>
+                    <option value="created_newest">Date (newest)</option>
+                    <option value="created_oldest">Date (oldest)</option>
+                    <option value="id_asc">ID ascending</option>
+                    <option value="id_desc">ID descending</option>
                   </select>
                   <button id="save-order" type="button" class="btn-secondary text-sm">
                     <i class="fas fa-save mr-1"></i>
-                    Salva ordine
+                    Save order
                   </button>
                 </div>
               </div>
@@ -147,8 +147,8 @@
                    data-endpoint="{{ base_path }}/admin/albums/{{ item.id }}/upload" data-csrf="{{ csrf }}" data-album-id="{{ item.id }}">
                 <div class="text-center py-8">
                   <i class="fas fa-cloud-upload-alt text-4xl mb-4 text-gray-400"></i>
-                  <div class="text-lg font-medium mb-1">Trascina qui le immagini</div>
-                  <div class="text-sm text-gray-500">oppure clicca per selezionarle dal computer</div>
+                  <div class="text-lg font-medium mb-1">Drag images here</div>
+                  <div class="text-sm text-gray-500">or click to select from your computer</div>
                   <div class="text-xs text-gray-400 mt-2">JPG, PNG, WebP</div>
                 </div>
               </div>
@@ -162,14 +162,14 @@
                   <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center gap-3">
                       <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-black" id="upload-spinner"></div>
-                      <span class="text-sm font-medium text-gray-900">Caricamento in corso</span>
+                      <span class="text-sm font-medium text-gray-900">Uploading</span>
                     </div>
                     <span class="text-sm text-gray-600" id="upload-counter">0 / 0</span>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2.5">
                     <div id="upload-bar-total" class="bg-black h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
                   </div>
-                  <div class="text-xs text-gray-500 mt-2" id="upload-status">Preparazione upload...</div>
+                  <div class="text-xs text-gray-500 mt-2" id="upload-status">Preparing upload...</div>
                 </div>
 
                 <!-- Individual File Progress List -->
@@ -177,20 +177,20 @@
               </div>
 
               <div class="mt-3 text-right">
-                <button type="button" id="open-media-library" class="btn-secondary"><i class="fas fa-images mr-2"></i>Carica da galleria</button>
+                <button type="button" id="open-media-library" class="btn-secondary"><i class="fas fa-images mr-2"></i>Upload from gallery</button>
               </div>
 
               <!-- Bulk Actions - Always present -->
               <div class="flex items-center justify-between mt-6 mb-4">
                 <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
                   <input type="checkbox" id="select-all" class="rounded border-gray-300 text-black focus:ring-black">
-                  Seleziona tutto ({{ images|length }} immagini)
+                  Select all ({{ images|length }} images)
                 </label>
                 <button id="bulk-delete" type="button" 
                         class="btn-outline-danger text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
                         disabled>
                   <i class="fas fa-trash mr-1"></i>
-                  Elimina selezionate
+                  Delete selected
                 </button>
               </div>
 
@@ -204,12 +204,12 @@
                          data-alt_text="{{ img.alt_text }}" data-caption="{{ img.caption }}"
                          data-camera_id="{{ img.camera_id }}" data-lens_id="{{ img.lens_id }}" data-film_id="{{ img.film_id }}" data-developer_id="{{ img.developer_id }}" data-lab_id="{{ img.lab_id }}" data-location_id="{{ img.location_id }}"
                          data-custom_camera="{{ img.custom_camera }}" data-custom_lens="{{ img.custom_lens }}" data-custom_film="{{ img.custom_film }}" data-iso="{{ img.iso }}" data-shutter_speed="{{ img.shutter_speed }}" data-aperture="{{ img.aperture }}">
-                      <div class="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer hover:ring-2 hover:ring-blue-500 hover:ring-opacity-50 transition-all" title="Clicca per modificare i dettagli dell'immagine">
-                        <img src="{{ img.preview_path }}" class="w-full h-full object-cover" alt="">
+                      <div class="aspect-square overflow-hidden bg-gray-100 relative cursor-pointer hover:ring-2 hover:ring-blue-500 hover:ring-opacity-50 transition-all" title="Click to edit image details">
+                        <img src="{{ img.preview_path }}" class="w-full h-full object-cover" alt="{{ img.alt_text|default(img.caption|default('Album image'))|e('html_attr') }}">
                         <input type="checkbox" class="absolute top-2 left-2 w-4 h-4 bg-white rounded border z-10" data-select-id="{{ img.id }}">
                         <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition-all flex items-center justify-center">
                           <div class="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
-                            <i class="fas fa-edit mr-1"></i>Modifica dettagli
+                            <i class="fas fa-edit mr-1"></i>Edit details
                           </div>
                         </div>
                       </div>
@@ -222,11 +222,11 @@
                 {% else %}
                   <!-- Empty state message inside the grid -->
                   <div class="col-span-full text-center py-8">
-                    <p class="text-gray-500">Nessuna immagine in questo album.</p>
+                    <p class="text-gray-500">No images in this album.</p>
                   </div>
                 {% endif %}
               </div>
-              <div class="text-gray-500 text-sm mt-2">Trascina per riordinare oppure usa il selettore per ordinare per data/ID; clicca "Salva ordine" per persistere.</div>
+              <div class="text-gray-500 text-sm mt-2">Drag to reorder or use the selector to sort by date/ID; click "Save order" to persist.</div>
             </div>
           </div>
 
@@ -242,7 +242,7 @@
                     <i class="fas fa-search mr-3 text-gray-600"></i>
                     SEO & Schema Markup
                   </h2>
-                  <p class="text-gray-600 text-sm mt-1">Ottimizzazione per motori di ricerca e social media (opzionale)</p>
+                  <p class="text-gray-600 text-sm mt-1">Search engine and social media optimization (optional)</p>
                 </div>
                 <i id="seo-accordion-icon" class="fas fa-chevron-down text-gray-400 transition-transform"></i>
               </button>
@@ -250,22 +250,22 @@
             <div id="seo-accordion-content" class="hidden p-6 space-y-6">
               <!-- Basic SEO -->
               <div class="space-y-4">
-                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">SEO Base</h3>
+                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">Basic SEO</h3>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
                     <label class="block text-sm font-medium text-black mb-2">SEO Title</label>
                     <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
                            type="text" name="seo_title" value="{{ item.seo_title }}" 
-                           placeholder="{{ item.title }} - Lascia vuoto per auto-generazione">
-                    <p class="text-xs text-gray-500 mt-1">Titolo specifico per SEO (max 60 caratteri). Se vuoto, userà il titolo dell'album.</p>
+                           placeholder="{{ item.title }} - Leave empty for auto-generation">
+                    <p class="text-xs text-gray-500 mt-1">Specific SEO title (max 60 characters). If empty, will use album title.</p>
                   </div>
                   
                   <div>
                     <label class="block text-sm font-medium text-black mb-2">Keywords SEO</label>
                     <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
                            type="text" name="seo_keywords" value="{{ item.seo_keywords }}" 
-                           placeholder="fotografia, portfolio, arte, creatività">
-                    <p class="text-xs text-gray-500 mt-1">Parole chiave separate da virgole (max 10-15 keywords).</p>
+                           placeholder="photography, portfolio, art, creativity">
+                    <p class="text-xs text-gray-500 mt-1">Keywords separated by commas (max 10-15 keywords).</p>
                   </div>
                 </div>
                 
@@ -273,9 +273,9 @@
                   <label class="block text-sm font-medium text-black mb-2">Meta Description</label>
                   <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
                             name="seo_description" rows="3" 
-                            placeholder="Descrizione concisa per i motori di ricerca..." 
+                            placeholder="Concise description for search engines..." 
                             maxlength="160">{{ item.seo_description }}</textarea>
-                  <p class="text-xs text-gray-500 mt-1">Descrizione per motori di ricerca (max 160 caratteri). Se vuoto, userà l'excerpt dell'album.</p>
+                  <p class="text-xs text-gray-500 mt-1">Description for search engines (max 160 characters). If empty, will use the album excerpt.</p>
                 </div>
               </div>
 
@@ -288,7 +288,7 @@
                     <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
                            type="text" name="og_title" value="{{ item.og_title }}" 
                            placeholder="{{ item.title }}">
-                    <p class="text-xs text-gray-500 mt-1">Titolo per social media. Se vuoto, userà il SEO title o il titolo album.</p>
+                    <p class="text-xs text-gray-500 mt-1">Title for social media. If empty, will use SEO title or album title.</p>
                   </div>
                   
                   <div>
@@ -296,7 +296,7 @@
                     <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
                            type="text" name="og_image_path" value="{{ item.og_image_path }}" 
                            placeholder="/uploads/thumbnails/cover-image.jpg">
-                    <p class="text-xs text-gray-500 mt-1">Path immagine social. Se vuoto, userà l'immagine cover dell'album.</p>
+                    <p class="text-xs text-gray-500 mt-1">Social image path. If empty, will use album cover image.</p>
                   </div>
                 </div>
                 
@@ -304,9 +304,9 @@
                   <label class="block text-sm font-medium text-black mb-2">OG Description</label>
                   <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
                             name="og_description" rows="3" 
-                            placeholder="Descrizione coinvolgente per social media..." 
+                            placeholder="Engaging description for social media..." 
                             maxlength="200">{{ item.og_description }}</textarea>
-                  <p class="text-xs text-gray-500 mt-1">Descrizione per social media (max 200 caratteri). Se vuoto, userà la meta description.</p>
+                  <p class="text-xs text-gray-500 mt-1">Description for social media (max 200 characters). If empty, will use meta description.</p>
                 </div>
               </div>
 
@@ -323,7 +323,7 @@
                       <option value="VisualArtwork" {% if item.schema_type == 'VisualArtwork' %}selected{% endif %}>VisualArtwork</option>
                       <option value="MediaGallery" {% if item.schema_type == 'MediaGallery' %}selected{% endif %}>MediaGallery</option>
                     </select>
-                    <p class="text-xs text-gray-500 mt-1">Tipo di schema strutturato per il markup.</p>
+                    <p class="text-xs text-gray-500 mt-1">Structured schema type for markup.</p>
                   </div>
                   
                   <div>
@@ -331,7 +331,7 @@
                     <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
                            type="url" name="canonical_url" value="{{ item.canonical_url }}" 
                            placeholder="https://example.com/album/{{ item.slug }}">
-                    <p class="text-xs text-gray-500 mt-1">URL canonico. Se vuoto, userà l'URL corrente dell'album.</p>
+                    <p class="text-xs text-gray-500 mt-1">Canonical URL. If empty, will use current album URL.</p>
                   </div>
                 </div>
                 
@@ -345,25 +345,25 @@
   "description": "{{ item.excerpt }}",
   "creator": {
     "@type": "Person",
-    "name": "Fotografo Professionista"
+    "name": "Professional Photographer"
   }
 }'>{{ item.schema_data }}</textarea>
-                  <p class="text-xs text-gray-500 mt-1">Dati strutturati JSON-LD personalizzati. Se vuoto, verrà generato automaticamente.</p>
+                  <p class="text-xs text-gray-500 mt-1">Custom JSON-LD structured data. If empty, will be generated automatically.</p>
                 </div>
               </div>
 
               <!-- Technical SEO -->
               <div class="space-y-4">
-                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">SEO Tecnico</h3>
+                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">Technical SEO</h3>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div class="space-y-3">
                     <label class="flex items-center gap-3">
                       <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
                              type="checkbox" name="robots_index" 
                              {% if item.robots_index is null or item.robots_index %}checked{% endif %}>
-                      <span class="text-sm font-medium text-gray-700">Indicizza sui motori di ricerca</span>
+                      <span class="text-sm font-medium text-gray-700">Index on search engines</span>
                     </label>
-                    <p class="text-xs text-gray-500 ml-7">Permetti ai motori di ricerca di indicizzare questo album.</p>
+                    <p class="text-xs text-gray-500 ml-7">Allow search engines to index this album.</p>
                   </div>
                   
                   <div class="space-y-3">
@@ -371,16 +371,16 @@
                       <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
                              type="checkbox" name="robots_follow" 
                              {% if item.robots_follow is null or item.robots_follow %}checked{% endif %}>
-                      <span class="text-sm font-medium text-gray-700">Segui i link dell'album</span>
+                      <span class="text-sm font-medium text-gray-700">Follow album links</span>
                     </label>
-                    <p class="text-xs text-gray-500 ml-7">Permetti ai motori di ricerca di seguire i link in questo album.</p>
+                    <p class="text-xs text-gray-500 ml-7">Allow search engines to follow links in this album.</p>
                   </div>
                 </div>
               </div>
 
               <!-- Preview Section -->
               <div class="border-t pt-4 mt-6">
-                <h3 class="text-md font-medium text-gray-900 mb-4">Anteprima SEO</h3>
+                <h3 class="text-md font-medium text-gray-900 mb-4">SEO Preview</h3>
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
                   <div class="text-blue-600 text-lg hover:underline cursor-pointer" id="seo-preview-title">
                     {{ item.seo_title ?: item.title }}
@@ -389,10 +389,10 @@
                     {{ base_path }}/album/{{ item.slug }}
                   </div>
                   <div class="text-gray-600 text-sm" id="seo-preview-description">
-                    {{ item.seo_description ?: item.excerpt ?: 'Galleria fotografica professionale.' }}
+                    {{ item.seo_description ?: item.excerpt ?: 'Professional photo gallery.' }}
                   </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">Anteprima di come apparirà l'album nei risultati di ricerca di Google.</p>
+                <p class="text-xs text-gray-500 mt-2">Preview of how the album will appear in Google search results.</p>
               </div>
             </div>
           </div>
@@ -411,19 +411,19 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-globe mr-3 text-gray-600"></i>
-                Impostazioni Pubblicazione
+                Publishing Settings
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Data, template e visibilità</p>
+              <p class="text-gray-600 text-sm mt-1">Date, template and visibility</p>
             </div>
             <div class="p-6 space-y-4">
               <div class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Data scatto</label>
+                  <label class="block text-sm font-medium text-black mb-2">Shoot Date</label>
                   <input class="form-input border-gray-300 focus:border-black focus:ring-black w-full" 
                          type="date" name="shoot_date" value="{{ item.shoot_date }}">
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Ordine</label>
+                  <label class="block text-sm font-medium text-black mb-2">Order</label>
                   <input class="form-input border-gray-300 focus:border-black focus:ring-black w-full" 
                          type="number" name="sort_order" value="{{ item.sort_order }}" 
                          placeholder="0">
@@ -433,7 +433,7 @@
               <div>
                 <label class="block text-sm font-medium text-black mb-2">Template</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="template_id">
-                  <option value="">Template predefinito</option>
+                  <option value="">Default Template</option>
                   {% for template in templates %}
                     <option value="{{ template.id }}" {% if template.id == item.template_id %}selected{% endif %}>{{ template.name }}</option>
                   {% endfor %}
@@ -445,21 +445,21 @@
                   <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
                          type="checkbox" name="show_date" id="show_date" 
                          {% if item.show_date %}checked{% endif %}>
-                  <span class="text-sm font-medium text-gray-700">Mostra data di scatto</span>
+                  <span class="text-sm font-medium text-gray-700">Show shoot date</span>
                 </label>
                 
                 <label class="flex items-center gap-3">
                   <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
                          type="checkbox" name="is_published" id="pub" 
                          {% if item.is_published %}checked{% endif %}>
-                  <span class="text-sm font-medium text-gray-700">Album pubblicato</span>
+                  <span class="text-sm font-medium text-gray-700">Album published</span>
                 </label>
                 
                 <label class="flex items-center gap-3">
                   <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
                          type="checkbox" name="allow_downloads" id="allow_downloads" 
                          {% if item.allow_downloads %}checked{% endif %}>
-                  <span class="text-sm font-medium text-gray-700">Consenti download immagini</span>
+                  <span class="text-sm font-medium text-gray-700">Allow image downloads</span>
                 </label>
               </div>
             </div>
@@ -473,13 +473,13 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-camera mr-3 text-gray-600"></i>
-                Equipment Fotografico
+                Photo Equipment
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Attrezzatura utilizzata per l'album</p>
+              <p class="text-gray-600 text-sm mt-1">Equipment used for the album</p>
             </div>
             <div class="p-6 space-y-4">
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Fotocamere</label>
+                <label class="block text-sm font-medium text-black mb-2">Cameras</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="cameras[]" id="album-cameras" multiple>
                   {% for camera in cameras %}
                     <option value="{{ camera.id }}" {% if camera.id in cameraIds %}selected{% endif %}>{{ camera.make }} {{ camera.model }}</option>
@@ -488,7 +488,7 @@
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Obiettivi</label>
+                <label class="block text-sm font-medium text-black mb-2">Lenses</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="lenses[]" id="album-lenses" multiple>
                   {% for lens in lenses %}
                     <option value="{{ lens.id }}" {% if lens.id in lensIds %}selected{% endif %}>{{ lens.brand }} {{ lens.model }}</option>
@@ -497,7 +497,7 @@
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Pellicole</label>
+                <label class="block text-sm font-medium text-black mb-2">Films</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="films[]" id="album-films" multiple>
                   {% for film in films %}
                     <option value="{{ film.id }}" {% if film.id in filmIds %}selected{% endif %}>{{ film.brand }} {{ film.name }}</option>
@@ -506,7 +506,7 @@
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Sviluppatori</label>
+                <label class="block text-sm font-medium text-black mb-2">Developers</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="developers[]" id="album-developers" multiple>
                   {% for developer in developers %}
                     <option value="{{ developer.id }}" {% if developer.id in developerIds %}selected{% endif %}>{{ developer.name }}</option>
@@ -515,7 +515,7 @@
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Laboratori</label>
+                <label class="block text-sm font-medium text-black mb-2">Labs</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="labs[]" id="album-labs" multiple>
                   {% for lab in labs %}
                     <option value="{{ lab.id }}" {% if lab.id in labIds %}selected{% endif %}>{{ lab.name }}</option>
@@ -536,37 +536,37 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-map-marker-alt mr-3 text-gray-600"></i>
-                Luoghi e Sicurezza
+                Locations and Security
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Posizioni e protezione dell'album</p>
+              <p class="text-gray-600 text-sm mt-1">Positions and album protection</p>
             </div>
             <div class="p-6 space-y-4">
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Luoghi di scatto</label>
+                <label class="block text-sm font-medium text-black mb-2">Shooting Locations</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="locations[]" id="album-locations" multiple>
                   {% for loc in locations %}
                     <option value="{{ loc.id }}" {% if loc.id in locationIds %}selected{% endif %}>{{ loc.name }}</option>
                   {% endfor %}
                 </select>
-                <p class="text-xs text-gray-500 mt-1">Seleziona uno o più luoghi dove è stato girato l'album</p>
+                <p class="text-xs text-gray-500 mt-1">Select one or more locations where the album was shot</p>
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Password Album</label>
+                <label class="block text-sm font-medium text-black mb-2">Album Password</label>
                 <div class="space-y-3" id="password-section">
                   {% if item.password %}
                     <!-- Album has password -->
                     <div class="bg-green-50 border border-green-200 rounded-lg p-3" id="password-status">
                       <div class="flex items-center gap-2 mb-2">
                         <i class="fas fa-lock text-green-600"></i>
-                        <span class="text-sm font-medium text-green-800">Album protetto da password</span>
+                        <span class="text-sm font-medium text-green-800">Album protected by password</span>
                       </div>
                       <div class="flex gap-2">
                         <button type="button" id="change-password-btn" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                          <i class="fas fa-edit mr-1"></i>Cambia password
+                          <i class="fas fa-edit mr-1"></i>Change password
                         </button>
                         <button type="button" id="remove-password-btn" class="text-sm text-red-600 hover:text-red-800 font-medium">
-                          <i class="fas fa-times mr-1"></i>Rimuovi password
+                          <i class="fas fa-times mr-1"></i>Remove password
                         </button>
                       </div>
                     </div>
@@ -574,10 +574,10 @@
                     <div class="hidden" id="change-password-form">
                       <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
                              type="password" name="password" id="password-input"
-                             placeholder="Nuova password">
+                             placeholder="New password">
                       <div class="flex gap-2 mt-2">
-                        <button type="button" id="cancel-change-btn" class="btn-secondary text-sm">Annulla</button>
-                        <button type="button" id="save-change-btn" class="btn-primary text-sm">Cambia password</button>
+                        <button type="button" id="cancel-change-btn" class="btn-secondary text-sm">Cancel</button>
+                        <button type="button" id="save-change-btn" class="btn-primary text-sm">Change password</button>
                       </div>
                     </div>
                     
@@ -587,25 +587,25 @@
                     <div class="bg-gray-50 border border-gray-200 rounded-lg p-3" id="no-password-status">
                       <div class="flex items-center gap-2 mb-2">
                         <i class="fas fa-unlock text-gray-500"></i>
-                        <span class="text-sm text-gray-600">Album non protetto</span>
+                        <span class="text-sm text-gray-600">Album not protected</span>
                       </div>
                       <button type="button" id="add-password-btn" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                        <i class="fas fa-plus mr-1"></i>Aggiungi password
+                        <i class="fas fa-plus mr-1"></i>Add password
                       </button>
                     </div>
                     
                     <div class="hidden" id="add-password-form">
                       <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
                              type="password" name="password" id="new-password-input"
-                             placeholder="Inserisci password">
+                             placeholder="Enter password">
                       <div class="flex gap-2 mt-2">
-                        <button type="button" id="cancel-add-btn" class="btn-secondary text-sm">Annulla</button>
-                        <button type="button" id="save-add-btn" class="btn-primary text-sm">Aggiungi password</button>
+                        <button type="button" id="cancel-add-btn" class="btn-secondary text-sm">Cancel</button>
+                        <button type="button" id="save-add-btn" class="btn-primary text-sm">Add password</button>
                       </div>
                     </div>
                   {% endif %}
                 </div>
-                <p class="text-xs text-gray-500 mt-1">Proteggi l'album con una password per limitare l'accesso</p>
+                <p class="text-xs text-gray-500 mt-1">Protect the album with a password to limit access</p>
               </div>
             </div>
           </div>
@@ -628,11 +628,11 @@
       <div class="flex items-center gap-3">
         <button type="submit" form="album-form" class="btn-primary">
           <i class="fas fa-save mr-2"></i>
-          Salva Modifiche
+          Save Changes
         </button>
         <a href="{{ base_path }}/admin/albums" class="btn-secondary">
           <i class="fas fa-times mr-2"></i>
-          Annulla
+          Cancel
         </a>
       </div>
       
@@ -641,11 +641,11 @@
         {{ do_action('admin_album_footer_actions', {album: item, base_path: base_path}) }}
 
         <form method="post" action="{{ base_path }}/admin/albums/{{ item.id }}/delete" class="inline"
-              onsubmit="return confirm('Sei sicuro di voler eliminare questo album? Questa azione non può essere annullata.');">
+              onsubmit="return confirm('Are you sure you want to delete this album? This action cannot be undone.');">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button type="submit" class="btn-outline-danger">
             <i class="fas fa-trash mr-2"></i>
-            Elimina Album
+            Delete Album
           </button>
         </form>
       </div>
@@ -660,13 +660,13 @@
 <div id="image-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
   <div class="bg-white w-full max-w-5xl rounded-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
     <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
-      <h3 class="text-xl font-semibold text-gray-900">Modifica immagine</h3>
+      <h3 class="text-xl font-semibold text-gray-900">Edit image</h3>
       <button type="button" id="image-modal-close" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
     </div>
     <div class="flex flex-1 min-h-0">
       <!-- Image preview (larger column) -->
       <div class="w-2/3 bg-gray-100 flex items-center justify-center p-6">
-        <img id="modal-preview" src="" alt="" class="max-w-full max-h-full object-contain rounded-lg shadow-lg">
+        <img id="modal-preview" src="" alt="Image preview" class="max-w-full max-h-full object-contain rounded-lg shadow-lg">
       </div>
       <!-- Form + Actions (smaller column) -->
       <div class="w-1/3 flex flex-col bg-white min-h-0">
@@ -676,32 +676,32 @@
             <div class="space-y-4">
               <!-- Image Actions -->
               <div class="space-y-3">
-                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Azioni</h4>
+                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Actions</h4>
                 <div class="flex gap-2">
                   <button type="button" id="modal-cover-btn" class="flex-1 px-3 py-2 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-50">
                     <i class="fas fa-image mr-1"></i>Cover
                   </button>
                   <button type="button" id="modal-delete-btn" class="flex-1 px-3 py-2 text-xs rounded border border-red-300 text-red-700 hover:bg-red-50">
-                    <i class="fas fa-trash mr-1"></i>Elimina
+                    <i class="fas fa-trash mr-1"></i>Delete
                   </button>
                 </div>
               </div>
               
               <!-- Basic Info -->
               <div class="space-y-3">
-                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Informazioni base</h4>
+                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Basic Information</h4>
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">Alt text *</label>
                   <input type="text" name="alt_text" id="f-alt" class="form-input w-full text-sm">
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Titolo/Caption</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">Title/Caption</label>
                   <input type="text" name="caption" id="f-caption" class="form-input w-full text-sm">
                 </div>
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">Location</label>
                   <select name="location_id" id="f-location" class="form-input w-full text-sm">
-                    <option value="">Seleziona location...</option>
+                    <option value="">Select location...</option>
                     {% for loc in locations %}
                       <option value="{{ loc.id }}">{{ loc.name }}</option>
                     {% endfor %}
@@ -711,11 +711,11 @@
 
               <!-- Equipment -->
               <div class="space-y-3">
-                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Attrezzatura</h4>
+                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Equipment</h4>
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">Camera</label>
                   <select name="camera_id" id="f-camera" class="form-input w-full text-sm">
-                    <option value="">Seleziona camera...</option>
+                    <option value="">Select camera...</option>
                     {% for camera in cameras %}
                       <option value="{{ camera.id }}">{{ camera.make }} {{ camera.model }}</option>
                     {% endfor %}
@@ -724,7 +724,7 @@
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">Lens</label>
                   <select name="lens_id" id="f-lens" class="form-input w-full text-sm">
-                    <option value="">Seleziona lente...</option>
+                    <option value="">Select lens...</option>
                     {% for lens in lenses %}
                       <option value="{{ lens.id }}">{{ lens.brand }} {{ lens.model }}</option>
                     {% endfor %}
@@ -733,7 +733,7 @@
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">Film</label>
                   <select name="film_id" id="f-film" class="form-input w-full text-sm">
-                    <option value="">Seleziona pellicola...</option>
+                    <option value="">Select film...</option>
                     {% for film in films %}
                       <option value="{{ film.id }}">{{ film.brand }} {{ film.name }}</option>
                     {% endfor %}
@@ -742,7 +742,7 @@
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">Developer</label>
                   <select name="developer_id" id="f-developer" class="form-input w-full text-sm">
-                    <option value="">Seleziona developer...</option>
+                    <option value="">Select developer...</option>
                     {% for dev in developers %}
                       <option value="{{ dev.id }}">{{ dev.name }}</option>
                     {% endfor %}
@@ -751,7 +751,7 @@
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">Lab</label>
                   <select name="lab_id" id="f-lab" class="form-input w-full text-sm">
-                    <option value="">Seleziona lab...</option>
+                    <option value="">Select lab...</option>
                     {% for lab in labs %}
                       <option value="{{ lab.id }}">{{ lab.name }}</option>
                     {% endfor %}
@@ -761,7 +761,7 @@
 
               <!-- Custom Fields -->
               <div class="space-y-3">
-                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Campi personalizzati</h4>
+                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Custom Fields</h4>
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">Custom camera</label>
                   <input type="text" name="custom_camera" id="f-custom-camera" class="form-input w-full text-sm">
@@ -778,7 +778,7 @@
 
               <!-- Camera Settings -->
               <div class="space-y-3">
-                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Impostazioni scatto</h4>
+                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Shot Settings</h4>
                 <div class="grid grid-cols-3 gap-2">
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">ISO</label>
@@ -801,10 +801,10 @@
           </div>
           <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-end gap-3">
             <button type="button" id="image-cancel" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              Annulla
+              Cancel
             </button>
             <button type="submit" class="px-4 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-              Salva modifiche
+              Save changes
             </button>
           </div>
         </form>
@@ -815,11 +815,11 @@
   <div id="media-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
     <div class="bg-white w-full max-w-5xl rounded-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
       <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
-        <h3 class="text-xl font-semibold text-gray-900">Galleria</h3>
+        <h3 class="text-xl font-semibold text-gray-900">Gallery</h3>
         <button type="button" id="media-close" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
       </div>
       <div class="p-4 overflow-auto" id="media-body">
-        <div class="text-center text-gray-500">Caricamento…</div>
+        <div class="text-center text-gray-500">Loading...</div>
       </div>
     </div>
   </div>
@@ -879,9 +879,9 @@
           coverBtn.className = isCover 
             ? 'flex-1 px-3 py-2 text-xs rounded border bg-green-600 text-white border-green-600'
             : 'flex-1 px-3 py-2 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-50';
-          coverBtn.innerHTML = isCover 
-            ? '<i class="fas fa-check mr-1"></i>Cover attuale'
-            : '<i class="fas fa-image mr-1"></i>Imposta Cover';
+          coverBtn.innerHTML = isCover
+            ? '<i class="fas fa-check mr-1"></i>Current cover'
+            : '<i class="fas fa-image mr-1"></i>Set as Cover';
         }
       }
       
@@ -950,19 +950,19 @@
             } else {
               location.reload();
             }
-            if (window.showToast) showToast('Cover impostata', 'success');
+            if (window.showToast) showToast('Cover set', 'success');
           } else {
-            if (window.showToast) showToast('Errore impostazione cover', 'error');
+            if (window.showToast) showToast('Error setting cover', 'error');
           }
         } catch (error) {
           console.error('Error setting cover:', error);
-          if (window.showToast) showToast('Errore impostazione cover', 'error');
+          if (window.showToast) showToast('Error setting cover', 'error');
         }
       });
       
       modalDeleteBtn?.addEventListener('click', async () => {
         if (!currentId) return;
-        if (!confirm('Eliminare questa immagine?')) return;
+        if (!confirm('Delete this image?')) return;
         try {
           const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/${currentId}/delete`, { 
             method:'POST', 
@@ -977,13 +977,13 @@
               const card = document.querySelector(`[data-id="${currentId}"]`);
               card?.parentNode?.removeChild(card);
             }
-            if (window.showToast) showToast('Immagine eliminata', 'success');
+            if (window.showToast) showToast('Image deleted', 'success');
           } else {
-            if (window.showToast) showToast('Errore eliminazione', 'error');
+            if (window.showToast) showToast('Deletion error', 'error');
           }
         } catch (error) {
           console.error('Error deleting image:', error);
-          if (window.showToast) showToast('Errore eliminazione', 'error');
+          if (window.showToast) showToast('Deletion error', 'error');
         }
       });
       
@@ -1010,13 +1010,13 @@
             } else {
               location.reload();
             }
-            if (window.showToast) showToast('Modifiche salvate', 'success');
+            if (window.showToast) showToast('Changes saved', 'success');
           } else {
-            if (window.showToast) showToast('Errore nel salvataggio', 'error');
+            if (window.showToast) showToast('Save error', 'error');
           }
         } catch (error) {
           console.error('Error saving image:', error);
-          if (window.showToast) showToast('Errore nel salvataggio', 'error');
+          if (window.showToast) showToast('Save error', 'error');
         }
       });
       
@@ -1101,7 +1101,7 @@
       async function handleBulkDelete() {
         const ids = getSelectedIds(); 
         if (!ids.length) return; 
-        if (!confirm('Eliminare le immagini selezionate?')) return;
+        if (!confirm('Delete selected images?')) return;
         
         const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/bulk-delete`, { 
           method:'POST', 
@@ -1118,9 +1118,9 @@
             const el = document.querySelector(`[data-id="${id}"]`); 
             el?.parentNode?.removeChild(el); 
           });
-          if (window.showToast) showToast('Immagini eliminate', 'success');
+          if (window.showToast) showToast('Images deleted', 'success');
         } else {
-          if (window.showToast) showToast('Errore eliminazione', 'error');
+          if (window.showToast) showToast('Deletion error', 'error');
         }
       }
     }
@@ -1153,7 +1153,7 @@
       cancelAddBtn?.addEventListener('click', handleCancelAdd);
       
       function handleRemovePassword() {
-        if (confirm('Rimuovere la password dall\'album?')) {
+        if (confirm('Remove password from album?')) {
           if (passwordClearInput) passwordClearInput.value = '1';
           document.getElementById('album-form')?.submit();
         }
@@ -1200,9 +1200,9 @@
         const previewUrl = document.getElementById('seo-preview-url');
         const previewDescription = document.getElementById('seo-preview-description');
         
-        if (previewTitle) previewTitle.textContent = seoTitle || title || 'Titolo Album';
+        if (previewTitle) previewTitle.textContent = seoTitle || title || 'Album Title';
         if (previewUrl) previewUrl.textContent = `{{ base_path }}/album/${slug || '{{ item.slug }}' || 'album-slug'}`;
-        if (previewDescription) previewDescription.textContent = seoDescription || excerpt || 'Galleria fotografica professionale.';
+        if (previewDescription) previewDescription.textContent = seoDescription || excerpt || 'Professional photo gallery.';
       };
       
       // Remove existing listeners to prevent duplicates

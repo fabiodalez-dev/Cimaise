@@ -1,0 +1,310 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Frontend Texts — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Frontend Texts</h1>
+      <p class="text-gray-600 mt-1">Manage all translatable texts for the frontend</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="{{ base_path }}/admin/texts/export" class="btn-secondary">
+        <i class="fas fa-download mr-2"></i>Export JSON
+      </a>
+      <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" class="btn-secondary" onclick="return confirm('Add missing default translations?')">
+          <i class="fas fa-seedling mr-2"></i>Seed Defaults
+        </button>
+      </form>
+      <a href="{{ base_path }}/admin/texts/create" class="btn-primary">
+        <i class="fas fa-plus mr-2"></i>Add Text
+      </a>
+    </div>
+  </div>
+
+  {# Import/Upload translations card #}
+  <div class="card mb-6">
+    <div class="card-header bg-blue-50 border-b border-blue-200">
+      <h2 class="text-lg font-semibold text-blue-800 flex items-center">
+        <i class="fas fa-language mr-2"></i>Import Translations
+      </h2>
+    </div>
+    <div class="p-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {# Import from preset #}
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-3">Import from Preset Language</h3>
+          <form action="{{ base_path }}/admin/texts/import" method="post" class="space-y-3">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <div class="flex gap-2">
+              <select name="language" id="language-select" class="input flex-1">
+                <option value="">Select language...</option>
+              </select>
+              <select name="mode" class="input w-32">
+                <option value="merge">Merge</option>
+                <option value="replace">Replace All</option>
+                <option value="skip">Skip Existing</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-file-import mr-2"></i>Import
+              </button>
+              <span class="text-xs text-gray-500">
+                <strong>Merge:</strong> Update existing + add new |
+                <strong>Replace:</strong> Delete all, import fresh |
+                <strong>Skip:</strong> Only add new keys
+              </span>
+            </div>
+          </form>
+        </div>
+
+        {# Upload custom JSON #}
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-3">Upload Custom JSON File</h3>
+          <form action="{{ base_path }}/admin/texts/upload" method="post" enctype="multipart/form-data" class="space-y-3">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <div class="flex gap-2">
+              <input type="file" name="json_file" accept=".json" class="input flex-1 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+              <select name="mode" class="input w-32">
+                <option value="merge">Merge</option>
+                <option value="replace">Replace All</option>
+                <option value="skip">Skip Existing</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-4">
+              <label class="flex items-center text-sm text-gray-600">
+                <input type="checkbox" name="save_file" value="1" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                Save as preset language
+              </label>
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-upload mr-2"></i>Upload & Import
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Search and filter bar #}
+  <div class="card mb-6">
+    <div class="p-4">
+      <form method="get" class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-[200px]">
+          <input type="text" name="search" value="{{ search }}" placeholder="Search texts..."
+                 class="input w-full">
+        </div>
+        <div class="w-48">
+          <select name="context" class="input w-full">
+            <option value="">All contexts</option>
+            {% for ctx in contexts %}
+              <option value="{{ ctx }}" {% if ctx == current_context %}selected{% endif %}>{{ ctx|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-search mr-2"></i>Search
+        </button>
+        {% if search or current_context %}
+          <a href="{{ base_path }}/admin/texts" class="btn-secondary">
+            <i class="fas fa-times mr-2"></i>Clear
+          </a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  {# Grouped texts #}
+  {% for context, texts in grouped %}
+    <div class="card mb-6">
+      <div class="card-header bg-gray-50 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 mr-3 text-sm">
+            {{ texts|length }}
+          </span>
+          {{ context|capitalize }}
+        </h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Key</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Description</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for text in texts %}
+              <tr class="hover:bg-gray-50" data-text-id="{{ text.id }}">
+                <td class="px-4 py-3">
+                  <code class="text-sm bg-gray-100 px-2 py-1 rounded text-gray-800">{{ text.text_key }}</code>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="inline-edit-container" data-id="{{ text.id }}">
+                    <span class="text-value text-gray-900">{{ text.text_value }}</span>
+                    <input type="text" class="text-input input hidden w-full" value="{{ text.text_value }}">
+                    <div class="edit-actions hidden mt-2 flex gap-2">
+                      <button type="button" class="save-btn btn-sm btn-primary">Save</button>
+                      <button type="button" class="cancel-btn btn-sm btn-secondary">Cancel</button>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-500">{{ text.description }}</td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <div class="flex items-center justify-end gap-2">
+                    <button type="button" class="edit-inline-btn inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" title="Quick edit">
+                      <i class="fas fa-pen-to-square mr-1"></i>Quick
+                    </button>
+                    <a href="{{ base_path }}/admin/texts/{{ text.id }}/edit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200" title="Full edit">
+                      <i class="fas fa-edit mr-1"></i>Edit
+                    </a>
+                    <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" onsubmit="return confirm('Delete this text?')">
+                      <input type="hidden" name="csrf" value="{{ csrf }}">
+                      <input type="hidden" name="_method" value="DELETE">
+                      <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200" title="Delete">
+                        <i class="fas fa-trash mr-1"></i>Delete
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="card">
+      <div class="p-8 text-center">
+        <i class="fas fa-language text-4xl text-gray-400 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No texts found</h3>
+        <p class="text-gray-600 mb-4">
+          {% if search or current_context %}
+            No texts match your search criteria.
+          {% else %}
+            Start by seeding the default translations or adding custom texts.
+          {% endif %}
+        </p>
+        <div class="flex justify-center gap-4">
+          <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-seedling mr-2"></i>Seed Defaults
+            </button>
+          </form>
+          <a href="{{ base_path }}/admin/texts/create" class="btn-secondary">
+            <i class="fas fa-plus mr-2"></i>Add Text
+          </a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Load available languages for the dropdown
+      async function loadLanguages() {
+        try {
+          const response = await fetch('{{ base_path }}/admin/texts/languages');
+          const data = await response.json();
+          const select = document.getElementById('language-select');
+
+          if (data.languages && data.languages.length > 0) {
+            data.languages.forEach(lang => {
+              const option = document.createElement('option');
+              option.value = lang.code;
+              option.textContent = `${lang.name} (${lang.code}) - v${lang.version}`;
+              select.appendChild(option);
+            });
+          } else {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No preset languages available';
+            option.disabled = true;
+            select.appendChild(option);
+          }
+        } catch (error) {
+          console.error('Failed to load languages:', error);
+        }
+      }
+
+      loadLanguages();
+
+      // Inline editing functionality - using event delegation for reliability
+      document.addEventListener('click', function(e) {
+        // Quick Edit button
+        if (e.target.closest('.edit-inline-btn')) {
+          e.preventDefault();
+          const btn = e.target.closest('.edit-inline-btn');
+          const row = btn.closest('tr');
+          const container = row.querySelector('.inline-edit-container');
+          if (container) {
+            const textValue = container.querySelector('.text-value');
+            const textInput = container.querySelector('.text-input');
+            const editActions = container.querySelector('.edit-actions');
+
+            textValue.classList.add('hidden');
+            textInput.classList.remove('hidden');
+            editActions.classList.remove('hidden');
+            textInput.focus();
+          }
+        }
+
+        // Cancel button
+        if (e.target.closest('.cancel-btn')) {
+          e.preventDefault();
+          const container = e.target.closest('.inline-edit-container');
+          if (container) {
+            const textValue = container.querySelector('.text-value');
+            const textInput = container.querySelector('.text-input');
+            const editActions = container.querySelector('.edit-actions');
+
+            textInput.value = textValue.textContent;
+            textValue.classList.remove('hidden');
+            textInput.classList.add('hidden');
+            editActions.classList.add('hidden');
+          }
+        }
+
+        // Save button
+        if (e.target.closest('.save-btn')) {
+          e.preventDefault();
+          const btn = e.target.closest('.save-btn');
+          const container = btn.closest('.inline-edit-container');
+          if (container) {
+            const id = container.dataset.id;
+            const textValue = container.querySelector('.text-value');
+            const textInput = container.querySelector('.text-input');
+            const editActions = container.querySelector('.edit-actions');
+
+            fetch(`{{ base_path }}/admin/texts/${id}/inline`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '{{ csrf }}'
+              },
+              body: JSON.stringify({ text_value: textInput.value })
+            })
+            .then(response => response.json())
+            .then(result => {
+              if (result.success) {
+                textValue.textContent = textInput.value;
+                textValue.classList.remove('hidden');
+                textInput.classList.add('hidden');
+                editActions.classList.add('hidden');
+              } else {
+                alert('Failed to save: ' + (result.error || 'Unknown error'));
+              }
+            })
+            .catch(error => {
+              alert('Failed to save: ' + error.message);
+            });
+          }
+        }
+      });
+    });
+  </script>
+{% endblock %}

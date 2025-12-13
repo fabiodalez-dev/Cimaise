@@ -43,15 +43,15 @@ class UploadController extends BaseController
         $uploadError = $file->getError();
         if ($uploadError !== UPLOAD_ERR_OK) {
             $errorMessages = [
-                UPLOAD_ERR_INI_SIZE => 'File troppo grande (supera upload_max_filesize)',
-                UPLOAD_ERR_FORM_SIZE => 'File troppo grande (supera MAX_FILE_SIZE)',
-                UPLOAD_ERR_PARTIAL => 'Upload incompleto',
-                UPLOAD_ERR_NO_FILE => 'Nessun file caricato',
-                UPLOAD_ERR_NO_TMP_DIR => 'Cartella temporanea mancante',
-                UPLOAD_ERR_CANT_WRITE => 'Errore di scrittura su disco',
-                UPLOAD_ERR_EXTENSION => 'Upload bloccato da estensione PHP'
+                UPLOAD_ERR_INI_SIZE => 'File too large (exceeds upload_max_filesize)',
+                UPLOAD_ERR_FORM_SIZE => 'File too large (exceeds MAX_FILE_SIZE)',
+                UPLOAD_ERR_PARTIAL => 'Incomplete upload',
+                UPLOAD_ERR_NO_FILE => 'No file uploaded',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                UPLOAD_ERR_CANT_WRITE => 'Disk write error',
+                UPLOAD_ERR_EXTENSION => 'Upload blocked by PHP extension'
             ];
-            $errorMsg = $errorMessages[$uploadError] ?? "Errore upload sconosciuto: $uploadError";
+            $errorMsg = $errorMessages[$uploadError] ?? "Unknown upload error: $uploadError";
             $response->getBody()->write(json_encode(['ok'=>false,'error'=>$errorMsg]));
             return $response->withStatus(400)->withHeader('Content-Type','application/json');
         }
