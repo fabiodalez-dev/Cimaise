@@ -383,6 +383,10 @@
             <i class="fas fa-times"></i>
           </button>
         </div>
+
+        {# Hook: admin_sidebar_before - Before all sidebar sections #}
+        {{ do_action('admin_sidebar_before', {base_path: base_path}) }}
+
         <!-- Main Navigation -->
         <div class="mb-8">
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">NAVIGATION</p>
@@ -408,6 +412,8 @@
             <a href="{{ base_path }}/admin/pages" class="sidebar-link" data-spa-link>
               <i class="fas fa-file-alt"></i>Pages
             </a>
+            {# Hook: admin_sidebar_navigation - Add custom navigation items #}
+            {{ do_action('admin_sidebar_navigation', {base_path: base_path}) }}
           </div>
         </div>
 
@@ -433,8 +439,13 @@
             <a href="{{ base_path }}/admin/locations" class="sidebar-link" data-spa-link>
               <i class="fas fa-location-dot"></i>Locations
             </a>
+            {# Hook: admin_sidebar_metadata - Add custom metadata menu items #}
+            {{ do_action('admin_sidebar_metadata', {base_path: base_path}) }}
           </div>
         </div>
+
+        {# Hook: admin_sidebar_section - Add a completely new sidebar section #}
+        {{ do_action('admin_sidebar_section', {base_path: base_path}) }}
 
         <!-- System -->
         <div>
@@ -468,8 +479,13 @@
             <a href="{{ base_path }}/admin/diagnostics" class="sidebar-link" data-spa-link>
               <i class="fas fa-stethoscope"></i>Diagnostics
             </a>
+            {# Hook: admin_sidebar_system - Add custom system menu items #}
+            {{ do_action('admin_sidebar_system', {base_path: base_path}) }}
           </div>
         </div>
+
+        {# Hook: admin_sidebar_after - After all sidebar sections #}
+        {{ do_action('admin_sidebar_after', {base_path: base_path}) }}
       </div>
     </div>
 
