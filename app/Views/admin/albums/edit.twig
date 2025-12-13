@@ -1,6 +1,9 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}Modifica album — photoCMS{% endblock %}
 {% block content %}
+{# Hook: admin_album_edit_before - Before the entire edit page #}
+{{ do_action('admin_album_edit_before', {album: item, base_path: base_path}) }}
+
 <div class="min-h-screen bg-gray-50 pb-24">
   <!-- Header -->
   <div class="bg-white border-b border-gray-200">
@@ -23,6 +26,8 @@
             <i class="fas fa-cog mr-2"></i>
             Impostazioni
           </a>
+          {# Hook: admin_album_edit_header_actions - Add custom header buttons #}
+          {{ do_action('admin_album_edit_header_actions', {album: item, base_path: base_path}) }}
         </div>
       </div>
     </div>
@@ -95,14 +100,19 @@
               
               <div>
                 <label class="block text-sm font-medium text-black mb-2">Contenuto Completo</label>
-                <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black" 
-                          name="body" rows="32" 
+                <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black"
+                          name="body" rows="32"
                           placeholder="Descrizione completa con formattazione...">{{ item.body }}</textarea>
                 <p class="text-xs text-gray-500 mt-1">Supporta formattazione ricca: grassetto, corsivo, elenchi, link</p>
               </div>
+
+              {# Hook: admin_album_form_basic_info_fields - Add custom fields inside basic info card #}
+              {{ do_action('admin_album_form_basic_info_fields', {album: item, base_path: base_path}) }}
             </div>
           </div>
 
+          {# Hook: admin_album_form_basic_info_after - Add custom cards after basic info #}
+          {{ do_action('admin_album_form_basic_info_after', {album: item, base_path: base_path}) }}
 
           <!-- Images Management Card -->
           <div class="card">
@@ -219,6 +229,9 @@
               <div class="text-gray-500 text-sm mt-2">Trascina per riordinare oppure usa il selettore per ordinare per data/ID; clicca "Salva ordine" per persistere.</div>
             </div>
           </div>
+
+          {# Hook: admin_album_form_images_after - Add custom content after images section #}
+          {{ do_action('admin_album_form_images_after', {album: item, images: images, base_path: base_path}) }}
 
           <!-- SEO & Schema Markup (Optional) -->
           <div class="card">
@@ -383,10 +396,16 @@
               </div>
             </div>
           </div>
+
+          {# Hook: admin_album_form_main_after - Add custom cards after all main content #}
+          {{ do_action('admin_album_form_main_after', {album: item, base_path: base_path}) }}
         </div>
 
         <!-- Sidebar -->
         <div class="xl:col-span-3 space-y-6">
+          {# Hook: admin_album_sidebar_before - Before sidebar cards #}
+          {{ do_action('admin_album_sidebar_before', {album: item, base_path: base_path}) }}
+
           <!-- Publishing Settings Card -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
@@ -446,6 +465,9 @@
             </div>
           </div>
 
+          {# Hook: admin_album_sidebar_publishing_after - After publishing settings card #}
+          {{ do_action('admin_album_sidebar_publishing_after', {album: item, base_path: base_path}) }}
+
           <!-- Equipment Card -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
@@ -500,8 +522,14 @@
                   {% endfor %}
                 </select>
               </div>
+
+              {# Hook: admin_album_equipment_fields - Add custom equipment fields (film types, accessories, etc.) #}
+              {{ do_action('admin_album_equipment_fields', {album: item, base_path: base_path, cameras: cameras, lenses: lenses, films: films, developers: developers, labs: labs}) }}
             </div>
           </div>
+
+          {# Hook: admin_album_sidebar_equipment_after - After equipment card (add custom metadata cards) #}
+          {{ do_action('admin_album_sidebar_equipment_after', {album: item, base_path: base_path}) }}
 
           <!-- Locations and Security Card -->
           <div class="card">
@@ -581,8 +609,14 @@
               </div>
             </div>
           </div>
+
+          {# Hook: admin_album_sidebar_after - Add custom sidebar cards at the end #}
+          {{ do_action('admin_album_sidebar_after', {album: item, base_path: base_path}) }}
         </div>
       </div>
+
+      {# Hook: admin_album_form_end - Add hidden inputs or custom form elements #}
+      {{ do_action('admin_album_form_end', {album: item, base_path: base_path}) }}
     </form>
   </div>
 </div>
@@ -603,7 +637,10 @@
       </div>
       
       <div class="flex items-center gap-3">
-        <form method="post" action="{{ base_path }}/admin/albums/{{ item.id }}/delete" class="inline" 
+        {# Hook: admin_album_footer_actions - Add custom action buttons #}
+        {{ do_action('admin_album_footer_actions', {album: item, base_path: base_path}) }}
+
+        <form method="post" action="{{ base_path }}/admin/albums/{{ item.id }}/delete" class="inline"
               onsubmit="return confirm('Sei sicuro di voler eliminare questo album? Questa azione non può essere annullata.');">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button type="submit" class="btn-outline-danger">
@@ -615,6 +652,9 @@
     </div>
   </div>
 </div>
+
+{# Hook: admin_album_edit_after - After the entire page (for modals, scripts, etc.) #}
+{{ do_action('admin_album_edit_after', {album: item, base_path: base_path}) }}
 
 <!-- Modal edit image -->
 <div id="image-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
@@ -754,6 +794,9 @@
                   </div>
                 </div>
               </div>
+
+              {# Hook: admin_album_image_modal_fields - Add custom fields to image edit modal #}
+              {{ do_action('admin_album_image_modal_fields', {album: item, base_path: base_path}) }}
             </div>
           </div>
           <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-end gap-3">

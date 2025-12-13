@@ -1,12 +1,39 @@
 {% extends "frontend/_layout.twig" %}
 
 {% block content %}
+{# Hook: frontend_home_before - Before all home page content #}
+{{ do_action('frontend_home_before', {base_path: base_path}) }}
+
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  {# Hook: frontend_home_hero_before - Before hero section #}
+  {{ do_action('frontend_home_hero_before', {base_path: base_path}) }}
+
   {% include 'frontend/home/_hero.twig' %}
+
+  {# Hook: frontend_home_hero_after - After hero section #}
+  {{ do_action('frontend_home_hero_after', {base_path: base_path}) }}
+
+  {# Hook: frontend_home_gallery_before - Before infinite gallery #}
+  {{ do_action('frontend_home_gallery_before', {base_path: base_path}) }}
+
   {% include 'frontend/home/_infinite_gallery.twig' %}
+
+  {# Hook: frontend_home_gallery_after - After infinite gallery #}
+  {{ do_action('frontend_home_gallery_after', {base_path: base_path}) }}
+
   <div class="home-infinite-spacer h-24"></div>
+
+  {# Hook: frontend_home_carousel_before - Before albums carousel #}
+  {{ do_action('frontend_home_carousel_before', {base_path: base_path}) }}
+
   {% include 'frontend/home/_albums_carousel.twig' %}
+
+  {# Hook: frontend_home_carousel_after - After albums carousel #}
+  {{ do_action('frontend_home_carousel_after', {base_path: base_path}) }}
 </div>
+
+{# Hook: frontend_home_after - After all home page content #}
+{{ do_action('frontend_home_after', {base_path: base_path}) }}
 {% endblock %}
 
 
