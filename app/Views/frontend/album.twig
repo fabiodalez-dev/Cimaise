@@ -413,14 +413,19 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
             });
         }
         
-        // Animate filtered results
+        // Animate filtered results - use direct children only
         if (typeof gsap !== 'undefined') {
-            gsap.from('.image-item', {
-                opacity: 0,
-                y: 20,
-                duration: 0.6,
-                stagger: 0.03
-            });
+            const newItems = Array.from(gallery.children).filter(n => !n.hasAttribute('data-animated'));
+            if (newItems.length > 0) {
+                newItems.forEach(n => n.setAttribute('data-animated', '1'));
+                gsap.to(newItems, {
+                    opacity: 1,
+                    scale: 1,
+                    duration: 0.35,
+                    stagger: { amount: Math.min(0.25, newItems.length * 0.02), from: 'start' },
+                    ease: 'power3.out'
+                });
+            }
         }
         
     } catch (error) {
@@ -430,22 +435,16 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
 
 // Initialize PhotoSwipe lightbox (handled by main layout)
 
-// Elegant GSAP Animations
+// GSAP Animations for album header/meta elements
 document.addEventListener('DOMContentLoaded', function() {
-    // Check for reduced motion preference
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion || typeof gsap === 'undefined') return;
 
-    if (prefersReducedMotion || typeof gsap === 'undefined') {
-        // Skip animations if reduced motion is preferred or GSAP not loaded
-        return;
-    }
-
-    // Register ScrollTrigger
     if (typeof ScrollTrigger !== 'undefined') {
         gsap.registerPlugin(ScrollTrigger);
     }
 
-    // Hero/Header entrance animations with stagger
+    // Hero/Header entrance animations
     const headerElements = [
         '[data-gsap="breadcrumb"]',
         '[data-gsap="category"]',
@@ -456,17 +455,11 @@ document.addEventListener('DOMContentLoaded', function() {
     headerElements.forEach((selector, index) => {
         const el = document.querySelector(selector);
         if (el) {
-            gsap.from(el, {
-                opacity: 0,
-                y: 20,
-                duration: 0.6,
-                delay: index * 0.1,
-                ease: 'power2.out'
-            });
+            gsap.from(el, { opacity: 0, y: 20, duration: 0.6, delay: index * 0.1, ease: 'power2.out' });
         }
     });
 
-    // Excerpt and metadata with slight delay
+    // Excerpt and metadata
     const metaElements = [
         '[data-gsap="hero-excerpt"]',
         '[data-gsap="excerpt"]',
@@ -480,36 +473,11 @@ document.addEventListener('DOMContentLoaded', function() {
     metaElements.forEach((selector, index) => {
         const el = document.querySelector(selector);
         if (el) {
-            gsap.from(el, {
-                opacity: 0,
-                y: 15,
-                duration: 0.5,
-                delay: 0.4 + (index * 0.08),
-                ease: 'power2.out'
-            });
+            gsap.from(el, { opacity: 0, y: 15, duration: 0.5, delay: 0.4 + (index * 0.08), ease: 'power2.out' });
         }
     });
 
-    // Image gallery items with staggered entrance
-    const imageGallery = document.getElementById('images-gallery');
-    if (imageGallery) {
-        const imageItems = imageGallery.querySelectorAll('.image-item, .masonry-item, .swiper-slide');
-
-        if (imageItems.length > 0) {
-            gsap.from(imageItems, {
-                opacity: 0,
-                y: 30,
-                duration: 0.7,
-                stagger: {
-                    amount: 0.6,
-                    from: 'start',
-                    ease: 'power2.out'
-                },
-                delay: 0.7,
-                ease: 'power2.out'
-            });
-        }
-    }
+    // NOTE: #images-gallery animation is handled by _layout.twig animateGalleryOnce()
 
     // Related albums section with scroll trigger
     const relatedTitle = document.querySelector('[data-gsap="related-title"]');

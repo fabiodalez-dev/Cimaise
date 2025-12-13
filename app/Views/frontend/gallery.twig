@@ -122,7 +122,7 @@
   {% if available_templates|length > 0 %}
   <div class="max-w-7xl mx-auto mb-2">
     <div class="flex justify-end">
-      <div class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm">
+      <div id="template-switcher" class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm" style="opacity: 0; transform: translateX(20px);">
         {% for template in available_templates %}
         <button type="button" class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" title="{{ template.name }}" aria-label="{{ template.name }}">
           {% if template.settings.layout == 'masonry_fit' %}
@@ -812,7 +812,22 @@ document.addEventListener('click', function(event) {
         } else {
           initializeGalleryLayout();
         }
-        setTimeout(() => { galleryContainer.style.opacity = '1'; galleryContainer.style.transition = 'none'; }, 50);
+        // Trigger entrance animation for new gallery items (run before container shows)
+        if (typeof window.animateGalleryOnce === 'function') {
+          window.animateGalleryOnce();
+        }
+        // Show container after animation starts
+        setTimeout(() => {
+          galleryContainer.style.opacity = '1';
+          galleryContainer.style.transition = 'none';
+          // Fallback: force items visible if animation failed
+          galleryContainer.querySelectorAll('.masonry-item, .image-item').forEach(el => {
+            if (!el.hasAttribute('data-animated')) {
+              el.style.opacity = '1';
+              el.style.transform = 'scale(1)';
+            }
+          });
+        }, 80);
       }, 50);
     })
     .catch(err => {
@@ -871,39 +886,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Template switcher buttons
-    const templateSwitcher = document.querySelector('.tpl-switch');
-    if (templateSwitcher && templateSwitcher.parentElement) {
-        gsap.from(templateSwitcher.parentElement, {
-            opacity: 0,
-            x: 20,
+    // Template switcher buttons (hidden initially, animate to visible)
+    const templateSwitcher = document.getElementById('template-switcher');
+    if (templateSwitcher) {
+        gsap.to(templateSwitcher, {
+            opacity: 1,
+            x: 0,
             duration: 0.5,
             delay: 0.6,
             ease: 'power2.out'
         });
     }
 
-    // Image gallery items with staggered entrance
-    setTimeout(() => {
-        const imageGallery = document.getElementById('images-gallery');
-        if (imageGallery) {
-            const imageItems = imageGallery.querySelectorAll('.image-item, .masonry-item, .swiper-slide, .polaroid-item, .mosaic-item, .grid-minimal-item');
-
-            if (imageItems.length > 0) {
-                gsap.from(imageItems, {
-                    opacity: 0,
-                    y: 30,
-                    duration: 0.7,
-                    stagger: {
-                        amount: Math.min(0.8, imageItems.length * 0.03),
-                        from: 'start',
-                        ease: 'power2.out'
-                    },
-                    ease: 'power2.out'
-                });
-            }
-        }
-    }, 100);
+    // Gallery animation handled by animateGalleryOnce in _layout.twig
+    // DO NOT add duplicate animation here
 
     // Subtle hover enhancement for image items (GPU-accelerated)
     const allImageItems = document.querySelectorAll('.image-item, .pswp-link');

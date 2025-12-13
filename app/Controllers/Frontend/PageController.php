@@ -530,12 +530,8 @@ class PageController extends BaseController
                 $vg->execute([':id' => $image['id']]);
                 if ($vgr = $vg->fetch()) { if (!empty($vgr['path'])) { $bestUrl = $vgr['path']; } }
 
-                // Lightbox: same rule, ensure highest quality
-                $vl = $pdo->prepare("SELECT path FROM image_variants 
-                    WHERE image_id = :id AND path NOT LIKE '/storage/%' 
-                    ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
-                $vl->execute([':id' => $image['id']]);
-                if ($vlr = $vl->fetch()) { if (!empty($vlr['path'])) { $lightboxUrl = $vlr['path']; } }
+                // Lightbox: keep original path if accessible (not in /storage/)
+                // Only use variants as fallback if original is not publicly accessible
             } catch (\Throwable $e) {
                 error_log('Error fetching image variants: ' . $e->getMessage());
             }
@@ -820,12 +816,8 @@ class PageController extends BaseController
                     $vr = $v->fetch();
                     if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
                     
-                    $lv = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') ORDER BY CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 ELSE 9 END, width DESC LIMIT 1");
-                    $lv->execute([':id' => $img['id']]);
-                    $lvr = $lv->fetch();
-                    if ($lvr && !empty($lvr['path']) && !str_starts_with((string)$lvr['path'], '/storage/')) {
-                        $lightboxUrl = $lvr['path'];
-                    }
+                    // Lightbox: keep original_path for best quality
+                    // Only fallback to variants if original is in /storage/ (not public)
                 } catch (\Throwable $e) {
                     error_log('Error fetching image variants: ' . $e->getMessage());
                 }
