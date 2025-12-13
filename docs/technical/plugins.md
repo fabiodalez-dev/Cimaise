@@ -235,7 +235,7 @@ Located in: `app/Views/frontend/category.twig`
 
 ### Plugin Structure
 
-```
+```text
 plugins/
 └── my-plugin/
     ├── plugin.json
@@ -326,6 +326,36 @@ The following Twig functions are available for hooks:
 {# Alternative syntax for action hooks #}
 {{ hook('hook_name', {key: value}) }}
 ```
+
+---
+
+## Security Considerations
+
+> ⚠️ **Important**: Plugins can execute arbitrary PHP code. Always follow security best practices when developing or installing plugins.
+
+### Preventing XSS (Cross-Site Scripting)
+
+All plugin output that includes user-supplied or database content **must be properly escaped** to prevent XSS attacks:
+
+```php
+// ❌ DANGEROUS - Never do this
+echo '<div>' . $userInput . '</div>';
+
+// ✅ SAFE - Always escape output
+echo '<div>' . htmlspecialchars($userInput, ENT_QUOTES, 'UTF-8') . '</div>';
+
+// ✅ SAFE - Using short function
+echo '<div>' . e($userInput) . '</div>';
+```
+
+### Plugin Security Checklist
+
+- [ ] Escape all dynamic content with `htmlspecialchars()` or `e()`
+- [ ] Validate and sanitize all user inputs
+- [ ] Use prepared statements for database queries
+- [ ] Never trust data from `$_GET`, `$_POST`, or `$_REQUEST`
+- [ ] Verify user permissions before sensitive operations
+- [ ] Only install plugins from trusted sources
 
 ---
 
