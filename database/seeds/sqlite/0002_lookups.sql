@@ -1,2 +1,0 @@
--- Lookup seed data (SQLite version)
--- Users will add their own cameras, lenses, films, developers, and labs as needed
