@@ -193,6 +193,13 @@ class TextsController extends BaseController
      */
     public function inlineUpdate(Request $request, Response $response, array $args): Response
     {
+        // Validate CSRF token from header
+        $csrf = $request->getHeaderLine('X-CSRF-Token');
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $response->getBody()->write(json_encode(['success' => false, 'error' => 'Invalid CSRF token']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
+        }
+
         $id = (int)($args['id'] ?? 0);
         $data = (array)$request->getParsedBody();
 

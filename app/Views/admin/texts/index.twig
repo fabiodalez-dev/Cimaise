@@ -86,19 +86,21 @@
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-500">{{ text.description }}</td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                  <button type="button" class="edit-inline-btn text-blue-600 hover:text-blue-800 mr-2" title="Quick edit">
-                    <i class="fas fa-pen-to-square"></i>
-                  </button>
-                  <a href="{{ base_path }}/admin/texts/{{ text.id }}/edit" class="text-gray-600 hover:text-gray-800 mr-2" title="Full edit">
-                    <i class="fas fa-edit"></i>
-                  </a>
-                  <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" onsubmit="return confirm('Delete this text?')">
-                    <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <input type="hidden" name="_method" value="DELETE">
-                    <button type="submit" class="text-red-600 hover:text-red-800" title="Delete">
-                      <i class="fas fa-trash"></i>
+                  <div class="flex items-center justify-end gap-2">
+                    <button type="button" class="edit-inline-btn inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" title="Quick edit">
+                      <i class="fas fa-pen-to-square mr-1"></i>Quick
                     </button>
-                  </form>
+                    <a href="{{ base_path }}/admin/texts/{{ text.id }}/edit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200" title="Full edit">
+                      <i class="fas fa-edit mr-1"></i>Edit
+                    </a>
+                    <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" onsubmit="return confirm('Delete this text?')">
+                      <input type="hidden" name="csrf" value="{{ csrf }}">
+                      <input type="hidden" name="_method" value="DELETE">
+                      <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200" title="Delete">
+                        <i class="fas fa-trash mr-1"></i>Delete
+                      </button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             {% endfor %}
@@ -176,7 +178,10 @@
           try {
             const response = await fetch(`{{ base_path }}/admin/texts/${id}/inline`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '{{ csrf }}'
+              },
               body: JSON.stringify({ text_value: textInput.value })
             });
 
