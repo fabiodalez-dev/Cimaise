@@ -1,17 +1,17 @@
--- Migration: 0016_filter_settings.sql
+-- Migration: 0016_filter_settings.sql - MySQL Version
 -- Create filter settings table for galleries page configuration
 
 CREATE TABLE IF NOT EXISTS filter_settings (
-    setting_key TEXT PRIMARY KEY,
+    setting_key VARCHAR(255) PRIMARY KEY,
     setting_value TEXT NOT NULL,
     description TEXT,
-    sort_order INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insert default filter settings
-INSERT INTO filter_settings (setting_key, setting_value, description, sort_order) VALUES
+INSERT IGNORE INTO filter_settings (setting_key, setting_value, description, sort_order) VALUES
 ('enabled', '1', 'Enable/disable filter functionality', 1),
 ('show_categories', '1', 'Show categories filter', 2),
 ('show_tags', '1', 'Show tags filter', 3),
@@ -28,10 +28,3 @@ INSERT INTO filter_settings (setting_key, setting_value, description, sort_order
 ('grid_gap', 'normal', 'Grid gap size (small, normal, large)', 14),
 ('animation_enabled', '1', 'Enable GSAP animations', 15),
 ('animation_duration', '0.6', 'Animation duration in seconds', 16);
-
--- Create trigger to update updated_at timestamp
-CREATE TRIGGER filter_settings_updated_at 
-    AFTER UPDATE ON filter_settings
-BEGIN
-    UPDATE filter_settings SET updated_at = CURRENT_TIMESTAMP WHERE setting_key = NEW.setting_key;
-END;

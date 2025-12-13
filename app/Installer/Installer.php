@@ -573,6 +573,10 @@ class Installer
         $sessionSecret = bin2hex(random_bytes(32));
         error_log('Installer: Session secret generated: ' . $sessionSecret);
         $envContent .= "\nSESSION_SECRET=" . $sessionSecret . "\n";
+
+        // Fast upload: only generate preview during upload, full variants via CLI
+        $envContent .= "\n# Fast upload: only generate preview during upload, full variants later\n";
+        $envContent .= "FAST_UPLOAD=true\n";
         
         $envFilePath = $this->rootPath . '/.env';
         error_log('Installer: Writing .env file to: ' . $envFilePath);
