@@ -224,8 +224,8 @@ class PageController extends BaseController
         
         if (!$album) {
             return $this->view->render($response->withStatus(404), 'frontend/404.twig', [
-                'page_title' => '404 — Album non trovato',
-                'meta_description' => 'Album non trovato o non pubblicato'
+                'page_title' => '404 — Album not found',
+                'meta_description' => 'Album not found or unpublished'
             ]);
         }
 
@@ -253,7 +253,7 @@ class PageController extends BaseController
                 return $this->view->render($response, 'frontend/album_password.twig', [
                     'album' => $album,
                     'categories' => $navCategories,
-                    'page_title' => $album['title'] . ' — Protetto',
+                    'page_title' => $album['title'] . ' — Protected',
                     'error' => $error,
                     'csrf' => $_SESSION['csrf'] ?? ''
                 ]);
@@ -316,7 +316,7 @@ class PageController extends BaseController
             // Final fallback to a basic grid if no template could be resolved at all
             $template = [
                 'id' => 0,
-                'name' => 'Grid Semplice',
+                'name' => 'Simple Grid',
                 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])
             ];
             $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
@@ -937,8 +937,8 @@ class PageController extends BaseController
         
         if (!$tag) {
             return $this->view->render($response->withStatus(404), 'frontend/404.twig', [
-                'page_title' => '404 — Tag non trovato',
-                'meta_description' => 'Tag non trovato'
+                'page_title' => '404 — Tag not found',
+                'meta_description' => 'Tag not found'
             ]);
         }
         

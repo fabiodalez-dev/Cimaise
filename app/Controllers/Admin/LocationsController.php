@@ -37,15 +37,15 @@ class LocationsController extends BaseController
         $slug = trim((string)($data['slug'] ?? ''));
         $desc = trim((string)($data['description'] ?? '')) ?: null;
         if ($name === '' || $slug === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name e slug sono obbligatori'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name and slug are required'];
             return $response->withHeader('Location', $this->redirect('/admin/locations/create'))->withStatus(302);
         }
         try {
             $this->locations->create(['name' => $name, 'slug' => $slug, 'description' => $desc]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location creata'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location created'];
             return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
             return $response->withHeader('Location', $this->redirect('/admin/locations/create'))->withStatus(302);
         }
     }
@@ -69,14 +69,14 @@ class LocationsController extends BaseController
         $slug = trim((string)($data['slug'] ?? ''));
         $desc = trim((string)($data['description'] ?? '')) ?: null;
         if ($name === '' || $slug === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name e slug sono obbligatori'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name and slug are required'];
             return $response->withHeader('Location', $this->redirect('/admin/locations/' . $id . '/edit'))->withStatus(302);
         }
         try {
             $this->locations->update($id, ['name' => $name, 'slug' => $slug, 'description' => $desc]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location aggiornata'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location updated'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
         }
         return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
     }
@@ -86,9 +86,9 @@ class LocationsController extends BaseController
         $id = (int)($args['id'] ?? 0);
         try {
             $this->locations->delete($id);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location eliminata'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location deleted'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
         }
         return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
     }

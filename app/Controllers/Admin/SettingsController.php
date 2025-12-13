@@ -124,7 +124,7 @@ class SettingsController extends BaseController
         $savedValue = $svc->get('gallery.default_template_id');
         error_log("Saved gallery.default_template_id: " . var_export($savedValue, true));
         
-        $_SESSION['flash'][] = ['type'=>'success','message'=>'Impostazioni salvate correttamente'];
+        $_SESSION['flash'][] = ['type'=>'success','message'=>'Settings saved successfully'];
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
     }
 
@@ -141,14 +141,14 @@ class SettingsController extends BaseController
             exec($cmd);
             
             $_SESSION['flash'][] = [
-                'type' => 'info', 
-                'message' => 'Generazione delle varianti immagini avviata. Questo processo potrebbe richiedere alcuni minuti. Riceverai una notifica quando sarà completato.'
+                'type' => 'info',
+                'message' => 'Image variant generation started. This process may take a few minutes. You will receive a notification when it is complete.'
             ];
             
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = [
                 'type' => 'danger', 
-                'message' => 'Errore nell\'avvio della generazione: ' . $e->getMessage()
+                'message' => 'Error starting generation: ' . $e->getMessage()
             ];
         }
         

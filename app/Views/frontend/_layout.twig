@@ -885,14 +885,14 @@
                     
                     <!-- Desktop Navigation -->
                     <nav class="hidden lg:flex items-center gap-6" id="desktop-nav">
-                        <a href="{{ base_path }}/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">Home</a>
-                        <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">All Galleries</a>
-                        <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">About</a>
+                        <a href="{{ base_path }}/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.home') }}</a>
+                        <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.galleries') }}</a>
+                        <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.about') }}</a>
                         
                         <!-- Categories Mega Menu -->
                         <div class="relative" id="categories-dropdown">
                             <button id="categories-toggle" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md">
-                                Categories
+                                {{ trans('filter.categories') }}
                                 <i class="fas fa-chevron-down text-xs transition-transform duration-200" id="categories-icon"></i>
                             </button>
                             
@@ -935,7 +935,7 @@
                                                             {{ category.children|length }} {{ category.children|length == 1 ? 'subcategory' : 'subcategories' }}
                                                         </p>
                                                     {% else %}
-                                                        <p class="text-xs text-gray-500 group-hover:text-black transition-colors duration-200">View albums</p>
+                                                        <p class="text-xs text-gray-500 group-hover:text-black transition-colors duration-200">{{ trans('album.view_all') }}</p>
                                                     {% endif %}
                                                 </div>
                                             </a>
@@ -961,7 +961,7 @@
                     <!-- Filters Toggle -->
                     <button id="filters-toggle" class="hidden md:flex items-center gap-2 text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2 px-3 rounded-md hover:bg-gray-50">
                         <i class="fas fa-filter text-xs"></i>
-                        <span>Filters</span>
+                        <span>{{ trans('filter.search') }}</span>
                     </button>
                     
                     <!-- Mobile Menu Button - Aligned with Logo -->
@@ -980,9 +980,9 @@
             <div class="px-2 py-4 space-y-4">
                 <!-- Main Navigation -->
                 <div class="px-2 space-y-1">
-                    <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">Home</a>
-                    <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">All Galleries</a>
-                    <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">About</a>
+                    <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.home') }}</a>
+                    <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.galleries') }}</a>
+                    <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.about') }}</a>
                     {% if is_admin %}
                     <a href="{{ base_path }}/admin" class="block text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-md p-3 transition-colors duration-200">
                         <i class="fas fa-cog mr-2"></i>Admin Dashboard
@@ -992,7 +992,7 @@
                 
                 <!-- Mobile Categories -->
                 <div class="border-t border-gray-200 pt-4">
-                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 px-3">Categories</div>
+                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 px-3">{{ trans('filter.categories') }}</div>
                     <div class="space-y-1">
                         {% for category in parent_categories|default([]) %}
                         <div class="mobile-category-group rounded-md overflow-hidden">
@@ -1110,7 +1110,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="text-sm text-neutral-600">
-                    © {{ "now"|date("Y") }} Portfolio. All rights reserved.
+                    {{ trans('footer.copyright', {year: "now"|date("Y")}) }}
                 </div>
                 
                 {% if tags|default([])|length > 0 %}

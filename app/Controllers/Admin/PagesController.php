@@ -37,14 +37,14 @@ class PagesController extends BaseController
             [
                 'slug' => 'about',
                 'title' => 'About',
-                'description' => 'Pagina di presentazione: bio, foto, social, contatti',
+                'description' => 'About page: bio, photo, social links, contacts',
                 'edit_url' => '/admin/pages/about',
                 'public_url' => '/' . $aboutSlug,
             ],
             [
                 'slug' => 'galleries',
                 'title' => 'Galleries',
-                'description' => 'Pagina gallerie con filtri avanzati e gestione testi',
+                'description' => 'Galleries page with advanced filters and text management',
                 'edit_url' => '/admin/pages/galleries',
                 'public_url' => '/' . $galleriesSlug,
             ],
@@ -76,7 +76,7 @@ class PagesController extends BaseController
         $data = (array)$request->getParsedBody();
         $csrf = (string)($data['csrf'] ?? '');
 
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
             return $response->withHeader('Location', $this->redirect('/admin/pages/home'))->withStatus(302);
         }
@@ -111,7 +111,7 @@ class PagesController extends BaseController
             'about.footer_text' => (string)($svc->get('about.footer_text', '') ?? ''),
             'about.contact_email' => (string)($svc->get('about.contact_email', '') ?? ''),
             'about.contact_subject' => (string)($svc->get('about.contact_subject', 'Portfolio') ?? 'Portfolio'),
-            'about.contact_title' => (string)($svc->get('about.contact_title', 'Contatti') ?? 'Contatti'),
+            'about.contact_title' => (string)($svc->get('about.contact_title', 'Contact') ?? 'Contact'),
             'about.contact_intro' => (string)($svc->get('about.contact_intro', '') ?? ''),
             'about.socials' => (array)($svc->get('about.socials', []) ?? []),
         ];
@@ -124,6 +124,13 @@ class PagesController extends BaseController
     public function saveAbout(Request $request, Response $response): Response
     {
         $data = (array)$request->getParsedBody();
+        $csrf = (string)($data['csrf'] ?? '');
+
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            return $response->withHeader('Location', $this->redirect('/admin/pages/about'))->withStatus(302);
+        }
+
         $svc = new SettingsService($this->db);
 
         $textRaw = (string)($data['about_text'] ?? '');
@@ -146,7 +153,7 @@ class PagesController extends BaseController
         }
         $contactSubject = trim((string)($data['contact_subject'] ?? 'Portfolio'));
         $svc->set('about.contact_subject', $contactSubject === '' ? 'Portfolio' : $contactSubject);
-        $svc->set('about.contact_title', trim((string)($data['contact_title'] ?? 'Contatti')) ?: 'Contatti');
+        $svc->set('about.contact_title', trim((string)($data['contact_title'] ?? 'Contact')) ?: 'Contact');
         $svc->set('about.contact_intro', \App\Support\Sanitizer::html((string)($data['contact_intro'] ?? '')));
 
         // Social links (only store non-empty valid URLs)
@@ -192,15 +199,15 @@ class PagesController extends BaseController
                         $svc->set('about.photo_url', $rel);
                     } else {
                         @unlink($dest);
-                        $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'File di immagine non valido dopo il caricamento.'];
+                        $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Invalid image file after upload.'];
                     }
                 }
             } else {
-                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'File di immagine non valido o formato non supportato.'];
+                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Invalid image file or unsupported format.'];
             }
         }
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Pagina About salvata'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'About page saved successfully.'];
         return $response->withHeader('Location', $this->redirect('/admin/pages/about'))->withStatus(302);
     }
 
@@ -245,6 +252,13 @@ class PagesController extends BaseController
     public function saveGalleries(Request $request, Response $response): Response
     {
         $data = (array)$request->getParsedBody();
+        $csrf = (string)($data['csrf'] ?? '');
+
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);
+        }
+
         $svc = new SettingsService($this->db);
 
         // Save galleries page settings
@@ -267,7 +281,7 @@ class PagesController extends BaseController
         // Default gallery template selector moved to global Settings page.
         // Intentionally ignore any incoming default_template_id here to keep a single source of truth.
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Pagina Galleries salvata'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Galleries page saved successfully.'];
         return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);
     }
 

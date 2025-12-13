@@ -25,19 +25,19 @@ class DevelopersController extends BaseController
     public function create(Request $r, Response $res): Response {return $this->view->render($res,'admin/developers/create.twig',['csrf'=>$_SESSION['csrf']??'']);}
     public function store(Request $r, Response $res): Response{
         $d=(array)$r->getParsedBody(); $name=trim((string)($d['name']??'')); $process=(string)($d['process']??'BW'); $notes=$d['notes']!==''?(string)$d['notes']:null;
-        if($name===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Nome obbligatorio']; return $res->withHeader('Location',$this->basePath . '/admin/developers/create')->withStatus(302);}        
-        try{ $this->db->pdo()->prepare('INSERT INTO developers(name, process, notes) VALUES(?,?,?)')->execute([$name,$process,$notes]); $_SESSION['flash'][]=['type'=>'success','message'=>'Sviluppo creato']; }
-        catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()]; return $res->withHeader('Location',$this->basePath . '/admin/developers/create')->withStatus(302);}        
+        if($name===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Name is required']; return $res->withHeader('Location',$this->basePath . '/admin/developers/create')->withStatus(302);}        
+        try{ $this->db->pdo()->prepare('INSERT INTO developers(name, process, notes) VALUES(?,?,?)')->execute([$name,$process,$notes]); $_SESSION['flash'][]=['type'=>'success','message'=>'Developer created']; }
+        catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Error: '.$e->getMessage()]; return $res->withHeader('Location',$this->basePath . '/admin/developers/create')->withStatus(302);}        
         return $res->withHeader('Location',$this->basePath . '/admin/developers')->withStatus(302);
     }
     public function edit(Request $r, Response $res, array $args): Response{ $id=(int)($args['id']??0); $st=$this->db->pdo()->prepare('SELECT * FROM developers WHERE id=:id'); $st->execute([':id'=>$id]); $it=$st->fetch(); if(!$it){return $res->withStatus(404);} return $this->view->render($res,'admin/developers/edit.twig',['item'=>$it,'csrf'=>$_SESSION['csrf']??'']);}
     public function update(Request $r, Response $res, array $args): Response{
         $id=(int)($args['id']??0); $d=(array)$r->getParsedBody(); $name=trim((string)($d['name']??'')); $process=(string)($d['process']??'BW'); $notes=$d['notes']!==''?(string)$d['notes']:null;
-        if($name===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Nome obbligatorio']; return $res->withHeader('Location',$this->basePath . '/admin/developers/'.$id.'/edit')->withStatus(302);}        
-        try{ $this->db->pdo()->prepare('UPDATE developers SET name=?, process=?, notes=? WHERE id=?')->execute([$name,$process,$notes,$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Sviluppo aggiornato']; }
-        catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()]; }
+        if($name===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Name is required']; return $res->withHeader('Location',$this->basePath . '/admin/developers/'.$id.'/edit')->withStatus(302);}        
+        try{ $this->db->pdo()->prepare('UPDATE developers SET name=?, process=?, notes=? WHERE id=?')->execute([$name,$process,$notes,$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Developer updated']; }
+        catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Error: '.$e->getMessage()]; }
         return $res->withHeader('Location',$this->basePath . '/admin/developers')->withStatus(302);
     }
-    public function delete(Request $r, Response $res, array $args): Response{ $id=(int)($args['id']??0); try{$this->db->pdo()->prepare('DELETE FROM developers WHERE id=:id')->execute([':id'=>$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Sviluppo eliminato'];}catch(\Throwable $e){$_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()];} return $res->withHeader('Location',$this->basePath . '/admin/developers')->withStatus(302);}    
+    public function delete(Request $r, Response $res, array $args): Response{ $id=(int)($args['id']??0); try{$this->db->pdo()->prepare('DELETE FROM developers WHERE id=:id')->execute([':id'=>$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Developer deleted'];}catch(\Throwable $e){$_SESSION['flash'][]=['type'=>'danger','message'=>'Error: '.$e->getMessage()];} return $res->withHeader('Location',$this->basePath . '/admin/developers')->withStatus(302);}    
 }
 

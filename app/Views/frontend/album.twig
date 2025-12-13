@@ -68,7 +68,7 @@
         <!-- Breadcrumbs -->
         <nav class="mb-6" aria-label="Breadcrumb" data-gsap="breadcrumb">
             <ol class="flex items-center justify-center space-x-2 text-sm opacity-80">
-                <li><a href="{{ base_path }}/" class="hover:text-white transition-colors">Home</a></li>
+                <li><a href="{{ base_path }}/" class="hover:text-white transition-colors">{{ trans('nav.home') }}</a></li>
                 <li><span class="mx-2">/</span></li>
                 <li><a href="{{ base_path }}/category/{{ album.category_slug }}" class="hover:text-white transition-colors">{{ album.category_name|e }}</a></li>
                 <li><span class="mx-2">/</span></li>
@@ -123,7 +123,7 @@
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
-                {{ album.images_count }} {{ album.images_count == 1 ? 'image' : 'images' }}
+                {{ trans('album.photo_count', {count: album.images_count}) }}
             </div>
         </div>
 
@@ -147,7 +147,7 @@
     <!-- Breadcrumbs -->
     <nav class="mb-6" aria-label="Breadcrumb">
         <ol class="flex items-center space-x-2 text-sm text-gray-600">
-            <li><a href="{{ base_path }}/" class="hover:text-black transition-colors">Home</a></li>
+            <li><a href="{{ base_path }}/" class="hover:text-black transition-colors">{{ trans('nav.home') }}</a></li>
             <li><span class="mx-2 text-gray-400">/</span></li>
             <li><a href="{{ base_path }}/category/{{ album.category_slug }}" class="hover:text-black transition-colors">{{ album.category_name|e }}</a></li>
             <li><span class="mx-2 text-gray-400">/</span></li>
@@ -197,7 +197,7 @@
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
-                {{ album.images_count }} {{ album.images_count == 1 ? 'image' : 'images' }}
+                {{ trans('album.photo_count', {count: album.images_count}) }}
             </div>
         </div>
 
@@ -292,8 +292,8 @@
     
     {% if images|length == 0 %}
     <div class="text-center py-20">
-        <h2 class="text-2xl font-light text-neutral-600 mb-4">No images in this album yet</h2>
-        <p class="text-neutral-500">Images will appear here once uploaded.</p>
+        <h2 class="text-2xl font-light text-neutral-600 mb-4">{{ trans('album.empty') }}</h2>
+        <p class="text-neutral-500">{{ trans('album.empty_message', {}, 'Images will appear here once uploaded.') }}</p>
     </div>
     {% endif %}
     
@@ -301,13 +301,13 @@
     {# processes and cameras are computed in controller for compatibility #}
     {% if processes|length > 1 or cameras|length > 1 %}
     <div class="mt-8 p-4 bg-neutral-50 rounded">
-        <h3 class="text-sm font-medium mb-3">Filter images:</h3>
+        <h3 class="text-sm font-medium mb-3">{{ trans('filter.filter_images', {}, 'Filter images:') }}</h3>
         <div class="flex flex-wrap gap-4 text-sm">
             {% if processes|length > 1 %}
             <div class="flex items-center space-x-2">
-                <label for="image-filter-process">Process:</label>
+                <label for="image-filter-process">{{ trans('filter.process', {}, 'Process') }}:</label>
                 <select id="image-filter-process" class="border border-neutral-300 rounded px-2 py-1 text-xs">
-                    <option value="">All</option>
+                    <option value="">{{ trans('filter.all') }}</option>
                     {% for process in processes %}
                     <option value="{{ process }}">{{ process|title }}</option>
                     {% endfor %}
@@ -317,9 +317,9 @@
             
             {% if cameras|length > 1 %}
             <div class="flex items-center space-x-2">
-                <label for="image-filter-camera">Camera:</label>
+                <label for="image-filter-camera">{{ trans('album.camera') }}:</label>
                 <select id="image-filter-camera" class="border border-neutral-300 rounded px-2 py-1 text-xs">
-                    <option value="">All</option>
+                    <option value="">{{ trans('filter.all') }}</option>
                     {% for camera in cameras %}
                     <option value="{{ camera }}">{{ camera }}</option>
                     {% endfor %}
@@ -328,7 +328,7 @@
             {% endif %}
             
             <button id="apply-image-filters" class="bg-black text-white px-3 py-1 text-xs rounded hover:bg-neutral-800">
-                Apply
+                {{ trans('filter.apply', {}, 'Apply') }}
             </button>
         </div>
     </div>
@@ -346,7 +346,7 @@
 {% if related_albums|length > 0 %}
 <section class="border-t border-neutral-200 mt-16 pt-16" data-gsap="related-section">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl font-light text-center mb-12" data-gsap="related-title">More from {{ album.category_name|e }}</h2>
+        <h2 class="text-2xl font-light text-center mb-12" data-gsap="related-title">{{ trans('album.more_from', {category: album.category_name}, 'More from ' ~ album.category_name) }}</h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-gsap="related-grid">
             {% for related in related_albums %}

@@ -126,10 +126,7 @@ class AlbumsController extends BaseController
         $developerIds = array_map('intval', (array)($d['developers'] ?? []));
         $labIds = array_map('intval', (array)($d['labs'] ?? []));
         $locationIds = array_map('intval', (array)($d['locations'] ?? []));
-        
-        // Log all form data for debugging - REMOVE AFTER TESTING
-        file_put_contents('/tmp/album_update_debug.log', "Form data: " . print_r($d, true) . "\n", FILE_APPEND | LOCK_EX);
-        
+
         // SEO fields for new albums (set defaults)
         $seoTitle = trim((string)($d['seo_title'] ?? '')) ?: null;
         $seoDescription = trim((string)($d['seo_description'] ?? '')) ?: null;
@@ -151,7 +148,7 @@ class AlbumsController extends BaseController
         $customLabs = trim((string)($d['custom_labs'] ?? '')) ?: null;
         
         if ($title === '' || $category_id <= 0) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Titolo e categoria sono obbligatori'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Title and category are required'];
             return $response->withHeader('Location', $this->redirect('/admin/albums/create'))->withStatus(302);
         }
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
@@ -256,7 +253,7 @@ class AlbumsController extends BaseController
                 $response->getBody()->write($payload);
                 return $response->withHeader('Content-Type','application/json');
             }
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album creato'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album created'];
             return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
         } catch (\Throwable $e) {
             $accept = $request->getHeaderLine('Accept');
@@ -264,7 +261,7 @@ class AlbumsController extends BaseController
                 $response->getBody()->write(json_encode(['ok'=>false,'error'=>$e->getMessage()]));
                 return $response->withStatus(400)->withHeader('Content-Type','application/json');
             }
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
             return $response->withHeader('Location', $this->redirect('/admin/albums/create'))->withStatus(302);
         }
     }
@@ -277,7 +274,7 @@ class AlbumsController extends BaseController
         $stmt->execute([':id'=>$id]);
         $item = $stmt->fetch();
         if (!$item) {
-            $response->getBody()->write('Album non trovato');
+            $response->getBody()->write('Album not found');
             return $response->withStatus(404);
         }
         $cats = $pdo->query('SELECT id, name FROM categories ORDER BY sort_order, name')->fetchAll();
@@ -438,7 +435,7 @@ class AlbumsController extends BaseController
             $response->getBody()->write(json_encode(['ok' => true]));
             return $response->withHeader('Content-Type','application/json');
         }
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Immagine aggiornata'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Image updated'];
         return $response->withHeader('Location',$this->basePath . '/admin/albums/'.$albumId.'/edit')->withStatus(302);
     }
 
@@ -468,10 +465,7 @@ class AlbumsController extends BaseController
         $developerIds = array_map('intval', (array)($d['developers'] ?? []));
         $labIds = array_map('intval', (array)($d['labs'] ?? []));
         $locationIds = array_map('intval', (array)($d['locations'] ?? []));
-        
-        // Log all form data for debugging - REMOVE AFTER TESTING
-        file_put_contents('/tmp/album_update_debug.log', "UPDATE Form data: " . print_r($d, true) . "\nLocationIds: " . print_r($locationIds, true) . "\n", FILE_APPEND | LOCK_EX);
-        
+
         // SEO fields
         $seoTitle = trim((string)($d['seo_title'] ?? '')) ?: null;
         $seoDescription = trim((string)($d['seo_description'] ?? '')) ?: null;
@@ -493,7 +487,7 @@ class AlbumsController extends BaseController
         $customLabs = trim((string)($d['custom_labs'] ?? '')) ?: null;
         
         if ($title === '' || $category_id <= 0) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Titolo e categoria sono obbligatori'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Title and category are required'];
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
         }
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
@@ -630,9 +624,9 @@ class AlbumsController extends BaseController
                 // Equipment tables might not exist yet, continue without error
             }
             
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album aggiornato'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album updated'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
         }
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
     }
@@ -643,9 +637,9 @@ class AlbumsController extends BaseController
         $stmt = $this->db->pdo()->prepare('DELETE FROM albums WHERE id=:id');
         try {
             $stmt->execute([':id'=>$id]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album eliminato'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album deleted'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
         }
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
     }
@@ -656,7 +650,7 @@ class AlbumsController extends BaseController
         // Use portable CURRENT_TIMESTAMP instead of MySQL-specific NOW()
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET is_published=1, published_at=CURRENT_TIMESTAMP WHERE id=:id');
         $stmt->execute([':id'=>$id]);
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album pubblicato'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album published'];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
     }
 
@@ -665,7 +659,7 @@ class AlbumsController extends BaseController
         $id = (int)($args['id'] ?? 0);
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET is_published=0, published_at=NULL WHERE id=:id');
         $stmt->execute([':id'=>$id]);
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album in bozza'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album unpublished'];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
     }
 
@@ -677,7 +671,7 @@ class AlbumsController extends BaseController
         $check = $this->db->pdo()->prepare('SELECT 1 FROM images WHERE id=:img AND album_id=:a');
         $check->execute([':img'=>$imageId, ':a'=>$albumId]);
         if (!$check->fetchColumn()) {
-            $_SESSION['flash'][] = ['type'=>'danger','message'=>'Immagine non appartiene a questo album'];
+            $_SESSION['flash'][] = ['type'=>'danger','message'=>'Image does not belong to this album'];
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$albumId.'/edit'))->withStatus(302);
         }
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET cover_image_id=:img WHERE id=:id');
@@ -687,7 +681,7 @@ class AlbumsController extends BaseController
             $response->getBody()->write(json_encode(['ok'=>true]));
             return $response->withHeader('Content-Type','application/json');
         }
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Cover aggiornata'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Cover updated'];
         return $response->withHeader('Location', $this->redirect('/admin/albums/'.$albumId.'/edit'))->withStatus(302);
     }
 
@@ -863,7 +857,7 @@ class AlbumsController extends BaseController
         $dupStmt = $pdo->prepare('SELECT id FROM images WHERE album_id = :album AND file_hash = :hash LIMIT 1');
         $dupStmt->execute([':album' => $albumId, ':hash' => $src['file_hash']]);
         if ($dupStmt->fetch()) {
-            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Immagine già presente nell\'album']));
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Image already exists in this album']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(409);
         }
 

@@ -39,8 +39,8 @@ class TestController extends BaseController
         $album = $stmt->fetch();
         if (!$album) {
             return $this->view->render($response->withStatus(404), 'frontend/404.twig', [
-                'page_title' => '404 — Album non trovato',
-                'meta_description' => 'Album non trovato o non pubblicato'
+                'page_title' => '404 — Album not found',
+                'meta_description' => 'Album not found or unpublished'
             ]);
         }
         $albumRef = $album['slug'] ?? (string)$album['id'];
@@ -52,7 +52,7 @@ class TestController extends BaseController
         if (!$templateId) { $templateId = 1; }
         $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
         $tplStmt->execute([':id' => $templateId]);
-        $template = $tplStmt->fetch() ?: ['name' => 'Grid Classica', 'settings' => '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false}'];
+        $template = $tplStmt->fetch() ?: ['name' => 'Classic Grid', 'settings' => '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false}'];
         $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
 
         // Tags

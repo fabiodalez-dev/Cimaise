@@ -1,0 +1,60 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Edit Text — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Edit Text</h1>
+      <p class="text-gray-600 mt-1">
+        <code class="bg-gray-100 px-2 py-1 rounded">{{ text.text_key }}</code>
+      </p>
+    </div>
+    <a href="{{ base_path }}/admin/texts" class="btn-secondary">
+      <i class="fas fa-arrow-left mr-2"></i>Back to Texts
+    </a>
+  </div>
+
+  <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="_method" value="PUT">
+
+    <div class="card">
+      <div class="p-6 space-y-6">
+        <div>
+          <label for="text_key" class="block text-sm font-medium text-gray-700 mb-1">Key</label>
+          <input type="text" id="text_key" value="{{ text.text_key }}" class="input w-full bg-gray-100" disabled>
+          <p class="mt-1 text-sm text-gray-500">The key cannot be changed. Create a new text if needed.</p>
+        </div>
+
+        <div>
+          <label for="text_value" class="block text-sm font-medium text-gray-700 mb-1">Value <span class="text-red-500">*</span></label>
+          <textarea id="text_value" name="text_value" rows="3" class="input w-full" required>{{ text.text_value }}</textarea>
+          <p class="mt-1 text-sm text-gray-500">The translated text. Use {param} for dynamic values (e.g., {count}, {year}).</p>
+        </div>
+
+        <div>
+          <label for="context" class="block text-sm font-medium text-gray-700 mb-1">Context</label>
+          <input type="text" id="context" name="context" value="{{ text.context }}" class="input w-full" list="context-list">
+          <datalist id="context-list">
+            {% for ctx in contexts %}
+              <option value="{{ ctx }}">
+            {% endfor %}
+          </datalist>
+          <p class="mt-1 text-sm text-gray-500">Group texts by context (e.g., navigation, filter, album).</p>
+        </div>
+
+        <div>
+          <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <input type="text" id="description" name="description" value="{{ text.description }}" class="input w-full">
+          <p class="mt-1 text-sm text-gray-500">Optional description to help translators understand the context.</p>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+        <a href="{{ base_path }}/admin/texts" class="btn-secondary">Cancel</a>
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-save mr-2"></i>Save Changes
+        </button>
+      </div>
+    </div>
+  </form>
+{% endblock %}

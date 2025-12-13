@@ -57,7 +57,7 @@
         <div class="filter-group" data-gsap="filter-category">
           <label for="filter-categories" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-folder-open mr-1 text-gray-600"></i>
-            Categories
+            {{ trans('filter.categories') }}
           </label>
           <select id="filter-categories" class="filter-select" multiple data-placeholder="Select categories...">
             {% for category in filter_options.categories %}
@@ -74,7 +74,7 @@
         <div class="filter-group" data-gsap="filter-tags">
           <label for="filter-tags" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-tags mr-1 text-gray-600"></i>
-            Tags
+            {{ trans('filter.tags') }}
           </label>
           <select id="filter-tags" class="filter-select" multiple data-placeholder="Select tags...">
             {% for tag in filter_options.tags %}
@@ -91,7 +91,7 @@
         <div class="filter-group" data-gsap="filter-cameras">
           <label for="filter-cameras" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-camera mr-1 text-gray-600"></i>
-            Cameras
+            {{ trans('album.camera') }}
           </label>
           <select id="filter-cameras" class="filter-select" multiple data-placeholder="Select cameras...">
             {% for camera in filter_options.cameras %}
@@ -108,7 +108,7 @@
         <div class="filter-group" data-gsap="filter-lenses">
           <label for="filter-lenses" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-eye mr-1 text-gray-600"></i>
-            Lenses
+            {{ trans('album.lens') }}
           </label>
           <select id="filter-lenses" class="filter-select" multiple data-placeholder="Select lenses...">
             {% for lens in filter_options.lenses %}
@@ -125,7 +125,7 @@
         <div class="filter-group" data-gsap="filter-films">
           <label for="filter-films" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-film mr-1 text-gray-600"></i>
-            Films
+            {{ trans('filter.film', {}, 'Film') }}
           </label>
           <select id="filter-films" class="filter-select" multiple data-placeholder="Select films...">
             {% for film in filter_options.films %}
@@ -142,7 +142,7 @@
         <div class="filter-group" data-gsap="filter-locations">
           <label for="filter-locations" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-map-marker-alt mr-1 text-gray-600"></i>
-            Locations
+            {{ trans('filter.location') }}
           </label>
           <select id="filter-locations" class="filter-select" multiple data-placeholder="Select locations...">
             {% for location in filter_options.locations %}
@@ -159,10 +159,10 @@
         <div class="filter-group" data-gsap="filter-year">
           <label for="filter-year" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-calendar mr-1 text-gray-600"></i>
-            Year
+            {{ trans('filter.year') }}
           </label>
           <select id="filter-year" class="filter-select" data-placeholder="Select year...">
-            <option value="">All years</option>
+            <option value="">{{ trans('filter.all') }}</option>
             {% for year in filter_options.years %}
             <option value="{{ year.year }}" {% if year.year == active_filters.year|default('') %}selected{% endif %}>
               {{ year.year }} ({{ year.albums_count }})
@@ -176,10 +176,10 @@
         <div class="filter-group md:col-span-2" data-gsap="filter-search">
           <label for="filter-search" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-search mr-1 text-gray-600"></i>
-            Search
+            {{ trans('filter.search') }}
           </label>
           <div class="relative">
-            <input type="text" id="filter-search" class="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm" placeholder="Search galleries..." value="{{ active_filters.search|default('') }}">
+            <input type="text" id="filter-search" class="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm" placeholder="{{ trans('search.placeholder') }}" value="{{ active_filters.search|default('') }}">
             <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
           </div>
         </div>
@@ -188,15 +188,15 @@
         <div class="filter-group" data-gsap="filter-sort">
           <label for="filter-sort" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-sort mr-1 text-gray-600"></i>
-            Sort
+            {{ trans('filter.sort', {}, 'Sort') }}
           </label>
           <select id="filter-sort" class="filter-select">
-            <option value="published_desc" {% if active_filters.sort == 'published_desc' %}selected{% endif %}>Latest First</option>
-            <option value="published_asc" {% if active_filters.sort == 'published_asc' %}selected{% endif %}>Oldest First</option>
-            <option value="title_asc" {% if active_filters.sort == 'title_asc' %}selected{% endif %}>Title A-Z</option>
-            <option value="title_desc" {% if active_filters.sort == 'title_desc' %}selected{% endif %}>Title Z-A</option>
-            <option value="shoot_date_desc" {% if active_filters.sort == 'shoot_date_desc' %}selected{% endif %}>Shoot Date (New)</option>
-            <option value="shoot_date_asc" {% if active_filters.sort == 'shoot_date_asc' %}selected{% endif %}>Shoot Date (Old)</option>
+            <option value="published_desc" {% if active_filters.sort == 'published_desc' %}selected{% endif %}>{{ trans('filter.sort_latest', {}, 'Latest First') }}</option>
+            <option value="published_asc" {% if active_filters.sort == 'published_asc' %}selected{% endif %}>{{ trans('filter.sort_oldest', {}, 'Oldest First') }}</option>
+            <option value="title_asc" {% if active_filters.sort == 'title_asc' %}selected{% endif %}>{{ trans('filter.sort_title_asc', {}, 'Title A-Z') }}</option>
+            <option value="title_desc" {% if active_filters.sort == 'title_desc' %}selected{% endif %}>{{ trans('filter.sort_title_desc', {}, 'Title Z-A') }}</option>
+            <option value="shoot_date_desc" {% if active_filters.sort == 'shoot_date_desc' %}selected{% endif %}>{{ trans('filter.sort_date_new', {}, 'Shoot Date (New)') }}</option>
+            <option value="shoot_date_asc" {% if active_filters.sort == 'shoot_date_asc' %}selected{% endif %}>{{ trans('filter.sort_date_old', {}, 'Shoot Date (Old)') }}</option>
           </select>
         </div>
       </div>
@@ -208,7 +208,7 @@
   <div id="loading-overlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
     <div class="text-center">
       <div class="animate-spin w-12 h-12 border-4 border-gray-200 border-t-black rounded-full mb-4"></div>
-      <p class="text-gray-600 font-medium">Filtering galleries...</p>
+      <p class="text-gray-600 font-medium">{{ trans('general.loading') }}</p>
     </div>
   </div>
 

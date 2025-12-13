@@ -98,7 +98,7 @@ class CategoriesController extends BaseController
         $slug = trim((string)($data['slug'] ?? ''));
         $sort = (int)($data['sort_order'] ?? 0);
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
             return $response->withHeader('Location', $this->redirect('/admin/categories/create'))->withStatus(302);
         }
         if ($slug === '') {
@@ -118,7 +118,7 @@ class CategoriesController extends BaseController
             // SECURITY: Validate file using magic numbers and MIME type
             $tmpPath = $uploadedFile->getStream()->getMetadata('uri');
             if (!$this->validateImageUpload($tmpPath)) {
-                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'File di immagine non valido o potenzialmente pericoloso.'];
+                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Invalid or potentially dangerous image file.'];
             } else {
                 $extension = $this->getSecureFileExtension($tmpPath);
                 if ($extension) {
@@ -141,13 +141,13 @@ class CategoriesController extends BaseController
                             $imagePath = $uploadPath;
                         } else {
                             @unlink($fullPath);
-                            $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'File di immagine non valido dopo il caricamento.'];
+                            $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Invalid image file after upload.'];
                         }
                     } catch (\Throwable $e) {
-                        $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Errore caricamento immagine: ' . $e->getMessage()];
+                        $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Image upload error: ' . $e->getMessage()];
                     }
                 } else {
-                    $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Formato immagine non supportato. Usa JPG, PNG o WebP.'];
+                    $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Unsupported image format. Use JPG, PNG or WebP.'];
                 }
             }
         }
@@ -155,7 +155,7 @@ class CategoriesController extends BaseController
         $stmt = $this->db->pdo()->prepare('INSERT INTO categories(name, slug, sort_order, parent_id, image_path) VALUES(:n, :s, :o, :p, :i)');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Categoria creata'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Category created'];
             return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
         } catch (\Throwable $e) {
             // Clean up uploaded file if database insert fails
@@ -163,7 +163,7 @@ class CategoriesController extends BaseController
             if ($imagePath && file_exists($publicDir . $imagePath)) {
                 unlink($publicDir . $imagePath);
             }
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
             return $response->withHeader('Location', $this->redirect('/admin/categories/create'))->withStatus(302);
         }
     }
@@ -175,7 +175,7 @@ class CategoriesController extends BaseController
         $stmt->execute([':id' => $id]);
         $cat = $stmt->fetch();
         if (!$cat) {
-            $response->getBody()->write('Categoria non trovata');
+            $response->getBody()->write('Category not found');
             return $response->withStatus(404);
         }
         // Get parent categories for dropdown (exclude self to prevent circular reference)
@@ -201,7 +201,7 @@ class CategoriesController extends BaseController
         $parentId = !empty($data['parent_id']) ? (int)$data['parent_id'] : null;
         
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
             return $response->withHeader('Location', $this->redirect('/admin/categories/'.$id.'/edit'))->withStatus(302);
         }
         if ($slug === '') {
@@ -224,7 +224,7 @@ class CategoriesController extends BaseController
             // SECURITY: Validate file using magic numbers and MIME type
             $tmpPath = $uploadedFile->getStream()->getMetadata('uri');
             if (!$this->validateImageUpload($tmpPath)) {
-                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'File di immagine non valido o potenzialmente pericoloso.'];
+                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Invalid or potentially dangerous image file.'];
             } else {
                 $extension = $this->getSecureFileExtension($tmpPath);
                 if ($extension) {
@@ -252,13 +252,13 @@ class CategoriesController extends BaseController
                             $imagePath = $uploadPath;
                         } else {
                             @unlink($fullPath);
-                            $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'File di immagine non valido dopo il caricamento.'];
+                            $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Invalid image file after upload.'];
                         }
                     } catch (\Throwable $e) {
-                        $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Errore caricamento immagine: ' . $e->getMessage()];
+                        $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Image upload error: ' . $e->getMessage()];
                     }
                 } else {
-                    $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Formato immagine non supportato. Usa JPG, PNG o WebP.'];
+                    $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Unsupported image format. Use JPG, PNG or WebP.'];
                 }
             }
         }
@@ -275,9 +275,9 @@ class CategoriesController extends BaseController
         $stmt = $this->db->pdo()->prepare('UPDATE categories SET name=:n, slug=:s, sort_order=:o, parent_id=:p, image_path=:i WHERE id=:id');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath, ':id' => $id]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Categoria aggiornata'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Category updated'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
         }
         return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
     }
@@ -288,9 +288,9 @@ class CategoriesController extends BaseController
         $stmt = $this->db->pdo()->prepare('DELETE FROM categories WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Categoria eliminata'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Category deleted'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
         }
         return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
     }

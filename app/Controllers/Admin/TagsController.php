@@ -48,7 +48,7 @@ class TagsController extends BaseController
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
             return $response->withHeader('Location', $this->redirect('/admin/tags/create'))->withStatus(302);
         }
         if ($slug === '') {
@@ -59,10 +59,11 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('INSERT INTO tags(name, slug) VALUES(:n, :s)');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag creato'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag created'];
             return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
+            error_log('TagsController::store error: ' . $e->getMessage());
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while creating tag. Please try again.'];
             return $response->withHeader('Location', $this->redirect('/admin/tags/create'))->withStatus(302);
         }
     }
@@ -74,7 +75,7 @@ class TagsController extends BaseController
         $stmt->execute([':id' => $id]);
         $item = $stmt->fetch();
         if (!$item) {
-            $response->getBody()->write('Tag non trovato');
+            $response->getBody()->write('Tag not found');
             return $response->withStatus(404);
         }
         return $this->view->render($response, 'admin/tags/edit.twig', [
@@ -90,7 +91,7 @@ class TagsController extends BaseController
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Nome obbligatorio'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
             return $response->withHeader('Location', $this->redirect('/admin/tags/'.$id.'/edit'))->withStatus(302);
         }
         if ($slug === '') {
@@ -101,9 +102,10 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('UPDATE tags SET name=:n, slug=:s WHERE id=:id');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':id' => $id]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag aggiornato'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag updated'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
+            error_log('TagsController::update error: ' . $e->getMessage());
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating tag. Please try again.'];
         }
         return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
     }
@@ -114,9 +116,10 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('DELETE FROM tags WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag eliminato'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag deleted'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Errore: ' . $e->getMessage()];
+            error_log('TagsController::delete error: ' . $e->getMessage());
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while deleting tag. Please try again.'];
         }
         return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
     }
