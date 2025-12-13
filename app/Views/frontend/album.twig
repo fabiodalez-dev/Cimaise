@@ -1,6 +1,8 @@
 {% extends "frontend/_layout.twig" %}
 
 {% block content %}
+{# Hook: frontend_album_before - Before entire album page #}
+{{ do_action('frontend_album_before', {album: album, images: images, base_path: base_path}) }}
 
 {# ImageGallery Schema for SEO #}
 {% if images|length > 0 %}
@@ -208,8 +210,14 @@
             {% endfor %}
         </div>
         {% endif %}
+
+        {# Hook: frontend_album_header_meta - Add custom metadata to album header (e.g., equipment, film info) #}
+        {{ do_action('frontend_album_header_meta', {album: album, base_path: base_path}) }}
     </div>
 {% endif %}
+
+    {# Hook: frontend_album_header_after - After album header section #}
+    {{ do_action('frontend_album_header_after', {album: album, base_path: base_path}) }}
 
     <!-- Album body -->
     {% if album.body %}
@@ -217,7 +225,13 @@
         {{ album.body|safe_html }}
     </div>
     {% endif %}
-    
+
+    {# Hook: frontend_album_content_after - After album body content (add custom sections like equipment details) #}
+    {{ do_action('frontend_album_content_after', {album: album, base_path: base_path}) }}
+
+    {# Hook: frontend_album_gallery_before - Before images gallery #}
+    {{ do_action('frontend_album_gallery_before', {album: album, images: images, base_path: base_path}) }}
+
     <!-- Images gallery -->
     {% set layout = template_settings.layout|default('grid') %}
     {% set masonry = template_settings.masonry|default(false) %}
@@ -320,7 +334,13 @@
     </div>
     {% endif %}
 
+    {# Hook: frontend_album_gallery_after - After images gallery (add custom content below images) #}
+    {{ do_action('frontend_album_gallery_after', {album: album, images: images, base_path: base_path}) }}
+
 </div>
+
+{# Hook: frontend_album_related_before - Before related albums section #}
+{{ do_action('frontend_album_related_before', {album: album, related_albums: related_albums, base_path: base_path}) }}
 
 <!-- Related albums -->
 {% if related_albums|length > 0 %}
@@ -337,6 +357,11 @@
 </section>
 {% endif %}
 
+{# Hook: frontend_album_related_after - After related albums section #}
+{{ do_action('frontend_album_related_after', {album: album, related_albums: related_albums, base_path: base_path}) }}
+
+{# Hook: frontend_album_after - After entire album page (for modals, scripts, etc.) #}
+{{ do_action('frontend_album_after', {album: album, images: images, base_path: base_path}) }}
 
 {% endblock %}
 
