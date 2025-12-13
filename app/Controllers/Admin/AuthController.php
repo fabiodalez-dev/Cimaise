@@ -181,7 +181,8 @@ class AuthController extends BaseController
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Profile updated successfully.'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error updating profile: ' . $e->getMessage()];
+            error_log('AuthController::updateProfile error: ' . $e->getMessage());
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating profile. Please try again.'];
         }
 
         return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
@@ -242,7 +243,8 @@ class AuthController extends BaseController
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Password changed successfully.'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error changing password: ' . $e->getMessage()];
+            error_log('AuthController::changePassword error: ' . $e->getMessage());
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while changing password. Please try again.'];
         }
 
         return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);

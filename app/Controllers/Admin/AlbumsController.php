@@ -126,10 +126,7 @@ class AlbumsController extends BaseController
         $developerIds = array_map('intval', (array)($d['developers'] ?? []));
         $labIds = array_map('intval', (array)($d['labs'] ?? []));
         $locationIds = array_map('intval', (array)($d['locations'] ?? []));
-        
-        // Log all form data for debugging - REMOVE AFTER TESTING
-        file_put_contents('/tmp/album_update_debug.log', "Form data: " . print_r($d, true) . "\n", FILE_APPEND | LOCK_EX);
-        
+
         // SEO fields for new albums (set defaults)
         $seoTitle = trim((string)($d['seo_title'] ?? '')) ?: null;
         $seoDescription = trim((string)($d['seo_description'] ?? '')) ?: null;
@@ -468,10 +465,7 @@ class AlbumsController extends BaseController
         $developerIds = array_map('intval', (array)($d['developers'] ?? []));
         $labIds = array_map('intval', (array)($d['labs'] ?? []));
         $locationIds = array_map('intval', (array)($d['locations'] ?? []));
-        
-        // Log all form data for debugging - REMOVE AFTER TESTING
-        file_put_contents('/tmp/album_update_debug.log', "UPDATE Form data: " . print_r($d, true) . "\nLocationIds: " . print_r($locationIds, true) . "\n", FILE_APPEND | LOCK_EX);
-        
+
         // SEO fields
         $seoTitle = trim((string)($d['seo_title'] ?? '')) ?: null;
         $seoDescription = trim((string)($d['seo_description'] ?? '')) ?: null;
@@ -863,7 +857,7 @@ class AlbumsController extends BaseController
         $dupStmt = $pdo->prepare('SELECT id FROM images WHERE album_id = :album AND file_hash = :hash LIMIT 1');
         $dupStmt->execute([':album' => $albumId, ':hash' => $src['file_hash']]);
         if ($dupStmt->fetch()) {
-            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Immagine già presente nell\'album']));
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Image already exists in this album']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(409);
         }
 

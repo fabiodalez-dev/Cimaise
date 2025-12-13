@@ -124,6 +124,13 @@ class PagesController extends BaseController
     public function saveAbout(Request $request, Response $response): Response
     {
         $data = (array)$request->getParsedBody();
+        $csrf = (string)($data['csrf'] ?? '');
+
+        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            return $response->withHeader('Location', $this->redirect('/admin/pages/about'))->withStatus(302);
+        }
+
         $svc = new SettingsService($this->db);
 
         $textRaw = (string)($data['about_text'] ?? '');
@@ -245,6 +252,13 @@ class PagesController extends BaseController
     public function saveGalleries(Request $request, Response $response): Response
     {
         $data = (array)$request->getParsedBody();
+        $csrf = (string)($data['csrf'] ?? '');
+
+        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);
+        }
+
         $svc = new SettingsService($this->db);
 
         // Save galleries page settings

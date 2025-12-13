@@ -119,7 +119,8 @@ class UsersController extends BaseController
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'User created successfully'];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            error_log('UsersController::store error: ' . $e->getMessage());
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while creating user. Please try again.'];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
     }
@@ -243,7 +244,8 @@ class UsersController extends BaseController
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'User updated successfully'];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            error_log('UsersController::update error: ' . $e->getMessage());
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating user. Please try again.'];
             return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
         }
     }
@@ -285,9 +287,10 @@ class UsersController extends BaseController
             $stmt->execute([':id' => $id]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'User deleted'];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            error_log('UsersController::delete error: ' . $e->getMessage());
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while deleting user. Please try again.'];
         }
-        
+
         return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
     }
 
@@ -332,9 +335,10 @@ class UsersController extends BaseController
             $statusText = $newStatus ? 'activated' : 'deactivated';
             $_SESSION['flash'][] = ['type' => 'success', 'message' => "User {$statusText}"];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            error_log('UsersController::toggleActive error: ' . $e->getMessage());
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating user status. Please try again.'];
         }
-        
+
         return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
     }
 }
