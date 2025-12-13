@@ -193,7 +193,7 @@
   {# Template switcher (same behavior as gallery.twig) #}
   {% if available_templates|length > 0 %}
   <div class="mt-8 mb-4 flex justify-end">
-    <div class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm">
+    <div id="template-switcher" class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm" style="opacity: 0; transform: translateX(20px);">
       {% for template in available_templates %}
         <button type="button" class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" title="{{ template.name }}" aria-label="{{ template.name }}">
           {% if template.settings.layout == 'masonry_fit' %}
@@ -294,6 +294,18 @@
         }
       }
     } catch(e){}
+
+    // Template switcher animation (hidden initially, animate to visible)
+    const templateSwitcher = document.getElementById('template-switcher');
+    if (templateSwitcher && typeof gsap !== 'undefined') {
+      gsap.to(templateSwitcher, {
+        opacity: 1,
+        x: 0,
+        duration: 0.5,
+        delay: 0.6,
+        ease: 'power2.out'
+      });
+    }
   });
   // Layout initializer copied from classic template (slideshow/masonry/carousel support)
   function initializeGalleryLayout() {
@@ -474,8 +486,22 @@
             console.log('Initializing Magazine Split template');
             setTimeout(() => { try { initMagazineAutoscroll(); } catch(e){ console.error('Magazine init error:', e); } }, 100);
           } else if (typeof initializeGalleryLayout === 'function') initializeGalleryLayout();
-          if (typeof window.animateGalleryOnce === 'function') { try { window.animateGalleryOnce(); } catch(e){} }
-          setTimeout(() => { galleryContainer.style.opacity = '1'; galleryContainer.style.transition = 'none'; }, 50);
+          // Trigger entrance animation for new gallery items (run before container shows)
+          if (typeof window.animateGalleryOnce === 'function') {
+            try { window.animateGalleryOnce(); } catch(e) {}
+          }
+          // Show container after animation starts
+          setTimeout(() => {
+            galleryContainer.style.opacity = '1';
+            galleryContainer.style.transition = 'none';
+            // Fallback: force items visible if animation failed
+            galleryContainer.querySelectorAll('.masonry-item, .image-item').forEach(el => {
+              if (!el.hasAttribute('data-animated')) {
+                el.style.opacity = '1';
+                el.style.transform = 'scale(1)';
+              }
+            });
+          }, 80);
         }, 50);
       })
       .catch(err => { console.error('Template switch failed', err); galleryContainer.innerHTML = original; galleryContainer.style.opacity = '1'; })
