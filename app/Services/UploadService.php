@@ -316,9 +316,24 @@ class UploadService
             throw new RuntimeException("Image {$imageId} not found");
         }
 
-        $originalPath = dirname(__DIR__, 2) . $image['original_path'];
-        if (!is_file($originalPath)) {
-            throw new RuntimeException("Original file not found: {$originalPath}");
+        // Try multiple possible locations for the source file
+        $dbPath = $image['original_path'];
+        $possiblePaths = [
+            dirname(__DIR__, 2) . $dbPath,           // /media/originals/...
+            dirname(__DIR__, 2) . '/public' . $dbPath, // /public/media/originals/...
+            dirname(__DIR__, 2) . '/storage/originals/' . basename($dbPath), // /storage/originals/...
+        ];
+
+        $originalPath = null;
+        foreach ($possiblePaths as $path) {
+            if (is_file($path)) {
+                $originalPath = $path;
+                break;
+            }
+        }
+
+        if (!$originalPath) {
+            throw new RuntimeException("Original file not found. Tried: " . implode(', ', $possiblePaths));
         }
 
         // Get settings

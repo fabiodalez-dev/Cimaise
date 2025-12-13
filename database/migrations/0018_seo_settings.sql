@@ -1,25 +1,25 @@
--- SEO Settings Migration
+-- SEO Settings Migration - MySQL Version
 -- Add SEO-related fields to albums table and global SEO settings
 
--- Add SEO fields to albums table
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS seo_title VARCHAR(255) DEFAULT NULL;
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS seo_description TEXT DEFAULT NULL;
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS seo_keywords TEXT DEFAULT NULL;
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS og_title VARCHAR(255) DEFAULT NULL;
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS og_description TEXT DEFAULT NULL;
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS og_image_path VARCHAR(500) DEFAULT NULL;
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS schema_type VARCHAR(100) DEFAULT 'ImageGallery';
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS schema_data TEXT DEFAULT NULL;
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS canonical_url VARCHAR(500) DEFAULT NULL;
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS robots_index BOOLEAN DEFAULT TRUE;
-ALTER TABLE albums ADD COLUMN IF NOT EXISTS robots_follow BOOLEAN DEFAULT TRUE;
+-- Add SEO fields to albums table (separate statements for error handling)
+ALTER TABLE albums ADD COLUMN seo_title VARCHAR(255) DEFAULT NULL;
+ALTER TABLE albums ADD COLUMN seo_description TEXT DEFAULT NULL;
+ALTER TABLE albums ADD COLUMN seo_keywords TEXT DEFAULT NULL;
+ALTER TABLE albums ADD COLUMN og_title VARCHAR(255) DEFAULT NULL;
+ALTER TABLE albums ADD COLUMN og_description TEXT DEFAULT NULL;
+ALTER TABLE albums ADD COLUMN og_image_path VARCHAR(500) DEFAULT NULL;
+ALTER TABLE albums ADD COLUMN schema_type VARCHAR(100) DEFAULT 'ImageGallery';
+ALTER TABLE albums ADD COLUMN schema_data TEXT DEFAULT NULL;
+ALTER TABLE albums ADD COLUMN canonical_url VARCHAR(500) DEFAULT NULL;
+ALTER TABLE albums ADD COLUMN robots_index TINYINT(1) DEFAULT 1;
+ALTER TABLE albums ADD COLUMN robots_follow TINYINT(1) DEFAULT 1;
 
--- Create indexes for SEO fields
-CREATE INDEX IF NOT EXISTS idx_albums_seo_title ON albums(seo_title);
-CREATE INDEX IF NOT EXISTS idx_albums_robots ON albums(robots_index, robots_follow);
+-- Create indexes for SEO fields (MySQL 8.0+)
+CREATE INDEX idx_albums_seo_title ON albums(seo_title);
+CREATE INDEX idx_albums_robots ON albums(robots_index, robots_follow);
 
 -- Insert global SEO settings
-INSERT OR IGNORE INTO settings (key, value, type) VALUES 
+INSERT IGNORE INTO settings (`key`, `value`, `type`) VALUES
 -- Site-wide SEO settings
 ('seo.site_title', 'Photography Portfolio', 'string'),
 ('seo.site_description', 'Professional photography portfolio showcasing creative work and artistic vision', 'string'),
