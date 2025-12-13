@@ -48,8 +48,7 @@
         <div class="mt-12 border border-neutral-200 rounded-lg p-6">
           <h2 class="text-2xl font-semibold">{{ contact_title|default(trans('contact.title'))|e }}</h2>
           <p class="text-sm text-neutral-600 mt-1">{% if contact_intro %}{{ contact_intro|safe_html }}{% elseif about_footer_text %}{{ about_footer_text|safe_html }}{% else %}{{ trans('contact.intro', {}, 'For collaborations and commissions, contact me via email or social.') }}{% endif %}</p>
-          {% set contact_action = about_url starts with '/' ? (base_path ~ about_url) : about_url %}
-          <form method="post" action="{{ contact_action }}/contact" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form method="post" action="{{ about_url }}/contact" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <div>
               <label for="contact-name" class="block text-sm mb-1">{{ trans('contact.name') }}</label>
