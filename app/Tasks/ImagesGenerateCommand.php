@@ -69,9 +69,25 @@ class ImagesGenerateCommand extends Command
 
         foreach ($images as $img) {
             $imageId = (int)$img['id'];
-            $src = dirname(__DIR__, 2) . $img['original_path'];
-            if (!is_file($src)) {
-                $output->writeln("<error>Source file not found for image #{$imageId}: {$src}</error>");
+            $originalPath = $img['original_path'];
+
+            // Try multiple possible locations for the source file
+            $possiblePaths = [
+                dirname(__DIR__, 2) . $originalPath,           // /media/originals/...
+                dirname(__DIR__, 2) . '/public' . $originalPath, // /public/media/originals/...
+                dirname(__DIR__, 2) . '/storage/originals/' . basename($originalPath), // /storage/originals/...
+            ];
+
+            $src = null;
+            foreach ($possiblePaths as $path) {
+                if (is_file($path)) {
+                    $src = $path;
+                    break;
+                }
+            }
+
+            if (!$src) {
+                $output->writeln("<error>Source file not found for image #{$imageId}: tried " . implode(', ', $possiblePaths) . "</error>");
                 $totalErrors++;
                 continue;
             }
