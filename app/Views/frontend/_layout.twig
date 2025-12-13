@@ -188,6 +188,48 @@
             break-inside: avoid;
             margin-bottom: 1rem;
         }
+
+        /* Prevent FOUC: hide gallery items (exclude Magazine template wrappers) */
+        #images-gallery > .masonry-item,
+        #images-gallery > .image-item,
+        #images-gallery > .grid-minimal-item,
+        #images-gallery > .polaroid-item,
+        #images-gallery > .mosaic-item {
+            opacity: 0;
+            transform: scale(0.97);
+        }
+        /* Show when animated or fallback */
+        #images-gallery.gsap-failed > *,
+        #images-gallery > [data-animated] {
+            opacity: 1;
+            transform: scale(1);
+        }
+        /* Reduced motion: show immediately */
+        @media (prefers-reduced-motion: reduce) {
+            #images-gallery > .masonry-item,
+            #images-gallery > .image-item,
+            #images-gallery > .grid-minimal-item,
+            #images-gallery > .polaroid-item,
+            #images-gallery > .mosaic-item {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        }
+
+        /* Focus hover effect - fade other images when hovering one */
+        #images-gallery.gallery-animate {
+            pointer-events: none; /* Empty space doesn't trigger hover */
+        }
+        #images-gallery.gallery-animate > [data-animated] {
+            pointer-events: auto; /* Only images receive hover */
+        }
+        #images-gallery > [data-animated] {
+            transition: filter 0.5s ease-out, opacity 0.5s ease-out, transform 0.3s ease;
+        }
+        #images-gallery:has(> [data-animated]:hover) > [data-animated]:not(:hover) {
+            filter: saturate(0.1) opacity(0.35);
+        }
+
         @media (max-width: 768px) {
             .masonry-grid {
                 column-count: var(--cols-tablet, 2);
@@ -223,6 +265,13 @@
             z-index: 51;
         }
 
+        /* Template switcher: show immediately for reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            #template-switcher {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        }
 
 
         /* Simple Lightbox fallback */
@@ -617,9 +666,48 @@
             --pswp-icon-color: #000 !important;
             --pswp-icon-color-secondary: #000 !important;
         }
-        
+
         .pswp__bg {
             background: var(--pswp-bg) !important;
+            opacity: 0.97 !important;
+        }
+
+        /* Prevent background scroll when lightbox is open */
+        body.pswp-open {
+            overflow: hidden !important;
+        }
+
+        /* CRITICAL: Hide placeholder images to prevent double image */
+        .pswp__img--placeholder {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+
+        /* Hide the opening animation thumbnail clone */
+        .pswp__img.pswp__img--initial {
+            display: none !important;
+        }
+
+        /* During opening animation, only show the zoom-wrap content */
+        .pswp--opening .pswp__item img:not(:last-child) {
+            display: none !important;
+        }
+
+        /* Elegant entrance animation for lightbox */
+        @keyframes pswpImageEntrance {
+            from {
+                opacity: 0;
+                transform: scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .pswp__content {
+            animation: pswpImageEntrance 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
         
         /* Remove all shadows and outlines */
@@ -1238,9 +1326,9 @@
         // Enhanced smooth animations with GSAP
         gsap.registerPlugin(ScrollTrigger);
 
-        // Animate elements on scroll with stagger effect - exclude header and mega menu images
-        // Avoid animating #images-gallery items to prevent flicker
-        gsap.utils.toArray('main .album-card, .gallery-container .image-item').forEach((el, index) => {
+        // Animate album cards on scroll (NOT image-items - they use animateGalleryOnce)
+        const albumCards = gsap.utils.toArray('main .album-card');
+        albumCards.forEach((el, index) => {
             gsap.from(el, {
                 opacity: 0,
                 y: 30,
@@ -1258,25 +1346,49 @@
         });
 
         // One-time entrance animation for gallery items
+        // CSS hides specific item types initially (opacity:0, scale:0.9)
+        // This function animates them TO visible state using gsap.to()
         window.animateGalleryOnce = function() {
             if (typeof gsap === 'undefined') return;
+
             const container = document.getElementById('images-gallery');
             if (!container) return;
-            const nodes = Array.from(container.querySelectorAll('.image-item')).filter(n => !n.hasAttribute('data-animated'));
+
+            // Select only animatable item types (exclude Magazine template wrappers)
+            const selector = '.masonry-item, .image-item, .grid-minimal-item, .polaroid-item, .mosaic-item';
+            const nodes = Array.from(container.querySelectorAll(':scope > ' + selector.split(', ').join(', :scope > ')))
+                .filter(n => !n.hasAttribute('data-animated'));
             if (!nodes.length) return;
-            // Mark as animated to avoid double-run on same nodes
-            nodes.forEach(n => n.setAttribute('data-animated','1'));
-            gsap.from(nodes, {
-                opacity: 0,
-                y: 24,
-                duration: 0.6,
-                stagger: 0.03,
-                ease: 'power2.out'
+
+            // Mark as animated to avoid double-run
+            nodes.forEach(n => n.setAttribute('data-animated', '1'));
+
+            // Quick entrance animation (fade + subtle scale)
+            gsap.to(nodes, {
+                opacity: 1,
+                scale: 1,
+                duration: 0.35,
+                stagger: {
+                    amount: Math.min(0.25, nodes.length * 0.02),
+                    from: 'start'
+                },
+                ease: 'power3.out'
             });
         };
 
-        // Initialize gallery entrance animation on load (no scroll trigger)
+        // Run gallery animation on load
         window.animateGalleryOnce();
+
+        // Fallback: if GSAP fails, show elements after 2 seconds
+        setTimeout(() => {
+            const gallery = document.getElementById('images-gallery');
+            if (gallery) {
+                const hidden = Array.from(gallery.children).filter(n => !n.hasAttribute('data-animated'));
+                if (hidden.length > 0) {
+                    gallery.classList.add('gsap-failed');
+                }
+            }
+        }, 2000);
         
         // Enhanced header scroll behavior with smooth transitions
         let lastScroll = 0;
@@ -1497,7 +1609,7 @@
                         pswpModule: PhotoSwipe,
                         
                         // Modern image sizing and layout
-                        bgOpacity: (typeof psCfg.bgOpacity === 'number') ? psCfg.bgOpacity : 0.95,
+                        bgOpacity: 0.97,
                         spacing: (typeof psCfg.spacing === 'number') ? psCfg.spacing : 0.12,
                         allowPanToNext: !!psCfg.allowPanToNext,
                         loop: !!psCfg.loop,
@@ -1566,6 +1678,30 @@
                         zoomAnimationDuration: 333,
                         easing: 'cubic-bezier(0.4, 0, 0.22, 1)'
                     });
+
+                    // Hide placeholder images when content is appended
+                    lb.on('contentAppend', (e) => {
+                        if (e.content?.element) {
+                            e.content.element.querySelectorAll('.pswp__img--placeholder').forEach(img => {
+                                img.style.display = 'none';
+                            });
+                        }
+                    });
+
+                    // Prevent background scrolling and hide placeholders
+                    lb.on('openingAnimationStart', () => {
+                        document.body.classList.add('pswp-open');
+                        document.querySelectorAll('.pswp__img--placeholder, .pswp__img--initial').forEach(el => {
+                            el.style.display = 'none';
+                            el.style.visibility = 'hidden';
+                            el.style.opacity = '0';
+                        });
+                    });
+
+                    lb.on('closingAnimationEnd', () => {
+                        document.body.classList.remove('pswp-open');
+                    });
+
                     // Enhanced Caption UI with metadata
                     lb.on('uiRegister', () => {
                         // Custom caption inline (transparent background), includes meta info
@@ -1732,6 +1868,7 @@
                             }
                         });
                     });
+
                     lb.init();
                     // Hide counter if disabled in template
                     if (psCfg.counter === false) {
@@ -1759,7 +1896,7 @@
                     pswpModule: PhotoSwipe,
                     
                     // Modern configuration matching main lightbox
-                    bgOpacity: 0.95,
+                    bgOpacity: 0.97,
                     spacing: 0.12,
                     allowPanToNext: true,
                     loop: !!psCfg.loop,
@@ -1814,6 +1951,15 @@
                     });
                     pswp.on('close', () => { if (psCaptionEl && psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
                   });
+
+                  // Prevent background scroll when lightbox is open
+                  lb.on('openingAnimationStart', () => {
+                      document.body.classList.add('pswp-open');
+                  });
+                  lb.on('closingAnimationEnd', () => {
+                      document.body.classList.remove('pswp-open');
+                  });
+
                   lb.init();
                   // Manually open at index
                   lb.loadAndOpen(startIndex);
@@ -1824,7 +1970,7 @@
                       index: startIndex,
                       showHideAnimationType: 'fade',
                       allowPanToNext: !!psCfg.allowPanToNext,
-                      bgOpacity: typeof psCfg.bgOpacity === 'number' ? psCfg.bgOpacity : 0.95,
+                      bgOpacity: 0.97,
                       loop: !!psCfg.loop
                   });
                   // Custom caption overlay for PhotoSwipe
@@ -1846,6 +1992,13 @@
                   }
                   lightbox.on('change', updatePsCaption);
                   lightbox.on('close', ()=>{ if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
+                  // Prevent background scroll when lightbox is open
+                  lightbox.on('openingAnimationStart', () => {
+                      document.body.classList.add('pswp-open');
+                  });
+                  lightbox.on('closingAnimationEnd', () => {
+                      document.body.classList.remove('pswp-open');
+                  });
                   lightbox.init();
                   updatePsCaption();
                   

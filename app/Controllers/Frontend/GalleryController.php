@@ -258,8 +258,8 @@ class GalleryController extends BaseController
                 $bestUrl = $fallback ?: '/media/placeholder.jpg'; // Use placeholder if no variants
             }
             if (str_starts_with((string)$lightboxUrl, '/storage/')) {
-                // Same logic for lightbox URL
-                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
+                // For lightbox, prefer largest variant (lg > md > sm) for best quality
+                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END, width DESC LIMIT 1");
                 $fallbackStmt->execute([':id' => $img['id']]);
                 $fallback = $fallbackStmt->fetchColumn();
                 $lightboxUrl = $fallback ?: $bestUrl; // Use bestUrl as fallback
@@ -538,20 +538,16 @@ class GalleryController extends BaseController
             $images = [];
             foreach ($imagesRows as $img) {
                 $bestUrl = $img['original_path'];
-                $lightboxUrl = $img['original_path'];
+                $lightboxUrl = $img['original_path']; // Keep original for lightbox if accessible
                 try {
                     // Grid: prefer largest public variant (avif > webp > jpg)
-                    $vg = $pdo->prepare("SELECT path, width, height FROM image_variants 
-                        WHERE image_id = :id AND path NOT LIKE '/storage/%' 
+                    $vg = $pdo->prepare("SELECT path, width, height FROM image_variants
+                        WHERE image_id = :id AND path NOT LIKE '/storage/%'
                         ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
                     $vg->execute([':id' => $img['id']]);
                     if ($vgr = $vg->fetch()) { if (!empty($vgr['path'])) { $bestUrl = $vgr['path']; } }
-                    // Lightbox: same
-                    $vl = $pdo->prepare("SELECT path FROM image_variants 
-                        WHERE image_id = :id AND path NOT LIKE '/storage/%' 
-                        ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
-                    $vl->execute([':id' => $img['id']]);
-                    if ($vlr = $vl->fetch()) { if (!empty($vlr['path'])) { $lightboxUrl = $vlr['path']; } }
+                    // Lightbox: only use variant if original is not publicly accessible
+                    // Original paths like /media/originals/... are public, /storage/... are not
                     // Build responsive sources for <picture>
                     $srcStmt = $pdo->prepare("SELECT format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width ASC");
                     $srcStmt->execute([':id' => $img['id']]);
@@ -574,8 +570,11 @@ class GalleryController extends BaseController
                     $fallback = $fallbackStmt->fetchColumn();
                     $bestUrl = $fallback ?: '/media/placeholder.jpg';
                 }
-                if (str_starts_with((string)$lightboxUrl, '/storage/')) { 
-                    $lightboxUrl = $bestUrl; 
+                if (str_starts_with((string)$lightboxUrl, '/storage/')) {
+                    // For lightbox, prefer largest variant (lg > md > sm) for best quality
+                    $lbFallback = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END, width DESC LIMIT 1");
+                    $lbFallback->execute([':id' => $img['id']]);
+                    $lightboxUrl = $lbFallback->fetchColumn() ?: $bestUrl;
                 }
                 
 
