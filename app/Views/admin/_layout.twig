@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -244,7 +244,7 @@
         <!-- User Administration Area -->
         <div class="flex items-center space-x-6">
           <!-- Frontend Link -->
-          <a href="{{ base_path }}/" target="_blank" class="text-gray-600 hover:text-black transition-colors flex items-center space-x-2" title="Visualizza Frontend">
+          <a href="{{ base_path }}/" target="_blank" class="text-gray-600 hover:text-black transition-colors flex items-center space-x-2" title="View Frontend">
             <i class="fas fa-external-link-alt"></i>
             <span class="hidden md:inline text-sm">Frontend</span>
           </a>
@@ -320,16 +320,16 @@
               <a href="#" onclick="openProfileModal()" class="dropdown-item">
                 <i class="fas fa-user-edit"></i>
                 <div>
-                  <div class="font-medium">Il Mio Profilo</div>
-                  <div class="text-xs text-gray-500">Modifica informazioni personali</div>
+                  <div class="font-medium">My Profile</div>
+                  <div class="text-xs text-gray-500">Edit personal information</div>
                 </div>
               </a>
-              
+
               <a href="#" onclick="openPasswordModal()" class="dropdown-item">
                 <i class="fas fa-key"></i>
                 <div>
-                  <div class="font-medium">Cambia Password</div>
-                  <div class="text-xs text-gray-500">Aggiorna le tue credenziali</div>
+                  <div class="font-medium">Change Password</div>
+                  <div class="text-xs text-gray-500">Update your credentials</div>
                 </div>
               </a>
               
@@ -338,16 +338,16 @@
               <a href="{{ base_path }}/admin/users" class="dropdown-item">
                 <i class="fas fa-users-cog"></i>
                 <div>
-                  <div class="font-medium">Gestione Utenti</div>
-                  <div class="text-xs text-gray-500">Amministra tutti gli utenti</div>
+                  <div class="font-medium">User Management</div>
+                  <div class="text-xs text-gray-500">Manage all users</div>
                 </div>
               </a>
-              
+
               <a href="{{ base_path }}/admin/settings" class="dropdown-item">
                 <i class="fas fa-cog"></i>
                 <div>
-                  <div class="font-medium">Impostazioni Sistema</div>
-                  <div class="text-xs text-gray-500">Configura l'applicazione</div>
+                  <div class="font-medium">System Settings</div>
+                  <div class="text-xs text-gray-500">Configure the application</div>
                 </div>
               </a>
               
@@ -359,7 +359,7 @@
                   <i class="fas fa-sign-out-alt"></i>
                   <div>
                     <div class="font-medium">Logout</div>
-                    <div class="text-xs text-red-400">Esci dall'amministrazione</div>
+                    <div class="text-xs text-red-400">Exit administration</div>
                   </div>
                 </button>
               </form>
@@ -395,7 +395,7 @@
               <i class="fas fa-tachometer-alt"></i>Dashboard
             </a>
             <a href="{{ base_path }}/admin/media" class="sidebar-link" data-spa-link>
-              <i class="fas fa-images"></i>Galleria
+              <i class="fas fa-images"></i>Gallery
             </a>
             <a href="{{ base_path }}/admin/albums" class="sidebar-link" data-spa-link>
               <i class="fas fa-images"></i>Albums
@@ -411,6 +411,9 @@
             </a>
             <a href="{{ base_path }}/admin/pages" class="sidebar-link" data-spa-link>
               <i class="fas fa-file-alt"></i>Pages
+            </a>
+            <a href="{{ base_path }}/admin/texts" class="sidebar-link" data-spa-link>
+              <i class="fas fa-language"></i>Texts
             </a>
             {# Hook: admin_sidebar_navigation - Add custom navigation items #}
             {{ do_action('admin_sidebar_navigation', {base_path: base_path}) }}
@@ -541,7 +544,7 @@
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Il Mio Profilo</h3>
+          <h3 class="text-lg font-semibold text-gray-900">My Profile</h3>
           <button onclick="closeProfileModal()" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times"></i>
           </button>
@@ -550,11 +553,11 @@
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <div class="space-y-4">
             <div>
-              <label for="profile-first-name" class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+              <label for="profile-first-name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
               <input id="profile-first-name" class="form-input" type="text" name="first_name" autocomplete="given-name" value="{{ session.admin_name|split(' ')|first }}" required>
             </div>
             <div>
-              <label for="profile-last-name" class="block text-sm font-medium text-gray-700 mb-1">Cognome</label>
+              <label for="profile-last-name" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
               <input id="profile-last-name" class="form-input" type="text" name="last_name" autocomplete="family-name" value="{{ session.admin_name|split(' ')|slice(1)|join(' ') }}" required>
             </div>
             <div>
@@ -563,8 +566,8 @@
             </div>
           </div>
           <div class="flex justify-end space-x-3 mt-6">
-            <button type="button" onclick="closeProfileModal()" class="btn-secondary">Annulla</button>
-            <button type="submit" class="btn-primary">Aggiorna Profilo</button>
+            <button type="button" onclick="closeProfileModal()" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">Update Profile</button>
           </div>
         </form>
       </div>
@@ -576,7 +579,7 @@
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Cambia Password</h3>
+          <h3 class="text-lg font-semibold text-gray-900">Change Password</h3>
           <button onclick="closePasswordModal()" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times"></i>
           </button>
@@ -585,21 +588,21 @@
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <div class="space-y-4">
             <div>
-              <label for="current-password" class="block text-sm font-medium text-gray-700 mb-1">Password Attuale</label>
+              <label for="current-password" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
               <input id="current-password" class="form-input" type="password" name="current_password" autocomplete="current-password" required>
             </div>
             <div>
-              <label for="new-password" class="block text-sm font-medium text-gray-700 mb-1">Nuova Password</label>
+              <label for="new-password" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
               <input id="new-password" class="form-input" type="password" name="new_password" autocomplete="new-password" minlength="8" required>
             </div>
             <div>
-              <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-1">Conferma Nuova Password</label>
+              <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
               <input id="confirm-password" class="form-input" type="password" name="confirm_password" autocomplete="new-password" minlength="8" required>
             </div>
           </div>
           <div class="flex justify-end space-x-3 mt-6">
-            <button type="button" onclick="closePasswordModal()" class="btn-secondary">Annulla</button>
-            <button type="submit" class="btn-primary">Cambia Password</button>
+            <button type="button" onclick="closePasswordModal()" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">Change Password</button>
           </div>
         </form>
       </div>
@@ -658,7 +661,7 @@
           
           if (newPassword !== confirmPassword) {
             e.preventDefault();
-            showToast('Le password non corrispondono', 'error');
+            showToast('Passwords do not match', 'error');
             return false;
           }
         });

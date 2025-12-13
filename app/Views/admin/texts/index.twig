@@ -1,0 +1,199 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}Frontend Texts — photoCMS{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Frontend Texts</h1>
+      <p class="text-gray-600 mt-1">Manage all translatable texts for the frontend</p>
+    </div>
+    <div class="flex gap-2">
+      <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" class="btn-secondary" onclick="return confirm('Add missing default translations?')">
+          <i class="fas fa-seedling mr-2"></i>Seed Defaults
+        </button>
+      </form>
+      <a href="{{ base_path }}/admin/texts/create" class="btn-primary">
+        <i class="fas fa-plus mr-2"></i>Add Text
+      </a>
+    </div>
+  </div>
+
+  {# Search and filter bar #}
+  <div class="card mb-6">
+    <div class="p-4">
+      <form method="get" class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-[200px]">
+          <input type="text" name="search" value="{{ search }}" placeholder="Search texts..."
+                 class="input w-full">
+        </div>
+        <div class="w-48">
+          <select name="context" class="input w-full">
+            <option value="">All contexts</option>
+            {% for ctx in contexts %}
+              <option value="{{ ctx }}" {% if ctx == current_context %}selected{% endif %}>{{ ctx|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-search mr-2"></i>Search
+        </button>
+        {% if search or current_context %}
+          <a href="{{ base_path }}/admin/texts" class="btn-secondary">
+            <i class="fas fa-times mr-2"></i>Clear
+          </a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  {# Grouped texts #}
+  {% for context, texts in grouped %}
+    <div class="card mb-6">
+      <div class="card-header bg-gray-50 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 mr-3 text-sm">
+            {{ texts|length }}
+          </span>
+          {{ context|capitalize }}
+        </h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Key</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Description</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for text in texts %}
+              <tr class="hover:bg-gray-50" data-text-id="{{ text.id }}">
+                <td class="px-4 py-3">
+                  <code class="text-sm bg-gray-100 px-2 py-1 rounded text-gray-800">{{ text.text_key }}</code>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="inline-edit-container" data-id="{{ text.id }}">
+                    <span class="text-value text-gray-900">{{ text.text_value }}</span>
+                    <input type="text" class="text-input input hidden w-full" value="{{ text.text_value }}">
+                    <div class="edit-actions hidden mt-2 flex gap-2">
+                      <button type="button" class="save-btn btn-sm btn-primary">Save</button>
+                      <button type="button" class="cancel-btn btn-sm btn-secondary">Cancel</button>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-500">{{ text.description }}</td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <button type="button" class="edit-inline-btn text-blue-600 hover:text-blue-800 mr-2" title="Quick edit">
+                    <i class="fas fa-pen-to-square"></i>
+                  </button>
+                  <a href="{{ base_path }}/admin/texts/{{ text.id }}/edit" class="text-gray-600 hover:text-gray-800 mr-2" title="Full edit">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" onsubmit="return confirm('Delete this text?')">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="text-red-600 hover:text-red-800" title="Delete">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="card">
+      <div class="p-8 text-center">
+        <i class="fas fa-language text-4xl text-gray-400 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No texts found</h3>
+        <p class="text-gray-600 mb-4">
+          {% if search or current_context %}
+            No texts match your search criteria.
+          {% else %}
+            Start by seeding the default translations or adding custom texts.
+          {% endif %}
+        </p>
+        <div class="flex justify-center gap-4">
+          <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-seedling mr-2"></i>Seed Defaults
+            </button>
+          </form>
+          <a href="{{ base_path }}/admin/texts/create" class="btn-secondary">
+            <i class="fas fa-plus mr-2"></i>Add Text
+          </a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Inline editing functionality
+      document.querySelectorAll('.edit-inline-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const row = this.closest('tr');
+          const container = row.querySelector('.inline-edit-container');
+          const textValue = container.querySelector('.text-value');
+          const textInput = container.querySelector('.text-input');
+          const editActions = container.querySelector('.edit-actions');
+
+          textValue.classList.add('hidden');
+          textInput.classList.remove('hidden');
+          editActions.classList.remove('hidden');
+          textInput.focus();
+        });
+      });
+
+      document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const container = this.closest('.inline-edit-container');
+          const textValue = container.querySelector('.text-value');
+          const textInput = container.querySelector('.text-input');
+          const editActions = container.querySelector('.edit-actions');
+
+          textInput.value = textValue.textContent;
+          textValue.classList.remove('hidden');
+          textInput.classList.add('hidden');
+          editActions.classList.add('hidden');
+        });
+      });
+
+      document.querySelectorAll('.save-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const container = this.closest('.inline-edit-container');
+          const id = container.dataset.id;
+          const textValue = container.querySelector('.text-value');
+          const textInput = container.querySelector('.text-input');
+          const editActions = container.querySelector('.edit-actions');
+
+          try {
+            const response = await fetch(`{{ base_path }}/admin/texts/${id}/inline`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text_value: textInput.value })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+              textValue.textContent = textInput.value;
+              textValue.classList.remove('hidden');
+              textInput.classList.add('hidden');
+              editActions.classList.add('hidden');
+            } else {
+              alert('Failed to save: ' + (result.error || 'Unknown error'));
+            }
+          } catch (error) {
+            alert('Failed to save: ' + error.message);
+          }
+        });
+      });
+    });
+  </script>
+{% endblock %}
