@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS `albums` (
   KEY `idx_albums_sort` (`sort_order`),
   KEY `idx_albums_seo_title` (`seo_title`),
   KEY `idx_albums_robots` (`robots_index`, `robots_follow`),
+  KEY `idx_albums_published_date` (`is_published`, `published_at`),
+  KEY `idx_albums_published_shoot` (`is_published`, `shoot_date`),
   CONSTRAINT `fk_albums_category` FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_albums_location` FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_albums_template` FOREIGN KEY (`template_id`) REFERENCES `templates`(`id`) ON DELETE SET NULL
@@ -220,6 +222,7 @@ CREATE TABLE IF NOT EXISTS `images` (
   KEY `idx_images_location` (`location_id`),
   KEY `idx_images_process` (`process`),
   KEY `idx_images_iso` (`iso`),
+  KEY `idx_images_album_sort` (`album_id`, `sort_order`, `id`),
   CONSTRAINT `fk_images_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_images_camera` FOREIGN KEY (`camera_id`) REFERENCES `cameras`(`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_images_lens` FOREIGN KEY (`lens_id`) REFERENCES `lenses`(`id`) ON DELETE SET NULL,
@@ -251,6 +254,7 @@ CREATE TABLE IF NOT EXISTS `album_tag` (
   `album_id` INT UNSIGNED NOT NULL,
   `tag_id` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`album_id`, `tag_id`),
+  KEY `idx_album_tag_tag` (`tag_id`),
   CONSTRAINT `fk_album_tag_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_album_tag_tag` FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -259,6 +263,7 @@ CREATE TABLE IF NOT EXISTS `album_category` (
   `album_id` INT UNSIGNED NOT NULL,
   `category_id` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`album_id`, `category_id`),
+  KEY `idx_album_category_category` (`category_id`),
   CONSTRAINT `fk_album_category_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_album_category_category` FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -267,6 +272,7 @@ CREATE TABLE IF NOT EXISTS `album_camera` (
   `album_id` INT UNSIGNED NOT NULL,
   `camera_id` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`album_id`, `camera_id`),
+  KEY `idx_album_camera_camera` (`camera_id`),
   CONSTRAINT `fk_album_camera_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_album_camera_camera` FOREIGN KEY (`camera_id`) REFERENCES `cameras`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -275,6 +281,7 @@ CREATE TABLE IF NOT EXISTS `album_lens` (
   `album_id` INT UNSIGNED NOT NULL,
   `lens_id` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`album_id`, `lens_id`),
+  KEY `idx_album_lens_lens` (`lens_id`),
   CONSTRAINT `fk_album_lens_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_album_lens_lens` FOREIGN KEY (`lens_id`) REFERENCES `lenses`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -283,6 +290,7 @@ CREATE TABLE IF NOT EXISTS `album_film` (
   `album_id` INT UNSIGNED NOT NULL,
   `film_id` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`album_id`, `film_id`),
+  KEY `idx_album_film_film` (`film_id`),
   CONSTRAINT `fk_album_film_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_album_film_film` FOREIGN KEY (`film_id`) REFERENCES `films`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -291,6 +299,7 @@ CREATE TABLE IF NOT EXISTS `album_developer` (
   `album_id` INT UNSIGNED NOT NULL,
   `developer_id` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`album_id`, `developer_id`),
+  KEY `idx_album_developer_developer` (`developer_id`),
   CONSTRAINT `fk_album_developer_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_album_developer_developer` FOREIGN KEY (`developer_id`) REFERENCES `developers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -299,6 +308,7 @@ CREATE TABLE IF NOT EXISTS `album_lab` (
   `album_id` INT UNSIGNED NOT NULL,
   `lab_id` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`album_id`, `lab_id`),
+  KEY `idx_album_lab_lab` (`lab_id`),
   CONSTRAINT `fk_album_lab_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_album_lab_lab` FOREIGN KEY (`lab_id`) REFERENCES `labs`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -307,6 +317,7 @@ CREATE TABLE IF NOT EXISTS `album_location` (
   `album_id` INT UNSIGNED NOT NULL,
   `location_id` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`album_id`, `location_id`),
+  KEY `idx_album_location_location` (`location_id`),
   CONSTRAINT `fk_album_location_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_album_location_location` FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -315,6 +326,7 @@ CREATE TABLE IF NOT EXISTS `image_location` (
   `image_id` INT UNSIGNED NOT NULL,
   `location_id` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`image_id`, `location_id`),
+  KEY `idx_image_location_location` (`location_id`),
   CONSTRAINT `fk_image_location_image` FOREIGN KEY (`image_id`) REFERENCES `images`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_image_location_location` FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

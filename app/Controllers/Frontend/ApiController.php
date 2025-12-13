@@ -54,12 +54,11 @@ class ApiController extends BaseController
         $stmt->execute($params);
         $total = (int)$stmt->fetchColumn();
 
-        // Fetch paginated
-        $sql = 'SELECT a.*, c.name AS category_name, c.slug AS category_slug 
-                FROM albums a ' . implode(' ', $joins) . ' 
-                WHERE ' . implode(' AND ', $wheres) . ' 
-                GROUP BY a.id 
-                ORDER BY ' . $orderBy . ' 
+        // Fetch paginated (use DISTINCT instead of GROUP BY for SQL standard compliance)
+        $sql = 'SELECT DISTINCT a.*, c.name AS category_name, c.slug AS category_slug
+                FROM albums a ' . implode(' ', $joins) . '
+                WHERE ' . implode(' AND ', $wheres) . '
+                ORDER BY ' . $orderBy . '
                 LIMIT :limit OFFSET :offset';
         $stmt = $pdo->prepare($sql);
         foreach ($params as $k => $v) { $stmt->bindValue($k, $v); }
@@ -100,6 +99,28 @@ class ApiController extends BaseController
     {
         $pdo = $this->db->pdo();
         $albumId = (int)($args['id'] ?? 0);
+
+        // Security: Check album exists, is published, and password access
+        $stmt = $pdo->prepare('SELECT id, is_published, password_hash FROM albums WHERE id = :id');
+        $stmt->execute([':id' => $albumId]);
+        $album = $stmt->fetch();
+
+        if (!$album || !$album['is_published']) {
+            $response->getBody()->write(json_encode(['error' => 'Album not found']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Check password protection (use same session key as PageController::unlockAlbum)
+        if (!empty($album['password_hash'])) {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            if (empty($_SESSION['album_access'][$albumId])) {
+                $response->getBody()->write(json_encode(['error' => 'Album is password protected']));
+                return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+            }
+        }
+
         $q = $request->getQueryParams();
         $process = $q['process'] ?? null;
         $camera = $q['camera'] ?? null; // matches custom_camera only for demo
@@ -125,13 +146,26 @@ class ApiController extends BaseController
         $stmt->execute();
         $images = $stmt->fetchAll() ?: [];
 
-        foreach ($images as &$img) {
-            $vstmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
-            $vstmt->execute([':id' => $img['id']]);
-            $img['variants'] = $vstmt->fetchAll();
-            if ($img['exif']) {
-                $exif = json_decode($img['exif'], true) ?: [];
-                $img['exif_display'] = $this->formatExifForDisplay($exif, $img);
+        // Batch load variants for all images (avoid N+1)
+        if (!empty($images)) {
+            $imageIds = array_column($images, 'id');
+            $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
+            $vstmt = $pdo->prepare("SELECT * FROM image_variants WHERE image_id IN ($placeholders) ORDER BY image_id, variant ASC");
+            $vstmt->execute($imageIds);
+            $allVariants = $vstmt->fetchAll();
+
+            // Group variants by image_id
+            $variantsByImage = [];
+            foreach ($allVariants as $v) {
+                $variantsByImage[$v['image_id']][] = $v;
+            }
+
+            foreach ($images as &$img) {
+                $img['variants'] = $variantsByImage[$img['id']] ?? [];
+                if ($img['exif']) {
+                    $exif = json_decode($img['exif'], true) ?: [];
+                    $img['exif_display'] = $this->formatExifForDisplay($exif, $img);
+                }
             }
         }
 
