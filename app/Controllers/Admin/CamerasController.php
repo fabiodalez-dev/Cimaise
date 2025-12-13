@@ -33,9 +33,9 @@ class CamerasController extends BaseController
     public function store(Request $request, Response $response): Response
     {
         $d=(array)$request->getParsedBody(); $make=trim((string)($d['make']??'')); $model=trim((string)($d['model']??''));
-        if($make===''||$model===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Make e Model obbligatori']; return $response->withHeader('Location',$this->basePath . '/admin/cameras/create')->withStatus(302);}        
-        try{ $this->db->pdo()->prepare('INSERT INTO cameras(make, model) VALUES(:a,:b)')->execute([':a'=>$make,':b'=>$model]); $_SESSION['flash'][]=['type'=>'success','message'=>'Camera creata']; }
-        catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()]; return $response->withHeader('Location',$this->basePath . '/admin/cameras/create')->withStatus(302);}        
+        if($make===''||$model===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Make and Model are required']; return $response->withHeader('Location',$this->basePath . '/admin/cameras/create')->withStatus(302);}        
+        try{ $this->db->pdo()->prepare('INSERT INTO cameras(make, model) VALUES(:a,:b)')->execute([':a'=>$make,':b'=>$model]); $_SESSION['flash'][]=['type'=>'success','message'=>'Camera created']; }
+        catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Error: '.$e->getMessage()]; return $response->withHeader('Location',$this->basePath . '/admin/cameras/create')->withStatus(302);}        
         return $response->withHeader('Location',$this->basePath . '/admin/cameras')->withStatus(302);
     }
 
@@ -45,13 +45,13 @@ class CamerasController extends BaseController
     public function update(Request $request, Response $response, array $args): Response
     {
         $id=(int)($args['id']??0); $d=(array)$request->getParsedBody(); $make=trim((string)($d['make']??'')); $model=trim((string)($d['model']??''));
-        if($make===''||$model===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Make e Model obbligatori']; return $response->withHeader('Location',$this->basePath . '/admin/cameras/'.$id.'/edit')->withStatus(302);}        
-        try{ $this->db->pdo()->prepare('UPDATE cameras SET make=:a, model=:b WHERE id=:id')->execute([':a'=>$make,':b'=>$model,':id'=>$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Camera aggiornata']; }
-        catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()]; }
+        if($make===''||$model===''){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Make and Model are required']; return $response->withHeader('Location',$this->basePath . '/admin/cameras/'.$id.'/edit')->withStatus(302);}        
+        try{ $this->db->pdo()->prepare('UPDATE cameras SET make=:a, model=:b WHERE id=:id')->execute([':a'=>$make,':b'=>$model,':id'=>$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Camera updated']; }
+        catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Error: '.$e->getMessage()]; }
         return $response->withHeader('Location',$this->basePath . '/admin/cameras')->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
-    { $id=(int)($args['id']??0); try{$this->db->pdo()->prepare('DELETE FROM cameras WHERE id=:id')->execute([':id'=>$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Camera eliminata'];}catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Errore: '.$e->getMessage()];} return $response->withHeader('Location',$this->basePath . '/admin/cameras')->withStatus(302); }
+    { $id=(int)($args['id']??0); try{$this->db->pdo()->prepare('DELETE FROM cameras WHERE id=:id')->execute([':id'=>$id]); $_SESSION['flash'][]=['type'=>'success','message'=>'Camera deleted'];}catch(\Throwable $e){ $_SESSION['flash'][]=['type'=>'danger','message'=>'Error: '.$e->getMessage()];} return $response->withHeader('Location',$this->basePath . '/admin/cameras')->withStatus(302); }
 }
 

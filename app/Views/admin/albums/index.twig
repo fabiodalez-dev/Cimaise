@@ -32,10 +32,10 @@
         </thead>
         <tbody class="bg-white divide-y divide-gray-200" id="albums-tbody">
           {% for a in items %}
-          <tr class="table-row cursor-move" data-id="{{ a.id }}" title="Trascina per riordinare">
+          <tr class="table-row cursor-move" data-id="{{ a.id }}" title="Drag to reorder">
             <td class="px-6 py-4 whitespace-nowrap">
               {% if a.cover_path %}
-                <img src="{% if a.cover_path starts with '/' %}{{ base_path }}{{ a.cover_path }}{% else %}{{ a.cover_path }}{% endif %}" alt="" class="w-14 h-10 object-cover rounded border border-gray-200">
+                <img src="{% if a.cover_path starts with '/' %}{{ base_path }}{{ a.cover_path }}{% else %}{{ a.cover_path }}{% endif %}" alt="{{ a.title|e('html_attr') }} cover" class="w-14 h-10 object-cover rounded border border-gray-200">
               {% else %}
                 <div class="w-14 h-10 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
                   <i class="fas fa-image text-gray-400 text-sm"></i>
@@ -168,10 +168,10 @@
               }, 
               body: JSON.stringify({ order: ids }) 
             });
-            if (window.showToast) window.showToast('Ordine album salvato', 'success');
+            if (window.showToast) window.showToast('Album order saved', 'success');
           } catch(error) {
             console.error('Failed to save albums order:', error);
-            if (window.showToast) window.showToast('Errore salvataggio ordine', 'error');
+            if (window.showToast) window.showToast('Error saving order', 'error');
           }
         }
         

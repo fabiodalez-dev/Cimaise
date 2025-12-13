@@ -396,6 +396,56 @@ $app->post('/admin/pages/galleries', function (Request $request, Response $respo
     return $controller->saveGalleries($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+// Frontend Texts management
+$app->get('/admin/texts', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->get('/admin/texts/create', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->create($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/texts', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->store($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/texts/seed', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->seed($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->get('/admin/texts/languages', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->languages($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/texts/import', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->import($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/texts/upload', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->upload($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->get('/admin/texts/export', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->export($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->get('/admin/texts/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->edit($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/texts/{id}', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->update($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/texts/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->delete($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/texts/{id}/inline', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\TextsController($container['db'], Twig::fromRequest($request));
+    return $controller->inlineUpdate($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
 // Plugins management
 $app->get('/admin/plugins', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\PluginsController($container['db'], Twig::fromRequest($request));

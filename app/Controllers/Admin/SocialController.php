@@ -129,7 +129,7 @@ class SocialController extends BaseController
             return $response->withHeader('Content-Type', 'application/json');
         }
 
-        $_SESSION['flash'][] = ['type'=>'success','message'=>'Impostazioni social salvate correttamente'];
+        $_SESSION['flash'][] = ['type'=>'success','message'=>'Social settings saved successfully'];
         return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
     }
 

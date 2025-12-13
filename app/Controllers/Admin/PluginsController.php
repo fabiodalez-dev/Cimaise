@@ -21,7 +21,7 @@ class PluginsController extends BaseController
     }
 
     /**
-     * Mostra la pagina di gestione plugin
+     * Show the plugin management page
      */
     public function index(Request $request, Response $response): Response
     {
@@ -36,7 +36,7 @@ class PluginsController extends BaseController
     }
 
     /**
-     * Installa un plugin
+     * Install a plugin
      */
     public function install(Request $request, Response $response): Response
     {
@@ -44,7 +44,7 @@ class PluginsController extends BaseController
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
-            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin non specificato'];
+            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
             return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
         }
 
@@ -60,7 +60,7 @@ class PluginsController extends BaseController
     }
 
     /**
-     * Disinstalla un plugin
+     * Uninstall a plugin
      */
     public function uninstall(Request $request, Response $response): Response
     {
@@ -68,7 +68,7 @@ class PluginsController extends BaseController
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
-            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin non specificato'];
+            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
             return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
         }
 
@@ -84,7 +84,7 @@ class PluginsController extends BaseController
     }
 
     /**
-     * Attiva un plugin
+     * Activate a plugin
      */
     public function activate(Request $request, Response $response): Response
     {
@@ -92,7 +92,7 @@ class PluginsController extends BaseController
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
-            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin non specificato'];
+            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
             return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
         }
 
@@ -108,7 +108,7 @@ class PluginsController extends BaseController
     }
 
     /**
-     * Disattiva un plugin
+     * Deactivate a plugin
      */
     public function deactivate(Request $request, Response $response): Response
     {
@@ -116,7 +116,7 @@ class PluginsController extends BaseController
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
-            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin non specificato'];
+            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
             return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
         }
 
@@ -141,7 +141,7 @@ class PluginsController extends BaseController
         // Verify CSRF
         $csrf = $request->getHeaderLine('X-CSRF-Token');
         if (empty($csrf) || $csrf !== ($_SESSION['csrf'] ?? '')) {
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Token CSRF non valido']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Invalid CSRF token']));
             return $response->withStatus(403);
         }
 
@@ -149,20 +149,20 @@ class PluginsController extends BaseController
         $file = $uploadedFiles['file'] ?? null;
 
         if (!$file || $file->getError() !== UPLOAD_ERR_OK) {
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Nessun file caricato o errore upload']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'No file uploaded or upload error']));
             return $response->withStatus(400);
         }
 
         // Check file type
         $filename = $file->getClientFilename();
         if (!str_ends_with(strtolower($filename), '.zip')) {
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Il file deve essere un archivio ZIP']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'The file must be a ZIP archive']));
             return $response->withStatus(400);
         }
 
         // Check file size (max 10MB)
         if ($file->getSize() > 10 * 1024 * 1024) {
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Il file è troppo grande (max 10MB)']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'The file is too large (max 10MB)']));
             return $response->withStatus(400);
         }
 
@@ -177,7 +177,7 @@ class PluginsController extends BaseController
         $zip = new \ZipArchive();
         if ($zip->open($tempZip) !== true) {
             $this->cleanupTemp($tempDir);
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Impossibile aprire il file ZIP']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Unable to open ZIP file']));
             return $response->withStatus(400);
         }
 
@@ -208,7 +208,7 @@ class PluginsController extends BaseController
 
         if (!$pluginJson) {
             $this->cleanupTemp($tempDir);
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'plugin.json non trovato nel pacchetto']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'plugin.json not found in package']));
             return $response->withStatus(400);
         }
 
@@ -216,7 +216,7 @@ class PluginsController extends BaseController
         $pluginData = json_decode(file_get_contents($pluginJson), true);
         if (!$pluginData || empty($pluginData['name'])) {
             $this->cleanupTemp($tempDir);
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'plugin.json non valido o manca il campo "name"']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'plugin.json invalid or missing "name" field']));
             return $response->withStatus(400);
         }
 
@@ -229,7 +229,7 @@ class PluginsController extends BaseController
         // Check if plugin already exists
         if (is_dir($targetDir)) {
             $this->cleanupTemp($tempDir);
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Un plugin con questo nome esiste già']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'A plugin with this name already exists']));
             return $response->withStatus(400);
         }
 
@@ -241,7 +241,7 @@ class PluginsController extends BaseController
         // Move plugin to plugins directory
         if (!rename($pluginDir, $targetDir)) {
             $this->cleanupTemp($tempDir);
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Impossibile installare il plugin']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Unable to install plugin']));
             return $response->withStatus(500);
         }
 
@@ -250,7 +250,7 @@ class PluginsController extends BaseController
 
         $response->getBody()->write(json_encode([
             'success' => true,
-            'message' => 'Plugin "' . htmlspecialchars($pluginData['name'], ENT_QUOTES, 'UTF-8') . '" caricato con successo',
+            'message' => 'Plugin "' . htmlspecialchars($pluginData['name'], ENT_QUOTES, 'UTF-8') . '" uploaded successfully',
             'plugin' => [
                 'slug' => $slug,
                 'name' => $pluginData['name'],

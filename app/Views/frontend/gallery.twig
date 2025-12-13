@@ -73,7 +73,7 @@
   {% set grid_cols = equipment_count <= 3 ? equipment_count : 3 %}
 
   <div class="max-w-5xl mx-auto mb-8 p-4 bg-neutral-50 rounded-lg" data-gsap="equipment">
-    <h3 class="text-sm font-medium mb-3 text-center">Equipment</h3>
+    <h3 class="text-sm font-medium mb-3 text-center">{{ trans('album.equipment', {}, 'Equipment') }}</h3>
     <div class="grid grid-cols-1 {% if equipment_count > 1 %}md:grid-cols-{{ equipment_count <= 2 ? equipment_count : 2 }}{% endif %} {% if equipment_count > 2 %}lg:grid-cols-{{ grid_cols }}{% endif %} gap-4 text-xs text-neutral-600">
       {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
       <div class="flex flex-col items-center text-center">

@@ -135,6 +135,12 @@ $twig->getEnvironment()->addExtension(new \App\Extensions\AnalyticsTwigExtension
 $twig->getEnvironment()->addExtension(new \App\Extensions\SecurityTwigExtension());
 $twig->getEnvironment()->addExtension(new \App\Extensions\HooksTwigExtension());
 
+// Add translation extension (only if database is available)
+if ($container['db'] !== null) {
+    $translationService = new \App\Services\TranslationService($container['db']);
+    $twig->getEnvironment()->addExtension(new \App\Extensions\TranslationTwigExtension($translationService));
+}
+
 $app->add(TwigMiddleware::create($app, $twig));
 
 // Auto-detect app URL if not set in environment

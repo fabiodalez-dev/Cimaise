@@ -4,9 +4,9 @@
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold text-black">Media Library</h1>
     <form method="get" class="flex items-center gap-2">
-      <input type="text" name="q" value="{{ app.request.getQueryParams.q|default('') }}" class="form-input w-64" placeholder="Cerca per nome file, alt text...">
+      <input type="text" name="q" value="{{ app.request.getQueryParams.q|default('') }}" class="form-input w-64" placeholder="Search by filename, alt text...">
       <button class="btn-secondary">
-        <i class="fas fa-search mr-2"></i>Cerca
+        <i class="fas fa-search mr-2"></i>Search
       </button>
     </form>
   </div>
@@ -19,23 +19,23 @@
         <div class="flex items-center gap-4">
           <label class="inline-flex items-center gap-2 text-sm font-medium">
             <input type="checkbox" id="media-select-all" class="rounded border-gray-300 text-black focus:ring-black">
-            <span id="selection-count">Seleziona tutto</span>
+            <span id="selection-count">Select all</span>
           </label>
-          <div class="text-sm text-gray-500" id="total-count">{{ items|length }} elementi</div>
+          <div class="text-sm text-gray-500" id="total-count">{{ items|length }} items</div>
         </div>
         <div class="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 w-full sm:w-auto">
           <select id="media-attach-album" class="form-input text-sm min-w-0 sm:min-w-[200px] w-full sm:w-auto">
-            <option value="">— Aggiungi ad album —</option>
+            <option value="">— Add to album —</option>
             {% for a in albums %}
               <option value="{{ a.id }}">{{ a.title }}</option>
             {% endfor %}
           </select>
           <div class="flex gap-2 w-full sm:w-auto">
             <button id="media-attach-btn" class="btn-primary text-sm flex-1 sm:flex-none" disabled>
-              <i class="fas fa-plus mr-1"></i>Aggiungi
+              <i class="fas fa-plus mr-1"></i>Add
             </button>
             <button id="media-delete-btn" class="btn-outline-danger text-sm flex-1 sm:flex-none" disabled>
-              <i class="fas fa-trash mr-1"></i>Elimina
+              <i class="fas fa-trash mr-1"></i>Delete
             </button>
           </div>
         </div>
@@ -48,7 +48,7 @@
     <!-- Sidebar for image details -->
     <div id="media-sidebar" class="w-full lg:w-96 bg-white rounded-lg border border-gray-200 hidden flex-shrink-0 max-w-full flex-col">
       <div class="p-4 border-b border-gray-200 relative">
-        <h3 class="font-semibold text-gray-900 mb-4">Dettagli Immagine</h3>
+        <h3 class="font-semibold text-gray-900 mb-4">Image Details</h3>
         <button id="sidebar-close" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100" type="button">
           <i class="fas fa-times"></i>
         </button>
@@ -57,7 +57,7 @@
       <div class="p-4 space-y-6">
         <!-- Image preview -->
         <div class="text-center">
-          <img id="sidebar-preview" src="" alt="" class="max-w-full rounded-lg shadow-sm">
+          <img id="sidebar-preview" src="" alt="Media preview" class="max-w-full rounded-lg shadow-sm">
           <div class="mt-2 text-xs text-gray-500" id="sidebar-dimensions"></div>
         </div>
 
@@ -67,7 +67,7 @@
           <input type="hidden" id="sidebar-image-id" name="image_id">
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nome file</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Filename</label>
             <div class="form-input bg-gray-50 text-gray-600 text-sm" id="sidebar-filename">—</div>
           </div>
           
@@ -77,12 +77,12 @@
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Didascalia</label>
-            <textarea name="caption" id="sidebar-caption" rows="3" class="form-input text-sm" placeholder="Descrizione dell'immagine..."></textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Caption</label>
+            <textarea name="caption" id="sidebar-caption" rows="3" class="form-input text-sm" placeholder="Image description..."></textarea>
           </div>
 
           <div class="border-t pt-4">
-            <h4 class="font-medium text-gray-900 mb-3">Metadati Fotografici</h4>
+            <h4 class="font-medium text-gray-900 mb-3">Photo Metadata</h4>
             
             <div class="space-y-3">
               <div>
@@ -164,10 +164,10 @@
 
           <div class="flex gap-2 pt-4 border-t">
             <button type="submit" class="btn-primary flex-1 text-sm">
-              <i class="fas fa-save mr-1"></i>Salva
+              <i class="fas fa-save mr-1"></i>Save
             </button>
             <button type="button" id="sidebar-delete" class="btn-outline-danger text-sm">
-              <i class="fas fa-trash mr-1"></i>Elimina
+              <i class="fas fa-trash mr-1"></i>Delete
             </button>
           </div>
         </form>
@@ -226,11 +226,11 @@
         deleteBtn.disabled = !hasSelection;
         
         if (selected.length === 0) {
-          selectionCount.textContent = 'Seleziona tutto';
+          selectionCount.textContent = 'Select all';
         } else if (selected.length === 1) {
-          selectionCount.textContent = '1 elemento selezionato';
+          selectionCount.textContent = '1 item selected';
         } else {
-          selectionCount.textContent = `${selected.length} elementi selezionati`;
+          selectionCount.textContent = `${selected.length} items selected`;
         }
 
         // Update select all checkbox state
@@ -351,18 +351,18 @@
           });
           
           if (response.ok) {
-            if (window.showToast) window.showToast('Immagine aggiornata', 'success');
+            if (window.showToast) window.showToast('Image updated', 'success');
           } else {
-            if (window.showToast) window.showToast('Errore aggiornamento', 'error');
+            if (window.showToast) window.showToast('Update error', 'error');
           }
         } catch (error) {
-          if (window.showToast) window.showToast('Errore aggiornamento', 'error');
+          if (window.showToast) window.showToast('Update error', 'error');
         }
       });
 
       // Sidebar delete button
       document.getElementById('sidebar-delete')?.addEventListener('click', async () => {
-        if (!currentImageId || !confirm('Eliminare questa immagine?')) return;
+        if (!currentImageId || !confirm('Delete this image?')) return;
         
         try {
           const response = await fetch(`{{ base_path }}/admin/media/images/${currentImageId}/delete`, {
@@ -374,10 +374,10 @@
             sidebar.classList.add('hidden');
             location.reload();
           } else {
-            if (window.showToast) window.showToast('Errore eliminazione', 'error');
+            if (window.showToast) window.showToast('Deletion error', 'error');
           }
         } catch (error) {
-          if (window.showToast) window.showToast('Errore eliminazione', 'error');
+          if (window.showToast) window.showToast('Deletion error', 'error');
         }
       });
 
@@ -407,7 +407,7 @@
         }
         
         if (window.showToast) {
-          window.showToast(`${success} immagini aggiunte all'album`, 'success');
+          window.showToast(`${success} images added to album`, 'success');
         }
         
         // Clear selection
@@ -419,7 +419,7 @@
       deleteBtn?.addEventListener('click', async () => {
         const ids = getSelectedIds(); 
         if (!ids.length) return; 
-        if (!confirm(`Eliminare ${ids.length} immagini selezionate?`)) return;
+        if (!confirm(`Delete ${ids.length} selected images?`)) return;
         
         let success = 0;
         for (const id of ids) { 
@@ -435,7 +435,7 @@
         }
         
         if (window.showToast) {
-          window.showToast(`${success} immagini eliminate`, 'success');
+          window.showToast(`${success} images deleted`, 'success');
         }
         
         location.reload();

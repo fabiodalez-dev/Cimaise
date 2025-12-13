@@ -1,5 +1,5 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Nuovo album — photoCMS{% endblock %}
+{% block title %}New Album — photoCMS{% endblock %}
 {% block content %}
 {# Hook: admin_album_create_before - Before the entire create page #}
 {{ do_action('admin_album_create_before', {base_path: base_path}) }}
@@ -10,13 +10,13 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-black">Nuovo Album</h1>
-          <p class="text-gray-600 mt-1">Crea un nuovo album fotografico</p>
+          <h1 class="text-3xl font-bold text-black">New Album</h1>
+          <p class="text-gray-600 mt-1">Create a new photo album</p>
         </div>
         <div class="flex items-center gap-3">
           <a href="{{ base_path }}/admin/albums" class="btn-secondary">
             <i class="fas fa-arrow-left mr-2"></i>
-            Torna agli album
+            Back to albums
           </a>
           {# Hook: admin_album_create_header_actions - Add custom header buttons #}
           {{ do_action('admin_album_create_header_actions', {base_path: base_path}) }}
@@ -38,63 +38,63 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-info-circle mr-3 text-gray-600"></i>
-                Informazioni Base
+                Basic Information
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Titolo, descrizione e contenuto dell'album</p>
+              <p class="text-gray-600 text-sm mt-1">Title, description and album content</p>
             </div>
             <div class="p-6 space-y-6">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Titolo <span class="text-red-500">*</span></label>
+                  <label class="block text-sm font-medium text-black mb-2">Title <span class="text-red-500">*</span></label>
                   <input class="form-input border-gray-300 focus:border-black focus:ring-black"
                          type="text" name="title" required
-                         placeholder="Inserisci il titolo dell'album">
+                         placeholder="Enter album title">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-black mb-2">Slug URL</label>
                   <input class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm"
                          type="text" name="slug"
-                         placeholder="url-friendly-slug (auto se vuoto)">
-                  <p class="text-xs text-gray-500 mt-1">Lascia vuoto per generazione automatica</p>
+                         placeholder="url-friendly-slug (auto if empty)">
+                  <p class="text-xs text-gray-500 mt-1">Leave empty for automatic generation</p>
                 </div>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Categorie <span class="text-red-500">*</span></label>
+                  <label class="block text-sm font-medium text-black mb-2">Categories <span class="text-red-500">*</span></label>
                   <select name="categories[]" id="album-categories" class="form-input" multiple required>
                     {% for c in categories %}
                       <option value="{{ c.id }}">{{ c.name }}</option>
                     {% endfor %}
                   </select>
-                  <p class="text-xs text-gray-500 mt-1">Seleziona una o più categorie</p>
+                  <p class="text-xs text-gray-500 mt-1">Select one or more categories</p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Tag</label>
+                  <label class="block text-sm font-medium text-black mb-2">Tags</label>
                   <select class="form-input" name="tags[]" id="album-tags" multiple>
                     {% for t in tags %}
                       <option value="{{ t.id }}">{{ t.name }}</option>
                     {% endfor %}
                   </select>
-                  <p class="text-xs text-gray-500 mt-1">Tag opzionali per categorizzazione avanzata</p>
+                  <p class="text-xs text-gray-500 mt-1">Optional tags for advanced categorization</p>
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Descrizione Breve</label>
-                <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                          name="excerpt" rows="4" 
-                          placeholder="Breve descrizione che appare nelle anteprime..."
+                <label class="block text-sm font-medium text-black mb-2">Short Description</label>
+                <textarea class="form-input border-gray-300 focus:border-black focus:ring-black"
+                          name="excerpt" rows="4"
+                          placeholder="Short description that appears in previews..."
                           maxlength="150"></textarea>
-                <p class="text-xs text-gray-500 mt-1">Massimo 150 caratteri per una visualizzazione ottimale. Solo testo semplice.</p>
+                <p class="text-xs text-gray-500 mt-1">Maximum 150 characters for optimal display. Plain text only.</p>
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Contenuto Completo</label>
+                <label class="block text-sm font-medium text-black mb-2">Full Content</label>
                 <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black"
                           name="body" rows="32"
-                          placeholder="Descrizione completa con formattazione..."></textarea>
-                <p class="text-xs text-gray-500 mt-1">Supporta formattazione ricca: grassetto, corsivo, elenchi, link</p>
+                          placeholder="Full description with formatting..."></textarea>
+                <p class="text-xs text-gray-500 mt-1">Supports rich formatting: bold, italic, lists, links</p>
               </div>
 
               {# Hook: admin_album_create_form_basic_info_fields - Add custom fields inside basic info card #}
@@ -110,19 +110,19 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-cloud-upload-alt mr-3 text-gray-600"></i>
-                Caricamento Immagini
+                Image Upload
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Carica le immagini direttamente durante la creazione</p>
+              <p class="text-gray-600 text-sm mt-1">Upload images directly during creation</p>
             </div>
             <div class="p-6">
               <!-- Uppy Drag & Drop Upload -->
               <div id="uploader" class="w-full border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all flex items-center justify-center min-h-[200px] text-gray-600 cursor-pointer">
                 <div class="text-center py-8">
                   <i class="fas fa-cloud-upload-alt text-4xl mb-4 text-gray-400"></i>
-                  <div class="text-lg font-medium mb-1">Trascina qui le immagini</div>
-                  <div class="text-sm text-gray-500">oppure clicca per selezionarle dal computer</div>
+                  <div class="text-lg font-medium mb-1">Drag images here</div>
+                  <div class="text-sm text-gray-500">or click to select from your computer</div>
                   <div class="text-xs text-gray-400 mt-2">JPG, PNG, WebP</div>
-                  <div class="text-xs text-blue-600 mt-3 font-medium">L'album verrà creato automaticamente al primo upload</div>
+                  <div class="text-xs text-blue-600 mt-3 font-medium">The album will be created automatically on first upload</div>
                 </div>
               </div>
               
@@ -135,14 +135,14 @@
                   <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center gap-3">
                       <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
-                      <span class="text-sm font-medium text-gray-900">Caricamento in corso</span>
+                      <span class="text-sm font-medium text-gray-900">Uploading</span>
                     </div>
                     <span class="text-sm text-gray-600" id="progress-counter">0 / 0</span>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-2.5">
                     <div id="progress-bar-total" class="bg-black h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
                   </div>
-                  <div class="text-xs text-gray-500 mt-2" id="progress-text">Preparazione upload...</div>
+                  <div class="text-xs text-gray-500 mt-2" id="progress-text">Preparing upload...</div>
                 </div>
 
                 <!-- Individual File Progress List -->
@@ -154,10 +154,10 @@
                 <div class="flex items-start gap-2">
                   <i class="fas fa-info-circle text-amber-600 mt-0.5"></i>
                   <div class="text-sm text-amber-800">
-                    <div class="font-medium">Prima di caricare le immagini:</div>
+                    <div class="font-medium">Before uploading images:</div>
                     <ul class="list-disc list-inside mt-1 text-xs space-y-0.5">
-                      <li>Seleziona almeno una <strong>Categoria</strong></li>
-                      <li>Le immagini verranno caricate automaticamente dopo la creazione</li>
+                      <li>Select at least one <strong>Category</strong></li>
+                      <li>Images will be uploaded automatically after creation</li>
                     </ul>
                   </div>
                 </div>
@@ -179,19 +179,19 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-globe mr-3 text-gray-600"></i>
-                Impostazioni Pubblicazione
+                Publishing Settings
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Data, template e visibilità</p>
+              <p class="text-gray-600 text-sm mt-1">Date, template and visibility</p>
             </div>
             <div class="p-6 space-y-4">
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Data scatto</label>
+                <label class="block text-sm font-medium text-black mb-2">Shoot Date</label>
                 <input class="form-input border-gray-300 focus:border-black focus:ring-black"
                        type="date" name="shoot_date">
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Ordine</label>
+                <label class="block text-sm font-medium text-black mb-2">Order</label>
                 <input class="form-input border-gray-300 focus:border-black focus:ring-black"
                        type="number" name="sort_order" value="0"
                        placeholder="0">
@@ -200,7 +200,7 @@
               <div>
                 <label class="block text-sm font-medium text-black mb-2">Template</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="template_id">
-                  <option value="">Template predefinito</option>
+                  <option value="">Default Template</option>
                   {% for template in templates %}
                     <option value="{{ template.id }}">{{ template.name }}</option>
                   {% endfor %}
@@ -211,19 +211,19 @@
                 <label class="flex items-center gap-3">
                   <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
                          type="checkbox" name="show_date" id="show_date" checked>
-                  <span class="text-sm font-medium text-gray-700">Mostra data di scatto</span>
+                  <span class="text-sm font-medium text-gray-700">Show shoot date</span>
                 </label>
                 
                 <label class="flex items-center gap-3">
                   <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
                          type="checkbox" name="is_published" id="pub" checked>
-                  <span class="text-sm font-medium text-gray-700">Album pubblicato</span>
+                  <span class="text-sm font-medium text-gray-700">Album published</span>
                 </label>
                 
                 <label class="flex items-center gap-3">
                   <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
                          type="checkbox" name="allow_downloads" id="allow_downloads">
-                  <span class="text-sm font-medium text-gray-700">Consenti download immagini</span>
+                  <span class="text-sm font-medium text-gray-700">Allow image downloads</span>
                 </label>
               </div>
             </div>
@@ -237,13 +237,13 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-camera mr-3 text-gray-600"></i>
-                Equipment Fotografico
+                Photo Equipment
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Attrezzatura utilizzata per l'album</p>
+              <p class="text-gray-600 text-sm mt-1">Equipment used for the album</p>
             </div>
             <div class="p-6 space-y-4">
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Fotocamere</label>
+                <label class="block text-sm font-medium text-black mb-2">Cameras</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="cameras[]" id="album-cameras" multiple>
                   {% for camera in cameras %}
                     <option value="{{ camera.id }}">{{ camera.make }} {{ camera.model }}</option>
@@ -252,7 +252,7 @@
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Obiettivi</label>
+                <label class="block text-sm font-medium text-black mb-2">Lenses</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="lenses[]" id="album-lenses" multiple>
                   {% for lens in lenses %}
                     <option value="{{ lens.id }}">{{ lens.brand }} {{ lens.model }}</option>
@@ -261,7 +261,7 @@
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Pellicole</label>
+                <label class="block text-sm font-medium text-black mb-2">Films</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="films[]" id="album-films" multiple>
                   {% for film in films %}
                     <option value="{{ film.id }}">{{ film.brand }} {{ film.name }}</option>
@@ -270,7 +270,7 @@
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Sviluppatori</label>
+                <label class="block text-sm font-medium text-black mb-2">Developers</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="developers[]" id="album-developers" multiple>
                   {% for developer in developers %}
                     <option value="{{ developer.id }}">{{ developer.name }}</option>
@@ -279,7 +279,7 @@
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Laboratori</label>
+                <label class="block text-sm font-medium text-black mb-2">Labs</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="labs[]" id="album-labs" multiple>
                   {% for lab in labs %}
                     <option value="{{ lab.id }}">{{ lab.name }}</option>
@@ -300,27 +300,27 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-map-marker-alt mr-3 text-gray-600"></i>
-                Luoghi e Sicurezza
+                Locations and Security
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Posizioni e protezione dell'album</p>
+              <p class="text-gray-600 text-sm mt-1">Positions and album protection</p>
             </div>
             <div class="p-6 space-y-4">
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Luoghi di scatto</label>
+                <label class="block text-sm font-medium text-black mb-2">Shooting Locations</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="locations[]" id="album-locations" multiple>
                   {% for loc in locations %}
                     <option value="{{ loc.id }}">{{ loc.name }}</option>
                   {% endfor %}
                 </select>
-                <p class="text-xs text-gray-500 mt-1">Seleziona uno o più luoghi dove è stato girato l'album</p>
+                <p class="text-xs text-gray-500 mt-1">Select one or more locations where the album was shot</p>
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Password Album (opzionale)</label>
-                <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                       type="password" name="password" 
-                       placeholder="Imposta password per proteggere l'album">
-                <p class="text-xs text-gray-500 mt-1">Se impostata, l'album richiederà password per l'accesso pubblico</p>
+                <label class="block text-sm font-medium text-black mb-2">Album Password (optional)</label>
+                <input class="form-input border-gray-300 focus:border-black focus:ring-black"
+                       type="password" name="password"
+                       placeholder="Set password to protect the album">
+                <p class="text-xs text-gray-500 mt-1">If set, the album will require a password for public access</p>
               </div>
             </div>
           </div>
@@ -343,11 +343,11 @@
       <div class="flex items-center gap-3">
         <button type="submit" form="album-form" class="btn-primary">
           <i class="fas fa-save mr-2"></i>
-          Crea Album
+          Create Album
         </button>
         <a href="{{ base_path }}/admin/albums" class="btn-secondary">
           <i class="fas fa-times mr-2"></i>
-          Annulla
+          Cancel
         </a>
       </div>
       
@@ -357,7 +357,7 @@
 
         <span class="text-sm text-gray-500">
           <i class="fas fa-info-circle mr-1"></i>
-          Completa i campi obbligatori per salvare
+          Complete the required fields to save
         </span>
       </div>
     </div>
@@ -371,7 +371,7 @@
   <div id="image-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
     <div class="bg-white w-full max-w-2xl rounded shadow-lg overflow-hidden">
       <div class="px-5 py-3 border-b flex items-center justify-between">
-        <h3 class="text-lg font-medium">Modifica immagine</h3>
+        <h3 class="text-lg font-medium">Edit image</h3>
         <button type="button" id="image-modal-close" class="text-gray-500 hover:text-black">✕</button>
       </div>
       <form id="image-form" method="post">
@@ -382,7 +382,7 @@
             <input type="text" name="alt_text" id="f-alt" class="form-input">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Titolo/Caption</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Title/Caption</label>
             <input type="text" name="caption" id="f-caption" class="form-input">
           </div>
           <div>
@@ -465,8 +465,8 @@
           </div>
         </div>
         <div class="px-5 py-3 border-t flex items-center justify-end gap-2">
-          <button type="button" id="image-cancel" class="btn-secondary">Annulla</button>
-          <button type="submit" class="btn-primary">Salva</button>
+          <button type="button" id="image-cancel" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
         </div>
       </form>
     </div>
@@ -560,7 +560,7 @@
             <span class="text-sm text-gray-700 truncate flex-1 mr-2" title="${safeName}">
               <i class="fas fa-image text-gray-400 mr-2"></i>${safeName}
             </span>
-            <span class="text-xs text-gray-500 file-status">In attesa...</span>
+            <span class="text-xs text-gray-500 file-status">Waiting...</span>
           </div>
           <div class="w-full bg-gray-100 rounded-full h-1.5">
             <div class="file-progress-bar bg-gray-400 h-1.5 rounded-full transition-all duration-150" style="width: 0%"></div>
@@ -587,9 +587,9 @@
 
         if (statusEl && status) {
           statusEl.textContent = status;
-          if (status.includes('Completato')) {
+          if (status.includes('Completed')) {
             statusEl.className = 'text-xs text-green-600 file-status';
-          } else if (status.includes('Errore')) {
+          } else if (status.includes('Error')) {
             statusEl.className = 'text-xs text-red-600 file-status';
             if (bar) bar.className = 'file-progress-bar bg-red-500 h-1.5 rounded-full transition-all duration-150';
           } else {
@@ -629,12 +629,12 @@
       async function ensureAlbumId(){
         if (createdAlbumId) return createdAlbumId;
         
-        showProgress('Creazione album...');
+        showProgress('Creating album...');
         
         let body;
         try { body = prepareCreatePayload(); } catch(e){
           if (e && e.message === 'missing_category') {
-            if (window.showToast) showToast('Seleziona almeno una Categoria', 'error'); else alert('Seleziona almeno una Categoria');
+            if (window.showToast) showToast('Select at least one Category', 'error'); else alert('Select at least one Category');
             hideProgress();
             throw e;
           }
@@ -652,11 +652,11 @@
         
         if (!res.ok) {
           const errorText = await res.text();
-          throw new Error(`Errore creazione album: ${res.status} ${errorText}`);
+          throw new Error(`Album creation error: ${res.status} ${errorText}`);
         }
         
         const data = await res.json();
-        if (!data || !data.id) throw new Error('Creazione album fallita');
+        if (!data || !data.id) throw new Error('Album creation failed');
         createdAlbumId = data.id;
         return createdAlbumId;
       }
@@ -725,20 +725,20 @@
 
           xhr.addEventListener('load', () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-              updateFileProgress(index, 100, 'Completato ✓');
+              updateFileProgress(index, 100, 'Completed ✓');
               try {
                 resolve(JSON.parse(xhr.responseText));
               } catch {
                 resolve({});
               }
             } else {
-              updateFileProgress(index, 100, 'Errore ✗');
+              updateFileProgress(index, 100, 'Error ✗');
               reject(new Error(`Upload failed: ${xhr.status}`));
             }
           });
 
           xhr.addEventListener('error', () => {
-            updateFileProgress(index, 100, 'Errore ✗');
+            updateFileProgress(index, 100, 'Error ✗');
             reject(new Error('Network error'));
           });
 
@@ -752,7 +752,7 @@
           xhr.setRequestHeader('Accept', 'application/json');
           xhr.send(fd);
 
-          updateFileProgress(index, 0, 'Caricamento...');
+          updateFileProgress(index, 0, 'Uploading...');
         });
       }
 
@@ -765,7 +765,7 @@
         const cats = fdCheck.getAll('categories[]');
         const hasCat = cats && cats.length > 0;
         if (!hasCat) {
-          if (window.showToast) showToast('Seleziona almeno una Categoria', 'error'); else alert('Seleziona almeno una Categoria');
+          if (window.showToast) showToast('Select at least one Category', 'error'); else alert('Select at least one Category');
           return;
         }
 
@@ -780,7 +780,7 @@
           });
         }
 
-        showProgress('Preparazione caricamento...');
+        showProgress('Preparing upload...');
         updateTotalProgress(0, files.length);
 
         try {
@@ -791,7 +791,7 @@
           // Upload files sequentially with visual progress
           for (let i = 0; i < files.length; i++) {
             const f = files[i];
-            showProgress(`Caricamento ${i + 1} di ${files.length}...`);
+            showProgress(`Uploading ${i + 1} of ${files.length}...`);
 
             try {
               const result = await uploadFileWithProgress(f, id, i);
@@ -803,7 +803,7 @@
                 firstImageId = result.id;
               }
             } catch (error) {
-              console.error(`Errore upload ${f.name}:`, error);
+              console.error(`Upload error ${f.name}:`, error);
               completedCount++;
               updateTotalProgress(completedCount, files.length);
             }
@@ -811,26 +811,26 @@
 
           // Set first image as cover
           if (firstImageId) {
-            showProgress('Impostazione copertina...');
+            showProgress('Setting cover...');
             try {
               const coverRes = await fetch(`{{ base_path }}/admin/albums/${id}/cover/${firstImageId}`, {
                 method: 'POST',
                 headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }
               });
               if (!coverRes.ok) {
-                console.error('Errore impostazione copertina:', coverRes.status);
+                console.error('Error setting cover:', coverRes.status);
               }
             } catch (coverError) {
-              console.error('Errore impostazione copertina:', coverError);
+              console.error('Error setting cover:', coverError);
               // Non-fatal: continue anyway, album is created
             }
           }
 
-          showProgress('Completato! Reindirizzamento...');
+          showProgress('Completed! Redirecting...');
 
           // Show success message if available
           if (window.showToast) {
-            showToast(`Album creato con ${files.length} immagini!`, 'success');
+            showToast(`Album created with ${files.length} images!`, 'success');
           }
 
           // Small delay to show completion message
@@ -840,7 +840,7 @@
 
         } catch (error) {
           console.error('Upload error:', error);
-          const message = error.message || 'Errore durante il caricamento';
+          const message = error.message || 'Error during upload';
           if (window.showToast) {
             showToast(message, 'error');
           } else {

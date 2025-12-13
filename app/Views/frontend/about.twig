@@ -6,14 +6,14 @@
 </div>
   <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 md:pt-16">
     {% if contact_sent %}
-      <div class="mb-6 rounded-md border border-green-200 bg-green-50 text-green-800 px-4 py-3">Messaggio inviato correttamente.</div>
+      <div class="mb-6 rounded-md border border-green-200 bg-green-50 text-green-800 px-4 py-3">{{ trans('contact.success') }}</div>
     {% elseif contact_error %}
-      <div class="mb-6 rounded-md border border-red-200 bg-red-50 text-red-800 px-4 py-3">Si è verificato un errore. Verifica i dati.</div>
+      <div class="mb-6 rounded-md border border-red-200 bg-red-50 text-red-800 px-4 py-3">{{ trans('contact.error') }}</div>
     {% endif %}
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 md:gap-16 items-start">
       <div class="lg:col-span-2 order-2 lg:order-1">
-        <h1 class="text-4xl md:text-5xl font-semibold tracking-tight">{{ about_title|default('About')|e }}</h1>
+        <h1 class="text-4xl md:text-5xl font-semibold tracking-tight">{{ about_title|default(trans('nav.about'))|e }}</h1>
         {% if about_subtitle %}
           <p class="mt-3 text-neutral-600">{{ about_subtitle|e }}</p>
         {% endif %}
@@ -46,24 +46,24 @@
         {% endif %}
 
         <div class="mt-12 border border-neutral-200 rounded-lg p-6">
-          <h2 class="text-2xl font-semibold">{{ contact_title|default('Contatti')|e }}</h2>
-          <p class="text-sm text-neutral-600 mt-1">{% if contact_intro %}{{ contact_intro|safe_html }}{% elseif about_footer_text %}{{ about_footer_text|safe_html }}{% else %}Per collaborazioni e commissioni, contattami via email o social.{% endif %}</p>
+          <h2 class="text-2xl font-semibold">{{ contact_title|default(trans('contact.title'))|e }}</h2>
+          <p class="text-sm text-neutral-600 mt-1">{% if contact_intro %}{{ contact_intro|safe_html }}{% elseif about_footer_text %}{{ about_footer_text|safe_html }}{% else %}{{ trans('contact.intro', {}, 'For collaborations and commissions, contact me via email or social.') }}{% endif %}</p>
           <form method="post" action="{{ about_url }}/contact" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <div>
-              <label for="contact-name" class="block text-sm mb-1">Nome</label>
+              <label for="contact-name" class="block text-sm mb-1">{{ trans('contact.name') }}</label>
               <input type="text" id="contact-name" name="name" autocomplete="name" required class="w-full border border-neutral-300 rounded px-3 py-2">
             </div>
             <div>
-              <label for="contact-email" class="block text-sm mb-1">Email</label>
+              <label for="contact-email" class="block text-sm mb-1">{{ trans('contact.email') }}</label>
               <input type="email" id="contact-email" name="email" autocomplete="email" required class="w-full border border-neutral-300 rounded px-3 py-2">
             </div>
             <div class="md:col-span-2">
-              <label for="contact-message" class="block text-sm mb-1">Messaggio</label>
+              <label for="contact-message" class="block text-sm mb-1">{{ trans('contact.message') }}</label>
               <textarea id="contact-message" name="message" rows="5" required class="w-full border border-neutral-300 rounded px-3 py-2"></textarea>
             </div>
             <div>
-              <button type="submit" class="bg-black text-white px-5 py-2 rounded hover:bg-neutral-800 transition-colors">Invia</button>
+              <button type="submit" class="bg-black text-white px-5 py-2 rounded hover:bg-neutral-800 transition-colors">{{ trans('contact.send') }}</button>
             </div>
           </form>
         </div>
