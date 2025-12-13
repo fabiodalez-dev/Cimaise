@@ -1,6 +1,9 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}Nuovo album — photoCMS{% endblock %}
 {% block content %}
+{# Hook: admin_album_create_before - Before the entire create page #}
+{{ do_action('admin_album_create_before', {base_path: base_path}) }}
+
 <div class="min-h-screen bg-gray-50 pb-24">
   <!-- Header -->
   <div class="bg-white border-b border-gray-200">
@@ -15,6 +18,8 @@
             <i class="fas fa-arrow-left mr-2"></i>
             Torna agli album
           </a>
+          {# Hook: admin_album_create_header_actions - Add custom header buttons #}
+          {{ do_action('admin_album_create_header_actions', {base_path: base_path}) }}
         </div>
       </div>
     </div>
@@ -86,13 +91,19 @@
               
               <div>
                 <label class="block text-sm font-medium text-black mb-2">Contenuto Completo</label>
-                <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black" 
-                          name="body" rows="32" 
+                <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black"
+                          name="body" rows="32"
                           placeholder="Descrizione completa con formattazione..."></textarea>
                 <p class="text-xs text-gray-500 mt-1">Supporta formattazione ricca: grassetto, corsivo, elenchi, link</p>
               </div>
+
+              {# Hook: admin_album_create_form_basic_info_fields - Add custom fields inside basic info card #}
+              {{ do_action('admin_album_create_form_basic_info_fields', {base_path: base_path}) }}
             </div>
           </div>
+
+          {# Hook: admin_album_create_form_basic_info_after - Add custom cards after basic info #}
+          {{ do_action('admin_album_create_form_basic_info_after', {base_path: base_path}) }}
 
           <!-- Upload Card -->
           <div class="card">
@@ -153,10 +164,16 @@
               </div>
             </div>
           </div>
+
+          {# Hook: admin_album_create_form_main_after - Add custom cards after all main content #}
+          {{ do_action('admin_album_create_form_main_after', {base_path: base_path}) }}
         </div>
 
         <!-- Sidebar -->
         <div class="xl:col-span-3 space-y-6">
+          {# Hook: admin_album_create_sidebar_before - Before sidebar cards #}
+          {{ do_action('admin_album_create_sidebar_before', {base_path: base_path}) }}
+
           <!-- Publishing Settings Card -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
@@ -212,6 +229,9 @@
             </div>
           </div>
 
+          {# Hook: admin_album_create_sidebar_publishing_after - After publishing settings card #}
+          {{ do_action('admin_album_create_sidebar_publishing_after', {base_path: base_path}) }}
+
           <!-- Equipment Card -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
@@ -266,8 +286,14 @@
                   {% endfor %}
                 </select>
               </div>
+
+              {# Hook: admin_album_create_equipment_fields - Add custom equipment fields (film types, accessories, etc.) #}
+              {{ do_action('admin_album_create_equipment_fields', {base_path: base_path, cameras: cameras, lenses: lenses, films: films, developers: developers, labs: labs}) }}
             </div>
           </div>
+
+          {# Hook: admin_album_create_sidebar_equipment_after - After equipment card (add custom metadata cards) #}
+          {{ do_action('admin_album_create_sidebar_equipment_after', {base_path: base_path}) }}
 
           <!-- Locations and Security Card -->
           <div class="card">
@@ -298,8 +324,14 @@
               </div>
             </div>
           </div>
+
+          {# Hook: admin_album_create_sidebar_after - Add custom sidebar cards at the end #}
+          {{ do_action('admin_album_create_sidebar_after', {base_path: base_path}) }}
         </div>
       </div>
+
+      {# Hook: admin_album_create_form_end - Add hidden inputs or custom form elements #}
+      {{ do_action('admin_album_create_form_end', {base_path: base_path}) }}
     </form>
   </div>
 </div>
@@ -319,13 +351,21 @@
         </a>
       </div>
       
-      <div class="text-sm text-gray-500">
-        <i class="fas fa-info-circle mr-1"></i>
-        Completa i campi obbligatori per salvare
+      <div class="flex items-center gap-3">
+        {# Hook: admin_album_create_footer_actions - Add custom action buttons #}
+        {{ do_action('admin_album_create_footer_actions', {base_path: base_path}) }}
+
+        <span class="text-sm text-gray-500">
+          <i class="fas fa-info-circle mr-1"></i>
+          Completa i campi obbligatori per salvare
+        </span>
       </div>
     </div>
   </div>
 </div>
+
+{# Hook: admin_album_create_after - After the entire page (for modals, scripts, etc.) #}
+{{ do_action('admin_album_create_after', {base_path: base_path}) }}
 
   <!-- Modal edit image (for when images are present after upload) -->
   <div id="image-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">

@@ -1,11 +1,17 @@
 {% extends "frontend/_layout.twig" %}
 
 {% block content %}
+{# Hook: frontend_category_before - Before entire category page #}
+{{ do_action('frontend_category_before', {category: category, albums: albums, base_path: base_path}) }}
+
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}
 </div>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    
+
+    {# Hook: frontend_category_header_before - Before category header #}
+    {{ do_action('frontend_category_header_before', {category: category, base_path: base_path}) }}
+
     <!-- Category header -->
     <div class="text-center py-12">
         <h1 class="text-3xl md:text-4xl font-light text-black mb-6">
@@ -14,7 +20,16 @@
         <p class="text-lg text-neutral-600">
             {{ albums|length }} {{ albums|length == 1 ? 'album' : 'albums' }} in this category
         </p>
+
+        {# Hook: frontend_category_header_meta - Add custom metadata to category header #}
+        {{ do_action('frontend_category_header_meta', {category: category, base_path: base_path}) }}
     </div>
+
+    {# Hook: frontend_category_header_after - After category header #}
+    {{ do_action('frontend_category_header_after', {category: category, base_path: base_path}) }}
+
+    {# Hook: frontend_category_albums_before - Before albums grid #}
+    {{ do_action('frontend_category_albums_before', {category: category, albums: albums, base_path: base_path}) }}
 
     <!-- Albums grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -32,7 +47,13 @@
     </div>
     {% endif %}
 
+    {# Hook: frontend_category_albums_after - After albums grid #}
+    {{ do_action('frontend_category_albums_after', {category: category, albums: albums, base_path: base_path}) }}
+
 </div>
+
+{# Hook: frontend_category_other_before - Before other categories section #}
+{{ do_action('frontend_category_other_before', {category: category, categories: categories, base_path: base_path}) }}
 
 <!-- Other categories -->
 {% if categories|length > 1 %}
@@ -53,6 +74,12 @@
     </div>
 </section>
 {% endif %}
+
+{# Hook: frontend_category_other_after - After other categories section #}
+{{ do_action('frontend_category_other_after', {category: category, categories: categories, base_path: base_path}) }}
+
+{# Hook: frontend_category_after - After entire category page #}
+{{ do_action('frontend_category_after', {category: category, albums: albums, base_path: base_path}) }}
 {% endblock %}
 
 {% block scripts %}
