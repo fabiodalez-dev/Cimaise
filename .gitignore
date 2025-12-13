@@ -18,6 +18,7 @@ public/assets/*.css.map
 # User uploaded content
 public/media/*
 !public/media/.gitkeep
+public/assets/media/
 storage/originals/*
 !storage/originals/.gitkeep
 storage/tmp/*
