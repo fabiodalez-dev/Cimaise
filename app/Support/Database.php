@@ -82,7 +82,26 @@ class Database
         if ($sql === false) {
             throw new RuntimeException("Cannot read SQL file: {$path}");
         }
-        $this->pdo->exec($sql);
+
+        if ($this->isSqlite) {
+            $this->pdo->exec($sql);
+        } else {
+            // MySQL: execute statements one by one
+            // Remove comments and split by semicolons
+            $sql = preg_replace('/--.*$/m', '', $sql);
+            $sql = preg_replace('/\/\*.*?\*\//s', '', $sql);
+
+            $statements = array_filter(
+                array_map('trim', explode(';', $sql)),
+                fn($s) => !empty($s) && $s !== ''
+            );
+
+            foreach ($statements as $statement) {
+                if (!empty(trim($statement))) {
+                    $this->pdo->exec($statement);
+                }
+            }
+        }
     }
 
     public function isSqlite(): bool
