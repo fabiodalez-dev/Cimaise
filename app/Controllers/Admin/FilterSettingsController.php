@@ -89,10 +89,12 @@ class FilterSettingsController extends BaseController
                 'grid_gap' => $data['grid_gap'] ?? 'normal'
             ];
             
-            $stmt = $pdo->prepare('
-                INSERT OR REPLACE INTO filter_settings (setting_key, setting_value, updated_at) 
-                VALUES (?, ?, CURRENT_TIMESTAMP)
-            ');
+            $replaceKw = $this->db->replaceKeyword();
+            $nowExpr = $this->db->nowExpression();
+            $stmt = $pdo->prepare("
+                {$replaceKw} INTO filter_settings (setting_key, setting_value, updated_at)
+                VALUES (?, ?, {$nowExpr})
+            ");
             
             foreach ($settingsToUpdate as $key => $value) {
                 $stmt->execute([$key, $value]);

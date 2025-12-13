@@ -448,12 +448,14 @@ class PluginManager
                 require_once $installHook;
             }
 
-            // Salva nel database
-            $stmt = $this->db->pdo()->prepare('
-                INSERT OR REPLACE INTO plugin_status
+            // Salva nel database (MySQL compatible)
+            $replaceKw = $this->db->replaceKeyword();
+            $nowExpr = $this->db->nowExpression();
+            $stmt = $this->db->pdo()->prepare("
+                {$replaceKw} INTO plugin_status
                 (slug, name, version, description, author, path, is_active, is_installed, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, 1, 1, CURRENT_TIMESTAMP)
-            ');
+                VALUES (?, ?, ?, ?, ?, ?, 1, 1, {$nowExpr})
+            ");
 
             $stmt->execute([
                 $slug,
