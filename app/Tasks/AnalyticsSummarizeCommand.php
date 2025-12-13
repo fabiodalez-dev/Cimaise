@@ -197,13 +197,14 @@ class AnalyticsSummarizeCommand extends Command
         $stmt->execute([$date]);
         $topAlbums = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         
-        // Insert or update summary
-        $stmt = $pdo->prepare('
-            INSERT OR REPLACE INTO analytics_daily_summary (
+        // Insert or update summary (MySQL compatible)
+        $replaceKw = $this->db->replaceKeyword();
+        $stmt = $pdo->prepare("
+            {$replaceKw} INTO analytics_daily_summary (
                 date, total_sessions, total_pageviews, unique_visitors, bounce_rate,
                 avg_session_duration, top_pages, top_countries, top_browsers, top_albums
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ');
+        ");
         
         $stmt->execute([
             $date,
