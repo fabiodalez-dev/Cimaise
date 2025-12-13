@@ -1,3 +1,0 @@
--- Enhance users table for multi-user system with roles and additional fields (SQLite)
--- Columns already exist, skip
--- first_name, last_name, is_active, last_login, updated_at already added
