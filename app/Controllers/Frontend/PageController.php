@@ -107,6 +107,9 @@ class PageController extends BaseController
             'albums_subtitle' => (string)($svc->get('home.albums_subtitle', 'Discover my recent photographic work, from analog experiments to digital explorations.') ?? 'Discover my recent photographic work, from analog experiments to digital explorations.'),
             'empty_title' => (string)($svc->get('home.empty_title', 'No albums yet') ?? 'No albums yet'),
             'empty_text' => (string)($svc->get('home.empty_text', 'Check back soon for new work.') ?? 'Check back soon for new work.'),
+            'gallery_scroll_direction' => (string)($svc->get('home.gallery_scroll_direction', 'vertical') ?? 'vertical'),
+            'gallery_text_title' => (string)($svc->get('home.gallery_text_title', '') ?? ''),
+            'gallery_text_content' => (string)($svc->get('home.gallery_text_content', '') ?? ''),
         ];
 
         // Pagination parameters

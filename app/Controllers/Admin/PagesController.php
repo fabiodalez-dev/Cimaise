@@ -64,6 +64,9 @@ class PagesController extends BaseController
             'home.albums_subtitle' => (string)($svc->get('home.albums_subtitle', 'Discover my recent photographic work, from analog experiments to digital explorations.') ?? 'Discover my recent photographic work, from analog experiments to digital explorations.'),
             'home.empty_title' => (string)($svc->get('home.empty_title', 'No albums yet') ?? 'No albums yet'),
             'home.empty_text' => (string)($svc->get('home.empty_text', 'Check back soon for new work.') ?? 'Check back soon for new work.'),
+            'home.gallery_scroll_direction' => (string)($svc->get('home.gallery_scroll_direction', 'vertical') ?? 'vertical'),
+            'home.gallery_text_title' => (string)($svc->get('home.gallery_text_title', '') ?? ''),
+            'home.gallery_text_content' => (string)($svc->get('home.gallery_text_content', '') ?? ''),
         ];
         return $this->view->render($response, 'admin/pages/home.twig', [
             'settings' => $settings,
@@ -94,6 +97,17 @@ class PagesController extends BaseController
         // Empty state
         $svc->set('home.empty_title', trim((string)($data['empty_title'] ?? 'No albums yet')) ?: 'No albums yet');
         $svc->set('home.empty_text', trim((string)($data['empty_text'] ?? 'Check back soon for new work.')) ?: 'Check back soon for new work.');
+
+        // Gallery scroll direction
+        $scrollDirection = (string)($data['gallery_scroll_direction'] ?? 'vertical');
+        if (!in_array($scrollDirection, ['vertical', 'horizontal'], true)) {
+            $scrollDirection = 'vertical';
+        }
+        $svc->set('home.gallery_scroll_direction', $scrollDirection);
+
+        // Gallery text section (sanitize HTML content to prevent XSS)
+        $svc->set('home.gallery_text_title', trim((string)($data['gallery_text_title'] ?? '')));
+        $svc->set('home.gallery_text_content', \App\Support\Sanitizer::html((string)($data['gallery_text_content'] ?? '')));
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Home page saved successfully.'];
         return $response->withHeader('Location', $this->redirect('/admin/pages/home'))->withStatus(302);
