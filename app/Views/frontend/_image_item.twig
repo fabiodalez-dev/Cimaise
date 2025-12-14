@@ -1,9 +1,21 @@
-  <a href="{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}" 
-     class="pswp-link image-item group block" 
+  {# Use lightbox_url for best quality, fallback to original_path #}
+  {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+  <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+     class="pswp-link image-item group block"
      data-image-id="{{ image.id }}"
-     data-pswp-width="{{ image.width }}" 
+     data-pswp-width="{{ image.width }}"
      data-pswp-height="{{ image.height }}"
-     data-pswp-caption="{% if image.caption %}{{ image.caption|e }}{% endif %}{% if image.custom_camera or image.custom_lens %}<br><small class='text-xs opacity-75'>{% if image.custom_camera %}{{ image.custom_camera|e }}{% endif %}{% if image.custom_lens %} • {{ image.custom_lens|e }}{% endif %}</small>{% endif %}">
+     data-title="{{ image.caption|default('')|e }}"
+     data-alt="{{ image.alt_text|default('')|e }}"
+     data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+     data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+     data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+     data-developer="{{ image.developer_name|default('')|e }}"
+     data-lab="{{ image.lab_name|default('')|e }}"
+     data-location="{{ image.location_name|default('')|e }}"
+     data-iso="{{ image.iso|default('') }}"
+     data-shutter="{{ image.shutter_speed|default('')|e }}"
+     data-aperture="{{ image.aperture|default('') }}">
   <div class="relative aspect-[4/3] md:aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm cursor-pointer">
     <picture>
       {% set variants_avif = [] %}

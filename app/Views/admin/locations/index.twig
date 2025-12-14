@@ -57,7 +57,7 @@
       <div class="flex items-center justify-between pt-4 border-t border-gray-100">
         <div class="text-xs text-gray-500">
           <i class="fas fa-calendar mr-1"></i>
-          Created {{ location.created_at|date("M d, Y") }}
+          Created {{ location.created_at|date_format }}
         </div>
         <div class="flex items-center space-x-2">
           <a href="{{ base_path }}/admin/locations/{{ location.id }}/edit" 

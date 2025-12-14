@@ -139,6 +139,7 @@ $twig->getEnvironment()->addExtension(new \App\Extensions\SecurityTwigExtension(
 $twig->getEnvironment()->addExtension(new \App\Extensions\HooksTwigExtension());
 
 // Add translation extension (only if database is available)
+$translationService = null;
 if ($container['db'] !== null) {
     $translationService = new \App\Services\TranslationService($container['db']);
     $twig->getEnvironment()->addExtension(new \App\Extensions\TranslationTwigExtension($translationService));
@@ -175,16 +176,35 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $siteLogo = $settingsSvc->get('site.logo', null);
         $twig->getEnvironment()->addGlobal('site_title', $siteTitle);
         $twig->getEnvironment()->addGlobal('site_logo', $siteLogo);
+        // Initialize date format from settings
+        $dateFormat = $settingsSvc->get('date.format', 'Y-m-d');
+        \App\Support\DateHelper::setDisplayFormat($dateFormat);
+        $twig->getEnvironment()->addGlobal('date_format', $dateFormat);
+        // Initialize language from settings
+        $siteLanguage = (string)($settingsSvc->get('site.language', 'en') ?? 'en');
+        if ($translationService !== null) {
+            $translationService->setLanguage($siteLanguage);
+        }
+        $twig->getEnvironment()->addGlobal('site_language', $siteLanguage);
     } catch (\Throwable) {
         $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
         $twig->getEnvironment()->addGlobal('site_title', 'photoCMS');
         $twig->getEnvironment()->addGlobal('site_logo', null);
+        \App\Support\DateHelper::setDisplayFormat('Y-m-d');
+        $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
+        $twig->getEnvironment()->addGlobal('site_language', 'en');
     }
 } else {
     $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
     $twig->getEnvironment()->addGlobal('site_title', 'photoCMS');
     $twig->getEnvironment()->addGlobal('site_logo', null);
+    \App\Support\DateHelper::setDisplayFormat('Y-m-d');
+    $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
+    $twig->getEnvironment()->addGlobal('site_language', 'en');
 }
+
+// Register date format Twig extension
+$twig->getEnvironment()->addExtension(new \App\Extensions\DateTwigExtension());
 
 // Expose admin status for frontend header
 $twig->getEnvironment()->addGlobal('is_admin', isset($_SESSION['admin_id']) && $_SESSION['admin_id'] > 0);
