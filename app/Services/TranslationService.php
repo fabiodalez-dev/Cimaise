@@ -10,8 +10,34 @@ class TranslationService
 {
     private array $cache = [];
     private bool $loaded = false;
+    private string $language = 'en';
+    private ?string $translationsDir = null;
 
-    public function __construct(private Database $db) {}
+    public function __construct(private Database $db)
+    {
+        $this->translationsDir = dirname(__DIR__, 2) . '/storage/translations';
+    }
+
+    /**
+     * Set the active language code
+     */
+    public function setLanguage(string $code): void
+    {
+        $code = preg_replace('/[^a-z0-9_-]/i', '', $code) ?: 'en';
+        if ($this->language !== $code) {
+            $this->language = $code;
+            $this->loaded = false;
+            $this->cache = [];
+        }
+    }
+
+    /**
+     * Get the active language code
+     */
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
 
     /**
      * Get all translations
@@ -208,6 +234,7 @@ class TranslationService
 
     /**
      * Load all translations into cache
+     * First loads from JSON file (based on language), then overlays database translations
      */
     private function loadAll(): void
     {
@@ -215,15 +242,58 @@ class TranslationService
             return;
         }
 
+        // 1. Load from JSON file first (base translations)
+        $this->loadFromJsonFile();
+
+        // 2. Overlay database translations (customizations)
         try {
             $stmt = $this->db->pdo()->query('SELECT text_key, text_value FROM frontend_texts');
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                 $this->cache[$row['text_key']] = $row['text_value'];
             }
-            $this->loaded = true;
         } catch (\PDOException $e) {
             // Table might not exist yet
-            $this->loaded = true;
+        }
+
+        $this->loaded = true;
+    }
+
+    /**
+     * Load translations from JSON file for current language
+     */
+    private function loadFromJsonFile(): void
+    {
+        $filePath = $this->translationsDir . '/' . $this->language . '.json';
+
+        // Fall back to English if language file doesn't exist
+        if (!file_exists($filePath)) {
+            $filePath = $this->translationsDir . '/en.json';
+        }
+
+        if (!file_exists($filePath)) {
+            return;
+        }
+
+        $content = @file_get_contents($filePath);
+        if (!$content) {
+            return;
+        }
+
+        $data = json_decode($content, true);
+        if (!is_array($data)) {
+            return;
+        }
+
+        // Flatten nested structure: category.key => value
+        foreach ($data as $context => $translations) {
+            if ($context === '_meta' || !is_array($translations)) {
+                continue;
+            }
+            foreach ($translations as $key => $value) {
+                if (is_string($value)) {
+                    $this->cache[$key] = $value;
+                }
+            }
         }
     }
 

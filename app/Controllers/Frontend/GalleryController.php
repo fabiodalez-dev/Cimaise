@@ -529,30 +529,9 @@ class GalleryController extends BaseController
             $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
             $imgStmt->execute([':id' => $album['id']]);
             $imagesRows = $imgStmt->fetchAll() ?: [];
-            
-            foreach ($imagesRows as &$ir) {
-                try {
-                    if (!empty($ir['developer_id'])) {
-                        $s = $pdo->prepare('SELECT name FROM developers WHERE id = :id');
-                        $s->execute([':id' => $ir['developer_id']]);
-                        $ir['developer_name'] = $s->fetchColumn() ?: null;
-                    }
-                    if (!empty($ir['lab_id'])) {
-                        $s = $pdo->prepare('SELECT name FROM labs WHERE id = :id');
-                        $s->execute([':id' => $ir['lab_id']]);
-                        $ir['lab_name'] = $s->fetchColumn() ?: null;
-                    }
-                    if (!empty($ir['film_id'])) {
-                        $s = $pdo->prepare('SELECT brand, name FROM films WHERE id = :id');
-                        $s->execute([':id' => $ir['film_id']]);
-                        $fr = $s->fetch();
-                        if ($fr) { $ir['film_name'] = trim(($fr['brand'] ?? '') . ' ' . ($fr['name'] ?? '')); }
-                    }
-                } catch (\Throwable $e) {
-                    // Continue processing even if metadata lookup fails
-                    Logger::warning('GalleryController: Error fetching image metadata', ['error' => $e->getMessage()], 'gallery');
-                }
-            }
+
+            // Enrich images with metadata from related tables
+            \App\Services\ImagesService::enrichWithMetadata($pdo, $imagesRows, 'gallery');
 
             // Build gallery items for the template, preferring public variants
             $images = [];
@@ -614,9 +593,11 @@ class GalleryController extends BaseController
                     'film_name' => $img['film_name'] ?? '',
                     'developer_name' => $img['developer_name'] ?? '',
                     'lab_name' => $img['lab_name'] ?? '',
+                    'location_name' => $img['location_name'] ?? '',
                     'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
                     'shutter_speed' => $img['shutter_speed'] ?? null,
                     'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
+                    'process' => $img['process'] ?? null,
                     'sources' => $sources ?? ['avif'=>[], 'webp'=>[], 'jpg'=>[]],
                     'fallback_src' => $lightboxUrl ?: $bestUrl
                 ];
@@ -626,14 +607,14 @@ class GalleryController extends BaseController
             $templateFile = 'frontend/_gallery_content.twig';
             $templateData = [
                 'images' => $images,
-                'template_settings' => $templateSettings
+                'template_settings' => $templateSettings,
+                'base_path' => $this->basePath
             ];
-            
+
             // Use Magazine template for template ID 9 or layout 'magazine'
             if ($templateId === 9 || ($templateSettings['layout'] ?? '') === 'magazine') {
                 $templateFile = 'frontend/_gallery_magazine_content.twig';
                 $templateData['album'] = $album; // Magazine template needs album data
-                $templateData['base_path'] = $this->basePath;
             }
             
             return $this->view->render($response, $templateFile, $templateData);

@@ -36,7 +36,12 @@
     "filter.sort_title_asc": "Title A-Z",
     "filter.sort_title_desc": "Title Z-A",
     "filter.sort_date_new": "Shoot Date (New)",
-    "filter.sort_date_old": "Shoot Date (Old)"
+    "filter.sort_date_old": "Shoot Date (Old)",
+    "filter.filters": "Filters",
+    "filter.galleries_count": "{count} galleries",
+    "filter.gallery_count": "1 gallery",
+    "filter.no_galleries_title": "No galleries found",
+    "filter.no_galleries_text": "We couldn't find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters."
   },
   "album": {
     "album.photos": "Photos",
@@ -165,6 +170,7 @@
     "general.delete": "Delete",
     "general.edit": "Edit",
     "general.submit": "Submit",
-    "general.reset": "Reset"
+    "general.reset": "Reset",
+    "general.view": "View"
   }
 }

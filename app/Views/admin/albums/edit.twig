@@ -572,9 +572,9 @@
                     </div>
                     
                     <div class="hidden" id="change-password-form">
-                      <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                      <input class="form-input border-gray-300 focus:border-black focus:ring-black"
                              type="password" name="password" id="password-input"
-                             placeholder="New password">
+                             placeholder="New password" autocomplete="new-password">
                       <div class="flex gap-2 mt-2">
                         <button type="button" id="cancel-change-btn" class="btn-secondary text-sm">Cancel</button>
                         <button type="button" id="save-change-btn" class="btn-primary text-sm">Change password</button>
@@ -595,9 +595,9 @@
                     </div>
                     
                     <div class="hidden" id="add-password-form">
-                      <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
+                      <input class="form-input border-gray-300 focus:border-black focus:ring-black"
                              type="password" name="password" id="new-password-input"
-                             placeholder="Enter password">
+                             placeholder="Enter password" autocomplete="new-password">
                       <div class="flex gap-2 mt-2">
                         <button type="button" id="cancel-add-btn" class="btn-secondary text-sm">Cancel</button>
                         <button type="button" id="save-add-btn" class="btn-primary text-sm">Add password</button>
@@ -1129,28 +1129,35 @@
       const removeBtn = document.getElementById('remove-password-btn');
       const changeBtn = document.getElementById('change-password-btn');
       const addBtn = document.getElementById('add-password-btn');
-      
+
       const changeForm = document.getElementById('change-password-form');
       const addForm = document.getElementById('add-password-form');
-      
+
       const cancelChangeBtn = document.getElementById('cancel-change-btn');
       const cancelAddBtn = document.getElementById('cancel-add-btn');
-      
+
+      const saveChangeBtn = document.getElementById('save-change-btn');
+      const saveAddBtn = document.getElementById('save-add-btn');
+
       const passwordClearInput = document.getElementById('password-clear-input');
-      
+
       // Remove existing listeners to prevent duplicates
       removeBtn?.removeEventListener('click', handleRemovePassword);
       changeBtn?.removeEventListener('click', handleChangePassword);
       addBtn?.removeEventListener('click', handleAddPassword);
       cancelChangeBtn?.removeEventListener('click', handleCancelChange);
       cancelAddBtn?.removeEventListener('click', handleCancelAdd);
-      
+      saveChangeBtn?.removeEventListener('click', handleSavePassword);
+      saveAddBtn?.removeEventListener('click', handleSavePassword);
+
       // Add event listeners
       removeBtn?.addEventListener('click', handleRemovePassword);
       changeBtn?.addEventListener('click', handleChangePassword);
       addBtn?.addEventListener('click', handleAddPassword);
       cancelChangeBtn?.addEventListener('click', handleCancelChange);
       cancelAddBtn?.addEventListener('click', handleCancelAdd);
+      saveChangeBtn?.addEventListener('click', handleSavePassword);
+      saveAddBtn?.addEventListener('click', handleSavePassword);
       
       function handleRemovePassword() {
         if (confirm('Remove password from album?')) {
@@ -1184,8 +1191,23 @@
         const input = document.getElementById('new-password-input');
         if (input) input.value = '';
       }
+
+      function handleSavePassword() {
+        // Get the password value from either the change or add form
+        const changeInput = document.getElementById('password-input');
+        const addInput = document.getElementById('new-password-input');
+        const passwordValue = changeInput?.value || addInput?.value || '';
+
+        if (!passwordValue.trim()) {
+          if (window.showToast) showToast('Please enter a password', 'error');
+          return;
+        }
+
+        // Submit the album form
+        document.getElementById('album-form')?.submit();
+      }
     }
-    
+
     // initImageModal is defined above and binds all modal handlers
     
     function initSeoPreview() {

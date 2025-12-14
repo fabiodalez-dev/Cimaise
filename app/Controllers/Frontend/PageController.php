@@ -763,50 +763,13 @@ class PageController extends BaseController
             
             $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
 
-            // Images with per-photo metadata (similar to GalleryController->template)
+            // Images with per-photo metadata
             $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
             $imgStmt->execute([':id' => $album['id']]);
             $imagesRows = $imgStmt->fetchAll() ?: [];
-            
-            foreach ($imagesRows as &$ir) {
-                try {
-                    if (!empty($ir['developer_id'])) {
-                        $s = $pdo->prepare('SELECT name FROM developers WHERE id = :id');
-                        $s->execute([':id' => $ir['developer_id']]);
-                        $ir['developer_name'] = $s->fetchColumn() ?: null;
-                    }
-                    if (!empty($ir['lab_id'])) {
-                        $s = $pdo->prepare('SELECT name FROM labs WHERE id = :id');
-                        $s->execute([':id' => $ir['lab_id']]);
-                        $ir['lab_name'] = $s->fetchColumn() ?: null;
-                    }
-                    if (!empty($ir['film_id'])) {
-                        $s = $pdo->prepare('SELECT brand, name, iso, format FROM films WHERE id = :id');
-                        $s->execute([':id' => $ir['film_id']]);
-                        $fr = $s->fetch();
-                        if ($fr) {
-                            $nameOnly = trim((string)($fr['name'] ?? ''));
-                            $brand = trim((string)($fr['brand'] ?? ''));
-                            $ir['film_name'] = trim(($brand !== '' ? ($brand . ' ') : '') . $nameOnly);
-                            $iso = isset($fr['iso']) && $fr['iso'] !== '' ? (string)(int)$fr['iso'] : '';
-                            $fmt = (string)($fr['format'] ?? '');
-                            $parts = [];
-                            if ($iso !== '') { $parts[] = $iso; }
-                            if ($fmt !== '') { $parts[] = $fmt; }
-                            $suffix = count($parts) ? (' (' . implode(' - ', $parts) . ')') : '';
-                            $ir['film_display'] = ($nameOnly !== '' ? $nameOnly : $ir['film_name']) . $suffix;
-                        }
-                    }
-                    if (!empty($ir['location_id'])) {
-                        $s = $pdo->prepare('SELECT name FROM locations WHERE id = :id');
-                        $s->execute([':id' => $ir['location_id']]);
-                        $ir['location_name'] = $s->fetchColumn() ?: null;
-                    }
-                } catch (\Throwable $e) {
-                    // Continue processing even if metadata lookup fails
-                    Logger::warning('PageController: Error fetching image metadata', ['image_id' => $ir['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
-                }
-            }
+
+            // Enrich images with metadata from related tables
+            \App\Services\ImagesService::enrichWithMetadata($pdo, $imagesRows, 'frontend');
 
             // Build gallery items for the template
             $images = [];
@@ -853,7 +816,10 @@ class PageController extends BaseController
                     'location_name' => $img['location_name'] ?? '',
                     'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
                     'shutter_speed' => $img['shutter_speed'] ?? null,
-                    'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null
+                    'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
+                    'process' => $img['process'] ?? null,
+                    'sources' => ['avif' => [], 'webp' => [], 'jpg' => []],
+                    'fallback_src' => $lightboxUrl ?: $bestUrl
                 ];
             }
 
@@ -868,6 +834,7 @@ class PageController extends BaseController
                 'images' => $images,
                 'template_settings' => $templateSettings,
                 'album' => [ 'title' => $album['title'] ?? '', 'excerpt' => $album['excerpt'] ?? '' ],
+                'base_path' => $this->basePath
             ]);
             
         } catch (\Throwable $e) {
