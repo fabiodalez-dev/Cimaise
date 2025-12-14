@@ -66,7 +66,9 @@
     "album.private": "Private Gallery",
     "album.password_protected": "Password Protected",
     "album.enter_password": "Enter Password",
-    "album.wrong_password": "Wrong password"
+    "album.wrong_password": "Wrong password",
+    "album.tags_count": "{count} tags",
+    "album.tag_count": "1 tag"
   },
   "pagination": {
     "pagination.previous": "Previous",
@@ -171,6 +173,21 @@
     "general.edit": "Edit",
     "general.submit": "Submit",
     "general.reset": "Reset",
-    "general.view": "View"
+    "general.view": "View",
+    "general.more_count": "+{count} more"
+  },
+  "galleries": {
+    "galleries.title": "All Galleries",
+    "galleries.subtitle": "Explore our complete collection of photography galleries with advanced filtering options"
+  },
+  "installer": {
+    "installer.site_language": "Site Language",
+    "installer.site_language_help": "Default language for the frontend",
+    "installer.date_format": "Date Format",
+    "installer.date_format_help": "Format used for displaying dates",
+    "installer.date_format_iso": "ISO",
+    "installer.date_format_eu": "European",
+    "installer.english": "English",
+    "installer.italian": "Italiano"
   }
 }

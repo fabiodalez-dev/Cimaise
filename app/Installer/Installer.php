@@ -432,10 +432,11 @@ class Installer
     private function updateSiteSettings(array $data): void
     {
         // Validate and sanitize language and date format
-        $language = preg_replace('/[^a-z0-9_-]/i', '', (string)($data['site_language'] ?? 'en')) ?: 'en';
-        $dateFormat = in_array($data['date_format'] ?? 'Y-m-d', ['Y-m-d', 'd-m-Y'], true)
-            ? $data['date_format']
-            : 'Y-m-d';
+        $rawLanguage = (string)($data['site_language'] ?? 'en');
+        $language = in_array($rawLanguage, ['en', 'it'], true) ? $rawLanguage : 'en';
+
+        $rawDateFormat = (string)($data['date_format'] ?? 'Y-m-d');
+        $dateFormat = in_array($rawDateFormat, ['Y-m-d', 'd-m-Y'], true) ? $rawDateFormat : 'Y-m-d';
 
         $settings = [
             'site.title' => $data['site_title'] ?? 'photoCMS',

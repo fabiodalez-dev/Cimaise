@@ -10,10 +10,10 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="text-center">
         <h1 class="text-4xl md:text-5xl font-light text-black mb-6 tracking-tight" data-gsap="title">
-          {{ page_texts.title|default('All Galleries')|e }}
+          {{ page_texts.title|default(trans('galleries.title'))|e }}
         </h1>
         <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed" data-gsap="subtitle">
-          {{ page_texts.subtitle|default('Explore our complete collection of photography galleries with advanced filtering options')|e }}
+          {{ page_texts.subtitle|default(trans('galleries.subtitle'))|e }}
         </p>
       </div>
     </div>
@@ -287,7 +287,11 @@
               {% if album.tags|length > 0 %}
               <span class="flex items-center gap-1">
                 <i class="fas fa-tag text-xs"></i>
-                {{ album.tags|length }} tag{{ album.tags|length != 1 ? 's' : '' }}
+                {% if album.tags|length == 1 %}
+                  {{ trans('album.tag_count') }}
+                {% else %}
+                  {{ trans('album.tags_count', {count: album.tags|length}) }}
+                {% endif %}
               </span>
               {% endif %}
             </div>
@@ -308,7 +312,7 @@
             {% endfor %}
             {% if album.tags|length > 3 %}
             <span class="inline-block text-gray-400 text-xs px-2 py-1">
-              +{{ album.tags|length - 3 }} more
+              {{ trans('general.more_count', {count: album.tags|length - 3}) }}
             </span>
             {% endif %}
           </div>
@@ -361,7 +365,10 @@ $(document).ready(function() {
         clearFiltersText: '{{ trans('filter.clear')|e('js') }}',
         noResultsTitle: '{{ trans('filter.no_galleries_title')|e('js') }}',
         noResultsText: '{{ trans('filter.no_galleries_text')|e('js') }}',
-        viewButtonText: '{{ trans('album.view_gallery')|e('js') }}'
+        viewButtonText: '{{ trans('album.view_gallery')|e('js') }}',
+        tagCount: '{{ trans('album.tag_count')|e('js') }}',
+        tagsCount: '{{ trans('album.tags_count', {count: '{count}'})|e('js') }}',
+        moreCount: '{{ trans('general.more_count', {count: '{count}'})|e('js') }}'
     };
 
     // Date format from settings
@@ -717,7 +724,8 @@ function generateGalleryCard(album) {
     }
     if (tags.length){
         const span = document.createElement('span'); span.className='flex items-center gap-1';
-        span.innerHTML = '<i class="fas fa-tag text-xs"></i>' + esc(tags.length) + ' ' + (tags.length !== 1 ? 'tags' : 'tag');
+        const tagText = tags.length === 1 ? window.pageTexts.tagCount : window.pageTexts.tagsCount.replace('{count}', tags.length);
+        span.innerHTML = '<i class="fas fa-tag text-xs"></i>' + esc(tagText);
         left.appendChild(span);
     }
     meta.appendChild(left);
@@ -730,7 +738,7 @@ function generateGalleryCard(album) {
     if (tags.length){
         const wrap = document.createElement('div'); wrap.className='flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100';
         tags.slice(0,3).forEach(t=>{ const s=document.createElement('span'); s.className='inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors'; s.textContent = '#' + (t && t.name ? t.name : ''); wrap.appendChild(s); });
-        if (tags.length>3){ const more=document.createElement('span'); more.className='inline-block text-gray-400 text-xs px-2 py-1'; more.textContent = '+' + (tags.length-3) + ' more'; wrap.appendChild(more); }
+        if (tags.length>3){ const more=document.createElement('span'); more.className='inline-block text-gray-400 text-xs px-2 py-1'; more.textContent = window.pageTexts.moreCount.replace('{count}', tags.length-3); wrap.appendChild(more); }
         content.appendChild(wrap);
     }
 
