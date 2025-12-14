@@ -85,9 +85,16 @@ class CommandsController extends BaseController
         // Add arguments safely
         foreach ($args as $key => $value) {
             if (is_string($key) && !empty($key)) {
-                $cmd .= " --" . escapeshellarg($key);
-                if (!empty($value) && $value !== true) {
-                    $cmd .= "=" . escapeshellarg((string)$value);
+                // Validate key is a valid option name (alphanumeric and hyphens only)
+                if (!preg_match('/^[a-zA-Z0-9-]+$/', $key)) {
+                    throw new \InvalidArgumentException("Invalid argument key: $key");
+                }
+                if ($value === true) {
+                    // Boolean flag
+                    $cmd .= " --" . $key;
+                } elseif (!empty($value)) {
+                    // Key=value option
+                    $cmd .= " --" . $key . "=" . escapeshellarg((string)$value);
                 }
             } elseif (!empty($value)) {
                 $cmd .= " " . escapeshellarg((string)$value);
