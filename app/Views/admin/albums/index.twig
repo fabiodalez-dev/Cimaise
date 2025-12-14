@@ -127,15 +127,22 @@
     function initAlbumsTableSorting() {
       const tbody = document.getElementById('albums-tbody');
       const table = document.getElementById('albums-table');
-      
+
       if (!tbody || !table) {
         console.warn('Albums table elements not found');
         return;
       }
-      
+
       const mode = table.dataset.order || 'manual';
-      
+
       if (mode === 'manual') {
+        // Wait for Sortable to be available (in case of race condition)
+        if (typeof Sortable === 'undefined') {
+          console.log('Sortable not loaded yet, waiting...');
+          setTimeout(initAlbumsTableSorting, 50);
+          return;
+        }
+
         // Cleanup existing Sortable instance if present
         if (tbody._sortableInstance) {
           try {
@@ -144,10 +151,10 @@
             console.warn('Failed to destroy existing Sortable instance:', e);
           }
         }
-        
+
         // Create new Sortable instance
-        tbody._sortableInstance = new Sortable(tbody, { 
-          animation: 150, 
+        tbody._sortableInstance = new Sortable(tbody, {
+          animation: 150,
           draggable: 'tr',
           onEnd: () => {
             // Debounce the save order call
@@ -155,18 +162,18 @@
             tbody._saveTimeout = setTimeout(saveOrder, 100);
           }
         });
-        
+
         async function saveOrder(){
           try {
             const ids = Array.from(tbody.querySelectorAll('tr[data-id]')).map(tr=>tr.getAttribute('data-id'));
-            await fetch(table.dataset.endpoint, { 
-              method:'POST', 
-              headers:{ 
-                'Content-Type':'application/json', 
-                'X-CSRF-Token': table.dataset.csrf, 
-                'Accept':'application/json' 
-              }, 
-              body: JSON.stringify({ order: ids }) 
+            await fetch(table.dataset.endpoint, {
+              method:'POST',
+              headers:{
+                'Content-Type':'application/json',
+                'X-CSRF-Token': table.dataset.csrf,
+                'Accept':'application/json'
+              },
+              body: JSON.stringify({ order: ids })
             });
             if (window.showToast) window.showToast('Album order saved', 'success');
           } catch(error) {
@@ -174,7 +181,7 @@
             if (window.showToast) window.showToast('Error saving order', 'error');
           }
         }
-        
+
         console.log('Albums table sorting initialized');
       }
     }
