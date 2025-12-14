@@ -43,6 +43,11 @@ class AnalyticsController
             throw new \InvalidArgumentException('Invalid end_date format. Expected Y-m-d');
         }
 
+        // Validate logical consistency
+        if ($startDate > $endDate) {
+            throw new \InvalidArgumentException('start_date must be before or equal to end_date');
+        }
+
         return [$startDate, $endDate];
     }
 
@@ -53,10 +58,14 @@ class AnalyticsController
     {
         $dashboardStats = $this->analytics->getDashboardStats();
 
-        // Get date range from query params
-        $params = $request->getQueryParams();
-        $endDate = $params['end_date'] ?? date('Y-m-d');
-        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
+        // Get and validate date range from query params
+        try {
+            [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
+        } catch (\InvalidArgumentException $e) {
+            // Fallback to default range on invalid input
+            $endDate = date('Y-m-d');
+            $startDate = date('Y-m-d', strtotime('-30 days'));
+        }
 
         $chartsData = $this->analytics->getChartsData($startDate, $endDate);
         $peakHoursData = $this->analytics->getPeakHoursData($startDate, $endDate);
