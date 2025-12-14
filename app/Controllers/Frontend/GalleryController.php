@@ -44,9 +44,19 @@ class GalleryController extends BaseController
                 'meta_description' => 'Album not found or unpublished'
             ]);
         }
-        // Password protection
+        // Password protection with session timeout (24h)
         if (!empty($album['password_hash'])) {
-            $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$album['id']]);
+            $allowed = false;
+            if (isset($_SESSION['album_access'][$album['id']])) {
+                $accessTime = $_SESSION['album_access'][$album['id']];
+                // Check if access is still valid (24 hour timeout)
+                if (is_int($accessTime) && (time() - $accessTime) < 86400) {
+                    $allowed = true;
+                } else {
+                    // Remove expired access
+                    unset($_SESSION['album_access'][$album['id']]);
+                }
+            }
             if (!$allowed) {
                 // Categories for header menu
                 $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
@@ -485,8 +495,17 @@ class GalleryController extends BaseController
                 $response->getBody()->write('Album not found');
                 return $response->withStatus(404);
             }
+            // Password protection with session timeout (24h)
             if (!empty($album['password_hash'])) {
-                $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$album['id']]);
+                $allowed = false;
+                if (isset($_SESSION['album_access'][$album['id']])) {
+                    $accessTime = $_SESSION['album_access'][$album['id']];
+                    if (is_int($accessTime) && (time() - $accessTime) < 86400) {
+                        $allowed = true;
+                    } else {
+                        unset($_SESSION['album_access'][$album['id']]);
+                    }
+                }
                 if (!$allowed) {
                     $response->getBody()->write('Album locked');
                     return $response->withStatus(403);

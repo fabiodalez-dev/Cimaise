@@ -119,7 +119,7 @@ class AlbumsController extends BaseController
         $tagIds = array_map('intval', (array)($d['tags'] ?? []));
         $allow_downloads = isset($d['allow_downloads']) ? 1 : 0;
         $passwordRaw = (string)($d['password'] ?? '');
-        $password_hash = $passwordRaw !== '' ? password_hash($passwordRaw, PASSWORD_DEFAULT) : null;
+        $password_hash = $passwordRaw !== '' ? password_hash($passwordRaw, PASSWORD_ARGON2ID) : null;
         $cameraIds = array_map('intval', (array)($d['cameras'] ?? []));
         $lensIds = array_map('intval', (array)($d['lenses'] ?? []));
         $filmIds = array_map('intval', (array)($d['films'] ?? []));
@@ -535,7 +535,7 @@ class AlbumsController extends BaseController
                 $set .= ', password_hash = NULL';
             } elseif ($passwordRaw !== '') {
                 $set .= ', password_hash = :ph';
-                $params[':ph'] = password_hash($passwordRaw, PASSWORD_DEFAULT);
+                $params[':ph'] = password_hash($passwordRaw, PASSWORD_ARGON2ID);
             }
             $pdo->prepare('UPDATE albums SET '.$set.' WHERE id=:id')->execute($params);
         } catch (\Throwable $e) {
