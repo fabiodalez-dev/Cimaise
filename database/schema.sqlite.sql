@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT
 );
 
+CREATE INDEX IF NOT EXISTS idx_users_remember_token ON users(remember_token);
+
 CREATE TABLE IF NOT EXISTS categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,

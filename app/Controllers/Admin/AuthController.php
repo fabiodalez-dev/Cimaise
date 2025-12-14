@@ -91,7 +91,7 @@ class AuthController extends BaseController
 
         // Handle "Remember Me" functionality
         if ($rememberMe) {
-            $this->setRememberToken((int)$user['id'], $response);
+            $this->setRememberToken((int)$user['id']);
         }
 
         // rotate CSRF after login
@@ -105,7 +105,7 @@ class AuthController extends BaseController
     /**
      * Generate and set remember token for persistent login
      */
-    private function setRememberToken(int $userId, Response $response): void
+    private function setRememberToken(int $userId): void
     {
         // Generate secure random token (32 bytes = 64 hex chars)
         $rawToken = bin2hex(random_bytes(32));
