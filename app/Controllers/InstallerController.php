@@ -23,10 +23,20 @@ class InstallerController
         // Get base path for redirects
         $this->basePath = dirname($_SERVER['SCRIPT_NAME']);
         $this->basePath = $this->basePath === '/' ? '' : $this->basePath;
-        
+
         // Remove /public from the path if present (since document root should be public/)
         if (str_ends_with($this->basePath, '/public')) {
             $this->basePath = substr($this->basePath, 0, -7); // Remove '/public'
+        }
+
+        // Ensure session is started for CSRF and flash messages
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Generate CSRF token if not exists
+        if (empty($_SESSION['csrf'])) {
+            $_SESSION['csrf'] = bin2hex(random_bytes(32));
         }
     }
     
@@ -69,10 +79,10 @@ class InstallerController
             'db_connection' => 'sqlite',
             'db_host' => '127.0.0.1',
             'db_port' => 3306,
-            'db_database' => $this->rootPath . '/database/database.sqlite',
+            'db_database' => 'database/database.sqlite',
             'db_username' => 'root',
             'db_charset' => 'utf8mb4',
-            'db_collation' => 'utf8mb4_unicode_ci',
+            'db_collation' => 'utf8mb4_0900_ai_ci',
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -481,50 +491,20 @@ class InstallerController
             username: $vars['DB_USERNAME'] ?? 'root',
             password: $vars['DB_PASSWORD'] ?? '',
             charset: $vars['DB_CHARSET'] ?? 'utf8mb4',
-            collation: $vars['DB_COLLATION'] ?? 'utf8mb4_unicode_ci',
+            collation: $vars['DB_COLLATION'] ?? 'utf8mb4_0900_ai_ci',
         );
     }
     
     /**
-     * Check system requirements
+     * Check system requirements - delegates to Installer for consistency
      */
     private function checkRequirements(): array
     {
-        $errors = [];
-        $warnings = [];
-        
-        // Check PHP version
-        if (version_compare(PHP_VERSION, '8.0.0', '<')) {
-            $errors[] = 'PHP 8.0 or higher is required. Current version: ' . PHP_VERSION;
-        }
-        
-        // Check required extensions
-        $requiredExtensions = ['pdo', 'gd', 'mbstring', 'openssl'];
-        foreach ($requiredExtensions as $ext) {
-            if (!extension_loaded($ext)) {
-                $errors[] = "Required PHP extension '{$ext}' is not installed";
-            }
-        }
-        
-        // Check if either PDO MySQL or PDO SQLite is available
-        if (!extension_loaded('pdo_mysql') && !extension_loaded('pdo_sqlite')) {
-            $errors[] = 'Either PDO MySQL or PDO SQLite extension is required';
-        }
-        
-        // Check write permissions
-        $writablePaths = [
-            $this->rootPath . '/.env',
-            $this->rootPath . '/database',
-            $this->rootPath . '/storage',
-            $this->rootPath . '/public/media'
-        ];
-        
-        foreach ($writablePaths as $path) {
-            if (!is_writable(dirname($path))) {
-                $errors[] = "Directory '" . dirname($path) . "' is not writable";
-            }
-        }
-        
+        // Pass db config from session if available for connection-specific checks
+        $dbConfig = $_SESSION['install_db_config'] ?? [];
+        $errors = $this->installer->getRequirementsErrors($dbConfig);
+        $warnings = $this->installer->getRequirementsWarnings();
+
         return [
             'errors' => $errors,
             'warnings' => $warnings
