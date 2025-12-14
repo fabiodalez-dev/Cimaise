@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -119,7 +120,7 @@ class UsersController extends BaseController
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'User created successfully'];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         } catch (\Throwable $e) {
-            error_log('UsersController::store error: ' . $e->getMessage());
+            Logger::error('UsersController::store error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while creating user. Please try again.'];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
@@ -244,7 +245,7 @@ class UsersController extends BaseController
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'User updated successfully'];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         } catch (\Throwable $e) {
-            error_log('UsersController::update error: ' . $e->getMessage());
+            Logger::error('UsersController::update error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating user. Please try again.'];
             return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
         }
@@ -287,7 +288,7 @@ class UsersController extends BaseController
             $stmt->execute([':id' => $id]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'User deleted'];
         } catch (\Throwable $e) {
-            error_log('UsersController::delete error: ' . $e->getMessage());
+            Logger::error('UsersController::delete error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while deleting user. Please try again.'];
         }
 
@@ -335,7 +336,7 @@ class UsersController extends BaseController
             $statusText = $newStatus ? 'activated' : 'deactivated';
             $_SESSION['flash'][] = ['type' => 'success', 'message' => "User {$statusText}"];
         } catch (\Throwable $e) {
-            error_log('UsersController::toggleActive error: ' . $e->getMessage());
+            Logger::error('UsersController::toggleActive error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating user status. Please try again.'];
         }
 

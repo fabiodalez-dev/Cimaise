@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Middlewares;
 
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface;
@@ -135,7 +136,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
             file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
         } catch (\Throwable) {
             // Fail silently if we can't write (don't break the application)
-            error_log("Rate limit: Failed to save attempts to {$filePath}");
+            Logger::warning('FileBasedRateLimitMiddleware: Failed to save attempts', ['file' => $filePath], 'security');
         }
     }
 
@@ -146,7 +147,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
                 unlink($filePath);
             }
         } catch (\Throwable) {
-            error_log("Rate limit: Failed to clear attempts file {$filePath}");
+            Logger::warning('FileBasedRateLimitMiddleware: Failed to clear attempts file', ['file' => $filePath], 'security');
         }
     }
 
