@@ -27,7 +27,7 @@
   </div>
 
   <!-- Sticky Footer with Action Buttons -->
-  <div class="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+  <div class="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -408,8 +408,6 @@
 <script>
 // SEO page initialization - Compatible with SPA
 function initializeSEOPage() {
-  console.log('Initializing SEO page...');
-  
   // Local business toggle
   const localBusinessToggle = document.querySelector('input[name="local_business_enabled"]');
   const localBusinessFields = document.getElementById('local-business-fields');
@@ -430,8 +428,6 @@ function initializeSEOPage() {
     form.removeEventListener('submit', handleSEOFormSubmit);
     form.addEventListener('submit', handleSEOFormSubmit);
   }
-  
-  console.log('SEO page initialization completed');
 }
 
 // Event handler functions

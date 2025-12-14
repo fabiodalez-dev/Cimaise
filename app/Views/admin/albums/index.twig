@@ -22,6 +22,9 @@
       <table class="min-w-full" id="albums-table" data-endpoint="{{ base_path }}/admin/albums/reorder" data-csrf="{{ csrf|e('html_attr') }}" data-order="{{ order_mode }}">
         <thead class="bg-gray-50">
           <tr>
+            {% if order_mode == 'manual' %}
+            <th class="px-2 py-3 w-10"></th>
+            {% endif %}
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cover</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -32,7 +35,12 @@
         </thead>
         <tbody class="bg-white divide-y divide-gray-200" id="albums-tbody">
           {% for a in items %}
-          <tr class="table-row cursor-move" data-id="{{ a.id }}" title="Drag to reorder">
+          <tr class="table-row {{ order_mode == 'manual' ? 'cursor-move' : '' }}" data-id="{{ a.id }}">
+            {% if order_mode == 'manual' %}
+            <td class="px-2 py-4 text-center drag-handle cursor-grab active:cursor-grabbing">
+              <i class="fas fa-grip-vertical text-gray-400 hover:text-gray-600"></i>
+            </td>
+            {% endif %}
             <td class="px-6 py-4 whitespace-nowrap">
               {% if a.cover_path %}
                 <img src="{% if a.cover_path starts with '/' %}{{ base_path }}{{ a.cover_path }}{% else %}{{ a.cover_path }}{% endif %}" alt="{{ a.title|e('html_attr') }} cover" class="w-14 h-10 object-cover rounded border border-gray-200">
@@ -117,65 +125,76 @@
   <script>
     // Albums index page initialization - Compatible with SPA
     function initializeAlbumsIndexPage() {
-      console.log('Initializing Albums index page...');
-      
       initAlbumsTableSorting();
-      
-      console.log('Albums index page initialization completed');
     }
     
     function initAlbumsTableSorting() {
       const tbody = document.getElementById('albums-tbody');
       const table = document.getElementById('albums-table');
-      
+
       if (!tbody || !table) {
-        console.warn('Albums table elements not found');
         return;
       }
-      
+
       const mode = table.dataset.order || 'manual';
-      
+
       if (mode === 'manual') {
+        // Wait for Sortable to be available with exponential backoff
+        window._sortableRetryCount = (window._sortableRetryCount || 0) + 1;
+        if (typeof Sortable === 'undefined') {
+          if (window._sortableRetryCount > 50) {
+            console.warn('Sortable not available: init aborted after 50 attempts');
+            return;
+          }
+          var delay = Math.min(500, 50 * window._sortableRetryCount);
+          setTimeout(initAlbumsTableSorting, delay);
+          return;
+        }
+        // Reset counter on success
+        window._sortableRetryCount = 0;
+
         // Cleanup existing Sortable instance if present
         if (tbody._sortableInstance) {
           try {
             tbody._sortableInstance.destroy();
-          } catch(e) {
-            console.warn('Failed to destroy existing Sortable instance:', e);
-          }
+          } catch(e) {}
         }
-        
+
         // Create new Sortable instance
-        tbody._sortableInstance = new Sortable(tbody, { 
-          animation: 150, 
+        tbody._sortableInstance = new Sortable(tbody, {
+          animation: 150,
           draggable: 'tr',
+          handle: '.drag-handle',
+          ghostClass: 'bg-blue-50',
+          chosenClass: 'bg-blue-100',
           onEnd: () => {
             // Debounce the save order call
             clearTimeout(tbody._saveTimeout);
             tbody._saveTimeout = setTimeout(saveOrder, 100);
           }
         });
-        
+
         async function saveOrder(){
           try {
             const ids = Array.from(tbody.querySelectorAll('tr[data-id]')).map(tr=>tr.getAttribute('data-id'));
-            await fetch(table.dataset.endpoint, { 
-              method:'POST', 
-              headers:{ 
-                'Content-Type':'application/json', 
-                'X-CSRF-Token': table.dataset.csrf, 
-                'Accept':'application/json' 
-              }, 
-              body: JSON.stringify({ order: ids }) 
+            const response = await fetch(table.dataset.endpoint, {
+              method:'POST',
+              headers:{
+                'Content-Type':'application/json',
+                'X-CSRF-Token': table.dataset.csrf,
+                'Accept':'application/json'
+              },
+              body: JSON.stringify({ order: ids })
             });
+            if (!response.ok) {
+              throw new Error('Reorder failed: ' + response.status + ' ' + response.statusText);
+            }
             if (window.showToast) window.showToast('Album order saved', 'success');
           } catch(error) {
             console.error('Failed to save albums order:', error);
             if (window.showToast) window.showToast('Error saving order', 'error');
           }
         }
-        
-        console.log('Albums table sorting initialized');
       }
     }
     
