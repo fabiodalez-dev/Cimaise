@@ -105,9 +105,9 @@ class PagesController extends BaseController
         }
         $svc->set('home.gallery_scroll_direction', $scrollDirection);
 
-        // Gallery text section
+        // Gallery text section (sanitize HTML content to prevent XSS)
         $svc->set('home.gallery_text_title', trim((string)($data['gallery_text_title'] ?? '')));
-        $svc->set('home.gallery_text_content', trim((string)($data['gallery_text_content'] ?? '')));
+        $svc->set('home.gallery_text_content', \App\Support\Sanitizer::html((string)($data['gallery_text_content'] ?? '')));
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Home page saved successfully.'];
         return $response->withHeader('Location', $this->redirect('/admin/pages/home'))->withStatus(302);
