@@ -878,7 +878,7 @@ class PageController extends BaseController
                 'trace' => $e->getTraceAsString()
             ], 'frontend');
 
-            $response->getBody()->write('Internal server error: ' . $e->getMessage());
+            $response->getBody()->write('Internal server error');
             return $response->withStatus(500);
         }
     }
