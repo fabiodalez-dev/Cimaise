@@ -502,7 +502,9 @@ class AnalyticsController
     private function getAlbumsData(string $startDate, string $endDate, ?string $limit = null): array
     {
         try {
-            $limitClause = $limit ? "LIMIT {$limit}" : "";
+            // Sanitize limit parameter to prevent SQL injection
+            $limitValue = $limit !== null ? filter_var($limit, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000]]) : false;
+            $limitClause = $limitValue !== false ? "LIMIT {$limitValue}" : "";
             
             $stmt = $this->db->prepare("
                 SELECT 

@@ -647,7 +647,7 @@ class GalleryController extends BaseController
                 'trace' => $e->getTraceAsString()
             ], 'gallery');
 
-            $response->getBody()->write('Internal server error: ' . $e->getMessage());
+            $response->getBody()->write('Internal server error');
             return $response->withStatus(500);
         }
     }
