@@ -173,3 +173,69 @@ When adding TinyMCE rich text editors:
 3. Include `u,s` for underline/strikethrough support
 4. Toolbar example: `'undo redo | bold italic underline strikethrough | bullist numlist | link | removeformat'`
 5. Build assets after changes: `npm run build`
+
+## PhotoSwipe Lightbox & Image Metadata
+
+### Data Attributes for Lightbox
+Every `<a class="pswp-link">` element must include these data attributes for PhotoSwipe:
+
+```twig
+<a href="{{ lightbox_url }}"
+   class="pswp-link"
+   data-pswp-width="{{ image.width }}"
+   data-pswp-height="{{ image.height }}"
+   data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+   data-title="{{ image.caption|default('')|e }}"
+   data-alt="{{ image.alt|default('')|e }}"
+   data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+   data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+   data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+   data-developer="{{ image.developer_name|default('')|e }}"
+   data-lab="{{ image.lab_name|default('')|e }}"
+   data-location="{{ image.location_name|default('')|e }}"
+   data-iso="{{ image.iso|default('') }}"
+   data-shutter="{{ image.shutter_speed|default('')|e }}"
+   data-aperture="{{ image.aperture|default('') }}">
+```
+
+### AJAX Template Switching
+**Critical**: Two separate endpoints handle AJAX template switching. Both must perform identical metadata lookups:
+
+| Endpoint | Controller | Method |
+|----------|------------|--------|
+| `/api/gallery/template` | `GalleryController` | `template()` |
+| `/api/album/{slug}/template` | `PageController` | `albumTemplate()` |
+
+When modifying image metadata handling, **update BOTH controllers** to ensure consistency between initial page load and AJAX template switches.
+
+### Metadata Database Lookups
+Use the shared `ImagesService::enrichWithMetadata()` method to populate metadata from related tables:
+
+```php
+// Fetch images
+$imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC');
+$imgStmt->execute([':id' => $albumId]);
+$imagesRows = $imgStmt->fetchAll() ?: [];
+
+// Enrich with metadata from cameras, lenses, films, developers, labs, locations
+\App\Services\ImagesService::enrichWithMetadata($pdo, $imagesRows, 'context_name');
+```
+
+This method adds the following fields to each image row:
+- `camera_name` (from cameras: make + model)
+- `lens_name` (from lenses: brand + model)
+- `film_name` (from films: brand + name)
+- `film_display` (name with ISO and format suffix)
+- `developer_name` (from developers)
+- `lab_name` (from labs)
+- `location_name` (from locations)
+
+### Gallery Template Files
+When adding/modifying gallery layouts, ensure data attributes are present in ALL template files:
+
+- `gallery.twig` - Main gallery with all layouts (grid, masonry, mosaic, carousel, polaroid, etc.)
+- `_gallery_content.twig` - AJAX partial for most templates
+- `_gallery_magazine_content.twig` - AJAX partial for magazine layout (has mobile + desktop sections)
+- `_image_item.twig` - Reusable image component
+
+**Magazine template has multiple sections** - mobile wrap, desktop columns first pass, and duplicate tracks. All need identical data attributes.

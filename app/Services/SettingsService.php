@@ -58,6 +58,8 @@ class SettingsService
             'site.description' => 'Professional Photography Portfolio',
             'site.copyright' => '© 2024 Photography Portfolio',
             'site.email' => '',
+            'site.language' => 'en',
+            'date.format' => 'Y-m-d',
             'performance.compression' => true,
             'pagination.limit' => 12,
             'cache.ttl' => 24,

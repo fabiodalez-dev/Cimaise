@@ -569,7 +569,13 @@ function cleanupExistingInstances() {
     // Cleanup Uppy instances
     if (window.uppyInstances) {
       window.uppyInstances.forEach(uppy => {
-        try { uppy.close(); } catch(e) { console.warn('Failed to close Uppy:', e); }
+        try {
+          if (uppy && typeof uppy.close === 'function') {
+            uppy.close();
+          }
+        } catch(e) {
+          // Silently ignore - instance may already be closed
+        }
       });
       window.uppyInstances = [];
     }

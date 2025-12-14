@@ -65,12 +65,12 @@
     <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
       <h4 class="text-sm font-medium text-gray-900 mb-2">Informazioni Account</h4>
       <div class="text-sm text-gray-600 space-y-1">
-        <p><strong>Registrato:</strong> {{ user.created_at|date('d/m/Y H:i') }}</p>
+        <p><strong>Registrato:</strong> {{ user.created_at|datetime_format }}</p>
         {% if user.updated_at %}
-        <p><strong>Ultimo aggiornamento:</strong> {{ user.updated_at|date('d/m/Y H:i') }}</p>
+        <p><strong>Ultimo aggiornamento:</strong> {{ user.updated_at|datetime_format }}</p>
         {% endif %}
         {% if user.last_login %}
-        <p><strong>Ultimo accesso:</strong> {{ user.last_login|date('d/m/Y H:i') }}</p>
+        <p><strong>Ultimo accesso:</strong> {{ user.last_login|datetime_format }}</p>
         {% else %}
         <p><strong>Ultimo accesso:</strong> Mai</p>
         {% endif %}

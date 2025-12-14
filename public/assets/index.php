@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// Track request start time for performance logging
+$_SERVER['REQUEST_TIME_FLOAT'] = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+
 require __DIR__ . '/../vendor/autoload.php';
 
 use Slim\Factory\AppFactory;
@@ -172,16 +175,27 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $siteLogo = $settingsSvc->get('site.logo', null);
         $twig->getEnvironment()->addGlobal('site_title', $siteTitle);
         $twig->getEnvironment()->addGlobal('site_logo', $siteLogo);
+        // Initialize date format from settings
+        $dateFormat = $settingsSvc->get('date.format', 'Y-m-d');
+        \App\Support\DateHelper::setDisplayFormat($dateFormat);
+        $twig->getEnvironment()->addGlobal('date_format', $dateFormat);
     } catch (\Throwable) {
         $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
         $twig->getEnvironment()->addGlobal('site_title', 'photoCMS');
         $twig->getEnvironment()->addGlobal('site_logo', null);
+        \App\Support\DateHelper::setDisplayFormat('Y-m-d');
+        $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
     }
 } else {
     $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
     $twig->getEnvironment()->addGlobal('site_title', 'photoCMS');
     $twig->getEnvironment()->addGlobal('site_logo', null);
+    \App\Support\DateHelper::setDisplayFormat('Y-m-d');
+    $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
 }
+
+// Register date format Twig extension
+$twig->getEnvironment()->addExtension(new \App\Extensions\DateTwigExtension());
 
 // Expose admin status for frontend header
 $twig->getEnvironment()->addGlobal('is_admin', isset($_SESSION['admin_id']) && $_SESSION['admin_id'] > 0);
@@ -202,6 +216,25 @@ $errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $excepti
     return $twig->render($response, 'errors/500.twig', [
         'message' => $displayErrorDetails ? (string)$exception : ''
     ]);
+});
+
+// Register performance logging on shutdown
+register_shutdown_function(function () {
+    if (!function_exists('envv') || !filter_var(envv('DEBUG_PERFORMANCE', false), FILTER_VALIDATE_BOOLEAN)) {
+        return;
+    }
+    // Defensive check - ensure Logger class is available
+    if (!class_exists(\App\Support\Logger::class)) {
+        return;
+    }
+    $duration = microtime(true) - ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true));
+    $memoryMb = memory_get_peak_usage(true) / 1024 / 1024;
+    \App\Support\Logger::performance(
+        $_SERVER['REQUEST_URI'] ?? '/',
+        $_SERVER['REQUEST_METHOD'] ?? 'GET',
+        $duration,
+        $memoryMb
+    );
 });
 
 $app->run();
