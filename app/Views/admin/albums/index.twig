@@ -198,18 +198,15 @@
       }
     }
     
-    // Initialize on DOM ready
-    document.addEventListener('DOMContentLoaded', initializeAlbumsIndexPage);
-    
     // Make initialization function globally available for SPA re-initialization
     if (!window.pageInitializers) {
       window.pageInitializers = {};
     }
     window.pageInitializers.albumsIndex = initializeAlbumsIndexPage;
-    
-    // Auto-initialize if this is loaded in SPA context
+
+    // Initialize once on DOM ready or immediately if already loaded
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeAlbumsIndexPage);
+      document.addEventListener('DOMContentLoaded', initializeAlbumsIndexPage, { once: true });
     } else {
       initializeAlbumsIndexPage();
     }

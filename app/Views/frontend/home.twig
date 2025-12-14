@@ -21,6 +21,8 @@
   {# Hook: frontend_home_gallery_after - After infinite gallery #}
   {{ do_action('frontend_home_gallery_after', {base_path: base_path}) }}
 
+  {% include 'frontend/home/_gallery_text.twig' %}
+
   <div class="home-infinite-spacer h-24"></div>
 
   {# Hook: frontend_home_carousel_before - Before albums carousel #}
