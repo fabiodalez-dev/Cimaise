@@ -25,6 +25,28 @@ class AnalyticsController
     }
 
     /**
+     * Validate and sanitize date range from query parameters
+     *
+     * @return array{0: string, 1: string} [startDate, endDate]
+     * @throws \InvalidArgumentException if date format is invalid
+     */
+    private function validateDateRange(array $params): array
+    {
+        $endDate = $params['end_date'] ?? date('Y-m-d');
+        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
+
+        // Validate date formats
+        if (!\DateTime::createFromFormat('Y-m-d', $startDate)) {
+            throw new \InvalidArgumentException('Invalid start_date format. Expected Y-m-d');
+        }
+        if (!\DateTime::createFromFormat('Y-m-d', $endDate)) {
+            throw new \InvalidArgumentException('Invalid end_date format. Expected Y-m-d');
+        }
+
+        return [$startDate, $endDate];
+    }
+
+    /**
      * Analytics dashboard
      */
     public function index(Request $request, Response $response): Response
@@ -231,14 +253,16 @@ class AnalyticsController
      */
     public function apiPeakHours(Request $request, Response $response): Response
     {
-        $params = $request->getQueryParams();
-        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
-        $endDate = $params['end_date'] ?? date('Y-m-d');
+        try {
+            [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
+            $data = $this->analytics->getPeakHoursData($startDate, $endDate);
 
-        $data = $this->analytics->getPeakHoursData($startDate, $endDate);
-
-        $response->getBody()->write(json_encode($data));
-        return $response->withHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode($data));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\InvalidArgumentException $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
     }
 
     /**
@@ -246,14 +270,16 @@ class AnalyticsController
      */
     public function apiTrends(Request $request, Response $response): Response
     {
-        $params = $request->getQueryParams();
-        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
-        $endDate = $params['end_date'] ?? date('Y-m-d');
+        try {
+            [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
+            $data = $this->analytics->getTrendComparison($startDate, $endDate);
 
-        $data = $this->analytics->getTrendComparison($startDate, $endDate);
-
-        $response->getBody()->write(json_encode($data));
-        return $response->withHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode($data));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\InvalidArgumentException $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
     }
 
     /**
@@ -261,14 +287,16 @@ class AnalyticsController
      */
     public function apiEngagement(Request $request, Response $response): Response
     {
-        $params = $request->getQueryParams();
-        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
-        $endDate = $params['end_date'] ?? date('Y-m-d');
+        try {
+            [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
+            $data = $this->analytics->getEngagementStats($startDate, $endDate);
 
-        $data = $this->analytics->getEngagementStats($startDate, $endDate);
-
-        $response->getBody()->write(json_encode($data));
-        return $response->withHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode($data));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\InvalidArgumentException $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
     }
 
     /**
@@ -276,14 +304,16 @@ class AnalyticsController
      */
     public function api404Stats(Request $request, Response $response): Response
     {
-        $params = $request->getQueryParams();
-        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
-        $endDate = $params['end_date'] ?? date('Y-m-d');
+        try {
+            [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
+            $data = $this->analytics->get404Stats($startDate, $endDate);
 
-        $data = $this->analytics->get404Stats($startDate, $endDate);
-
-        $response->getBody()->write(json_encode($data));
-        return $response->withHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode($data));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\InvalidArgumentException $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
     }
 
     /**

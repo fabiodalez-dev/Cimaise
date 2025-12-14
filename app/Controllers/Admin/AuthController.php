@@ -12,9 +12,19 @@ use Slim\Views\Twig;
 
 class AuthController extends BaseController
 {
+    private const REMEMBER_TOKEN_DAYS = 30;
+
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
+    }
+
+    /**
+     * Check if application is in debug mode
+     */
+    private function isDebugMode(): bool
+    {
+        return filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     public function showLogin(Request $request, Response $response): Response
@@ -113,8 +123,9 @@ class AuthController extends BaseController
         // Hash token before storing in database
         $hashedToken = hash('sha256', $rawToken);
 
-        // Set expiration to 30 days from now
-        $expiresAt = date('Y-m-d H:i:s', time() + (30 * 24 * 60 * 60));
+        // Calculate expiration timestamp
+        $expiresSeconds = self::REMEMBER_TOKEN_DAYS * 24 * 60 * 60;
+        $expiresAt = date('Y-m-d H:i:s', time() + $expiresSeconds);
 
         // Store hashed token in database
         $stmt = $this->db->pdo()->prepare(
@@ -127,11 +138,10 @@ class AuthController extends BaseController
         ]);
 
         // Set cookie with raw token (not hashed)
-        $isDebug = filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
         setcookie('remember_token', $rawToken, [
-            'expires' => time() + (30 * 24 * 60 * 60), // 30 days
+            'expires' => time() + $expiresSeconds,
             'path' => '/',
-            'secure' => !$isDebug,
+            'secure' => !$this->isDebugMode(),
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
@@ -152,7 +162,7 @@ class AuthController extends BaseController
         setcookie('remember_token', '', [
             'expires' => time() - 3600,
             'path' => '/',
-            'secure' => !filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'secure' => !$this->isDebugMode(),
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
