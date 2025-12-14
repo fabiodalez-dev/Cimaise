@@ -85,7 +85,7 @@ class PluginManager
             )";
             $this->db->pdo()->exec($sql);
         } catch (\Throwable $e) {
-            error_log("Error creating plugin_status table: " . $e->getMessage());
+            Logger::error('PluginManager: Error creating plugin_status table', ['error' => $e->getMessage()], 'plugin');
         }
     }
 
@@ -163,7 +163,7 @@ class PluginManager
             try {
                 call_user_func_array($hook['callback'], $args);
             } catch (\Throwable $e) {
-                error_log("Plugin error in hook '{$actionName}' from plugin '{$hook['plugin']}': " . $e->getMessage());
+                Logger::error("PluginManager: Error in hook '{$actionName}'", ['error' => $e->getMessage(), 'plugin' => $hook['plugin']], 'plugin');
             }
         }
     }
@@ -194,7 +194,7 @@ class PluginManager
             try {
                 $filteredValue = call_user_func_array($hook['callback'], [$filteredValue, ...$args]);
             } catch (\Throwable $e) {
-                error_log("Plugin error in filter '{$filterName}' from plugin '{$hook['plugin']}': " . $e->getMessage());
+                Logger::error("PluginManager: Error in filter '{$filterName}'", ['error' => $e->getMessage(), 'plugin' => $hook['plugin']], 'plugin');
             }
         }
 
@@ -294,7 +294,7 @@ class PluginManager
                 try {
                     require_once $pluginFile;
                 } catch (\Throwable $e) {
-                    error_log("Error loading plugin '{$slug}': " . $e->getMessage());
+                    Logger::error("PluginManager: Error loading plugin", ['slug' => $slug, 'error' => $e->getMessage()], 'plugin');
                 }
             }
         }
@@ -396,7 +396,7 @@ class PluginManager
                 ];
             }
         } catch (\Throwable $e) {
-            error_log("Error getting plugin status: " . $e->getMessage());
+            Logger::warning('PluginManager: Error getting plugin status', ['error' => $e->getMessage()], 'plugin');
         }
 
         return null;
@@ -468,7 +468,7 @@ class PluginManager
 
             return ['success' => true, 'message' => 'Plugin installed successfully'];
         } catch (\Throwable $e) {
-            error_log("Error installing plugin '{$slug}': " . $e->getMessage());
+            Logger::error('PluginManager: Error installing plugin', ['slug' => $slug, 'error' => $e->getMessage()], 'plugin');
             return ['success' => false, 'message' => 'Error during installation: ' . $e->getMessage()];
         }
     }
@@ -497,7 +497,7 @@ class PluginManager
 
             return ['success' => true, 'message' => 'Plugin uninstalled successfully'];
         } catch (\Throwable $e) {
-            error_log("Error uninstalling plugin '{$slug}': " . $e->getMessage());
+            Logger::error('PluginManager: Error uninstalling plugin', ['slug' => $slug, 'error' => $e->getMessage()], 'plugin');
             return ['success' => false, 'message' => 'Error during uninstallation: ' . $e->getMessage()];
         }
     }
@@ -527,7 +527,7 @@ class PluginManager
 
             return ['success' => true, 'message' => 'Plugin activated successfully'];
         } catch (\Throwable $e) {
-            error_log("Error activating plugin '{$slug}': " . $e->getMessage());
+            Logger::error('PluginManager: Error activating plugin', ['slug' => $slug, 'error' => $e->getMessage()], 'plugin');
             return ['success' => false, 'message' => 'Error during activation: ' . $e->getMessage()];
         }
     }
@@ -551,7 +551,7 @@ class PluginManager
 
             return ['success' => true, 'message' => 'Plugin deactivated successfully'];
         } catch (\Throwable $e) {
-            error_log("Error deactivating plugin '{$slug}': " . $e->getMessage());
+            Logger::error('PluginManager: Error deactivating plugin', ['slug' => $slug, 'error' => $e->getMessage()], 'plugin');
             return ['success' => false, 'message' => 'Error during deactivation: ' . $e->getMessage()];
         }
     }
@@ -573,7 +573,7 @@ class PluginManager
             ');
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\Throwable $e) {
-            error_log("Error getting installed plugins: " . $e->getMessage());
+            Logger::warning('PluginManager: Error getting installed plugins', ['error' => $e->getMessage()], 'plugin');
             return [];
         }
     }

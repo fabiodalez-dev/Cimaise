@@ -42,9 +42,6 @@ class SettingsController extends BaseController
         $data = (array)$request->getParsedBody();
         $svc = new SettingsService($this->db);
         
-        // Debug: Log the incoming data
-        error_log("Settings save request data: " . print_r($data, true));
-        
         // formats
         $formats = [
             'avif' => isset($data['fmt_avif']),
@@ -72,10 +69,6 @@ class SettingsController extends BaseController
         if (isset($data['default_template_id']) && $data['default_template_id'] !== '' && $data['default_template_id'] !== '0') {
             $defaultTemplateId = (int)$data['default_template_id'];
         }
-        
-        // Debug: Log the processed default template ID
-        error_log("Processed default_template_id: " . var_export($defaultTemplateId, true));
-        error_log("Raw default_template_id from data: " . var_export($data['default_template_id'] ?? 'NOT SET', true));
         
         // Site settings
         $siteSettings = [
@@ -119,10 +112,6 @@ class SettingsController extends BaseController
         $svc->set('performance.compression', $performanceSettings['compression']);
         $svc->set('pagination.limit', $paginationLimit);
         $svc->set('cache.ttl', $cacheTtl);
-        
-        // Debug: Verify the saved value
-        $savedValue = $svc->get('gallery.default_template_id');
-        error_log("Saved gallery.default_template_id: " . var_export($savedValue, true));
         
         $_SESSION['flash'][] = ['type'=>'success','message'=>'Settings saved successfully'];
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
