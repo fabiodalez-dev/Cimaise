@@ -48,13 +48,13 @@
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
             {% if user.last_login %}
-              {{ user.last_login|date('d/m/Y H:i') }}
+              {{ user.last_login|datetime_format }}
             {% else %}
               <span class="text-gray-400">Mai</span>
             {% endif %}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-            {{ user.created_at|date('d/m/Y') }}
+            {{ user.created_at|date_format }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-2">
             <a href="{{ base_path }}/admin/users/{{ user.id }}/edit" class="text-indigo-600 hover:text-indigo-900">

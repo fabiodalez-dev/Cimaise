@@ -591,6 +591,8 @@
         </div>
         <form id="passwordForm" method="post" action="{{ base_path }}/admin/profile/password">
           <input type="hidden" name="csrf" value="{{ csrf }}">
+          {# Hidden username field for password managers accessibility #}
+          <input type="text" name="username" value="{{ session.admin_email }}" autocomplete="username" class="sr-only" tabindex="-1" aria-hidden="true">
           <div class="space-y-4">
             <div>
               <label for="current-password" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>

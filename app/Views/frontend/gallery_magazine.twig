@@ -27,7 +27,7 @@
       {% if album.shoot_date and album.show_date == 1 %}
         <div class="flex items-center gap-2">
           <i class="fas fa-calendar-alt text-neutral-500"></i>
-          <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('d M Y') }}</time>
+          <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date_format }}</time>
         </div>
       {% endif %}
       {% if album.equipment.locations|length > 0 %}

@@ -36,7 +36,12 @@
     "filter.sort_title_asc": "Titolo A-Z",
     "filter.sort_title_desc": "Titolo Z-A",
     "filter.sort_date_new": "Data scatto (recenti)",
-    "filter.sort_date_old": "Data scatto (vecchi)"
+    "filter.sort_date_old": "Data scatto (vecchi)",
+    "filter.filters": "Filtri",
+    "filter.galleries_count": "{count} gallerie",
+    "filter.gallery_count": "1 galleria",
+    "filter.no_galleries_title": "Nessuna galleria trovata",
+    "filter.no_galleries_text": "Non abbiamo trovato gallerie corrispondenti ai filtri selezionati. Prova a modificare i criteri di ricerca o cancella tutti i filtri."
   },
   "album": {
     "album.photos": "Foto",
@@ -165,6 +170,7 @@
     "general.delete": "Elimina",
     "general.edit": "Modifica",
     "general.submit": "Invia",
-    "general.reset": "Reimposta"
+    "general.reset": "Reimposta",
+    "general.view": "Vedi"
   }
 }

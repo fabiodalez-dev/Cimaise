@@ -109,6 +109,17 @@ class SettingsController extends BaseController
         $svc->set('site.description', $siteSettings['description']);  
         $svc->set('site.copyright', $siteSettings['copyright']);
         $svc->set('site.email', $siteSettings['email']);
+
+        // Date format setting
+        $dateFormat = in_array($data['date_format'] ?? 'Y-m-d', ['Y-m-d', 'd-m-Y'], true)
+            ? $data['date_format']
+            : 'Y-m-d';
+        $svc->set('date.format', $dateFormat);
+
+        // Site language setting
+        $siteLanguage = preg_replace('/[^a-z0-9_-]/i', '', (string)($data['site_language'] ?? 'en')) ?: 'en';
+        $svc->set('site.language', $siteLanguage);
+
         $svc->set('performance.compression', $performanceSettings['compression']);
         $svc->set('pagination.limit', $paginationLimit);
         $svc->set('cache.ttl', $cacheTtl);

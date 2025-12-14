@@ -145,6 +145,23 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
             <input type="email" name="site_email" value="{{ settings['site.email'] ?? '' }}" class="form-input">
           </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
+            <select name="date_format" class="form-input">
+              <option value="Y-m-d" {{ settings['date.format']|default('Y-m-d') == 'Y-m-d' ? 'selected' }}>2025-01-15 (ISO)</option>
+              <option value="d-m-Y" {{ settings['date.format'] == 'd-m-Y' ? 'selected' }}>15-01-2025 (European)</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">Format used for displaying dates throughout the site</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Site Language</label>
+            <select name="site_language" class="form-input">
+              <option value="en" {{ settings['site.language']|default('en') == 'en' ? 'selected' }}>English</option>
+              <option value="it" {{ settings['site.language'] == 'it' ? 'selected' }}>Italiano</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">Language used for frontend UI elements</p>
+          </div>
         </div>
       </div>
     </div>
