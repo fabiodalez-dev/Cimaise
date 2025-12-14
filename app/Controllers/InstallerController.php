@@ -500,8 +500,9 @@ class InstallerController
      */
     private function checkRequirements(): array
     {
-        // Use the Installer's requirements checking for consistency
-        $errors = $this->installer->getRequirementsErrors();
+        // Pass db config from session if available for connection-specific checks
+        $dbConfig = $_SESSION['install_db_config'] ?? [];
+        $errors = $this->installer->getRequirementsErrors($dbConfig);
         $warnings = $this->installer->getRequirementsWarnings();
 
         return [
