@@ -128,9 +128,6 @@
       initAlbumsTableSorting();
     }
     
-    var _sortableRetryCount = 0;
-    var _sortableMaxRetries = 20; // 20 * 50ms = 1 second max wait
-
     function initAlbumsTableSorting() {
       const tbody = document.getElementById('albums-tbody');
       const table = document.getElementById('albums-table');
@@ -142,18 +139,19 @@
       const mode = table.dataset.order || 'manual';
 
       if (mode === 'manual') {
-        // Wait for Sortable to be available (in case of race condition)
+        // Wait for Sortable to be available with exponential backoff
+        window._sortableRetryCount = (window._sortableRetryCount || 0) + 1;
         if (typeof Sortable === 'undefined') {
-          _sortableRetryCount++;
-          if (_sortableRetryCount >= _sortableMaxRetries) {
-            console.error('Sortable library failed to load after ' + _sortableMaxRetries + ' attempts');
+          if (window._sortableRetryCount > 50) {
+            console.warn('Sortable not available: init aborted after 50 attempts');
             return;
           }
-          setTimeout(initAlbumsTableSorting, 50);
+          var delay = Math.min(500, 50 * window._sortableRetryCount);
+          setTimeout(initAlbumsTableSorting, delay);
           return;
         }
         // Reset counter on success
-        _sortableRetryCount = 0;
+        window._sortableRetryCount = 0;
 
         // Cleanup existing Sortable instance if present
         if (tbody._sortableInstance) {
