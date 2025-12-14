@@ -224,106 +224,125 @@
   </div>
 
 <script>
-let isRunning = false;
+// Commands page - functions are directly on window to work with onclick handlers
+// Use var to allow redeclaration during SPA navigation
+var _commandsIsRunning = _commandsIsRunning || false;
 
-function runCommand(command, args = {}) {
-    if (isRunning) {
-        alert('A command is already running. Please wait.');
-        return;
-    }
-    
-    isRunning = true;
-    updateOutput(`> Running: ${command}\n`, true);
-    updateStatus(command, 'running', 0);
-    
-    const buttons = document.querySelectorAll('button');
-    buttons.forEach(btn => btn.disabled = true);
-    
-    const startTime = Date.now();
-    
-    fetch(window.basePath + '/admin/commands/execute', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-Token': '{{ csrf }}'
-        },
-        body: JSON.stringify({ command, args })
-    })
-    .then(response => response.json())
-    .then(data => {
-        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-        
-        if (data.success) {
-            updateOutput(`✅ Success (${duration}s)\n\n${data.output}\n\n${'='.repeat(50)}\n\n`);
-            updateStatus(command, 'success', duration);
-        } else {
-            updateOutput(`❌ Failed (${duration}s)\n\n${data.output}\n\nError: ${data.error || 'Unknown error'}\n\n${'='.repeat(50)}\n\n`);
-            updateStatus(command, 'error', duration);
-        }
-    })
-    .catch(error => {
-        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-        updateOutput(`❌ Network Error (${duration}s)\n\n${error.message}\n\n${'='.repeat(50)}\n\n`);
-        updateStatus(command, 'error', duration);
-    })
-    .finally(() => {
-        isRunning = false;
-        buttons.forEach(btn => btn.disabled = false);
-    });
-}
-
-function runSitemapCommand() {
-    // Use server-detected base URL
-    const baseUrl = document.getElementById('detected-base-url').textContent;
-    runCommand('sitemap:build', { 'base-url': baseUrl });
-}
-
-function updateOutput(text, clear = false) {
-    const output = document.getElementById('command-output');
-    if (clear) {
-        output.textContent = text;
-    } else {
-        output.textContent += text;
-    }
-    output.scrollTop = output.scrollHeight;
+function updateOutput(text, clear) {
+  const output = document.getElementById('command-output');
+  if (!output) return;
+  if (clear) {
+    output.textContent = text;
+  } else {
+    output.textContent += text;
+  }
+  output.scrollTop = output.scrollHeight;
 }
 
 function updateStatus(command, status, duration) {
-    const statusDiv = document.getElementById('command-status');
-    const commandSpan = document.getElementById('status-command');
-    const durationSpan = document.getElementById('status-duration');
-    const resultSpan = document.getElementById('status-result');
-    
-    commandSpan.textContent = command;
-    durationSpan.textContent = duration ? `${duration}s` : 'Running...';
-    
-    resultSpan.className = 'px-2 py-1 rounded text-xs font-medium ';
-    if (status === 'success') {
-        resultSpan.className += 'bg-green-100 text-green-800';
-        resultSpan.textContent = 'Success';
-    } else if (status === 'error') {
-        resultSpan.className += 'bg-red-100 text-red-800';
-        resultSpan.textContent = 'Failed';
+  const statusDiv = document.getElementById('command-status');
+  const commandSpan = document.getElementById('status-command');
+  const durationSpan = document.getElementById('status-duration');
+  const resultSpan = document.getElementById('status-result');
+
+  if (!statusDiv || !commandSpan || !durationSpan || !resultSpan) return;
+
+  commandSpan.textContent = command;
+  durationSpan.textContent = duration ? `${duration}s` : 'Running...';
+
+  resultSpan.className = 'px-2 py-1 rounded text-xs font-medium ';
+  if (status === 'success') {
+    resultSpan.className += 'bg-green-100 text-green-800';
+    resultSpan.textContent = 'Success';
+  } else if (status === 'error') {
+    resultSpan.className += 'bg-red-100 text-red-800';
+    resultSpan.textContent = 'Failed';
+  } else {
+    resultSpan.className += 'bg-blue-100 text-blue-800';
+    resultSpan.textContent = 'Running...';
+  }
+
+  statusDiv.classList.remove('hidden');
+}
+
+function runCommand(command, args) {
+  args = args || {};
+  if (_commandsIsRunning) {
+    alert('A command is already running. Please wait.');
+    return;
+  }
+
+  _commandsIsRunning = true;
+
+  // Immediate visual feedback
+  if (window.showToast) {
+    window.showToast('Executing: ' + command + '...', 'info');
+  }
+
+  updateOutput('> Running: ' + command + '\n', true);
+  updateStatus(command, 'running', 0);
+
+  const buttons = document.querySelectorAll('button');
+  buttons.forEach(function(btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  });
+
+  const startTime = Date.now();
+
+  fetch(window.basePath + '/admin/commands/execute', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-Token': '{{ csrf }}'
+    },
+    body: JSON.stringify({ command: command, args: args })
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(data) {
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    if (data.success) {
+      updateOutput('✅ Success (' + duration + 's)\n\n' + data.output + '\n\n==================================================\n\n');
+      updateStatus(command, 'success', duration);
+      if (window.showToast) window.showToast('Command completed successfully!', 'success');
     } else {
-        resultSpan.className += 'bg-blue-100 text-blue-800';
-        resultSpan.textContent = 'Running...';
+      updateOutput('❌ Failed (' + duration + 's)\n\n' + data.output + '\n\nError: ' + (data.error || 'Unknown error') + '\n\n==================================================\n\n');
+      updateStatus(command, 'error', duration);
+      if (window.showToast) window.showToast('Command failed: ' + (data.error || 'Unknown error'), 'error');
     }
-    
-    statusDiv.classList.remove('hidden');
+  })
+  .catch(function(error) {
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    updateOutput('❌ Network Error (' + duration + 's)\n\n' + error.message + '\n\n==================================================\n\n');
+    updateStatus(command, 'error', duration);
+    if (window.showToast) window.showToast('Network error: ' + error.message, 'error');
+  })
+  .finally(function() {
+    _commandsIsRunning = false;
+    buttons.forEach(function(btn) {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    });
+  });
+}
+
+function runSitemapCommand() {
+  const baseUrl = document.getElementById('detected-base-url').textContent;
+  runCommand('sitemap:build', { 'base-url': baseUrl });
 }
 
 function runAnalyticsCleanup() {
-    if (!confirm('Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.')) {
-        return;
-    }
-    
-    runCommand('analytics:cleanup', { 'force': true });
+  if (!confirm('Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.')) {
+    return;
+  }
+  runCommand('analytics:cleanup', { 'force': true });
 }
 
 function clearOutput() {
-    document.getElementById('command-output').textContent = 'Ready to execute commands...';
-    document.getElementById('command-status').classList.add('hidden');
+  document.getElementById('command-output').textContent = 'Ready to execute commands...';
+  document.getElementById('command-status').classList.add('hidden');
 }
 </script>
 {% endblock %}
