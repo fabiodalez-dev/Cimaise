@@ -495,7 +495,9 @@ class AnalyticsService
             $data = [];
             $headers = [];
             $botFilter = $includeBots ? '' : 'AND s.is_bot = 0';
-            $limitClause = $limit ? "LIMIT {$limit}" : '';
+            // Sanitize limit parameter to prevent SQL injection
+            $limitValue = $limit !== null ? filter_var($limit, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100000]]) : false;
+            $limitClause = $limitValue !== false ? "LIMIT {$limitValue}" : '';
 
             switch ($type) {
                 case 'sessions':
@@ -572,7 +574,9 @@ class AnalyticsService
     {
         try {
             $botFilter = $includeBots ? '' : 'AND s.is_bot = 0';
-            $limitClause = $limit ? "LIMIT {$limit}" : '';
+            // Sanitize limit parameter to prevent SQL injection
+            $limitValue = $limit !== null ? filter_var($limit, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100000]]) : false;
+            $limitClause = $limitValue !== false ? "LIMIT {$limitValue}" : '';
 
             switch ($type) {
                 case 'sessions':

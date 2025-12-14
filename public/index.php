@@ -212,6 +212,10 @@ register_shutdown_function(function () {
     if (!function_exists('envv') || !filter_var(envv('DEBUG_PERFORMANCE', false), FILTER_VALIDATE_BOOLEAN)) {
         return;
     }
+    // Defensive check - ensure Logger class is available
+    if (!class_exists(\App\Support\Logger::class)) {
+        return;
+    }
     $duration = microtime(true) - ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true));
     $memoryMb = memory_get_peak_usage(true) / 1024 / 1024;
     \App\Support\Logger::performance(
