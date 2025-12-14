@@ -19,9 +19,9 @@
         {% endif %}
         <div class="mt-6 text-lg leading-8">
           {% if about_text %}
-            <div>{{ about_text|safe_html }}</div>
+            <div class="rich-text-content">{{ about_text|safe_html }}</div>
           {% else %}
-            <p class="text-neutral-600">Aggiungi il tuo testo di presentazione dall'area admin → Pagine.</p>
+            <p class="text-neutral-600">{{ trans('about.missing_bio', {}, 'Add your bio text from admin → Pages.') }}</p>
           {% endif %}
         </div>
 
