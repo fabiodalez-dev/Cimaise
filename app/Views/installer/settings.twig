@@ -60,6 +60,29 @@
         </div>
     </div>
 
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="site-language" class="form-label">Site Language</label>
+                <select id="site-language" class="form-control" name="site_language">
+                    <option value="en" {{ site_language|default('en') == 'en' ? 'selected' }}>English</option>
+                    <option value="it" {{ site_language == 'it' ? 'selected' }}>Italiano</option>
+                </select>
+                <div class="form-text">Default language for the frontend</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="date-format" class="form-label">Date Format</label>
+                <select id="date-format" class="form-control" name="date_format">
+                    <option value="Y-m-d" {{ date_format|default('Y-m-d') == 'Y-m-d' ? 'selected' }}>2025-01-15 (ISO)</option>
+                    <option value="d-m-Y" {{ date_format == 'd-m-Y' ? 'selected' }}>15-01-2025 (European)</option>
+                </select>
+                <div class="form-text">Format used for displaying dates</div>
+            </div>
+        </div>
+    </div>
+
     <div class="mb-3">
         <label for="site-logo" class="form-label">Site Logo (optional)</label>
         <input type="file" id="site-logo" class="form-control" name="site_logo" accept="image/png,image/jpeg,image/webp">
