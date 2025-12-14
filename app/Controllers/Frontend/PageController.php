@@ -537,7 +537,7 @@ class PageController extends BaseController
                 // Lightbox: keep original path if accessible (not in /storage/)
                 // Only use variants as fallback if original is not publicly accessible
             } catch (\Throwable $e) {
-                Logger::warning('PageController: Error fetching image variants', ['error' => $e->getMessage()], 'frontend');
+                Logger::warning('PageController: Error fetching image variants', ['image_id' => $image['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
             }
             // Final fallback: if still pointing to /storage, use grid URL
             if (str_starts_with((string)$lightboxUrl, '/storage/')) { $lightboxUrl = $bestUrl; }
@@ -804,7 +804,7 @@ class PageController extends BaseController
                     }
                 } catch (\Throwable $e) {
                     // Continue processing even if metadata lookup fails
-                    Logger::warning('PageController: Error fetching image metadata', ['error' => $e->getMessage()], 'frontend');
+                    Logger::warning('PageController: Error fetching image metadata', ['image_id' => $ir['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
                 }
             }
 
@@ -823,7 +823,7 @@ class PageController extends BaseController
                     // Lightbox: keep original_path for best quality
                     // Only fallback to variants if original is in /storage/ (not public)
                 } catch (\Throwable $e) {
-                    Logger::warning('PageController: Error fetching image variants', ['error' => $e->getMessage()], 'frontend');
+                    Logger::warning('PageController: Error fetching image variants', ['image_id' => $img['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
                 }
 
                 if (str_starts_with((string)$bestUrl, '/storage/')) {
@@ -1221,7 +1221,7 @@ class PageController extends BaseController
             $image['fallback_src'] = $fallbackUrl;
             
         } catch (\Throwable $e) {
-            Logger::warning('PageController: Error processing image sources', ['error' => $e->getMessage()], 'frontend');
+            Logger::warning('PageController: Error processing image sources', ['image_id' => $image['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
             // Fallback to basic image data
             $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
             $image['variants'] = [];
