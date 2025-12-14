@@ -431,11 +431,19 @@ class Installer
 
     private function updateSiteSettings(array $data): void
     {
+        // Validate and sanitize language and date format
+        $language = preg_replace('/[^a-z0-9_-]/i', '', (string)($data['site_language'] ?? 'en')) ?: 'en';
+        $dateFormat = in_array($data['date_format'] ?? 'Y-m-d', ['Y-m-d', 'd-m-Y'], true)
+            ? $data['date_format']
+            : 'Y-m-d';
+
         $settings = [
             'site.title' => $data['site_title'] ?? 'photoCMS',
             'site.description' => $data['site_description'] ?? 'Professional Photography Portfolio',
             'site.copyright' => $data['site_copyright'] ?? '© ' . date('Y') . ' Photography Portfolio',
             'site.email' => $data['site_email'] ?? '',
+            'site.language' => $language,
+            'date.format' => $dateFormat,
         ];
 
         foreach ($settings as $key => $value) {

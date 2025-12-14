@@ -204,6 +204,8 @@ class InstallerController
             'site_description' => 'Professional Photography Portfolio',
             'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
             'site_email' => '',
+            'site_language' => 'en',
+            'date_format' => 'Y-m-d',
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -386,6 +388,8 @@ class InstallerController
             'site_description' => 'Professional Photography Portfolio',
             'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
             'site_email' => '',
+            'site_language' => 'en',
+            'date_format' => 'Y-m-d',
             'templates' => $templates,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
@@ -431,6 +435,12 @@ class InstallerController
             }
         } catch (\Throwable) {}
         
+        // Validate and sanitize language and date format
+        $language = preg_replace('/[^a-z0-9_-]/i', '', (string)($data['site_language'] ?? 'en')) ?: 'en';
+        $dateFormat = in_array($data['date_format'] ?? 'Y-m-d', ['Y-m-d', 'd-m-Y'], true)
+            ? $data['date_format']
+            : 'Y-m-d';
+
         // Persist settings via direct DB writes (same schema as SettingsService)
         $toSet = [
             'site.title' => (string)($data['site_title'] ?? 'photoCMS'),
@@ -438,6 +448,8 @@ class InstallerController
             'site.description' => (string)($data['site_description'] ?? 'Professional Photography Portfolio'),
             'site.copyright' => (string)($data['site_copyright'] ?? ('© ' . date('Y') . ' Photography Portfolio')),
             'site.email' => (string)($data['site_email'] ?? ''),
+            'site.language' => $language,
+            'date.format' => $dateFormat,
         ];
         if (!empty($data['default_template_id'])) {
             $toSet['gallery.default_template_id'] = (int)$data['default_template_id'];
