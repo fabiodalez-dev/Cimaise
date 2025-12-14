@@ -1,0 +1,12 @@
+{% if home_settings.gallery_text_content is defined and home_settings.gallery_text_content|trim != '' %}
+<section class="home-gallery-text py-16 md:py-24">
+  <div class="text-center">
+    {% if home_settings.gallery_text_title is defined and home_settings.gallery_text_title|trim != '' %}
+      <h2 class="text-3xl md:text-4xl font-light text-black mb-4">{{ home_settings.gallery_text_title|e }}</h2>
+    {% endif %}
+    <div class="text-lg text-neutral-600 max-w-xl mx-auto gallery-text-content">
+      {{ home_settings.gallery_text_content|safe_html }}
+    </div>
+  </div>
+</section>
+{% endif %}

@@ -863,6 +863,38 @@
         .social-btn.telegram:hover { color: #179cde; }
         .social-btn.threads:hover { color: #000; }
         .social-btn.bluesky:hover { color: #1083fe; }
+
+        /* Rich text content styles (prose alternative) */
+        .prose, .rich-text-content {
+            line-height: 1.75;
+        }
+        .prose strong, .rich-text-content strong,
+        .prose b, .rich-text-content b { font-weight: 600; }
+        .prose em, .rich-text-content em,
+        .prose i, .rich-text-content i { font-style: italic; }
+        .prose u, .rich-text-content u { text-decoration: underline; }
+        .prose s, .rich-text-content s { text-decoration: line-through; }
+        .prose a, .rich-text-content a { color: #000; text-decoration: underline; }
+        .prose a:hover, .rich-text-content a:hover { opacity: 0.7; }
+        .prose p, .rich-text-content p { margin-bottom: 1.25em; }
+        .prose p:last-child, .rich-text-content p:last-child { margin-bottom: 0; }
+        .prose ul, .rich-text-content ul,
+        .prose ol, .rich-text-content ol { margin: 1.25em 0; padding-left: 1.5em; }
+        .prose ul, .rich-text-content ul { list-style-type: disc; }
+        .prose ol, .rich-text-content ol { list-style-type: decimal; }
+        .prose li, .rich-text-content li { margin-bottom: 0.5em; }
+        .prose blockquote, .rich-text-content blockquote {
+            border-left: 3px solid #e5e7eb;
+            margin: 1.25em 0;
+            padding-left: 1em;
+            color: #525252;
+            font-style: italic;
+        }
+        .prose h2, .rich-text-content h2 { font-size: 1.5rem; font-weight: 600; margin: 1.5em 0 0.75em; }
+        .prose h3, .rich-text-content h3 { font-size: 1.25rem; font-weight: 600; margin: 1.25em 0 0.5em; }
+        .prose h4, .rich-text-content h4 { font-size: 1.125rem; font-weight: 600; margin: 1em 0 0.5em; }
+        .prose hr, .rich-text-content hr { border: 0; border-top: 1px solid #e5e7eb; margin: 2em 0; }
+        .prose-neutral { color: #404040; }
     </style>
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">

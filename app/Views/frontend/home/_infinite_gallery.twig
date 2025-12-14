@@ -1,7 +1,15 @@
 {% if all_images|length > 0 %}
-<section class="home-infinite-section relative mb-32 overflow-hidden" style="height: 120vh;">
+{% set scroll_direction = home_settings.gallery_scroll_direction|default('vertical') %}
+<section class="home-infinite-section relative mb-32 overflow-hidden {{ scroll_direction == 'horizontal' ? 'home-horizontal' : 'home-vertical' }}"
+         data-scroll-direction="{{ scroll_direction }}"
+         style="{{ scroll_direction == 'horizontal' ? 'height: auto;' : 'height: 120vh;' }}">
+  {% if scroll_direction == 'vertical' %}
   <div class="pointer-events-none absolute inset-x-0 top-0 h-10 z-20 home-veil-top"></div>
   <div class="pointer-events-none absolute inset-x-0 bottom-0 h-10 z-20 home-veil-bottom"></div>
+  {% else %}
+  <div class="pointer-events-none absolute inset-y-0 left-0 w-10 z-20 home-veil-left"></div>
+  <div class="pointer-events-none absolute inset-y-0 right-0 w-10 z-20 home-veil-right"></div>
+  {% endif %}
 
   {% macro home_pic(image, base_path, priority=false) %}
     <picture class="block w-full h-full">
@@ -55,7 +63,35 @@
       </div>
     </div>
 
-    <div class="home-desktop-wrap gap-6 perspective h-full">
+    {% if scroll_direction == 'horizontal' %}
+    {# Horizontal layout: 3 rows - row 1 & 3 scroll right, row 2 scrolls left #}
+    <div class="home-desktop-wrap home-desktop-horizontal gap-6 h-full">
+      {% set rows = [col1, col2, col3] %}
+      {% for row in rows %}
+        {% set idx = loop.index0 %}
+        {% set dur = idx == 0 ? '380s' : (idx == 1 ? '420s' : '480s') %}
+        {% set dir = idx == 1 ? 'left' : 'right' %}
+        <div class="home-row" data-direction="{{ dir }}" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-row-index="{{ idx }}">
+          <div class="home-track-h">
+            {% set repeat_times = 6 %}
+            {% for r in 1..repeat_times %}
+              {% for image in row %}
+                {# First repeat of each row: eager load first 6 images #}
+                <div class="home-cell-h">{{ H.home_item(image, base_path, loop.parent.loop.index0 == 0 and loop.index0 < 6) }}</div>
+              {% endfor %}
+            {% endfor %}
+            {% for r in 1..repeat_times %}
+              {% for image in row %}
+                <div class="home-cell-h">{{ H.home_item(image, base_path, false) }}</div>
+              {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {# Vertical layout: 3 columns scrolling up/down #}
+    <div class="home-desktop-wrap home-desktop-vertical gap-6 perspective h-full">
       {% set cols = [col1, col2, col3] %}
       {% for col in cols %}
         {% set idx = loop.index0 %}
@@ -78,6 +114,7 @@
         </div>
       {% endfor %}
     </div>
+    {% endif %}
   </div>
 </section>
 {% endif %}

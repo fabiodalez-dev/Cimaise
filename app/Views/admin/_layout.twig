@@ -83,22 +83,27 @@
     }
     
     /* TinyMCE Toolbar Fix */
-    .tox:not(.tox-tinymce-inline) .tox-editor-header { 
-      display: block !important; 
+    .tox:not(.tox-tinymce-inline) .tox-editor-header {
+      display: block !important;
     }
-    .tox .tox-toolbar { 
-      display: flex !important; 
-      flex-wrap: wrap; 
+    .tox .tox-toolbar {
+      display: flex !important;
+      flex-wrap: wrap;
       border-bottom: 1px solid #e5e5e5;
       padding: 4px 8px;
       background: #f4f4f4;
     }
-    .tox .tox-toolbar__group { 
-      display: flex !important; 
+    .tox .tox-toolbar__group {
+      display: flex !important;
       align-items: center;
-      margin-right: 12px;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: 0 !important;
     }
-    .tox .tox-tbtn { 
+    .tox:not([dir=rtl]) .tox-toolbar__group:not(:last-of-type) {
+      border-right: none !important;
+    }
+    .tox .tox-tbtn {
       margin: 2px 1px;
       padding: 4px 6px;
       border-radius: 3px;
