@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Support\CookieHelper;
 use App\Support\Database;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -17,17 +18,6 @@ class AuthController extends BaseController
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
-    }
-
-    /**
-     * Check if insecure cookies are allowed (localhost + debug mode)
-     * Only allow insecure cookies on localhost in debug mode for development
-     */
-    private function allowInsecureCookies(): bool
-    {
-        $isLocalhost = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true)
-            || ($_SERVER['SERVER_NAME'] ?? '') === 'localhost';
-        return $isLocalhost && filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     public function showLogin(Request $request, Response $response): Response
@@ -145,7 +135,7 @@ class AuthController extends BaseController
             setcookie('remember_token', $rawToken, [
                 'expires' => time() + $expiresSeconds,
                 'path' => '/',
-                'secure' => !$this->allowInsecureCookies(),
+                'secure' => !CookieHelper::allowInsecureCookies(),
                 'httponly' => true,
                 'samesite' => 'Lax'
             ]);
@@ -175,7 +165,7 @@ class AuthController extends BaseController
         setcookie('remember_token', '', [
             'expires' => time() - 3600,
             'path' => '/',
-            'secure' => !$this->allowInsecureCookies(),
+            'secure' => !CookieHelper::allowInsecureCookies(),
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
