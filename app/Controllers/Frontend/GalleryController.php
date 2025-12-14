@@ -5,6 +5,7 @@ namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
 use App\Services\SettingsService;
 use App\Support\Database;
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -549,7 +550,7 @@ class GalleryController extends BaseController
                     }
                 } catch (\Throwable $e) {
                     // Continue processing even if metadata lookup fails
-                    error_log('Error fetching image metadata: ' . $e->getMessage());
+                    Logger::warning('GalleryController: Error fetching image metadata', ['error' => $e->getMessage()], 'gallery');
                 }
             }
 
@@ -579,7 +580,7 @@ class GalleryController extends BaseController
                         }
                     }
                 } catch (\Throwable $e) {
-                    error_log('Error fetching image variants: ' . $e->getMessage());
+                    Logger::warning('GalleryController: Error fetching image variants', ['error' => $e->getMessage()], 'gallery');
                 }
                 // Fallbacks - ensure we never serve /storage/ paths
                 if (str_starts_with((string)$bestUrl, '/storage/')) {
@@ -639,9 +640,13 @@ class GalleryController extends BaseController
             
         } catch (\Throwable $e) {
             // Log the actual error for debugging
-            error_log('Template API Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-            error_log('Stack trace: ' . $e->getTraceAsString());
-            
+            Logger::error('GalleryController::template error', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ], 'gallery');
+
             $response->getBody()->write('Internal server error: ' . $e->getMessage());
             return $response->withStatus(500);
         }

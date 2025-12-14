@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS users (
   last_name TEXT,
   is_active INTEGER DEFAULT 1,
   last_login TEXT,
+  remember_token TEXT,
+  remember_token_expires_at TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT
 );

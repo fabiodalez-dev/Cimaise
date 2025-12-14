@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Support\Database;
+use App\Support\Logger;
 
 class ExifService
 {
@@ -103,7 +104,7 @@ class ExifService
                 return $this->normalizeWithGD($imagePath, $orientation);
             }
         } catch (\Throwable $e) {
-            error_log("EXIF orientation fix failed: " . $e->getMessage());
+            Logger::warning('ExifService: EXIF orientation fix failed', ['error' => $e->getMessage(), 'path' => $imagePath], 'upload');
             return false;
         }
     }

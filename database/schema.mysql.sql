@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `last_name` VARCHAR(100) NULL,
   `is_active` TINYINT(1) DEFAULT 1,
   `last_login` DATETIME NULL,
+  `remember_token` VARCHAR(64) NULL,
+  `remember_token_expires_at` DATETIME NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

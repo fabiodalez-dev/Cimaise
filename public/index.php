@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// Track request start time for performance logging
+$_SERVER['REQUEST_TIME_FLOAT'] = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+
 require __DIR__ . '/../vendor/autoload.php';
 
 use Slim\Factory\AppFactory;
@@ -202,6 +205,21 @@ $errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $excepti
     return $twig->render($response, 'errors/500.twig', [
         'message' => $displayErrorDetails ? (string)$exception : ''
     ]);
+});
+
+// Register performance logging on shutdown
+register_shutdown_function(function () {
+    if (!function_exists('envv') || !filter_var(envv('DEBUG_PERFORMANCE', false), FILTER_VALIDATE_BOOLEAN)) {
+        return;
+    }
+    $duration = microtime(true) - ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true));
+    $memoryMb = memory_get_peak_usage(true) / 1024 / 1024;
+    \App\Support\Logger::performance(
+        $_SERVER['REQUEST_URI'] ?? '/',
+        $_SERVER['REQUEST_METHOD'] ?? 'GET',
+        $duration,
+        $memoryMb
+    );
 });
 
 $app->run();

@@ -5,6 +5,7 @@ namespace App\Support;
 
 use PDO;
 use RuntimeException;
+use App\Support\Logger;
 
 class Database
 {
@@ -52,6 +53,45 @@ class Database
     public function pdo(): PDO
     {
         return $this->pdo;
+    }
+
+    /**
+     * Execute a query with optional SQL debug logging
+     */
+    public function query(string $sql, array $params = []): \PDOStatement
+    {
+        $startTime = microtime(true);
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        // Log SQL query if DEBUG_SQL is enabled
+        if (function_exists('envv') && filter_var(envv('DEBUG_SQL', false), FILTER_VALIDATE_BOOLEAN)) {
+            $duration = microtime(true) - $startTime;
+            Logger::sql($sql, $params, $duration);
+        }
+
+        return $stmt;
+    }
+
+    /**
+     * Execute a statement (INSERT, UPDATE, DELETE) with optional SQL debug logging
+     */
+    public function execute(string $sql, array $params = []): int
+    {
+        $startTime = microtime(true);
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $rowCount = $stmt->rowCount();
+
+        // Log SQL query if DEBUG_SQL is enabled
+        if (function_exists('envv') && filter_var(envv('DEBUG_SQL', false), FILTER_VALIDATE_BOOLEAN)) {
+            $duration = microtime(true) - $startTime;
+            Logger::sql($sql, $params, $duration);
+        }
+
+        return $rowCount;
     }
 
     public function testConnection(): array

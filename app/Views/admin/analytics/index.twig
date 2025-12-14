@@ -91,15 +91,18 @@
       </form>
     </div>
 
-    <!-- Key Metrics -->
+    <!-- Key Metrics with Trend Indicators -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       <!-- Active Sessions -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600 mb-1">Active Sessions</p>
-            <p class="text-3xl font-bold text-gray-900">{{ stats.realtime.active_sessions|default(0) }}</p>
-            <p class="text-xs text-gray-500 mt-1">Last 24 hours</p>
+            <p class="text-sm font-medium text-gray-600 mb-1">Sessions (Period)</p>
+            <p class="text-3xl font-bold text-gray-900">{{ trends.current.sessions|default(0) }}</p>
+            {% set sessChange = trends.changes.sessions|default(0) %}
+            <p class="text-xs mt-1 {% if sessChange > 0 %}text-emerald-600{% elseif sessChange < 0 %}text-red-600{% else %}text-gray-500{% endif %}">
+              {% if sessChange > 0 %}+{% endif %}{{ sessChange }}% vs previous
+            </p>
           </div>
           <div class="flex-shrink-0">
             <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
@@ -111,13 +114,16 @@
         </div>
       </div>
 
-      <!-- Page Views Today -->
+      <!-- Page Views -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600 mb-1">Page Views Today</p>
-            <p class="text-3xl font-bold text-gray-900">{{ stats.today.pageviews_today|default(0) }}</p>
-            <p class="text-xs text-gray-500 mt-1">{{ stats.realtime.pageviews_24h|default(0) }} in 24h</p>
+            <p class="text-sm font-medium text-gray-600 mb-1">Page Views (Period)</p>
+            <p class="text-3xl font-bold text-gray-900">{{ trends.current.pageviews|default(0) }}</p>
+            {% set pvChange = trends.changes.pageviews|default(0) %}
+            <p class="text-xs mt-1 {% if pvChange > 0 %}text-emerald-600{% elseif pvChange < 0 %}text-red-600{% else %}text-gray-500{% endif %}">
+              {% if pvChange > 0 %}+{% endif %}{{ pvChange }}% vs previous
+            </p>
           </div>
           <div class="flex-shrink-0">
             <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -130,43 +136,36 @@
         </div>
       </div>
 
-      <!-- Sessions Today -->
+      <!-- Lightbox Opens -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600 mb-1">Sessions Today</p>
-            <p class="text-3xl font-bold text-gray-900">{{ stats.today.sessions_today|default(0) }}</p>
-            <p class="text-xs text-gray-500 mt-1">Unique visitors</p>
+            <p class="text-sm font-medium text-gray-600 mb-1">Lightbox Opens</p>
+            <p class="text-3xl font-bold text-gray-900">{{ engagement.lightbox.total|default(0) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ engagement.lightbox.unique_users|default(0) }} unique users</p>
           </div>
           <div class="flex-shrink-0">
             <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
               <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
               </svg>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Average Duration -->
+      <!-- Downloads -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600 mb-1">Avg. Duration</p>
-            <p class="text-3xl font-bold text-gray-900">
-              {% set duration = stats.today.avg_duration|default(0) %}
-              {% if duration > 60 %}
-                {{ (duration / 60)|round(1) }}m
-              {% else %}
-                {{ duration|round }}s
-              {% endif %}
-            </p>
-            <p class="text-xs text-gray-500 mt-1">Session duration</p>
+            <p class="text-sm font-medium text-gray-600 mb-1">Downloads</p>
+            <p class="text-3xl font-bold text-gray-900">{{ engagement.downloads.total|default(0) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ engagement.downloads.unique_users|default(0) }} unique users</p>
           </div>
           <div class="flex-shrink-0">
             <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
               <svg class="w-6 h-6 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
               </svg>
             </div>
           </div>
@@ -220,6 +219,100 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Browsers</h3>
         <div class="h-80">
           <canvas id="browserChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Peak Hours & 404 Errors -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <!-- Peak Hours Chart -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Traffic by Hour</h3>
+        <div class="h-80">
+          <canvas id="peakHoursChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 404 Errors -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">404 Errors</h3>
+          <span class="px-2.5 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">{{ errors_404.total|default(0) }} hits</span>
+        </div>
+        <div class="space-y-3 max-h-72 overflow-y-auto">
+          {% for page in errors_404.pages|slice(0, 10) %}
+            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+              <div class="flex-1 min-w-0 mr-4">
+                <p class="text-sm text-gray-900 truncate font-mono">{{ page.page_url|e }}</p>
+              </div>
+              <div class="flex-shrink-0 text-right">
+                <p class="text-sm font-semibold text-gray-900">{{ page.hits }}</p>
+                <p class="text-xs text-gray-500">{{ page.unique_visitors }} visitors</p>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-center py-8">
+              <svg class="mx-auto h-12 w-12 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="mt-2 text-sm text-gray-500">No 404 errors found</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Engagement: Top Downloads & Lightbox Views -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <!-- Top Downloaded Images -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Downloaded Images</h3>
+        <div class="space-y-3">
+          {% for item in engagement.top_downloads|slice(0, 8) %}
+            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">{{ item.image_title|default(item.filename|default('Image #' ~ item.image_id)) }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">{{ item.album_title|default('Unknown album') }}</p>
+              </div>
+              <div class="flex-shrink-0 ml-4 text-right">
+                <p class="text-sm font-semibold text-gray-900">{{ item.download_count }}</p>
+                <p class="text-xs text-gray-500">downloads</p>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-center py-8">
+              <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <p class="mt-2 text-sm text-gray-500">No downloads recorded</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Top Lightbox Views -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Most Viewed in Lightbox</h3>
+        <div class="space-y-3">
+          {% for item in engagement.top_lightbox_views|slice(0, 8) %}
+            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">{{ item.image_title|default(item.filename|default('Image #' ~ item.image_id)) }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">{{ item.album_title|default('Unknown album') }}</p>
+              </div>
+              <div class="flex-shrink-0 ml-4 text-right">
+                <p class="text-sm font-semibold text-gray-900">{{ item.view_count }}</p>
+                <p class="text-xs text-gray-500">views</p>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-center py-8">
+              <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p class="mt-2 text-sm text-gray-500">No lightbox views recorded</p>
+            </div>
+          {% endfor %}
         </div>
       </div>
     </div>
@@ -530,6 +623,76 @@ new Chart(browserCtx, {
         grid: {
           display: false
         }
+      }
+    }
+  }
+});
+
+// Peak Hours Chart
+const peakHoursData = {{ peak_hours|json_encode|raw }};
+const peakHoursCtx = document.getElementById('peakHoursChart').getContext('2d');
+new Chart(peakHoursCtx, {
+  type: 'bar',
+  data: {
+    labels: Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`),
+    datasets: [{
+      label: 'Page Views',
+      data: peakHoursData.map(item => item.pageviews),
+      backgroundColor: 'rgba(0, 0, 0, 0.15)',
+      borderColor: colors.primary,
+      borderWidth: 1,
+      borderRadius: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
+        borderColor: colors.primary,
+        borderWidth: 1,
+        cornerRadius: 6,
+        padding: 12,
+        callbacks: {
+          title: function(context) {
+            return `${context[0].label} - ${context[0].label.replace(':00', ':59')}`;
+          },
+          label: function(context) {
+            return `${context.raw} page views`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        border: {
+          display: false
+        },
+        grid: {
+          display: false
+        },
+        ticks: {
+          maxRotation: 45,
+          minRotation: 45,
+          callback: function(value, index) {
+            return index % 3 === 0 ? this.getLabelForValue(value) : '';
+          }
+        }
+      },
+      y: {
+        border: {
+          display: false
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)'
+        },
+        beginAtZero: true
       }
     }
   }
