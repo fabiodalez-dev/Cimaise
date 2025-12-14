@@ -273,11 +273,20 @@ function runCommand(command, args) {
   }
 
   _commandsIsRunning = true;
+
+  // Immediate visual feedback
+  if (window.showToast) {
+    window.showToast('Executing: ' + command + '...', 'info');
+  }
+
   updateOutput('> Running: ' + command + '\n', true);
   updateStatus(command, 'running', 0);
 
   const buttons = document.querySelectorAll('button');
-  buttons.forEach(function(btn) { btn.disabled = true; });
+  buttons.forEach(function(btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  });
 
   const startTime = Date.now();
 
@@ -297,19 +306,25 @@ function runCommand(command, args) {
     if (data.success) {
       updateOutput('✅ Success (' + duration + 's)\n\n' + data.output + '\n\n==================================================\n\n');
       updateStatus(command, 'success', duration);
+      if (window.showToast) window.showToast('Command completed successfully!', 'success');
     } else {
       updateOutput('❌ Failed (' + duration + 's)\n\n' + data.output + '\n\nError: ' + (data.error || 'Unknown error') + '\n\n==================================================\n\n');
       updateStatus(command, 'error', duration);
+      if (window.showToast) window.showToast('Command failed: ' + (data.error || 'Unknown error'), 'error');
     }
   })
   .catch(function(error) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     updateOutput('❌ Network Error (' + duration + 's)\n\n' + error.message + '\n\n==================================================\n\n');
     updateStatus(command, 'error', duration);
+    if (window.showToast) window.showToast('Network error: ' + error.message, 'error');
   })
   .finally(function() {
     _commandsIsRunning = false;
-    buttons.forEach(function(btn) { btn.disabled = false; });
+    buttons.forEach(function(btn) {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    });
   });
 }
 
