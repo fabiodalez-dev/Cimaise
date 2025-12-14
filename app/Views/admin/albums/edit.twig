@@ -1203,6 +1203,12 @@
           return;
         }
 
+        // Validate minimum password length
+        if (passwordValue.length < 4) {
+          if (window.showToast) showToast('Password must be at least 4 characters', 'error');
+          return;
+        }
+
         // Submit the album form
         document.getElementById('album-form')?.submit();
       }

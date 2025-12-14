@@ -66,7 +66,9 @@
     "album.enter_password": "Inserisci Password",
     "album.wrong_password": "Password errata",
     "album.equipment": "Attrezzatura",
-    "album.more_from": "Altri da {category}"
+    "album.more_from": "Altri da {category}",
+    "album.tags_count": "{count} tag",
+    "album.tag_count": "1 tag"
   },
   "pagination": {
     "pagination.previous": "Precedente",
@@ -160,9 +162,9 @@
     "general.loading": "Caricamento...",
     "general.load_more": "Carica Altri",
     "general.show_less": "Mostra Meno",
-    "general.read_more": "Leggi di Pi\u00f9",
+    "general.read_more": "Leggi di Più",
     "general.see_all": "Vedi Tutto",
-    "general.yes": "S\u00ec",
+    "general.yes": "Sì",
     "general.no": "No",
     "general.ok": "OK",
     "general.cancel": "Annulla",
@@ -171,6 +173,21 @@
     "general.edit": "Modifica",
     "general.submit": "Invia",
     "general.reset": "Reimposta",
-    "general.view": "Vedi"
+    "general.view": "Vedi",
+    "general.more_count": "+{count} altri"
+  },
+  "galleries": {
+    "galleries.title": "Tutte le Gallerie",
+    "galleries.subtitle": "Esplora la nostra collezione completa di gallerie fotografiche con opzioni di filtro avanzate"
+  },
+  "installer": {
+    "installer.site_language": "Lingua del sito",
+    "installer.site_language_help": "Lingua predefinita per il frontend",
+    "installer.date_format": "Formato data",
+    "installer.date_format_help": "Formato utilizzato per visualizzare le date",
+    "installer.date_format_iso": "ISO",
+    "installer.date_format_eu": "Europeo",
+    "installer.english": "English",
+    "installer.italian": "Italiano"
   }
 }
