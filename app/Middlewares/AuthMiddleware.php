@@ -15,6 +15,17 @@ class AuthMiddleware implements MiddlewareInterface
     {
     }
 
+    /**
+     * Check if running on localhost for cookie secure flag
+     * Only allow insecure cookies on localhost in debug mode
+     */
+    private function allowInsecureCookies(): bool
+    {
+        $isLocalhost = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true)
+            || ($_SERVER['SERVER_NAME'] ?? '') === 'localhost';
+        return $isLocalhost && filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
     public function process(Request $request, Handler $handler): Response
     {
         $basePath = dirname($_SERVER['SCRIPT_NAME']);
@@ -86,43 +97,44 @@ class AuthMiddleware implements MiddlewareInterface
         // Hash the cookie token to compare with database
         $hashedToken = hash('sha256', $rawToken);
 
-        // Find user with matching token that hasn't expired
+        // SECURITY: Fetch users with non-expired tokens, then use constant-time comparison
+        // This prevents timing attacks that could leak token information via response times
         $stmt = $this->db->pdo()->prepare(
-            'SELECT id, email, role, is_active, first_name, last_name, remember_token_expires_at
+            'SELECT id, email, role, is_active, first_name, last_name, remember_token, remember_token_expires_at
              FROM users
-             WHERE remember_token = :token LIMIT 1'
+             WHERE remember_token IS NOT NULL
+             AND remember_token_expires_at > :now
+             AND is_active = 1
+             AND role = :role
+             LIMIT 100'
         );
-        $stmt->execute([':token' => $hashedToken]);
-        $user = $stmt->fetch();
+        $stmt->execute([':now' => date('Y-m-d H:i:s'), ':role' => 'admin']);
+        $users = $stmt->fetchAll();
 
-        if (!$user) {
+        $matchedUser = null;
+        foreach ($users as $user) {
+            // Use constant-time comparison to prevent timing attacks
+            if (hash_equals($user['remember_token'], $hashedToken)) {
+                $matchedUser = $user;
+                break;
+            }
+        }
+
+        if (!$matchedUser) {
             // Invalid token - clear the cookie
             $this->clearRememberCookie();
             return;
         }
 
-        // Check if token has expired
-        if (strtotime($user['remember_token_expires_at']) < time()) {
-            // Token expired - clear everything
-            $this->clearRememberToken((int)$user['id']);
-            return;
-        }
-
-        // Check if user is active and admin
-        if (!$user['is_active'] || $user['role'] !== 'admin') {
-            $this->clearRememberToken((int)$user['id']);
-            return;
-        }
-
         // Valid token - create session
         session_regenerate_id(true);
-        $_SESSION['admin_id'] = (int)$user['id'];
-        $_SESSION['admin_email'] = $user['email'];
-        $_SESSION['admin_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
-        $_SESSION['admin_role'] = $user['role'];
+        $_SESSION['admin_id'] = (int)$matchedUser['id'];
+        $_SESSION['admin_email'] = $matchedUser['email'];
+        $_SESSION['admin_name'] = trim($matchedUser['first_name'] . ' ' . $matchedUser['last_name']);
+        $_SESSION['admin_role'] = $matchedUser['role'];
 
         // Rotate remember token for security (token rotation)
-        $this->rotateRememberToken((int)$user['id']);
+        $this->rotateRememberToken((int)$matchedUser['id']);
 
         // Generate new CSRF token
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
@@ -149,11 +161,10 @@ class AuthMiddleware implements MiddlewareInterface
         ]);
 
         // Set new cookie
-        $isDebug = filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
         setcookie('remember_token', $rawToken, [
             'expires' => time() + (30 * 24 * 60 * 60),
             'path' => '/',
-            'secure' => !$isDebug,
+            'secure' => !$this->allowInsecureCookies(),
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
@@ -181,7 +192,7 @@ class AuthMiddleware implements MiddlewareInterface
         setcookie('remember_token', '', [
             'expires' => time() - 3600,
             'path' => '/',
-            'secure' => !filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'secure' => !$this->allowInsecureCookies(),
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
