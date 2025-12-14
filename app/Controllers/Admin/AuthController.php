@@ -20,11 +20,14 @@ class AuthController extends BaseController
     }
 
     /**
-     * Check if application is in debug mode
+     * Check if insecure cookies are allowed (localhost + debug mode)
+     * Only allow insecure cookies on localhost in debug mode for development
      */
-    private function isDebugMode(): bool
+    private function allowInsecureCookies(): bool
     {
-        return filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $isLocalhost = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true)
+            || ($_SERVER['SERVER_NAME'] ?? '') === 'localhost';
+        return $isLocalhost && filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     public function showLogin(Request $request, Response $response): Response
@@ -117,34 +120,44 @@ class AuthController extends BaseController
      */
     private function setRememberToken(int $userId): void
     {
-        // Generate secure random token (32 bytes = 64 hex chars)
-        $rawToken = bin2hex(random_bytes(32));
+        try {
+            // Generate secure random token (32 bytes = 64 hex chars)
+            $rawToken = bin2hex(random_bytes(32));
 
-        // Hash token before storing in database
-        $hashedToken = hash('sha256', $rawToken);
+            // Hash token before storing in database
+            $hashedToken = hash('sha256', $rawToken);
 
-        // Calculate expiration timestamp
-        $expiresSeconds = self::REMEMBER_TOKEN_DAYS * 24 * 60 * 60;
-        $expiresAt = date('Y-m-d H:i:s', time() + $expiresSeconds);
+            // Calculate expiration timestamp
+            $expiresSeconds = self::REMEMBER_TOKEN_DAYS * 24 * 60 * 60;
+            $expiresAt = date('Y-m-d H:i:s', time() + $expiresSeconds);
 
-        // Store hashed token in database
-        $stmt = $this->db->pdo()->prepare(
-            'UPDATE users SET remember_token = :token, remember_token_expires_at = :expires WHERE id = :id'
-        );
-        $stmt->execute([
-            ':token' => $hashedToken,
-            ':expires' => $expiresAt,
-            ':id' => $userId
-        ]);
+            // Store hashed token in database
+            $stmt = $this->db->pdo()->prepare(
+                'UPDATE users SET remember_token = :token, remember_token_expires_at = :expires WHERE id = :id'
+            );
+            $stmt->execute([
+                ':token' => $hashedToken,
+                ':expires' => $expiresAt,
+                ':id' => $userId
+            ]);
 
-        // Set cookie with raw token (not hashed)
-        setcookie('remember_token', $rawToken, [
-            'expires' => time() + $expiresSeconds,
-            'path' => '/',
-            'secure' => !$this->isDebugMode(),
-            'httponly' => true,
-            'samesite' => 'Lax'
-        ]);
+            // Set cookie with raw token (not hashed)
+            setcookie('remember_token', $rawToken, [
+                'expires' => time() + $expiresSeconds,
+                'path' => '/',
+                'secure' => !$this->allowInsecureCookies(),
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+
+            Logger::info('Remember token set for user', ['user_id' => $userId], 'auth');
+        } catch (\Throwable $e) {
+            Logger::error('Failed to set remember token', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ], 'auth');
+            // Don't throw - login should still succeed even if remember token fails
+        }
     }
 
     /**
@@ -162,10 +175,12 @@ class AuthController extends BaseController
         setcookie('remember_token', '', [
             'expires' => time() - 3600,
             'path' => '/',
-            'secure' => !$this->isDebugMode(),
+            'secure' => !$this->allowInsecureCookies(),
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
+
+        Logger::info('Remember token cleared for user', ['user_id' => $userId], 'auth');
     }
 
     public function logout(Request $request, Response $response): Response
