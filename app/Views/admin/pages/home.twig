@@ -39,6 +39,61 @@
         <div class="card">
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-th mr-3 text-gray-600"></i>
+              Infinite Gallery
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">Configure the auto-scrolling image gallery</p>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-gray-700 mb-2">Scroll Direction</label>
+                <div class="flex gap-4">
+                  <label class="flex items-center cursor-pointer">
+                    <input type="radio" name="gallery_scroll_direction" value="vertical"
+                           {{ settings['home.gallery_scroll_direction']|default('vertical') == 'vertical' ? 'checked' : '' }}
+                           class="w-4 h-4 text-black border-gray-300 focus:ring-black">
+                    <span class="ml-2 text-sm text-gray-700">
+                      <i class="fas fa-arrows-alt-v mr-1"></i>Vertical
+                    </span>
+                  </label>
+                  <label class="flex items-center cursor-pointer">
+                    <input type="radio" name="gallery_scroll_direction" value="horizontal"
+                           {{ settings['home.gallery_scroll_direction']|default('vertical') == 'horizontal' ? 'checked' : '' }}
+                           class="w-4 h-4 text-black border-gray-300 focus:ring-black">
+                    <span class="ml-2 text-sm text-gray-700">
+                      <i class="fas fa-arrows-alt-h mr-1"></i>Horizontal
+                    </span>
+                  </label>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Choose how images scroll in the infinite gallery</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-align-left mr-3 text-gray-600"></i>
+              Gallery Text Section
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">Optional text section displayed after the infinite gallery</p>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Title</label>
+                <input type="text" name="gallery_text_title" class="form-input" placeholder="About my work..." value="{{ settings['home.gallery_text_title']|default('')|e('html_attr') }}">
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">Content</label>
+                <textarea name="gallery_text_content" rows="8" class="form-input richtext" placeholder="Write about your photography, your approach, or anything you want to share...">{{ settings['home.gallery_text_content']|default('') }}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Supports rich text formatting. Leave empty to hide this section.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-images mr-3 text-gray-600"></i>
               Albums Carousel Section
             </h3>
@@ -87,7 +142,7 @@
       <div class="card">
         <div class="p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-2">Homepage Structure</h3>
-          <p class="text-sm text-gray-600 mb-4">The homepage consists of three main sections:</p>
+          <p class="text-sm text-gray-600 mb-4">The homepage consists of these main sections:</p>
           <ul class="text-sm text-gray-600 space-y-2">
             <li class="flex items-start">
               <i class="fas fa-star text-gray-400 mr-2 mt-1"></i>
@@ -98,6 +153,10 @@
               <span><strong>Infinite Gallery</strong> - Auto-scrolling mosaic of images from your albums</span>
             </li>
             <li class="flex items-start">
+              <i class="fas fa-align-left text-gray-400 mr-2 mt-1"></i>
+              <span><strong>Gallery Text</strong> - Optional text section after the gallery</span>
+            </li>
+            <li class="flex items-start">
               <i class="fas fa-images text-gray-400 mr-2 mt-1"></i>
               <span><strong>Albums Carousel</strong> - Horizontal carousel featuring your latest albums</span>
             </li>
@@ -106,4 +165,30 @@
       </div>
     </div>
   </div>
+  <script src="{{ base_path }}/assets/vendor/tinymce/tinymce.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      if (window.tinymce) {
+        tinymce.init({
+          selector: 'textarea.richtext',
+          base_url: (window.basePath || '') + '/assets/vendor/tinymce',
+          menubar: false,
+          statusbar: true,
+          branding: false,
+          plugins: 'link lists autoresize code fullscreen emoticons table charmap',
+          toolbar: 'undo redo | styles | bold italic underline strikethrough | alignleft aligncenter alignright | bullist numlist | blockquote | link | table | charmap emoticons | code fullscreen | removeformat',
+          block_formats: 'Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4',
+          default_link_target: '_blank',
+          link_default_protocol: 'https',
+          rel_list: [{title: 'noopener', value: 'noopener'},{title:'noreferrer', value:'noreferrer'}],
+          content_css: false,
+          content_style: 'body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111; line-height:1.7; padding:1rem;} a{color:#000; text-decoration:underline} blockquote{border-left:3px solid #e5e7eb; margin:1rem 0; padding-left:.75rem; color:#444}',
+          valid_elements: 'p,br,strong/b,em/i,u,s,ul,ol,li,blockquote,a[href|target|rel],h2,h3,h4,hr,table,thead,tbody,tr,th,td,span[style]',
+          height: 350,
+          autoresize_min_height: 250,
+          autoresize_max_height: 600
+        });
+      }
+    });
+  </script>
 {% endblock %}

@@ -465,7 +465,7 @@ function initTinyMCE() {
     statusbar: true,
     branding: false,
     plugins: 'link lists autoresize',
-    toolbar: 'undo redo | blocks | bold italic underline | alignleft aligncenter alignright | bullist numlist | blockquote | link | removeformat',
+    toolbar: 'undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright | bullist numlist | blockquote | link | removeformat',
     block_formats: 'Paragrafo=p; Sottotitolo=h3; Titolo sezione=h2; Nota=h4',
     default_link_target: '_blank',
     link_default_protocol: 'https',
@@ -491,7 +491,7 @@ function initTinyMCE() {
       .tox .tox-toolbar { display: flex !important; flex-wrap: wrap; }
       .tox .tox-editor-header { display: block !important; }
     `,
-    valid_elements: 'p,br,strong/b,em/i,ul,ol,li,blockquote,a[href|target|rel],h2,h3,h4,hr',
+    valid_elements: 'p,br,strong/b,em/i,u,s,ul,ol,li,blockquote,a[href|target|rel],h2,h3,h4,hr',
     height: 700,
     min_height: 500,
     max_height: 1000,
