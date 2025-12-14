@@ -640,7 +640,7 @@ class GalleryController extends BaseController
             
         } catch (\Throwable $e) {
             // Log the actual error for debugging
-            Logger::error('GalleryController::template error', [
+            Logger::critical('GalleryController::template error', [
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
