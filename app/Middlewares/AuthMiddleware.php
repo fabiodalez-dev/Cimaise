@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Middlewares;
 
+use App\Support\CookieHelper;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -13,17 +14,6 @@ class AuthMiddleware implements MiddlewareInterface
 {
     public function __construct(private Database $db)
     {
-    }
-
-    /**
-     * Check if running on localhost for cookie secure flag
-     * Only allow insecure cookies on localhost in debug mode
-     */
-    private function allowInsecureCookies(): bool
-    {
-        $isLocalhost = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true)
-            || ($_SERVER['SERVER_NAME'] ?? '') === 'localhost';
-        return $isLocalhost && filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     public function process(Request $request, Handler $handler): Response
@@ -164,7 +154,7 @@ class AuthMiddleware implements MiddlewareInterface
         setcookie('remember_token', $rawToken, [
             'expires' => time() + (30 * 24 * 60 * 60),
             'path' => '/',
-            'secure' => !$this->allowInsecureCookies(),
+            'secure' => !CookieHelper::allowInsecureCookies(),
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
@@ -192,7 +182,7 @@ class AuthMiddleware implements MiddlewareInterface
         setcookie('remember_token', '', [
             'expires' => time() - 3600,
             'path' => '/',
-            'secure' => !$this->allowInsecureCookies(),
+            'secure' => !CookieHelper::allowInsecureCookies(),
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
