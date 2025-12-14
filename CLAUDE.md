@@ -81,6 +81,30 @@ photoCMS/
 - CSP headers via `SecurityHeadersMiddleware`
 - Rate limiting on sensitive endpoints
 
+### Rich Text / HTML Sanitization
+When handling rich text content (from TinyMCE or similar):
+
+1. **On save (controller)**: Always sanitize with `\App\Support\Sanitizer::html($content)`
+2. **On render (Twig)**: Use `|safe_html` filter, NEVER `|raw`
+3. **CSS classes**: Use `.rich-text-content` or `.gallery-text-content` for styling
+4. **Escape titles**: Always use `|e` filter for plain text titles
+
+Example controller:
+```php
+$svc->set('home.gallery_text_content', \App\Support\Sanitizer::html($data['content'] ?? ''));
+```
+
+Example template:
+```twig
+<h2>{{ title|e }}</h2>
+<div class="rich-text-content">{{ content|safe_html }}</div>
+```
+
+### Template URL Patterns
+- Always use `{{ base_path }}/path` for asset URLs
+- NEVER use `|trim('/')` on `base_path` - it breaks subdirectory installations
+- For dynamic URLs: `{% if url starts with '/' %}{{ base_path }}{{ url }}{% else %}{{ url }}{% endif %}`
+
 ### Plugin System
 - Hook-based (similar to WordPress)
 - `Hooks::addAction()`, `Hooks::doAction()`
@@ -115,3 +139,37 @@ php bin/console diagnostics:report # System health check
 2. Click "Add Text"
 3. Set key (e.g., `nav.new_item`), value, and context
 4. Use in templates: `{{ trans('nav.new_item') }}`
+
+### JavaScript Initialization (SPA-compatible)
+For inline scripts in templates, use this pattern to avoid double initialization:
+
+```javascript
+function initializeMyPage() {
+  // initialization code
+}
+
+// Make globally available for SPA re-initialization
+if (!window.pageInitializers) window.pageInitializers = {};
+window.pageInitializers.myPage = initializeMyPage;
+
+// Initialize once on DOM ready or immediately if already loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeMyPage, { once: true });
+} else {
+  initializeMyPage();
+}
+```
+
+Key points:
+- Use `{ once: true }` to prevent duplicate listeners
+- Check `document.readyState` for immediate execution when DOM is ready
+- Store initializer in `window.pageInitializers` for SPA navigation
+
+### TinyMCE Configuration
+When adding TinyMCE rich text editors:
+
+1. Use class `richtext` on textarea: `<textarea class="form-input richtext">`
+2. Configure `valid_elements` to whitelist allowed HTML tags
+3. Include `u,s` for underline/strikethrough support
+4. Toolbar example: `'undo redo | bold italic underline strikethrough | bullist numlist | link | removeformat'`
+5. Build assets after changes: `npm run build`
