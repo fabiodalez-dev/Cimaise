@@ -35,6 +35,17 @@ class AnalyticsService
     }
 
     /**
+     * Sanitize limit parameter to prevent SQL injection
+     */
+    private function sanitizeLimit(?string $limit, int $maxRange = 100000): string
+    {
+        $limitValue = $limit !== null
+            ? filter_var($limit, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => $maxRange]])
+            : false;
+        return $limitValue !== false ? "LIMIT {$limitValue}" : '';
+    }
+
+    /**
      * Load analytics settings
      */
     private function loadSettings(): void
@@ -495,9 +506,7 @@ class AnalyticsService
             $data = [];
             $headers = [];
             $botFilter = $includeBots ? '' : 'AND s.is_bot = 0';
-            // Sanitize limit parameter to prevent SQL injection
-            $limitValue = $limit !== null ? filter_var($limit, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100000]]) : false;
-            $limitClause = $limitValue !== false ? "LIMIT {$limitValue}" : '';
+            $limitClause = $this->sanitizeLimit($limit);
 
             switch ($type) {
                 case 'sessions':
@@ -574,9 +583,7 @@ class AnalyticsService
     {
         try {
             $botFilter = $includeBots ? '' : 'AND s.is_bot = 0';
-            // Sanitize limit parameter to prevent SQL injection
-            $limitValue = $limit !== null ? filter_var($limit, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100000]]) : false;
-            $limitClause = $limitValue !== false ? "LIMIT {$limitValue}" : '';
+            $limitClause = $this->sanitizeLimit($limit);
 
             switch ($type) {
                 case 'sessions':
@@ -826,7 +833,7 @@ class AnalyticsService
                 WHERE e.event_type = 'download'
                 AND e.image_id IS NOT NULL
                 AND DATE(e.occurred_at) BETWEEN ? AND ?
-                GROUP BY e.image_id
+                GROUP BY e.image_id, e.album_id, i.filename, i.title, a.title
                 ORDER BY download_count DESC
                 LIMIT 10
             ");
@@ -848,7 +855,7 @@ class AnalyticsService
                 WHERE e.event_type = 'lightbox_open'
                 AND e.image_id IS NOT NULL
                 AND DATE(e.occurred_at) BETWEEN ? AND ?
-                GROUP BY e.image_id
+                GROUP BY e.image_id, e.album_id, i.filename, i.title, a.title
                 ORDER BY view_count DESC
                 LIMIT 10
             ");

@@ -871,7 +871,7 @@ class PageController extends BaseController
             ]);
             
         } catch (\Throwable $e) {
-            Logger::error('PageController::albumTemplate error', [
+            Logger::critical('PageController::albumTemplate error', [
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
