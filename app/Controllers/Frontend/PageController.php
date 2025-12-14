@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -536,7 +537,7 @@ class PageController extends BaseController
                 // Lightbox: keep original path if accessible (not in /storage/)
                 // Only use variants as fallback if original is not publicly accessible
             } catch (\Throwable $e) {
-                error_log('Error fetching image variants: ' . $e->getMessage());
+                Logger::warning('PageController: Error fetching image variants', ['error' => $e->getMessage()], 'frontend');
             }
             // Final fallback: if still pointing to /storage, use grid URL
             if (str_starts_with((string)$lightboxUrl, '/storage/')) { $lightboxUrl = $bestUrl; }
@@ -803,7 +804,7 @@ class PageController extends BaseController
                     }
                 } catch (\Throwable $e) {
                     // Continue processing even if metadata lookup fails
-                    error_log('Error fetching image metadata: ' . $e->getMessage());
+                    Logger::warning('PageController: Error fetching image metadata', ['error' => $e->getMessage()], 'frontend');
                 }
             }
 
@@ -822,7 +823,7 @@ class PageController extends BaseController
                     // Lightbox: keep original_path for best quality
                     // Only fallback to variants if original is in /storage/ (not public)
                 } catch (\Throwable $e) {
-                    error_log('Error fetching image variants: ' . $e->getMessage());
+                    Logger::warning('PageController: Error fetching image variants', ['error' => $e->getMessage()], 'frontend');
                 }
 
                 if (str_starts_with((string)$bestUrl, '/storage/')) {
@@ -870,9 +871,13 @@ class PageController extends BaseController
             ]);
             
         } catch (\Throwable $e) {
-            error_log('Album Template API Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-            error_log('Stack trace: ' . $e->getTraceAsString());
-            
+            Logger::error('PageController::albumTemplate error', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ], 'frontend');
+
             $response->getBody()->write('Internal server error: ' . $e->getMessage());
             return $response->withStatus(500);
         }
@@ -1216,7 +1221,7 @@ class PageController extends BaseController
             $image['fallback_src'] = $fallbackUrl;
             
         } catch (\Throwable $e) {
-            error_log('Error processing image sources: ' . $e->getMessage());
+            Logger::warning('PageController: Error processing image sources', ['error' => $e->getMessage()], 'frontend');
             // Fallback to basic image data
             $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
             $image['variants'] = [];

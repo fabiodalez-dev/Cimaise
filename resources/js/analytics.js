@@ -199,11 +199,11 @@ class PhotoCMSAnalytics {
             const scrollDepth = Math.round(
                 (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100
             );
-            
+
             if (scrollDepth > maxScrollDepth) {
                 maxScrollDepth = scrollDepth;
             }
-            
+
             this.lastActivity = Date.now();
         };
 
@@ -222,9 +222,10 @@ class PhotoCMSAnalytics {
             // Special handling for image downloads
             if (target.hasAttribute('download') || target.href?.includes('download')) {
                 eventData.type = 'download';
-                eventData.category = 'file';
+                eventData.category = 'conversion';
                 eventData.action = 'image_download';
-                eventData.image_id = target.dataset.imageId;
+                eventData.image_id = target.dataset.imageId || this.extractImageIdFromUrl(target.href);
+                eventData.album_id = this.extractAlbumId();
             }
 
             this.trackEvent(eventData);
@@ -244,6 +245,93 @@ class PhotoCMSAnalytics {
         this.timeOnPageInterval = setInterval(() => {
             this.updateTimeOnPage();
         }, 15000); // Update every 15 seconds
+
+        // Bind lightbox/PhotoSwipe tracking
+        this.bindLightboxTracking();
+    }
+
+    /**
+     * Bind lightbox/PhotoSwipe tracking
+     */
+    bindLightboxTracking() {
+        // Track PhotoSwipe lightbox opens
+        document.addEventListener('click', (e) => {
+            const lightboxTrigger = e.target.closest('[data-pswp-src], .gallery-item a, .pswp-gallery a');
+            if (lightboxTrigger) {
+                const imageId = lightboxTrigger.dataset.imageId ||
+                               lightboxTrigger.closest('[data-image-id]')?.dataset.imageId ||
+                               this.extractImageIdFromUrl(lightboxTrigger.href);
+
+                this.trackEvent({
+                    type: 'lightbox_open',
+                    category: 'engagement',
+                    action: 'lightbox_open',
+                    label: lightboxTrigger.getAttribute('alt') || lightboxTrigger.title || '',
+                    image_id: imageId,
+                    album_id: this.extractAlbumId()
+                });
+            }
+        }, { passive: true });
+
+        // Listen for PhotoSwipe custom events if available
+        window.addEventListener('pswp:open', (e) => {
+            const detail = e.detail || {};
+            this.trackEvent({
+                type: 'lightbox_open',
+                category: 'engagement',
+                action: 'lightbox_open',
+                image_id: detail.imageId || null,
+                album_id: this.extractAlbumId()
+            });
+        });
+
+        window.addEventListener('pswp:close', (e) => {
+            const detail = e.detail || {};
+            this.trackEvent({
+                type: 'lightbox_close',
+                category: 'engagement',
+                action: 'lightbox_close',
+                value: detail.viewedImages || 1,
+                album_id: this.extractAlbumId()
+            });
+        });
+    }
+
+    /**
+     * Extract image ID from URL
+     */
+    extractImageIdFromUrl(url) {
+        if (!url) return null;
+        // Try to extract numeric ID from URL patterns like /image/123 or image_123.jpg
+        const match = url.match(/(?:image[_\/]?)(\d+)/i) || url.match(/\/(\d+)(?:_\w+)?\.(?:jpg|jpeg|png|webp|avif)/i);
+        return match ? parseInt(match[1]) : null;
+    }
+
+    /**
+     * Public method to track lightbox open (can be called from PhotoSwipe init)
+     */
+    trackLightboxOpen(imageId, albumId) {
+        this.trackEvent({
+            type: 'lightbox_open',
+            category: 'engagement',
+            action: 'lightbox_open',
+            image_id: imageId,
+            album_id: albumId || this.extractAlbumId()
+        });
+    }
+
+    /**
+     * Public method to track image download
+     */
+    trackDownload(imageId, albumId, filename) {
+        this.trackEvent({
+            type: 'download',
+            category: 'conversion',
+            action: 'image_download',
+            label: filename || '',
+            image_id: imageId,
+            album_id: albumId || this.extractAlbumId()
+        });
     }
 
     /**

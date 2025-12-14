@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\BaseUrlService;
+use App\Support\Logger;
 use App\Services\SettingsService;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -155,7 +156,7 @@ class SeoController extends BaseController
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'SEO settings saved successfully'];
             
         } catch (\Throwable $e) {
-            error_log('SEO settings save error: ' . $e->getMessage());
+            Logger::error('SeoController::save error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error saving SEO settings: ' . $e->getMessage()];
         }
         
@@ -202,7 +203,7 @@ class SeoController extends BaseController
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Sitemap generated successfully'];
             
         } catch (\Throwable $e) {
-            error_log('Sitemap generation error: ' . $e->getMessage());
+            Logger::error('SeoController::generateSitemap error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error generating sitemap: ' . $e->getMessage()];
         }
         

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\Logger;
 use PDO;
 use GeoIp2\Database\Reader;
 
@@ -84,7 +85,7 @@ class AnalyticsService
                 $this->geoReader = new Reader($geoDbPath);
             } catch (\Exception $e) {
                 // Silently fail if GeoIP database is not available
-                error_log('GeoIP database initialization failed: ' . $e->getMessage());
+                Logger::warning('AnalyticsService: GeoIP database initialization failed', ['error' => $e->getMessage()], 'analytics');
             }
         }
     }
@@ -637,6 +638,278 @@ class AnalyticsService
         } catch (\PDOException $e) {
             // Analytics tables don't exist - return 0
             return 0;
+        }
+    }
+
+    /**
+     * Get peak hours data (hourly traffic distribution)
+     */
+    public function getPeakHoursData(string $startDate, string $endDate): array
+    {
+        try {
+            $hourExpr = $this->isSqlite()
+                ? "strftime('%H', viewed_at)"
+                : "HOUR(viewed_at)";
+
+            $stmt = $this->db->prepare("
+                SELECT
+                    {$hourExpr} as hour,
+                    COUNT(*) as pageviews,
+                    COUNT(DISTINCT session_id) as sessions
+                FROM analytics_pageviews
+                WHERE DATE(viewed_at) BETWEEN ? AND ?
+                GROUP BY {$hourExpr}
+                ORDER BY hour
+            ");
+            $stmt->execute([$startDate, $endDate]);
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Fill in missing hours with zeros
+            $hourlyData = array_fill(0, 24, ['pageviews' => 0, 'sessions' => 0]);
+            foreach ($data as $row) {
+                $hour = (int)$row['hour'];
+                $hourlyData[$hour] = [
+                    'pageviews' => (int)$row['pageviews'],
+                    'sessions' => (int)$row['sessions']
+                ];
+            }
+
+            return $hourlyData;
+        } catch (\PDOException $e) {
+            return array_fill(0, 24, ['pageviews' => 0, 'sessions' => 0]);
+        }
+    }
+
+    /**
+     * Get trend comparison data (current period vs previous period)
+     */
+    public function getTrendComparison(string $startDate, string $endDate): array
+    {
+        try {
+            // Calculate previous period
+            $start = new \DateTime($startDate);
+            $end = new \DateTime($endDate);
+            $diff = $start->diff($end)->days + 1;
+
+            $prevEnd = (clone $start)->modify('-1 day');
+            $prevStart = (clone $prevEnd)->modify("-{$diff} days");
+
+            // Current period stats
+            $stmt = $this->db->prepare('
+                SELECT
+                    COUNT(DISTINCT session_id) as sessions,
+                    COUNT(*) as pageviews
+                FROM analytics_pageviews
+                WHERE DATE(viewed_at) BETWEEN ? AND ?
+            ');
+            $stmt->execute([$startDate, $endDate]);
+            $current = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Previous period stats
+            $stmt->execute([$prevStart->format('Y-m-d'), $prevEnd->format('Y-m-d')]);
+            $previous = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Current period events
+            $stmt = $this->db->prepare('
+                SELECT COUNT(*) as total
+                FROM analytics_events
+                WHERE DATE(occurred_at) BETWEEN ? AND ?
+            ');
+            $stmt->execute([$startDate, $endDate]);
+            $currentEvents = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Previous period events
+            $stmt->execute([$prevStart->format('Y-m-d'), $prevEnd->format('Y-m-d')]);
+            $previousEvents = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Calculate percentage changes
+            $sessionsChange = $this->calculatePercentageChange(
+                (int)($previous['sessions'] ?? 0),
+                (int)($current['sessions'] ?? 0)
+            );
+            $pageviewsChange = $this->calculatePercentageChange(
+                (int)($previous['pageviews'] ?? 0),
+                (int)($current['pageviews'] ?? 0)
+            );
+            $eventsChange = $this->calculatePercentageChange(
+                (int)($previousEvents['total'] ?? 0),
+                (int)($currentEvents['total'] ?? 0)
+            );
+
+            return [
+                'current' => [
+                    'sessions' => (int)($current['sessions'] ?? 0),
+                    'pageviews' => (int)($current['pageviews'] ?? 0),
+                    'events' => (int)($currentEvents['total'] ?? 0)
+                ],
+                'previous' => [
+                    'sessions' => (int)($previous['sessions'] ?? 0),
+                    'pageviews' => (int)($previous['pageviews'] ?? 0),
+                    'events' => (int)($previousEvents['total'] ?? 0)
+                ],
+                'changes' => [
+                    'sessions' => $sessionsChange,
+                    'pageviews' => $pageviewsChange,
+                    'events' => $eventsChange
+                ],
+                'period_days' => $diff,
+                'previous_start' => $prevStart->format('Y-m-d'),
+                'previous_end' => $prevEnd->format('Y-m-d')
+            ];
+        } catch (\PDOException $e) {
+            return [
+                'current' => ['sessions' => 0, 'pageviews' => 0, 'events' => 0],
+                'previous' => ['sessions' => 0, 'pageviews' => 0, 'events' => 0],
+                'changes' => ['sessions' => 0, 'pageviews' => 0, 'events' => 0],
+                'period_days' => 0
+            ];
+        }
+    }
+
+    /**
+     * Calculate percentage change between two values
+     */
+    private function calculatePercentageChange(int $previous, int $current): float
+    {
+        if ($previous === 0) {
+            return $current > 0 ? 100.0 : 0.0;
+        }
+        return round((($current - $previous) / $previous) * 100, 1);
+    }
+
+    /**
+     * Get engagement statistics (lightbox opens, downloads)
+     */
+    public function getEngagementStats(string $startDate, string $endDate): array
+    {
+        try {
+            // Lightbox opens
+            $stmt = $this->db->prepare("
+                SELECT
+                    COUNT(*) as lightbox_opens,
+                    COUNT(DISTINCT session_id) as unique_users
+                FROM analytics_events
+                WHERE event_type = 'lightbox_open'
+                AND DATE(occurred_at) BETWEEN ? AND ?
+            ");
+            $stmt->execute([$startDate, $endDate]);
+            $lightbox = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Downloads
+            $stmt = $this->db->prepare("
+                SELECT
+                    COUNT(*) as downloads,
+                    COUNT(DISTINCT session_id) as unique_users
+                FROM analytics_events
+                WHERE event_type = 'download'
+                AND DATE(occurred_at) BETWEEN ? AND ?
+            ");
+            $stmt->execute([$startDate, $endDate]);
+            $downloads = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Top downloaded images
+            $stmt = $this->db->prepare("
+                SELECT
+                    e.image_id,
+                    e.album_id,
+                    i.filename,
+                    i.title as image_title,
+                    a.title as album_title,
+                    COUNT(*) as download_count
+                FROM analytics_events e
+                LEFT JOIN images i ON e.image_id = i.id
+                LEFT JOIN albums a ON e.album_id = a.id
+                WHERE e.event_type = 'download'
+                AND e.image_id IS NOT NULL
+                AND DATE(e.occurred_at) BETWEEN ? AND ?
+                GROUP BY e.image_id
+                ORDER BY download_count DESC
+                LIMIT 10
+            ");
+            $stmt->execute([$startDate, $endDate]);
+            $topDownloads = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Most viewed in lightbox
+            $stmt = $this->db->prepare("
+                SELECT
+                    e.image_id,
+                    e.album_id,
+                    i.filename,
+                    i.title as image_title,
+                    a.title as album_title,
+                    COUNT(*) as view_count
+                FROM analytics_events e
+                LEFT JOIN images i ON e.image_id = i.id
+                LEFT JOIN albums a ON e.album_id = a.id
+                WHERE e.event_type = 'lightbox_open'
+                AND e.image_id IS NOT NULL
+                AND DATE(e.occurred_at) BETWEEN ? AND ?
+                GROUP BY e.image_id
+                ORDER BY view_count DESC
+                LIMIT 10
+            ");
+            $stmt->execute([$startDate, $endDate]);
+            $topLightbox = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return [
+                'lightbox' => [
+                    'total' => (int)($lightbox['lightbox_opens'] ?? 0),
+                    'unique_users' => (int)($lightbox['unique_users'] ?? 0)
+                ],
+                'downloads' => [
+                    'total' => (int)($downloads['downloads'] ?? 0),
+                    'unique_users' => (int)($downloads['unique_users'] ?? 0)
+                ],
+                'top_downloads' => $topDownloads,
+                'top_lightbox_views' => $topLightbox
+            ];
+        } catch (\PDOException $e) {
+            return [
+                'lightbox' => ['total' => 0, 'unique_users' => 0],
+                'downloads' => ['total' => 0, 'unique_users' => 0],
+                'top_downloads' => [],
+                'top_lightbox_views' => []
+            ];
+        }
+    }
+
+    /**
+     * Get 404 error pages data
+     */
+    public function get404Stats(string $startDate, string $endDate): array
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT
+                    page_url,
+                    COUNT(*) as hits,
+                    COUNT(DISTINCT session_id) as unique_visitors
+                FROM analytics_pageviews
+                WHERE page_type = '404'
+                AND DATE(viewed_at) BETWEEN ? AND ?
+                GROUP BY page_url
+                ORDER BY hits DESC
+                LIMIT 20
+            ");
+            $stmt->execute([$startDate, $endDate]);
+            $pages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Total 404 count
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as total
+                FROM analytics_pageviews
+                WHERE page_type = '404'
+                AND DATE(viewed_at) BETWEEN ? AND ?
+            ");
+            $stmt->execute([$startDate, $endDate]);
+            $total = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return [
+                'total' => (int)($total['total'] ?? 0),
+                'pages' => $pages
+            ];
+        } catch (\PDOException $e) {
+            return ['total' => 0, 'pages' => []];
         }
     }
 }

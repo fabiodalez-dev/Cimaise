@@ -813,6 +813,26 @@ $app->get('/api/admin/analytics/realtime', function (Request $request, Response 
     return $controller->apiRealtime($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+$app->get('/api/admin/analytics/peak-hours', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->apiPeakHours($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/api/admin/analytics/trends', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->apiTrends($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/api/admin/analytics/engagement', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->apiEngagement($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/api/admin/analytics/404-stats', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
+    return $controller->api404Stats($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
 // Public analytics tracking endpoint (no auth required)
 $app->post('/api/analytics/track', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));

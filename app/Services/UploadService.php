@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Support\Database;
+use App\Support\Logger;
 use finfo;
 use RuntimeException;
 
@@ -388,7 +389,11 @@ class UploadService
                     $stats['generated']++;
                 } else {
                     $stats['failed']++;
-                    error_log("Failed to generate {$fmt} variant {$variant} for image {$imageId}");
+                    Logger::warning("UploadService: Failed to generate variant", [
+                        'format' => $fmt,
+                        'variant' => $variant,
+                        'image_id' => $imageId
+                    ], 'upload');
                 }
             }
         }

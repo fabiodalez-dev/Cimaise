@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use App\Support\Database;
+use App\Support\Logger;
 use App\Support\PluginManager;
 use Dotenv\Dotenv;
 
@@ -49,6 +50,11 @@ if ($connection === 'sqlite') {
 $pluginManager = PluginManager::getInstance();
 $pluginManager->setDatabase($db);
 
+// Initialize Logger and connect to database (for database channel)
+$logger = Logger::getInstance();
+$logger->setDatabase($db);
+
 return [
     'db' => $db,
+    'logger' => $logger,
 ];

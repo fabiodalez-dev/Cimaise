@@ -8,6 +8,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use App\Services\AnalyticsService;
 use App\Support\Database;
+use App\Support\Logger;
 use PDO;
 
 class AnalyticsController
@@ -29,17 +30,25 @@ class AnalyticsController
     public function index(Request $request, Response $response): Response
     {
         $dashboardStats = $this->analytics->getDashboardStats();
-        
+
         // Get date range from query params
         $params = $request->getQueryParams();
         $endDate = $params['end_date'] ?? date('Y-m-d');
         $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
-        
+
         $chartsData = $this->analytics->getChartsData($startDate, $endDate);
+        $peakHoursData = $this->analytics->getPeakHoursData($startDate, $endDate);
+        $trendsData = $this->analytics->getTrendComparison($startDate, $endDate);
+        $engagementData = $this->analytics->getEngagementStats($startDate, $endDate);
+        $errorData = $this->analytics->get404Stats($startDate, $endDate);
 
         return $this->twig->render($response, 'admin/analytics/index.twig', [
             'stats' => $dashboardStats,
             'charts_data' => $chartsData,
+            'peak_hours' => $peakHoursData,
+            'trends' => $trendsData,
+            'engagement' => $engagementData,
+            'errors_404' => $errorData,
             'start_date' => $startDate,
             'end_date' => $endDate,
             'analytics_enabled' => $this->analytics->isEnabled()
@@ -218,6 +227,66 @@ class AnalyticsController
     }
 
     /**
+     * API endpoint for peak hours data
+     */
+    public function apiPeakHours(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
+        $endDate = $params['end_date'] ?? date('Y-m-d');
+
+        $data = $this->analytics->getPeakHoursData($startDate, $endDate);
+
+        $response->getBody()->write(json_encode($data));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * API endpoint for trend comparison
+     */
+    public function apiTrends(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
+        $endDate = $params['end_date'] ?? date('Y-m-d');
+
+        $data = $this->analytics->getTrendComparison($startDate, $endDate);
+
+        $response->getBody()->write(json_encode($data));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * API endpoint for engagement statistics
+     */
+    public function apiEngagement(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
+        $endDate = $params['end_date'] ?? date('Y-m-d');
+
+        $data = $this->analytics->getEngagementStats($startDate, $endDate);
+
+        $response->getBody()->write(json_encode($data));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * API endpoint for 404 error statistics
+     */
+    public function api404Stats(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
+        $endDate = $params['end_date'] ?? date('Y-m-d');
+
+        $data = $this->analytics->get404Stats($startDate, $endDate);
+
+        $response->getBody()->write(json_encode($data));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
      * API endpoint for real-time data
      */
     public function apiRealtime(Request $request, Response $response): Response
@@ -343,7 +412,7 @@ class AnalyticsController
             return $response->withStatus(204); // No content
             
         } catch (\Exception $e) {
-            error_log('Analytics tracking error: ' . $e->getMessage());
+            Logger::error('AnalyticsController::track error', ['error' => $e->getMessage()], 'analytics');
             // Return 204 instead of 500 to avoid breaking frontend functionality
             // Even in case of errors, we don't want the browser to show network errors
             return $response->withStatus(204);

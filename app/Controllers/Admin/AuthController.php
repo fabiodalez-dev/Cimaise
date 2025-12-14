@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -34,6 +35,7 @@ class AuthController extends BaseController
         $email = strtolower(trim((string)($data['email'] ?? '')));
         $password = (string)($data['password'] ?? '');
         $csrf = (string)($data['csrf'] ?? '');
+        $rememberMe = !empty($data['remember_me']);
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             return $this->view->render($response, 'admin/login.twig', [
@@ -52,14 +54,14 @@ class AuthController extends BaseController
         $stmt = $this->db->pdo()->prepare('SELECT id, email, password_hash, role, is_active, first_name, last_name FROM users WHERE LOWER(email) = :email LIMIT 1');
         $stmt->execute([':email' => $email]);
         $user = $stmt->fetch();
-        
+
         if (!$user || !password_verify($password, $user['password_hash'])) {
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => 'Invalid credentials.',
                 'csrf' => $_SESSION['csrf'] ?? ''
             ]);
         }
-        
+
         // Check if user is active
         if (!$user['is_active']) {
             return $this->view->render($response, 'admin/login.twig', [
@@ -67,7 +69,7 @@ class AuthController extends BaseController
                 'csrf' => $_SESSION['csrf'] ?? ''
             ]);
         }
-        
+
         // Check if user has admin role for backend access
         if ($user['role'] !== 'admin') {
             return $this->view->render($response, 'admin/login.twig', [
@@ -86,7 +88,12 @@ class AuthController extends BaseController
         $_SESSION['admin_email'] = $user['email'];
         $_SESSION['admin_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
         $_SESSION['admin_role'] = $user['role'];
-        
+
+        // Handle "Remember Me" functionality
+        if ($rememberMe) {
+            $this->setRememberToken((int)$user['id'], $response);
+        }
+
         // rotate CSRF after login
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
 
@@ -95,19 +102,80 @@ class AuthController extends BaseController
             ->withStatus(302);
     }
 
+    /**
+     * Generate and set remember token for persistent login
+     */
+    private function setRememberToken(int $userId, Response $response): void
+    {
+        // Generate secure random token (32 bytes = 64 hex chars)
+        $rawToken = bin2hex(random_bytes(32));
+
+        // Hash token before storing in database
+        $hashedToken = hash('sha256', $rawToken);
+
+        // Set expiration to 30 days from now
+        $expiresAt = date('Y-m-d H:i:s', time() + (30 * 24 * 60 * 60));
+
+        // Store hashed token in database
+        $stmt = $this->db->pdo()->prepare(
+            'UPDATE users SET remember_token = :token, remember_token_expires_at = :expires WHERE id = :id'
+        );
+        $stmt->execute([
+            ':token' => $hashedToken,
+            ':expires' => $expiresAt,
+            ':id' => $userId
+        ]);
+
+        // Set cookie with raw token (not hashed)
+        $isDebug = filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        setcookie('remember_token', $rawToken, [
+            'expires' => time() + (30 * 24 * 60 * 60), // 30 days
+            'path' => '/',
+            'secure' => !$isDebug,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+    }
+
+    /**
+     * Clear remember token from database and cookie
+     */
+    private function clearRememberToken(int $userId): void
+    {
+        // Clear from database
+        $stmt = $this->db->pdo()->prepare(
+            'UPDATE users SET remember_token = NULL, remember_token_expires_at = NULL WHERE id = :id'
+        );
+        $stmt->execute([':id' => $userId]);
+
+        // Clear cookie
+        setcookie('remember_token', '', [
+            'expires' => time() - 3600,
+            'path' => '/',
+            'secure' => !filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+    }
+
     public function logout(Request $request, Response $response): Response
     {
         // SECURITY: Verify CSRF token for logout
         if ($request->getMethod() === 'POST') {
             $data = (array)($request->getParsedBody() ?? []);
             $csrf = (string)($data['csrf'] ?? '');
-            
+
             if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
                 return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
             }
         }
-        
+
+        // Clear remember token before destroying session
+        if (!empty($_SESSION['admin_id'])) {
+            $this->clearRememberToken((int)$_SESSION['admin_id']);
+        }
+
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
@@ -181,7 +249,7 @@ class AuthController extends BaseController
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Profile updated successfully.'];
         } catch (\Throwable $e) {
-            error_log('AuthController::updateProfile error: ' . $e->getMessage());
+            Logger::error('AuthController::updateProfile error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating profile. Please try again.'];
         }
 
@@ -243,7 +311,7 @@ class AuthController extends BaseController
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Password changed successfully.'];
         } catch (\Throwable $e) {
-            error_log('AuthController::changePassword error: ' . $e->getMessage());
+            Logger::error('AuthController::changePassword error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while changing password. Please try again.'];
         }
 

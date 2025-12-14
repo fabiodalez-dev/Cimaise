@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -62,7 +63,7 @@ class TagsController extends BaseController
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag created'];
             return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
         } catch (\Throwable $e) {
-            error_log('TagsController::store error: ' . $e->getMessage());
+            Logger::error('TagsController::store error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while creating tag. Please try again.'];
             return $response->withHeader('Location', $this->redirect('/admin/tags/create'))->withStatus(302);
         }
@@ -104,7 +105,7 @@ class TagsController extends BaseController
             $stmt->execute([':n' => $name, ':s' => $slug, ':id' => $id]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag updated'];
         } catch (\Throwable $e) {
-            error_log('TagsController::update error: ' . $e->getMessage());
+            Logger::error('TagsController::update error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating tag. Please try again.'];
         }
         return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
@@ -118,7 +119,7 @@ class TagsController extends BaseController
             $stmt->execute([':id' => $id]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag deleted'];
         } catch (\Throwable $e) {
-            error_log('TagsController::delete error: ' . $e->getMessage());
+            Logger::error('TagsController::delete error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while deleting tag. Please try again.'];
         }
         return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
