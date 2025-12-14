@@ -442,7 +442,11 @@ class AnalyticsController
             return $response->withStatus(204); // No content
             
         } catch (\Exception $e) {
-            Logger::error('AnalyticsController::track error', ['error' => $e->getMessage()], 'analytics');
+            Logger::error('AnalyticsController::track error', [
+                'event_type' => $data['event_type'] ?? null,
+                'session_id' => $data['session_id'] ?? null,
+                'error' => $e->getMessage()
+            ], 'analytics');
             // Return 204 instead of 500 to avoid breaking frontend functionality
             // Even in case of errors, we don't want the browser to show network errors
             return $response->withStatus(204);
