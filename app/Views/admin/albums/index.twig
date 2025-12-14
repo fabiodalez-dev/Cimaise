@@ -128,6 +128,9 @@
       initAlbumsTableSorting();
     }
     
+    var _sortableRetryCount = 0;
+    var _sortableMaxRetries = 20; // 20 * 50ms = 1 second max wait
+
     function initAlbumsTableSorting() {
       const tbody = document.getElementById('albums-tbody');
       const table = document.getElementById('albums-table');
@@ -141,9 +144,16 @@
       if (mode === 'manual') {
         // Wait for Sortable to be available (in case of race condition)
         if (typeof Sortable === 'undefined') {
+          _sortableRetryCount++;
+          if (_sortableRetryCount >= _sortableMaxRetries) {
+            console.error('Sortable library failed to load after ' + _sortableMaxRetries + ' attempts');
+            return;
+          }
           setTimeout(initAlbumsTableSorting, 50);
           return;
         }
+        // Reset counter on success
+        _sortableRetryCount = 0;
 
         // Cleanup existing Sortable instance if present
         if (tbody._sortableInstance) {
@@ -169,7 +179,7 @@
         async function saveOrder(){
           try {
             const ids = Array.from(tbody.querySelectorAll('tr[data-id]')).map(tr=>tr.getAttribute('data-id'));
-            await fetch(table.dataset.endpoint, {
+            const response = await fetch(table.dataset.endpoint, {
               method:'POST',
               headers:{
                 'Content-Type':'application/json',
@@ -178,8 +188,12 @@
               },
               body: JSON.stringify({ order: ids })
             });
+            if (!response.ok) {
+              throw new Error('Reorder failed: ' + response.status + ' ' + response.statusText);
+            }
             if (window.showToast) window.showToast('Album order saved', 'success');
           } catch(error) {
+            console.error('Failed to save albums order:', error);
             if (window.showToast) window.showToast('Error saving order', 'error');
           }
         }
