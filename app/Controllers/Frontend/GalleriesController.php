@@ -54,24 +54,48 @@ class GalleriesController extends BaseController
     public function filter(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
-        
+
         // Get filter settings
         $filterSettings = $this->getFilterSettings();
-        
+
         // Build filters from request
         $filters = $this->buildFilters($params, $filterSettings);
-        
+
         // Get filtered albums
         $albums = $this->getFilteredAlbums($filters);
-        
+
+        // Sanitize album data - remove sensitive fields
+        $safeAlbums = array_map(function($album) {
+            return [
+                'id' => $album['id'],
+                'slug' => $album['slug'],
+                'title' => $album['title'],
+                'excerpt' => $album['excerpt'] ?? null,
+                'shoot_date' => $album['shoot_date'] ?? null,
+                'published_at' => $album['published_at'] ?? null,
+                'category_name' => $album['category_name'] ?? null,
+                'category_slug' => $album['category_slug'] ?? null,
+                'images_count' => $album['images_count'] ?? 0,
+                'cover_image' => isset($album['cover_image']) ? [
+                    'id' => $album['cover_image']['id'],
+                    'preview_path' => $album['cover_image']['preview_path'] ?? null,
+                    'width' => $album['cover_image']['width'] ?? null,
+                    'height' => $album['cover_image']['height'] ?? null,
+                ] : null,
+                'tags' => array_map(function($tag) {
+                    return ['id' => $tag['id'], 'name' => $tag['name'], 'slug' => $tag['slug']];
+                }, $album['tags'] ?? []),
+            ];
+        }, $albums);
+
         // Return JSON response for AJAX
         $response->getBody()->write(json_encode([
             'success' => true,
-            'albums' => $albums,
-            'total' => count($albums),
+            'albums' => $safeAlbums,
+            'total' => count($safeAlbums),
             'filters' => $filters
         ]));
-        
+
         return $response->withHeader('Content-Type', 'application/json');
     }
 
