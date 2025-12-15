@@ -1,5 +1,5 @@
 {
-    "name": "photoCMS",
+    "name": "Cimaise",
     "version": "1.0.0",
     "description": "Professional Photography Portfolio CMS - A modern, minimalist content management system designed for photographers to showcase their work with elegant galleries, advanced image processing, and comprehensive SEO optimization.",
     "author": "Fabio",
@@ -19,5 +19,5 @@
         "Social sharing integration"
     ],
     "release_date": "2025-12-12",
-    "repository": "https://github.com/fabiodalez-dev/photoCMS"
+    "repository": "https://github.com/fabiodalez-dev/cimaise"
 }

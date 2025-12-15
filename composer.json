@@ -1,5 +1,5 @@
 {
-  "name": "fabiodalez-dev/photocms",
+  "name": "fabiodalez-dev/cimaise",
   "description": "Minimalist photography CMS (PHP 8.2, Slim 4, Twig, MySQL, Vite, Tailwind, GSAP)",
   "type": "project",
   "require": {

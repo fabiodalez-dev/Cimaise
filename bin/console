@@ -12,13 +12,13 @@ $isInstallCommand = in_array('install', $argv) || in_array('i', $argv);
 
 if ($isInstallCommand) {
     // For install command, create application without database dependencies
-    $cli = new Application('photoCMS CLI', '0.1.0');
+    $cli = new Application('Cimaise CLI', '0.1.0');
     $cli->add(new App\Tasks\InstallCommand());
 } else {
     // For other commands, load container with database
     $container = require __DIR__ . '/../app/Config/bootstrap.php';
     
-    $cli = new Application('photoCMS CLI', '0.1.0');
+    $cli = new Application('Cimaise CLI', '0.1.0');
     
     $cli->add(new App\Tasks\DbTestCommand($container['db']));
     $cli->add(new App\Tasks\MigrateCommand($container['db'], __DIR__ . '/../database/migrations'));

@@ -53,7 +53,7 @@ class SettingsService
             'image.preview' => ['width' => 480, 'height' => null],
             'visibility' => ['public' => true],
             'gallery.default_template_id' => null,
-            'site.title' => 'photoCMS',
+            'site.title' => 'Cimaise',
             'site.logo' => null,
             'site.description' => 'Professional Photography Portfolio',
             'site.copyright' => '© 2024 Photography Portfolio',

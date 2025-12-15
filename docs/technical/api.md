@@ -1,8 +1,8 @@
-# API e Endpoint - photoCMS
+# API e Endpoint - Cimaise
 
 ## Panoramica
 
-photoCMS espone due tipologie di API:
+Cimaise espone due tipologie di API:
 
 1. **API Public** (`/api/*`): Endpoint pubblici non autenticati per frontend
 2. **API Admin** (`/admin/*`, `/api/admin/*`): Endpoint protetti da AuthMiddleware

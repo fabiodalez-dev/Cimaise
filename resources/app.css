@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom CSS for photoCMS */
+/* Custom CSS for Cimaise */
 @layer base {
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;

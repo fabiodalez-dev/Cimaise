@@ -22,7 +22,7 @@ class InitCommand extends Command
 
     protected function configure(): void
     {
-        $this->setDescription('Initialize the photoCMS application')
+        $this->setDescription('Initialize the Cimaise application')
              ->addOption('skip-seed', null, InputOption::VALUE_NONE, 'Skip seeding demo data')
              ->addOption('admin-email', null, InputOption::VALUE_REQUIRED, 'Admin email address')
              ->addOption('admin-password', null, InputOption::VALUE_REQUIRED, 'Admin password')
@@ -32,7 +32,7 @@ class InitCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('');
-        $output->writeln('🚀 <info>Initializing photoCMS...</info>');
+        $output->writeln('🚀 <info>Initializing Cimaise...</info>');
         $output->writeln('');
         
         $helper = $this->getHelper('question');
@@ -117,7 +117,7 @@ class InitCommand extends Command
         
         // Success summary
         $output->writeln('');
-        $output->writeln('🎉 <info>photoCMS initialization completed successfully!</info>');
+        $output->writeln('🎉 <info>Cimaise initialization completed successfully!</info>');
         $output->writeln('');
         $output->writeln('<comment>Next steps:</comment>');
         $output->writeln('1. Start the PHP server: <info>php -S 127.0.0.1:8000 -t public</info>');
