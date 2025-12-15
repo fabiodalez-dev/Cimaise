@@ -385,7 +385,7 @@ class TranslationService
 
             // Footer
             ['footer.copyright', '© {year} All rights reserved', 'footer', 'Copyright text with year parameter'],
-            ['footer.powered_by', 'Powered by photoCMS', 'footer', 'Powered by text'],
+            ['footer.powered_by', 'Powered by Cimaise', 'footer', 'Powered by text'],
             ['footer.privacy', 'Privacy Policy', 'footer', 'Privacy policy link'],
             ['footer.terms', 'Terms of Service', 'footer', 'Terms link'],
 

@@ -1,4 +1,4 @@
--- photoCMS Complete MySQL Schema with Data
+-- Cimaise Complete MySQL Schema with Data
 -- Generated from template.sqlite database
 -- This file creates the complete database structure and inserts all seed data
 
@@ -482,7 +482,7 @@ ALTER TABLE `templates` AUTO_INCREMENT = 13;
 ALTER TABLE `films` AUTO_INCREMENT = 45;
 
 -- Analytics system tables
--- photoCMS Analytics Migration
+-- Cimaise Analytics Migration
 
 -- Analytics sessions table
 CREATE TABLE IF NOT EXISTS `analytics_sessions` (

@@ -1,4 +1,4 @@
-# Installazione e Deployment - photoCMS
+# Installazione e Deployment - Cimaise
 
 ## Requisiti di Sistema
 
@@ -45,11 +45,11 @@ max_execution_time = 300
 
 ```bash
 # Via FTP/SFTP
-upload photoCMS/* to /public_html/
+upload Cimaise/* to /public_html/
 
 # Via Git
-git clone https://github.com/yourusername/photoCMS.git /var/www/photoCMS
-cd /var/www/photoCMS
+git clone https://github.com/yourusername/Cimaise.git /var/www/Cimaise
+cd /var/www/Cimaise
 ```
 
 ### 2. Set Permissions
@@ -69,9 +69,9 @@ chmod +x bin/console
 
 **Owner** (se condiviso con webserver):
 ```bash
-chown -R www-data:www-data /var/www/photoCMS
+chown -R www-data:www-data /var/www/Cimaise
 # o
-chown -R nginx:nginx /var/www/photoCMS
+chown -R nginx:nginx /var/www/Cimaise
 ```
 
 ### 3. Install Dependencies
@@ -99,8 +99,8 @@ APP_URL=https://yourdomain.com
 DB_CONNECTION=mysql
 DB_HOST=localhost
 DB_PORT=3306
-DB_DATABASE=photocms_prod
-DB_USERNAME=photocms_user
+DB_DATABASE=cimaise_prod
+DB_USERNAME=cimaise_user
 DB_PASSWORD=STRONG_RANDOM_PASSWORD
 
 SESSION_SECRET=GENERATE_RANDOM_64_CHAR_STRING
@@ -115,9 +115,9 @@ php -r "echo bin2hex(random_bytes(32)) . PHP_EOL;"
 
 **MySQL**:
 ```sql
-CREATE DATABASE photocms_prod CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'photocms_user'@'localhost' IDENTIFIED BY 'STRONG_PASSWORD';
-GRANT SELECT, INSERT, UPDATE, DELETE ON photocms_prod.* TO 'photocms_user'@'localhost';
+CREATE DATABASE cimaise_prod CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'cimaise_user'@'localhost' IDENTIFIED BY 'STRONG_PASSWORD';
+GRANT SELECT, INSERT, UPDATE, DELETE ON cimaise_prod.* TO 'cimaise_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -150,24 +150,24 @@ php bin/console sitemap:generate
 
 ### Apache
 
-**Document Root**: `/var/www/photoCMS/public`
+**Document Root**: `/var/www/Cimaise/public`
 
-**VirtualHost** (`/etc/apache2/sites-available/photocms.conf`):
+**VirtualHost** (`/etc/apache2/sites-available/cimaise.conf`):
 ```apache
 <VirtualHost *:80>
     ServerName yourdomain.com
     ServerAlias www.yourdomain.com
-    DocumentRoot /var/www/photoCMS/public
+    DocumentRoot /var/www/Cimaise/public
 
-    <Directory /var/www/photoCMS/public>
+    <Directory /var/www/Cimaise/public>
         AllowOverride All
         Require all granted
         Options -Indexes +FollowSymLinks
     </Directory>
 
     # Logs
-    ErrorLog ${APACHE_LOG_DIR}/photocms_error.log
-    CustomLog ${APACHE_LOG_DIR}/photocms_access.log combined
+    ErrorLog ${APACHE_LOG_DIR}/cimaise_error.log
+    CustomLog ${APACHE_LOG_DIR}/cimaise_access.log combined
 
     # Security
     <FilesMatch "\.(?:env|git|htaccess|htpasswd)$">
@@ -185,7 +185,7 @@ a2enmod expires
 
 **Enable site**:
 ```bash
-a2ensite photocms.conf
+a2ensite cimaise.conf
 systemctl reload apache2
 ```
 
@@ -199,14 +199,14 @@ certbot --apache -d yourdomain.com -d www.yourdomain.com
 
 ### Nginx
 
-**Config** (`/etc/nginx/sites-available/photocms`):
+**Config** (`/etc/nginx/sites-available/cimaise`):
 ```nginx
 server {
     listen 80;
     listen [::]:80;
     server_name yourdomain.com www.yourdomain.com;
 
-    root /var/www/photoCMS/public;
+    root /var/www/Cimaise/public;
     index index.php;
 
     # Gzip compression
@@ -250,7 +250,7 @@ server {
 
 **Enable site**:
 ```bash
-ln -s /etc/nginx/sites-available/photocms /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/cimaise /etc/nginx/sites-enabled/
 nginx -t
 systemctl reload nginx
 ```
@@ -268,7 +268,7 @@ certbot --nginx -d yourdomain.com -d www.yourdomain.com
 **Caddyfile**:
 ```
 yourdomain.com {
-    root * /var/www/photoCMS/public
+    root * /var/www/Cimaise/public
     encode gzip
     php_fastcgi unix//var/run/php/php8.2-fpm.sock
 
@@ -367,26 +367,26 @@ session.save_path="tcp://127.0.0.1:6379"
 
 ```bash
 # crontab -e
-0 2 * * * cd /var/www/photoCMS && php bin/console analytics:cleanup --days 365 >> /var/log/photocms_analytics.log 2>&1
+0 2 * * * cd /var/www/Cimaise && php bin/console analytics:cleanup --days 365 >> /var/log/cimaise_analytics.log 2>&1
 ```
 
 ### Analytics Summarize (giornaliero)
 
 ```bash
-0 3 * * * cd /var/www/photoCMS && php bin/console analytics:summarize >> /var/log/photocms_analytics.log 2>&1
+0 3 * * * cd /var/www/Cimaise && php bin/console analytics:summarize >> /var/log/cimaise_analytics.log 2>&1
 ```
 
 ### Image Generation (on-demand, o schedulato)
 
 ```bash
 # Genera varianti mancanti ogni notte
-0 4 * * * cd /var/www/photoCMS && php bin/console images:generate --missing >> /var/log/photocms_images.log 2>&1
+0 4 * * * cd /var/www/Cimaise && php bin/console images:generate --missing >> /var/log/cimaise_images.log 2>&1
 ```
 
 ### Sitemap Regeneration (settimanale)
 
 ```bash
-0 5 * * 0 cd /var/www/photoCMS && php bin/console sitemap:generate >> /var/log/photocms_sitemap.log 2>&1
+0 5 * * 0 cd /var/www/Cimaise && php bin/console sitemap:generate >> /var/log/cimaise_sitemap.log 2>&1
 ```
 
 ---
@@ -399,8 +399,8 @@ session.save_path="tcp://127.0.0.1:6379"
 ```bash
 #!/bin/bash
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
-BACKUP_DIR="/var/backups/photocms"
-DB_NAME="photocms_prod"
+BACKUP_DIR="/var/backups/cimaise"
+DB_NAME="cimaise_prod"
 
 mkdir -p $BACKUP_DIR
 
@@ -415,7 +415,7 @@ echo "Backup completed: $BACKUP_DIR/db_$DATE.sql.gz"
 
 **Cron**:
 ```bash
-0 1 * * * /var/www/photoCMS/backup_db.sh >> /var/log/photocms_backup.log 2>&1
+0 1 * * * /var/www/Cimaise/backup_db.sh >> /var/log/cimaise_backup.log 2>&1
 ```
 
 ### Media Files Backup
@@ -424,8 +424,8 @@ echo "Backup completed: $BACKUP_DIR/db_$DATE.sql.gz"
 ```bash
 #!/bin/bash
 rsync -avz --delete \
-  /var/www/photoCMS/storage/originals/ \
-  user@backup-server:/backups/photocms/originals/
+  /var/www/Cimaise/storage/originals/ \
+  user@backup-server:/backups/cimaise/originals/
 ```
 
 **Alternative**:
@@ -439,7 +439,7 @@ rsync -avz --delete \
 ### Log Files
 
 **Locations**:
-- Apache: `/var/log/apache2/photocms_*.log`
+- Apache: `/var/log/apache2/cimaise_*.log`
 - Nginx: `/var/log/nginx/access.log`, `/var/log/nginx/error.log`
 - PHP: `/var/log/php_errors.log` (configure in php.ini)
 - Application: `storage/logs/` (implementare logger)
@@ -447,10 +447,10 @@ rsync -avz --delete \
 **Monitoring**:
 ```bash
 # Real-time
-tail -f /var/log/apache2/photocms_error.log
+tail -f /var/log/apache2/cimaise_error.log
 
 # Analizza errori
-grep "500" /var/log/apache2/photocms_error.log | tail -20
+grep "500" /var/log/apache2/cimaise_error.log | tail -20
 ```
 
 ### Uptime Monitoring
@@ -480,23 +480,23 @@ newrelic-install install
 
 ```bash
 # Owner: www-data (webserver user)
-chown -R www-data:www-data /var/www/photoCMS
+chown -R www-data:www-data /var/www/Cimaise
 
 # Directories: 755
-find /var/www/photoCMS -type d -exec chmod 755 {} \;
+find /var/www/Cimaise -type d -exec chmod 755 {} \;
 
 # Files: 644
-find /var/www/photoCMS -type f -exec chmod 644 {} \;
+find /var/www/Cimaise -type f -exec chmod 644 {} \;
 
 # Writable storage: 775
-chmod -R 775 /var/www/photoCMS/storage
-chmod -R 775 /var/www/photoCMS/public/media
+chmod -R 775 /var/www/Cimaise/storage
+chmod -R 775 /var/www/Cimaise/public/media
 
 # .env: 600 (readable solo da owner)
-chmod 600 /var/www/photoCMS/.env
+chmod 600 /var/www/Cimaise/.env
 
 # bin/console: 755 (executable)
-chmod 755 /var/www/photoCMS/bin/console
+chmod 755 /var/www/Cimaise/bin/console
 ```
 
 ### 2. Firewall (UFW)
@@ -557,12 +557,12 @@ namespace Deployer;
 
 require 'recipe/common.php';
 
-set('application', 'photoCMS');
-set('repository', 'git@github.com:user/photoCMS.git');
+set('application', 'Cimaise');
+set('repository', 'git@github.com:user/Cimaise.git');
 
 host('production')
     ->set('remote_user', 'deploy')
-    ->set('deploy_path', '/var/www/photoCMS');
+    ->set('deploy_path', '/var/www/Cimaise');
 
 task('deploy', [
     'deploy:prepare',
@@ -587,7 +587,7 @@ vendor/bin/dep deploy production
 
 ## Subdirectory Installation
 
-Se photoCMS è in sottodirectory (es. `https://example.com/photos/`):
+Se Cimaise è in sottodirectory (es. `https://example.com/photos/`):
 
 ### 1. Update .env
 
@@ -615,20 +615,20 @@ Vite gestisce automaticamente base path se `APP_URL` include subdirectory.
 cp database/database.sqlite backups/dev_backup.sqlite
 
 # MySQL
-mysqldump photocms_dev > backups/dev_backup.sql
+mysqldump cimaise_dev > backups/dev_backup.sql
 ```
 
 ### 2. Import in Production
 
 ```bash
-mysql -u root -p photocms_prod < backups/dev_backup.sql
+mysql -u root -p cimaise_prod < backups/dev_backup.sql
 ```
 
 ### 3. Sync Media Files
 
 ```bash
-rsync -avz storage/originals/ production-server:/var/www/photoCMS/storage/originals/
-rsync -avz public/media/ production-server:/var/www/photoCMS/public/media/
+rsync -avz storage/originals/ production-server:/var/www/Cimaise/storage/originals/
+rsync -avz public/media/ production-server:/var/www/Cimaise/public/media/
 ```
 
 ### 4. Regenerate Images (production)
@@ -646,7 +646,7 @@ php bin/console images:generate
 
 ```bash
 # Check Apache/Nginx error log
-tail -f /var/log/apache2/photocms_error.log
+tail -f /var/log/apache2/cimaise_error.log
 
 # Check PHP error log
 tail -f /var/log/php_errors.log
@@ -662,7 +662,7 @@ tail -f /var/log/php_errors.log
 php bin/console db:test
 
 # Verifica credenziali
-mysql -u photocms_user -p photocms_prod
+mysql -u cimaise_user -p cimaise_prod
 
 # Check .env
 cat .env | grep DB_
@@ -672,7 +672,7 @@ cat .env | grep DB_
 
 ```bash
 # Reimposta permessi
-chown -R www-data:www-data /var/www/photoCMS
+chown -R www-data:www-data /var/www/Cimaise
 chmod -R 775 storage/ public/media/
 ```
 

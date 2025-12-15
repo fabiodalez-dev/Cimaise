@@ -2192,8 +2192,8 @@
     <script>
         // Initialize analytics with site configuration
         // Enable by default; JS guard will self-disable if endpoint fails
-        window.photoCMSAnalyticsEnabled = true;
-        window.photoCMSAnalyticsConfig = {
+        window.CimaiseAnalyticsEnabled = true;
+        window.CimaiseAnalyticsConfig = {
             endpoint: '{{ base_path }}/api/analytics/track',
             debug: {{ app_debug|default(false) ? 'true' : 'false' }}
         };

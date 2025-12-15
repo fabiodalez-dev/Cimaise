@@ -1,6 +1,6 @@
-# Guida Sviluppo Plugin - photoCMS
+# Guida Sviluppo Plugin - Cimaise
 
-Impara a creare plugin potenti per photoCMS usando il sistema di hooks.
+Impara a creare plugin potenti per Cimaise usando il sistema di hooks.
 
 ---
 
@@ -18,7 +18,7 @@ Impara a creare plugin potenti per photoCMS usando il sistema di hooks.
 
 ## Introduzione
 
-Il sistema di plugin di photoCMS permette di estendere funzionalità senza modificare il core. Basato su **hooks** (punti di aggancio), simile a WordPress ma modernizzato.
+Il sistema di plugin di Cimaise permette di estendere funzionalità senza modificare il core. Basato su **hooks** (punti di aggancio), simile a WordPress ma modernizzato.
 
 **Vantaggi**:
 - ✅ Estendibilità senza toccare core
@@ -63,7 +63,7 @@ plugins/
 <?php
 /**
  * Plugin Name: My Awesome Plugin
- * Description: Does awesome things with photoCMS
+ * Description: Does awesome things with Cimaise
  * Version: 1.0.0
  * Author: Your Name
  * Author URI: https://yoursite.com
@@ -386,7 +386,7 @@ class MyPlugin
 
     public function init(): void
     {
-        Hooks::addAction('photocms_init', [$this, 'setup']);
+        Hooks::addAction('cimaise_init', [$this, 'setup']);
     }
 
     public function setup(): void
@@ -635,7 +635,7 @@ zip -r my-awesome-plugin-v1.0.0.zip my-awesome-plugin/
   "homepage": "https://example.com/plugin",
   "license": "MIT",
   "requires": {
-    "photocms": ">=1.0.0",
+    "cimaise": ">=1.0.0",
     "php": ">=8.2"
   },
   "download_url": "https://example.com/downloads/my-plugin-1.0.0.zip"
@@ -682,7 +682,7 @@ $stats = PluginManager::getInstance()->getStats();
 - **Hooks Reference**: [HOOKS_REFERENCE.md](./HOOKS_REFERENCE.md)
 - **Plugin Examples**: [PLUGIN_EXAMPLES.md](./PLUGIN_EXAMPLES.md)
 - **Core Code**: `app/Support/PluginManager.php`
-- **Community Plugins**: https://photocms.com/plugins (future)
+- **Community Plugins**: https://cimaise.com/plugins (future)
 
 ---
 
@@ -690,7 +690,7 @@ $stats = PluginManager::getInstance()->getStats();
 
 - **Issues**: GitHub repository issues
 - **Forum**: Community forum (future)
-- **Email**: plugins@photocms.com
+- **Email**: plugins@cimaise.com
 
 ---
 

@@ -1,6 +1,6 @@
-# photoCMS - Documentazione Completa
+# Cimaise - Documentazione Completa
 
-Benvenuto nella documentazione completa di **photoCMS**, un sistema di gestione contenuti (CMS) professionale per portfolio fotografici.
+Benvenuto nella documentazione completa di **Cimaise**, un sistema di gestione contenuti (CMS) professionale per portfolio fotografici.
 
 **Versione**: 1.0.0
 **Ultimo aggiornamento**: 17 Novembre 2025
@@ -64,7 +64,7 @@ Questa documentazione è divisa in due sezioni principali:
 *Per amministratori, editori e utilizzatori finali*
 
 1. **[Introduzione](./user-manual/introduction.md)**
-   - Cos'è photoCMS
+   - Cos'è Cimaise
    - Caratteristiche principali
    - Requisiti
    - Supporto e risorse
@@ -160,7 +160,7 @@ Se sei un amministratore del sito o un editor di contenuti, inizia dalla sezione
 - L'analisi delle statistiche del sito
 
 ### Per Sviluppatori
-Se sei uno sviluppatore che vuole contribuire, estendere o personalizzare photoCMS, consulta la sezione **[Documentazione Tecnica](./technical/)**. Questa sezione copre:
+Se sei uno sviluppatore che vuole contribuire, estendere o personalizzare Cimaise, consulta la sezione **[Documentazione Tecnica](./technical/)**. Questa sezione copre:
 - L'architettura interna dell'applicazione
 - Lo schema del database
 - Le API disponibili
@@ -186,7 +186,7 @@ Se sei uno sviluppatore che vuole contribuire, estendere o personalizzare photoC
 
 ## 📄 Licenza
 
-Copyright © 2024 photoCMS. Tutti i diritti riservati.
+Copyright © 2024 Cimaise. Tutti i diritti riservati.
 
 ---
 

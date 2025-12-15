@@ -1,10 +1,10 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Settings — photoCMS{% endblock %}
+{% block title %}Settings — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
-      <p class="text-gray-600 mt-1">Configure your photoCMS installation</p>
+      <p class="text-gray-600 mt-1">Configure your Cimaise installation</p>
     </div>
   </div>
 
@@ -128,7 +128,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Site Title</label>
-            <input type="text" name="site_title" value="{{ settings['site.title'] ?? 'photoCMS' }}" class="form-input">
+            <input type="text" name="site_title" value="{{ settings['site.title'] ?? 'Cimaise' }}" class="form-input">
           </div>
           
           <div>

@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Hello photoCMS
+ * Plugin Name: Hello Cimaise
  * Description: Simple example plugin demonstrating the hooks system
  * Version: 1.0.0
- * Author: photoCMS Team
+ * Author: Cimaise Team
  * License: MIT
  */
 
@@ -12,12 +12,12 @@ declare(strict_types=1);
 use App\Support\Hooks;
 
 // Prevent direct access
-if (!defined('PHOTOCMS_VERSION')) {
-    define('PHOTOCMS_VERSION', '1.0.0');
+if (!defined('CIMAISE_VERSION')) {
+    define('CIMAISE_VERSION', '1.0.0');
 }
 
 /**
- * Hello photoCMS Plugin
+ * Hello Cimaise Plugin
  *
  * Demonstrates basic plugin functionality:
  * - Adding admin menu item
@@ -25,9 +25,9 @@ if (!defined('PHOTOCMS_VERSION')) {
  * - Hooking into application lifecycle
  * - Logging events
  */
-class HelloPhotoCMSPlugin
+class HelloCimaisePlugin
 {
-    private const PLUGIN_NAME = 'hello-photocms';
+    private const PLUGIN_NAME = 'hello-cimaise';
     private const VERSION = '1.0.0';
 
     public function __construct()
@@ -42,7 +42,7 @@ class HelloPhotoCMSPlugin
     public function init(): void
     {
         // Application lifecycle
-        Hooks::addAction('photocms_init', [$this, 'onAppInit'], 10, self::PLUGIN_NAME);
+        Hooks::addAction('cimaise_init', [$this, 'onAppInit'], 10, self::PLUGIN_NAME);
 
         // Admin menu
         Hooks::addFilter('admin_menu_items', [$this, 'addMenuItems'], 10, self::PLUGIN_NAME);
@@ -56,25 +56,25 @@ class HelloPhotoCMSPlugin
         // Add custom message to frontend footer
         Hooks::addFilter('footer_content', [$this, 'addFooterMessage'], 10, self::PLUGIN_NAME);
 
-        error_log("Hello photoCMS plugin initialized v" . self::VERSION);
+        error_log("Hello Cimaise plugin initialized v" . self::VERSION);
     }
 
     /**
-     * Hook: photocms_init
+     * Hook: cimaise_init
      * Called when application boots
      */
     public function onAppInit($db, $pluginManager): void
     {
-        error_log("Hello photoCMS: Application initialized!");
+        error_log("Hello Cimaise: Application initialized!");
 
         // Example: Check database connection
         if ($db) {
-            error_log("Hello photoCMS: Database connected successfully");
+            error_log("Hello Cimaise: Database connected successfully");
         }
 
         // Example: Get plugin stats
         $stats = $pluginManager->getStats();
-        error_log("Hello photoCMS: Total hooks registered: " . $stats['total_hooks']);
+        error_log("Hello Cimaise: Total hooks registered: " . $stats['total_hooks']);
     }
 
     /**
@@ -102,7 +102,7 @@ class HelloPhotoCMSPlugin
         $tabs['hello'] = [
             'title' => 'Hello Plugin',
             'icon' => 'hand-wave',
-            'description' => 'Settings for Hello photoCMS plugin',
+            'description' => 'Settings for Hello Cimaise plugin',
             'fields' => [
                 'hello_enabled' => [
                     'type' => 'checkbox',
@@ -114,7 +114,7 @@ class HelloPhotoCMSPlugin
                     'type' => 'text',
                     'label' => 'Welcome Message',
                     'description' => 'Custom message shown in footer',
-                    'default' => 'Powered by Hello photoCMS Plugin!',
+                    'default' => 'Powered by Hello Cimaise Plugin!',
                     'placeholder' => 'Enter your message...'
                 ],
                 'hello_log_level' => [
@@ -142,7 +142,7 @@ class HelloPhotoCMSPlugin
     public function logAlbumCreation(int $albumId, array $albumData): void
     {
         $title = $albumData['title'] ?? 'Unknown';
-        $message = "Hello photoCMS: New album created! ID: {$albumId}, Title: {$title}";
+        $message = "Hello Cimaise: New album created! ID: {$albumId}, Title: {$title}";
 
         error_log($message);
 
@@ -159,7 +159,7 @@ class HelloPhotoCMSPlugin
      */
     public function addFooterMessage(string $html): string
     {
-        $message = "Powered by Hello photoCMS Plugin v" . self::VERSION;
+        $message = "Powered by Hello Cimaise Plugin v" . self::VERSION;
 
         $customHtml = <<<HTML
         <div class="hello-plugin-footer" style="text-align: center; padding: 10px; color: #666; font-size: 0.9em;">
@@ -172,4 +172,4 @@ class HelloPhotoCMSPlugin
 }
 
 // Initialize plugin
-new HelloPhotoCMSPlugin();
+new HelloCimaisePlugin();

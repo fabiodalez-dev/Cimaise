@@ -1,22 +1,22 @@
-# photoCMS Installation Guide
+# Cimaise Installation Guide
 
-photoCMS now includes improved installer support that works in any server environment, including subdirectories.
+Cimaise now includes improved installer support that works in any server environment, including subdirectories.
 
 ## Quick Installation Options
 
 ### Option 1: Simple Installer (Recommended)
 1. Upload all files to your server
-2. Visit: `https://yourdomain.com/path/to/photocms/public/simple-installer.php`
-3. Fill in the form and click "Install photoCMS"
+2. Visit: `https://yourdomain.com/path/to/cimaise/public/simple-installer.php`
+3. Fill in the form and click "Install Cimaise"
 
 ### Option 2: Main Installer
 1. Upload all files to your server  
-2. Visit: `https://yourdomain.com/path/to/photocms/public/installer.php`
+2. Visit: `https://yourdomain.com/path/to/cimaise/public/installer.php`
 3. Follow the step-by-step wizard
 
 ### Option 3: Automatic Detection
 1. Upload all files to your server
-2. Visit: `https://yourdomain.com/path/to/photocms/public/index.php`
+2. Visit: `https://yourdomain.com/path/to/cimaise/public/index.php`
 3. You'll be automatically redirected to the installer
 
 ## Installation Environments
@@ -35,10 +35,10 @@ photoCMS now includes improved installer support that works in any server enviro
 
 #### cPanel/Shared Hosting
 ```
-/public_html/photocms/
+/public_html/cimaise/
 ├── app/
 ├── database/
-├── public/          <- Set as document root or access via /photocms/public/
+├── public/          <- Set as document root or access via /cimaise/public/
 ├── resources/
 └── ...
 ```

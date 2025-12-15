@@ -142,7 +142,7 @@ $unrated = $ratingService->getUnratedImages($albumId);
 
 ## Hooks Used
 
-- `photocms_init` - Setup database
+- `cimaise_init` - Setup database
 - `admin_list_columns` - Add rating column
 - `admin_bulk_actions` - Add bulk rating actions
 - `admin_form_fields` - Add rating field to edit form
@@ -231,4 +231,4 @@ MIT
 
 ## Author
 
-photoCMS Team
+Cimaise Team

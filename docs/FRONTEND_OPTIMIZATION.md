@@ -1,4 +1,4 @@
-# 🎨 Frontend Optimization Guide - photoCMS
+# 🎨 Frontend Optimization Guide - Cimaise
 
 ## 📋 Indice
 

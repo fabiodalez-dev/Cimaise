@@ -1,6 +1,6 @@
-# Primi Passi - photoCMS
+# Primi Passi - Cimaise
 
-Questa guida ti accompagna nei primi passi con photoCMS: dal primo login alla pubblicazione del tuo primo album.
+Questa guida ti accompagna nei primi passi con Cimaise: dal primo login alla pubblicazione del tuo primo album.
 
 ---
 

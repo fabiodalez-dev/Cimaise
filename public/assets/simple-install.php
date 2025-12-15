@@ -1,5 +1,5 @@
 <?php
-// Simple installer for photoCMS
+// Simple installer for Cimaise
 $rootPath = dirname(__DIR__);
 $dbPath = $rootPath . '/database/app.db';
 $envPath = $rootPath . '/.env';
@@ -20,7 +20,7 @@ if (file_exists($envPath) && file_exists($dbPath) && filesize($dbPath) > 0) {
 }
 
 if ($installed) {
-    echo "<h1>PhotoCMS già installato!</h1>";
+    echo "<h1>Cimaise già installato!</h1>";
     echo '<p><a href="index.php">Vai alla home</a></p>';
     exit;
 }
@@ -110,7 +110,7 @@ SESSION_SECRET=$sessionSecret
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PhotoCMS - Installazione</title>
+    <title>Cimaise - Installazione</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
         .form-group { margin: 15px 0; }
@@ -124,7 +124,7 @@ SESSION_SECRET=$sessionSecret
     </style>
 </head>
 <body>
-    <h1>📸 PhotoCMS - Installazione</h1>
+    <h1>📸 Cimaise - Installazione</h1>
     
     <div class="info">
         <strong>Info rilevate:</strong><br>
@@ -154,7 +154,7 @@ SESSION_SECRET=$sessionSecret
             <input type="password" name="password" value="admin123" required>
         </div>
         
-        <button type="submit">🚀 Installa PhotoCMS</button>
+        <button type="submit">🚀 Installa Cimaise</button>
     </form>
 </body>
 </html>

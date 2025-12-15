@@ -1,12 +1,12 @@
-# Guida Installazione - photoCMS
+# Guida Installazione - Cimaise
 
-Questa guida ti accompagna passo-passo nell'installazione di photoCMS sul tuo server.
+Questa guida ti accompagna passo-passo nell'installazione di Cimaise sul tuo server.
 
 ---
 
 ## Opzioni di Installazione
 
-Ci sono due modi per installare photoCMS:
+Ci sono due modi per installare Cimaise:
 
 1. **🌐 Wizard Web** (raccomandato) - Interfaccia grafica user-friendly
 2. **⚡ CLI** (avanzato) - Installazione tramite terminale
@@ -36,14 +36,14 @@ php -m
 ### 2. Upload Files
 
 **Via FTP/SFTP**:
-1. Scarica photoCMS da [link repository]
+1. Scarica Cimaise da [link repository]
 2. Estrai lo ZIP
 3. Upload tutti i file nella directory del tuo sito (es. `public_html/`)
 
 **Via Git** (se hai accesso SSH):
 ```bash
-git clone https://github.com/yourusername/photoCMS.git /var/www/photoCMS
-cd /var/www/photoCMS
+git clone https://github.com/yourusername/Cimaise.git /var/www/Cimaise
+cd /var/www/Cimaise
 ```
 
 ### 3. Imposta Permessi
@@ -83,7 +83,7 @@ Vedrai la schermata di benvenuto del wizard.
 - Inserisci i dati:
   - **Host**: `localhost` (o IP server MySQL)
   - **Porta**: `3306`
-  - **Nome Database**: `photocms` (crealo prima via phpMyAdmin)
+  - **Nome Database**: `cimaise` (crealo prima via phpMyAdmin)
   - **Username**: Il tuo utente MySQL
   - **Password**: La password MySQL
 - Click "Testa Connessione"
@@ -94,13 +94,13 @@ Vedrai la schermata di benvenuto del wizard.
 Via phpMyAdmin:
 1. Login a phpMyAdmin
 2. Click "Nuovo" (New)
-3. Nome: `photocms`
+3. Nome: `cimaise`
 4. Collation: `utf8mb4_unicode_ci`
 5. Click "Crea" (Create)
 
 Via CLI:
 ```sql
-CREATE DATABASE photocms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE cimaise CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 ### Passo 3: Crea Utente Admin
@@ -154,7 +154,7 @@ Opzioni:
 ### 1. Install Dependencies
 
 ```bash
-cd /var/www/photoCMS
+cd /var/www/Cimaise
 
 # PHP dependencies
 composer install --no-dev --optimize-autoloader
@@ -180,7 +180,7 @@ APP_URL=https://tuosito.com
 DB_CONNECTION=mysql  # o sqlite
 DB_HOST=localhost
 DB_PORT=3306
-DB_DATABASE=photocms
+DB_DATABASE=cimaise
 DB_USERNAME=tuo_user
 DB_PASSWORD=tua_password
 
@@ -212,7 +212,7 @@ php bin/console sitemap:generate
 ### 4. Set Permissions
 
 ```bash
-chown -R www-data:www-data /var/www/photoCMS
+chown -R www-data:www-data /var/www/Cimaise
 chmod -R 775 storage/ public/media/ database/
 chmod 600 .env
 ```
@@ -332,7 +332,7 @@ DELETE FROM albums WHERE id IN (SELECT id FROM albums LIMIT 10);
 
 **Verifica credenziali**:
 ```bash
-mysql -u tuo_user -p -h localhost photocms
+mysql -u tuo_user -p -h localhost cimaise
 ```
 
 Se fallisce, verifica username/password in `.env`

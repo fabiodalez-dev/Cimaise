@@ -200,7 +200,7 @@ class InstallerController
         }
         
         return $this->view->render($response, 'installer/settings.twig', [
-            'site_title' => 'photoCMS',
+            'site_title' => 'Cimaise',
             'site_description' => 'Professional Photography Portfolio',
             'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
             'site_email' => '',
@@ -384,7 +384,7 @@ class InstallerController
         } catch (\Throwable) {}
         
         return $this->view->render($response, 'installer/post_setup.twig', [
-            'site_title' => 'photoCMS',
+            'site_title' => 'Cimaise',
             'site_description' => 'Professional Photography Portfolio',
             'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
             'site_email' => '',
@@ -444,7 +444,7 @@ class InstallerController
 
         // Persist settings via direct DB writes (same schema as SettingsService)
         $toSet = [
-            'site.title' => (string)($data['site_title'] ?? 'photoCMS'),
+            'site.title' => (string)($data['site_title'] ?? 'Cimaise'),
             'site.logo' => $data['site_logo'] ?? null,
             'site.description' => (string)($data['site_description'] ?? 'Professional Photography Portfolio'),
             'site.copyright' => (string)($data['site_copyright'] ?? ('© ' . date('Y') . ' Photography Portfolio')),
@@ -500,7 +500,7 @@ class InstallerController
         return new \App\Support\Database(
             host: $vars['DB_HOST'] ?? '127.0.0.1',
             port: (int)($vars['DB_PORT'] ?? 3306),
-            database: $vars['DB_DATABASE'] ?? 'photocms',
+            database: $vars['DB_DATABASE'] ?? 'cimaise',
             username: $vars['DB_USERNAME'] ?? 'root',
             password: $vars['DB_PASSWORD'] ?? '',
             charset: $vars['DB_CHARSET'] ?? 'utf8mb4',
@@ -551,7 +551,7 @@ class InstallerController
                 $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', 
                     $data['db_host'] ?? '127.0.0.1',
                     (int)($data['db_port'] ?? 3306),
-                    $data['db_database'] ?? 'photocms',
+                    $data['db_database'] ?? 'cimaise',
                     $data['db_charset'] ?? 'utf8mb4'
                 );
                 
