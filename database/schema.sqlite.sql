@@ -489,6 +489,24 @@ CREATE TABLE IF NOT EXISTS plugin_status (
 CREATE INDEX IF NOT EXISTS idx_plugin_status_active ON plugin_status(is_active);
 
 -- ============================================
+-- LOGS TABLE (Structured Logging System)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  level INTEGER NOT NULL,
+  level_name TEXT NOT NULL,
+  category TEXT DEFAULT 'app',
+  message TEXT NOT NULL,
+  context TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_logs_level ON logs(level);
+CREATE INDEX IF NOT EXISTS idx_logs_category ON logs(category);
+CREATE INDEX IF NOT EXISTS idx_logs_created_at ON logs(created_at);
+
+-- ============================================
 -- DEFAULT DATA
 -- ============================================
 
