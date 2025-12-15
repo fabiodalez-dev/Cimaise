@@ -114,6 +114,20 @@
     "footer.privacy": "Privacy Policy",
     "footer.terms": "Terms of Service"
   },
+  "cookie": {
+    "cookie.title": "Cookie Settings",
+    "cookie.description": "We use cookies to improve your experience. You can choose which cookies to accept.",
+    "cookie.essential": "Essential",
+    "cookie.essential_desc": "Required for the website to function",
+    "cookie.analytics": "Analytics",
+    "cookie.analytics_desc": "Help us understand how you use the site",
+    "cookie.marketing": "Marketing",
+    "cookie.marketing_desc": "Personalized ads and content",
+    "cookie.accept": "Accept Selected",
+    "cookie.reject": "Reject All",
+    "cookie.bar_text": "We use cookies to enhance your experience.",
+    "cookie.manage": "Manage cookie preferences"
+  },
   "lightbox": {
     "lightbox.close": "Close",
     "lightbox.previous": "Previous",

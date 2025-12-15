@@ -337,6 +337,16 @@ $app->post('/admin/commands/execute', function (Request $request, Response $resp
     return $controller->execute($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+// Privacy & Cookie settings
+$app->get('/admin/privacy', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PrivacyController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/privacy', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PrivacyController($container['db'], Twig::fromRequest($request));
+    return $controller->save($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
 // Locations CRUD
 $app->get('/admin/locations', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
@@ -831,6 +841,52 @@ $app->get('/api/admin/analytics/engagement', function (Request $request, Respons
 $app->get('/api/admin/analytics/404-stats', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
     return $controller->api404Stats($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+// Updates management
+$app->get('/admin/updates', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/updates/check', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->checkUpdates($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/updates/perform', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->performUpdate($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/updates/backup', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->createBackup($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/updates/backup/download', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->downloadBackup($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/updates/backup/delete', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->deleteBackup($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/updates/history', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->getHistory($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/updates/available', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->checkAvailable($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/updates/maintenance/clear', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->clearMaintenance($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Public analytics tracking endpoint (no auth required)

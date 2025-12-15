@@ -448,6 +448,20 @@ class TranslationService
             ['footer.privacy', 'Privacy Policy', 'footer', 'Privacy policy link'],
             ['footer.terms', 'Terms of Service', 'footer', 'Terms link'],
 
+            // Cookie Consent
+            ['cookie.title', 'Cookie Settings', 'cookie', 'Cookie banner title'],
+            ['cookie.description', 'We use cookies to improve your experience. You can choose which cookies to accept.', 'cookie', 'Cookie banner description'],
+            ['cookie.essential', 'Essential', 'cookie', 'Essential cookies category'],
+            ['cookie.essential_desc', 'Required for the website to function', 'cookie', 'Essential cookies description'],
+            ['cookie.analytics', 'Analytics', 'cookie', 'Analytics cookies category'],
+            ['cookie.analytics_desc', 'Help us understand how you use the site', 'cookie', 'Analytics cookies description'],
+            ['cookie.marketing', 'Marketing', 'cookie', 'Marketing cookies category'],
+            ['cookie.marketing_desc', 'Personalized ads and content', 'cookie', 'Marketing cookies description'],
+            ['cookie.accept', 'Accept Selected', 'cookie', 'Accept cookies button'],
+            ['cookie.reject', 'Reject All', 'cookie', 'Reject cookies button'],
+            ['cookie.bar_text', 'We use cookies to enhance your experience.', 'cookie', 'Cookie bar text'],
+            ['cookie.manage', 'Manage cookie preferences', 'cookie', 'Manage cookies button tooltip'],
+
             // Lightbox
             ['lightbox.close', 'Close', 'lightbox', 'Close lightbox button'],
             ['lightbox.previous', 'Previous', 'lightbox', 'Previous image button'],
