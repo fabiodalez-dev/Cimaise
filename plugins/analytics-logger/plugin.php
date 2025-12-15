@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 use App\Support\Hooks;
+use App\Support\Logger;
 
 /**
  * Analytics Logger Plugin
@@ -51,10 +52,10 @@ class AnalyticsLoggerPlugin
         // Add dashboard widget
         Hooks::addFilter('admin_dashboard_widgets', [$this, 'addDashboardWidget'], 10, self::PLUGIN_NAME);
 
-        error_log("Analytics Logger plugin initialized");
+        Logger::info('Analytics Logger plugin initialized', [], 'plugin');
     }
 
-    public function setDatabase($db, $pluginManager): void
+    public function setDatabase(\PDO $db, mixed $pluginManager): void
     {
         $this->db = $db;
         $this->createTables();
@@ -82,9 +83,9 @@ class AnalyticsLoggerPlugin
 
         try {
             $this->db->exec($sql);
-            error_log("Analytics Logger: Tables created successfully");
-        } catch (PDOException $e) {
-            error_log("Analytics Logger: Error creating tables: " . $e->getMessage());
+            Logger::debug('Analytics Logger: Tables created successfully', [], 'plugin');
+        } catch (\PDOException $e) {
+            Logger::error('Analytics Logger: Error creating tables', ['error' => $e->getMessage()], 'plugin');
         }
 
         // Create index
@@ -97,10 +98,11 @@ class AnalyticsLoggerPlugin
      */
     public function trackLogin(?int $userId, array $userData): void
     {
+        // Note: Avoid logging PII (email) directly - use user_id instead
         $this->logCustomEvent('user_login', [
             'category' => 'authentication',
             'action' => 'login',
-            'label' => $userData['email'] ?? 'unknown',
+            'label' => 'user_' . ($userId ?? 'unknown'),
             'user_id' => $userId,
             'metadata' => [
                 'role' => $userData['role'] ?? 'user',
@@ -268,9 +270,9 @@ class AnalyticsLoggerPlugin
                 json_encode($data['metadata'] ?? [])
             ]);
 
-            error_log("Analytics Logger: Event '{$eventType}' logged successfully");
-        } catch (PDOException $e) {
-            error_log("Analytics Logger: Error logging event: " . $e->getMessage());
+            Logger::debug('Analytics Logger: Event logged', ['event_type' => $eventType], 'plugin');
+        } catch (\PDOException $e) {
+            Logger::error('Analytics Logger: Error logging event', ['event_type' => $eventType, 'error' => $e->getMessage()], 'plugin');
         }
     }
 
