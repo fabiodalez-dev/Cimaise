@@ -481,6 +481,24 @@ CREATE TABLE IF NOT EXISTS `plugin_status` (
   KEY `idx_plugin_status_active` (`is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ============================================
+-- LOGS TABLE (Structured Logging System)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `logs` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `level` INT NOT NULL,
+  `level_name` VARCHAR(20) NOT NULL,
+  `category` VARCHAR(50) DEFAULT 'app',
+  `message` TEXT NOT NULL,
+  `context` TEXT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_logs_level` (`level`),
+  KEY `idx_logs_category` (`category`),
+  KEY `idx_logs_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================
