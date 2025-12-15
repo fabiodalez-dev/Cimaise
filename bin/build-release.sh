@@ -268,15 +268,24 @@ build_frontend() {
         return 0
     fi
 
+    # Verify npm is available
+    if ! command -v npm &> /dev/null; then
+        log_error "npm not found but package.json exists: install Node.js before creating a release"
+        exit 1
+    fi
+
     log_info "Building frontend assets..."
 
     log_info "Installing NPM dependencies..."
     npm ci --silent 2>/dev/null || npm install --silent
 
     log_info "Running npm build..."
-    npm run build 2>/dev/null || log_warning "No build script found, skipping"
-
-    log_success "Frontend build completed"
+    if npm run build; then
+        log_success "Frontend build completed"
+    else
+        log_error "npm run build failed: aborting release"
+        exit 1
+    fi
 }
 
 create_release_package() {
