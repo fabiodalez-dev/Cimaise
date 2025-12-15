@@ -76,6 +76,8 @@ class GalleriesController extends BaseController
                 'category_name' => $album['category_name'] ?? null,
                 'category_slug' => $album['category_slug'] ?? null,
                 'images_count' => $album['images_count'] ?? 0,
+                'is_password_protected' => $album['is_password_protected'] ?? false,
+                'is_nsfw' => (bool)($album['is_nsfw'] ?? false),
                 'cover_image' => isset($album['cover_image']) ? [
                     'id' => $album['cover_image']['id'],
                     'preview_path' => $album['cover_image']['preview_path'] ?? null,
@@ -515,14 +517,18 @@ class GalleriesController extends BaseController
         
         // Get tags
         $stmt = $pdo->prepare('
-            SELECT t.* FROM tags t 
-            JOIN album_tag at ON at.tag_id = t.id 
-            WHERE at.album_id = :album_id 
+            SELECT t.* FROM tags t
+            JOIN album_tag at ON at.tag_id = t.id
+            WHERE at.album_id = :album_id
             ORDER BY t.name ASC
         ');
         $stmt->execute([':album_id' => $album['id']]);
         $album['tags'] = $stmt->fetchAll();
-        
+
+        // Add password protection flag (don't expose the hash itself)
+        $album['is_password_protected'] = !empty($album['password_hash']);
+        unset($album['password_hash']);
+
         return $album;
     }
 
