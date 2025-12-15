@@ -27,7 +27,7 @@ class PrivacyController extends BaseController
             'custom_js_essential' => $svc->get('privacy.custom_js_essential', ''),
             'custom_js_analytics' => $svc->get('privacy.custom_js_analytics', ''),
             'custom_js_marketing' => $svc->get('privacy.custom_js_marketing', ''),
-            'show_analytics' => $svc->get('cookie_banner.show_analytics', true),
+            'show_analytics' => $svc->get('cookie_banner.show_analytics', false),
             'show_marketing' => $svc->get('cookie_banner.show_marketing', false),
         ];
 
@@ -40,6 +40,14 @@ class PrivacyController extends BaseController
     public function save(Request $request, Response $response): Response
     {
         $data = (array)$request->getParsedBody();
+
+        // CSRF validation
+        $csrf = $data['csrf'] ?? '';
+        if (empty($csrf) || $csrf !== ($_SESSION['csrf'] ?? '')) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid security token. Please try again.'];
+            return $response->withHeader('Location', $this->redirect('/admin/privacy'))->withStatus(302);
+        }
+
         $svc = new SettingsService($this->db);
 
         try {
@@ -63,7 +71,7 @@ class PrivacyController extends BaseController
 
         } catch (\Throwable $e) {
             Logger::error('PrivacyController::save error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error saving privacy settings: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error saving privacy settings. Please try again.'];
         }
 
         return $response->withHeader('Location', $this->redirect('/admin/privacy'))->withStatus(302);

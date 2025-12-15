@@ -182,7 +182,7 @@ class SilktideCookieBanner {
 
     this.config.cookieTypes.forEach((type) => {
       // Set localStorage and run accept/reject callbacks
-      if (type.required == true) {
+      if (type.required === true) {
         localStorage.setItem(`silktideCookieChoice_${type.id}${this.getBannerSuffix()}`, 'true');
         if (typeof type.onAccept === 'function') { type.onAccept() }
       } else {
@@ -201,9 +201,9 @@ class SilktideCookieBanner {
 
     // Trigger optional onAcceptAll/onRejectAll callbacks
     if (accepted && typeof this.config.onAcceptAll === 'function') {
-      if (typeof this.config.onAcceptAll === 'function') { this.config.onAcceptAll(); }
-    } else if (typeof this.config.onRejectAll === 'function') {
-      if (typeof this.config.onRejectAll === 'function') { this.config.onRejectAll(); }
+      this.config.onAcceptAll();
+    } else if (!accepted && typeof this.config.onRejectAll === 'function') {
+      this.config.onRejectAll();
     }
 
     // Dispatch custom event for consent changes
@@ -234,7 +234,7 @@ class SilktideCookieBanner {
 
     this.config.cookieTypes.forEach((type) => {
       // Required cookies are always accepted
-      if (type.required == true) {
+      if (type.required === true) {
         localStorage.setItem(`silktideCookieChoice_${type.id}${this.getBannerSuffix()}`, 'true');
         if (typeof type.onAccept === 'function') { type.onAccept(); }
       } else {
@@ -286,7 +286,7 @@ class SilktideCookieBanner {
     this.config.cookieTypes.forEach((type) => {
       if (type.required) return; // we run required cookies separately in loadRequiredCookies
       if (acceptedCookies[type.id] && typeof type.onAccept === 'function') {
-        if (typeof type.onAccept === 'function') { type.onAccept(); }
+        type.onAccept();
       }
     });
   }
@@ -297,7 +297,7 @@ class SilktideCookieBanner {
     const rejectedCookies = this.getRejectedCookies();
     this.config.cookieTypes.forEach((type) => {
       if (rejectedCookies[type.id] && typeof type.onReject === 'function') {
-        if (typeof type.onReject === 'function') { type.onReject(); }
+        type.onReject();
       }
     });
   }
@@ -307,13 +307,12 @@ class SilktideCookieBanner {
    */
   runStoredCookiePreferenceCallbacks() {
     this.config.cookieTypes.forEach((type) => {
-      const accepted =
-        localStorage.getItem(`silktideCookieChoice_${type.id}${this.getBannerSuffix()}`) === 'true';
+      const accepted = this.safeLocalStorageGet(`silktideCookieChoice_${type.id}${this.getBannerSuffix()}`) === 'true';
       // Set localStorage and run accept/reject callbacks
-      if (accepted) {
-        if (typeof type.onAccept === 'function') { type.onAccept(); }
-      } else {
-        if (typeof type.onReject === 'function') { type.onReject(); }
+      if (accepted && typeof type.onAccept === 'function') {
+        type.onAccept();
+      } else if (!accepted && typeof type.onReject === 'function') {
+        type.onReject();
       }
     });
   }
@@ -322,9 +321,27 @@ class SilktideCookieBanner {
     if (!this.config.cookieTypes) return;
     this.config.cookieTypes.forEach((cookie) => {
       if (cookie.required && typeof cookie.onAccept === 'function') {
-        if (typeof cookie.onAccept === 'function') { cookie.onAccept(); }
+        cookie.onAccept();
       }
     });
+  }
+
+  // Safe localStorage wrapper for Safari private browsing
+  safeLocalStorageGet(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  safeLocalStorageSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   // ----------------------------------------------------------------
@@ -657,23 +674,23 @@ class SilktideCookieBanner {
     this.config.cookieTypes.forEach((type) => {
       let accepted = true;
       // Set localStorage and run accept/reject callbacks
-      if (type.required == true || type.defaultValue) {
-        localStorage.setItem(
+      if (type.required === true || type.defaultValue) {
+        this.safeLocalStorageSet(
           `silktideCookieChoice_${type.id}${this.getBannerSuffix()}`,
-          accepted.toString(),
+          accepted.toString()
         );
       } else {
         accepted = false;
-        localStorage.setItem(
+        this.safeLocalStorageSet(
           `silktideCookieChoice_${type.id}${this.getBannerSuffix()}`,
-          accepted.toString(),
+          accepted.toString()
         );
       }
 
-      if (accepted) {
-        if (typeof type.onAccept === 'function') { type.onAccept(); }
-      } else {
-        if (typeof type.onReject === 'function') { type.onReject(); }
+      if (accepted && typeof type.onAccept === 'function') {
+        type.onAccept();
+      } else if (!accepted && typeof type.onReject === 'function') {
+        type.onReject();
       }
       // set the flag to say that the cookie choice has been made
       this.setInitialCookieChoiceMade();
