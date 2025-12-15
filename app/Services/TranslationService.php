@@ -334,6 +334,22 @@ class TranslationService
             ['filter.clear', 'Clear filters', 'filter', 'Clear all filters button'],
             ['filter.no_results', 'No results found', 'filter', 'No results message'],
             ['filter.results_count', '{count} results', 'filter', 'Results count with parameter'],
+            ['filter.film', 'Film', 'filter', 'Film filter label'],
+            ['filter.sort', 'Sort', 'filter', 'Sort filter label'],
+            ['filter.process', 'Process', 'filter', 'Process filter label'],
+            ['filter.apply', 'Apply', 'filter', 'Apply filters button'],
+            ['filter.filter_images', 'Filter images:', 'filter', 'Filter images label'],
+            ['filter.sort_latest', 'Latest First', 'filter', 'Sort by latest'],
+            ['filter.sort_oldest', 'Oldest First', 'filter', 'Sort by oldest'],
+            ['filter.sort_title_asc', 'Title A-Z', 'filter', 'Sort by title ascending'],
+            ['filter.sort_title_desc', 'Title Z-A', 'filter', 'Sort by title descending'],
+            ['filter.sort_date_new', 'Shoot Date (New)', 'filter', 'Sort by shoot date newest'],
+            ['filter.sort_date_old', 'Shoot Date (Old)', 'filter', 'Sort by shoot date oldest'],
+            ['filter.filters', 'Filters', 'filter', 'Filters section label'],
+            ['filter.galleries_count', '{count} galleries', 'filter', 'Galleries count plural'],
+            ['filter.gallery_count', '1 gallery', 'filter', 'Galleries count singular'],
+            ['filter.no_galleries_title', 'No galleries found', 'filter', 'No galleries found title'],
+            ['filter.no_galleries_text', 'We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.', 'filter', 'No galleries found message'],
 
             // Album/Gallery
             ['album.photos', 'Photos', 'album', 'Photos label'],
@@ -356,6 +372,25 @@ class TranslationService
             ['album.password_protected', 'Password Protected', 'album', 'Password protected label'],
             ['album.enter_password', 'Enter Password', 'album', 'Enter password prompt'],
             ['album.wrong_password', 'Wrong password', 'album', 'Wrong password error'],
+            ['album.empty_message', 'Images will appear here once uploaded.', 'album', 'Empty gallery explanation'],
+            ['album.equipment', 'Equipment', 'album', 'Equipment section title'],
+            ['album.more_from', 'More from {category}', 'album', 'Related albums section title'],
+            ['album.tags_count', '{count} tags', 'album', 'Tags count plural'],
+            ['album.tag_count', '1 tag', 'album', 'Tags count singular'],
+
+            // NSFW Content
+            ['album.nsfw_label', 'NSFW Content', 'album', 'NSFW checkbox label in admin'],
+            ['album.nsfw_help', 'Mark if album contains adult or sensitive content', 'album', 'NSFW help text in admin'],
+            ['album.nsfw_title', 'Adult Content Warning', 'album', 'NSFW modal title'],
+            ['album.nsfw_message', 'This gallery contains content that may not be suitable for all audiences. You must be 18 years or older to view this content.', 'album', 'NSFW modal message'],
+            ['album.nsfw_album_message', 'This gallery contains adult content that may not be suitable for all viewers. You must be 18 years or older to view this content.', 'album', 'NSFW album page message'],
+            ['album.nsfw_confirm', 'I am 18 or older', 'album', 'NSFW confirm button'],
+            ['album.nsfw_cancel', 'Go back', 'album', 'NSFW cancel button'],
+            ['album.nsfw_go_back', 'Go back', 'album', 'NSFW go back link'],
+            ['album.nsfw_remember', 'Your preference will be remembered for future visits.', 'album', 'NSFW remember preference text'],
+            ['album.nsfw_warning_short', '18+', 'album', 'NSFW short warning badge'],
+            ['album.nsfw_password_notice', 'This gallery contains adult content. You must be 18 or older to access it.', 'album', 'NSFW notice on password page'],
+            ['album.nsfw_checkbox', 'I confirm I am 18 years or older and wish to view this content', 'album', 'NSFW age confirmation checkbox'],
 
             // Pagination
             ['pagination.previous', 'Previous', 'pagination', 'Previous page button'],
@@ -438,6 +473,7 @@ class TranslationService
             ['contact.error', 'Failed to send message. Please try again.', 'contact', 'Error message'],
             ['contact.required', 'This field is required', 'contact', 'Required field error'],
             ['contact.invalid_email', 'Please enter a valid email address', 'contact', 'Invalid email error'],
+            ['contact.intro', 'For collaborations and commissions, contact me via email or social.', 'contact', 'Contact page intro text'],
 
             // Meta/SEO
             ['meta.home_title', 'Photography Portfolio', 'meta', 'Home page title'],
@@ -459,6 +495,35 @@ class TranslationService
             ['general.edit', 'Edit', 'general', 'Edit button'],
             ['general.submit', 'Submit', 'general', 'Submit button'],
             ['general.reset', 'Reset', 'general', 'Reset button'],
+            ['general.view', 'View', 'general', 'View button'],
+            ['general.more_count', '+{count} more', 'general', 'More items count'],
+
+            // Galleries Page
+            ['galleries.title', 'All Galleries', 'galleries', 'Galleries page title'],
+            ['galleries.subtitle', 'Explore our complete collection of photography galleries with advanced filtering options', 'galleries', 'Galleries page subtitle'],
+
+            // Image
+            ['image.download', 'Download', 'image', 'Download image button'],
+
+            // Installer
+            ['installer.site_language', 'Site Language', 'installer', 'Installer site language label'],
+            ['installer.site_language_help', 'Default language for the frontend', 'installer', 'Installer site language help'],
+            ['installer.date_format', 'Date Format', 'installer', 'Installer date format label'],
+            ['installer.date_format_help', 'Format used for displaying dates', 'installer', 'Installer date format help'],
+            ['installer.date_format_iso', 'ISO', 'installer', 'ISO date format option'],
+            ['installer.date_format_eu', 'European', 'installer', 'European date format option'],
+            ['installer.english', 'English', 'installer', 'English language option'],
+            ['installer.italian', 'Italiano', 'installer', 'Italian language option'],
+
+            // Settings
+            ['settings.date_format', 'Date Format', 'settings', 'Settings date format label'],
+            ['settings.date_format_iso', '2025-01-15 (ISO)', 'settings', 'ISO date format example'],
+            ['settings.date_format_european', '15-01-2025 (European)', 'settings', 'European date format example'],
+            ['settings.date_format_help', 'Format used for displaying dates throughout the site', 'settings', 'Date format help text'],
+            ['settings.site_language', 'Site Language', 'settings', 'Settings site language label'],
+            ['settings.language_en', 'English', 'settings', 'English language option'],
+            ['settings.language_it', 'Italiano', 'settings', 'Italian language option'],
+            ['settings.site_language_help', 'Language used for frontend UI elements', 'settings', 'Site language help text'],
         ];
     }
 }

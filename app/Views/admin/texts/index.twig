@@ -7,9 +7,6 @@
       <p class="text-gray-600 mt-1">Manage all translatable texts for the frontend</p>
     </div>
     <div class="flex gap-2">
-      <a href="{{ base_path }}/admin/texts/export" class="btn-secondary">
-        <i class="fas fa-download mr-2"></i>Export JSON
-      </a>
       <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <button type="submit" class="btn-secondary" onclick="return confirm('Add missing default translations?')">
@@ -24,65 +21,76 @@
 
   {# Import/Upload translations card #}
   <div class="card mb-6">
-    <div class="card-header bg-blue-50 border-b border-blue-200 py-4 px-6">
+    <div class="card-header bg-blue-50 border-b border-blue-200 py-4 px-6 flex items-center justify-between">
       <h2 class="text-lg font-semibold text-blue-800 flex items-center">
         <i class="fas fa-language mr-2"></i>Import Translations
       </h2>
+      <div class="flex gap-2">
+        <a href="{{ base_path }}/admin/texts/export" class="btn-sm btn-secondary">
+          <i class="fas fa-download mr-1"></i>Download JSON
+        </a>
+        <button type="button" id="toggle-upload-btn" class="btn-sm btn-secondary">
+          <i class="fas fa-upload mr-1"></i>Upload JSON
+        </button>
+      </div>
     </div>
-    <div class="p-4">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {# Import from preset #}
-        <div>
-          <h3 class="text-sm font-medium text-gray-700 mb-3">Import from Preset Language</h3>
-          <form action="{{ base_path }}/admin/texts/import" method="post" class="space-y-3">
-            <input type="hidden" name="csrf" value="{{ csrf }}">
-            <div class="flex gap-2">
-              <select name="language" id="language-select" class="input flex-1">
-                <option value="">Select language...</option>
-              </select>
-              <select name="mode" class="input w-32">
-                <option value="merge">Merge</option>
-                <option value="replace">Replace All</option>
-                <option value="skip">Skip Existing</option>
-              </select>
-            </div>
-            <div class="flex items-center gap-2">
-              <button type="submit" class="btn-primary">
-                <i class="fas fa-file-import mr-2"></i>Import
-              </button>
-              <span class="text-xs text-gray-500">
-                <strong>Merge:</strong> Update existing + add new |
-                <strong>Replace:</strong> Delete all, import fresh |
-                <strong>Skip:</strong> Only add new keys
-              </span>
-            </div>
-          </form>
+    <div class="p-4 space-y-4">
+      {# Import from preset - main section #}
+      <form action="{{ base_path }}/admin/texts/import" method="post">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="flex flex-wrap items-end gap-3">
+          <div class="flex-1 min-w-[250px]">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Language</label>
+            <select name="language" id="language-select" class="input w-full">
+              <option value="">Select language...</option>
+            </select>
+          </div>
+          <div class="w-28">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Mode</label>
+            <select name="mode" class="input w-full">
+              <option value="merge">Merge</option>
+              <option value="replace">Replace</option>
+              <option value="skip">Skip</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">
+            <i class="fas fa-file-import mr-2"></i>Import
+          </button>
         </div>
+        <p class="text-xs text-gray-500 mt-2">
+          <strong>Merge:</strong> Update existing + add new |
+          <strong>Replace:</strong> Delete all, import fresh |
+          <strong>Skip:</strong> Only add new keys
+        </p>
+      </form>
 
-        {# Upload custom JSON #}
-        <div>
-          <h3 class="text-sm font-medium text-gray-700 mb-3">Upload Custom JSON File</h3>
-          <form action="{{ base_path }}/admin/texts/upload" method="post" enctype="multipart/form-data" class="space-y-3">
-            <input type="hidden" name="csrf" value="{{ csrf }}">
-            <div class="flex gap-2">
-              <input type="file" name="json_file" accept=".json" class="input flex-1 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
-              <select name="mode" class="input w-32">
+      {# Upload custom JSON - hidden by default #}
+      <div id="upload-section" class="hidden border-t border-gray-200 pt-4">
+        <h3 class="text-sm font-medium text-gray-700 mb-3">Upload Custom JSON File</h3>
+        <form action="{{ base_path }}/admin/texts/upload" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[250px]">
+              <label class="block text-xs font-medium text-gray-600 mb-1">JSON File</label>
+              <input type="file" name="json_file" accept=".json" class="input w-full file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+            </div>
+            <div class="w-28">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Mode</label>
+              <select name="mode" class="input w-full">
                 <option value="merge">Merge</option>
-                <option value="replace">Replace All</option>
-                <option value="skip">Skip Existing</option>
+                <option value="replace">Replace</option>
+                <option value="skip">Skip</option>
               </select>
             </div>
-            <div class="flex items-center gap-4">
-              <label class="flex items-center text-sm text-gray-600">
-                <input type="checkbox" name="save_file" value="1" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                Save as preset language
-              </label>
-              <button type="submit" class="btn-primary">
-                <i class="fas fa-upload mr-2"></i>Upload & Import
-              </button>
-            </div>
-          </form>
-        </div>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-upload mr-2"></i>Upload
+            </button>
+          </div>
+          <label class="flex items-center text-sm text-gray-600 mt-3">
+            <input type="checkbox" name="save_file" value="1" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            Save as preset language file
+          </label>
+        </form>
       </div>
     </div>
   </div>
@@ -145,8 +153,8 @@
                 <td class="px-4 py-3">
                   <div class="inline-edit-container" data-id="{{ text.id }}">
                     <span class="text-value text-gray-900">{{ text.text_value }}</span>
-                    <input type="text" class="text-input input hidden w-full" value="{{ text.text_value }}">
-                    <div class="edit-actions hidden mt-2 flex gap-2">
+                    <input type="text" class="text-input input w-full" value="{{ text.text_value|e('html_attr') }}" style="display: none;">
+                    <div class="edit-actions mt-2 flex gap-2" style="display: none;">
                       <button type="button" class="save-btn btn-sm btn-primary">Save</button>
                       <button type="button" class="cancel-btn btn-sm btn-secondary">Cancel</button>
                     </div>
@@ -233,11 +241,28 @@
 
       loadLanguages();
 
+      // Toggle upload section
+      const toggleBtn = document.getElementById('toggle-upload-btn');
+      const uploadSection = document.getElementById('upload-section');
+      if (toggleBtn && uploadSection) {
+        toggleBtn.addEventListener('click', function() {
+          uploadSection.classList.toggle('hidden');
+          const icon = this.querySelector('i');
+          if (uploadSection.classList.contains('hidden')) {
+            icon.className = 'fas fa-upload mr-1';
+            this.innerHTML = '<i class="fas fa-upload mr-1"></i>Upload JSON';
+          } else {
+            this.innerHTML = '<i class="fas fa-times mr-1"></i>Hide Upload';
+          }
+        });
+      }
+
       // Inline editing functionality - using event delegation for reliability
       document.addEventListener('click', function(e) {
         // Quick Edit button
         if (e.target.closest('.edit-inline-btn')) {
           e.preventDefault();
+          e.stopPropagation();
           const btn = e.target.closest('.edit-inline-btn');
           const row = btn.closest('tr');
           const container = row.querySelector('.inline-edit-container');
@@ -246,9 +271,9 @@
             const textInput = container.querySelector('.text-input');
             const editActions = container.querySelector('.edit-actions');
 
-            textValue.classList.add('hidden');
-            textInput.classList.remove('hidden');
-            editActions.classList.remove('hidden');
+            textValue.style.display = 'none';
+            textInput.style.display = 'block';
+            editActions.style.display = 'flex';
             textInput.focus();
           }
         }
@@ -256,22 +281,24 @@
         // Cancel button
         if (e.target.closest('.cancel-btn')) {
           e.preventDefault();
+          e.stopPropagation();
           const container = e.target.closest('.inline-edit-container');
           if (container) {
             const textValue = container.querySelector('.text-value');
             const textInput = container.querySelector('.text-input');
             const editActions = container.querySelector('.edit-actions');
 
-            textInput.value = textValue.textContent;
-            textValue.classList.remove('hidden');
-            textInput.classList.add('hidden');
-            editActions.classList.add('hidden');
+            textInput.value = textValue.textContent.trim();
+            textValue.style.display = '';
+            textInput.style.display = 'none';
+            editActions.style.display = 'none';
           }
         }
 
         // Save button
         if (e.target.closest('.save-btn')) {
           e.preventDefault();
+          e.stopPropagation();
           const btn = e.target.closest('.save-btn');
           const container = btn.closest('.inline-edit-container');
           if (container) {
@@ -292,9 +319,9 @@
             .then(result => {
               if (result.success) {
                 textValue.textContent = textInput.value;
-                textValue.classList.remove('hidden');
-                textInput.classList.add('hidden');
-                editActions.classList.add('hidden');
+                textValue.style.display = '';
+                textInput.style.display = 'none';
+                editActions.style.display = 'none';
               } else {
                 alert('Failed to save: ' + (result.error || 'Unknown error'));
               }

@@ -8,20 +8,20 @@
     <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
       <i class="fas fa-exclamation-triangle text-amber-600 text-4xl"></i>
     </div>
-    <h2 class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('album.nsfw_title')|default('Adult Content Warning') }}</h2>
+    <h2 class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('album.nsfw_title') }}</h2>
     <p class="text-gray-600 mb-6 leading-relaxed">
-      {{ trans('album.nsfw_album_message')|default('This gallery contains adult content that may not be suitable for all viewers. You must be 18 years or older to view this content.') }}
+      {{ trans('album.nsfw_album_message') }}
     </p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
       <button onclick="confirmNsfwAndShow()" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
-        {{ trans('album.nsfw_confirm')|default('I am 18 or older') }}
+        {{ trans('album.nsfw_confirm') }}
       </button>
       <a href="{{ base_path }}/galleries" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium inline-block">
-        {{ trans('album.nsfw_go_back')|default('Go back') }}
+        {{ trans('album.nsfw_go_back') }}
       </a>
     </div>
     <p class="text-xs text-gray-400 mt-6">
-      {{ trans('album.nsfw_remember')|default('Your preference will be remembered for this session.') }}
+      {{ trans('album.nsfw_remember') }}
     </p>
   </div>
 </div>
