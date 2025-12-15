@@ -114,6 +114,20 @@
     "footer.privacy": "Privacy Policy",
     "footer.terms": "Termini di Servizio"
   },
+  "cookie": {
+    "cookie.title": "Impostazioni Cookie",
+    "cookie.description": "Utilizziamo i cookie per migliorare la tua esperienza. Puoi scegliere quali cookie accettare.",
+    "cookie.essential": "Essenziali",
+    "cookie.essential_desc": "Necessari per il funzionamento del sito",
+    "cookie.analytics": "Analitici",
+    "cookie.analytics_desc": "Ci aiutano a capire come utilizzi il sito",
+    "cookie.marketing": "Marketing",
+    "cookie.marketing_desc": "Pubblicità e contenuti personalizzati",
+    "cookie.accept": "Accetta Selezionati",
+    "cookie.reject": "Rifiuta Tutti",
+    "cookie.bar_text": "Utilizziamo i cookie per migliorare la tua esperienza.",
+    "cookie.manage": "Gestisci preferenze cookie"
+  },
   "lightbox": {
     "lightbox.close": "Chiudi",
     "lightbox.previous": "Precedente",

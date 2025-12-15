@@ -393,7 +393,7 @@
     <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden hidden"></div>
     
     <!-- Sidebar -->
-    <div id="sidebar" class="fixed lg:sticky lg:top-24 w-64 bg-white border-r border-gray-200 h-full lg:h-[calc(100vh-6rem)] overflow-y-auto transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-50 lg:z-auto">
+    <div id="sidebar" class="fixed lg:sticky lg:top-24 w-64 bg-white border-r border-gray-200 h-full overflow-y-auto transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-50 lg:z-auto">
       <div class="p-6">
         <!-- Close Button (Mobile/Tablet) -->
         <div class="lg:hidden flex justify-end mb-4">
@@ -499,6 +499,12 @@
             </a>
             <a href="{{ base_path }}/admin/diagnostics" class="sidebar-link" data-spa-link>
               <i class="fas fa-stethoscope"></i>Diagnostics
+            </a>
+            <a href="{{ base_path }}/admin/privacy" class="sidebar-link" data-spa-link>
+              <i class="fas fa-cookie-bite"></i>Privacy
+            </a>
+            <a href="{{ base_path }}/admin/updates" class="sidebar-link" data-spa-link>
+              <i class="fas fa-cloud-download-alt"></i>Updates
             </a>
             {# Hook: admin_sidebar_system - Add custom system menu items #}
             {{ do_action('admin_sidebar_system', {base_path: base_path}) }}
@@ -1137,8 +1143,7 @@
           e.preventDefault();
           loadPageContent(href);
           updateActiveSidebar(href);
-          
-          // Update browser history
+          window.scrollTo({ top: 0, behavior: 'smooth' });
           history.pushState(null, '', href);
         }
       }
@@ -1147,11 +1152,14 @@
       sidebarLinks.forEach(link => {
         link.addEventListener('click', function(e) {
           e.preventDefault();
-          
+
           const href = this.getAttribute('href');
           loadPageContent(href);
           updateActiveSidebar(href);
-          
+
+          // Scroll main content to top
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+
           // Update browser history
           history.pushState(null, '', href);
         });
@@ -1162,6 +1170,7 @@
         const currentPath = window.location.pathname;
         loadPageContent(currentPath);
         updateActiveSidebar(currentPath);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
       
       // Set initial active sidebar link

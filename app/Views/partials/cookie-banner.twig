@@ -1,0 +1,238 @@
+{# Cookie Consent Banner - GDPR Compliant #}
+{% if cookie_banner_enabled and (cookie_analytics_scripts or cookie_marketing_scripts) %}
+<div id="cookie-banner"
+     class="fixed {{ cookie_banner_position == 'top' ? 'top-0' : 'bottom-0' }} left-0 right-0 z-[9999] transform transition-transform duration-300 {{ cookie_banner_position == 'top' ? '-translate-y-full' : 'translate-y-full' }}"
+     style="display: none;">
+
+  {% if cookie_banner_style == 'popup' %}
+  {# Popup Style #}
+  <div class="flex items-center justify-center min-h-screen p-4 bg-black/50">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+          <i class="fas fa-cookie-bite text-indigo-600"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900">{{ trans('cookie.title', 'Cookie Settings') }}</h3>
+      </div>
+
+      <p class="text-sm text-gray-600 mb-4">{{ trans('cookie.description', 'We use cookies to improve your experience. You can choose which cookies to accept.') }}</p>
+
+      <div class="space-y-3 mb-6">
+        {# Essential - Always on #}
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <span class="font-medium text-gray-900">{{ trans('cookie.essential', 'Essential') }}</span>
+            <p class="text-xs text-gray-500">{{ trans('cookie.essential_desc', 'Required for the website to function') }}</p>
+          </div>
+          <input type="checkbox" checked disabled class="rounded text-indigo-600">
+        </label>
+
+        {% if cookie_analytics_scripts %}
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+          <div>
+            <span class="font-medium text-gray-900">{{ trans('cookie.analytics', 'Analytics') }}</span>
+            <p class="text-xs text-gray-500">{{ trans('cookie.analytics_desc', 'Help us understand how you use the site') }}</p>
+          </div>
+          <input type="checkbox" id="cookie-analytics" class="rounded text-indigo-600 cursor-pointer">
+        </label>
+        {% endif %}
+
+        {% if cookie_marketing_scripts %}
+        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+          <div>
+            <span class="font-medium text-gray-900">{{ trans('cookie.marketing', 'Marketing') }}</span>
+            <p class="text-xs text-gray-500">{{ trans('cookie.marketing_desc', 'Personalized ads and content') }}</p>
+          </div>
+          <input type="checkbox" id="cookie-marketing" class="rounded text-indigo-600 cursor-pointer">
+        </label>
+        {% endif %}
+      </div>
+
+      <div class="flex gap-3">
+        <button id="cookie-reject" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+          {{ trans('cookie.reject', 'Reject All') }}
+        </button>
+        <button id="cookie-accept" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
+          {{ trans('cookie.accept', 'Accept Selected') }}
+        </button>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  {# Bar Style #}
+  <div class="bg-gray-900 text-white px-4 py-4 shadow-lg">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <i class="fas fa-cookie-bite text-xl text-indigo-400"></i>
+        <p class="text-sm">{{ trans('cookie.bar_text', 'We use cookies to enhance your experience.') }}</p>
+      </div>
+
+      <div class="flex items-center gap-3 flex-wrap justify-center">
+        {% if cookie_analytics_scripts %}
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" id="cookie-analytics" class="rounded text-indigo-500 bg-gray-700 border-gray-600">
+          <span>{{ trans('cookie.analytics', 'Analytics') }}</span>
+        </label>
+        {% endif %}
+
+        {% if cookie_marketing_scripts %}
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" id="cookie-marketing" class="rounded text-indigo-500 bg-gray-700 border-gray-600">
+          <span>{{ trans('cookie.marketing', 'Marketing') }}</span>
+        </label>
+        {% endif %}
+
+        <button id="cookie-reject" class="px-3 py-1.5 text-sm font-medium text-gray-300 hover:text-white transition">
+          {{ trans('cookie.reject', 'Reject') }}
+        </button>
+        <button id="cookie-accept" class="px-4 py-1.5 text-sm font-medium bg-indigo-600 rounded hover:bg-indigo-700 transition">
+          {{ trans('cookie.accept', 'Accept') }}
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{# Cookie Settings Button (shown after consent given) #}
+<button id="cookie-settings-btn"
+        class="fixed {{ cookie_banner_position == 'top' ? 'top-4' : 'bottom-4' }} left-4 z-[9998] w-10 h-10 bg-gray-900 text-white rounded-full shadow-lg hover:bg-gray-800 transition hidden"
+        title="{{ trans('cookie.manage', 'Manage cookie preferences') }}">
+  <i class="fas fa-cookie-bite"></i>
+</button>
+
+{# Essential Scripts (always loaded) #}
+{% if cookie_essential_scripts %}
+{{ cookie_essential_scripts|raw }}
+{% endif %}
+
+<script>
+(function() {
+  const STORAGE_KEY = 'cookie_consent';
+  const banner = document.getElementById('cookie-banner');
+  const settingsBtn = document.getElementById('cookie-settings-btn');
+  const acceptBtn = document.getElementById('cookie-accept');
+  const rejectBtn = document.getElementById('cookie-reject');
+  const analyticsCheck = document.getElementById('cookie-analytics');
+  const marketingCheck = document.getElementById('cookie-marketing');
+
+  // Scripts to inject
+  const analyticsScripts = {{ cookie_analytics_scripts ? 'true' : 'false' }};
+  const marketingScripts = {{ cookie_marketing_scripts ? 'true' : 'false' }};
+  const analyticsCode = {{ cookie_analytics_scripts|json_encode|raw }};
+  const marketingCode = {{ cookie_marketing_scripts|json_encode|raw }};
+
+  function getConsent() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
+    } catch(e) { return null; }
+  }
+
+  function setConsent(analytics, marketing) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      analytics: analytics,
+      marketing: marketing,
+      timestamp: Date.now()
+    }));
+  }
+
+  function injectScripts(code) {
+    if (!code) return;
+    const container = document.createElement('div');
+    container.innerHTML = code;
+    const scripts = container.querySelectorAll('script');
+    scripts.forEach(script => {
+      const newScript = document.createElement('script');
+      if (script.src) {
+        newScript.src = script.src;
+        newScript.async = true;
+      } else {
+        newScript.textContent = script.textContent;
+      }
+      document.head.appendChild(newScript);
+    });
+    // Also append non-script content (like noscript tags, etc.)
+    const nonScripts = container.querySelectorAll(':not(script)');
+    nonScripts.forEach(el => document.body.appendChild(el.cloneNode(true)));
+  }
+
+  function applyConsent(consent) {
+    if (consent.analytics && analyticsScripts) {
+      injectScripts(analyticsCode);
+    }
+    if (consent.marketing && marketingScripts) {
+      injectScripts(marketingCode);
+    }
+  }
+
+  function showBanner() {
+    banner.style.display = 'block';
+    setTimeout(() => {
+      banner.classList.remove('{{ cookie_banner_position == "top" ? "-translate-y-full" : "translate-y-full" }}');
+    }, 10);
+    settingsBtn.classList.add('hidden');
+  }
+
+  function hideBanner() {
+    banner.classList.add('{{ cookie_banner_position == "top" ? "-translate-y-full" : "translate-y-full" }}');
+    setTimeout(() => {
+      banner.style.display = 'none';
+    }, 300);
+    settingsBtn.classList.remove('hidden');
+  }
+
+  function init() {
+    const consent = getConsent();
+
+    if (consent) {
+      // Apply saved consent
+      applyConsent(consent);
+      settingsBtn.classList.remove('hidden');
+
+      // Restore checkbox states
+      if (analyticsCheck) analyticsCheck.checked = consent.analytics;
+      if (marketingCheck) marketingCheck.checked = consent.marketing;
+    } else {
+      // Show banner for first-time visitors
+      showBanner();
+    }
+  }
+
+  // Event listeners
+  if (acceptBtn) {
+    acceptBtn.addEventListener('click', function() {
+      const analytics = analyticsCheck ? analyticsCheck.checked : false;
+      const marketing = marketingCheck ? marketingCheck.checked : false;
+      setConsent(analytics, marketing);
+      applyConsent({ analytics, marketing });
+      hideBanner();
+    });
+  }
+
+  if (rejectBtn) {
+    rejectBtn.addEventListener('click', function() {
+      setConsent(false, false);
+      hideBanner();
+    });
+  }
+
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', function() {
+      const consent = getConsent();
+      if (consent) {
+        if (analyticsCheck) analyticsCheck.checked = consent.analytics;
+        if (marketingCheck) marketingCheck.checked = consent.marketing;
+      }
+      showBanner();
+    });
+  }
+
+  // Initialize on DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+{% endif %}

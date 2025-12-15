@@ -139,6 +139,7 @@ $twig->getEnvironment()->addExtension(new \App\Extensions\SecurityTwigExtension(
 $twig->getEnvironment()->addExtension(new \App\Extensions\HooksTwigExtension());
 
 // Add translation extension (only if database is available)
+$translationService = null;
 if ($container['db'] !== null) {
     $translationService = new \App\Services\TranslationService($container['db']);
     $twig->getEnvironment()->addExtension(new \App\Extensions\TranslationTwigExtension($translationService));
@@ -179,12 +180,34 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $dateFormat = $settingsSvc->get('date.format', 'Y-m-d');
         \App\Support\DateHelper::setDisplayFormat($dateFormat);
         $twig->getEnvironment()->addGlobal('date_format', $dateFormat);
+        // Initialize language from settings
+        $siteLanguage = (string)($settingsSvc->get('site.language', 'en') ?? 'en');
+        if ($translationService !== null) {
+            $translationService->setLanguage($siteLanguage);
+        }
+        $twig->getEnvironment()->addGlobal('site_language', $siteLanguage);
+
+        // Cookie banner settings
+        $twig->getEnvironment()->addGlobal('cookie_banner_enabled', (bool)$settingsSvc->get('cookie.banner_enabled', false));
+        $twig->getEnvironment()->addGlobal('cookie_essential_scripts', (string)$settingsSvc->get('cookie.essential_scripts', ''));
+        $twig->getEnvironment()->addGlobal('cookie_analytics_scripts', (string)$settingsSvc->get('cookie.analytics_scripts', ''));
+        $twig->getEnvironment()->addGlobal('cookie_marketing_scripts', (string)$settingsSvc->get('cookie.marketing_scripts', ''));
+        $twig->getEnvironment()->addGlobal('cookie_banner_position', (string)$settingsSvc->get('cookie.banner_position', 'bottom'));
+        $twig->getEnvironment()->addGlobal('cookie_banner_style', (string)$settingsSvc->get('cookie.banner_style', 'bar'));
     } catch (\Throwable) {
         $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
         $twig->getEnvironment()->addGlobal('site_title', 'Cimaise');
         $twig->getEnvironment()->addGlobal('site_logo', null);
         \App\Support\DateHelper::setDisplayFormat('Y-m-d');
         $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
+        $twig->getEnvironment()->addGlobal('site_language', 'en');
+        // Cookie defaults
+        $twig->getEnvironment()->addGlobal('cookie_banner_enabled', false);
+        $twig->getEnvironment()->addGlobal('cookie_essential_scripts', '');
+        $twig->getEnvironment()->addGlobal('cookie_analytics_scripts', '');
+        $twig->getEnvironment()->addGlobal('cookie_marketing_scripts', '');
+        $twig->getEnvironment()->addGlobal('cookie_banner_position', 'bottom');
+        $twig->getEnvironment()->addGlobal('cookie_banner_style', 'bar');
     }
 } else {
     $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
@@ -192,6 +215,14 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     $twig->getEnvironment()->addGlobal('site_logo', null);
     \App\Support\DateHelper::setDisplayFormat('Y-m-d');
     $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
+    $twig->getEnvironment()->addGlobal('site_language', 'en');
+    // Cookie defaults
+    $twig->getEnvironment()->addGlobal('cookie_banner_enabled', false);
+    $twig->getEnvironment()->addGlobal('cookie_essential_scripts', '');
+    $twig->getEnvironment()->addGlobal('cookie_analytics_scripts', '');
+    $twig->getEnvironment()->addGlobal('cookie_marketing_scripts', '');
+    $twig->getEnvironment()->addGlobal('cookie_banner_position', 'bottom');
+    $twig->getEnvironment()->addGlobal('cookie_banner_style', 'bar');
 }
 
 // Register date format Twig extension
