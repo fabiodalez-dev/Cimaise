@@ -660,13 +660,18 @@ class UploadService
 
         $stats = ['generated' => 0, 'failed' => 0, 'skipped' => 0];
 
+        $mediaDir = dirname(__DIR__, 2) . '/public/media';
+
         foreach ($images as $image) {
+            // Check if blur file existed BEFORE generation to track stats correctly
+            $existedBefore = is_file($mediaDir . "/{$image['id']}_blur.jpg");
+
             $blurPath = $this->generateBlurredVariant((int)$image['id'], $force);
             if ($blurPath !== null) {
-                if (!$force && str_contains($blurPath, '_blur')) {
-                    $stats['generated']++;
-                } else {
+                if (!$force && $existedBefore) {
                     $stats['skipped']++;
+                } else {
+                    $stats['generated']++;
                 }
             } else {
                 $stats['failed']++;
