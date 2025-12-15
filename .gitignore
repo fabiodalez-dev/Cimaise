@@ -23,6 +23,10 @@ storage/originals/*
 !storage/originals/.gitkeep
 storage/tmp/*
 !storage/tmp/.gitkeep
+storage/cache/*
+!storage/cache/.gitkeep
+storage/translations/*
+!storage/translations/.gitkeep
 
 # Logs
 *.log
