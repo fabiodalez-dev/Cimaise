@@ -207,7 +207,7 @@ class Logger
      */
     private function sanitizeContext(array $context): array
     {
-        $sensitiveKeys = ['password', 'passwd', 'secret', 'token', 'api_key', 'apikey', 'auth', 'credential', 'credit_card', 'cc'];
+        $sensitiveKeys = ['password', 'passwd', 'secret', 'token', 'api_key', 'apikey', 'auth', 'credential', 'credit_card', 'cc', 'email', 'ssn', 'phone', 'ip', 'ip_address'];
 
         array_walk_recursive($context, function (&$value, $key) use ($sensitiveKeys) {
             foreach ($sensitiveKeys as $sensitive) {
