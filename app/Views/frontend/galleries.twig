@@ -258,17 +258,17 @@
             </div>
           {% endif %}
 
-          <!-- NSFW Overlay (skip for admins) -->
+          <!-- NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through -->
           {% if album.is_nsfw and not is_admin %}
-          <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm">
+          <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
             <i class="fas fa-eye-slash text-3xl mb-2"></i>
             <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short') }}</span>
           </div>
           {% endif %}
-          
+
           <!-- Image Count Badge -->
           {% if album.images_count > 0 %}
-          <div class="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
+          <div class="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm z-20">
             <i class="fas fa-images mr-1"></i>
             {{ album.images_count }}
           </div>
@@ -276,14 +276,14 @@
 
           <!-- Password Protected Badge -->
           {% if album.is_password_protected %}
-          <div class="absolute top-4 {% if album.images_count > 0 %}right-20{% else %}right-4{% endif %} bg-amber-500/90 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm" title="{{ trans('album.password_protected') }}">
+          <div class="absolute top-4 {% if album.images_count > 0 %}right-20{% else %}right-4{% endif %} bg-amber-500/90 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm z-20" title="{{ trans('album.password_protected') }}">
             <i class="fas fa-lock"></i>
           </div>
           {% endif %}
 
           <!-- Category Badge -->
           {% if album.category_name %}
-          <div class="absolute top-4 left-4 bg-white/90 text-black px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">
+          <div class="absolute top-4 left-4 bg-white/90 text-black px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm z-20">
             {{ album.category_name }}
           </div>
           {% endif %}
