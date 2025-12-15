@@ -643,18 +643,22 @@ function formatDateByPattern(dateStr) {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
 
-    if (window.dateFormat === 'd-m-Y') {
-        // European format: 15-01-2025
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const year = d.getFullYear();
-        return `${day}-${month}-${year}`;
-    }
-    // ISO format: 2025-01-15
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+
+    // Support multiple date formats based on window.dateFormat setting
+    switch (window.dateFormat) {
+        case 'd-m-Y':  // European: 15-01-2025
+            return `${day}-${month}-${year}`;
+        case 'd/m/Y':  // European with slashes: 15/01/2025
+            return `${day}/${month}/${year}`;
+        case 'm/d/Y':  // US: 01/15/2025
+            return `${month}/${day}/${year}`;
+        case 'Y-m-d':  // ISO: 2025-01-15
+        default:
+            return `${year}-${month}-${day}`;
+    }
 }
 
 function generateGalleryCard(album) {
