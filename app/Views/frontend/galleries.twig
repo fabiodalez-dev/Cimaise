@@ -237,23 +237,33 @@
          data-gap="{{ filter_settings.grid_gap }}">
       
       {% for album in albums %}
-      <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2" 
-               data-gsap="gallery-card" 
+      <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
+               data-gsap="gallery-card"
                data-album-id="{{ album.id }}"
-               onclick="window.location.href='{{ base_path }}/album/{{ album.slug }}'">
+               data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
+               data-album-url="{{ base_path }}/album/{{ album.slug }}"
+               onclick="handleGalleryCardClick(event, this)">
         
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
           {% if album.cover_image and (album.cover_image.preview_path or album.cover_image.original_path) %}
             {% set cover_path = album.cover_image.preview_path|default(album.cover_image.original_path) %}
-            <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}" 
-                 alt="{{ album.cover_image.alt_text|default(album.title)|e }}" 
-                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
+                 alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 {% if album.is_nsfw and not is_admin %}nsfw-blur{% endif %}"
                  loading="lazy">
           {% else %}
             <div class="w-full h-full flex items-center justify-center text-gray-400">
               <i class="fas fa-images text-4xl"></i>
             </div>
+          {% endif %}
+
+          <!-- NSFW Overlay (skip for admins) -->
+          {% if album.is_nsfw and not is_admin %}
+          <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm">
+            <i class="fas fa-eye-slash text-3xl mb-2"></i>
+            <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short')|default('18+') }}</span>
+          </div>
           {% endif %}
           
           <!-- Image Count Badge -->
@@ -263,7 +273,14 @@
             {{ album.images_count }}
           </div>
           {% endif %}
-          
+
+          <!-- Password Protected Badge -->
+          {% if album.is_password_protected %}
+          <div class="absolute top-4 {% if album.images_count > 0 %}right-20{% else %}right-4{% endif %} bg-amber-500/90 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm" title="{{ trans('album.password_protected') }}">
+            <i class="fas fa-lock"></i>
+          </div>
+          {% endif %}
+
           <!-- Category Badge -->
           {% if album.category_name %}
           <div class="absolute top-4 left-4 bg-white/90 text-black px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">
@@ -378,11 +395,16 @@ $(document).ready(function() {
         viewButtonText: '{{ trans('album.view_gallery')|e('js') }}',
         tagCount: '{{ trans('album.tag_count')|e('js') }}',
         tagsCount: '{{ trans('album.tags_count', {count: '{count}'})|e('js') }}',
-        moreCount: '{{ trans('general.more_count', {count: '{count}'})|e('js') }}'
+        moreCount: '{{ trans('general.more_count', {count: '{count}'})|e('js') }}',
+        passwordProtected: '{{ trans('album.password_protected')|e('js') }}',
+        nsfwWarningShort: '{{ trans('album.nsfw_warning_short')|default('18+')|e('js') }}'
     };
 
     // Date format from settings
     window.dateFormat = '{{ date_format|default("Y-m-d")|e('js') }}';
+
+    // Admin status (skip NSFW restrictions for admins)
+    window.isAdmin = {{ is_admin ? 'true' : 'false' }};
 
     // Ensure UI elements are always visible first
     ensureUIVisibility();
@@ -678,11 +700,19 @@ function generateGalleryCard(album) {
     const category = esc(album.category_name || '');
     const alt = esc(coverImage.alt_text || album.title || '');
     const slug = esc(album.slug);
+    // Skip NSFW restrictions for admins
+    const isNsfw = (album.is_nsfw && !window.isAdmin) ? true : false;
+    const albumUrl = window.basePath + '/album/' + slug;
 
     const wrapper = document.createElement('article');
     wrapper.className = 'gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2';
+    if (isNsfw && hasConfirmedNsfw()) {
+        wrapper.classList.add('nsfw-confirmed');
+    }
     wrapper.setAttribute('data-album-id', String(album.id||''));
-    wrapper.addEventListener('click', ()=>{ window.location.href = window.basePath + '/album/' + slug; });
+    wrapper.setAttribute('data-nsfw', isNsfw ? '1' : '0');
+    wrapper.setAttribute('data-album-url', albumUrl);
+    wrapper.addEventListener('click', function(e) { handleGalleryCardClick(e, this); });
 
     const rel = document.createElement('div');
     rel.className = 'relative aspect-[4/3] overflow-hidden bg-gray-100';
@@ -690,6 +720,7 @@ function generateGalleryCard(album) {
         const img = document.createElement('img');
         img.src = safeSrc; img.alt = alt;
         img.className = 'w-full h-full object-cover transition-transform duration-700 group-hover:scale-110';
+        if (isNsfw) img.classList.add('nsfw-blur');
         img.loading = 'lazy';
         rel.appendChild(img);
     } else {
@@ -698,11 +729,25 @@ function generateGalleryCard(album) {
         ph.innerHTML = '<i class="fas fa-images text-4xl"></i>';
         rel.appendChild(ph);
     }
+    // NSFW Overlay
+    if (isNsfw) {
+        const nsfwOverlay = document.createElement('div');
+        nsfwOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm';
+        nsfwOverlay.innerHTML = '<i class="fas fa-eye-slash text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.nsfwWarningShort || '18+') + '</span>';
+        rel.appendChild(nsfwOverlay);
+    }
     if ((album.images_count||0) > 0){
         const badge = document.createElement('div');
         badge.className = 'absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm';
         badge.innerHTML = '<i class="fas fa-images mr-1"></i>' + esc(album.images_count);
         rel.appendChild(badge);
+    }
+    if (album.is_password_protected){
+        const lock = document.createElement('div');
+        lock.className = 'absolute top-4 ' + ((album.images_count||0) > 0 ? 'right-20' : 'right-4') + ' bg-amber-500/90 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm';
+        lock.title = window.pageTexts.passwordProtected || 'Password Protected';
+        lock.innerHTML = '<i class="fas fa-lock"></i>';
+        rel.appendChild(lock);
     }
     if (category){
         const cat = document.createElement('div');
@@ -992,5 +1037,148 @@ function debounce(func, wait) {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* NSFW Content Styles */
+.nsfw-blur {
+    filter: blur(20px);
+    transition: filter 0.3s ease;
+}
+
+.nsfw-confirmed .nsfw-blur {
+    filter: none;
+}
+
+.nsfw-confirmed .nsfw-overlay {
+    display: none;
+}
+
+.nsfw-overlay {
+    transition: opacity 0.3s ease;
+}
+
+/* NSFW Modal Styles */
+#nsfw-modal {
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+#nsfw-modal .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: scale(0.95) translateY(-20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
 </style>
+
+<!-- NSFW Age Confirmation Modal -->
+<div id="nsfw-modal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4">
+  <div class="modal-content bg-white rounded-2xl max-w-md w-full p-8 text-center shadow-2xl">
+    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <i class="fas fa-exclamation-triangle text-amber-600 text-3xl"></i>
+    </div>
+    <h3 class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('album.nsfw_title')|default('Adult Content Warning') }}</h3>
+    <p class="text-gray-600 mb-6 leading-relaxed">
+      {{ trans('album.nsfw_message')|default('This gallery contains content that may not be suitable for all audiences. You must be 18 years or older to view this content.') }}
+    </p>
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <button onclick="confirmNsfwAge()" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+        {{ trans('album.nsfw_confirm')|default('I am 18 or older') }}
+      </button>
+      <button onclick="cancelNsfw()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium">
+        {{ trans('album.nsfw_cancel')|default('Go back') }}
+      </button>
+    </div>
+    <p class="text-xs text-gray-400 mt-6">
+      {{ trans('album.nsfw_remember')|default('Your preference will be remembered for this session.') }}
+    </p>
+  </div>
+</div>
+
+<script>
+// NSFW Content Handling
+let pendingNsfwUrl = null;
+
+function hasConfirmedNsfw() {
+    return localStorage.getItem('nsfw_confirmed') === 'true';
+}
+
+function setNsfwConfirmed() {
+    localStorage.setItem('nsfw_confirmed', 'true');
+}
+
+function handleGalleryCardClick(event, card) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const isNsfw = card.dataset.nsfw === '1';
+    const albumUrl = card.dataset.albumUrl;
+
+    if (isNsfw && !hasConfirmedNsfw()) {
+        pendingNsfwUrl = albumUrl;
+        showNsfwModal();
+    } else {
+        window.location.href = albumUrl;
+    }
+}
+
+function showNsfwModal() {
+    const modal = document.getElementById('nsfw-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function hideNsfwModal() {
+    const modal = document.getElementById('nsfw-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+function confirmNsfwAge() {
+    setNsfwConfirmed();
+    hideNsfwModal();
+
+    // Unblur all NSFW images on the page
+    document.querySelectorAll('.gallery-card[data-nsfw="1"]').forEach(card => {
+        card.classList.add('nsfw-confirmed');
+    });
+
+    // Navigate to the pending URL if any
+    if (pendingNsfwUrl) {
+        window.location.href = pendingNsfwUrl;
+        pendingNsfwUrl = null;
+    }
+}
+
+function cancelNsfw() {
+    hideNsfwModal();
+    pendingNsfwUrl = null;
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        hideNsfwModal();
+    }
+});
+
+// Close modal on backdrop click
+document.getElementById('nsfw-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideNsfwModal();
+    }
+});
+
+// On page load, if user has confirmed, unblur all NSFW content
+document.addEventListener('DOMContentLoaded', function() {
+    if (hasConfirmedNsfw()) {
+        document.querySelectorAll('.gallery-card[data-nsfw="1"]').forEach(card => {
+            card.classList.add('nsfw-confirmed');
+        });
+    }
+});
+</script>
 {% endblock %}

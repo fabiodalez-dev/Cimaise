@@ -1,6 +1,63 @@
 {% extends "frontend/_layout.twig" %}
 
 {% block content %}
+{# NSFW Age Gate - shown if album is NSFW and user hasn't confirmed (skip for admins) #}
+{% if album.is_nsfw and not is_admin %}
+<div id="nsfw-gate" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden">
+  <div class="bg-white rounded-2xl max-w-lg w-full p-8 text-center shadow-2xl">
+    <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <i class="fas fa-exclamation-triangle text-amber-600 text-4xl"></i>
+    </div>
+    <h2 class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('album.nsfw_title')|default('Adult Content Warning') }}</h2>
+    <p class="text-gray-600 mb-6 leading-relaxed">
+      {{ trans('album.nsfw_album_message')|default('This gallery contains adult content that may not be suitable for all viewers. You must be 18 years or older to view this content.') }}
+    </p>
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <button onclick="confirmNsfwAndShow()" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+        {{ trans('album.nsfw_confirm')|default('I am 18 or older') }}
+      </button>
+      <a href="{{ base_path }}/galleries" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium inline-block">
+        {{ trans('album.nsfw_go_back')|default('Go back') }}
+      </a>
+    </div>
+    <p class="text-xs text-gray-400 mt-6">
+      {{ trans('album.nsfw_remember')|default('Your preference will be remembered for this session.') }}
+    </p>
+  </div>
+</div>
+
+<style>
+  .nsfw-hidden { display: none !important; }
+  #nsfw-gate.active { display: flex !important; }
+</style>
+
+<script>
+(function() {
+  const hasConfirmed = localStorage.getItem('nsfw_confirmed') === 'true';
+  const gate = document.getElementById('nsfw-gate');
+  const mainContent = document.getElementById('album-main-content');
+
+  if (!hasConfirmed && gate) {
+    gate.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    if (mainContent) mainContent.classList.add('nsfw-hidden');
+  }
+})();
+
+function confirmNsfwAndShow() {
+  localStorage.setItem('nsfw_confirmed', 'true');
+  const gate = document.getElementById('nsfw-gate');
+  const mainContent = document.getElementById('album-main-content');
+  if (gate) {
+    gate.classList.remove('active');
+    gate.style.display = 'none';
+  }
+  if (mainContent) mainContent.classList.remove('nsfw-hidden');
+  document.body.style.overflow = '';
+}
+</script>
+{% endif %}
+
 {# Hook: frontend_album_before - Before entire album page #}
 {{ do_action('frontend_album_before', {album: album, images: images, base_path: base_path}) }}
 
@@ -47,6 +104,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}
 </div>
+<div id="album-main-content">
 <!-- Template Album 2 - Hero Header -->
 {% if template_settings.hero|default(false) and template_settings.coverBackground|default(false) %}
 <div class="relative w-full h-screen flex items-center justify-center overflow-hidden">
@@ -362,6 +420,7 @@
 
 {# Hook: frontend_album_after - After entire album page (for modals, scripts, etc.) #}
 {{ do_action('frontend_album_after', {album: album, images: images, base_path: base_path}) }}
+</div>{# End album-main-content #}
 
 {% endblock %}
 

@@ -141,6 +141,7 @@ CREATE TABLE IF NOT EXISTS albums (
   sort_order INTEGER DEFAULT 0,
   password_hash TEXT,
   allow_downloads INTEGER NOT NULL DEFAULT 0,
+  is_nsfw INTEGER NOT NULL DEFAULT 0,
   seo_title TEXT,
   seo_description TEXT,
   seo_keywords TEXT,
