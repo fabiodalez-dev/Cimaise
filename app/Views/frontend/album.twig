@@ -3,17 +3,18 @@
 {% block content %}
 {# NSFW Age Gate - shown if album is NSFW and user hasn't confirmed (skip for admins) #}
 {% if album.is_nsfw and not is_admin %}
-<div id="nsfw-gate" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden">
+<div id="nsfw-gate" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden"
+     role="dialog" aria-modal="true" aria-labelledby="nsfw-gate-title">
   <div class="bg-white rounded-2xl max-w-lg w-full p-8 text-center shadow-2xl">
     <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
-      <i class="fas fa-exclamation-triangle text-amber-600 text-4xl"></i>
+      <i class="fas fa-exclamation-triangle text-amber-600 text-4xl" aria-hidden="true"></i>
     </div>
-    <h2 class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('album.nsfw_title') }}</h2>
+    <h2 id="nsfw-gate-title" class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('album.nsfw_title') }}</h2>
     <p class="text-gray-600 mb-6 leading-relaxed">
       {{ trans('album.nsfw_album_message') }}
     </p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <button onclick="confirmNsfwAndShow()" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+      <button id="nsfw-confirm-btn" onclick="confirmNsfwAndShow()" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
         {{ trans('album.nsfw_confirm') }}
       </button>
       <a href="{{ base_path }}/galleries" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium inline-block">
@@ -40,7 +41,13 @@
   if (!hasConfirmed && gate) {
     gate.classList.add('active');
     document.body.style.overflow = 'hidden';
-    if (mainContent) mainContent.classList.add('nsfw-hidden');
+    if (mainContent) {
+      mainContent.classList.add('nsfw-hidden');
+      mainContent.setAttribute('aria-hidden', 'true');
+    }
+    // Focus the confirm button for accessibility
+    const confirmBtn = document.getElementById('nsfw-confirm-btn');
+    if (confirmBtn) setTimeout(() => confirmBtn.focus(), 100);
   }
 })();
 
@@ -52,7 +59,10 @@ function confirmNsfwAndShow() {
     gate.classList.remove('active');
     gate.style.display = 'none';
   }
-  if (mainContent) mainContent.classList.remove('nsfw-hidden');
+  if (mainContent) {
+    mainContent.classList.remove('nsfw-hidden');
+    mainContent.removeAttribute('aria-hidden');
+  }
   document.body.style.overflow = '';
 }
 </script>
@@ -173,7 +183,7 @@ function confirmNsfwAndShow() {
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
-                <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date_format }}</time>
+                <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('F Y') }}</time>
             </div>
             {% endif %}
             
@@ -237,7 +247,7 @@ function confirmNsfwAndShow() {
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
-                <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date_format }}</time>
+                <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('F Y') }}</time>
             </div>
             {% endif %}
             {% if album.locations is defined and album.locations|length > 0 %}

@@ -64,7 +64,8 @@ class GalleryController extends BaseController
                 $navStmt->execute();
                 $navCategories = $navStmt->fetchAll();
                 $query = $request->getQueryParams();
-                $error = isset($query['error']);
+                // Pass error type: '1' for wrong password, 'nsfw' for NSFW confirmation required
+                $error = $query['error'] ?? null;
                 return $this->view->render($response, 'frontend/album_password.twig', [
                     'album' => $album,
                     'categories' => $navCategories,
