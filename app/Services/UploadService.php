@@ -498,6 +498,7 @@ class UploadService
         $smPath = $mediaDir . "/{$imageId}_sm.jpg";
 
         $sourcePath = null;
+        $triedPaths = [$smPath];
         if (is_file($smPath)) {
             $sourcePath = $smPath;
         } else {
@@ -508,6 +509,7 @@ class UploadService
                 dirname(__DIR__, 2) . '/public' . $dbPath,
                 dirname(__DIR__, 2) . '/storage/originals/' . basename($dbPath),
             ];
+            $triedPaths = array_merge($triedPaths, $possiblePaths);
             foreach ($possiblePaths as $path) {
                 if (is_file($path)) {
                     $sourcePath = $path;
@@ -517,6 +519,10 @@ class UploadService
         }
 
         if (!$sourcePath) {
+            Logger::warning('UploadService: Source file not found for blur generation', [
+                'image_id' => $imageId,
+                'tried_paths' => $triedPaths
+            ], 'upload');
             return null;
         }
 
@@ -696,14 +702,16 @@ class UploadService
         $deleted = 0;
         foreach ($images as $image) {
             $blurPath = $mediaDir . "/{$image['id']}_blur.jpg";
-            if (is_file($blurPath)) {
-                @unlink($blurPath);
-            }
+            $fileExisted = is_file($blurPath);
 
-            // Remove from DB
-            $pdo->prepare('DELETE FROM image_variants WHERE image_id = ? AND variant = ?')
-                ->execute([$image['id'], 'blur']);
-            $deleted++;
+            if ($fileExisted) {
+                @unlink($blurPath);
+
+                // Remove from DB only if blur variant existed
+                $pdo->prepare('DELETE FROM image_variants WHERE image_id = ? AND variant = ?')
+                    ->execute([$image['id'], 'blur']);
+                $deleted++;
+            }
         }
 
         return $deleted;
