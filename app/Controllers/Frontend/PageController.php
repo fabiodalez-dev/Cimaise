@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
+use App\Services\ImagesService;
 use App\Support\Database;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -421,66 +422,22 @@ class PageController extends BaseController
         $stmt->execute([':id' => $album['id']]);
         $images = $stmt->fetchAll();
         
-        // Get variants for each image
+        // Get variants for each image and format EXIF
         foreach ($images as &$image) {
             $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
             $variantsStmt->execute([':id' => $image['id']]);
             $image['variants'] = $variantsStmt->fetchAll();
-            
+
             // Format EXIF for display
             if ($image['exif']) {
                 $exif = json_decode($image['exif'], true) ?: [];
                 $image['exif_display'] = $this->formatExifForDisplay($exif, $image);
             }
-
-            // Lookup names for camera/lens/developer/lab/film/location if present
-            try {
-                if (!empty($image['camera_id'])) {
-                    $s = $pdo->prepare('SELECT make, model FROM cameras WHERE id = :id');
-                    $s->execute([':id' => $image['camera_id']]);
-                    $cr = $s->fetch();
-                    if ($cr) { $image['camera_name'] = trim(($cr['make'] ?? '') . ' ' . ($cr['model'] ?? '')); }
-                }
-                if (!empty($image['lens_id'])) {
-                    $s = $pdo->prepare('SELECT brand, model FROM lenses WHERE id = :id');
-                    $s->execute([':id' => $image['lens_id']]);
-                    $lr = $s->fetch();
-                    if ($lr) { $image['lens_name'] = trim(($lr['brand'] ?? '') . ' ' . ($lr['model'] ?? '')); }
-                }
-                if (!empty($image['developer_id'])) {
-                    $s = $pdo->prepare('SELECT name FROM developers WHERE id = :id');
-                    $s->execute([':id' => $image['developer_id']]);
-                    $image['developer_name'] = $s->fetchColumn() ?: null;
-                }
-                if (!empty($image['lab_id'])) {
-                    $s = $pdo->prepare('SELECT name FROM labs WHERE id = :id');
-                    $s->execute([':id' => $image['lab_id']]);
-                    $image['lab_name'] = $s->fetchColumn() ?: null;
-                }
-                if (!empty($image['film_id'])) {
-                    $s = $pdo->prepare('SELECT brand, name, iso, format FROM films WHERE id = :id');
-                    $s->execute([':id' => $image['film_id']]);
-                    $fr = $s->fetch();
-                    if ($fr) {
-                        $nameOnly = trim((string)($fr['name'] ?? ''));
-                        $brand = trim((string)($fr['brand'] ?? ''));
-                        $image['film_name'] = trim(($brand !== '' ? ($brand . ' ') : '') . $nameOnly);
-                        $iso = isset($fr['iso']) && $fr['iso'] !== '' ? (string)(int)$fr['iso'] : '';
-                        $fmt = (string)($fr['format'] ?? '');
-                        $parts = [];
-                        if ($iso !== '') { $parts[] = $iso; }
-                        if ($fmt !== '') { $parts[] = $fmt; }
-                        $suffix = count($parts) ? (' (' . implode(' - ', $parts) . ')') : '';
-                        $image['film_display'] = ($nameOnly !== '' ? $nameOnly : $image['film_name']) . $suffix;
-                    }
-                }
-                if (!empty($image['location_id'])) {
-                    $s = $pdo->prepare('SELECT name FROM locations WHERE id = :id');
-                    $s->execute([':id' => $image['location_id']]);
-                    $image['location_name'] = $s->fetchColumn() ?: null;
-                }
-            } catch (\Throwable) { /* ignore lookup errors */ }
         }
+        unset($image); // Break reference
+
+        // Batch fetch metadata (camera, lens, film, developer, lab, location names)
+        ImagesService::enrichWithMetadata($pdo, $images, 'album');
 
         // Compute unique filter options for Twig (avoid unsupported Twig filters like |unique)
         $processes = [];
@@ -562,7 +519,7 @@ class PageController extends BaseController
             if (!empty($image['lab_name'])) { $equipBits[] = '<i class="fa-solid fa-industry mr-1"></i>' . htmlspecialchars((string)$image['lab_name'], ENT_QUOTES); }
             if (!empty($image['iso'])) { $equipBits[] = '<i class="fa-solid fa-signal mr-1"></i>ISO ' . (int)$image['iso']; }
             if (!empty($image['shutter_speed'])) { $equipBits[] = '<i class="fa-regular fa-clock mr-1"></i>' . htmlspecialchars((string)$image['shutter_speed'], ENT_QUOTES); }
-            if (!empty($image['aperture'])) { $equipBits[] = '<i class="fa-solid fa-circle-half-stroke mr-1"></i>f/' . number_format((float)$image['aperture'], 1); }
+            if (!empty($image['aperture']) && is_numeric($image['aperture'])) { $equipBits[] = '<i class="fa-solid fa-circle-half-stroke mr-1"></i>f/' . number_format((float)$image['aperture'], 1); }
             
             $captionHtml = '';
             if (!empty($image['caption'])) {
@@ -706,15 +663,17 @@ class PageController extends BaseController
         $data = (array)($request->getParsedBody() ?? []);
         $password = (string)($data['password'] ?? '');
 
-        // Validate NSFW confirmation for NSFW albums
-        $isNsfw = !empty($album['is_nsfw']);
-        $nsfwConfirmed = !empty($data['nsfw_confirmed']);
-        if ($isNsfw && !$nsfwConfirmed) {
-            // NSFW confirmation required but not provided
-            return $response->withHeader('Location', $this->redirect('/album/' . $slug . '?error=nsfw'))->withStatus(302);
-        }
-
+        // Verify password FIRST to avoid information disclosure about NSFW status
         if ($password !== '' && password_verify($password, (string)$album['password_hash'])) {
+            // Password is correct - now check NSFW confirmation if needed
+            $isNsfw = !empty($album['is_nsfw']);
+            $nsfwConfirmed = !empty($data['nsfw_confirmed']);
+
+            if ($isNsfw && !$nsfwConfirmed) {
+                // NSFW confirmation required but not provided (only after valid password)
+                return $response->withHeader('Location', $this->redirect('/album/' . $slug . '?error=nsfw'))->withStatus(302);
+            }
+
             // SECURITY: Regenerate session ID to prevent session fixation
             session_regenerate_id(true);
 
@@ -831,7 +790,7 @@ class PageController extends BaseController
                     'location_name' => $img['location_name'] ?? '',
                     'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
                     'shutter_speed' => $img['shutter_speed'] ?? null,
-                    'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
+                    'aperture' => isset($img['aperture']) && is_numeric($img['aperture']) ? (float)$img['aperture'] : null,
                     'process' => $img['process'] ?? null,
                     'sources' => ['avif' => [], 'webp' => [], 'jpg' => []],
                     'fallback_src' => $lightboxUrl ?: $bestUrl

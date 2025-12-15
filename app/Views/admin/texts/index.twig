@@ -1,20 +1,20 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Frontend Texts — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.texts.title') }} — {{ trans('app.name') }}{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Frontend Texts</h1>
-      <p class="text-gray-600 mt-1">Manage all translatable texts for the frontend</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.texts.heading') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.texts.description') }}</p>
     </div>
     <div class="flex gap-2">
       <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button type="submit" class="btn-secondary" onclick="return confirm('Add missing default translations?')">
-          <i class="fas fa-seedling mr-2"></i>Seed Defaults
+        <button type="submit" class="btn-secondary" onclick="return confirm('{{ trans('admin.texts.seed_confirm')|e('js') }}')">
+          <i class="fas fa-seedling mr-2"></i>{{ trans('admin.texts.seed_defaults') }}
         </button>
       </form>
       <a href="{{ base_path }}/admin/texts/create" class="btn-primary">
-        <i class="fas fa-plus mr-2"></i>Add Text
+        <i class="fas fa-plus mr-2"></i>{{ trans('admin.texts.add_text') }}
       </a>
     </div>
   </div>
@@ -23,14 +23,14 @@
   <div class="card mb-6">
     <div class="card-header bg-blue-50 border-b border-blue-200 py-4 px-6 flex items-center justify-between">
       <h2 class="text-lg font-semibold text-blue-800 flex items-center">
-        <i class="fas fa-language mr-2"></i>Import Translations
+        <i class="fas fa-language mr-2"></i>{{ trans('admin.texts.import_translations') }}
       </h2>
       <div class="flex gap-2">
         <a href="{{ base_path }}/admin/texts/export" class="btn-sm btn-secondary">
-          <i class="fas fa-download mr-1"></i>Download JSON
+          <i class="fas fa-download mr-1"></i>{{ trans('admin.texts.download_json') }}
         </a>
         <button type="button" id="toggle-upload-btn" class="btn-sm btn-secondary">
-          <i class="fas fa-upload mr-1"></i>Upload JSON
+          <i class="fas fa-upload mr-1"></i>{{ trans('admin.texts.upload_json') }}
         </button>
       </div>
     </div>
@@ -40,55 +40,55 @@
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <div class="flex flex-wrap items-end gap-3">
           <div class="flex-1 min-w-[250px]">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Language</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.texts.language') }}</label>
             <select name="language" id="language-select" class="input w-full">
-              <option value="">Select language...</option>
+              <option value="">{{ trans('admin.texts.select_language') }}</option>
             </select>
           </div>
           <div class="w-28">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Mode</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.texts.mode') }}</label>
             <select name="mode" class="input w-full">
-              <option value="merge">Merge</option>
-              <option value="replace">Replace</option>
-              <option value="skip">Skip</option>
+              <option value="merge">{{ trans('admin.texts.mode_merge') }}</option>
+              <option value="replace">{{ trans('admin.texts.mode_replace') }}</option>
+              <option value="skip">{{ trans('admin.texts.mode_skip') }}</option>
             </select>
           </div>
           <button type="submit" class="btn-primary">
-            <i class="fas fa-file-import mr-2"></i>Import
+            <i class="fas fa-file-import mr-2"></i>{{ trans('admin.texts.import') }}
           </button>
         </div>
         <p class="text-xs text-gray-500 mt-2">
-          <strong>Merge:</strong> Update existing + add new |
-          <strong>Replace:</strong> Delete all, import fresh |
-          <strong>Skip:</strong> Only add new keys
+          <strong>{{ trans('admin.texts.mode_merge') }}:</strong> {{ trans('admin.texts.mode_merge_desc') }} |
+          <strong>{{ trans('admin.texts.mode_replace') }}:</strong> {{ trans('admin.texts.mode_replace_desc') }} |
+          <strong>{{ trans('admin.texts.mode_skip') }}:</strong> {{ trans('admin.texts.mode_skip_desc') }}
         </p>
       </form>
 
       {# Upload custom JSON - hidden by default #}
       <div id="upload-section" class="hidden border-t border-gray-200 pt-4">
-        <h3 class="text-sm font-medium text-gray-700 mb-3">Upload Custom JSON File</h3>
+        <h3 class="text-sm font-medium text-gray-700 mb-3">{{ trans('admin.texts.upload_custom_json') }}</h3>
         <form action="{{ base_path }}/admin/texts/upload" method="post" enctype="multipart/form-data">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <div class="flex flex-wrap items-end gap-3">
             <div class="flex-1 min-w-[250px]">
-              <label class="block text-xs font-medium text-gray-600 mb-1">JSON File</label>
+              <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.texts.json_file') }}</label>
               <input type="file" name="json_file" accept=".json" class="input w-full file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
             </div>
             <div class="w-28">
-              <label class="block text-xs font-medium text-gray-600 mb-1">Mode</label>
+              <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.texts.mode') }}</label>
               <select name="mode" class="input w-full">
-                <option value="merge">Merge</option>
-                <option value="replace">Replace</option>
-                <option value="skip">Skip</option>
+                <option value="merge">{{ trans('admin.texts.mode_merge') }}</option>
+                <option value="replace">{{ trans('admin.texts.mode_replace') }}</option>
+                <option value="skip">{{ trans('admin.texts.mode_skip') }}</option>
               </select>
             </div>
             <button type="submit" class="btn-primary">
-              <i class="fas fa-upload mr-2"></i>Upload
+              <i class="fas fa-upload mr-2"></i>{{ trans('admin.texts.upload') }}
             </button>
           </div>
           <label class="flex items-center text-sm text-gray-600 mt-3">
             <input type="checkbox" name="save_file" value="1" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-            Save as preset language file
+            {{ trans('admin.texts.save_as_preset') }}
           </label>
         </form>
       </div>
@@ -100,23 +100,23 @@
     <div class="p-4">
       <form method="get" class="flex flex-wrap gap-4">
         <div class="flex-1 min-w-[200px]">
-          <input type="text" name="search" value="{{ search }}" placeholder="Search texts..."
+          <input type="text" name="search" value="{{ search }}" placeholder="{{ trans('admin.texts.search_placeholder') }}"
                  class="input w-full">
         </div>
         <div class="w-48">
           <select name="context" class="input w-full">
-            <option value="">All contexts</option>
+            <option value="">{{ trans('admin.texts.all_contexts') }}</option>
             {% for ctx in contexts %}
               <option value="{{ ctx }}" {% if ctx == current_context %}selected{% endif %}>{{ ctx|capitalize }}</option>
             {% endfor %}
           </select>
         </div>
         <button type="submit" class="btn-primary">
-          <i class="fas fa-search mr-2"></i>Search
+          <i class="fas fa-search mr-2"></i>{{ trans('filter.search') }}
         </button>
         {% if search or current_context %}
           <a href="{{ base_path }}/admin/texts" class="btn-secondary">
-            <i class="fas fa-times mr-2"></i>Clear
+            <i class="fas fa-times mr-2"></i>{{ trans('filter.clear') }}
           </a>
         {% endif %}
       </form>
@@ -138,10 +138,10 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Key</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Description</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Actions</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">{{ trans('admin.texts.col_key') }}</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.texts.col_value') }}</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">{{ trans('admin.texts.col_description') }}</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">{{ trans('admin.texts.col_actions') }}</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
@@ -155,25 +155,25 @@
                     <span class="text-value text-gray-900">{{ text.text_value }}</span>
                     <input type="text" class="text-input input w-full" value="{{ text.text_value|e('html_attr') }}" style="display: none;">
                     <div class="edit-actions mt-2 flex gap-2" style="display: none;">
-                      <button type="button" class="save-btn btn-sm btn-primary">Save</button>
-                      <button type="button" class="cancel-btn btn-sm btn-secondary">Cancel</button>
+                      <button type="button" class="save-btn btn-sm btn-primary">{{ trans('general.save') }}</button>
+                      <button type="button" class="cancel-btn btn-sm btn-secondary">{{ trans('general.cancel') }}</button>
                     </div>
                   </div>
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-500">{{ text.description }}</td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">
                   <div class="flex items-center justify-end gap-2">
-                    <button type="button" class="edit-inline-btn inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" title="Quick edit">
-                      <i class="fas fa-pen-to-square mr-1"></i>Quick
+                    <button type="button" class="edit-inline-btn inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" title="{{ trans('admin.texts.quick_edit') }}">
+                      <i class="fas fa-pen-to-square mr-1"></i>{{ trans('admin.texts.quick') }}
                     </button>
-                    <a href="{{ base_path }}/admin/texts/{{ text.id }}/edit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200" title="Full edit">
-                      <i class="fas fa-edit mr-1"></i>Edit
+                    <a href="{{ base_path }}/admin/texts/{{ text.id }}/edit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200" title="{{ trans('admin.texts.full_edit') }}">
+                      <i class="fas fa-edit mr-1"></i>{{ trans('general.edit') }}
                     </a>
-                    <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" onsubmit="return confirm('Delete this text?')">
+                    <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" onsubmit="return confirm('{{ trans('admin.texts.delete_confirm')|e('js') }}')">
                       <input type="hidden" name="csrf" value="{{ csrf }}">
                       <input type="hidden" name="_method" value="DELETE">
-                      <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200" title="Delete">
-                        <i class="fas fa-trash mr-1"></i>Delete
+                      <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200" title="{{ trans('general.delete') }}">
+                        <i class="fas fa-trash mr-1"></i>{{ trans('general.delete') }}
                       </button>
                     </form>
                   </div>
@@ -188,23 +188,23 @@
     <div class="card">
       <div class="p-8 text-center">
         <i class="fas fa-language text-4xl text-gray-400 mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No texts found</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.texts.no_texts_found') }}</h3>
         <p class="text-gray-600 mb-4">
           {% if search or current_context %}
-            No texts match your search criteria.
+            {{ trans('admin.texts.no_texts_match') }}
           {% else %}
-            Start by seeding the default translations or adding custom texts.
+            {{ trans('admin.texts.no_texts_hint') }}
           {% endif %}
         </p>
         <div class="flex justify-center gap-4">
           <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <button type="submit" class="btn-primary">
-              <i class="fas fa-seedling mr-2"></i>Seed Defaults
+              <i class="fas fa-seedling mr-2"></i>{{ trans('admin.texts.seed_defaults') }}
             </button>
           </form>
           <a href="{{ base_path }}/admin/texts/create" class="btn-secondary">
-            <i class="fas fa-plus mr-2"></i>Add Text
+            <i class="fas fa-plus mr-2"></i>{{ trans('admin.texts.add_text') }}
           </a>
         </div>
       </div>
@@ -233,7 +233,7 @@
           } else {
             const option = document.createElement('option');
             option.value = '';
-            option.textContent = 'No preset languages available';
+            option.textContent = '{{ trans('admin.texts.no_preset_languages')|e('js') }}';
             option.disabled = true;
             select.appendChild(option);
           }
@@ -253,9 +253,9 @@
           const icon = this.querySelector('i');
           if (uploadSection.classList.contains('hidden')) {
             icon.className = 'fas fa-upload mr-1';
-            this.innerHTML = '<i class="fas fa-upload mr-1"></i>Upload JSON';
+            this.innerHTML = '<i class="fas fa-upload mr-1"></i>{{ trans('admin.texts.upload_json')|e('js') }}';
           } else {
-            this.innerHTML = '<i class="fas fa-times mr-1"></i>Hide Upload';
+            this.innerHTML = '<i class="fas fa-times mr-1"></i>{{ trans('admin.texts.hide_upload')|e('js') }}';
           }
         });
       }
@@ -274,6 +274,8 @@
             const textInput = container.querySelector('.text-input');
             const editActions = container.querySelector('.edit-actions');
 
+            // Store original value for cancel (handles HTML entities correctly)
+            textInput.dataset.originalValue = textInput.value;
             textValue.style.display = 'none';
             textInput.style.display = 'block';
             editActions.style.display = 'flex';
@@ -291,7 +293,8 @@
             const textInput = container.querySelector('.text-input');
             const editActions = container.querySelector('.edit-actions');
 
-            textInput.value = textValue.textContent.trim();
+            // Restore from stored original value (or fall back to textContent)
+            textInput.value = textInput.dataset.originalValue || textValue.textContent.trim();
             textValue.style.display = '';
             textInput.style.display = 'none';
             editActions.style.display = 'none';
@@ -331,11 +334,11 @@
                 textInput.style.display = 'none';
                 editActions.style.display = 'none';
               } else {
-                alert('Failed to save: ' + (result.error || 'Unknown error'));
+                alert('{{ trans('admin.texts.save_failed')|e('js') }}: ' + (result.error || '{{ trans('admin.texts.unknown_error')|e('js') }}'));
               }
             })
             .catch(error => {
-              alert('Failed to save: ' + error.message);
+              alert('{{ trans('admin.texts.save_failed')|e('js') }}: ' + error.message);
             });
           }
         }
