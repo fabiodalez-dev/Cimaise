@@ -67,3 +67,13 @@ public/media/3_xl.webp
 public/media/3_xxl.jpg
 public/media/3_xxl.webp
 CLAUDE.md
+
+# Release build artifacts
+releases/
+build-tmp/
+
+# Maintenance mode
+storage/.maintenance
+
+# Documentation (internal only)
+updater.md
