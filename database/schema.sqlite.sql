@@ -1,5 +1,5 @@
 -- ============================================
--- photoCMS - Complete SQLite Schema
+-- Cimaise - Complete SQLite Schema
 -- Template database for clean installations
 -- ============================================
 
@@ -714,7 +714,7 @@ INSERT INTO frontend_texts (text_key, text_value, context, description) VALUES
 ('date.days_ago', '{count} days ago', 'dates', 'Days ago with placeholder'),
 -- Footer
 ('footer.copyright', '© {year} All rights reserved', 'footer', 'Copyright text with year placeholder'),
-('footer.powered_by', 'Powered by photoCMS', 'footer', 'Powered by text'),
+('footer.powered_by', 'Powered by Cimaise', 'footer', 'Powered by text'),
 ('footer.privacy', 'Privacy Policy', 'footer', 'Privacy policy link'),
 ('footer.terms', 'Terms of Service', 'footer', 'Terms of service link'),
 -- Lightbox
