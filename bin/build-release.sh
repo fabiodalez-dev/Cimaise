@@ -234,7 +234,8 @@ get_version() {
         exit 1
     fi
 
-    local version=$(jq -r '.version' version.json)
+    local version
+    version=$(jq -r '.version' version.json)
 
     if [ -z "$version" ] || [ "$version" == "null" ]; then
         log_error "Could not read version from version.json"
@@ -417,8 +418,10 @@ EOF
 print_summary() {
     local version=$1
     local zip_file="${OUTPUT_DIR}/cimaise-v${version}.zip"
-    local zip_size=$(du -h "$zip_file" | cut -f1)
-    local checksum=$(cat "${OUTPUT_DIR}/cimaise-v${version}.zip.sha256" | cut -d' ' -f1)
+    local zip_size
+    zip_size=$(du -h "$zip_file" | cut -f1)
+    local checksum
+    checksum=$(cut -d' ' -f1 "${OUTPUT_DIR}/cimaise-v${version}.zip.sha256")
 
     echo ""
     echo "=================================="
@@ -457,7 +460,8 @@ main() {
     check_requirements
 
     # Get version
-    local version=$(get_version)
+    local version
+    version=$(get_version)
     log_info "Building release for version: v${version}"
 
     # Build frontend

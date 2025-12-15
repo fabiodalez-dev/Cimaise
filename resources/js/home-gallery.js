@@ -47,11 +47,13 @@ onReady(() => {
       const visV = r.top < ih && r.bottom > 0;
       const nearH = r.left < iw * 2;
       const nearV = r.top < ih * 2;
-      return { el, top: r.top, left: r.left, right: r.right, vis: isHorizontal ? visH : visV, near: isHorizontal ? nearH : nearV };
+      return { el, top: r.top, left: r.left, vis: isHorizontal ? visH : visV, near: isHorizontal ? nearH : nearV };
     });
 
     // Sort: horizontal by row then left position, vertical by top then left
-    const ROW_BUCKET_SIZE = 50; // px threshold for grouping items into rows
+    // Threshold for grouping items into logical rows during horizontal reveal.
+    // Items within this vertical distance are considered part of the same row.
+    const ROW_BUCKET_SIZE = 50;
     const inView = withRect.filter(x => x.vis).sort((a,b) => {
       if (isHorizontal) {
         const rowA = Math.floor(a.top / ROW_BUCKET_SIZE);
