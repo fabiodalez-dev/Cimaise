@@ -253,7 +253,8 @@ class PageController extends BaseController
                 $navStmt->execute();
                 $navCategories = $navStmt->fetchAll();
                 $query = $request->getQueryParams();
-                $error = isset($query['error']);
+                // Pass error type: '1' for wrong password, 'nsfw' for NSFW confirmation required
+                $error = $query['error'] ?? null;
                 return $this->view->render($response, 'frontend/album_password.twig', [
                     'album' => $album,
                     'categories' => $navCategories,
@@ -696,7 +697,7 @@ class PageController extends BaseController
     {
         $slug = (string)($args['slug'] ?? '');
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('SELECT id, password_hash FROM albums WHERE slug = :slug');
+        $stmt = $pdo->prepare('SELECT id, password_hash, is_nsfw FROM albums WHERE slug = :slug');
         $stmt->execute([':slug' => $slug]);
         $album = $stmt->fetch();
         if (!$album || empty($album['password_hash'])) {
@@ -704,13 +705,27 @@ class PageController extends BaseController
         }
         $data = (array)($request->getParsedBody() ?? []);
         $password = (string)($data['password'] ?? '');
+
+        // Validate NSFW confirmation for NSFW albums
+        $isNsfw = !empty($album['is_nsfw']);
+        $nsfwConfirmed = !empty($data['nsfw_confirmed']);
+        if ($isNsfw && !$nsfwConfirmed) {
+            // NSFW confirmation required but not provided
+            return $response->withHeader('Location', $this->redirect('/album/' . $slug . '?error=nsfw'))->withStatus(302);
+        }
+
         if ($password !== '' && password_verify($password, (string)$album['password_hash'])) {
             // SECURITY: Regenerate session ID to prevent session fixation
             session_regenerate_id(true);
-            
+
             if (!isset($_SESSION['album_access'])) $_SESSION['album_access'] = [];
             $_SESSION['album_access'][(int)$album['id']] = time(); // Store timestamp for potential timeout
-            
+
+            // Store NSFW confirmation in session for server-side validation
+            if ($isNsfw) {
+                $_SESSION['nsfw_confirmed'] = true;
+            }
+
             return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
         }
         return $response->withHeader('Location', $this->redirect('/album/' . $slug . '?error=1'))->withStatus(302);
