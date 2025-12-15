@@ -31,23 +31,32 @@
           {% endif %}
           
           {% set card_img_url = album.cover.variants[0].path ?? album.cover.original_path %}
-          <img src="{% if card_img_url starts with '/' %}{{ base_path }}{{ card_img_url }}{% else %}{{ card_img_url }}{% endif %}" 
-               alt="{{ album.cover.alt_text|e }}" 
-               width="{{ album.cover.width }}" 
+          <img src="{% if card_img_url starts with '/' %}{{ base_path }}{{ card_img_url }}{% else %}{{ card_img_url }}{% endif %}"
+               alt="{{ album.cover.alt_text|e }}"
+               width="{{ album.cover.width }}"
                height="{{ album.cover.height }}"
-               loading="lazy" 
+               loading="lazy"
                decoding="async"
-               class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+               class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105 {% if album.is_nsfw and not is_admin %}nsfw-blur{% endif %}">
         </picture>
 
+        {# NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through #}
+        {% if album.is_nsfw and not is_admin %}
+        <div class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
+          <i class="fas fa-eye-slash text-2xl mb-1"></i>
+          <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
+        </div>
+        {% endif %}
+
+        {# Category Badge - above NSFW overlay #}
         {% if album.category_name %}
-        <div class="absolute top-2 left-2">
+        <div class="absolute top-2 left-2 z-20">
           {% if album.category_slug %}
-          <a href="{{ base_path }}/category/{{ album.category_slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50/95 text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ album.category_name|e }}">
+          <a href="{{ base_path }}/category/{{ album.category_slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ album.category_name|e }}">
             <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ album.category_name|e }}
           </a>
           {% else %}
-          <span class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50/95 text-neutral-700" title="{{ album.category_name|e }}">
+          <span class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white text-neutral-700" title="{{ album.category_name|e }}">
             <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ album.category_name|e }}
           </span>
           {% endif %}
