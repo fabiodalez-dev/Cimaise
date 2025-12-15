@@ -179,8 +179,8 @@ class Installer
     {
         $errors = [];
 
-        if (version_compare(PHP_VERSION, '8.0.0', '<')) {
-            $errors[] = 'PHP 8.0 or higher is required. Current version: ' . PHP_VERSION;
+        if (version_compare(PHP_VERSION, '8.2.0', '<')) {
+            $errors[] = 'PHP 8.2 or higher is required. Current version: ' . PHP_VERSION;
         }
 
         // Core required extensions
@@ -267,21 +267,13 @@ class Installer
                 $dbPath = $this->rootPath . '/' . $dbPath;
             }
 
-            // Normalize the path - handle case where directory doesn't exist yet
-            $resolvedDir = realpath(dirname($dbPath));
-            if ($resolvedDir === false) {
-                // Directory doesn't exist yet, use original path
-                $dbPath = $this->rootPath . '/database/database.sqlite';
-            } else {
-                $dbPath = $resolvedDir . '/' . basename($dbPath);
-            }
-
             $dir = dirname($dbPath);
             if (!is_dir($dir)) {
                 if (!mkdir($dir, 0755, true)) {
                     throw new \RuntimeException("Cannot create database directory: {$dir}");
                 }
             }
+            $dbPath = rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename($dbPath);
             if (file_exists($dbPath)) {
                 unlink($dbPath);
             }
@@ -372,24 +364,19 @@ class Installer
         }
 
         if ($this->db->isSqlite()) {
-            // SQLite: copy template database
-            $templatePath = $this->rootPath . '/database/template.sqlite';
+            // SQLite: build schema from SQL to keep indexes in sync with MySQL
+            $schemaPath = $this->rootPath . '/database/schema.sqlite.sql';
+            if (!file_exists($schemaPath)) {
+                throw new \RuntimeException('SQLite schema file not found. Please ensure database/schema.sqlite.sql exists.');
+            }
+
+            // Ensure we write into the selected database path
             $targetPath = $this->createdDbPath ?? ($this->rootPath . '/database/database.sqlite');
-
-            if (!file_exists($templatePath)) {
-                throw new \RuntimeException('SQLite template database not found. Please ensure database/template.sqlite exists.');
+            if (!is_file($targetPath)) {
+                touch($targetPath);
             }
 
-            if (file_exists($targetPath)) {
-                unlink($targetPath);
-            }
-
-            if (!copy($templatePath, $targetPath)) {
-                throw new \RuntimeException('Failed to copy SQLite template database');
-            }
-
-            $this->db = new Database(database: $targetPath, isSqlite: true);
-            $this->createdDbPath = $targetPath;
+            $this->db->execSqlFile($schemaPath);
             $this->dbCreated = true;
         } else {
             // MySQL: execute schema file
@@ -497,7 +484,7 @@ class Installer
 
         $sessionSecret = bin2hex(random_bytes(32));
         $envContent .= "\nSESSION_SECRET=" . $sessionSecret . "\n";
-        $envContent .= "\n# Fast upload mode\nFAST_UPLOAD=true\n";
+        $envContent .= "\n# Upload tuning\nFAST_UPLOAD=false\nSYNC_VARIANTS_ON_UPLOAD=true\n";
 
         $envFilePath = $this->rootPath . '/.env';
         if (file_put_contents($envFilePath, $envContent) === false) {

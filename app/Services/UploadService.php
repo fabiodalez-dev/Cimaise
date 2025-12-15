@@ -178,19 +178,22 @@ class UploadService
         // Generate preview and full variants set
         $mediaDir = dirname(__DIR__, 2) . '/public/media';
         ImagesService::ensureDir($mediaDir);
-        $settings = new \App\Services\SettingsService($this->db);
-        $formats = (array)$settings->get('image.formats');
-        $quality = (array)$settings->get('image.quality');
-        $breakpoints = (array)$settings->get('image.breakpoints');
+        $settingsSvc = new \App\Services\SettingsService($this->db);
+        $defaults = $settingsSvc->defaults();
 
-        $previewW = (int)($settings->get('image.preview')['width'] ?? 480);
+        $previewSettings = $settingsSvc->get('image.preview', $defaults['image.preview']);
+        if (!is_array($previewSettings)) {
+            $previewSettings = $defaults['image.preview'];
+        }
+        $previewW = (int)($previewSettings['width'] ?? 480);
         $previewPath = $mediaDir . '/' . $imageId . '_sm.jpg';
         $preview = ImagesService::generateJpegPreview($dest, $previewPath, $previewW);
         if ($preview) {
             $relFs = str_replace(dirname(__DIR__, 2), '', $preview);
             $relUrl = preg_replace('#^/public#','', $relFs);
+            $previewSize = @getimagesize($preview) ?: [$previewW, 0];
             $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
-                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,0, (int)filesize($preview)]);
+                ->execute([$imageId,'sm','jpg',$relUrl,$previewW,(int)($previewSize[1] ?? 0), (int)filesize($preview)]);
             $previewRel = $relUrl;
         } else {
             $previewRel = null;
@@ -203,10 +206,21 @@ class UploadService
 
         // For backward compatibility, legacy mode (all variants sync) is the default
         // Set FAST_UPLOAD=true in .env to enable fast mode (recommended for large uploads)
-        $fastUploadMode = ($_ENV['FAST_UPLOAD'] ?? 'false') === 'true';
+        $fastUploadMode = $this->envFlag('FAST_UPLOAD', false);
+        $syncVariants = $this->envFlag('SYNC_VARIANTS_ON_UPLOAD', true);
 
-        if (!$fastUploadMode) {
-            // LEGACY MODE: Generate all variants synchronously (complete but slower)
+        if ($syncVariants) {
+            $this->generateVariantsForImage($imageId, false);
+        } elseif ($fastUploadMode) {
+            // Generate variants after response flush to keep UX snappy but still complete
+            register_shutdown_function(function () use ($imageId) {
+                try {
+                    $this->generateVariantsForImage($imageId, false);
+                } catch (\Throwable $e) {
+                    Logger::warning('UploadService: async variant generation failed', ['error' => $e->getMessage(), 'image_id' => $imageId], 'upload');
+                }
+            });
+        } else {
             $this->generateVariantsForImage($imageId, false);
         }
 
@@ -339,9 +353,20 @@ class UploadService
 
         // Get settings
         $settings = new \App\Services\SettingsService($this->db);
-        $formats = (array)$settings->get('image.formats');
-        $quality = (array)$settings->get('image.quality');
-        $breakpoints = (array)$settings->get('image.breakpoints');
+        $defaults = $settings->defaults();
+
+        $formats = $settings->get('image.formats', $defaults['image.formats']);
+        if (!is_array($formats) || !$formats) {
+            $formats = $defaults['image.formats'];
+        }
+        $quality = $settings->get('image.quality', $defaults['image.quality']);
+        if (!is_array($quality) || !$quality) {
+            $quality = $defaults['image.quality'];
+        }
+        $breakpoints = $settings->get('image.breakpoints', $defaults['image.breakpoints']);
+        if (!is_array($breakpoints) || !$breakpoints) {
+            $breakpoints = $defaults['image.breakpoints'];
+        }
 
         $mediaDir = dirname(__DIR__, 2) . '/public/media';
         ImagesService::ensureDir($mediaDir);
@@ -350,9 +375,15 @@ class UploadService
         $stats = ['generated' => 0, 'failed' => 0, 'skipped' => 0];
 
         foreach ($breakpoints as $variant => $targetW) {
-            $targetW = (int)$targetW;
+            $targetW = max(1, (int)$targetW);
             foreach (['avif','webp','jpg'] as $fmt) {
-                if (empty($formats[$fmt])) continue;
+                $enabled = $formats[$fmt] ?? false;
+                if (is_string($enabled)) {
+                    $enabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
+                }
+                if (!$enabled) {
+                    continue;
+                }
 
                 $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                 $destPath = $mediaDir . "/{$imageId}_{$variant}.{$fmt}";
@@ -417,5 +448,18 @@ class UploadService
             UPLOAD_ERR_EXTENSION => 'File upload stopped by extension',
             default => 'Unknown upload error (' . $errorCode . ')'
         };
+    }
+
+    /**
+     * Helper to parse boolean flags from environment with sane defaults.
+     */
+    private function envFlag(string $key, bool $default = false): bool
+    {
+        $fallback = $default ? 'true' : 'false';
+        $raw = function_exists('envv') ? envv($key, $fallback) : ($_ENV[$key] ?? $fallback);
+        if (is_bool($raw)) {
+            return $raw;
+        }
+        return filter_var((string)$raw, FILTER_VALIDATE_BOOLEAN);
     }
 }

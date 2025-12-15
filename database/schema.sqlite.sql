@@ -475,12 +475,18 @@ CREATE INDEX IF NOT EXISTS idx_frontend_texts_context ON frontend_texts(context)
 
 CREATE TABLE IF NOT EXISTS plugin_status (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  plugin_name TEXT NOT NULL UNIQUE,
-  is_enabled INTEGER DEFAULT 0,
-  settings TEXT,
+  slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  version TEXT NOT NULL,
+  description TEXT,
+  author TEXT,
+  path TEXT NOT NULL,
+  is_active INTEGER DEFAULT 1,
+  is_installed INTEGER DEFAULT 1,
   installed_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS idx_plugin_status_active ON plugin_status(is_active);
 
 -- ============================================
 -- DEFAULT DATA
