@@ -48,8 +48,15 @@ class RateLimitMiddleware implements MiddlewareInterface
         $isFailedAttempt = false;
         $statusCode = $response->getStatusCode();
 
-        // For login pages: check response body for error message
-        if ($statusCode === 200 && str_contains((string)$response->getBody(), 'Credenziali non valide')) {
+        // For login pages: check response body for error message (supports multiple languages)
+        $body = (string)$response->getBody();
+        if ($statusCode === 200 && (
+            str_contains($body, 'Credenziali non valide') ||
+            str_contains($body, 'Invalid credentials') ||
+            str_contains($body, 'Login failed') ||
+            str_contains($body, 'Account disattivato') ||
+            str_contains($body, 'Account disabled')
+        )) {
             $isFailedAttempt = true;
         }
 
