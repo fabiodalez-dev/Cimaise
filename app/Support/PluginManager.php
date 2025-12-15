@@ -6,7 +6,7 @@ namespace App\Support;
 use App\Support\Database;
 
 /**
- * Plugin Manager - Sistema di gestione plugin e hooks per photoCMS
+ * Plugin Manager - Sistema di gestione plugin e hooks per Cimaise
  *
  * Permette di registrare hooks e eseguire callbacks dei plugin in punti strategici dell'applicazione.
  * Supporta priorità, passaggio dati, filtri e azioni.

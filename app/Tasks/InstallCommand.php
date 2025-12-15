@@ -13,7 +13,7 @@ use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-#[AsCommand(name: 'install', description: 'Install photoCMS application')]
+#[AsCommand(name: 'install', description: 'Install Cimaise application')]
 class InstallCommand extends Command
 {
     private string $rootPath;
@@ -36,11 +36,11 @@ class InstallCommand extends Command
         
         // Check if already installed
         if ($installer->isInstalled() && !$input->getOption('force')) {
-            $io->warning('photoCMS is already installed. Use --force to reinstall.');
+            $io->warning('Cimaise is already installed. Use --force to reinstall.');
             return Command::FAILURE;
         }
         
-        $io->title('photoCMS Installer');
+        $io->title('Cimaise Installer');
         
         // Verify requirements
         $io->section('Checking Requirements');
@@ -77,11 +77,11 @@ class InstallCommand extends Command
         }
         
         // Run installation
-        $io->section('Installing photoCMS');
+        $io->section('Installing Cimaise');
         
         try {
             $installer->install($data);
-            $io->success('photoCMS installed successfully!');
+            $io->success('Cimaise installed successfully!');
             
             $io->note('Next steps:');
             $io->writeln([
@@ -155,7 +155,7 @@ class InstallCommand extends Command
             $question = new Question('MySQL Port [3306]: ', '3306');
             $data['db_port'] = $helper->ask($input, $output, $question);
             
-            $question = new Question('Database name [photocms]: ', 'photocms');
+            $question = new Question('Database name [cimaise]: ', 'cimaise');
             $data['db_database'] = $helper->ask($input, $output, $question);
             
             $question = new Question('MySQL Username [root]: ', 'root');
@@ -192,7 +192,7 @@ class InstallCommand extends Command
         // Site settings
         $io->section('Site Settings');
         
-        $question = new Question('Site title [photoCMS]: ', 'photoCMS');
+        $question = new Question('Site title [Cimaise]: ', 'Cimaise');
         $data['site_title'] = $helper->ask($input, $output, $question);
         
         $question = new Question('Site description [Professional Photography Portfolio]: ', 'Professional Photography Portfolio');

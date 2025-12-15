@@ -3,7 +3,7 @@
  * Plugin Name: Image Rating
  * Description: Add star rating system to images (1-5 stars) with sorting and filtering
  * Version: 1.0.0
- * Author: photoCMS Team
+ * Author: Cimaise Team
  * License: MIT
  */
 
@@ -40,7 +40,7 @@ class ImageRatingPlugin
     public function init(): void
     {
         // Get database
-        Hooks::addAction('photocms_init', [$this, 'setup'], 10, self::PLUGIN_NAME);
+        Hooks::addAction('cimaise_init', [$this, 'setup'], 10, self::PLUGIN_NAME);
 
         // Admin hooks
         Hooks::addFilter('admin_list_columns', [$this, 'addRatingColumn'], 10, self::PLUGIN_NAME);

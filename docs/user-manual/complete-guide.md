@@ -1,6 +1,6 @@
-# Guida Completa - photoCMS
+# Guida Completa - Cimaise
 
-Questa guida copre tutte le funzionalità di photoCMS: frontend, admin panel, gestione album, impostazioni, analytics e troubleshooting.
+Questa guida copre tutte le funzionalità di Cimaise: frontend, admin panel, gestione album, impostazioni, analytics e troubleshooting.
 
 ---
 
@@ -978,7 +978,7 @@ php -r "mail('test@test.com', 'Test', 'Body');"
 **Locations**:
 ```bash
 # Apache
-/var/log/apache2/photocms_error.log
+/var/log/apache2/cimaise_error.log
 
 # Nginx
 /var/log/nginx/error.log
@@ -993,10 +993,10 @@ storage/logs/app.log
 **Monitoring**:
 ```bash
 # Tail real-time
-tail -f /var/log/apache2/photocms_error.log
+tail -f /var/log/apache2/cimaise_error.log
 
 # Cerca errori recenti
-grep "500" /var/log/apache2/photocms_error.log | tail -20
+grep "500" /var/log/apache2/cimaise_error.log | tail -20
 ```
 
 ## Ottenere Supporto
@@ -1009,7 +1009,7 @@ Se non riesci a risolvere:
 4. **Email Support**: [email supporto]
 
 **Quando chiedi aiuto, includi**:
-- Versione photoCMS
+- Versione Cimaise
 - PHP version (`php -v`)
 - Error message completo
 - Steps per riprodurre
@@ -1020,4 +1020,4 @@ Se non riesci a risolvere:
 **Versione Guida**: 1.0.0
 **Ultimo Aggiornamento**: 17 Novembre 2025
 
-✅ **Complimenti!** Ora conosci tutte le funzionalità di photoCMS! 📸
+✅ **Complimenti!** Ora conosci tutte le funzionalità di Cimaise! 📸

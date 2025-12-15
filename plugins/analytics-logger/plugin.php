@@ -3,7 +3,7 @@
  * Plugin Name: Analytics Logger
  * Description: Advanced analytics logging with custom events and detailed tracking
  * Version: 1.0.0
- * Author: photoCMS Team
+ * Author: Cimaise Team
  * License: MIT
  */
 
@@ -37,7 +37,7 @@ class AnalyticsLoggerPlugin
     public function init(): void
     {
         // Get database connection
-        Hooks::addAction('photocms_init', [$this, 'setDatabase'], 10, self::PLUGIN_NAME);
+        Hooks::addAction('cimaise_init', [$this, 'setDatabase'], 10, self::PLUGIN_NAME);
 
         // Track additional events
         Hooks::addAction('user_after_login', [$this, 'trackLogin'], 10, self::PLUGIN_NAME);

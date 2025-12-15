@@ -54,7 +54,7 @@ class Installer
                 $this->db = new Database(
                     host: $this->config['DB_HOST'] ?? '127.0.0.1',
                     port: (int)($this->config['DB_PORT'] ?? 3306),
-                    database: $this->config['DB_DATABASE'] ?? 'photocms',
+                    database: $this->config['DB_DATABASE'] ?? 'cimaise',
                     username: $this->config['DB_USERNAME'] ?? 'root',
                     password: $this->config['DB_PASSWORD'] ?? '',
                     charset: $this->config['DB_CHARSET'] ?? 'utf8mb4',
@@ -284,7 +284,7 @@ class Installer
         } else {
             $host = $data['db_host'] ?? '127.0.0.1';
             $port = (int)($data['db_port'] ?? 3306);
-            $database = $data['db_database'] ?? 'photocms';
+            $database = $data['db_database'] ?? 'cimaise';
             $username = $data['db_username'] ?? 'root';
             $password = $data['db_password'] ?? '';
             // Use consistent charset/collation (match runtime Database class)
@@ -420,7 +420,7 @@ class Installer
         $dateFormat = in_array($rawDateFormat, ['Y-m-d', 'd-m-Y'], true) ? $rawDateFormat : 'Y-m-d';
 
         $settings = [
-            'site.title' => $data['site_title'] ?? 'photoCMS',
+            'site.title' => $data['site_title'] ?? 'Cimaise',
             'site.description' => $data['site_description'] ?? 'Professional Photography Portfolio',
             'site.copyright' => $data['site_copyright'] ?? '© ' . date('Y') . ' Photography Portfolio',
             'site.email' => $data['site_email'] ?? '',
@@ -468,7 +468,7 @@ class Installer
         } else {
             $envContent .= "DB_HOST=" . ($data['db_host'] ?? '127.0.0.1') . "\n";
             $envContent .= "DB_PORT=" . ($data['db_port'] ?? '3306') . "\n";
-            $envContent .= "DB_DATABASE=" . ($data['db_database'] ?? 'photocms') . "\n";
+            $envContent .= "DB_DATABASE=" . ($data['db_database'] ?? 'cimaise') . "\n";
             $envContent .= "DB_USERNAME=" . ($data['db_username'] ?? 'root') . "\n";
             $envContent .= "DB_PASSWORD=" . ($data['db_password'] ?? '') . "\n";
             // Use consistent charset/collation

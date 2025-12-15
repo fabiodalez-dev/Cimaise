@@ -1,8 +1,8 @@
-# Sicurezza - photoCMS
+# Sicurezza - Cimaise
 
 ## Panoramica
 
-photoCMS implementa multiple layer di sicurezza per proteggere da vulnerabilità comuni (OWASP Top 10).
+Cimaise implementa multiple layer di sicurezza per proteggere da vulnerabilità comuni (OWASP Top 10).
 
 ---
 
@@ -458,8 +458,8 @@ if ($_ENV['APP_ENV'] === 'production') {
 
 **Production**:
 ```sql
-CREATE USER 'photocms'@'localhost' IDENTIFIED BY 'strong_password';
-GRANT SELECT, INSERT, UPDATE, DELETE ON photocms.* TO 'photocms'@'localhost';
+CREATE USER 'cimaise'@'localhost' IDENTIFIED BY 'strong_password';
+GRANT SELECT, INSERT, UPDATE, DELETE ON cimaise.* TO 'cimaise'@'localhost';
 -- NO GRANT ALL, NO DROP, NO ALTER
 ```
 
@@ -473,14 +473,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON photocms.* TO 'photocms'@'localhost';
 
 ```bash
 # Backup DB cifrato
-mysqldump photocms | gzip | openssl enc -aes-256-cbc -salt -out backup.sql.gz.enc
+mysqldump cimaise | gzip | openssl enc -aes-256-cbc -salt -out backup.sql.gz.enc
 ```
 
 ### Access Control
 
 ```bash
 chmod 600 backup.sql.gz.enc
-chown photocms:photocms backup.sql.gz.enc
+chown cimaise:cimaise backup.sql.gz.enc
 ```
 
 **Storage**: Off-site, access limitato.

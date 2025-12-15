@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Admin — photoCMS{% endblock %}</title>
+  <title>{% block title %}Admin — Cimaise{% endblock %}</title>
   <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/admin.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
@@ -239,10 +239,10 @@
           </button>
           
           {% if site_logo %}
-            <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('photoCMS')|e }}" class="h-7 w-auto mr-3">
+            <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Cimaise')|e }}" class="h-7 w-auto mr-3">
           {% else %}
             <i class="fas fa-camera text-2xl text-black mr-3"></i>
-            <h1 class="text-xl font-semibold text-black">{{ site_title|default('photoCMS') }}</h1>
+            <h1 class="text-xl font-semibold text-black">{{ site_title|default('Cimaise') }}</h1>
           {% endif %}
         </div>
         

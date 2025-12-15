@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace PhotoCMSAnalyticsPro;
+namespace CimaiseAnalyticsPro;
 
 use App\Support\Database;
 

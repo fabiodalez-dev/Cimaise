@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login — photoCMS</title>
+  <title>Login — Cimaise</title>
   <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
 </head>
@@ -12,11 +12,11 @@
     <div class="text-center">
       {% if site_logo %}
         <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}"
-             alt="{{ site_title|default('photoCMS')|e }}" class="h-12 w-auto mx-auto mb-4">
+             alt="{{ site_title|default('Cimaise')|e }}" class="h-12 w-auto mx-auto mb-4">
       {% else %}
         <i class="fas fa-camera text-4xl text-black mb-4"></i>
       {% endif %}
-      <h2 class="text-3xl font-bold text-gray-900">{{ site_title|default('photoCMS') }}</h2>
+      <h2 class="text-3xl font-bold text-gray-900">{{ site_title|default('Cimaise') }}</h2>
       <p class="mt-2 text-sm text-gray-600">Admin Panel</p>
     </div>
 
@@ -43,7 +43,7 @@
               required 
               autofocus
               class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-              placeholder="admin@photocms.local"
+              placeholder="admin@cimaise.local"
             >
           </div>
         </div>
@@ -89,7 +89,7 @@
     </form>
 
     <div class="text-center text-xs text-gray-500 mt-8">
-      photoCMS Admin Panel
+      Cimaise Admin Panel
     </div>
   </div>
 </body>

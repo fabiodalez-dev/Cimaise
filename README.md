@@ -1,4 +1,4 @@
-# photoCMS
+# Cimaise
 
 A minimalist, high-performance photography portfolio content management system designed for professional photographers.
 
@@ -30,7 +30,7 @@ A minimalist, high-performance photography portfolio content management system d
 
 ## Overview
 
-**photoCMS** is a modern, lightweight CMS built specifically for photographers who want full control over their portfolio presentation. It emphasizes:
+**Cimaise** is a modern, lightweight CMS built specifically for photographers who want full control over their portfolio presentation. It emphasizes:
 
 - **Performance**: Responsive images in AVIF/WebP/JPEG with lazy loading
 - **SEO**: Server-side rendering, structured data, sitemaps
@@ -38,7 +38,7 @@ A minimalist, high-performance photography portfolio content management system d
 - **Simplicity**: Clean admin interface, intuitive workflows
 - **Flexibility**: SQLite for quick setup, MySQL for production
 
-Whether you're a film photographer showcasing analog work or a digital artist presenting your latest series, photoCMS provides the tools you need without unnecessary bloat.
+Whether you're a film photographer showcasing analog work or a digital artist presenting your latest series, Cimaise provides the tools you need without unnecessary bloat.
 
 ---
 
@@ -142,8 +142,8 @@ public/media/       # Generated image variants
 
 ```bash
 # Clone the repository
-git clone https://github.com/fabiodalez-dev/photoCMS.git
-cd photoCMS
+git clone https://github.com/fabiodalez-dev/Cimaise.git
+cd Cimaise
 
 # Install PHP dependencies
 composer install
@@ -183,20 +183,20 @@ The installer will:
 
 ```bash
 # Start MySQL container
-docker run --name photocms-mysql \
+docker run --name cimaise-mysql \
   -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=photocms \
-  -e MYSQL_USER=photocms \
-  -e MYSQL_PASSWORD=photocms123 \
+  -e MYSQL_DATABASE=cimaise \
+  -e MYSQL_USER=cimaise \
+  -e MYSQL_PASSWORD=cimaise123 \
   -p 3306:3306 -d mysql:8
 
 # Update .env with MySQL credentials
 DB_DRIVER=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=photocms
-DB_USERNAME=photocms
-DB_PASSWORD=photocms123
+DB_DATABASE=cimaise
+DB_USERNAME=cimaise
+DB_PASSWORD=cimaise123
 ```
 
 ---
@@ -220,7 +220,7 @@ DB_DATABASE=database/database.sqlite
 # DB_DRIVER=mysql
 # DB_HOST=127.0.0.1
 # DB_PORT=3306
-# DB_DATABASE=photocms
+# DB_DATABASE=cimaise
 # DB_USERNAME=root
 # DB_PASSWORD=secret
 
@@ -385,7 +385,7 @@ Run via `php bin/console [command]` or access through Admin Panel → Commands.
 
 ### Variant Generation
 
-When an image is uploaded, photoCMS generates optimized variants:
+When an image is uploaded, Cimaise generates optimized variants:
 
 ```
 Original (storage/originals/)
@@ -467,7 +467,7 @@ Permissions-Policy: geolocation=(), microphone=(), camera=()
 ## Project Structure
 
 ```
-photoCMS/
+Cimaise/
 ├── app/
 │   ├── Config/
 │   │   ├── bootstrap.php      # Dependency injection
@@ -594,7 +594,7 @@ Ensure `mod_rewrite` is enabled. The `.htaccess` file in `/public` handles routi
 server {
     listen 80;
     server_name your-domain.com;
-    root /var/www/photocms/public;
+    root /var/www/cimaise/public;
     index index.php;
 
     location / {
@@ -616,7 +616,7 @@ server {
 
 ### Subdirectory Installation
 
-photoCMS supports installation in subdirectories (e.g., `/portfolio/`). The system automatically detects the base path and adjusts all URLs accordingly.
+Cimaise supports installation in subdirectories (e.g., `/portfolio/`). The system automatically detects the base path and adjusts all URLs accordingly.
 
 ---
 
@@ -648,5 +648,5 @@ Built with modern open-source technologies including Slim Framework, Twig, Tailw
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/fabiodalez-dev/photoCMS/issues)
+- **Issues**: [GitHub Issues](https://github.com/fabiodalez-dev/Cimaise/issues)
 - **Documentation**: See `/docs` folder for additional guides

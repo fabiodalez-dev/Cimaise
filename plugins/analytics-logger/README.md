@@ -1,6 +1,6 @@
 # Analytics Logger Plugin
 
-Advanced analytics extension for photoCMS with custom event tracking and detailed logging.
+Advanced analytics extension for Cimaise with custom event tracking and detailed logging.
 
 ## Features
 
@@ -68,7 +68,7 @@ Shows summary of custom events for last 7 days:
 
 ## Hooks Used
 
-- `photocms_init` - Database setup
+- `cimaise_init` - Database setup
 - `user_after_login` - Track logins
 - `album_after_create` - Track album creation
 - `image_after_upload` - Track uploads
@@ -132,4 +132,4 @@ MIT
 
 ## Author
 
-photoCMS Team
+Cimaise Team
