@@ -221,10 +221,17 @@
                 </label>
                 
                 <label class="flex items-center gap-3">
-                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
+                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
                          type="checkbox" name="allow_downloads" id="allow_downloads">
                   <span class="text-sm font-medium text-gray-700">Allow image downloads</span>
                 </label>
+
+                <label class="flex items-center gap-3">
+                  <input class="h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                         type="checkbox" name="is_nsfw" id="is_nsfw">
+                  <span class="text-sm font-medium text-gray-700">{{ trans('album.nsfw_label')|default('NSFW Content') }}</span>
+                </label>
+                <p class="text-xs text-gray-500 ml-7">{{ trans('album.nsfw_help')|default('Mark if album contains adult or sensitive content') }}</p>
               </div>
             </div>
           </div>

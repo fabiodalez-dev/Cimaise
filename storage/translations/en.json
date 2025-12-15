@@ -68,7 +68,17 @@
     "album.enter_password": "Enter Password",
     "album.wrong_password": "Wrong password",
     "album.tags_count": "{count} tags",
-    "album.tag_count": "1 tag"
+    "album.tag_count": "1 tag",
+    "album.nsfw_label": "NSFW Content",
+    "album.nsfw_help": "Mark if album contains adult or sensitive content",
+    "album.nsfw_title": "Adult Content Warning",
+    "album.nsfw_message": "This gallery contains content that may not be suitable for all audiences. You must be 18 years or older to view this content.",
+    "album.nsfw_album_message": "This gallery contains adult content that may not be suitable for all viewers. You must be 18 years or older to view this content.",
+    "album.nsfw_confirm": "I am 18 or older",
+    "album.nsfw_cancel": "Go back",
+    "album.nsfw_go_back": "Go back",
+    "album.nsfw_remember": "Your preference will be remembered for future visits.",
+    "album.nsfw_warning_short": "18+"
   },
   "pagination": {
     "pagination.previous": "Previous",
