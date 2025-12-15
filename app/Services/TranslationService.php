@@ -548,6 +548,21 @@ class TranslationService
             ['settings.language_en', 'English', 'settings', 'English language option'],
             ['settings.language_it', 'Italiano', 'settings', 'Italian language option'],
             ['settings.site_language_help', 'Language used for frontend UI elements', 'settings', 'Site language help text'],
+
+            // Cookie Banner
+            ['cookie.banner_description', 'This website uses cookies to enhance your browsing experience.', 'cookie', 'Cookie banner main description'],
+            ['cookie.accept_all', 'Accept all', 'cookie', 'Accept all cookies button'],
+            ['cookie.reject_non_essential', 'Reject non-essential', 'cookie', 'Reject non-essential cookies button'],
+            ['cookie.preferences', 'Preferences', 'cookie', 'Cookie preferences button'],
+            ['cookie.save_selected', 'Save selected', 'cookie', 'Save selected cookies button'],
+            ['cookie.preferences_title', 'Cookie Preferences', 'cookie', 'Cookie preferences modal title'],
+            ['cookie.preferences_description', 'Manage your cookie preferences. Essential cookies are required for the site to function.', 'cookie', 'Cookie preferences description'],
+            ['cookie.essential_name', 'Essential Cookies', 'cookie', 'Essential cookies category name'],
+            ['cookie.essential_description', 'Required for the site to function. Cannot be disabled.', 'cookie', 'Essential cookies description'],
+            ['cookie.analytics_name', 'Analytics Cookies', 'cookie', 'Analytics cookies category name'],
+            ['cookie.analytics_description', 'Help us understand how you use the site to improve your experience.', 'cookie', 'Analytics cookies description'],
+            ['cookie.marketing_name', 'Marketing Cookies', 'cookie', 'Marketing cookies category name'],
+            ['cookie.marketing_description', 'Used to show relevant ads based on your interests.', 'cookie', 'Marketing cookies description'],
         ];
     }
 }
