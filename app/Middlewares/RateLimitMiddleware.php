@@ -50,6 +50,7 @@ class RateLimitMiddleware implements MiddlewareInterface
 
         // For login pages: check response body for error message (supports multiple languages)
         $body = (string)$response->getBody();
+        $response->getBody()->rewind(); // Rewind stream so downstream can read body
         if ($statusCode === 200 && (
             str_contains($body, 'Credenziali non valide') ||
             str_contains($body, 'Invalid credentials') ||
@@ -64,6 +65,10 @@ class RateLimitMiddleware implements MiddlewareInterface
         if ($statusCode === 302) {
             $location = $response->getHeaderLine('Location');
             if (str_contains($location, 'error=1') || str_contains($location, 'error=nsfw')) {
+                $isFailedAttempt = true;
+            }
+            // For login: redirect back to /login indicates failure
+            if (str_contains($path, '/login') && str_contains($location, '/login')) {
                 $isFailedAttempt = true;
             }
         }
