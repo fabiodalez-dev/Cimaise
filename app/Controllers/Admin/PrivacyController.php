@@ -6,57 +6,74 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\SettingsService;
 use App\Support\Database;
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
 class PrivacyController extends BaseController
 {
-    private SettingsService $settings;
-
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
-        $this->settings = new SettingsService($db);
     }
 
     public function index(Request $request, Response $response): Response
     {
-        $cookieSettings = [
-            'enabled' => (bool)$this->settings->get('cookie.banner_enabled', false),
-            'essential_scripts' => (string)$this->settings->get('cookie.essential_scripts', ''),
-            'analytics_scripts' => (string)$this->settings->get('cookie.analytics_scripts', ''),
-            'marketing_scripts' => (string)$this->settings->get('cookie.marketing_scripts', ''),
-            'banner_position' => (string)$this->settings->get('cookie.banner_position', 'bottom'),
-            'banner_style' => (string)$this->settings->get('cookie.banner_style', 'bar'),
+        $svc = new SettingsService($this->db);
+
+        $settings = [
+            'cookie_banner_enabled' => $svc->get('privacy.cookie_banner_enabled', true),
+            'custom_js_essential' => $svc->get('privacy.custom_js_essential', ''),
+            'custom_js_analytics' => $svc->get('privacy.custom_js_analytics', ''),
+            'custom_js_marketing' => $svc->get('privacy.custom_js_marketing', ''),
+            'show_analytics' => $svc->get('cookie_banner.show_analytics', false),
+            'show_marketing' => $svc->get('cookie_banner.show_marketing', false),
         ];
 
         return $this->view->render($response, 'admin/privacy/index.twig', [
-            'cookie_settings' => $cookieSettings,
-            'csrf' => $_SESSION['csrf'] ?? ''
+            'settings' => $settings,
+            'csrf' => $_SESSION['csrf'] ?? '',
         ]);
     }
 
     public function save(Request $request, Response $response): Response
     {
-        $data = (array)($request->getParsedBody() ?? []);
+        $data = (array)$request->getParsedBody();
 
         // CSRF validation
-        if (empty($data['csrf']) || $data['csrf'] !== ($_SESSION['csrf'] ?? '')) {
-            return $response->withHeader('Location', $this->redirect('/admin/privacy?error=csrf'))->withStatus(302);
+        $csrf = $data['csrf'] ?? '';
+        if (empty($csrf) || $csrf !== ($_SESSION['csrf'] ?? '')) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid security token. Please try again.'];
+            return $response->withHeader('Location', $this->redirect('/admin/privacy'))->withStatus(302);
         }
 
-        // Save cookie settings
-        $this->settings->set('cookie.banner_enabled', !empty($data['banner_enabled']));
-        $this->settings->set('cookie.essential_scripts', trim((string)($data['essential_scripts'] ?? '')));
-        $this->settings->set('cookie.analytics_scripts', trim((string)($data['analytics_scripts'] ?? '')));
-        $this->settings->set('cookie.marketing_scripts', trim((string)($data['marketing_scripts'] ?? '')));
-        $this->settings->set('cookie.banner_position', in_array($data['banner_position'] ?? '', ['top', 'bottom']) ? $data['banner_position'] : 'bottom');
-        $this->settings->set('cookie.banner_style', in_array($data['banner_style'] ?? '', ['bar', 'popup']) ? $data['banner_style'] : 'bar');
+        $svc = new SettingsService($this->db);
 
-        // Rotate CSRF
-        $_SESSION['csrf'] = bin2hex(random_bytes(32));
+        try {
+            // Cookie banner enabled/disabled
+            $svc->set('privacy.cookie_banner_enabled', isset($data['cookie_banner_enabled']));
 
-        return $response->withHeader('Location', $this->redirect('/admin/privacy?saved=1'))->withStatus(302);
+            // Custom JavaScript blocks
+            $customJsEssential = trim((string)($data['custom_js_essential'] ?? ''));
+            $customJsAnalytics = trim((string)($data['custom_js_analytics'] ?? ''));
+            $customJsMarketing = trim((string)($data['custom_js_marketing'] ?? ''));
+
+            $svc->set('privacy.custom_js_essential', $customJsEssential);
+            $svc->set('privacy.custom_js_analytics', $customJsAnalytics);
+            $svc->set('privacy.custom_js_marketing', $customJsMarketing);
+
+            // Show analytics/marketing categories only if scripts are present
+            $svc->set('cookie_banner.show_analytics', !empty($customJsAnalytics));
+            $svc->set('cookie_banner.show_marketing', !empty($customJsMarketing));
+
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Privacy settings saved successfully'];
+
+        } catch (\Throwable $e) {
+            Logger::error('PrivacyController::save error', ['error' => $e->getMessage()], 'admin');
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error saving privacy settings. Please try again.'];
+        }
+
+        return $response->withHeader('Location', $this->redirect('/admin/privacy'))->withStatus(302);
     }
 }
