@@ -52,8 +52,8 @@
         <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1536px) 30vw, (min-width: 1280px) 35vw, (min-width: 1024px) 45vw, (min-width: 768px) 48vw, (min-width: 640px) 95vw, 100vw">
       {% endif %}
       
-      <img src="{{ best_jpg_path }}" 
-           alt="{{ image.alt_text|e }}" 
+      <img src="{{ best_jpg_path }}"
+           alt="{{ image.alt_text|default('')|e }}"
            width="{{ image.width }}" 
            height="{{ image.height }}"
            loading="lazy" 
