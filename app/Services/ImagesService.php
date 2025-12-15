@@ -16,6 +16,7 @@ class ImagesService
 
     /**
      * Enrich image rows with metadata from related tables (camera, lens, film, developer, lab, location).
+     * Uses batch queries to avoid N+1 problem - fetches all related data in 6 queries total.
      * Modifies the array in place.
      *
      * @param \PDO $pdo Database connection
@@ -24,71 +25,141 @@ class ImagesService
      */
     public static function enrichWithMetadata(\PDO $pdo, array &$imagesRows, string $context = 'images'): void
     {
-        foreach ($imagesRows as &$ir) {
-            try {
-                // Camera lookup
-                if (!empty($ir['camera_id'])) {
-                    $s = $pdo->prepare('SELECT make, model FROM cameras WHERE id = :id');
-                    $s->execute([':id' => $ir['camera_id']]);
-                    $cr = $s->fetch();
-                    if ($cr) {
-                        $ir['camera_name'] = trim(($cr['make'] ?? '') . ' ' . ($cr['model'] ?? ''));
-                    }
-                }
-                // Lens lookup
-                if (!empty($ir['lens_id'])) {
-                    $s = $pdo->prepare('SELECT brand, model FROM lenses WHERE id = :id');
-                    $s->execute([':id' => $ir['lens_id']]);
-                    $lr = $s->fetch();
-                    if ($lr) {
-                        $ir['lens_name'] = trim(($lr['brand'] ?? '') . ' ' . ($lr['model'] ?? ''));
-                    }
-                }
-                // Developer lookup
-                if (!empty($ir['developer_id'])) {
-                    $s = $pdo->prepare('SELECT name FROM developers WHERE id = :id');
-                    $s->execute([':id' => $ir['developer_id']]);
-                    $ir['developer_name'] = $s->fetchColumn() ?: null;
-                }
-                // Lab lookup
-                if (!empty($ir['lab_id'])) {
-                    $s = $pdo->prepare('SELECT name FROM labs WHERE id = :id');
-                    $s->execute([':id' => $ir['lab_id']]);
-                    $ir['lab_name'] = $s->fetchColumn() ?: null;
-                }
-                // Film lookup with extended info
-                if (!empty($ir['film_id'])) {
-                    $s = $pdo->prepare('SELECT brand, name, iso, format FROM films WHERE id = :id');
-                    $s->execute([':id' => $ir['film_id']]);
-                    $fr = $s->fetch();
-                    if ($fr) {
-                        $nameOnly = trim((string)($fr['name'] ?? ''));
-                        $brand = trim((string)($fr['brand'] ?? ''));
-                        $ir['film_name'] = trim(($brand !== '' ? ($brand . ' ') : '') . $nameOnly);
-                        // Build film_display with ISO and format
-                        $iso = isset($fr['iso']) && $fr['iso'] !== '' ? (string)(int)$fr['iso'] : '';
-                        $fmt = (string)($fr['format'] ?? '');
-                        $parts = [];
-                        if ($iso !== '') { $parts[] = $iso; }
-                        if ($fmt !== '') { $parts[] = $fmt; }
-                        $suffix = count($parts) ? (' (' . implode(' - ', $parts) . ')') : '';
-                        $ir['film_display'] = ($nameOnly !== '' ? $nameOnly : $ir['film_name']) . $suffix;
-                    }
-                }
-                // Location lookup
-                if (!empty($ir['location_id'])) {
-                    $s = $pdo->prepare('SELECT name FROM locations WHERE id = :id');
-                    $s->execute([':id' => $ir['location_id']]);
-                    $ir['location_name'] = $s->fetchColumn() ?: null;
-                }
-            } catch (\Throwable $e) {
-                Logger::warning($context . ': Error fetching image metadata', [
-                    'image_id' => $ir['id'] ?? null,
-                    'error' => $e->getMessage()
-                ], $context);
-            }
+        if (empty($imagesRows)) {
+            return;
         }
-        unset($ir); // Break reference
+
+        try {
+            // Collect all unique IDs for batch queries
+            $cameraIds = [];
+            $lensIds = [];
+            $developerIds = [];
+            $labIds = [];
+            $filmIds = [];
+            $locationIds = [];
+
+            foreach ($imagesRows as $ir) {
+                if (!empty($ir['camera_id'])) $cameraIds[$ir['camera_id']] = true;
+                if (!empty($ir['lens_id'])) $lensIds[$ir['lens_id']] = true;
+                if (!empty($ir['developer_id'])) $developerIds[$ir['developer_id']] = true;
+                if (!empty($ir['lab_id'])) $labIds[$ir['lab_id']] = true;
+                if (!empty($ir['film_id'])) $filmIds[$ir['film_id']] = true;
+                if (!empty($ir['location_id'])) $locationIds[$ir['location_id']] = true;
+            }
+
+            // Batch fetch cameras
+            $cameras = [];
+            if (!empty($cameraIds)) {
+                $ids = array_keys($cameraIds);
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $s = $pdo->prepare("SELECT id, make, model FROM cameras WHERE id IN ($placeholders)");
+                $s->execute($ids);
+                foreach ($s->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $cameras[$row['id']] = trim(($row['make'] ?? '') . ' ' . ($row['model'] ?? ''));
+                }
+            }
+
+            // Batch fetch lenses
+            $lenses = [];
+            if (!empty($lensIds)) {
+                $ids = array_keys($lensIds);
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $s = $pdo->prepare("SELECT id, brand, model FROM lenses WHERE id IN ($placeholders)");
+                $s->execute($ids);
+                foreach ($s->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $lenses[$row['id']] = trim(($row['brand'] ?? '') . ' ' . ($row['model'] ?? ''));
+                }
+            }
+
+            // Batch fetch developers
+            $developers = [];
+            if (!empty($developerIds)) {
+                $ids = array_keys($developerIds);
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $s = $pdo->prepare("SELECT id, name FROM developers WHERE id IN ($placeholders)");
+                $s->execute($ids);
+                foreach ($s->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $developers[$row['id']] = $row['name'];
+                }
+            }
+
+            // Batch fetch labs
+            $labs = [];
+            if (!empty($labIds)) {
+                $ids = array_keys($labIds);
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $s = $pdo->prepare("SELECT id, name FROM labs WHERE id IN ($placeholders)");
+                $s->execute($ids);
+                foreach ($s->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $labs[$row['id']] = $row['name'];
+                }
+            }
+
+            // Batch fetch films
+            $films = [];
+            if (!empty($filmIds)) {
+                $ids = array_keys($filmIds);
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $s = $pdo->prepare("SELECT id, brand, name, iso, format FROM films WHERE id IN ($placeholders)");
+                $s->execute($ids);
+                foreach ($s->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $nameOnly = trim((string)($row['name'] ?? ''));
+                    $brand = trim((string)($row['brand'] ?? ''));
+                    $filmName = trim(($brand !== '' ? ($brand . ' ') : '') . $nameOnly);
+                    $iso = isset($row['iso']) && $row['iso'] !== '' ? (string)(int)$row['iso'] : '';
+                    $fmt = (string)($row['format'] ?? '');
+                    $parts = [];
+                    if ($iso !== '') { $parts[] = $iso; }
+                    if ($fmt !== '') { $parts[] = $fmt; }
+                    $suffix = count($parts) ? (' (' . implode(' - ', $parts) . ')') : '';
+                    $films[$row['id']] = [
+                        'film_name' => $filmName,
+                        'film_display' => ($nameOnly !== '' ? $nameOnly : $filmName) . $suffix
+                    ];
+                }
+            }
+
+            // Batch fetch locations
+            $locations = [];
+            if (!empty($locationIds)) {
+                $ids = array_keys($locationIds);
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $s = $pdo->prepare("SELECT id, name FROM locations WHERE id IN ($placeholders)");
+                $s->execute($ids);
+                foreach ($s->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $locations[$row['id']] = $row['name'];
+                }
+            }
+
+            // Map fetched data back to images
+            foreach ($imagesRows as &$ir) {
+                if (!empty($ir['camera_id']) && isset($cameras[$ir['camera_id']])) {
+                    $ir['camera_name'] = $cameras[$ir['camera_id']];
+                }
+                if (!empty($ir['lens_id']) && isset($lenses[$ir['lens_id']])) {
+                    $ir['lens_name'] = $lenses[$ir['lens_id']];
+                }
+                if (!empty($ir['developer_id']) && isset($developers[$ir['developer_id']])) {
+                    $ir['developer_name'] = $developers[$ir['developer_id']];
+                }
+                if (!empty($ir['lab_id']) && isset($labs[$ir['lab_id']])) {
+                    $ir['lab_name'] = $labs[$ir['lab_id']];
+                }
+                if (!empty($ir['film_id']) && isset($films[$ir['film_id']])) {
+                    $ir['film_name'] = $films[$ir['film_id']]['film_name'];
+                    $ir['film_display'] = $films[$ir['film_id']]['film_display'];
+                }
+                if (!empty($ir['location_id']) && isset($locations[$ir['location_id']])) {
+                    $ir['location_name'] = $locations[$ir['location_id']];
+                }
+            }
+            unset($ir); // Break reference
+
+        } catch (\Throwable $e) {
+            Logger::warning($context . ': Error fetching image metadata batch', [
+                'error' => $e->getMessage()
+            ], $context);
+        }
     }
 
     // Minimal JPEG preview using GD; returns path or null
