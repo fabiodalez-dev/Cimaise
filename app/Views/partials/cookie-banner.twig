@@ -1,0 +1,172 @@
+{# Cookie Banner Partial - Silktide Consent Manager #}
+{% if cookie_banner_enabled %}
+
+{# Load Silktide CSS and JS #}
+<link rel="stylesheet" href="{{ base_path }}/assets/css/silktide-consent-manager.css">
+<script src="{{ base_path }}/assets/js/silktide-consent-manager.js"></script>
+
+{# Custom JS Loader - Conditional script injection based on consent #}
+{% if custom_js_analytics or custom_js_marketing %}
+<script id="custom-js-loader">
+(function() {
+    'use strict';
+
+    var analyticsScript = {{ custom_js_analytics|json_encode|raw }};
+    var marketingScript = {{ custom_js_marketing|json_encode|raw }};
+
+    function injectScript(scriptContent, id) {
+        if (!scriptContent || document.getElementById(id)) return;
+
+        // Validate that content is JavaScript, not HTML
+        if (scriptContent.trim().startsWith('<') ||
+            scriptContent.includes('<iframe') ||
+            scriptContent.includes('<script')) {
+            console.warn('Custom script contains HTML tags - skipped:', id);
+            return;
+        }
+
+        var script = document.createElement('script');
+        script.id = id;
+        script.textContent = scriptContent;
+        document.head.appendChild(script);
+    }
+
+    function loadCustomScripts() {
+        // Wait for CookieControl (Silktide)
+        if (!window.CookieControl || !window.CookieControl.getCategoryConsent) {
+            return;
+        }
+
+        // Load analytics if consent given
+        if (analyticsScript && window.CookieControl.getCategoryConsent('analytics')) {
+            injectScript(analyticsScript, 'custom-js-analytics');
+        }
+
+        // Load marketing if consent given
+        if (marketingScript && window.CookieControl.getCategoryConsent('marketing')) {
+            injectScript(marketingScript, 'custom-js-marketing');
+        }
+    }
+
+    // Execute on DOMContentLoaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(loadCustomScripts, 200);
+        });
+    } else {
+        setTimeout(loadCustomScripts, 200);
+    }
+
+    // Listen for consent changes
+    window.addEventListener('silktideConsentChanged', function() {
+        setTimeout(loadCustomScripts, 100);
+    });
+
+    // Retry for 3 seconds if CookieControl not ready
+    var attempts = 0;
+    var retryInterval = setInterval(function() {
+        attempts++;
+        loadCustomScripts();
+        if (attempts >= 6 || (window.CookieControl && window.CookieControl.getCategoryConsent)) {
+            clearInterval(retryInterval);
+        }
+    }, 500);
+})();
+</script>
+{% endif %}
+
+{# Silktide Consent Manager Configuration #}
+<script>
+(function() {
+    function initCookieBannerConfig() {
+        try {
+            if (typeof silktideCookieBannerManager !== 'undefined' && typeof silktideCookieBannerManager.updateCookieBannerConfig === 'function') {
+                silktideCookieBannerManager.updateCookieBannerConfig({
+                    cookieTypes: [
+                        {
+                            id: 'essential',
+                            name: {{ trans('cookie.essential_name')|json_encode|raw }},
+                            description: {{ trans('cookie.essential_description')|json_encode|raw }},
+                            required: true,
+                            defaultValue: true,
+                        },
+                        {% if show_analytics %}
+                        {
+                            id: 'analytics',
+                            name: {{ trans('cookie.analytics_name')|json_encode|raw }},
+                            description: {{ trans('cookie.analytics_description')|json_encode|raw }},
+                            defaultValue: false,
+                            onAccept: function() {},
+                            onReject: function() {},
+                        },
+                        {% endif %}
+                        {% if show_marketing %}
+                        {
+                            id: 'marketing',
+                            name: {{ trans('cookie.marketing_name')|json_encode|raw }},
+                            description: {{ trans('cookie.marketing_description')|json_encode|raw }},
+                            defaultValue: false,
+                            onAccept: function() {},
+                            onReject: function() {},
+                        },
+                        {% endif %}
+                    ],
+                    text: {
+                        banner: {
+                            description: {{ trans('cookie.banner_description')|json_encode|raw }},
+                            acceptAllButtonText: {{ trans('cookie.accept_all')|json_encode|raw }},
+                            acceptAllButtonAccessibleLabel: {{ trans('cookie.accept_all')|json_encode|raw }},
+                            rejectNonEssentialButtonText: {{ trans('cookie.reject_non_essential')|json_encode|raw }},
+                            rejectNonEssentialButtonAccessibleLabel: {{ trans('cookie.reject_non_essential')|json_encode|raw }},
+                            preferencesButtonText: {{ trans('cookie.preferences')|json_encode|raw }},
+                            preferencesButtonAccessibleLabel: {{ trans('cookie.preferences')|json_encode|raw }},
+                            saveSelectedButtonText: {{ trans('cookie.save_selected')|json_encode|raw }},
+                            saveSelectedButtonAccessibleLabel: {{ trans('cookie.save_selected')|json_encode|raw }},
+                        },
+                        preferences: {
+                            title: {{ trans('cookie.preferences_title')|json_encode|raw }},
+                            description: {{ trans('cookie.preferences_description')|json_encode|raw }},
+                            statementUrl: '{{ base_path }}/privacy',
+                            statementAccessibleLabel: 'More information about cookies',
+                        },
+                    },
+                    position: {
+                        banner: 'bottomRight',
+                        cookieIcon: 'bottomLeft',
+                    },
+                });
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.error('Cookie banner: initialization error', e);
+            return false;
+        }
+    }
+
+    // Try to initialize immediately
+    if (!initCookieBannerConfig()) {
+        var maxRetries = 30;
+        var retryCount = 0;
+
+        function retry() {
+            if (retryCount >= maxRetries) {
+                console.warn('Cookie banner: silktideCookieBannerManager not available after ' + maxRetries + ' retries');
+                return;
+            }
+            if (!initCookieBannerConfig()) {
+                retryCount++;
+                setTimeout(retry, 100);
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', retry);
+        } else {
+            setTimeout(retry, 50);
+        }
+    }
+})();
+</script>
+
+{% endif %}
