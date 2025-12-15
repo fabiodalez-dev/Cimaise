@@ -59,7 +59,6 @@
 # Keep plugins directory structure
 + plugins/
 + plugins/.gitkeep
-- plugins/**/.DS_Store
 + plugins/**
 
 # Keep resources directory
