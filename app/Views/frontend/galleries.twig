@@ -262,7 +262,7 @@
           {% if album.is_nsfw and not is_admin %}
           <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm">
             <i class="fas fa-eye-slash text-3xl mb-2"></i>
-            <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short')|default('18+') }}</span>
+            <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short') }}</span>
           </div>
           {% endif %}
           
@@ -397,7 +397,7 @@ $(document).ready(function() {
         tagsCount: '{{ trans('album.tags_count', {count: '{count}'})|e('js') }}',
         moreCount: '{{ trans('general.more_count', {count: '{count}'})|e('js') }}',
         passwordProtected: '{{ trans('album.password_protected')|e('js') }}',
-        nsfwWarningShort: '{{ trans('album.nsfw_warning_short')|default('18+')|e('js') }}'
+        nsfwWarningShort: '{{ trans('album.nsfw_warning_short')|e('js') }}'
     };
 
     // Date format from settings
@@ -666,12 +666,14 @@ function updateGalleries(albums) {
 // Date formatting helper based on settings
 function formatDateByPattern(dateStr) {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
+    // Parse date string directly to avoid timezone issues
+    // Expected format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS
+    const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return dateStr;
 
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
+    const year = match[1];
+    const month = match[2];
+    const day = match[3];
 
     // Support multiple date formats based on window.dateFormat setting
     switch (window.dateFormat) {
@@ -699,7 +701,7 @@ function generateGalleryCard(album) {
     const excerpt = esc(album.excerpt || '');
     const category = esc(album.category_name || '');
     const alt = esc(coverImage.alt_text || album.title || '');
-    const slug = esc(album.slug);
+    const slug = encodeURIComponent(album.slug || '');
     // Skip NSFW restrictions for admins
     const isNsfw = (album.is_nsfw && !window.isAdmin) ? true : false;
     const albumUrl = window.basePath + '/album/' + slug;
@@ -1078,20 +1080,20 @@ function debounce(func, wait) {
     <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
       <i class="fas fa-exclamation-triangle text-amber-600 text-3xl"></i>
     </div>
-    <h3 class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('album.nsfw_title')|default('Adult Content Warning') }}</h3>
+    <h3 class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('album.nsfw_title') }}</h3>
     <p class="text-gray-600 mb-6 leading-relaxed">
-      {{ trans('album.nsfw_message')|default('This gallery contains content that may not be suitable for all audiences. You must be 18 years or older to view this content.') }}
+      {{ trans('album.nsfw_message') }}
     </p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
       <button onclick="confirmNsfwAge()" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
-        {{ trans('album.nsfw_confirm')|default('I am 18 or older') }}
+        {{ trans('album.nsfw_confirm') }}
       </button>
       <button onclick="cancelNsfw()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium">
-        {{ trans('album.nsfw_cancel')|default('Go back') }}
+        {{ trans('album.nsfw_cancel') }}
       </button>
     </div>
     <p class="text-xs text-gray-400 mt-6">
-      {{ trans('album.nsfw_remember')|default('Your preference will be remembered for this session.') }}
+      {{ trans('album.nsfw_remember') }}
     </p>
   </div>
 </div>

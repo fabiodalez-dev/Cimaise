@@ -110,7 +110,7 @@
   },
   "footer": {
     "footer.copyright": "\u00a9 {year} All rights reserved",
-    "footer.powered_by": "Powered by photoCMS",
+    "footer.powered_by": "Powered by Cimaise",
     "footer.privacy": "Privacy Policy",
     "footer.terms": "Terms of Service"
   },
