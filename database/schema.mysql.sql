@@ -460,6 +460,27 @@ CREATE TABLE IF NOT EXISTS `analytics_settings` (
   UNIQUE KEY `idx_analytics_settings_key` (`setting_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ============================================
+-- PLUGIN STATUS TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `plugin_status` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `slug` VARCHAR(190) NOT NULL,
+  `name` VARCHAR(190) NOT NULL,
+  `version` VARCHAR(50) NOT NULL,
+  `description` TEXT NULL,
+  `author` VARCHAR(120) NULL,
+  `path` VARCHAR(255) NOT NULL,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `is_installed` TINYINT(1) DEFAULT 1,
+  `installed_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_plugin_status_slug` (`slug`),
+  KEY `idx_plugin_status_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================

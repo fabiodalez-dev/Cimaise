@@ -70,20 +70,41 @@ class PluginManager
         }
 
         try {
-            $sql = "CREATE TABLE IF NOT EXISTS plugin_status (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                slug TEXT NOT NULL UNIQUE,
-                name TEXT NOT NULL,
-                version TEXT NOT NULL,
-                description TEXT,
-                author TEXT,
-                path TEXT NOT NULL,
-                is_active INTEGER DEFAULT 1,
-                is_installed INTEGER DEFAULT 1,
-                installed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )";
-            $this->db->pdo()->exec($sql);
+            if ($this->db->isSqlite()) {
+                $sql = "CREATE TABLE IF NOT EXISTS plugin_status (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    slug TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL,
+                    version TEXT NOT NULL,
+                    description TEXT,
+                    author TEXT,
+                    path TEXT NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    is_installed INTEGER DEFAULT 1,
+                    installed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )";
+                $this->db->pdo()->exec($sql);
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_plugin_status_active ON plugin_status(is_active)");
+            } else {
+                $sql = "CREATE TABLE IF NOT EXISTS plugin_status (
+                    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    slug VARCHAR(190) NOT NULL,
+                    name VARCHAR(190) NOT NULL,
+                    version VARCHAR(50) NOT NULL,
+                    description TEXT NULL,
+                    author VARCHAR(120) NULL,
+                    path VARCHAR(255) NOT NULL,
+                    is_active TINYINT(1) DEFAULT 1,
+                    is_installed TINYINT(1) DEFAULT 1,
+                    installed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    PRIMARY KEY (id),
+                    UNIQUE KEY idx_plugin_status_slug (slug),
+                    KEY idx_plugin_status_active (is_active)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                $this->db->pdo()->exec($sql);
+            }
         } catch (\Throwable $e) {
             Logger::error('PluginManager: Error creating plugin_status table', ['error' => $e->getMessage()], 'plugin');
         }
