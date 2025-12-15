@@ -73,7 +73,7 @@ plugins/
 declare(strict_types=1);
 
 // Prevent direct access
-if (!defined('PHOTOCMS_VERSION')) {
+if (!defined('CIMAISE_VERSION')) {
     die('Direct access not allowed');
 }
 
