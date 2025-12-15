@@ -295,7 +295,6 @@
   display: inline-flex;
   border: none;
   padding: 13px;
-  border: 0px;
   cursor: pointer;
   background: var(--backgroundColor);
   color: var(--primaryColor);

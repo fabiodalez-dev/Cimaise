@@ -228,7 +228,8 @@
     "cookie.analytics_name": "Analytics Cookies",
     "cookie.analytics_description": "Help us understand how you use the site to improve your experience.",
     "cookie.marketing_name": "Marketing Cookies",
-    "cookie.marketing_description": "Used to show you relevant ads based on your interests."
+    "cookie.marketing_description": "Used to show you relevant ads based on your interests.",
+    "cookie.privacy_statement_label": "More information about cookies"
   },
   "admin": {
     "admin.texts.title": "Translations",

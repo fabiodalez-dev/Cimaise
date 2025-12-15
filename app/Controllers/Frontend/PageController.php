@@ -172,13 +172,13 @@ class PageController extends BaseController
         $stmt->execute();
         $tags = $stmt->fetchAll();
         
-        // Get all images from published albums for infinite scroll
+        // Get all images from published non-NSFW albums for infinite scroll
         $stmt = $pdo->prepare('
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id
-            FROM images i 
-            JOIN albums a ON a.id = i.album_id 
-            WHERE a.is_published = 1 
-            ORDER BY a.published_at DESC, i.sort_order ASC, i.id ASC 
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            WHERE a.is_published = 1 AND a.is_nsfw = 0
+            ORDER BY a.published_at DESC, i.sort_order ASC, i.id ASC
             LIMIT 150
         ');
         $stmt->execute();
