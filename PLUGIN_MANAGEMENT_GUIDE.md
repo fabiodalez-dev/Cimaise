@@ -1,6 +1,6 @@
-# Plugin Management Guide - photoCMS
+# Plugin Management Guide - Cimaise
 
-Guida completa alla gestione dei plugin in photoCMS
+Guida completa alla gestione dei plugin in Cimaise
 
 ## 📋 Indice
 - [Introduzione](#introduzione)
@@ -11,7 +11,7 @@ Guida completa alla gestione dei plugin in photoCMS
 
 ## Introduzione
 
-photoCMS include un sistema completo di gestione plugin che permette di estendere le funzionalità dell'applicazione in modo modulare e sicuro.
+Cimaise include un sistema completo di gestione plugin che permette di estendere le funzionalità dell'applicazione in modo modulare e sicuro.
 
 ### Caratteristiche Principali
 
@@ -127,7 +127,7 @@ class MyAwesomePlugin
     public function __construct()
     {
         // Registra hooks
-        Hooks::addAction('photocms_init', [$this, 'init'], 10, 'my-plugin');
+        Hooks::addAction('cimaise_init', [$this, 'init'], 10, 'my-plugin');
         Hooks::addFilter('admin_menu_items', [$this, 'addMenuItem'], 10, 'my-plugin');
     }
 
@@ -183,14 +183,14 @@ echo "Plugin uninstalled successfully!\n";
 
 ## Plugin Inclusi
 
-### 1. Hello photoCMS (Basic Example)
+### 1. Hello Cimaise (Basic Example)
 Plugin dimostrativo base che mostra:
 - Registrazione hooks
 - Aggiunta menu admin
 - Settings tab
 - Log eventi
 
-**File**: `plugins/hello-photocms/`
+**File**: `plugins/hello-cimaise/`
 
 ### 2. Analytics Logger (Advanced Example)
 Plugin avanzato per analytics con:
@@ -211,7 +211,7 @@ Sistema rating 5 stelle completo:
 
 **File**: `plugins/image-rating/`
 
-### 4. photoCMS Analytics Pro (Professional)
+### 4. Cimaise Analytics Pro (Professional)
 Sistema analytics professionale completo con:
 - Tracking avanzato eventi
 - Dashboard interattiva
@@ -222,7 +222,7 @@ Sistema analytics professionale completo con:
 - User journey tracking
 - Session management
 
-**File**: `plugins/photocms-analytics-pro/`
+**File**: `plugins/cimaise-analytics-pro/`
 
 **Caratteristiche**:
 - 📊 Dashboard real-time
@@ -234,7 +234,7 @@ Sistema analytics professionale completo con:
 - 📉 Session analytics
 - 🗺️ User journey mapping
 
-**Vedi**: `plugins/photocms-analytics-pro/README.md` per documentazione completa
+**Vedi**: `plugins/cimaise-analytics-pro/README.md` per documentazione completa
 
 ## API Plugin Manager
 
@@ -409,10 +409,10 @@ $title = Hooks::applyFilter('album_title', $originalTitle, $albumId);
 - **Plugin Ideas**: `PLUGINS_AND_FEATURES_IDEAS.md` - 25 idee plugin + 25 features
 
 ### Plugin di Esempio
-- **hello-photocms** - Basic example
+- **hello-cimaise** - Basic example
 - **analytics-logger** - Advanced example
 - **image-rating** - Production example
-- **photocms-analytics-pro** - Professional example
+- **cimaise-analytics-pro** - Professional example
 
 ### Community
 - GitHub Issues - Bug reports
@@ -421,4 +421,4 @@ $title = Hooks::applyFilter('album_title', $originalTitle, $albumId);
 
 ---
 
-**Made with ❤️ for photoCMS**
+**Made with ❤️ for Cimaise**

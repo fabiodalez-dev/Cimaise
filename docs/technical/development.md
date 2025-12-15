@@ -1,4 +1,4 @@
-# Guida Sviluppo - photoCMS
+# Guida Sviluppo - Cimaise
 
 ## Setup Ambiente di Sviluppo
 
@@ -24,8 +24,8 @@
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/photoCMS.git
-cd photoCMS
+git clone https://github.com/yourusername/Cimaise.git
+cd Cimaise
 ```
 
 ### 2. Install Dependencies
@@ -73,16 +73,16 @@ touch database/database.sqlite
 **MySQL** (setup manuale o Docker):
 ```bash
 # Docker
-docker run --name photocms-mysql \
+docker run --name cimaise-mysql \
   -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=photocms \
+  -e MYSQL_DATABASE=cimaise \
   -p 3306:3306 -d mysql:8
 
 # Update .env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=photocms
+DB_DATABASE=cimaise
 DB_USERNAME=root
 DB_PASSWORD=root
 ```
@@ -100,7 +100,7 @@ php bin/console user:create
 ```
 
 **Admin Credentials** (dopo init):
-- Email: `admin@photocms.local`
+- Email: `admin@cimaise.local`
 - Password: `admin` (CAMBIARE SUBITO)
 
 ### 6. Build Frontend Assets

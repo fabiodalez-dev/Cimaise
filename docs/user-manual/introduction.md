@@ -1,12 +1,12 @@
-# Introduzione - photoCMS
+# Introduzione - Cimaise
 
-Benvenuto in **photoCMS**, il sistema di gestione contenuti progettato specificamente per fotografi professionisti e appassionati che vogliono mostrare il loro lavoro in modo elegante e professionale.
+Benvenuto in **Cimaise**, il sistema di gestione contenuti progettato specificamente per fotografi professionisti e appassionati che vogliono mostrare il loro lavoro in modo elegante e professionale.
 
 ---
 
-## Cos'è photoCMS?
+## Cos'è Cimaise?
 
-photoCMS è un CMS (Content Management System) moderno e potente che ti permette di:
+Cimaise è un CMS (Content Management System) moderno e potente che ti permette di:
 
 - ✨ **Creare portfolio fotografici professionali** con gallerie eleganti e responsive
 - 📸 **Organizzare le tue foto** in album, categorie e tag
@@ -59,7 +59,7 @@ photoCMS è un CMS (Content Management System) moderno e potente che ti permette
 
 ---
 
-## Per Chi è photoCMS?
+## Per Chi è Cimaise?
 
 ### Fotografi Professionisti
 
@@ -97,7 +97,7 @@ Inizia facilmente:
 
 ## Tecnologie Utilizzate
 
-photoCMS è costruito con tecnologie moderne e affidabili:
+Cimaise è costruito con tecnologie moderne e affidabili:
 
 **Backend**:
 - PHP 8.2+ (performance e sicurezza)
@@ -172,7 +172,7 @@ Vota le funzionalità che preferisci: [link votazioni]
 
 ## Filosofia del Progetto
 
-photoCMS è progettato seguendo questi principi:
+Cimaise è progettato seguendo questi principi:
 
 1. **Semplicità d'uso**: Interfaccia intuitiva, curva di apprendimento minima
 2. **Performance**: Velocità di caricamento ottimale, UX fluida
@@ -191,7 +191,7 @@ Sei pronto a iniziare? Segui questi passaggi:
 3. **[Funzionalità Frontend](./frontend-features.md)** - Esplora il sito pubblico
 4. **[Pannello Admin](./admin-panel.md)** - Impara a gestire il CMS
 
-Buon lavoro con photoCMS! 📸
+Buon lavoro con Cimaise! 📸
 
 ---
 

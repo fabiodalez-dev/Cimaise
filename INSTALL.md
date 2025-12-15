@@ -1,4 +1,4 @@
-# photoCMS Installation Guide
+# Cimaise Installation Guide
 
 ## System Requirements
 

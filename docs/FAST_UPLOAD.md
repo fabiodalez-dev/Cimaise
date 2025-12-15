@@ -133,7 +133,7 @@ php bin/console images:generate-variants
 Aggiungi al crontab per elaborazione automatica ogni 5 minuti:
 
 ```bash
-*/5 * * * * cd /path/to/photoCMS && php bin/console images:generate-variants --limit=20
+*/5 * * * * cd /path/to/Cimaise && php bin/console images:generate-variants --limit=20
 ```
 
 **Esempio completo per crontab:**
@@ -142,7 +142,7 @@ Aggiungi al crontab per elaborazione automatica ogni 5 minuti:
 crontab -e
 
 # Aggiungi questa riga (sostituisci il percorso)
-*/5 * * * * cd /var/www/photoCMS && php bin/console images:generate-variants --limit=20 >> /var/log/photocms-variants.log 2>&1
+*/5 * * * * cd /var/www/Cimaise && php bin/console images:generate-variants --limit=20 >> /var/log/cimaise-variants.log 2>&1
 ```
 
 Questo processerà automaticamente fino a 20 immagini ogni 5 minuti in background.

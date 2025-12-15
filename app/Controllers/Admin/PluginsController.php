@@ -167,7 +167,7 @@ class PluginsController extends BaseController
         }
 
         // Create temp directory
-        $tempDir = sys_get_temp_dir() . '/photocms_plugin_' . uniqid();
+        $tempDir = sys_get_temp_dir() . '/cimaise_plugin_' . uniqid();
         mkdir($tempDir, 0755, true);
 
         $tempZip = $tempDir . '/plugin.zip';

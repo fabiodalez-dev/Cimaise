@@ -1,6 +1,6 @@
-# photoCMS Analytics Pro
+# Cimaise Analytics Pro
 
-Sistema di analytics professionale e completo per photoCMS con tracking avanzato, dashboard interattiva, report personalizzabili e real-time monitoring.
+Sistema di analytics professionale e completo per Cimaise con tracking avanzato, dashboard interattiva, report personalizzabili e real-time monitoring.
 
 ## 📊 Caratteristiche
 
@@ -45,7 +45,7 @@ Sistema di analytics professionale e completo per photoCMS con tracking avanzato
 ## 🚀 Installazione
 
 1. Vai in **Admin > Plugin**
-2. Trova **photoCMS Analytics Pro** nella lista
+2. Trova **Cimaise Analytics Pro** nella lista
 3. Clicca su **Installa**
 4. Clicca su **Attiva**
 
@@ -85,7 +85,7 @@ Custom dimensions per eventi
 ### Track Custom Event
 
 ```php
-use PhotoCMSAnalyticsPro\AnalyticsPro;
+use CimaiseAnalyticsPro\AnalyticsPro;
 
 $analytics = new AnalyticsPro($db);
 
@@ -304,7 +304,7 @@ foreach ($events as $row) {
 
 Il plugin utilizza i seguenti hooks per il tracking automatico:
 
-- `photocms_init` - Inizializzazione plugin
+- `cimaise_init` - Inizializzazione plugin
 - `user_login_success` - Track login
 - `user_logout` - Track logout
 - `album_created` - Track creazione album
@@ -333,7 +333,7 @@ Hooks::addAction('custom_event_name', function($param1, $param2) use ($analytics
         'label' => $param1,
         'value' => $param2
     ]);
-}, 10, 'photocms-analytics-pro');
+}, 10, 'cimaise-analytics-pro');
 ```
 
 ## 🎨 Dashboard Widget
@@ -447,4 +447,4 @@ MIT License - Usa liberamente in progetti personali e commerciali
 
 ---
 
-**Made with ❤️ for photoCMS**
+**Made with ❤️ for Cimaise**

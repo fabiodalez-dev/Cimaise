@@ -61,9 +61,12 @@
            class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
     </picture>
     {% if album.allow_downloads %}
-      <a href="{{ base_path }}/download/image/{{ image.id }}" class="absolute top-2 right-2 bg-black/70 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition z-10" title="Download" onclick="event.stopPropagation(); event.preventDefault();" download>
+      <button type="button"
+              class="absolute top-2 right-2 bg-black/70 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition z-10 cursor-pointer"
+              title="Download"
+              onclick="event.stopPropagation(); event.preventDefault(); window.location.href='{{ base_path }}/download/image/{{ image.id }}';">
         <i class="fa-solid fa-arrow-down"></i>
-      </a>
+      </button>
     {% endif %}
     
     {% if image.caption %}

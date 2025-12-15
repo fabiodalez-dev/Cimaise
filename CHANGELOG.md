@@ -40,4 +40,4 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-[1.0.0]: https://example.com/photocms/releases/1.0.0
+[1.0.0]: https://example.com/cimaise/releases/1.0.0

@@ -1,6 +1,6 @@
-# photoCMS Hooks Reference
+# Cimaise Hooks Reference
 
-Riferimento completo di tutti i 60 hooks disponibili in photoCMS per lo sviluppo di plugin.
+Riferimento completo di tutti i 60 hooks disponibili in Cimaise per lo sviluppo di plugin.
 
 ---
 

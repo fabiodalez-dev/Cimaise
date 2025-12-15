@@ -1,6 +1,6 @@
-# Schema del Database (photoCMS)
+# Schema del Database (Cimaise)
 
-Questo documento riassume lo schema attuale del database MySQL per photoCMS. Charset: `utf8mb4`, Collation: `utf8mb4_0900_ai_ci`.
+Questo documento riassume lo schema attuale del database MySQL per Cimaise. Charset: `utf8mb4`, Collation: `utf8mb4_0900_ai_ci`.
 
 ## Tabelle Core
 - users: id, email (unico), password_hash, role, created_at.

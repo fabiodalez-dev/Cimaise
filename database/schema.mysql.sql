@@ -1,5 +1,5 @@
 -- ============================================
--- photoCMS - Complete MySQL Schema
+-- Cimaise - Complete MySQL Schema
 -- Single file installation schema
 -- ============================================
 

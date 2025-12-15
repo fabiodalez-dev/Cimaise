@@ -142,7 +142,7 @@ class AnalyticsService
             }
         }
         
-        return hash('sha256', $ip . 'photocms_salt');
+        return hash('sha256', $ip . 'cimaise_salt');
     }
 
     /**

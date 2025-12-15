@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /**
- * photoCMS Universal Installer
+ * Cimaise Universal Installer
  *
  * Comprehensive multi-step installer supporting MySQL and SQLite
  * with the app's minimal black/white/silver design
@@ -293,7 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'type' => $_POST['db_type'] ?? 'sqlite',
             'host' => trim($_POST['db_host'] ?? 'localhost'),
             'port' => (int)($_POST['db_port'] ?? 3306),
-            'database' => ($_POST['db_type'] ?? 'sqlite') === 'sqlite' ? 'database.sqlite' : (trim($_POST['db_database'] ?? 'photocms')),
+            'database' => ($_POST['db_type'] ?? 'sqlite') === 'sqlite' ? 'database.sqlite' : (trim($_POST['db_database'] ?? 'cimaise')),
             'username' => trim($_POST['db_username'] ?? ''),
             'password' => $_POST['db_password'] ?? ''
         ];
@@ -506,7 +506,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>photoCMS Installer</title>
+    <title>Cimaise Installer</title>
     <link rel="stylesheet" href="assets/app.css">
     <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
     <style>
@@ -647,7 +647,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="py-6 text-center">
                     <h1 class="text-3xl font-light text-black">
-                        <i class="fas fa-camera mr-3"></i>photoCMS
+                        <i class="fas fa-camera mr-3"></i>Cimaise
                     </h1>
                     <p class="text-gray-600 mt-2">Installation Setup</p>
                 </div>
@@ -695,7 +695,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                 <?php if ($step === 'requirements'): ?>
                     <div class="card p-8">
                         <h2 class="text-2xl font-light text-black mb-6">System Requirements</h2>
-                        <p class="text-gray-600 mb-8">Checking if your server meets the requirements for photoCMS.</p>
+                        <p class="text-gray-600 mb-8">Checking if your server meets the requirements for Cimaise.</p>
                         
                         <div class="space-y-1">
                             <div class="requirement-check">
@@ -912,7 +912,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Database Name</label>
                                     <input type="text" name="db_database" class="form-input w-full <?= isset($dbErrors['db_database']) ? 'error' : '' ?>" 
-                                           value="<?= htmlspecialchars($dbFormData['database'] ?? 'photocms') ?>" placeholder="photocms">
+                                           value="<?= htmlspecialchars($dbFormData['database'] ?? 'cimaise') ?>" placeholder="cimaise">
                                     <?php if (isset($dbErrors['db_database'])): ?>
                                         <div class="text-red-600 text-sm mt-1"><?= $dbErrors['db_database'] ?></div>
                                     <?php endif; ?>
@@ -951,7 +951,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                 <?php elseif ($step === 'admin'): ?>
                     <div class="card p-8">
                         <h2 class="text-2xl font-light text-black mb-6">Admin User Account</h2>
-                        <p class="text-gray-600 mb-8">Create your first admin user account to manage photoCMS.</p>
+                        <p class="text-gray-600 mb-8">Create your first admin user account to manage Cimaise.</p>
                         
                         <form method="post" action="installer.php?step=admin">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -1160,7 +1160,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                     <i class="fas fa-exclamation-triangle mr-2 mt-0.5"></i>
                                     <div>
                                         <div class="font-medium">Final Step</div>
-                                        <div class="text-sm">This will install photoCMS with your configuration. This process cannot be undone.</div>
+                                        <div class="text-sm">This will install Cimaise with your configuration. This process cannot be undone.</div>
                                     </div>
                                 </div>
                             </div>
@@ -1171,7 +1171,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                         <i class="fas fa-arrow-left mr-2"></i>Back
                                     </a>
                                     <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium inline-flex items-center text-lg">
-                                        <i class="fas fa-rocket mr-2"></i>Install photoCMS
+                                        <i class="fas fa-rocket mr-2"></i>Install Cimaise
                                     </button>
                                 </div>
                             </form>
@@ -1185,7 +1185,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                 <i class="fas fa-check text-green-600 text-2xl"></i>
                             </div>
                             <h2 class="text-3xl font-light text-black mb-4">Installation Complete!</h2>
-                            <p class="text-gray-600 text-lg">photoCMS has been successfully installed and configured.</p>
+                            <p class="text-gray-600 text-lg">Cimaise has been successfully installed and configured.</p>
                         </div>
                         
                         <div class="bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg mb-8">
@@ -1235,7 +1235,7 @@ $requirementsPassed = !in_array(false, array_values($requirements));
         <div class="bg-white border-t border-gray-200">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <div class="text-center text-sm text-gray-500">
-                    photoCMS Installer • 
+                    Cimaise Installer • 
                     PHP <?= PHP_VERSION ?> • 
                     <?= date('Y') ?>
                 </div>

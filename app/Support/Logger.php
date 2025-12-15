@@ -230,9 +230,12 @@ class Logger
             return;
         }
 
+        // Sanitize params before logging (they may contain sensitive data)
+        $sanitizedParams = self::getInstance()->sanitizeContext($params);
+
         self::debug('SQL Query', [
             'query' => $query,
-            'params' => $params,
+            'params' => $sanitizedParams,
             'time_ms' => round($executionTime * 1000, 2),
         ], 'sql');
     }

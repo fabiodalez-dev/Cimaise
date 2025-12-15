@@ -1,8 +1,8 @@
-# Schema Database - photoCMS
+# Schema Database - Cimaise
 
 ## Panoramica
 
-photoCMS supporta due engine di database:
+Cimaise supporta due engine di database:
 
 - **SQLite 3.x**: Database file-based, ideale per sviluppo e piccoli siti
 - **MySQL 8.0+ / MariaDB 10.6+**: Database server, ideale per produzione e siti con alto traffico

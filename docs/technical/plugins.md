@@ -1,6 +1,6 @@
 # Plugin System & Hooks Documentation
 
-photoCMS includes a comprehensive plugin system with hooks that allow you to extend functionality without modifying core files. This document describes all available hooks and how to use them.
+Cimaise includes a comprehensive plugin system with hooks that allow you to extend functionality without modifying core files. This document describes all available hooks and how to use them.
 
 ## Overview
 
@@ -248,7 +248,7 @@ plugins/
 {
     "name": "My Plugin",
     "version": "1.0.0",
-    "description": "A custom plugin for photoCMS",
+    "description": "A custom plugin for Cimaise",
     "author": "Your Name",
     "main": "MyPlugin.php"
 }
