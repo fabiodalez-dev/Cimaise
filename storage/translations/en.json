@@ -215,6 +215,21 @@
   "image": {
     "image.download": "Download"
   },
+  "cookie": {
+    "cookie.banner_description": "This website uses cookies to improve your browsing experience.",
+    "cookie.accept_all": "Accept all",
+    "cookie.reject_non_essential": "Reject non-essential",
+    "cookie.preferences": "Preferences",
+    "cookie.save_selected": "Save selected",
+    "cookie.preferences_title": "Cookie Preferences",
+    "cookie.preferences_description": "Manage your cookie preferences. Essential cookies are required for the website to function.",
+    "cookie.essential_name": "Essential Cookies",
+    "cookie.essential_description": "Required for the website to function. Cannot be disabled.",
+    "cookie.analytics_name": "Analytics Cookies",
+    "cookie.analytics_description": "Help us understand how you use the site to improve your experience.",
+    "cookie.marketing_name": "Marketing Cookies",
+    "cookie.marketing_description": "Used to show you relevant ads based on your interests."
+  },
   "admin": {
     "admin.texts.title": "Translations",
     "admin.texts.heading": "Manage Translations",

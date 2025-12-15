@@ -2211,5 +2211,13 @@
     </script>
 
     {% block scripts %}{% endblock %}
+
+    {# Essential JavaScript - Always loaded (no consent required) #}
+    {% if custom_js_essential %}
+    <script id="custom-js-essential">{{ custom_js_essential|raw }}</script>
+    {% endif %}
+
+    {# Cookie Banner with conditional script loader #}
+    {% include 'partials/cookie-banner.twig' %}
 </body>
 </html>
