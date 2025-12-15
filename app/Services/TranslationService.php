@@ -563,6 +563,7 @@ class TranslationService
             ['cookie.analytics_description', 'Help us understand how you use the site to improve your experience.', 'cookie', 'Analytics cookies description'],
             ['cookie.marketing_name', 'Marketing Cookies', 'cookie', 'Marketing cookies category name'],
             ['cookie.marketing_description', 'Used to show relevant ads based on your interests.', 'cookie', 'Marketing cookies description'],
+            ['cookie.privacy_statement_label', 'More information about cookies', 'cookie', 'Privacy statement link label in cookie modal'],
         ];
     }
 }

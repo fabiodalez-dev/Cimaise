@@ -127,7 +127,7 @@
                             title: {{ trans('cookie.preferences_title')|json_encode|raw }},
                             description: {{ trans('cookie.preferences_description')|json_encode|raw }},
                             statementUrl: '{{ base_path }}/privacy',
-                            statementAccessibleLabel: 'More information about cookies',
+                            statementAccessibleLabel: {{ trans('cookie.privacy_statement_label')|json_encode|raw }},
                         },
                     },
                     position: {

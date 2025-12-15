@@ -228,7 +228,8 @@
     "cookie.analytics_name": "Cookie Analitici",
     "cookie.analytics_description": "Ci aiutano a capire come utilizzi il sito per migliorare la tua esperienza.",
     "cookie.marketing_name": "Cookie di Marketing",
-    "cookie.marketing_description": "Utilizzati per mostrare annunci pertinenti ai tuoi interessi."
+    "cookie.marketing_description": "Utilizzati per mostrare annunci pertinenti ai tuoi interessi.",
+    "cookie.privacy_statement_label": "Maggiori informazioni sui cookie"
   },
   "admin": {
     "admin.texts.title": "Traduzioni",
