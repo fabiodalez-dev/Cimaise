@@ -366,6 +366,11 @@ class AnalyticsController
      */
     public function apiRealtime(Request $request, Response $response): Response
     {
+        if (!$this->analytics->isEnabled()) {
+            $response->getBody()->write(json_encode(['error' => 'Analytics disabled']));
+            return $response->withStatus(503)->withHeader('Content-Type', 'application/json');
+        }
+
         try {
             $driver = 'mysql';
             try { $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) ?: 'mysql'; } catch (\Throwable) {}
