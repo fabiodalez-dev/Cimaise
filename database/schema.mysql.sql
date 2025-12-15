@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS `albums` (
   `sort_order` INT DEFAULT 0,
   `password_hash` VARCHAR(255) NULL,
   `allow_downloads` TINYINT(1) NOT NULL DEFAULT 0,
+  `is_nsfw` TINYINT(1) NOT NULL DEFAULT 0,
   `seo_title` VARCHAR(255) NULL,
   `seo_description` TEXT NULL,
   `seo_keywords` TEXT NULL,

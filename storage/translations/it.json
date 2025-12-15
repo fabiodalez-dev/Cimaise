@@ -68,7 +68,17 @@
     "album.equipment": "Attrezzatura",
     "album.more_from": "Altri da {category}",
     "album.tags_count": "{count} tag",
-    "album.tag_count": "1 tag"
+    "album.tag_count": "1 tag",
+    "album.nsfw_label": "Contenuto per adulti",
+    "album.nsfw_help": "Seleziona se l'album contiene contenuti per adulti o sensibili",
+    "album.nsfw_title": "Avviso Contenuto per Adulti",
+    "album.nsfw_message": "Questa galleria contiene contenuti che potrebbero non essere adatti a tutti. Devi avere almeno 18 anni per visualizzare questo contenuto.",
+    "album.nsfw_album_message": "Questa galleria contiene contenuti per adulti che potrebbero non essere adatti a tutti gli spettatori. Devi avere almeno 18 anni per visualizzare questo contenuto.",
+    "album.nsfw_confirm": "Ho 18 anni o più",
+    "album.nsfw_cancel": "Torna indietro",
+    "album.nsfw_go_back": "Torna indietro",
+    "album.nsfw_remember": "La tua preferenza sarà ricordata per le visite future.",
+    "album.nsfw_warning_short": "18+"
   },
   "pagination": {
     "pagination.previous": "Precedente",
