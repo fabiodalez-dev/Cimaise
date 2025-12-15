@@ -52,6 +52,16 @@ class SilktideCookieBanner {
   }
 
   // ----------------------------------------------------------------
+  // HTML Escaping (XSS Prevention)
+  // ----------------------------------------------------------------
+  escapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ----------------------------------------------------------------
   // Wrapper
   // ----------------------------------------------------------------
   createWrapper() {
@@ -496,7 +506,7 @@ class SilktideCookieBanner {
     }>${rejectNonEssentialButtonText}</button>`;
 
     // Save selected button
-    const saveSelectedButtonText = this.config.text?.banner?.saveSelectedButtonText || 'Accetta selezionati';
+    const saveSelectedButtonText = this.config.text?.banner?.saveSelectedButtonText || 'Save selected';
     const saveSelectedButtonLabel = this.config.text?.banner?.saveSelectedButtonAccessibleLabel;
     const saveSelectedButton = `<button class="preferences-save-selected st-button st-button--secondary"${
       saveSelectedButtonLabel && saveSelectedButtonLabel !== saveSelectedButtonText
@@ -537,13 +547,17 @@ class SilktideCookieBanner {
               isChecked = type.defaultValue;
             }
 
+            const safeName = this.escapeHtml(type.name);
+            const safeDescription = this.escapeHtml(type.description);
+            const safeId = this.escapeHtml(type.id);
+
             return `
             <fieldset>
-                <legend>${type.name}</legend>
+                <legend>${safeName}</legend>
                 <div class="cookie-type-content">
-                    <div class="cookie-type-description">${type.description}</div>
-                    <label class="switch" for="cookies-${type.id}">
-                        <input type="checkbox" id="cookies-${type.id}" ${
+                    <div class="cookie-type-description">${safeDescription}</div>
+                    <label class="switch" for="cookies-${safeId}">
+                        <input type="checkbox" id="cookies-${safeId}" ${
               type.required ? 'checked disabled' : isChecked ? 'checked' : ''
             } />
                         <span class="switch__pill" aria-hidden="true"></span>
@@ -811,7 +825,7 @@ class SilktideCookieBanner {
         }
       });
 
-      closeButton?.focus();
+      // Note: Focus is handled in toggleModal(true) at line 591, not here during setup
 
       // Update the checkbox event listeners
       const preferencesSection = this.modal.querySelector('#cookie-preferences');
