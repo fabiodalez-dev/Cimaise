@@ -138,8 +138,8 @@ class AlbumsController extends BaseController
         $schemaType = trim((string)($d['schema_type'] ?? 'ImageGallery'));
         $schemaData = trim((string)($d['schema_data'] ?? '')) ?: null;
         $canonicalUrl = trim((string)($d['canonical_url'] ?? '')) ?: null;
-        $robotsIndex = isset($d['robots_index']) ? 1 : 1; // Default to index
-        $robotsFollow = isset($d['robots_follow']) ? 1 : 1; // Default to follow
+        $robotsIndex = isset($d['robots_index']) ? 1 : 0;
+        $robotsFollow = isset($d['robots_follow']) ? 1 : 0;
         
         // Custom equipment fields
         $customCameras = trim((string)($d['custom_cameras'] ?? '')) ?: null;
@@ -278,6 +278,9 @@ class AlbumsController extends BaseController
             $response->getBody()->write('Album not found');
             return $response->withStatus(404);
         }
+        // Add password flag for template (checks password_hash existence)
+        $item['password'] = !empty($item['password_hash']);
+
         $cats = $pdo->query('SELECT id, name FROM categories ORDER BY sort_order, name')->fetchAll();
         $tags = $pdo->query('SELECT id, name FROM tags ORDER BY name')->fetchAll();
         
@@ -459,7 +462,7 @@ class AlbumsController extends BaseController
         $allow_downloads = isset($d['allow_downloads']) ? 1 : 0;
         $is_nsfw = isset($d['is_nsfw']) ? 1 : 0;
         $passwordRaw = (string)($d['password'] ?? '');
-        $clearPassword = isset($d['password_clear']);
+        $clearPassword = !empty($d['password_clear']);
         $tagIds = array_map('intval', (array)($d['tags'] ?? []));
         $cameraIds = array_map('intval', (array)($d['cameras'] ?? []));
         $lensIds = array_map('intval', (array)($d['lenses'] ?? []));
