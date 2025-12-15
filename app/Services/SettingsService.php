@@ -63,6 +63,13 @@ class SettingsService
             'performance.compression' => true,
             'pagination.limit' => 12,
             'cache.ttl' => 24,
+            // Privacy & Cookie Banner
+            'privacy.cookie_banner_enabled' => true,
+            'privacy.custom_js_essential' => '',
+            'privacy.custom_js_analytics' => '',
+            'privacy.custom_js_marketing' => '',
+            'cookie_banner.show_analytics' => false,
+            'cookie_banner.show_marketing' => false,
         ];
     }
 }
