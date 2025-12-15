@@ -273,6 +273,11 @@
             }
         }
 
+        /* NSFW content blur */
+        .nsfw-blur {
+            filter: blur(20px);
+            transition: filter 0.3s ease;
+        }
 
         /* Simple Lightbox fallback */
         #slb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.95); color:#fff; display:none; align-items:center; justify-content:center; z-index: 10000; }
@@ -2212,7 +2217,12 @@
 
     {% block scripts %}{% endblock %}
 
-    {# Cookie Consent Banner #}
+    {# Essential JavaScript - Always loaded (no consent required) #}
+    {% if custom_js_essential %}
+    <script id="custom-js-essential">{{ custom_js_essential|raw }}</script>
+    {% endif %}
+
+    {# Cookie Banner with conditional script loader #}
     {% include 'partials/cookie-banner.twig' %}
 </body>
 </html>

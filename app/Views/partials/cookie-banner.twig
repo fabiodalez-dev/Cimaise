@@ -1,238 +1,172 @@
-{# Cookie Consent Banner - GDPR Compliant #}
-{% if cookie_banner_enabled and (cookie_analytics_scripts or cookie_marketing_scripts) %}
-<div id="cookie-banner"
-     class="fixed {{ cookie_banner_position == 'top' ? 'top-0' : 'bottom-0' }} left-0 right-0 z-[9999] transform transition-transform duration-300 {{ cookie_banner_position == 'top' ? '-translate-y-full' : 'translate-y-full' }}"
-     style="display: none;">
+{# Cookie Banner Partial - Silktide Consent Manager #}
+{% if cookie_banner_enabled %}
 
-  {% if cookie_banner_style == 'popup' %}
-  {# Popup Style #}
-  <div class="flex items-center justify-center min-h-screen p-4 bg-black/50">
-    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-          <i class="fas fa-cookie-bite text-indigo-600"></i>
-        </div>
-        <h3 class="text-lg font-semibold text-gray-900">{{ trans('cookie.title', 'Cookie Settings') }}</h3>
-      </div>
+{# Load Silktide CSS and JS #}
+<link rel="stylesheet" href="{{ base_path }}/assets/css/silktide-consent-manager.css">
+<script src="{{ base_path }}/assets/js/silktide-consent-manager.js"></script>
 
-      <p class="text-sm text-gray-600 mb-4">{{ trans('cookie.description', 'We use cookies to improve your experience. You can choose which cookies to accept.') }}</p>
-
-      <div class="space-y-3 mb-6">
-        {# Essential - Always on #}
-        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-          <div>
-            <span class="font-medium text-gray-900">{{ trans('cookie.essential', 'Essential') }}</span>
-            <p class="text-xs text-gray-500">{{ trans('cookie.essential_desc', 'Required for the website to function') }}</p>
-          </div>
-          <input type="checkbox" checked disabled class="rounded text-indigo-600">
-        </label>
-
-        {% if cookie_analytics_scripts %}
-        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
-          <div>
-            <span class="font-medium text-gray-900">{{ trans('cookie.analytics', 'Analytics') }}</span>
-            <p class="text-xs text-gray-500">{{ trans('cookie.analytics_desc', 'Help us understand how you use the site') }}</p>
-          </div>
-          <input type="checkbox" id="cookie-analytics" class="rounded text-indigo-600 cursor-pointer">
-        </label>
-        {% endif %}
-
-        {% if cookie_marketing_scripts %}
-        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
-          <div>
-            <span class="font-medium text-gray-900">{{ trans('cookie.marketing', 'Marketing') }}</span>
-            <p class="text-xs text-gray-500">{{ trans('cookie.marketing_desc', 'Personalized ads and content') }}</p>
-          </div>
-          <input type="checkbox" id="cookie-marketing" class="rounded text-indigo-600 cursor-pointer">
-        </label>
-        {% endif %}
-      </div>
-
-      <div class="flex gap-3">
-        <button id="cookie-reject" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
-          {{ trans('cookie.reject', 'Reject All') }}
-        </button>
-        <button id="cookie-accept" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
-          {{ trans('cookie.accept', 'Accept Selected') }}
-        </button>
-      </div>
-    </div>
-  </div>
-  {% else %}
-  {# Bar Style #}
-  <div class="bg-gray-900 text-white px-4 py-4 shadow-lg">
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <i class="fas fa-cookie-bite text-xl text-indigo-400"></i>
-        <p class="text-sm">{{ trans('cookie.bar_text', 'We use cookies to enhance your experience.') }}</p>
-      </div>
-
-      <div class="flex items-center gap-3 flex-wrap justify-center">
-        {% if cookie_analytics_scripts %}
-        <label class="flex items-center gap-2 text-sm cursor-pointer">
-          <input type="checkbox" id="cookie-analytics" class="rounded text-indigo-500 bg-gray-700 border-gray-600">
-          <span>{{ trans('cookie.analytics', 'Analytics') }}</span>
-        </label>
-        {% endif %}
-
-        {% if cookie_marketing_scripts %}
-        <label class="flex items-center gap-2 text-sm cursor-pointer">
-          <input type="checkbox" id="cookie-marketing" class="rounded text-indigo-500 bg-gray-700 border-gray-600">
-          <span>{{ trans('cookie.marketing', 'Marketing') }}</span>
-        </label>
-        {% endif %}
-
-        <button id="cookie-reject" class="px-3 py-1.5 text-sm font-medium text-gray-300 hover:text-white transition">
-          {{ trans('cookie.reject', 'Reject') }}
-        </button>
-        <button id="cookie-accept" class="px-4 py-1.5 text-sm font-medium bg-indigo-600 rounded hover:bg-indigo-700 transition">
-          {{ trans('cookie.accept', 'Accept') }}
-        </button>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-</div>
-
-{# Cookie Settings Button (shown after consent given) #}
-<button id="cookie-settings-btn"
-        class="fixed {{ cookie_banner_position == 'top' ? 'top-4' : 'bottom-4' }} left-4 z-[9998] w-10 h-10 bg-gray-900 text-white rounded-full shadow-lg hover:bg-gray-800 transition hidden"
-        title="{{ trans('cookie.manage', 'Manage cookie preferences') }}">
-  <i class="fas fa-cookie-bite"></i>
-</button>
-
-{# Essential Scripts (always loaded) #}
-{% if cookie_essential_scripts %}
-{{ cookie_essential_scripts|raw }}
-{% endif %}
-
-<script>
+{# Custom JS Loader - Conditional script injection based on consent #}
+{% if custom_js_analytics or custom_js_marketing %}
+<script id="custom-js-loader">
 (function() {
-  const STORAGE_KEY = 'cookie_consent';
-  const banner = document.getElementById('cookie-banner');
-  const settingsBtn = document.getElementById('cookie-settings-btn');
-  const acceptBtn = document.getElementById('cookie-accept');
-  const rejectBtn = document.getElementById('cookie-reject');
-  const analyticsCheck = document.getElementById('cookie-analytics');
-  const marketingCheck = document.getElementById('cookie-marketing');
+    'use strict';
 
-  // Scripts to inject
-  const analyticsScripts = {{ cookie_analytics_scripts ? 'true' : 'false' }};
-  const marketingScripts = {{ cookie_marketing_scripts ? 'true' : 'false' }};
-  const analyticsCode = {{ cookie_analytics_scripts|json_encode|raw }};
-  const marketingCode = {{ cookie_marketing_scripts|json_encode|raw }};
+    var analyticsScript = {{ custom_js_analytics|json_encode|raw }};
+    var marketingScript = {{ custom_js_marketing|json_encode|raw }};
 
-  function getConsent() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
-    } catch(e) { return null; }
-  }
+    function injectScript(scriptContent, id) {
+        if (!scriptContent || document.getElementById(id)) return;
 
-  function setConsent(analytics, marketing) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      analytics: analytics,
-      marketing: marketing,
-      timestamp: Date.now()
-    }));
-  }
+        // Validate that content is JavaScript, not HTML
+        if (scriptContent.trim().startsWith('<') ||
+            scriptContent.includes('<iframe') ||
+            scriptContent.includes('<script')) {
+            console.warn('Custom script contains HTML tags - skipped:', id);
+            return;
+        }
 
-  function injectScripts(code) {
-    if (!code) return;
-    const container = document.createElement('div');
-    container.innerHTML = code;
-    const scripts = container.querySelectorAll('script');
-    scripts.forEach(script => {
-      const newScript = document.createElement('script');
-      if (script.src) {
-        newScript.src = script.src;
-        newScript.async = true;
-      } else {
-        newScript.textContent = script.textContent;
-      }
-      document.head.appendChild(newScript);
-    });
-    // Also append non-script content (like noscript tags, etc.)
-    const nonScripts = container.querySelectorAll(':not(script)');
-    nonScripts.forEach(el => document.body.appendChild(el.cloneNode(true)));
-  }
-
-  function applyConsent(consent) {
-    if (consent.analytics && analyticsScripts) {
-      injectScripts(analyticsCode);
+        var script = document.createElement('script');
+        script.id = id;
+        script.textContent = scriptContent;
+        document.head.appendChild(script);
     }
-    if (consent.marketing && marketingScripts) {
-      injectScripts(marketingCode);
+
+    function loadCustomScripts() {
+        // Wait for CookieControl (Silktide)
+        if (!window.CookieControl || !window.CookieControl.getCategoryConsent) {
+            return;
+        }
+
+        // Load analytics if consent given
+        if (analyticsScript && window.CookieControl.getCategoryConsent('analytics')) {
+            injectScript(analyticsScript, 'custom-js-analytics');
+        }
+
+        // Load marketing if consent given
+        if (marketingScript && window.CookieControl.getCategoryConsent('marketing')) {
+            injectScript(marketingScript, 'custom-js-marketing');
+        }
     }
-  }
 
-  function showBanner() {
-    banner.style.display = 'block';
-    setTimeout(() => {
-      banner.classList.remove('{{ cookie_banner_position == "top" ? "-translate-y-full" : "translate-y-full" }}');
-    }, 10);
-    settingsBtn.classList.add('hidden');
-  }
-
-  function hideBanner() {
-    banner.classList.add('{{ cookie_banner_position == "top" ? "-translate-y-full" : "translate-y-full" }}');
-    setTimeout(() => {
-      banner.style.display = 'none';
-    }, 300);
-    settingsBtn.classList.remove('hidden');
-  }
-
-  function init() {
-    const consent = getConsent();
-
-    if (consent) {
-      // Apply saved consent
-      applyConsent(consent);
-      settingsBtn.classList.remove('hidden');
-
-      // Restore checkbox states
-      if (analyticsCheck) analyticsCheck.checked = consent.analytics;
-      if (marketingCheck) marketingCheck.checked = consent.marketing;
+    // Execute on DOMContentLoaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(loadCustomScripts, 200);
+        });
     } else {
-      // Show banner for first-time visitors
-      showBanner();
+        setTimeout(loadCustomScripts, 200);
     }
-  }
 
-  // Event listeners
-  if (acceptBtn) {
-    acceptBtn.addEventListener('click', function() {
-      const analytics = analyticsCheck ? analyticsCheck.checked : false;
-      const marketing = marketingCheck ? marketingCheck.checked : false;
-      setConsent(analytics, marketing);
-      applyConsent({ analytics, marketing });
-      hideBanner();
+    // Listen for consent changes
+    window.addEventListener('silktideConsentChanged', function() {
+        setTimeout(loadCustomScripts, 100);
     });
-  }
 
-  if (rejectBtn) {
-    rejectBtn.addEventListener('click', function() {
-      setConsent(false, false);
-      hideBanner();
-    });
-  }
-
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', function() {
-      const consent = getConsent();
-      if (consent) {
-        if (analyticsCheck) analyticsCheck.checked = consent.analytics;
-        if (marketingCheck) marketingCheck.checked = consent.marketing;
-      }
-      showBanner();
-    });
-  }
-
-  // Initialize on DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+    // Retry for 3 seconds if CookieControl not ready
+    var attempts = 0;
+    var retryInterval = setInterval(function() {
+        attempts++;
+        loadCustomScripts();
+        if (attempts >= 6 || (window.CookieControl && window.CookieControl.getCategoryConsent)) {
+            clearInterval(retryInterval);
+        }
+    }, 500);
 })();
 </script>
+{% endif %}
+
+{# Silktide Consent Manager Configuration #}
+<script>
+(function() {
+    function initCookieBannerConfig() {
+        try {
+            if (typeof silktideCookieBannerManager !== 'undefined' && typeof silktideCookieBannerManager.updateCookieBannerConfig === 'function') {
+                silktideCookieBannerManager.updateCookieBannerConfig({
+                    cookieTypes: [
+                        {
+                            id: 'essential',
+                            name: {{ trans('cookie.essential_name')|json_encode|raw }},
+                            description: {{ trans('cookie.essential_description')|json_encode|raw }},
+                            required: true,
+                            defaultValue: true,
+                        },
+                        {% if show_analytics %}
+                        {
+                            id: 'analytics',
+                            name: {{ trans('cookie.analytics_name')|json_encode|raw }},
+                            description: {{ trans('cookie.analytics_description')|json_encode|raw }},
+                            defaultValue: false,
+                            onAccept: function() {},
+                            onReject: function() {},
+                        },
+                        {% endif %}
+                        {% if show_marketing %}
+                        {
+                            id: 'marketing',
+                            name: {{ trans('cookie.marketing_name')|json_encode|raw }},
+                            description: {{ trans('cookie.marketing_description')|json_encode|raw }},
+                            defaultValue: false,
+                            onAccept: function() {},
+                            onReject: function() {},
+                        },
+                        {% endif %}
+                    ],
+                    text: {
+                        banner: {
+                            description: {{ trans('cookie.banner_description')|json_encode|raw }},
+                            acceptAllButtonText: {{ trans('cookie.accept_all')|json_encode|raw }},
+                            acceptAllButtonAccessibleLabel: {{ trans('cookie.accept_all')|json_encode|raw }},
+                            rejectNonEssentialButtonText: {{ trans('cookie.reject_non_essential')|json_encode|raw }},
+                            rejectNonEssentialButtonAccessibleLabel: {{ trans('cookie.reject_non_essential')|json_encode|raw }},
+                            preferencesButtonText: {{ trans('cookie.preferences')|json_encode|raw }},
+                            preferencesButtonAccessibleLabel: {{ trans('cookie.preferences')|json_encode|raw }},
+                            saveSelectedButtonText: {{ trans('cookie.save_selected')|json_encode|raw }},
+                            saveSelectedButtonAccessibleLabel: {{ trans('cookie.save_selected')|json_encode|raw }},
+                        },
+                        preferences: {
+                            title: {{ trans('cookie.preferences_title')|json_encode|raw }},
+                            description: {{ trans('cookie.preferences_description')|json_encode|raw }},
+                            statementUrl: '{{ base_path }}/privacy',
+                            statementAccessibleLabel: {{ trans('cookie.privacy_statement_label')|json_encode|raw }},
+                        },
+                    },
+                    position: {
+                        banner: 'bottomRight',
+                        cookieIcon: 'bottomLeft',
+                    },
+                });
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.error('Cookie banner: initialization error', e);
+            return false;
+        }
+    }
+
+    // Try to initialize immediately
+    if (!initCookieBannerConfig()) {
+        var maxRetries = 30;
+        var retryCount = 0;
+
+        function retry() {
+            if (retryCount >= maxRetries) {
+                console.warn('Cookie banner: silktideCookieBannerManager not available after ' + maxRetries + ' retries');
+                return;
+            }
+            if (!initCookieBannerConfig()) {
+                retryCount++;
+                setTimeout(retry, 100);
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', retry);
+        } else {
+            setTimeout(retry, 50);
+        }
+    }
+})();
+</script>
+
 {% endif %}
