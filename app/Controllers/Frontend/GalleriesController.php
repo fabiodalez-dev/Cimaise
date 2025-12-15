@@ -81,6 +81,7 @@ class GalleriesController extends BaseController
                 'cover_image' => isset($album['cover_image']) ? [
                     'id' => $album['cover_image']['id'],
                     'preview_path' => $album['cover_image']['preview_path'] ?? null,
+                    'blur_path' => $album['cover_image']['blur_path'] ?? null,
                     'width' => $album['cover_image']['width'] ?? null,
                     'height' => $album['cover_image']['height'] ?? null,
                 ] : null,
@@ -477,13 +478,16 @@ class GalleriesController extends BaseController
     private function enrichAlbum(array $album): array
     {
         $pdo = $this->db->pdo();
-        
-        // Get cover image
+
+        // Get cover image with blur variant for NSFW albums
         if (!empty($album['cover_image_id'])) {
             $stmt = $pdo->prepare('
-                SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
+                SELECT i.*,
+                       COALESCE(iv.path, i.original_path) AS preview_path,
+                       blur.path AS blur_path
                 FROM images i
                 LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "sm" AND iv.format = "jpg"
+                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = "blur"
                 WHERE i.id = :id
             ');
             $stmt->execute([':id' => $album['cover_image_id']]);
@@ -492,15 +496,18 @@ class GalleriesController extends BaseController
                 $album['cover_image'] = $cover;
             }
         }
-        
+
         // If no cover image, get first image
         if (empty($album['cover_image'])) {
             $stmt = $pdo->prepare('
-                SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
+                SELECT i.*,
+                       COALESCE(iv.path, i.original_path) AS preview_path,
+                       blur.path AS blur_path
                 FROM images i
                 LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "sm" AND iv.format = "jpg"
-                WHERE i.album_id = :album_id 
-                ORDER BY i.sort_order ASC, i.id ASC 
+                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = "blur"
+                WHERE i.album_id = :album_id
+                ORDER BY i.sort_order ASC, i.id ASC
                 LIMIT 1
             ');
             $stmt->execute([':album_id' => $album['id']]);

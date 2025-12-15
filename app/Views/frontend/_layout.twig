@@ -944,7 +944,7 @@
                                                 <div class="relative aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-gray-50 transition-all duration-300 group-hover:shadow-lg">
                                                     {% if category.image_path and category.image_path != '' %}
                                                         <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" 
-                                                             class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                             class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
                                                              onerror="this.style.display='none';">
                                                     {% else %}
                                                         <div class="w-full h-full flex items-center justify-center text-gray-400 group-hover:text-gray-600 transition-colors duration-300">
@@ -2213,6 +2213,43 @@
         {% if current_tag %}
         window.tagId = {{ current_tag.id }};
         {% endif %}
+    </script>
+
+    <!-- Global NSFW Image Swap (runs on all pages) -->
+    <script>
+    (function() {
+        // Check if user has confirmed they are of age
+        var confirmed = localStorage.getItem('nsfw_confirmed') === 'true';
+        if (!confirmed) return;
+
+        // Swap all NSFW card images from blur to original
+        document.querySelectorAll('img.nsfw-card-image[data-src]').forEach(function(img) {
+            var origSrc = img.getAttribute('data-src');
+            if (origSrc) {
+                img.src = origSrc;
+                img.classList.remove('nsfw-card-image');
+                img.removeAttribute('data-src');
+            }
+        });
+
+        // Also handle galleries.twig style images
+        document.querySelectorAll('img.nsfw-image[data-src]').forEach(function(img) {
+            var origSrc = img.getAttribute('data-src');
+            if (origSrc) {
+                img.src = origSrc;
+                img.classList.remove('nsfw-image');
+                img.removeAttribute('data-src');
+            }
+        });
+
+        // Hide NSFW overlays on confirmed pages
+        document.querySelectorAll('[data-nsfw="1"]').forEach(function(card) {
+            var overlay = card.querySelector('.backdrop-blur-sm');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        });
+    })();
     </script>
 
     {% block scripts %}{% endblock %}

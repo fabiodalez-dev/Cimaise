@@ -241,6 +241,7 @@
                data-gsap="gallery-card"
                data-album-id="{{ album.id }}"
                data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
+               data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
                data-album-url="{{ base_path }}/album/{{ album.slug }}"
                onclick="handleGalleryCardClick(event, this)">
 
@@ -248,10 +249,21 @@
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
           {% if album.cover_image and (album.cover_image.preview_path or album.cover_image.original_path) %}
             {% set cover_path = album.cover_image.preview_path|default(album.cover_image.original_path) %}
+            {% set blur_path = album.cover_image.blur_path %}
+            {% set is_nsfw_unconfirmed = album.is_nsfw and not is_admin %}
+            {# For NSFW albums: show blurred image, store real image in data-src for lazy load after confirmation #}
+            {% if is_nsfw_unconfirmed and blur_path %}
+            <img src="{{ base_path }}{{ blur_path }}"
+                 data-src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
+                 alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                 class="nsfw-image w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                 loading="lazy">
+            {% else %}
             <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
                  alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
-                 class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] {% if album.is_nsfw and not is_admin %}nsfw-blur{% endif %}"
+                 class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
                  loading="lazy">
+            {% endif %}
           {% else %}
             <div class="w-full h-full flex items-center justify-center text-gray-400">
               <i class="fas fa-images text-4xl"></i>
@@ -696,7 +708,9 @@ function generateGalleryCard(album) {
     const coverImage = album.cover_image || {};
     const tags = Array.isArray(album.tags) ? album.tags : [];
     const imgPath = (coverImage.preview_path || coverImage.original_path || '');
+    const blurPath = coverImage.blur_path || '';
     const safeSrc = imgPath.startsWith('/') && window.basePath ? (window.basePath + imgPath) : imgPath;
+    const safeBlurSrc = blurPath.startsWith('/') && window.basePath ? (window.basePath + blurPath) : blurPath;
     const title = esc(album.title);
     const excerpt = esc(album.excerpt || '');
     const category = esc(album.category_name || '');
@@ -713,6 +727,7 @@ function generateGalleryCard(album) {
     }
     wrapper.setAttribute('data-album-id', String(album.id||''));
     wrapper.setAttribute('data-nsfw', isNsfw ? '1' : '0');
+    wrapper.setAttribute('data-password-protected', album.is_password_protected ? '1' : '0');
     wrapper.setAttribute('data-album-url', albumUrl);
     wrapper.addEventListener('click', function(e) { handleGalleryCardClick(e, this); });
 
@@ -720,9 +735,16 @@ function generateGalleryCard(album) {
     rel.className = 'relative aspect-[4/3] overflow-hidden bg-gray-100';
     if (safeSrc) {
         const img = document.createElement('img');
-        img.src = safeSrc; img.alt = alt;
+        // For NSFW albums: use blurred image, store original in data-src
+        if (isNsfw && safeBlurSrc && !hasConfirmedNsfw()) {
+            img.src = safeBlurSrc;
+            img.setAttribute('data-src', safeSrc);
+            img.classList.add('nsfw-image');
+        } else {
+            img.src = safeSrc;
+        }
+        img.alt = alt;
         img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
-        if (isNsfw) img.classList.add('nsfw-blur');
         img.loading = 'lazy';
         rel.appendChild(img);
     } else {
@@ -1115,9 +1137,12 @@ function handleGalleryCardClick(event, card) {
     event.stopPropagation();
 
     const isNsfw = card.dataset.nsfw === '1';
+    const isPasswordProtected = card.dataset.passwordProtected === '1';
     const albumUrl = card.dataset.albumUrl;
 
-    if (isNsfw && !hasConfirmedNsfw()) {
+    // If album has password protection, skip NSFW modal here
+    // (NSFW confirmation will be handled in the password page)
+    if (isNsfw && !isPasswordProtected && !hasConfirmedNsfw()) {
         pendingNsfwUrl = albumUrl;
         showNsfwModal();
     } else {
@@ -1143,9 +1168,23 @@ function confirmNsfwAge() {
     setNsfwConfirmed();
     hideNsfwModal();
 
-    // Unblur all NSFW images on the page
+    // Swap blurred images with real ones and remove overlay
     document.querySelectorAll('.gallery-card[data-nsfw="1"]').forEach(card => {
         card.classList.add('nsfw-confirmed');
+
+        // Swap blurred images with real ones
+        const img = card.querySelector('img.nsfw-image[data-src]');
+        if (img && img.dataset.src) {
+            img.src = img.dataset.src;
+            img.classList.remove('nsfw-image');
+            img.removeAttribute('data-src');
+        }
+
+        // Remove NSFW overlay
+        const overlay = card.querySelector('.nsfw-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
     });
 
     // Navigate to the pending URL if any
@@ -1174,11 +1213,25 @@ document.getElementById('nsfw-modal')?.addEventListener('click', function(e) {
     }
 });
 
-// On page load, if user has confirmed, unblur all NSFW content
+// On page load, if user has confirmed, swap blurred images with real ones
 document.addEventListener('DOMContentLoaded', function() {
     if (hasConfirmedNsfw()) {
         document.querySelectorAll('.gallery-card[data-nsfw="1"]').forEach(card => {
             card.classList.add('nsfw-confirmed');
+
+            // Swap blurred images with real ones
+            const img = card.querySelector('img.nsfw-image[data-src]');
+            if (img && img.dataset.src) {
+                img.src = img.dataset.src;
+                img.classList.remove('nsfw-image');
+                img.removeAttribute('data-src');
+            }
+
+            // Remove NSFW overlay
+            const overlay = card.querySelector('.nsfw-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
         });
     }
 });
