@@ -217,6 +217,9 @@
       async function loadLanguages() {
         try {
           const response = await fetch('{{ base_path }}/admin/texts/languages');
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
           const data = await response.json();
           const select = document.getElementById('language-select');
 
@@ -315,7 +318,12 @@
               },
               body: JSON.stringify({ text_value: textInput.value })
             })
-            .then(response => response.json())
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+              }
+              return response.json();
+            })
             .then(result => {
               if (result.success) {
                 textValue.textContent = textInput.value;
