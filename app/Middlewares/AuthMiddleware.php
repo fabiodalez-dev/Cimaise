@@ -89,14 +89,15 @@ class AuthMiddleware implements MiddlewareInterface
 
         // SECURITY: Fetch users with non-expired tokens, then use constant-time comparison
         // This prevents timing attacks that could leak token information via response times
+        // Note: No LIMIT needed - only active admins with valid remember tokens are fetched
+        // For a small CMS this is safe; for large user bases consider indexed lookup
         $stmt = $this->db->pdo()->prepare(
             'SELECT id, email, role, is_active, first_name, last_name, remember_token, remember_token_expires_at
              FROM users
              WHERE remember_token IS NOT NULL
              AND remember_token_expires_at > :now
              AND is_active = 1
-             AND role = :role
-             LIMIT 100'
+             AND role = :role'
         );
         $stmt->execute([':now' => date('Y-m-d H:i:s'), ':role' => 'admin']);
         $users = $stmt->fetchAll();

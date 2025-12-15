@@ -247,14 +247,21 @@ class AnalyticsController
      */
     public function apiChartsData(Request $request, Response $response): Response
     {
-        $params = $request->getQueryParams();
-        $startDate = $params['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
-        $endDate = $params['end_date'] ?? date('Y-m-d');
+        if (!$this->analytics->isEnabled()) {
+            $response->getBody()->write(json_encode(['error' => 'Analytics disabled']));
+            return $response->withStatus(503)->withHeader('Content-Type', 'application/json');
+        }
 
-        $data = $this->analytics->getChartsData($startDate, $endDate);
+        try {
+            [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
+            $data = $this->analytics->getChartsData($startDate, $endDate);
 
-        $response->getBody()->write(json_encode($data));
-        return $response->withHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode($data));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\InvalidArgumentException $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
     }
 
     /**

@@ -209,9 +209,9 @@ class UploadService
         $fastUploadMode = $this->envFlag('FAST_UPLOAD', false);
         $syncVariants = $this->envFlag('SYNC_VARIANTS_ON_UPLOAD', true);
 
-        if ($syncVariants) {
+        if ($syncVariants || !$fastUploadMode) {
             $this->generateVariantsForImage($imageId, false);
-        } elseif ($fastUploadMode) {
+        } else {
             // Generate variants after response flush to keep UX snappy but still complete
             register_shutdown_function(function () use ($imageId) {
                 try {
@@ -220,8 +220,6 @@ class UploadService
                     Logger::warning('UploadService: async variant generation failed', ['error' => $e->getMessage(), 'image_id' => $imageId], 'upload');
                 }
             });
-        } else {
-            $this->generateVariantsForImage($imageId, false);
         }
 
         // Set as cover if album doesn't have one yet

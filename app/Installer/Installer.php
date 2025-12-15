@@ -370,12 +370,6 @@ class Installer
                 throw new \RuntimeException('SQLite schema file not found. Please ensure database/schema.sqlite.sql exists.');
             }
 
-            // Ensure we write into the selected database path
-            $targetPath = $this->createdDbPath ?? ($this->rootPath . '/database/database.sqlite');
-            if (!is_file($targetPath)) {
-                touch($targetPath);
-            }
-
             $this->db->execSqlFile($schemaPath);
             $this->dbCreated = true;
         } else {
