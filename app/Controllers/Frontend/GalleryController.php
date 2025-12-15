@@ -198,38 +198,9 @@ class GalleryController extends BaseController
         $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
         $imgStmt->execute([':id' => $album['id']]);
         $imagesRows = $imgStmt->fetchAll() ?: [];
-        foreach ($imagesRows as &$ir) {
-            try {
-                if (!empty($ir['camera_id'])) {
-                    $s = $pdo->prepare('SELECT make, model FROM cameras WHERE id = :id');
-                    $s->execute([':id' => $ir['camera_id']]);
-                    $cr = $s->fetch();
-                    if ($cr) { $ir['camera_name'] = trim(($cr['make'] ?? '') . ' ' . ($cr['model'] ?? '')); }
-                }
-                if (!empty($ir['lens_id'])) {
-                    $s = $pdo->prepare('SELECT brand, model FROM lenses WHERE id = :id');
-                    $s->execute([':id' => $ir['lens_id']]);
-                    $lr = $s->fetch();
-                    if ($lr) { $ir['lens_name'] = trim(($lr['brand'] ?? '') . ' ' . ($lr['model'] ?? '')); }
-                }
-                if (!empty($ir['developer_id'])) {
-                    $s = $pdo->prepare('SELECT name FROM developers WHERE id = :id');
-                    $s->execute([':id' => $ir['developer_id']]);
-                    $ir['developer_name'] = $s->fetchColumn() ?: null;
-                }
-                if (!empty($ir['lab_id'])) {
-                    $s = $pdo->prepare('SELECT name FROM labs WHERE id = :id');
-                    $s->execute([':id' => $ir['lab_id']]);
-                    $ir['lab_name'] = $s->fetchColumn() ?: null;
-                }
-                if (!empty($ir['film_id'])) {
-                    $s = $pdo->prepare('SELECT brand, name FROM films WHERE id = :id');
-                    $s->execute([':id' => $ir['film_id']]);
-                    $fr = $s->fetch();
-                    if ($fr) { $ir['film_name'] = trim(($fr['brand'] ?? '') . ' ' . ($fr['name'] ?? '')); }
-                }
-            } catch (\Throwable) {}
-        }
+
+        // Enrich images with metadata from related tables
+        \App\Services\ImagesService::enrichWithMetadata($pdo, $imagesRows, 'gallery');
 
         // Build gallery items for the template, preferring public variants
         $images = [];

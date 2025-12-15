@@ -254,10 +254,20 @@ class PhotoCMSAnalytics {
      * Bind lightbox/PhotoSwipe tracking
      */
     bindLightboxTracking() {
-        // Track PhotoSwipe lightbox opens
+        // Deduplication: track last lightbox open timestamp to avoid duplicate events
+        let lastLightboxOpen = 0;
+        const DEDUP_THRESHOLD_MS = 500;
+
+        // Track PhotoSwipe lightbox opens via click
         document.addEventListener('click', (e) => {
             const lightboxTrigger = e.target.closest('[data-pswp-src], .gallery-item a, .pswp-gallery a');
             if (lightboxTrigger) {
+                const now = Date.now();
+                if (now - lastLightboxOpen < DEDUP_THRESHOLD_MS) {
+                    return; // Skip duplicate event
+                }
+                lastLightboxOpen = now;
+
                 const imageId = lightboxTrigger.dataset.imageId ||
                                lightboxTrigger.closest('[data-image-id]')?.dataset.imageId ||
                                this.extractImageIdFromUrl(lightboxTrigger.href);
@@ -275,6 +285,12 @@ class PhotoCMSAnalytics {
 
         // Listen for PhotoSwipe custom events if available
         window.addEventListener('pswp:open', (e) => {
+            const now = Date.now();
+            if (now - lastLightboxOpen < DEDUP_THRESHOLD_MS) {
+                return; // Skip duplicate event
+            }
+            lastLightboxOpen = now;
+
             const detail = e.detail || {};
             this.trackEvent({
                 type: 'lightbox_open',
