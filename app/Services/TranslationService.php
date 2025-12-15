@@ -11,7 +11,7 @@ class TranslationService
     private array $cache = [];
     private bool $loaded = false;
     private string $language = 'en';
-    private ?string $translationsDir = null;
+    private string $translationsDir;
 
     public function __construct(private Database $db)
     {
@@ -23,7 +23,8 @@ class TranslationService
      */
     public function setLanguage(string $code): void
     {
-        $code = preg_replace('/[^a-z0-9_-]/i', '', $code) ?: 'en';
+        // Sanitize and normalize to lowercase for case-sensitive filesystems
+        $code = strtolower(preg_replace('/[^a-z0-9_-]/i', '', $code) ?: 'en');
         if ($this->language !== $code) {
             $this->language = $code;
             $this->loaded = false;
