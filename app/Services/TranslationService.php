@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Support\Database;
+use App\Support\Logger;
 use PDO;
 
 class TranslationService
@@ -268,24 +269,40 @@ class TranslationService
 
         // Fall back to English if language file doesn't exist
         if (!file_exists($filePath)) {
+            Logger::debug('Translation file not found, falling back to English', [
+                'requested' => $this->language,
+                'path' => $filePath
+            ], 'translation');
             $filePath = $this->translationsDir . '/en.json';
         }
 
         if (!file_exists($filePath)) {
+            Logger::warning('No translation file found', [
+                'language' => $this->language,
+                'path' => $filePath
+            ], 'translation');
             return;
         }
 
         $content = @file_get_contents($filePath);
         if (!$content) {
+            Logger::warning('Failed to read translation file', [
+                'path' => $filePath
+            ], 'translation');
             return;
         }
 
         $data = json_decode($content, true);
         if (!is_array($data)) {
+            Logger::warning('Invalid JSON in translation file', [
+                'path' => $filePath,
+                'json_error' => json_last_error_msg()
+            ], 'translation');
             return;
         }
 
         // Flatten nested structure: category.key => value
+        $loadedCount = 0;
         foreach ($data as $context => $translations) {
             if ($context === '_meta' || !is_array($translations)) {
                 continue;
@@ -293,9 +310,15 @@ class TranslationService
             foreach ($translations as $key => $value) {
                 if (is_string($value)) {
                     $this->cache[$key] = $value;
+                    $loadedCount++;
                 }
             }
         }
+
+        Logger::debug('Loaded translations from JSON', [
+            'path' => $filePath,
+            'count' => $loadedCount
+        ], 'translation');
     }
 
     /**
