@@ -103,8 +103,8 @@ class InstallCommand extends Command
         $errors = [];
         
         // Check PHP version
-        if (version_compare(PHP_VERSION, '8.0.0', '<')) {
-            $errors[] = 'PHP 8.0 or higher is required. Current version: ' . PHP_VERSION;
+        if (version_compare(PHP_VERSION, '8.2.0', '<')) {
+            $errors[] = 'PHP 8.2 or higher is required. Current version: ' . PHP_VERSION;
         }
         
         // Check required extensions
