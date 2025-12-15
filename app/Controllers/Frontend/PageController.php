@@ -234,8 +234,11 @@ class PageController extends BaseController
             ]);
         }
 
-        // Password protection with session timeout
-        if (!empty($album['password_hash'])) {
+        // Check if user is admin (admins bypass password/NSFW protection)
+        $isAdmin = !empty($_SESSION['admin_id']);
+
+        // Password protection with session timeout - skip for admins
+        if (!empty($album['password_hash']) && !$isAdmin) {
             $allowed = false;
             if (isset($_SESSION['album_access']) && isset($_SESSION['album_access'][$album['id']])) {
                 $accessTime = $_SESSION['album_access'][$album['id']];
@@ -718,7 +721,11 @@ class PageController extends BaseController
                 $response->getBody()->write('Album not found');
                 return $response->withStatus(404);
             }
-            if (!empty($album['password_hash'])) {
+
+            // Check if user is admin (admins bypass password protection)
+            $isAdmin = !empty($_SESSION['admin_id']);
+
+            if (!empty($album['password_hash']) && !$isAdmin) {
                 $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$album['id']]);
                 if (!$allowed) {
                     $response->getBody()->write('Album locked');
