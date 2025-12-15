@@ -36,7 +36,7 @@
       <!-- Filter Toggle Button -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <button id="toggle-filters" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5" data-gsap="filter-toggle">
+          <button id="toggle-filters" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors duration-150" data-gsap="filter-toggle">
             <i class="fas fa-filter"></i>
             <span class="font-medium">{{ trans('filter.filters') }}</span>
             <i class="fas fa-chevron-down transition-transform duration-300" id="filter-chevron"></i>
@@ -64,7 +64,7 @@
       </div>
       
       <!-- Filters Grid with proper spacing -->
-      <div id="filters-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 opacity-0 max-h-0 overflow-hidden transition-all duration-500" data-gsap="filters-grid">
+      <div id="filters-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 opacity-0 max-h-0 overflow-hidden transition-[opacity,max-height] duration-200" data-gsap="filters-grid">
         
         <!-- Categories Filter -->
         {% if filter_settings.show_categories and filter_options.categories|length > 0 %}
@@ -193,7 +193,7 @@
             {{ trans('filter.search') }}
           </label>
           <div class="relative">
-            <input type="text" id="filter-search" class="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm" placeholder="{{ trans('search.placeholder') }}" value="{{ active_filters.search|default('') }}">
+            <input type="text" id="filter-search" class="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150 text-sm" placeholder="{{ trans('search.placeholder') }}" value="{{ active_filters.search|default('') }}">
             <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
           </div>
         </div>
@@ -229,7 +229,7 @@
   <!-- Main Content -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <!-- Galleries Grid -->
-    <div id="galleries-grid" class="grid gap-8 transition-all duration-500" 
+    <div id="galleries-grid" class="grid gap-8"
          style="grid-template-columns: repeat({{ filter_settings.grid_columns_mobile }}, 1fr); gap: {{ filter_settings.grid_gap == 'small' ? '1rem' : (filter_settings.grid_gap == 'large' ? '2rem' : '1.5rem') }};"
          data-desktop-cols="{{ filter_settings.grid_columns_desktop }}"
          data-tablet-cols="{{ filter_settings.grid_columns_tablet }}"
@@ -237,20 +237,20 @@
          data-gap="{{ filter_settings.grid_gap }}">
       
       {% for album in albums %}
-      <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
+      <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out"
                data-gsap="gallery-card"
                data-album-id="{{ album.id }}"
                data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
                data-album-url="{{ base_path }}/album/{{ album.slug }}"
                onclick="handleGalleryCardClick(event, this)">
-        
+
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
           {% if album.cover_image and (album.cover_image.preview_path or album.cover_image.original_path) %}
             {% set cover_path = album.cover_image.preview_path|default(album.cover_image.original_path) %}
             <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
                  alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
-                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 {% if album.is_nsfw and not is_admin %}nsfw-blur{% endif %}"
+                 class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] {% if album.is_nsfw and not is_admin %}nsfw-blur{% endif %}"
                  loading="lazy">
           {% else %}
             <div class="w-full h-full flex items-center justify-center text-gray-400">
@@ -707,7 +707,7 @@ function generateGalleryCard(album) {
     const albumUrl = window.basePath + '/album/' + slug;
 
     const wrapper = document.createElement('article');
-    wrapper.className = 'gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2';
+    wrapper.className = 'gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out';
     if (isNsfw && hasConfirmedNsfw()) {
         wrapper.classList.add('nsfw-confirmed');
     }
@@ -721,7 +721,7 @@ function generateGalleryCard(album) {
     if (safeSrc) {
         const img = document.createElement('img');
         img.src = safeSrc; img.alt = alt;
-        img.className = 'w-full h-full object-cover transition-transform duration-700 group-hover:scale-110';
+        img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
         if (isNsfw) img.classList.add('nsfw-blur');
         img.loading = 'lazy';
         rel.appendChild(img);
