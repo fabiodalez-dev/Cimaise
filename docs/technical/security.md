@@ -2,7 +2,7 @@
 
 ## Panoramica
 
-Cimaise implementa multiple layer di sicurezza per proteggere da vulnerabilità comuni (OWASP Top 10).
+Cimaise implementa molteplici livelli di sicurezza per proteggere da vulnerabilità comuni (OWASP Top 10).
 
 ---
 

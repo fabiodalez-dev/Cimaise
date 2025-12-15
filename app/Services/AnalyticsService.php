@@ -697,13 +697,14 @@ class AnalyticsService
     public function getTrendComparison(string $startDate, string $endDate): array
     {
         try {
-            // Calculate previous period
+            // Calculate previous period (same length as current)
             $start = new \DateTime($startDate);
             $end = new \DateTime($endDate);
-            $diff = $start->diff($end)->days + 1;
+            $diff = $start->diff($end)->days + 1; // Inclusive day count
 
             $prevEnd = (clone $start)->modify('-1 day');
-            $prevStart = (clone $prevEnd)->modify("-{$diff} days");
+            // Subtract (diff - 1) days from prevEnd to get same period length
+            $prevStart = (clone $prevEnd)->modify('-' . ($diff - 1) . ' days');
 
             // Current period stats
             $stmt = $this->db->prepare('
