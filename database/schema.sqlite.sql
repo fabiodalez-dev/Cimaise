@@ -18,9 +18,13 @@ CREATE TABLE IF NOT EXISTS users (
   last_name TEXT,
   is_active INTEGER DEFAULT 1,
   last_login TEXT,
+  remember_token TEXT,
+  remember_token_expires_at TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT
 );
+
+CREATE INDEX IF NOT EXISTS idx_users_remember_token ON users(remember_token);
 
 CREATE TABLE IF NOT EXISTS categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -148,6 +152,7 @@ CREATE TABLE IF NOT EXISTS albums (
   canonical_url TEXT,
   robots_index INTEGER DEFAULT 1,
   robots_follow INTEGER DEFAULT 1,
+  is_nsfw INTEGER NOT NULL DEFAULT 0,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT,
   FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
@@ -166,6 +171,8 @@ CREATE INDEX IF NOT EXISTS idx_albums_seo_title ON albums(seo_title);
 CREATE INDEX IF NOT EXISTS idx_albums_robots ON albums(robots_index, robots_follow);
 CREATE INDEX IF NOT EXISTS idx_albums_published_date ON albums(is_published, published_at);
 CREATE INDEX IF NOT EXISTS idx_albums_published_shoot ON albums(is_published, shoot_date);
+CREATE INDEX IF NOT EXISTS idx_albums_nsfw ON albums(is_nsfw);
+CREATE INDEX IF NOT EXISTS idx_albums_published_nsfw ON albums(is_published, is_nsfw);
 
 -- ============================================
 -- IMAGES TABLE
@@ -471,12 +478,38 @@ CREATE INDEX IF NOT EXISTS idx_frontend_texts_context ON frontend_texts(context)
 
 CREATE TABLE IF NOT EXISTS plugin_status (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  plugin_name TEXT NOT NULL UNIQUE,
-  is_enabled INTEGER DEFAULT 0,
-  settings TEXT,
+  slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  version TEXT NOT NULL,
+  description TEXT,
+  author TEXT,
+  path TEXT NOT NULL,
+  is_active INTEGER DEFAULT 1,
+  is_installed INTEGER DEFAULT 1,
   installed_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_plugin_status_slug ON plugin_status(slug);
+CREATE INDEX IF NOT EXISTS idx_plugin_status_active ON plugin_status(is_active);
+
+-- ============================================
+-- LOGS TABLE (Structured Logging System)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  level INTEGER NOT NULL,
+  level_name TEXT NOT NULL,
+  category TEXT DEFAULT 'app',
+  message TEXT NOT NULL,
+  context TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_logs_level ON logs(level);
+CREATE INDEX IF NOT EXISTS idx_logs_category ON logs(category);
+CREATE INDEX IF NOT EXISTS idx_logs_created_at ON logs(created_at);
 
 -- ============================================
 -- DEFAULT DATA
