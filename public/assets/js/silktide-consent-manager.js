@@ -127,12 +127,12 @@ class SilktideCookieBanner {
         const currentState = checkbox.checked;
         
         if (cookieType.required) {
-          localStorage.setItem(
+          this.safeLocalStorageSet(
             `silktideCookieChoice_${cookieId}${this.getBannerSuffix()}`,
             'true'
           );
         } else {
-          localStorage.setItem(
+          this.safeLocalStorageSet(
             `silktideCookieChoice_${cookieId}${this.getBannerSuffix()}`,
             currentState.toString()
           );
@@ -150,10 +150,10 @@ class SilktideCookieBanner {
           checkbox.checked = true;
           checkbox.disabled = true;
         } else {
-          const storedValue = localStorage.getItem(
+          const storedValue = this.safeLocalStorageGet(
             `silktideCookieChoice_${cookieId}${this.getBannerSuffix()}`
           );
-          
+
           if (storedValue !== null) {
             checkbox.checked = storedValue === 'true';
           } else {
@@ -165,7 +165,7 @@ class SilktideCookieBanner {
   }
 
   setInitialCookieChoiceMade() {
-    window.localStorage.setItem(`silktideCookieBanner_InitialChoice${this.getBannerSuffix()}`, 1);
+    this.safeLocalStorageSet(`silktideCookieBanner_InitialChoice${this.getBannerSuffix()}`, '1');
   }
 
   // ----------------------------------------------------------------
@@ -183,10 +183,10 @@ class SilktideCookieBanner {
     this.config.cookieTypes.forEach((type) => {
       // Set localStorage and run accept/reject callbacks
       if (type.required === true) {
-        localStorage.setItem(`silktideCookieChoice_${type.id}${this.getBannerSuffix()}`, 'true');
+        this.safeLocalStorageSet(`silktideCookieChoice_${type.id}${this.getBannerSuffix()}`, 'true');
         if (typeof type.onAccept === 'function') { type.onAccept() }
       } else {
-        localStorage.setItem(
+        this.safeLocalStorageSet(
           `silktideCookieChoice_${type.id}${this.getBannerSuffix()}`,
           accepted.toString(),
         );
@@ -235,7 +235,7 @@ class SilktideCookieBanner {
     this.config.cookieTypes.forEach((type) => {
       // Required cookies are always accepted
       if (type.required === true) {
-        localStorage.setItem(`silktideCookieChoice_${type.id}${this.getBannerSuffix()}`, 'true');
+        this.safeLocalStorageSet(`silktideCookieChoice_${type.id}${this.getBannerSuffix()}`, 'true');
         if (typeof type.onAccept === 'function') { type.onAccept(); }
       } else {
         // Find the checkbox for this cookie type
@@ -243,7 +243,7 @@ class SilktideCookieBanner {
         const isChecked = checkbox ? checkbox.checked : false;
 
         // Save the checkbox state
-        localStorage.setItem(
+        this.safeLocalStorageSet(
           `silktideCookieChoice_${type.id}${this.getBannerSuffix()}`,
           isChecked.toString()
         );
@@ -273,7 +273,16 @@ class SilktideCookieBanner {
   getAcceptedCookies() {
     return (this.config.cookieTypes || []).reduce((acc, cookieType) => {
       acc[cookieType.id] =
-        localStorage.getItem(`silktideCookieChoice_${cookieType.id}${this.getBannerSuffix()}`) ===
+        this.safeLocalStorageGet(`silktideCookieChoice_${cookieType.id}${this.getBannerSuffix()}`) ===
+        'true';
+      return acc;
+    }, {});
+  }
+
+  getRejectedCookies() {
+    return (this.config.cookieTypes || []).reduce((acc, cookieType) => {
+      acc[cookieType.id] =
+        this.safeLocalStorageGet(`silktideCookieChoice_${cookieType.id}${this.getBannerSuffix()}`) !==
         'true';
       return acc;
     }, {});
@@ -405,7 +414,7 @@ class SilktideCookieBanner {
   }
 
   hasSetInitialCookieChoices() {
-    return !!localStorage.getItem(`silktideCookieBanner_InitialChoice${this.getBannerSuffix()}`);
+    return !!this.safeLocalStorageGet(`silktideCookieBanner_InitialChoice${this.getBannerSuffix()}`);
   }
 
   createBanner() {
@@ -440,7 +449,7 @@ class SilktideCookieBanner {
       return false;
     }
     return (
-      localStorage.getItem(`silktideCookieBanner_InitialChoice${this.getBannerSuffix()}`) === null
+      this.safeLocalStorageGet(`silktideCookieBanner_InitialChoice${this.getBannerSuffix()}`) === null
     );
   }
 
@@ -812,18 +821,18 @@ class SilktideCookieBanner {
         checkbox.addEventListener('change', (event) => {
           const [, cookieId] = event.target.id.split('cookies-');
           const isAccepted = event.target.checked;
-          const previousValue = localStorage.getItem(
+          const previousValue = this.safeLocalStorageGet(
             `silktideCookieChoice_${cookieId}${this.getBannerSuffix()}`
           ) === 'true';
-          
+
           // Only proceed if the value has actually changed
           if (isAccepted !== previousValue) {
             // Find the corresponding cookie type
             const cookieType = this.config.cookieTypes.find(type => type.id === cookieId);
-            
+
             if (cookieType) {
               // Update localStorage
-              localStorage.setItem(
+              this.safeLocalStorageSet(
                 `silktideCookieChoice_${cookieId}${this.getBannerSuffix()}`,
                 isAccepted.toString()
               );
@@ -939,7 +948,7 @@ class SilktideCookieBanner {
       return false;
     }
     const suffix = cookieBanner.getBannerSuffix();
-    const storedValue = localStorage.getItem(`silktideCookieChoice_${categoryId}${suffix}`);
+    const storedValue = cookieBanner.safeLocalStorageGet(`silktideCookieChoice_${categoryId}${suffix}`);
     return storedValue === 'true';
   }
 
