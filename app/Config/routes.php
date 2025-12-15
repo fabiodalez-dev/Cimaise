@@ -347,16 +347,6 @@ $app->post('/admin/commands/execute', function (Request $request, Response $resp
     return $controller->execute($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
-// Privacy & Cookie settings
-$app->get('/admin/privacy', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\PrivacyController($container['db'], Twig::fromRequest($request));
-    return $controller->index($request, $response);
-})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
-$app->post('/admin/privacy', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\PrivacyController($container['db'], Twig::fromRequest($request));
-    return $controller->save($request, $response);
-})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
-
 // Locations CRUD
 $app->get('/admin/locations', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\LocationsController(new \App\Repositories\LocationRepository($container['db']), Twig::fromRequest($request));
