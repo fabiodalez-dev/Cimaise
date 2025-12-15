@@ -1,12 +1,12 @@
 <?php
 /**
- * Installation script for photoCMS Analytics Pro
+ * Installation script for Cimaise Analytics Pro
  * This script runs when the plugin is installed
  */
 
 declare(strict_types=1);
 
-echo "Installing photoCMS Analytics Pro...\n";
+echo "Installing Cimaise Analytics Pro...\n";
 
 // Le tabelle vengono create automaticamente dalla classe AnalyticsPro
 // al primo utilizzo tramite il metodo ensureTables()
@@ -47,7 +47,7 @@ try {
         }
     }
 
-    echo "✓ photoCMS Analytics Pro installed successfully!\n";
+    echo "✓ Cimaise Analytics Pro installed successfully!\n";
     echo "  - Database tables created\n";
     echo "  - Default funnels configured\n";
     echo "  - Plugin ready to use\n";

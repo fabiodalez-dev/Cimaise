@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: photoCMS Analytics Pro
+ * Plugin Name: Cimaise Analytics Pro
  * Version: 1.0.0
- * Description: Sistema di analytics professionale con tracking avanzato, dashboard interattiva, report personalizzabili, funnel analysis, heatmap, export dati e real-time monitoring per photoCMS
- * Author: photoCMS Team
+ * Description: Sistema di analytics professionale con tracking avanzato, dashboard interattiva, report personalizzabili, funnel analysis, heatmap, export dati e real-time monitoring per Cimaise
+ * Author: Cimaise Team
  */
 
 declare(strict_types=1);
@@ -13,50 +13,50 @@ use App\Support\Database;
 
 // Autoload delle classi del plugin
 spl_autoload_register(function ($class) {
-    if (strpos($class, 'PhotoCMSAnalyticsPro\\') === 0) {
-        $file = __DIR__ . '/src/' . str_replace('PhotoCMSAnalyticsPro\\', '', $class) . '.php';
+    if (strpos($class, 'CimaiseAnalyticsPro\\') === 0) {
+        $file = __DIR__ . '/src/' . str_replace('CimaiseAnalyticsPro\\', '', $class) . '.php';
         if (file_exists($file)) {
             require_once $file;
         }
     }
 });
 
-class PhotoCMSAnalyticsProPlugin
+class CimaiseAnalyticsProPlugin
 {
-    private ?\PhotoCMSAnalyticsPro\AnalyticsPro $analytics = null;
+    private ?\CimaiseAnalyticsPro\AnalyticsPro $analytics = null;
     private ?Database $db = null;
 
     public function __construct()
     {
         // Hook principale: inizializzazione app
-        Hooks::addAction('photocms_init', [$this, 'initialize'], 10, 'photocms-analytics-pro');
+        Hooks::addAction('cimaise_init', [$this, 'initialize'], 10, 'cimaise-analytics-pro');
 
         // Tracking hooks
-        Hooks::addAction('user_login_success', [$this, 'trackLogin'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('user_logout', [$this, 'trackLogout'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('album_created', [$this, 'trackAlbumCreated'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('album_updated', [$this, 'trackAlbumUpdated'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('album_deleted', [$this, 'trackAlbumDeleted'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('image_uploaded', [$this, 'trackImageUpload'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('image_deleted', [$this, 'trackImageDeleted'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('category_created', [$this, 'trackCategoryCreated'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('tag_created', [$this, 'trackTagCreated'], 10, 'photocms-analytics-pro');
+        Hooks::addAction('user_login_success', [$this, 'trackLogin'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('user_logout', [$this, 'trackLogout'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('album_created', [$this, 'trackAlbumCreated'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('album_updated', [$this, 'trackAlbumUpdated'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('album_deleted', [$this, 'trackAlbumDeleted'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('image_uploaded', [$this, 'trackImageUpload'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('image_deleted', [$this, 'trackImageDeleted'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('category_created', [$this, 'trackCategoryCreated'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('tag_created', [$this, 'trackTagCreated'], 10, 'cimaise-analytics-pro');
 
         // Frontend tracking
-        Hooks::addAction('frontend_page_view', [$this, 'trackPageView'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('frontend_album_view', [$this, 'trackAlbumView'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('image_lightbox_open', [$this, 'trackLightboxOpen'], 10, 'photocms-analytics-pro');
-        Hooks::addAction('image_download', [$this, 'trackImageDownload'], 10, 'photocms-analytics-pro');
+        Hooks::addAction('frontend_page_view', [$this, 'trackPageView'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('frontend_album_view', [$this, 'trackAlbumView'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('image_lightbox_open', [$this, 'trackLightboxOpen'], 10, 'cimaise-analytics-pro');
+        Hooks::addAction('image_download', [$this, 'trackImageDownload'], 10, 'cimaise-analytics-pro');
 
         // Search tracking
-        Hooks::addAction('search_performed', [$this, 'trackSearch'], 10, 'photocms-analytics-pro');
+        Hooks::addAction('search_performed', [$this, 'trackSearch'], 10, 'cimaise-analytics-pro');
 
         // Filter: Aggiunge dati extra alle pageviews
-        Hooks::addFilter('analytics_pageview_data', [$this, 'enhancePageviewData'], 10, 'photocms-analytics-pro');
+        Hooks::addFilter('analytics_pageview_data', [$this, 'enhancePageviewData'], 10, 'cimaise-analytics-pro');
 
         // Admin UI hooks
-        Hooks::addFilter('admin_menu_items', [$this, 'addAdminMenuItem'], 20, 'photocms-analytics-pro');
-        Hooks::addFilter('admin_dashboard_widgets', [$this, 'addDashboardWidgets'], 10, 'photocms-analytics-pro');
+        Hooks::addFilter('admin_menu_items', [$this, 'addAdminMenuItem'], 20, 'cimaise-analytics-pro');
+        Hooks::addFilter('admin_dashboard_widgets', [$this, 'addDashboardWidgets'], 10, 'cimaise-analytics-pro');
     }
 
     /**
@@ -65,7 +65,7 @@ class PhotoCMSAnalyticsProPlugin
     public function initialize(Database $db): void
     {
         $this->db = $db;
-        $this->analytics = new \PhotoCMSAnalyticsPro\AnalyticsPro($db);
+        $this->analytics = new \CimaiseAnalyticsPro\AnalyticsPro($db);
     }
 
     /**
@@ -489,4 +489,4 @@ class PhotoCMSAnalyticsProPlugin
 }
 
 // Initialize plugin
-new PhotoCMSAnalyticsProPlugin();
+new CimaiseAnalyticsProPlugin();

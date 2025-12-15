@@ -38,7 +38,7 @@ if ($connection === 'sqlite') {
     $db = new Database(
         host: (string)envv('DB_HOST', '127.0.0.1'),
         port: (int)envv('DB_PORT', 3306),
-        database: (string)envv('DB_DATABASE', 'photocms'),
+        database: (string)envv('DB_DATABASE', 'cimaise'),
         username: (string)envv('DB_USERNAME', 'root'),
         password: (string)envv('DB_PASSWORD', ''),
         charset: (string)envv('DB_CHARSET', 'utf8mb4'),

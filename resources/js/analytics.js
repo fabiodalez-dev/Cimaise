@@ -1,8 +1,8 @@
 /**
- * photoCMS Analytics Tracker
+ * Cimaise Analytics Tracker
  * Lightweight, cookieless analytics tracking
  */
-class PhotoCMSAnalytics {
+class CimaiseAnalytics {
     constructor(options = {}) {
         this.options = {
             endpoint: '/api/analytics/track',
@@ -43,21 +43,21 @@ class PhotoCMSAnalytics {
      */
     generateSessionId() {
         // Use sessionStorage for session persistence across page loads
-        let sessionId = sessionStorage.getItem('photocms_session_id');
+        let sessionId = sessionStorage.getItem('cimaise_session_id');
         
         if (!sessionId) {
             sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('photocms_session_id', sessionId);
-            sessionStorage.setItem('photocms_session_start', Date.now().toString());
+            sessionStorage.setItem('cimaise_session_id', sessionId);
+            sessionStorage.setItem('cimaise_session_start', Date.now().toString());
         }
 
         // Check session timeout
-        const sessionStart = parseInt(sessionStorage.getItem('photocms_session_start') || '0');
+        const sessionStart = parseInt(sessionStorage.getItem('cimaise_session_start') || '0');
         if (Date.now() - sessionStart > this.options.sessionTimeout) {
             // Session expired, create new one
             sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('photocms_session_id', sessionId);
-            sessionStorage.setItem('photocms_session_start', Date.now().toString());
+            sessionStorage.setItem('cimaise_session_id', sessionId);
+            sessionStorage.setItem('cimaise_session_start', Date.now().toString());
         }
 
         return sessionId;
@@ -81,7 +81,7 @@ class PhotoCMSAnalytics {
             viewport_height: window.innerHeight,
             referrer: document.referrer,
             user_agent: navigator.userAgent,
-            landing_page: sessionStorage.getItem('photocms_landing_page') || url.pathname,
+            landing_page: sessionStorage.getItem('cimaise_landing_page') || url.pathname,
             is_404: pageType === '404' || document.title.includes('404') || document.title.includes('Not Found')
         };
     }
@@ -150,8 +150,8 @@ class PhotoCMSAnalytics {
      */
     async trackPageView() {
         // Store landing page for new sessions
-        if (!sessionStorage.getItem('photocms_landing_page')) {
-            sessionStorage.setItem('photocms_landing_page', window.location.pathname);
+        if (!sessionStorage.getItem('cimaise_landing_page')) {
+            sessionStorage.setItem('cimaise_landing_page', window.location.pathname);
         }
 
         const data = {
@@ -434,7 +434,7 @@ class PhotoCMSAnalytics {
             // For 404 pages, we don't want to show errors to users
             if (data.page_type !== '404' && !data.is_404) {
                 // For non-404 errors, log them but use console.debug to reduce visibility
-                console.debug('[PhotoCMS Analytics] Network error sending data:', error.message);
+                console.debug('[Cimaise Analytics] Network error sending data:', error.message);
                 
                 // Retry logic for network errors
                 if (retryCount < 2) {
@@ -445,7 +445,7 @@ class PhotoCMSAnalytics {
             } else {
                 // For 404 pages, use even less visibility
                 if (this.options.debug) {
-                    console.debug('[PhotoCMS Analytics] 404 page tracked (network error)', error.message);
+                    console.debug('[Cimaise Analytics] 404 page tracked (network error)', error.message);
                 }
             }
         }
@@ -458,9 +458,9 @@ class PhotoCMSAnalytics {
         if (this.options.debug) {
             // For 404 tracking, use console.debug instead of console.log to reduce visibility
             if (message.includes('404')) {
-                console.debug(`[PhotoCMS Analytics] ${message}`, data);
+                console.debug(`[Cimaise Analytics] ${message}`, data);
             } else {
-                console.log(`[PhotoCMS Analytics] ${message}`, data);
+                console.log(`[Cimaise Analytics] ${message}`, data);
             }
         }
     }
@@ -489,13 +489,13 @@ class PhotoCMSAnalytics {
 // Auto-initialize if enabled
 window.addEventListener('DOMContentLoaded', () => {
     // Check if analytics is enabled (can be set by server)
-    if (window.photoCMSAnalyticsEnabled !== false) {
+    if (window.cimaiseAnalyticsEnabled !== false) {
         try {
-            window.photoCMSAnalytics = new PhotoCMSAnalytics(window.photoCMSAnalyticsConfig || {});
+            window.cimaiseAnalytics = new CimaiseAnalytics(window.cimaiseAnalyticsConfig || {});
         } catch (error) {
             // Silently fail if analytics initialization fails
-            if (window.photoCMSAnalyticsConfig && window.photoCMSAnalyticsConfig.debug) {
-                console.debug('[PhotoCMS Analytics] Failed to initialize:', error.message);
+            if (window.cimaiseAnalyticsConfig && window.cimaiseAnalyticsConfig.debug) {
+                console.debug('[Cimaise Analytics] Failed to initialize:', error.message);
             }
         }
     }

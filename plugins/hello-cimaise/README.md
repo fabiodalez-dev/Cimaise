@@ -1,6 +1,6 @@
-# Hello photoCMS Plugin
+# Hello Cimaise Plugin
 
-Simple example plugin demonstrating the photoCMS hooks system.
+Simple example plugin demonstrating the Cimaise hooks system.
 
 ## Features
 
@@ -25,7 +25,7 @@ After activation:
 
 ## Hooks Used
 
-- `photocms_init` - Application initialization
+- `cimaise_init` - Application initialization
 - `admin_menu_items` - Add admin menu
 - `settings_tabs` - Add settings tab
 - `album_after_create` - Log album creation
@@ -42,7 +42,7 @@ After activation:
 
 **Welcome Message**
 - Type: Text
-- Default: `"Powered by Hello photoCMS Plugin!"`
+- Default: `"Powered by Hello Cimaise Plugin!"`
 - Description: Custom footer message
 
 **Log Level**
@@ -68,4 +68,4 @@ MIT
 
 ## Author
 
-photoCMS Team
+Cimaise Team

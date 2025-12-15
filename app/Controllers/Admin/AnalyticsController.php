@@ -16,12 +16,21 @@ class AnalyticsController
     private PDO $db;
     private Twig $twig;
     private AnalyticsService $analytics;
+    private string $basePath;
 
     public function __construct(Database $database, Twig $twig)
     {
         $this->db = $database->pdo();
         $this->twig = $twig;
         $this->analytics = new AnalyticsService($this->db);
+
+        // Calculate base path for redirects
+        $basePath = dirname($_SERVER['SCRIPT_NAME']);
+        $basePath = $basePath === '/' ? '' : $basePath;
+        if (str_ends_with($basePath, '/public')) {
+            $basePath = substr($basePath, 0, -7);
+        }
+        $this->basePath = $basePath;
     }
 
     /**
@@ -269,6 +278,11 @@ class AnalyticsController
      */
     public function apiPeakHours(Request $request, Response $response): Response
     {
+        if (!$this->analytics->isEnabled()) {
+            $response->getBody()->write(json_encode(['error' => 'Analytics disabled']));
+            return $response->withStatus(503)->withHeader('Content-Type', 'application/json');
+        }
+
         try {
             [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
             $data = $this->analytics->getPeakHoursData($startDate, $endDate);
@@ -286,6 +300,11 @@ class AnalyticsController
      */
     public function apiTrends(Request $request, Response $response): Response
     {
+        if (!$this->analytics->isEnabled()) {
+            $response->getBody()->write(json_encode(['error' => 'Analytics disabled']));
+            return $response->withStatus(503)->withHeader('Content-Type', 'application/json');
+        }
+
         try {
             [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
             $data = $this->analytics->getTrendComparison($startDate, $endDate);
@@ -303,6 +322,11 @@ class AnalyticsController
      */
     public function apiEngagement(Request $request, Response $response): Response
     {
+        if (!$this->analytics->isEnabled()) {
+            $response->getBody()->write(json_encode(['error' => 'Analytics disabled']));
+            return $response->withStatus(503)->withHeader('Content-Type', 'application/json');
+        }
+
         try {
             [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
             $data = $this->analytics->getEngagementStats($startDate, $endDate);
@@ -320,6 +344,11 @@ class AnalyticsController
      */
     public function api404Stats(Request $request, Response $response): Response
     {
+        if (!$this->analytics->isEnabled()) {
+            $response->getBody()->write(json_encode(['error' => 'Analytics disabled']));
+            return $response->withStatus(503)->withHeader('Content-Type', 'application/json');
+        }
+
         try {
             [$startDate, $endDate] = $this->validateDateRange($request->getQueryParams());
             $data = $this->analytics->get404Stats($startDate, $endDate);
@@ -345,7 +374,7 @@ class AnalyticsController
             $minus1h   = $isSqlite ? 'datetime("now", "-1 hour")'     : 'DATE_SUB(NOW(), INTERVAL 1 HOUR)';
             // Get current visitors (last 5 minutes)
             $stmt = $this->db->prepare('
-                SELECT 
+                SELECT
                     COUNT(DISTINCT s.session_id) as current_visitors,
                     COUNT(p.id) as pageviews_5min,
                     s.country_code,
@@ -354,8 +383,8 @@ class AnalyticsController
                 FROM analytics_sessions s
                 LEFT JOIN analytics_pageviews p ON s.session_id = p.session_id
                 WHERE s.last_activity >= ' . $minus5min . '
-                GROUP BY s.country_code, p.page_url
-                ORDER BY s.last_activity DESC
+                GROUP BY s.country_code, p.page_url, p.page_title
+                ORDER BY current_visitors DESC
                 LIMIT 10
             ');
             $stmt->execute();
@@ -366,7 +395,7 @@ class AnalyticsController
                 SELECT page_url, page_title, COUNT(*) as views
                 FROM analytics_pageviews
                 WHERE viewed_at >= ' . $minus1h . '
-                GROUP BY page_url
+                GROUP BY page_url, page_title
                 ORDER BY views DESC
                 LIMIT 5
             ');

@@ -1,8 +1,8 @@
-# Architettura e Flusso - photoCMS
+# Architettura e Flusso - Cimaise
 
 ## Panoramica del Progetto
 
-**photoCMS** è un sistema di gestione di contenuti (CMS) specializzato per portfolio fotografici professionali. È costruito seguendo i principi di separazione delle responsabilità, sicurezza e performance.
+**Cimaise** è un sistema di gestione di contenuti (CMS) specializzato per portfolio fotografici professionali. È costruito seguendo i principi di separazione delle responsabilità, sicurezza e performance.
 
 ### Stack Tecnologico
 
@@ -36,7 +36,7 @@
 ## Struttura del Progetto
 
 ```
-photoCMS/
+Cimaise/
 ├── app/                          # Codice applicativo PHP
 │   ├── Config/                   # Configurazione
 │   │   ├── bootstrap.php         # Inizializzazione (DB, env, container)
@@ -385,7 +385,7 @@ I template Twig generano l'HTML finale:
 
 ### MVC (Model-View-Controller)
 
-Pur non usando un ORM formale, photoCMS segue il pattern MVC:
+Pur non usando un ORM formale, Cimaise segue il pattern MVC:
 
 - **Model**: Database + Services/Repositories (business logic)
 - **View**: Template Twig

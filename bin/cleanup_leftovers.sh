@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# photoCMS cleanup utility — removes leftover/test/backup files or resets install.
+# Cimaise cleanup utility — removes leftover/test/backup files or resets install.
 #
 # Usage:
 #   bin/cleanup_leftovers.sh                 # dry-run (shows what would be removed)

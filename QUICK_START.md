@@ -1,4 +1,4 @@
-# Quick Start - photoCMS
+# Quick Start - Cimaise
 
 Avvia il tuo CMS fotografico in 5 minuti! ⚡
 
@@ -8,11 +8,11 @@ Avvia il tuo CMS fotografico in 5 minuti! ⚡
 
 ```bash
 # Avvia MySQL con Docker
-docker run --name photocms-mysql \
+docker run --name cimaise-mysql \
   -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=photocms \
-  -e MYSQL_USER=photocms \
-  -e MYSQL_PASSWORD=photocms123 \
+  -e MYSQL_DATABASE=cimaise \
+  -e MYSQL_USER=cimaise \
+  -e MYSQL_PASSWORD=cimaise123 \
   -p 3306:3306 -d mysql:8
 
 # Aspetta che il container si avvii (30 secondi circa)
@@ -66,9 +66,9 @@ Vai su **Admin → Commands** per eseguire tramite interfaccia web:
 ```env
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_NAME=photocms
-DB_USER=photocms
-DB_PASS=photocms123
+DB_NAME=cimaise
+DB_USER=cimaise
+DB_PASS=cimaise123
 ```
 
 ## Cosa Trovi Dopo l'Init
