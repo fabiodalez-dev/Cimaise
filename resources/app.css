@@ -79,13 +79,9 @@
     @apply flex-1 min-w-0 flex flex-col;
   }
   
-  /* Gallery grid animations - elegant minimal transitions */
+  /* Gallery grid animations - smooth elegant transitions */
   .gallery-card {
-    @apply transform transition-transform duration-200 ease-out;
-  }
-
-  .gallery-card:hover {
-    @apply -translate-y-1;
+    @apply transition-shadow duration-300 ease-out;
   }
   
   /* Loading animations */
