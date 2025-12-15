@@ -126,7 +126,21 @@
     "cookie.accept": "Accetta Selezionati",
     "cookie.reject": "Rifiuta Tutti",
     "cookie.bar_text": "Utilizziamo i cookie per migliorare la tua esperienza.",
-    "cookie.manage": "Gestisci preferenze cookie"
+    "cookie.manage": "Gestisci preferenze cookie",
+    "cookie.banner_description": "Questo sito utilizza i cookie per migliorare la tua esperienza di navigazione.",
+    "cookie.accept_all": "Accetta tutti",
+    "cookie.reject_non_essential": "Rifiuta non essenziali",
+    "cookie.preferences": "Preferenze",
+    "cookie.save_selected": "Salva selezionati",
+    "cookie.preferences_title": "Preferenze Cookie",
+    "cookie.preferences_description": "Gestisci le tue preferenze sui cookie. I cookie essenziali sono necessari per il funzionamento del sito.",
+    "cookie.essential_name": "Cookie Essenziali",
+    "cookie.essential_description": "Necessari per il funzionamento del sito. Non possono essere disabilitati.",
+    "cookie.analytics_name": "Cookie Analitici",
+    "cookie.analytics_description": "Ci aiutano a capire come utilizzi il sito per migliorare la tua esperienza.",
+    "cookie.marketing_name": "Cookie di Marketing",
+    "cookie.marketing_description": "Utilizzati per mostrare annunci pertinenti ai tuoi interessi.",
+    "cookie.privacy_statement_label": "Maggiori informazioni sui cookie"
   },
   "lightbox": {
     "lightbox.close": "Chiudi",
@@ -228,22 +242,6 @@
   },
   "image": {
     "image.download": "Scarica"
-  },
-  "cookie": {
-    "cookie.banner_description": "Questo sito utilizza i cookie per migliorare la tua esperienza di navigazione.",
-    "cookie.accept_all": "Accetta tutti",
-    "cookie.reject_non_essential": "Rifiuta non essenziali",
-    "cookie.preferences": "Preferenze",
-    "cookie.save_selected": "Salva selezionati",
-    "cookie.preferences_title": "Preferenze Cookie",
-    "cookie.preferences_description": "Gestisci le tue preferenze sui cookie. I cookie essenziali sono necessari per il funzionamento del sito.",
-    "cookie.essential_name": "Cookie Essenziali",
-    "cookie.essential_description": "Necessari per il funzionamento del sito. Non possono essere disabilitati.",
-    "cookie.analytics_name": "Cookie Analitici",
-    "cookie.analytics_description": "Ci aiutano a capire come utilizzi il sito per migliorare la tua esperienza.",
-    "cookie.marketing_name": "Cookie di Marketing",
-    "cookie.marketing_description": "Utilizzati per mostrare annunci pertinenti ai tuoi interessi.",
-    "cookie.privacy_statement_label": "Maggiori informazioni sui cookie"
   },
   "admin": {
     "admin.texts.title": "Traduzioni",
