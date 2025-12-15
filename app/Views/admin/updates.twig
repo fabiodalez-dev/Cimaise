@@ -201,7 +201,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200" id="backups-tbody">
                   {% for backup in backups %}
-                  <tr id="backup-row-{{ backup.name }}">
+                  <tr data-backup-name="{{ backup.name|e('html_attr') }}">
                     <td class="px-4 py-3 text-sm font-mono text-gray-900">{{ backup.name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-500">{{ backup.date }}</td>
                     <td class="px-4 py-3 text-sm text-gray-500">{{ (backup.size / 1024)|round(2) }} KB</td>
@@ -511,7 +511,7 @@ function deleteBackup(backupName) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const row = document.getElementById('backup-row-' + backupName);
+            const row = document.querySelector('[data-backup-name="' + CSS.escape(backupName) + '"]');
             if (row) {
                 row.remove();
             }
