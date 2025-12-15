@@ -277,7 +277,7 @@ build_frontend() {
     log_info "Building frontend assets..."
 
     log_info "Installing NPM dependencies..."
-    npm ci --silent 2>/dev/null || npm install --silent
+    npm ci --silent || npm install --silent
 
     log_info "Running npm build..."
     if npm run build; then
@@ -313,8 +313,10 @@ create_release_package() {
         # Legacy: use .distignore (may have issues with negations)
         rsync -a --exclude-from=.distignore . "$package_dir/"
     else
-        log_warning "Copying ALL files (no filter file found)"
-        rsync -a . "$package_dir/"
+        log_error "No filter file found (.rsync-filter or .distignore required)"
+        log_error "Creating a release without filtering could include sensitive files"
+        rm -rf "$temp_dir"
+        exit 1
     fi
 
     # Verify package contents (no forbidden files, all required files present)
