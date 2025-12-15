@@ -189,5 +189,18 @@
     "installer.date_format_eu": "European",
     "installer.english": "English",
     "installer.italian": "Italiano"
+  },
+  "settings": {
+    "settings.date_format": "Date Format",
+    "settings.date_format_iso": "2025-01-15 (ISO)",
+    "settings.date_format_european": "15-01-2025 (European)",
+    "settings.date_format_help": "Format used for displaying dates throughout the site",
+    "settings.site_language": "Site Language",
+    "settings.language_en": "English",
+    "settings.language_it": "Italiano",
+    "settings.site_language_help": "Language used for frontend UI elements"
+  },
+  "image": {
+    "image.download": "Download"
   }
 }
