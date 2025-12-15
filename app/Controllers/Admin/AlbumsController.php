@@ -446,6 +446,13 @@ class AlbumsController extends BaseController
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);
+
+        // Get old album data to detect NSFW changes
+        $pdo = $this->db->pdo();
+        $oldAlbum = $pdo->prepare('SELECT is_nsfw FROM albums WHERE id = ?');
+        $oldAlbum->execute([$id]);
+        $oldNsfw = (int)($oldAlbum->fetchColumn() ?: 0);
+
         $d = (array)$request->getParsedBody();
         $title = trim((string)($d['title'] ?? ''));
         $slug = trim((string)($d['slug'] ?? ''));
@@ -628,7 +635,27 @@ class AlbumsController extends BaseController
             } catch (\Throwable $e) {
                 // Equipment tables might not exist yet, continue without error
             }
-            
+
+            // Handle NSFW blur generation when flag changes
+            if ($is_nsfw !== $oldNsfw) {
+                try {
+                    $uploadService = new \App\Services\UploadService($this->db);
+                    if ($is_nsfw === 1) {
+                        // Album became NSFW - generate blurred variants
+                        $uploadService->generateBlurredVariantsForAlbum($id);
+                    } else {
+                        // Album is no longer NSFW - optionally delete blurred variants
+                        $uploadService->deleteBlurredVariantsForAlbum($id);
+                    }
+                } catch (\Throwable $blurError) {
+                    // Log but don't fail the update
+                    \App\Support\Logger::warning('Failed to process NSFW blur variants', [
+                        'album_id' => $id,
+                        'error' => $blurError->getMessage()
+                    ], 'admin');
+                }
+            }
+
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album updated'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];

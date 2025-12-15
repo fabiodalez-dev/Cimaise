@@ -1,7 +1,17 @@
-<article class="album-card group cursor-pointer" data-album-id="{{ album.id }}">
+<article class="album-card group cursor-pointer" data-album-id="{{ album.id }}"{% if album.is_nsfw and not is_admin %} data-nsfw="1"{% endif %}>
   <a href="{{ base_path }}/album/{{ album.slug }}" class="block">
     <div class="aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm relative">
       {% if album.cover %}
+        {# Find blur variant if album is NSFW #}
+        {% set blur_path = null %}
+        {% if album.is_nsfw and not is_admin %}
+          {% for variant in album.cover.variants %}
+            {% if variant.variant == 'blur' %}
+              {% set blur_path = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+
         <picture>
           {% set variants_avif = [] %}
           {% set variants_webp = [] %}
@@ -16,7 +26,7 @@
               {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
             {% endif %}
           {% endfor %}
-          
+
           {# Sizes ottimizzate per album cards grid:
              - Desktop (1280px+): 3-4 colonne = 30vw
              - Laptop (1024px+): 3 colonne = 32vw
@@ -29,15 +39,29 @@
           {% if variants_webp %}
             <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1280px) 28vw, (min-width: 1024px) 30vw, (min-width: 768px) 46vw, (min-width: 640px) 95vw, 100vw">
           {% endif %}
-          
+
           {% set card_img_url = album.cover.variants[0].path ?? album.cover.original_path %}
-          <img src="{% if card_img_url starts with '/' %}{{ base_path }}{{ card_img_url }}{% else %}{{ card_img_url }}{% endif %}"
+          {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
+
+          {# For NSFW albums: show blurred image initially, store original in data-src #}
+          {% if album.is_nsfw and not is_admin and blur_path %}
+          <img src="{{ blur_path }}"
+               data-src="{{ original_url }}"
                alt="{{ album.cover.alt_text|e }}"
                width="{{ album.cover.width }}"
                height="{{ album.cover.height }}"
                loading="lazy"
                decoding="async"
-               class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105 {% if album.is_nsfw and not is_admin %}nsfw-blur{% endif %}">
+               class="nsfw-card-image w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+          {% else %}
+          <img src="{{ original_url }}"
+               alt="{{ album.cover.alt_text|e }}"
+               width="{{ album.cover.width }}"
+               height="{{ album.cover.height }}"
+               loading="lazy"
+               decoding="async"
+               class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+          {% endif %}
         </picture>
 
         {# NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through #}

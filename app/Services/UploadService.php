@@ -476,4 +476,231 @@ class UploadService
         }
         return filter_var((string)$raw, FILTER_VALIDATE_BOOLEAN);
     }
+
+    /**
+     * Generate a heavily blurred variant of an image for NSFW protection
+     * This creates a server-side blur that cannot be bypassed with CSS tricks
+     */
+    public function generateBlurredVariant(int $imageId, bool $force = false): ?string
+    {
+        $pdo = $this->db->pdo();
+
+        $stmt = $pdo->prepare('SELECT * FROM images WHERE id = ?');
+        $stmt->execute([$imageId]);
+        $image = $stmt->fetch();
+
+        if (!$image) {
+            return null;
+        }
+
+        // Find source file - prefer sm variant, fallback to original
+        $mediaDir = dirname(__DIR__, 2) . '/public/media';
+        $smPath = $mediaDir . "/{$imageId}_sm.jpg";
+
+        $sourcePath = null;
+        if (is_file($smPath)) {
+            $sourcePath = $smPath;
+        } else {
+            // Try to find original
+            $dbPath = $image['original_path'];
+            $possiblePaths = [
+                dirname(__DIR__, 2) . $dbPath,
+                dirname(__DIR__, 2) . '/public' . $dbPath,
+                dirname(__DIR__, 2) . '/storage/originals/' . basename($dbPath),
+            ];
+            foreach ($possiblePaths as $path) {
+                if (is_file($path)) {
+                    $sourcePath = $path;
+                    break;
+                }
+            }
+        }
+
+        if (!$sourcePath) {
+            return null;
+        }
+
+        $destPath = $mediaDir . "/{$imageId}_blur.jpg";
+        $destRelUrl = "/media/{$imageId}_blur.jpg";
+
+        // Skip if exists and not forcing
+        if (is_file($destPath) && !$force) {
+            return $destRelUrl;
+        }
+
+        ImagesService::ensureDir($mediaDir);
+
+        // Generate blurred image
+        $ok = false;
+        if (class_exists(\Imagick::class)) {
+            $ok = $this->generateBlurWithImagick($sourcePath, $destPath);
+        } else {
+            $ok = $this->generateBlurWithGd($sourcePath, $destPath);
+        }
+
+        if ($ok && is_file($destPath)) {
+            [$w, $h] = getimagesize($destPath) ?: [0, 0];
+            $size = (int)filesize($destPath);
+
+            // Store as blur variant
+            $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
+                ->execute([$imageId, 'blur', 'jpg', $destRelUrl, $w, $h, $size]);
+
+            return $destRelUrl;
+        }
+
+        return null;
+    }
+
+    /**
+     * Generate blur using ImageMagick (high quality)
+     */
+    private function generateBlurWithImagick(string $src, string $dest): bool
+    {
+        try {
+            $im = new \Imagick($src);
+
+            // Resize to small size first for performance
+            $im->thumbnailImage(400, 0);
+
+            // Apply heavy Gaussian blur (radius=0 means auto, sigma=30 is very blurry)
+            $im->gaussianBlurImage(0, 30);
+
+            // Reduce quality and colors to make it harder to reverse
+            $im->setImageCompressionQuality(60);
+            $im->posterizeImage(64, \Imagick::DITHERMETHOD_NO);
+
+            // Apply slight pixelation for extra obscuring
+            $origW = $im->getImageWidth();
+            $origH = $im->getImageHeight();
+            $im->scaleImage(40, 0);
+            $im->scaleImage($origW, $origH);
+
+            // Final blur pass
+            $im->gaussianBlurImage(0, 15);
+
+            $im->setImageFormat('jpeg');
+            $ok = $im->writeImage($dest);
+            $im->clear();
+
+            return (bool)$ok;
+        } catch (\Throwable $e) {
+            Logger::warning('UploadService: Imagick blur failed', ['error' => $e->getMessage()], 'upload');
+            return false;
+        }
+    }
+
+    /**
+     * Generate blur using GD (fallback)
+     */
+    private function generateBlurWithGd(string $src, string $dest): bool
+    {
+        $info = @getimagesize($src);
+        if (!$info) {
+            return false;
+        }
+
+        [$w, $h] = $info;
+        $srcImg = match ($info['mime'] ?? '') {
+            'image/jpeg' => @imagecreatefromjpeg($src),
+            'image/png' => @imagecreatefrompng($src),
+            'image/webp' => @imagecreatefromwebp($src),
+            default => null,
+        };
+
+        if (!$srcImg) {
+            return false;
+        }
+
+        // Resize to small for processing
+        $smallW = min(400, $w);
+        $smallH = (int)round($smallW * ($h / $w));
+        $small = imagecreatetruecolor($smallW, $smallH);
+        imagecopyresampled($small, $srcImg, 0, 0, 0, 0, $smallW, $smallH, $w, $h);
+        imagedestroy($srcImg);
+
+        // Apply pixelation by scaling down and up
+        $pixelSize = 8;
+        $pixelW = (int)ceil($smallW / $pixelSize);
+        $pixelH = (int)ceil($smallH / $pixelSize);
+
+        $pixelated = imagecreatetruecolor($pixelW, $pixelH);
+        imagecopyresampled($pixelated, $small, 0, 0, 0, 0, $pixelW, $pixelH, $smallW, $smallH);
+
+        $blurred = imagecreatetruecolor($smallW, $smallH);
+        imagecopyresampled($blurred, $pixelated, 0, 0, 0, 0, $smallW, $smallH, $pixelW, $pixelH);
+
+        imagedestroy($small);
+        imagedestroy($pixelated);
+
+        // Apply multiple Gaussian blur passes
+        for ($i = 0; $i < 20; $i++) {
+            imagefilter($blurred, IMG_FILTER_GAUSSIAN_BLUR);
+        }
+
+        // Reduce colors
+        imagefilter($blurred, IMG_FILTER_SMOOTH, 10);
+
+        $ok = imagejpeg($blurred, $dest, 60);
+        imagedestroy($blurred);
+
+        return (bool)$ok;
+    }
+
+    /**
+     * Generate blurred variants for all images in an album
+     */
+    public function generateBlurredVariantsForAlbum(int $albumId, bool $force = false): array
+    {
+        $pdo = $this->db->pdo();
+
+        $stmt = $pdo->prepare('SELECT id FROM images WHERE album_id = ?');
+        $stmt->execute([$albumId]);
+        $images = $stmt->fetchAll();
+
+        $stats = ['generated' => 0, 'failed' => 0, 'skipped' => 0];
+
+        foreach ($images as $image) {
+            $blurPath = $this->generateBlurredVariant((int)$image['id'], $force);
+            if ($blurPath !== null) {
+                if (!$force && str_contains($blurPath, '_blur')) {
+                    $stats['generated']++;
+                } else {
+                    $stats['skipped']++;
+                }
+            } else {
+                $stats['failed']++;
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Delete blurred variants for all images in an album (when removing NSFW flag)
+     */
+    public function deleteBlurredVariantsForAlbum(int $albumId): int
+    {
+        $pdo = $this->db->pdo();
+        $mediaDir = dirname(__DIR__, 2) . '/public/media';
+
+        $stmt = $pdo->prepare('SELECT id FROM images WHERE album_id = ?');
+        $stmt->execute([$albumId]);
+        $images = $stmt->fetchAll();
+
+        $deleted = 0;
+        foreach ($images as $image) {
+            $blurPath = $mediaDir . "/{$image['id']}_blur.jpg";
+            if (is_file($blurPath)) {
+                @unlink($blurPath);
+            }
+
+            // Remove from DB
+            $pdo->prepare('DELETE FROM image_variants WHERE image_id = ? AND variant = ?')
+                ->execute([$image['id'], 'blur']);
+            $deleted++;
+        }
+
+        return $deleted;
+    }
 }
