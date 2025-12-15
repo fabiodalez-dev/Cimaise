@@ -767,12 +767,20 @@ class Updater
             $tables = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")->fetchAll(PDO::FETCH_COLUMN);
 
             foreach ($tables as $table) {
-                // Get CREATE TABLE statement
-                $createStmt = $pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='{$table}'")->fetchColumn();
+                // Validate table name (alphanumeric and underscore only)
+                if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
+                    $this->debugLog('WARNING', 'Skipping table with invalid name', ['table' => $table]);
+                    continue;
+                }
+
+                // Get CREATE TABLE statement using prepared statement
+                $stmt = $pdo->prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?");
+                $stmt->execute([$table]);
+                $createStmt = $stmt->fetchColumn();
                 fwrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
                 fwrite($handle, $createStmt . ";\n\n");
 
-                // Get data
+                // Get data (table name validated above)
                 $rows = $pdo->query("SELECT * FROM `{$table}`")->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($rows as $row) {
                     $columns = array_keys($row);
@@ -828,12 +836,18 @@ class Updater
             $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
 
             foreach ($tables as $table) {
-                // Get CREATE TABLE statement
+                // Validate table name (alphanumeric and underscore only)
+                if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)) {
+                    $this->debugLog('WARNING', 'Skipping table with invalid name', ['table' => $table]);
+                    continue;
+                }
+
+                // Get CREATE TABLE statement (table name validated above)
                 $createStmt = $pdo->query("SHOW CREATE TABLE `{$table}`")->fetch();
                 fwrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
                 fwrite($handle, $createStmt['Create Table'] . ";\n\n");
 
-                // Get data
+                // Get data (table name validated above)
                 $stmt = $pdo->query("SELECT * FROM `{$table}`");
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $values = array_map(function ($val) use ($pdo) {

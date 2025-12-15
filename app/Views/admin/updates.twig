@@ -163,7 +163,7 @@
             </div>
             {% if release.body %}
               <div class="mt-2 text-sm text-gray-600 prose prose-sm max-w-none">
-                {{ release.body|nl2br }}
+                {{ release.body|safe_html|nl2br }}
               </div>
             {% endif %}
           </div>
@@ -206,7 +206,7 @@
                     <td class="px-4 py-3 text-sm text-gray-500">{{ backup.date }}</td>
                     <td class="px-4 py-3 text-sm text-gray-500">{{ (backup.size / 1024)|round(2) }} KB</td>
                     <td class="px-4 py-3 text-sm text-right">
-                      <a href="{{ base_path }}/admin/updates/backup/download?backup={{ backup.name }}"
+                      <a href="{{ base_path }}/admin/updates/backup/download?backup={{ backup.name|url_encode }}"
                          class="text-blue-600 hover:text-blue-800 mr-3">
                         <i class="fas fa-download"></i>
                       </a>
@@ -374,8 +374,8 @@
   </div>
 
 <script>
-const csrfToken = '{{ csrf }}';
-const basePath = '{{ base_path }}';
+const csrfToken = '{{ csrf|e('js') }}';
+const basePath = '{{ base_path|e('js') }}';
 
 function checkForUpdatesManual() {
     const icons = [
