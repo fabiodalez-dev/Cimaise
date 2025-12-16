@@ -41,9 +41,8 @@ class PrivacyController extends BaseController
     {
         $data = (array)$request->getParsedBody();
 
-        // CSRF validation
-        $csrf = $data['csrf'] ?? '';
-        if (empty($csrf) || $csrf !== ($_SESSION['csrf'] ?? '')) {
+        // CSRF validation (timing-safe)
+        if (!$this->validateCsrf($request)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid security token. Please try again.'];
             return $response->withHeader('Location', $this->redirect('/admin/privacy'))->withStatus(302);
         }
