@@ -422,7 +422,7 @@ class Installer
         $settings = [
             'site.title' => $data['site_title'] ?? 'Cimaise',
             'site.description' => $data['site_description'] ?? 'Professional Photography Portfolio',
-            'site.copyright' => $data['site_copyright'] ?? '© ' . date('Y') . ' Photography Portfolio',
+            'site.copyright' => $data['site_copyright'] ?? '© {year} Photography Portfolio',
             'site.email' => $data['site_email'] ?? '',
             'site.language' => $language,
             'date.format' => $dateFormat,
