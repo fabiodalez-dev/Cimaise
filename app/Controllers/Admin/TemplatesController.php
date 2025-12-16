@@ -15,6 +15,13 @@ class TemplatesController extends BaseController
         parent::__construct();
     }
 
+    private function validateCsrf(Request $request): bool
+    {
+        $data = (array)$request->getParsedBody();
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
+    }
+
     public function index(Request $request, Response $response): Response
     {
         $stmt = $this->db->pdo()->query('SELECT * FROM templates ORDER BY name ASC');
@@ -71,6 +78,13 @@ class TemplatesController extends BaseController
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);
+
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/templates/'.$id.'/edit'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));

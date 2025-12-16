@@ -15,6 +15,13 @@ class FilterSettingsController extends BaseController
         parent::__construct();
     }
 
+    private function validateCsrf(Request $request): bool
+    {
+        $data = (array)$request->getParsedBody();
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
+    }
+
     public function index(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
@@ -63,9 +70,15 @@ class FilterSettingsController extends BaseController
 
     public function update(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'] = ['type' => 'error', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/filter-settings'))->withStatus(302);
+        }
+
         $data = $request->getParsedBody();
         $pdo = $this->db->pdo();
-        
+
         try {
             $pdo->beginTransaction();
             
@@ -151,8 +164,14 @@ class FilterSettingsController extends BaseController
 
     public function reset(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'] = ['type' => 'error', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/filter-settings'))->withStatus(302);
+        }
+
         $pdo = $this->db->pdo();
-        
+
         try {
             // Delete all current settings
             $pdo->exec('DELETE FROM filter_settings');

@@ -236,7 +236,7 @@ if (is_callable($routes)) {
     $routes($app, $container);
 }
 
-$errorMiddleware = $app->addErrorMiddleware((bool)($_ENV['APP_DEBUG'] ?? true), true, true);
+$errorMiddleware = $app->addErrorMiddleware((bool)($_ENV['APP_DEBUG'] ?? false), true, true);
 $errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig) {
     $response = new \Slim\Psr7\Response(404);
     return $twig->render($response, 'errors/404.twig');

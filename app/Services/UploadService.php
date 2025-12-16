@@ -264,6 +264,11 @@ class UploadService
             } elseif ($format === 'avif') {
                 $im->setOption('heic:quality', (string)$quality);
             }
+            // Strip EXIF/metadata for privacy protection on generated variants
+            // Original file keeps EXIF for archival purposes
+            if ($this->envFlag('STRIP_EXIF', true)) {
+                $im->stripImage();
+            }
             @mkdir(dirname($dest), 0775, true);
             $ok = $im->writeImage($dest);
             $im->clear();
@@ -584,6 +589,11 @@ class UploadService
 
             // Final blur pass
             $im->gaussianBlurImage(0, 15);
+
+            // Strip EXIF/metadata for privacy protection
+            if ($this->envFlag('STRIP_EXIF', true)) {
+                $im->stripImage();
+            }
 
             $im->setImageFormat('jpeg');
             $ok = $im->writeImage($dest);
