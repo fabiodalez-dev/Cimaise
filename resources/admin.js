@@ -1103,3 +1103,13 @@ function rebindImageModalHandlers() {
 window.bindGridButtons = bindGridButtons;
 window.rebindBulkSelection = rebindBulkSelection;
 window.rebindImageModalHandlers = rebindImageModalHandlers;
+
+// Auto-initialize on module load (ES modules are deferred, so DOM is ready)
+// This ensures AdminInit runs even if the inline script's initializePageScripts()
+// executed before this module loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => window.AdminInit());
+} else {
+  // DOM already ready, initialize immediately
+  window.AdminInit();
+}
