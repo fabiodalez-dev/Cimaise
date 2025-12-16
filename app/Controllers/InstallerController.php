@@ -532,6 +532,17 @@ class InstallerController
     {
         $data = (array)$request->getParsedBody();
 
+        // Verify CSRF token
+        $csrf = (string)($data['csrf'] ?? '');
+        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $payload = json_encode([
+                'success' => false,
+                'error' => 'Invalid CSRF token'
+            ]);
+            $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
+        }
+
         try {
             // Connect without specifying database first to test credentials
             $dsn = sprintf('mysql:host=%s;port=%d',
