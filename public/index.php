@@ -114,12 +114,22 @@ session_start();
 $app = AppFactory::create();
 
 // Set base path for subdirectory installations
-$scriptDir = dirname($_SERVER['SCRIPT_NAME']);
-$basePath = $scriptDir === '/' ? '' : $scriptDir;
+// Note: PHP built-in server sets SCRIPT_NAME to the requested URI when using a router,
+// so we need to detect this and use an empty base path instead
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+$scriptDir = dirname($scriptName);
 
-// Remove /public from the base path if present (since document root should be public/)
-if (str_ends_with($basePath, '/public')) {
-    $basePath = substr($basePath, 0, -7); // Remove '/public'
+// Detect PHP built-in server (no actual script like index.php in SCRIPT_NAME)
+$isBuiltInServer = php_sapi_name() === 'cli-server';
+if ($isBuiltInServer) {
+    // Built-in server with router: base path is always empty
+    $basePath = '';
+} else {
+    $basePath = $scriptDir === '/' ? '' : $scriptDir;
+    // Remove /public from the base path if present (since document root should be public/)
+    if (str_ends_with($basePath, '/public')) {
+        $basePath = substr($basePath, 0, -7); // Remove '/public'
+    }
 }
 
 if ($basePath) {
@@ -150,13 +160,9 @@ $app->add(TwigMiddleware::create($app, $twig));
 // Auto-detect app URL if not set in environment
 $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$scriptDir = dirname($_SERVER['SCRIPT_NAME']);
-$autoBasePath = $scriptDir === '/' ? '' : $scriptDir;
 
-// Remove /public from the path if present (since document root should be public/)
-if (str_ends_with($autoBasePath, '/public')) {
-    $autoBasePath = substr($autoBasePath, 0, -7); // Remove '/public'
-}
+// For PHP built-in server, use the already computed basePath
+$autoBasePath = $basePath;
 
 $autoDetectedUrl = $protocol . '://' . $host . $autoBasePath;
 
@@ -182,10 +188,17 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('date_format', $dateFormat);
         // Initialize language from settings
         $siteLanguage = (string)($settingsSvc->get('site.language', 'en') ?? 'en');
+        $adminLanguage = (string)($settingsSvc->get('admin.language', 'en') ?? 'en');
         if ($translationService !== null) {
             $translationService->setLanguage($siteLanguage);
+            $translationService->setAdminLanguage($adminLanguage);
+            // Set scope based on current route
+            if ($isAdminRoute) {
+                $translationService->setScope('admin');
+            }
         }
         $twig->getEnvironment()->addGlobal('site_language', $siteLanguage);
+        $twig->getEnvironment()->addGlobal('admin_language', $adminLanguage);
         // Cookie banner settings
         $twig->getEnvironment()->addGlobal('cookie_banner_enabled', $settingsSvc->get('privacy.cookie_banner_enabled', true));
         $twig->getEnvironment()->addGlobal('custom_js_essential', $settingsSvc->get('privacy.custom_js_essential', ''));
@@ -200,6 +213,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         \App\Support\DateHelper::setDisplayFormat('Y-m-d');
         $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
         $twig->getEnvironment()->addGlobal('site_language', 'en');
+        $twig->getEnvironment()->addGlobal('admin_language', 'en');
         // Cookie banner defaults on error
         $twig->getEnvironment()->addGlobal('cookie_banner_enabled', true);
         $twig->getEnvironment()->addGlobal('custom_js_essential', '');
@@ -215,6 +229,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     \App\Support\DateHelper::setDisplayFormat('Y-m-d');
     $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
     $twig->getEnvironment()->addGlobal('site_language', 'en');
+    $twig->getEnvironment()->addGlobal('admin_language', 'en');
     // Cookie banner defaults for installer
     $twig->getEnvironment()->addGlobal('cookie_banner_enabled', false);
     $twig->getEnvironment()->addGlobal('custom_js_essential', '');

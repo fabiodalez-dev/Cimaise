@@ -120,7 +120,7 @@
     </div>
     
     <div id="sqlite-fields" {% if db_connection == 'mysql' %}style="display: none;"{% endif %}>
-        <input type="hidden" name="db_database" value="{{ sqlite_database }}">
+        <input type="hidden" name="sqlite_path" value="{{ sqlite_database }}">
         <div class="alert alert-light border">
             <div class="d-flex align-items-center mb-1"><i class="fas fa-file-alt me-2"></i><strong>SQLite database path</strong></div>
             <div class="text-muted small">{{ sqlite_database }}</div>

@@ -29,50 +29,44 @@
 
 <p class="text-muted">Review your settings before installing</p>
 
-<div class="row">
-    <div class="col-12 col-md-6">
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-database me-2"></i>Database Configuration</h5>
-            </div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-4">Type</dt>
-                    <dd class="col-sm-8 text-capitalize">{{ db_config.db_connection }}</dd>
-                    
-                    {% if db_config.db_connection == 'mysql' %}
-                        <dt class="col-sm-4">Host</dt>
-                        <dd class="col-sm-8">{{ db_config.db_host }}:{{ db_config.db_port }}</dd>
-                        
-                        <dt class="col-sm-4">Database</dt>
-                        <dd class="col-sm-8">{{ db_config.db_database }}</dd>
-                        
-                        <dt class="col-sm-4">Username</dt>
-                        <dd class="col-sm-8">{{ db_config.db_username }}</dd>
-                    {% else %}
-                        <dt class="col-sm-4">File Path</dt>
-                        <dd class="col-sm-8">{{ db_config.db_database }}</dd>
-                    {% endif %}
-                </dl>
-            </div>
-        </div>
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-database me-2"></i>Database Configuration</h5>
     </div>
-    
-    <div class="col-12 col-md-6">
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-user-shield me-2"></i>Admin User</h5>
-            </div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-4">Name</dt>
-                    <dd class="col-sm-8">{{ admin_config.admin_name }}</dd>
-                    
-                    <dt class="col-sm-4">Email</dt>
-                    <dd class="col-sm-8">{{ admin_config.admin_email }}</dd>
-                </dl>
-            </div>
-        </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Type</dt>
+            <dd class="col-sm-9 text-capitalize">{{ db_config.db_connection }}</dd>
+
+            {% if db_config.db_connection == 'mysql' %}
+                <dt class="col-sm-3">Host</dt>
+                <dd class="col-sm-9">{{ db_config.db_host }}:{{ db_config.db_port }}</dd>
+
+                <dt class="col-sm-3">Database</dt>
+                <dd class="col-sm-9">{{ db_config.db_database }}</dd>
+
+                <dt class="col-sm-3">Username</dt>
+                <dd class="col-sm-9">{{ db_config.db_username }}</dd>
+            {% else %}
+                <dt class="col-sm-3">File Path</dt>
+                <dd class="col-sm-9">{{ db_config.db_database }}</dd>
+            {% endif %}
+        </dl>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-user-shield me-2"></i>Admin User</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Name</dt>
+            <dd class="col-sm-9">{{ admin_config.admin_name }}</dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">{{ admin_config.admin_email }}</dd>
+        </dl>
     </div>
 </div>
 
@@ -84,15 +78,30 @@
         <dl class="row mb-0">
             <dt class="col-sm-3">Title</dt>
             <dd class="col-sm-9">{{ settings_config.site_title }}</dd>
-            
+
+            <dt class="col-sm-3">Logo</dt>
+            <dd class="col-sm-9">
+                {% if settings_config.site_logo_path %}
+                    <img src="{{ base_path ~ settings_config.site_logo_path }}" alt="Logo" class="img-thumbnail" style="max-height: 48px;">
+                {% else %}
+                    <span class="text-muted">Not set (site title will be displayed)</span>
+                {% endif %}
+            </dd>
+
             <dt class="col-sm-3">Description</dt>
             <dd class="col-sm-9">{{ settings_config.site_description ?: 'Not set' }}</dd>
-            
+
             <dt class="col-sm-3">Copyright</dt>
             <dd class="col-sm-9">{{ settings_config.site_copyright ?: 'Not set' }}</dd>
-            
+
             <dt class="col-sm-3">Email</dt>
             <dd class="col-sm-9">{{ settings_config.site_email ?: 'Not set' }}</dd>
+
+            <dt class="col-sm-3">{{ trans('installer.site_language') }}</dt>
+            <dd class="col-sm-9">{{ settings_config.site_language == 'it' ? trans('installer.italian') : trans('installer.english') }}</dd>
+
+            <dt class="col-sm-3">{{ trans('installer.admin_language') }}</dt>
+            <dd class="col-sm-9">{{ settings_config.admin_language == 'it' ? trans('installer.italian') : trans('installer.english') }}</dd>
         </dl>
     </div>
 </div>
