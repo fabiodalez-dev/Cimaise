@@ -68,3 +68,7 @@ storage/.maintenance
 
 # Documentation (internal only)
 updater.md
+
+# Local database files
+storage/database.sqlite
+app/database/
