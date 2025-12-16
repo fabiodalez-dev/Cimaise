@@ -3,6 +3,14 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 
-# Sitemaps
+# Block NSFW blurred images from indexing
+Disallow: /*_blur.jpg
+Disallow: /*_blur.webp
+Disallow: /*_blur.avif
+
+# Block original high-res files (protect originals, serve optimized variants)
+Disallow: /media/*_original.*
+
+# Sitemaps (update URLs before deployment)
 Sitemap: https://example.com/sitemap.xml
 Sitemap: https://example.com/sitemap_index.xml
