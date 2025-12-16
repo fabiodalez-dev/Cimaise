@@ -173,7 +173,6 @@ CREATE TABLE IF NOT EXISTS `albums` (
   KEY `idx_albums_robots` (`robots_index`, `robots_follow`),
   KEY `idx_albums_published_date` (`is_published`, `published_at`),
   KEY `idx_albums_published_shoot` (`is_published`, `shoot_date`),
-  KEY `idx_albums_nsfw` (`is_nsfw`),
   KEY `idx_albums_published_nsfw` (`is_published`, `is_nsfw`),
   CONSTRAINT `fk_albums_category` FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_albums_location` FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE SET NULL,

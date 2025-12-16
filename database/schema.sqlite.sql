@@ -171,7 +171,6 @@ CREATE INDEX IF NOT EXISTS idx_albums_seo_title ON albums(seo_title);
 CREATE INDEX IF NOT EXISTS idx_albums_robots ON albums(robots_index, robots_follow);
 CREATE INDEX IF NOT EXISTS idx_albums_published_date ON albums(is_published, published_at);
 CREATE INDEX IF NOT EXISTS idx_albums_published_shoot ON albums(is_published, shoot_date);
-CREATE INDEX IF NOT EXISTS idx_albums_nsfw ON albums(is_nsfw);
 CREATE INDEX IF NOT EXISTS idx_albums_published_nsfw ON albums(is_published, is_nsfw);
 
 -- ============================================
