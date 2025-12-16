@@ -104,7 +104,7 @@
                 <img id="site-logo-preview" src="{{ base_path ~ settings['site.logo'] }}" alt="Logo" class="max-w-full max-h-full">
               {% else %}
                 <img id="site-logo-preview" src="" alt="Logo" class="max-w-full max-h-full hidden">
-                <span class="text-xs text-gray-500">Nessun logo</span>
+                <span class="text-xs text-gray-500">No logo</span>
               {% endif %}
             </div>
             <div class="flex-1">
@@ -112,16 +112,16 @@
                    class="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
                 <div class="flex flex-col items-center justify-center gap-2">
                   <i class="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
-                  <div class="font-medium">Carica un nuovo logo</div>
-                  <div class="text-sm text-gray-500">Formati supportati: PNG, JPG, WebP (dimensione consigliata: 200x200px)</div>
+                  <div class="font-medium">Upload a new logo</div>
+                  <div class="text-sm text-gray-500">Supported formats: PNG, JPG, WebP (recommended size: 200x200px)</div>
                 </div>
               </div>
               <button id="site-logo-clear" type="button" class="mt-3 text-sm text-red-600 hover:underline {{ settings['site.logo'] ? '' : 'hidden' }}">
-                <i class="fas fa-trash mr-1"></i>Rimuovi logo corrente
+                <i class="fas fa-trash mr-1"></i>Remove current logo
               </button>
             </div>
           </div>
-          <p class="text-xs text-gray-500 mt-2">Se non impostato, verrà usato il titolo del sito.</p>
+          <p class="text-xs text-gray-500 mt-2">If not set, the site title will be used.</p>
         </div>
         
         <!-- Other Site Settings (Grid Layout) -->
@@ -172,28 +172,28 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-palette mr-3 text-gray-700"></i>
-          Template Pagina Galleria
+          Gallery Page Template
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
             <input type="radio" name="gallery_page_template" value="classic" class="mt-1" {% if settings['gallery.page_template']|default('classic') == 'classic' %}checked{% endif %}>
             <div>
               <div class="font-medium text-gray-900">Classic Grid</div>
-              <div class="text-sm text-gray-600">Layout attuale minimale, B/N, con griglia o slideshow secondo template</div>
+              <div class="text-sm text-gray-600">Current minimal layout, B/W, with grid or slideshow based on template</div>
             </div>
           </label>
           <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
             <input type="radio" name="gallery_page_template" value="hero" class="mt-1" {% if settings['gallery.page_template'] == 'hero' %}checked{% endif %}>
             <div>
               <div class="font-medium text-gray-900">Hero Cover</div>
-              <div class="text-sm text-gray-600">Cover grande con overlay, titolo, data e location; galleria sotto</div>
+              <div class="text-sm text-gray-600">Large cover with overlay, title, date and location; gallery below</div>
             </div>
           </label>
           <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
             <input type="radio" name="gallery_page_template" value="magazine" class="mt-1" {% if settings['gallery.page_template'] == 'magazine' %}checked{% endif %}>
             <div>
               <div class="font-medium text-gray-900">Magazine Split</div>
-              <div class="text-sm text-gray-600">Colonna sinistra con testi/info in sticky; griglia a destra</div>
+              <div class="text-sm text-gray-600">Left column with sticky text/info; grid on the right</div>
             </div>
           </label>
         </div>
@@ -205,27 +205,27 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-th mr-3 text-gray-600"></i>
-          Template Predefinito Gallery
+          Default Gallery Template
         </h3>
-        <p class="text-sm text-gray-600 mb-6">Impostazioni utilizzate quando un album non ha un template specifico assegnato</p>
+        <p class="text-sm text-gray-600 mb-6">Settings used when an album has no specific template assigned</p>
         
         <!-- Debug Information -->
         <div class="default-template-container">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Template Predefinito</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Default Template</label>
           
           
           {% set pageTpl = settings['gallery.page_template']|default('classic') %}
           {% set disableDefault = pageTpl == 'magazine' %}
           <select name="default_template_id" class="form-input {{ disableDefault ? 'bg-gray-100 cursor-not-allowed' : '' }}" {{ disableDefault ? 'disabled' : '' }}>
-            <option value="">Nessun template predefinito</option>
+            <option value="">No default template</option>
             {% for template in templates %}
               {% set isSelected = (template.id ~ '') == (settings['gallery.default_template_id'] ~ '') %}
               <option value="{{ template.id }}" {% if isSelected %}selected{% endif %}>{{ template.name }}</option>
             {% endfor %}
           </select>
           <p class="text-xs text-gray-500 mt-1">
-            Template utilizzato quando un album non ha un template specifico assegnato.
-            {% if disableDefault %}<br>Con <strong>Magazine Split</strong> come layout pagina, questo selettore non è applicabile e viene disabilitato.{% endif %}
+            Template used when an album has no specific template assigned.
+            {% if disableDefault %}<br>With <strong>Magazine Split</strong> as page layout, this selector is not applicable and is disabled.{% endif %}
           </p>
         </div>
       </div>
@@ -243,8 +243,8 @@
           <label class="flex items-start">
             <input type="checkbox" name="show_exif_lightbox" id="show_exif_lightbox" class="rounded border-gray-300 text-black focus:ring-black mt-1" {% if settings['lightbox.show_exif'] %}checked{% endif %}>
             <span class="ml-3">
-              <span class="text-sm font-medium text-gray-900 block">Mostra dati EXIF nel lightbox</span>
-              <span class="text-xs text-gray-600 block mt-1">Visualizza informazioni fotografiche (camera, obiettivo, ISO, apertura, tempo di scatto) quando si apre un'immagine nel lightbox</span>
+              <span class="text-sm font-medium text-gray-900 block">Show EXIF data in lightbox</span>
+              <span class="text-xs text-gray-600 block mt-1">Display photographic information (camera, lens, ISO, aperture, shutter speed) when opening an image in the lightbox</span>
             </span>
           </label>
         </div>
@@ -285,20 +285,20 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-images mr-3 text-gray-600"></i>
-          Genera Varianti Immagini
+          Generate Image Variants
         </h3>
-        <p class="text-sm text-gray-600 mb-4">Genera automaticamente le varianti ad alta risoluzione per tutte le immagini mancanti</p>
+        <p class="text-sm text-gray-600 mb-4">Automatically generate high resolution variants for all missing images</p>
         
         <form id="generate-images-form" method="post" action="{{ base_path }}/admin/settings/generate-images" onsubmit="return handleImageGeneration(event);" class="border-t border-gray-200 pt-4">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button id="generate-btn" type="submit" class="btn-secondary">
             <i id="generate-icon" class="fas fa-images mr-2"></i>
-            <span id="generate-text">Genera Varianti Immagini</span>
+            <span id="generate-text">Generate Image Variants</span>
           </button>
           <div id="generate-status" class="mt-2 hidden">
             <div class="text-xs text-blue-600 flex items-center">
               <i class="fas fa-spinner fa-spin mr-2"></i>
-              <span>Generazione in corso... Questa operazione potrebbe richiedere alcuni minuti.</span>
+              <span>Generation in progress... This operation may take a few minutes.</span>
             </div>
           </div>
           <div id="generate-result" class="mt-2 hidden"></div>
@@ -316,7 +316,7 @@
         <div class="flex items-center gap-3">
           <button type="submit" form="settings-form" class="btn-primary">
             <i class="fas fa-save mr-2"></i>
-            Salva Impostazioni
+            Save Settings
           </button>
           <a href="{{ base_path }}/admin" class="btn-secondary">
             <i class="fas fa-arrow-left mr-2"></i>
@@ -326,7 +326,7 @@
         
         <div class="text-sm text-gray-500">
           <i class="fas fa-info-circle mr-1"></i>
-          Configura le impostazioni del sistema
+          Configure system settings
         </div>
       </div>
     </div>
@@ -374,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function handleImageGeneration(event) {
   event.preventDefault();
   
-  if (!confirm('Generare le varianti delle immagini? Questa operazione potrebbe richiedere alcuni minuti.')) {
+  if (!confirm('Generate image variants? This operation may take a few minutes.')) {
     return false;
   }
   
@@ -387,7 +387,7 @@ function handleImageGeneration(event) {
   
   btn.disabled = true;
   icon.className = 'fas fa-spinner fa-spin mr-2';
-  text.textContent = 'Generando...';
+  text.textContent = 'Generating...';
   status.classList.remove('hidden');
   result.classList.add('hidden');
   
@@ -400,14 +400,18 @@ function handleImageGeneration(event) {
     body: formData
   })
   .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     // Reset button state
     btn.disabled = false;
     icon.className = 'fas fa-images mr-2';
-    text.textContent = 'Genera Varianti Immagini';
+    text.textContent = 'Generate Image Variants';
     status.classList.add('hidden');
-    
+
     // Show info result for background process
-    result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span>Processo di generazione avviato! Potrebbe richiedere alcuni minuti. Verrai notificato al completamento.</span></div>';
+    result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span>Generation process started! It may take a few minutes. You will be notified upon completion.</span></div>';
     result.classList.remove('hidden');
     
     // Hide result after 10 seconds
@@ -419,11 +423,11 @@ function handleImageGeneration(event) {
     // Reset button state
     btn.disabled = false;
     icon.className = 'fas fa-images mr-2';
-    text.textContent = 'Genera Varianti Immagini';
+    text.textContent = 'Generate Image Variants';
     status.classList.add('hidden');
-    
+
     // Show error result
-    result.innerHTML = '<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>Errore durante l\'avvio della generazione</span></div>';
+    result.innerHTML = '<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>Error starting generation</span></div>';
     result.classList.remove('hidden');
   });
   
@@ -468,7 +472,7 @@ function updateDefaultTemplateSelector(selectedValue) {
       if (!msg) {
         msg = document.createElement('div');
         msg.className = 'template-disabled-message text-xs text-gray-500 mt-2 p-3 bg-gray-50 rounded border border-gray-200';
-        msg.innerHTML = '<i class="fas fa-info-circle mr-1"></i>Con <strong>Magazine Split</strong> come layout pagina, questo selettore non è applicabile e viene disabilitato.';
+        msg.innerHTML = '<i class="fas fa-info-circle mr-1"></i>With <strong>Magazine Split</strong> as page layout, this selector is not applicable and is disabled.';
         defaultTemplateContainer.appendChild(msg);
       }
       msg.style.display = 'block';
