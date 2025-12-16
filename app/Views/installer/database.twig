@@ -131,7 +131,7 @@
 </form>
 {% endblock %}
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   function toggle(val){
     const showMy = val === 'mysql';
