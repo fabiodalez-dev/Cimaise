@@ -158,7 +158,7 @@
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
     
     <!-- JS flag class on <html> if needed elsewhere -->
-    <script>(function(){ document.documentElement.classList.add('js'); })();</script>
+    <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); })();</script>
     
     <!-- Custom styles -->
     <style>
@@ -1177,7 +1177,7 @@
     <script src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
     
     <!-- App JS -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         // Enhanced Mobile menu with animations
         document.addEventListener('DOMContentLoaded', function() {
             // 1. Menu Toggle
@@ -2194,7 +2194,7 @@
 
     <!-- Analytics Tracking (Cookieless) -->
     <script src="{{ base_path }}/assets/js/analytics.js"></script>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         // Initialize analytics with site configuration
         // Enable by default; JS guard will self-disable if endpoint fails
         window.CimaiseAnalyticsEnabled = true;
@@ -2216,7 +2216,7 @@
     </script>
 
     <!-- Global NSFW Image Swap (runs on all pages) -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function() {
         // Check if user has confirmed they are of age
         var confirmed = localStorage.getItem('nsfw_confirmed') === 'true';
@@ -2256,7 +2256,7 @@
 
     {# Essential JavaScript - Always loaded (no consent required) #}
     {% if custom_js_essential %}
-    <script id="custom-js-essential">{{ custom_js_essential|raw }}</script>
+    <script id="custom-js-essential" nonce="{{ csp_nonce() }}">{{ custom_js_essential|raw }}</script>
     {% endif %}
 
     {# Cookie Banner with conditional script loader #}

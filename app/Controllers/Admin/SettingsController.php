@@ -16,6 +16,13 @@ class SettingsController extends BaseController
         parent::__construct();
     }
 
+    private function validateCsrf(Request $request): bool
+    {
+        $data = (array)$request->getParsedBody();
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
+    }
+
     public function show(Request $request, Response $response): Response
     {
         $svc = new SettingsService($this->db);
@@ -39,9 +46,15 @@ class SettingsController extends BaseController
 
     public function save(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $svc = new SettingsService($this->db);
-        
+
         // formats
         $formats = [
             'avif' => isset($data['fmt_avif']),
@@ -130,6 +143,12 @@ class SettingsController extends BaseController
 
     public function generateImages(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+        }
+
         try {
             $consolePath = dirname(__DIR__, 3) . '/bin/console';
             if (!is_executable($consolePath)) {
