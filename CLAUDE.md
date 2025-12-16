@@ -3,7 +3,7 @@
 <!-- AUTO-MANAGED: project-description -->
 ## Overview
 
-**Cimaise** is a minimalist photography CMS built with PHP 8.2+, Slim 4, Twig, and SQLite/MySQL. It provides photographers with elegant galleries, advanced image processing (AVIF, WebP, JPEG), film photography metadata support, and comprehensive SEO optimization.
+**Cimaise** is a minimalist photography CMS built with PHP 8.2+, Slim 4, Twig, and SQLite/MySQL. It provides photographers with elegant galleries, advanced image processing (AVIF, WebP, JPEG), film photography metadata support, and comprehensive SEO.
 
 Key features:
 - Multi-database support (SQLite default, MySQL optional)
@@ -52,7 +52,7 @@ bash bin/build-release.sh            # Build release package
 <!-- AUTO-MANAGED: architecture -->
 ## Architecture
 
-```
+```text
 photoCMS/
 ├── app/
 │   ├── Config/              # Routes and configuration
@@ -173,8 +173,8 @@ $app->get('/path', function(...) { ... })
   - `/media/protected/{id}/original` - Protected original images (rate limited: 100 req/min)
   - `/media/{path:.*}` - Public media with protection validation (rate limited: 200 req/min)
 - **Session-based access**:
-  - Password-protected: `$_SESSION['album_access'][$albumId]` (24h TTL) via POST `/album/{slug}/unlock`
-  - NSFW confirmation: `$_SESSION['nsfw_confirmed'][$albumId]` via POST `/album/{slug}/nsfw-confirm` (rate limited: 10 req/10min)
+  - Password-protected: `$_SESSION['album_access'][$albumId]` (24h TTL) via POST `/album/{slug}/unlock` (rate limited: 5 req/10min)
+  - NSFW confirmation: `$_SESSION['nsfw_confirmed'][$albumId]` via POST `/album/{slug}/nsfw-confirm` (rate limited: 10 req/5min)
   - Blur variants always allowed (for preview purposes)
 - **Template security**: NSFW album cards only show blur variants, never expose real image URLs in srcset or data-src
 - **Path traversal protection**: Validates realpath against allowed directories (storage/ or public/media/)
@@ -201,7 +201,7 @@ $app->get('/path', function(...) { ... })
 - Never commit `.env` (contains secrets)
 - Always use PDO prepared statements
 - Validate CSRF tokens on POST requests
-- Rate limit all sensitive endpoints (login: 5/10min, media: 100-200/min, NSFW confirm: 10/5min)
+- Rate limit all sensitive endpoints (login: 5 req/10min, album unlock: 5 req/10min, NSFW confirm: 10 req/5min, protected media: 100-200 req/min)
 - Sanitize file uploads (allowed extensions, MIME validation)
 - Route all /media/* requests through PHP for mandatory access control
 - Validate file paths with realpath to prevent directory traversal
