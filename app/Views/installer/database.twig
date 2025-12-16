@@ -164,6 +164,7 @@
       result.style.display = 'none';
 
       const formData = new FormData();
+      formData.append('csrf', document.querySelector('input[name="csrf"]').value);
       formData.append('db_host', document.getElementById('db-host').value);
       formData.append('db_port', document.getElementById('db-port').value);
       formData.append('db_database', document.getElementById('db-database').value);
