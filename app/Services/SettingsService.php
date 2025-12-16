@@ -57,7 +57,7 @@ class SettingsService
             'site.title' => 'Cimaise',
             'site.logo' => null,
             'site.description' => 'Professional Photography Portfolio',
-            'site.copyright' => '© 2024 Photography Portfolio',
+            'site.copyright' => '© {year} Photography Portfolio',
             'site.email' => '',
             'site.language' => 'en',
             'date.format' => 'Y-m-d',

@@ -348,7 +348,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $settingsData = [
             'site_title' => trim($_POST['site_title'] ?? 'My Photography'),
             'site_description' => trim($_POST['site_description'] ?? 'A beautiful photography portfolio'),
-            'site_copyright' => trim($_POST['site_copyright'] ?? '© ' . date('Y') . ' My Photography'),
+            'site_copyright' => trim($_POST['site_copyright'] ?? '© {year} My Photography'),
             'site_email' => trim($_POST['site_email'] ?? ''),
             'timezone' => $_POST['timezone'] ?? 'Europe/Rome'
         ];
@@ -1061,9 +1061,9 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                             
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Copyright Notice</label>
-                                <input type="text" name="site_copyright" class="form-input w-full" 
-                                       value="<?= htmlspecialchars($settingsFormData['site_copyright'] ?? '© ' . date('Y') . ' My Photography') ?>" placeholder="© <?= date('Y') ?> My Photography">
-                                <div class="text-sm text-gray-500 mt-1">Will appear in the site footer</div>
+                                <input type="text" name="site_copyright" class="form-input w-full"
+                                       value="<?= htmlspecialchars($settingsFormData['site_copyright'] ?? '© {year} My Photography') ?>" placeholder="© {year} My Photography">
+                                <div class="text-sm text-gray-500 mt-1">Will appear in the site footer. Use <code>{year}</code> for current year.</div>
                             </div>
                             
                             <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
