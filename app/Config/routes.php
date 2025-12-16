@@ -89,14 +89,15 @@ $app->post('/install/post-setup', function (Request $request, Response $response
 });
 
 // Protected media serving (for password-protected and NSFW albums)
+// Rate limited to prevent scraping/enumeration attacks
 $app->get('/media/protected/{id}/{variant}.{format}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\MediaController($container['db']);
     return $controller->serveProtected($request, $response, $args);
-});
+})->add(new RateLimitMiddleware(100, 60)); // 100 requests per minute
 $app->get('/media/protected/{id}/original', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\MediaController($container['db']);
     return $controller->serveOriginal($request, $response, $args);
-});
+})->add(new RateLimitMiddleware(100, 60)); // 100 requests per minute
 
 // Public media serving with protection validation
 // All /media/* requests go through PHP to check if album is protected
@@ -104,7 +105,7 @@ $app->get('/media/protected/{id}/original', function (Request $request, Response
 $app->get('/media/{path:.*}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\MediaController($container['db']);
     return $controller->servePublic($request, $response, $args);
-});
+})->add(new RateLimitMiddleware(200, 60)); // 200 requests per minute (higher for public media)
 
 $app->get('/album/{slug}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
@@ -881,12 +882,14 @@ $app->get('/admin/updates/check', function (Request $request, Response $response
 $app->post('/admin/updates/perform', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
     return $controller->performUpdate($request, $response);
-})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+})->add(new RateLimitMiddleware(3, 600)) // 3 attempts per 10 minutes (sensitive operation)
+  ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->post('/admin/updates/backup', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
     return $controller->createBackup($request, $response);
-})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+})->add(new RateLimitMiddleware(5, 600)) // 5 attempts per 10 minutes (resource-intensive operation)
+  ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->get('/admin/updates/backup/download', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));

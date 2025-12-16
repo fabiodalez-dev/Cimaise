@@ -17,13 +17,6 @@ class PageController extends BaseController
         parent::__construct();
     }
 
-    private function validateCsrf(Request $request): bool
-    {
-        $data = (array)$request->getParsedBody();
-        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
-        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
-    }
-
     private function buildSeo(Request $request, string $title, string $description = '', ?string $imagePath = null): array
     {
         $svc = new \App\Services\SettingsService($this->db);
@@ -757,11 +750,6 @@ class PageController extends BaseController
      */
     public function confirmNsfw(Request $request, Response $response, array $args): Response
     {
-        // Ensure session is started
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
         $slug = $args['slug'] ?? '';
         $pdo = $this->db->pdo();
 
@@ -793,9 +781,6 @@ class PageController extends BaseController
             // Redirect back to album (will show gate again)
             return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
         }
-
-        // SECURITY: Regenerate session ID to prevent session fixation
-        session_regenerate_id(true);
 
         // Store NSFW confirmation in session for server-side validation (per-album)
         if (!isset($_SESSION['nsfw_confirmed'])) {
