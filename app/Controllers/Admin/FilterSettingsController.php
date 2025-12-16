@@ -173,9 +173,12 @@ class FilterSettingsController extends BaseController
         $pdo = $this->db->pdo();
 
         try {
+            // Wrap DELETE + INSERT in transaction for atomicity
+            $pdo->beginTransaction();
+
             // Delete all current settings
             $pdo->exec('DELETE FROM filter_settings');
-            
+
             // Insert default settings
             $defaultSettings = [
                 'enabled' => '1',
@@ -195,29 +198,32 @@ class FilterSettingsController extends BaseController
                 'animation_enabled' => '1',
                 'animation_duration' => '0.6'
             ];
-            
+
             $stmt = $pdo->prepare('
-                INSERT INTO filter_settings (setting_key, setting_value, sort_order) 
+                INSERT INTO filter_settings (setting_key, setting_value, sort_order)
                 VALUES (?, ?, ?)
             ');
-            
+
             $sortOrder = 1;
             foreach ($defaultSettings as $key => $value) {
                 $stmt->execute([$key, $value, $sortOrder++]);
             }
-            
+
+            $pdo->commit();
+
             $_SESSION['flash'] = [
                 'type' => 'success',
                 'message' => 'Filter settings reset to defaults successfully!'
             ];
-            
+
         } catch (\Exception $e) {
+            $pdo->rollBack();
             $_SESSION['flash'] = [
                 'type' => 'error',
                 'message' => 'Failed to reset filter settings: ' . $e->getMessage()
             ];
         }
-        
+
         return $response->withHeader('Location', $this->redirect('/admin/filter-settings'))->withStatus(302);
     }
 

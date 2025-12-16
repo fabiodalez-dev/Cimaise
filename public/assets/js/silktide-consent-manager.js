@@ -367,34 +367,36 @@ class SilktideCookieBanner {
   // Banner
   // ----------------------------------------------------------------
   getBannerContent() {
+    // Note: description may contain intentional HTML (like <p> tags), so we don't escape it
+    // but it should only come from trusted admin config, not user input
     const bannerDescription =
       this.config.text?.banner?.description ||
       "<p>We use cookies on our site to enhance your user experience, provide personalized content, and analyze our traffic.</p>";
 
-    // Accept button
-    const acceptAllButtonText = this.config.text?.banner?.acceptAllButtonText || 'Accept all';
-    const acceptAllButtonLabel = this.config.text?.banner?.acceptAllButtonAccessibleLabel;
+    // Accept button - escape all text values to prevent XSS
+    const acceptAllButtonText = this.escapeHtml(this.config.text?.banner?.acceptAllButtonText || 'Accept all');
+    const acceptAllButtonLabel = this.escapeHtml(this.config.text?.banner?.acceptAllButtonAccessibleLabel || '');
     const acceptAllButton = `<button class="accept-all st-button st-button--primary"${
-      acceptAllButtonLabel && acceptAllButtonLabel !== acceptAllButtonText 
-        ? ` aria-label="${acceptAllButtonLabel}"` 
+      acceptAllButtonLabel && acceptAllButtonLabel !== acceptAllButtonText
+        ? ` aria-label="${acceptAllButtonLabel}"`
         : ''
     }>${acceptAllButtonText}</button>`;
-    
-    // Reject button
-    const rejectNonEssentialButtonText = this.config.text?.banner?.rejectNonEssentialButtonText || 'Reject non-essential';
-    const rejectNonEssentialButtonLabel = this.config.text?.banner?.rejectNonEssentialButtonAccessibleLabel;
+
+    // Reject button - escape all text values to prevent XSS
+    const rejectNonEssentialButtonText = this.escapeHtml(this.config.text?.banner?.rejectNonEssentialButtonText || 'Reject non-essential');
+    const rejectNonEssentialButtonLabel = this.escapeHtml(this.config.text?.banner?.rejectNonEssentialButtonAccessibleLabel || '');
     const rejectNonEssentialButton = `<button class="reject-all st-button st-button--primary"${
-      rejectNonEssentialButtonLabel && rejectNonEssentialButtonLabel !== rejectNonEssentialButtonText 
-        ? ` aria-label="${rejectNonEssentialButtonLabel}"` 
+      rejectNonEssentialButtonLabel && rejectNonEssentialButtonLabel !== rejectNonEssentialButtonText
+        ? ` aria-label="${rejectNonEssentialButtonLabel}"`
         : ''
     }>${rejectNonEssentialButtonText}</button>`;
 
-    // Preferences button
-    const preferencesButtonText = this.config.text?.banner?.preferencesButtonText || 'Preferences';
-    const preferencesButtonLabel = this.config.text?.banner?.preferencesButtonAccessibleLabel;
+    // Preferences button - escape all text values to prevent XSS
+    const preferencesButtonText = this.escapeHtml(this.config.text?.banner?.preferencesButtonText || 'Preferences');
+    const preferencesButtonLabel = this.escapeHtml(this.config.text?.banner?.preferencesButtonAccessibleLabel || '');
     const preferencesButton = `<button class="preferences"${
-      preferencesButtonLabel && preferencesButtonLabel !== preferencesButtonText 
-        ? ` aria-label="${preferencesButtonLabel}"` 
+      preferencesButtonLabel && preferencesButtonLabel !== preferencesButtonText
+        ? ` aria-label="${preferencesButtonLabel}"`
         : ''
     }><span>${preferencesButtonText}</span></button>`;
     
@@ -467,56 +469,58 @@ class SilktideCookieBanner {
   // Modal
   // ----------------------------------------------------------------
   getModalContent() {
-    const preferencesTitle =
-      this.config.text?.preferences?.title || 'Customize your cookie preferences';
-    
+    // Escape title - plain text
+    const preferencesTitle = this.escapeHtml(
+      this.config.text?.preferences?.title || 'Customize your cookie preferences'
+    );
+
+    // Note: description may contain intentional HTML, so we don't escape it
+    // but it should only come from trusted admin config
     const preferencesDescription =
       this.config.text?.preferences?.description ||
       "<p>We respect your right to privacy. You can choose not to allow some types of cookies. Your cookie preferences will apply across our website.</p>";
-    
-    // Preferences button
-    const preferencesButtonLabel = this.config.text?.banner?.preferencesButtonAccessibleLabel;
 
-    const closeModalButton = `<button class="modal-close"${preferencesButtonLabel ? ` aria-label="${preferencesButtonLabel}"` : ''}>
+    // Close button - escape accessible label
+    const closeButtonLabel = this.escapeHtml(this.config.text?.banner?.preferencesButtonAccessibleLabel || '');
+    const closeModalButton = `<button class="modal-close"${closeButtonLabel ? ` aria-label="${closeButtonLabel}"` : ''}>
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M19.4081 3.41559C20.189 2.6347 20.189 1.36655 19.4081 0.585663C18.6272 -0.195221 17.3591 -0.195221 16.5782 0.585663L10 7.17008L3.41559 0.59191C2.6347 -0.188974 1.36655 -0.188974 0.585663 0.59191C-0.195221 1.37279 -0.195221 2.64095 0.585663 3.42183L7.17008 10L0.59191 16.5844C-0.188974 17.3653 -0.188974 18.6335 0.59191 19.4143C1.37279 20.1952 2.64095 20.1952 3.42183 19.4143L10 12.8299L16.5844 19.4081C17.3653 20.189 18.6335 20.189 19.4143 19.4081C20.1952 18.6272 20.1952 17.3591 19.4143 16.5782L12.8299 10L19.4081 3.41559Z"/>
       </svg>
     </button>`;
-    
 
     const cookieTypes = this.config.cookieTypes || [];
     const acceptedCookieMap = this.getAcceptedCookies();
 
-    // Accept button
-    const acceptAllButtonText = this.config.text?.banner?.acceptAllButtonText || 'Accept all';
-    const acceptAllButtonLabel = this.config.text?.banner?.acceptAllButtonAccessibleLabel;
+    // Accept button - escape all text values to prevent XSS
+    const acceptAllButtonText = this.escapeHtml(this.config.text?.banner?.acceptAllButtonText || 'Accept all');
+    const acceptAllButtonLabel = this.escapeHtml(this.config.text?.banner?.acceptAllButtonAccessibleLabel || '');
     const acceptAllButton = `<button class="preferences-accept-all st-button st-button--primary"${
-      acceptAllButtonLabel && acceptAllButtonLabel !== acceptAllButtonText 
-        ? ` aria-label="${acceptAllButtonLabel}"` 
+      acceptAllButtonLabel && acceptAllButtonLabel !== acceptAllButtonText
+        ? ` aria-label="${acceptAllButtonLabel}"`
         : ''
     }>${acceptAllButtonText}</button>`;
-    
-    // Reject button
-    const rejectNonEssentialButtonText = this.config.text?.banner?.rejectNonEssentialButtonText || 'Reject non-essential';
-    const rejectNonEssentialButtonLabel = this.config.text?.banner?.rejectNonEssentialButtonAccessibleLabel;
+
+    // Reject button - escape all text values to prevent XSS
+    const rejectNonEssentialButtonText = this.escapeHtml(this.config.text?.banner?.rejectNonEssentialButtonText || 'Reject non-essential');
+    const rejectNonEssentialButtonLabel = this.escapeHtml(this.config.text?.banner?.rejectNonEssentialButtonAccessibleLabel || '');
     const rejectNonEssentialButton = `<button class="preferences-reject-all st-button st-button--primary"${
       rejectNonEssentialButtonLabel && rejectNonEssentialButtonLabel !== rejectNonEssentialButtonText
         ? ` aria-label="${rejectNonEssentialButtonLabel}"`
         : ''
     }>${rejectNonEssentialButtonText}</button>`;
 
-    // Save selected button
-    const saveSelectedButtonText = this.config.text?.banner?.saveSelectedButtonText || 'Save selected';
-    const saveSelectedButtonLabel = this.config.text?.banner?.saveSelectedButtonAccessibleLabel;
+    // Save selected button - escape all text values to prevent XSS
+    const saveSelectedButtonText = this.escapeHtml(this.config.text?.banner?.saveSelectedButtonText || 'Save selected');
+    const saveSelectedButtonLabel = this.escapeHtml(this.config.text?.banner?.saveSelectedButtonAccessibleLabel || '');
     const saveSelectedButton = `<button class="preferences-save-selected st-button st-button--secondary"${
       saveSelectedButtonLabel && saveSelectedButtonLabel !== saveSelectedButtonText
         ? ` aria-label="${saveSelectedButtonLabel}"`
         : ''
     }>${saveSelectedButtonText}</button>`;
 
-    // Credit link
-    const creditLinkText = this.config.text?.preferences?.creditLinkText || 'Get this banner for free';
-    const creditLinkAccessibleLabel = this.config.text?.preferences?.creditLinkAccessibleLabel;
+    // Credit link - escape all text values to prevent XSS
+    const creditLinkText = this.escapeHtml(this.config.text?.preferences?.creditLinkText || 'Get this banner for free');
+    const creditLinkAccessibleLabel = this.escapeHtml(this.config.text?.preferences?.creditLinkAccessibleLabel || '');
     const creditLink = `<a href="https://silktide.com/consent-manager" target="_blank" rel="noreferrer"${
       creditLinkAccessibleLabel && creditLinkAccessibleLabel !== creditLinkText
         ? ` aria-label="${creditLinkAccessibleLabel}"`
