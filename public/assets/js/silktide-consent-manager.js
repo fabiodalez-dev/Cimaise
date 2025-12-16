@@ -61,6 +61,59 @@ class SilktideCookieBanner {
     return div.innerHTML;
   }
 
+  /**
+   * Sanitize HTML content by removing dangerous tags and attributes.
+   * Allows safe formatting tags like <p>, <br>, <strong>, <em>, <a>.
+   */
+  sanitizeHtml(str) {
+    if (typeof str !== 'string') return str;
+
+    // Create a temporary container
+    const temp = document.createElement('div');
+    temp.innerHTML = str;
+
+    // Remove script, style, iframe, object, embed tags
+    const dangerousTags = temp.querySelectorAll('script, style, iframe, object, embed, form, input, textarea, select, button, link, meta, base');
+    dangerousTags.forEach(el => el.remove());
+
+    // Remove dangerous attributes from all elements
+    const allElements = temp.querySelectorAll('*');
+    allElements.forEach(el => {
+      // Remove event handlers and dangerous attributes
+      const attrs = Array.from(el.attributes);
+      attrs.forEach(attr => {
+        const name = attr.name.toLowerCase();
+        const value = attr.value.toLowerCase();
+        if (
+          name.startsWith('on') || // onclick, onerror, etc.
+          name === 'href' && (value.startsWith('javascript:') || value.startsWith('data:')) ||
+          name === 'src' && (value.startsWith('javascript:') || value.startsWith('data:')) ||
+          name === 'style' // Prevent CSS-based attacks
+        ) {
+          el.removeAttribute(attr.name);
+        }
+      });
+
+      // For <a> tags, ensure they open in new tab safely
+      if (el.tagName === 'A') {
+        el.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+
+    return temp.innerHTML;
+  }
+
+  /**
+   * Validate that ID contains only safe characters for CSS selectors.
+   * Returns sanitized ID or null if invalid.
+   */
+  sanitizeId(id) {
+    if (typeof id !== 'string') return null;
+    // Only allow alphanumeric, underscore, and hyphen
+    const sanitized = id.replace(/[^a-zA-Z0-9_-]/g, '');
+    return sanitized.length > 0 ? sanitized : null;
+  }
+
   // ----------------------------------------------------------------
   // Wrapper
   // ----------------------------------------------------------------
@@ -367,11 +420,11 @@ class SilktideCookieBanner {
   // Banner
   // ----------------------------------------------------------------
   getBannerContent() {
-    // Note: description may contain intentional HTML (like <p> tags), so we don't escape it
-    // but it should only come from trusted admin config, not user input
-    const bannerDescription =
+    // Sanitize description HTML to prevent XSS while allowing safe formatting tags
+    const bannerDescription = this.sanitizeHtml(
       this.config.text?.banner?.description ||
-      "<p>We use cookies on our site to enhance your user experience, provide personalized content, and analyze our traffic.</p>";
+      "<p>We use cookies on our site to enhance your user experience, provide personalized content, and analyze our traffic.</p>"
+    );
 
     // Accept button - escape all text values to prevent XSS
     const acceptAllButtonText = this.escapeHtml(this.config.text?.banner?.acceptAllButtonText || 'Accept all');
@@ -474,11 +527,11 @@ class SilktideCookieBanner {
       this.config.text?.preferences?.title || 'Customize your cookie preferences'
     );
 
-    // Note: description may contain intentional HTML, so we don't escape it
-    // but it should only come from trusted admin config
-    const preferencesDescription =
+    // Sanitize description HTML to prevent XSS while allowing safe formatting tags
+    const preferencesDescription = this.sanitizeHtml(
       this.config.text?.preferences?.description ||
-      "<p>We respect your right to privacy. You can choose not to allow some types of cookies. Your cookie preferences will apply across our website.</p>";
+      "<p>We respect your right to privacy. You can choose not to allow some types of cookies. Your cookie preferences will apply across our website.</p>"
+    );
 
     // Close button - escape accessible label
     const closeButtonLabel = this.escapeHtml(this.config.text?.banner?.preferencesButtonAccessibleLabel || '');
@@ -553,7 +606,10 @@ class SilktideCookieBanner {
 
             const safeName = this.escapeHtml(type.name);
             const safeDescription = this.escapeHtml(type.description);
-            const safeId = this.escapeHtml(type.id);
+            // Use sanitizeId for IDs - only allows safe CSS selector characters
+            // This preserves the ID for matching while preventing injection
+            const safeId = this.sanitizeId(type.id);
+            if (!safeId) return ''; // Skip invalid cookie types
 
             return `
             <fieldset>
@@ -918,6 +974,21 @@ class SilktideCookieBanner {
   let cookieBanner;
 
   function updateCookieBannerConfig(userConfig = {}) {
+    // Validate and sanitize config to prevent XSS
+    if (userConfig && typeof userConfig === 'object') {
+      // Sanitize cookie type IDs to safe characters only
+      if (Array.isArray(userConfig.cookieTypes)) {
+        userConfig.cookieTypes = userConfig.cookieTypes
+          .filter(type => type && typeof type === 'object' && typeof type.id === 'string')
+          .map(type => ({
+            ...type,
+            // Ensure ID only contains safe CSS selector characters
+            id: type.id.replace(/[^a-zA-Z0-9_-]/g, '') || 'default'
+          }))
+          .filter(type => type.id.length > 0);
+      }
+    }
+
     config = {...config, ...userConfig};
 
     // If cookie banner exists, destroy and recreate it with new config
