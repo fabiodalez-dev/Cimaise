@@ -169,9 +169,10 @@ class PluginsController extends BaseController
     {
         $response = $response->withHeader('Content-Type', 'application/json');
 
-        // Verify CSRF
+        // Verify CSRF with timing-safe comparison
         $csrf = $request->getHeaderLine('X-CSRF-Token');
-        if (empty($csrf) || $csrf !== ($_SESSION['csrf'] ?? '')) {
+        $sessionCsrf = $_SESSION['csrf'] ?? '';
+        if (empty($csrf) || !is_string($sessionCsrf) || !hash_equals($sessionCsrf, $csrf)) {
             $response->getBody()->write(json_encode(['success' => false, 'message' => 'Invalid CSRF token']));
             return $response->withStatus(403);
         }
