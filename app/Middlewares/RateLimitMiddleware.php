@@ -40,9 +40,7 @@ class RateLimitMiddleware implements MiddlewareInterface
             $trustedList = array_map('trim', explode(',', $trustedProxies));
 
             // Validate each proxy IP (except wildcard)
-            $trustedList = array_filter($trustedList, function($ip) {
-                return $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false;
-            });
+            $trustedList = array_filter($trustedList, fn($ip) => $ip === '*' || filter_var($ip, FILTER_VALIDATE_IP) !== false);
 
             if (empty($trustedList)) {
                 error_log('WARNING: No valid IPs in TRUSTED_PROXIES configuration');
@@ -51,7 +49,7 @@ class RateLimitMiddleware implements MiddlewareInterface
 
             // Wildcard only allowed in development mode
             $isWildcard = \in_array('*', $trustedList, true);
-            $allowWildcard = (getenv('APP_ENV') === 'development');
+            $allowWildcard = getenv('APP_ENV') === 'development';
 
             if ($isWildcard && !$allowWildcard) {
                 error_log('SECURITY WARNING: Wildcard in TRUSTED_PROXIES not allowed in production');
@@ -59,7 +57,7 @@ class RateLimitMiddleware implements MiddlewareInterface
             }
 
             // Check if remote address is in trusted proxies list
-            if (\in_array($remoteAddr, $trustedList, true) || ($isWildcard && $allowWildcard)) {
+            if (\in_array($remoteAddr, $trustedList, true) || $isWildcard && $allowWildcard) {
                 // Check X-Forwarded-For header
                 $forwardedFor = $request->getHeaderLine('X-Forwarded-For');
                 if ($forwardedFor !== '') {
@@ -137,6 +135,55 @@ class RateLimitMiddleware implements MiddlewareInterface
     }
 
     /**
+     * Atomic read-modify-write operation with file locking.
+     * Prevents race conditions between concurrent requests.
+     * @param callable $modifier Function that receives current attempts and returns modified attempts
+     * @return int[] The modified attempts array
+     */
+    private function updateAttemptsAtomic(string $key, callable $modifier): array
+    {
+        $file = $this->storageDir . '/' . $key . '.json';
+        $fp = @fopen($file, 'c+');
+
+        if (!$fp) {
+            // Fallback to non-atomic if file can't be opened
+            $attempts = $this->getAttempts($key);
+            $modified = $modifier($attempts);
+            $this->saveAttempts($key, $modified);
+            return $modified;
+        }
+
+        if (flock($fp, LOCK_EX)) {
+            $data = stream_get_contents($fp);
+            $attempts = $data ? json_decode($data, true) : [];
+            $attempts = \is_array($attempts) ? $attempts : [];
+
+            $modified = $modifier($attempts);
+
+            if (empty($modified)) {
+                flock($fp, LOCK_UN);
+                fclose($fp);
+                @unlink($file);
+                return [];
+            }
+
+            rewind($fp);
+            ftruncate($fp, 0);
+            fwrite($fp, json_encode($modified));
+            flock($fp, LOCK_UN);
+            fclose($fp);
+
+            return $modified;
+        }
+
+        fclose($fp);
+        $attempts = $this->getAttempts($key);
+        $modified = $modifier($attempts);
+        $this->saveAttempts($key, $modified);
+        return $modified;
+    }
+
+    /**
      * Clean up old rate limit files (call periodically).
      */
     public static function cleanup(string $storageDir, int $maxAge = 86400): void
@@ -151,8 +198,23 @@ class RateLimitMiddleware implements MiddlewareInterface
         }
     }
 
+    /**
+     * Probabilistic cleanup: runs cleanup with ~1% chance per request.
+     * This avoids the need for a cron job while preventing file accumulation.
+     */
+    private function maybeCleanup(): void
+    {
+        // 1% chance of running cleanup (1 in 100 requests)
+        if (random_int(1, 100) === 1) {
+            self::cleanup($this->storageDir);
+        }
+    }
+
     public function process(Request $request, Handler $handler): Response
     {
+        // Probabilistic cleanup of old rate limit files
+        $this->maybeCleanup();
+
         $ip = $this->getClientIp($request);
         $path = $request->getUri()->getPath();
 
@@ -165,10 +227,10 @@ class RateLimitMiddleware implements MiddlewareInterface
         $attempts = $this->getAttempts($key);
 
         // Purge old attempts outside the window
-        $attempts = array_filter($attempts, fn($ts) => ($now - (int)$ts) < $this->windowSec);
+        $attempts = array_filter($attempts, fn($ts) => $now - (int)$ts < $this->windowSec);
 
-        if (count($attempts) >= $this->maxAttempts) {
-            $remaining = $this->windowSec - ($now - min($attempts));
+        if (\count($attempts) >= $this->maxAttempts) {
+            $remaining = $this->windowSec - $now + min($attempts);
             $resp = new \Slim\Psr7\Response(429);
             $resp->getBody()->write('Too Many Attempts. Please try again in ' . ceil($remaining / 60) . ' minutes.');
             return $resp->withHeader('Retry-After', (string)$remaining);

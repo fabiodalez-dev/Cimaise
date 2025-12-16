@@ -21,7 +21,7 @@
       <input type="hidden" name="csrf" value="{{ csrf }}">
 
       <div class="mb-4">
-        <label class="flex items-start gap-3 cursor-pointer">
+        <label for="nsfw_confirmed" class="flex items-start gap-3 cursor-pointer">
           <input type="checkbox" name="nsfw_confirmed" id="nsfw_confirmed" required
                  class="mt-1 h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500">
           <span class="text-sm text-gray-700">{{ trans('album.nsfw_checkbox') }}</span>
@@ -42,7 +42,8 @@
 
 {% block scripts %}
 <script nonce="{{ csp_nonce() }}">
-// Save NSFW confirmation to localStorage when form is submitted with checkbox checked
+// NOTE: localStorage is only for UX (avoid repeated confirmations).
+// Actual NSFW authorization is verified server-side via session.
 document.getElementById('nsfw-confirm-form')?.addEventListener('submit', function() {
     var checkbox = document.getElementById('nsfw_confirmed');
     if (checkbox && checkbox.checked) {

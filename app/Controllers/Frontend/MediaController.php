@@ -39,7 +39,7 @@ class MediaController extends BaseController
         }
 
         // Validate format
-        if (!in_array($format, ['jpg', 'webp', 'avif'], true)) {
+        if (!\in_array($format, ['jpg', 'webp', 'avif'], true)) {
             return $response->withStatus(400);
         }
 
@@ -61,15 +61,15 @@ class MediaController extends BaseController
 
         $albumId = (int)$row['album_id'];
         $isPasswordProtected = !empty($row['password_hash']);
-        $isNsfw = !empty($row['is_nsfw']);
-        $isAdmin = !empty($_SESSION['admin_id']);
+        $isNsfw = (bool)$row['is_nsfw'];
+        $isAdmin = $this->isAdmin();
 
         // Check access for protected albums
         if (!$isAdmin) {
             // Password-protected album check (session stores timestamp, valid for 24h)
             if ($isPasswordProtected) {
                 $accessTime = $_SESSION['album_access'][$albumId] ?? null;
-                $hasAccess = $accessTime !== null && (time() - (int)$accessTime) < 86400;
+                $hasAccess = $accessTime !== null && time() - (int)$accessTime < 86400;
                 if (!$hasAccess) {
                     return $response->withStatus(403);
                 }
@@ -105,12 +105,12 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        $filePath = $root . '/' . $relativePath;
+        $filePath = "{$root}/{$relativePath}";
         $realPath = realpath($filePath);
 
         // Validate file exists and is within allowed directories
-        $storageRoot = realpath($root . '/storage/');
-        $publicRoot = realpath($root . '/public/');
+        $storageRoot = realpath("{$root}/storage/");
+        $publicRoot = realpath("{$root}/public/");
 
         if (!$realPath || !is_file($realPath)) {
             return $response->withStatus(404);
@@ -156,11 +156,16 @@ class MediaController extends BaseController
         }
         fclose($stream);
 
-        // Cache headers for authenticated users (private cache)
+        // ETag based on file modification time and size (variants can be regenerated)
+        $etag = '"' . md5($realPath . filemtime($realPath) . $filesize) . '"';
+
+        // Cache headers for variants: shorter cache with ETag validation
+        // Variants can be regenerated, so use revalidation strategy
         return $response
             ->withHeader('Content-Type', $detectedMime)
             ->withHeader('Content-Length', (string)$filesize)
-            ->withHeader('Cache-Control', 'private, max-age=86400')
+            ->withHeader('Cache-Control', 'private, max-age=3600, must-revalidate')
+            ->withHeader('ETag', $etag)
             ->withHeader('X-Content-Type-Options', 'nosniff');
     }
 
@@ -194,15 +199,15 @@ class MediaController extends BaseController
 
         $albumId = (int)$row['album_id'];
         $isPasswordProtected = !empty($row['password_hash']);
-        $isNsfw = !empty($row['is_nsfw']);
-        $isAdmin = !empty($_SESSION['admin_id']);
+        $isNsfw = (bool)$row['is_nsfw'];
+        $isAdmin = $this->isAdmin();
 
         // Check access for protected albums
         if (!$isAdmin) {
             // Password-protected album check (session stores timestamp, valid for 24h)
             if ($isPasswordProtected) {
                 $accessTime = $_SESSION['album_access'][$albumId] ?? null;
-                $hasAccess = $accessTime !== null && (time() - (int)$accessTime) < 86400;
+                $hasAccess = $accessTime !== null && time() - (int)$accessTime < 86400;
                 if (!$hasAccess) {
                     return $response->withStatus(403);
                 }
@@ -226,10 +231,10 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        $filePath = $root . '/' . ltrim($originalPath, '/');
+        $filePath = "{$root}/" . ltrim($originalPath, '/');
         $realPath = realpath($filePath);
 
-        $storageRoot = realpath($root . '/storage/');
+        $storageRoot = realpath("{$root}/storage/");
         if (!$realPath || !$storageRoot || !str_starts_with($realPath, $storageRoot . DIRECTORY_SEPARATOR)) {
             return $response->withStatus(403);
         }
@@ -244,7 +249,7 @@ class MediaController extends BaseController
         finfo_close($finfo);
 
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'image/tiff'];
-        if (!in_array($detectedMime, $allowedMimes, true)) {
+        if (!\in_array($detectedMime, $allowedMimes, true)) {
             return $response->withStatus(403);
         }
 
@@ -264,10 +269,11 @@ class MediaController extends BaseController
         }
         fclose($stream);
 
+        // Cache headers for originals: long cache (originals are immutable)
         return $response
             ->withHeader('Content-Type', $detectedMime)
             ->withHeader('Content-Length', (string)$filesize)
-            ->withHeader('Cache-Control', 'private, max-age=86400')
+            ->withHeader('Cache-Control', 'private, max-age=31536000, immutable')
             ->withHeader('X-Content-Type-Options', 'nosniff');
     }
 
@@ -302,7 +308,7 @@ class MediaController extends BaseController
 
         $imageId = (int)$matches[1];
         $variant = $matches[2];
-        $format = strtolower($matches[3]);
+        // Note: $matches[3] contains format but is validated by regex pattern
 
         // Get image and album info
         $pdo = $this->db->pdo();
@@ -327,15 +333,15 @@ class MediaController extends BaseController
 
         $albumId = (int)$row['album_id'];
         $isPasswordProtected = !empty($row['password_hash']);
-        $isNsfw = !empty($row['is_nsfw']);
-        $isAdmin = !empty($_SESSION['admin_id']);
+        $isNsfw = (bool)$row['is_nsfw'];
+        $isAdmin = $this->isAdmin();
 
         // Check access for protected albums
         if (!$isAdmin) {
             // Password-protected album check (session stores timestamp, valid for 24h)
             if ($isPasswordProtected) {
                 $accessTime = $_SESSION['album_access'][$albumId] ?? null;
-                $hasAccess = $accessTime !== null && (time() - (int)$accessTime) < 86400;
+                $hasAccess = $accessTime !== null && time() - (int)$accessTime < 86400;
                 if (!$hasAccess) {
                     return $response->withStatus(403);
                 }
@@ -360,11 +366,11 @@ class MediaController extends BaseController
     private function serveStaticFile(Response $response, string $relativePath): Response
     {
         $root = dirname(__DIR__, 3);
-        $filePath = $root . '/public/media/' . $relativePath;
+        $filePath = "{$root}/public/media/{$relativePath}";
         $realPath = realpath($filePath);
 
         // Validate file exists and is within public/media/
-        $mediaRoot = realpath($root . '/public/media/');
+        $mediaRoot = realpath("{$root}/public/media/");
         if (!$realPath || !$mediaRoot || !str_starts_with($realPath, $mediaRoot . DIRECTORY_SEPARATOR)) {
             return $response->withStatus(404);
         }
@@ -382,7 +388,7 @@ class MediaController extends BaseController
             'image/jpeg', 'image/webp', 'image/avif', 'image/png', 'image/gif',
         ];
 
-        if (!in_array($detectedMime, $allowedMimes, true)) {
+        if (!\in_array($detectedMime, $allowedMimes, true)) {
             return $response->withStatus(403);
         }
 
@@ -402,11 +408,16 @@ class MediaController extends BaseController
         }
         fclose($stream);
 
-        // Cache headers - public for public albums, private if checking session
+        // ETag based on file modification time and size (variants can be regenerated)
+        $etag = '"' . md5($realPath . filemtime($realPath) . $filesize) . '"';
+
+        // Cache headers for public variants: use ETag for revalidation
+        // Variants can be regenerated, so shorter cache with ETag validation
         return $response
             ->withHeader('Content-Type', $detectedMime)
             ->withHeader('Content-Length', (string)$filesize)
-            ->withHeader('Cache-Control', 'public, max-age=31536000') // 1 year for immutable content
+            ->withHeader('Cache-Control', 'public, max-age=86400, must-revalidate')
+            ->withHeader('ETag', $etag)
             ->withHeader('X-Content-Type-Options', 'nosniff');
     }
 }

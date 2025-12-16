@@ -65,7 +65,7 @@ class GalleriesController extends BaseController
         $albums = $this->getFilteredAlbums($filters);
 
         // Check admin status for NSFW handling
-        $isAdmin = !empty($_SESSION['admin_id']);
+        $isAdmin = $this->isAdmin();
 
         // Sanitize album data - remove sensitive fields
         // SECURITY: For NSFW albums, only expose blur_path, never the real preview_path
@@ -75,11 +75,13 @@ class GalleriesController extends BaseController
             // For NSFW albums (non-admin), only return blur_path
             $coverImage = null;
             if (isset($album['cover_image'])) {
+                // Use fallback dimensions to avoid CLS (Cumulative Layout Shift)
+                // Default 4:3 aspect ratio at 400px width if dimensions missing
                 $coverImage = [
                     'id' => $album['cover_image']['id'],
                     'blur_path' => $album['cover_image']['blur_path'] ?? null,
-                    'width' => $album['cover_image']['width'] ?? null,
-                    'height' => $album['cover_image']['height'] ?? null,
+                    'width' => (int)($album['cover_image']['width'] ?? 400),
+                    'height' => (int)($album['cover_image']['height'] ?? 300),
                 ];
                 // Only include preview_path for non-NSFW albums or admins
                 if (!$isNsfw || $isAdmin) {
