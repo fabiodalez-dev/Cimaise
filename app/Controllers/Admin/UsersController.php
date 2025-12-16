@@ -16,6 +16,13 @@ class UsersController extends BaseController
         parent::__construct();
     }
 
+    private function validateCsrf(Request $request): bool
+    {
+        $data = (array)$request->getParsedBody();
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
+    }
+
     public function index(Request $request, Response $response): Response
     {
         $page = max(1, (int)($request->getQueryParams()['page'] ?? 1));
@@ -56,8 +63,14 @@ class UsersController extends BaseController
 
     public function store(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
-        
+
         // Validate required fields
         $email = trim((string)($data['email'] ?? ''));
         $firstName = trim((string)($data['first_name'] ?? ''));
@@ -147,8 +160,15 @@ class UsersController extends BaseController
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);
+
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
-        
+
         // Get current user data
         $stmt = $this->db->pdo()->prepare('SELECT * FROM users WHERE id = :id');
         $stmt->execute([':id' => $id]);
@@ -253,8 +273,14 @@ class UsersController extends BaseController
 
     public function delete(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
+        }
+
         $id = (int)($args['id'] ?? 0);
-        
+
         // Prevent self-deletion and ensure at least one admin remains
         if ($id === $_SESSION['admin_id']) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'You cannot delete your own account'];
@@ -297,8 +323,14 @@ class UsersController extends BaseController
 
     public function toggleActive(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
+        }
+
         $id = (int)($args['id'] ?? 0);
-        
+
         // Prevent self-deactivation
         if ($id === $_SESSION['admin_id']) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'You cannot deactivate your own account'];

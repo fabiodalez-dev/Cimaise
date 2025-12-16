@@ -16,6 +16,13 @@ class SocialController extends BaseController
         parent::__construct();
     }
 
+    private function validateCsrf(Request $request): bool
+    {
+        $data = (array)$request->getParsedBody();
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
+    }
+
     public function show(Request $request, Response $response): Response
     {
         $svc = new SettingsService($this->db);
@@ -48,6 +55,8 @@ class SocialController extends BaseController
         // Support both form-encoded and JSON payloads
         $data = (array)($request->getParsedBody() ?? []);
         $contentType = strtolower($request->getHeaderLine('Content-Type'));
+
+        // For JSON payloads, parse the body first to get CSRF token
         if (str_contains($contentType, 'application/json')) {
             try {
                 $raw = (string)$request->getBody();
@@ -61,6 +70,26 @@ class SocialController extends BaseController
                 // fall back to parsed body if JSON decoding fails
             }
         }
+
+        // CSRF validation
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        if (!\is_string($token) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $token)) {
+            // Check if AJAX request
+            $isAjax = false;
+            try {
+                $hdr = $request->getHeaderLine('X-Requested-With');
+                $acc = $request->getHeaderLine('Accept');
+                $isAjax = (stripos($hdr, 'XMLHttpRequest') !== false) || (stripos($acc, 'application/json') !== false);
+            } catch (\Throwable) {}
+
+            if ($isAjax) {
+                $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid CSRF token']));
+                return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+            }
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
+        }
+
         $svc = new SettingsService($this->db);
         
         // Determine enabled socials
