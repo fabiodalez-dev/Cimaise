@@ -11,7 +11,8 @@
     "nav.contact": "Contatti",
     "nav.back": "Indietro",
     "nav.menu": "Menu",
-    "nav.close": "Chiudi"
+    "nav.close": "Chiudi",
+    "nav.breadcrumb": "Percorso"
   },
   "filter": {
     "filter.all": "Tutti",
@@ -41,7 +42,15 @@
     "filter.galleries_count": "{count} gallerie",
     "filter.gallery_count": "1 galleria",
     "filter.no_galleries_title": "Nessuna galleria trovata",
-    "filter.no_galleries_text": "Non abbiamo trovato gallerie corrispondenti ai filtri selezionati. Prova a modificare i criteri di ricerca o cancella tutti i filtri."
+    "filter.no_galleries_text": "Non abbiamo trovato gallerie corrispondenti ai filtri selezionati. Prova a modificare i criteri di ricerca o cancella tutti i filtri.",
+    "filter.select_categories": "Seleziona categorie...",
+    "filter.select_tags": "Seleziona tag...",
+    "filter.select_cameras": "Seleziona fotocamere...",
+    "filter.select_lenses": "Seleziona obiettivi...",
+    "filter.select_films": "Seleziona pellicole...",
+    "filter.select_locations": "Seleziona luoghi...",
+    "filter.select_year": "Seleziona anno...",
+    "filter.search_equipment": "Cerca fotocamera, pellicola..."
   },
   "album": {
     "album.photos": "Foto",
@@ -165,7 +174,8 @@
     "share.linkedin": "Condividi su LinkedIn",
     "share.email": "Condividi via Email",
     "share.copy_link": "Copia Link",
-    "share.link_copied": "Link copiato!"
+    "share.link_copied": "Link copiato!",
+    "share.share_on": "Condividi su {network}"
   },
   "search": {
     "search.placeholder": "Cerca...",
@@ -217,7 +227,11 @@
     "general.submit": "Invia",
     "general.reset": "Reimposta",
     "general.view": "Vedi",
-    "general.more_count": "+{count} altri"
+    "general.more_count": "+{count} altri",
+    "general.no_cover": "Nessuna copertina",
+    "general.close": "Chiudi",
+    "general.previous": "Precedente",
+    "general.next": "Successivo"
   },
   "galleries": {
     "galleries.title": "Tutte le Gallerie",

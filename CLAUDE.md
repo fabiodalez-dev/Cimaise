@@ -92,11 +92,15 @@ photoCMS/
 ```
 
 ### Key Files
-- `public/index.php` - Application bootstrap
-- `app/Config/routes.php` - All route definitions
-- `app/Services/UploadService.php` - Image processing and variant generation
-- `app/Services/TranslationService.php` - i18n with JSON storage
-- `app/Middlewares/RateLimitMiddleware.php` - Brute-force protection
+- `public/index.php` - Application bootstrap with auto-repair logic and base path detection
+- `public/router.php` - PHP built-in server router (routes /media/* through PHP for access control)
+- `app/Config/routes.php` - All route definitions (120+ routes including protected media)
+- `app/Controllers/Frontend/MediaController.php` - Server-side protected media serving with session validation
+- `app/Services/UploadService.php` - Image processing and variant generation (AVIF, WebP, JPEG, blur)
+- `app/Services/TranslationService.php` - i18n with JSON storage (storage/translations/)
+- `app/Middlewares/RateLimitMiddleware.php` - Brute-force protection and API rate limiting
+- `app/Views/frontend/_album_card.twig` - Album card template with NSFW blur variant logic
+- `app/Views/frontend/_social_sharing.twig` - Social sharing buttons template
 
 ### Data Flow
 1. Request → `public/index.php` → Slim App
@@ -133,6 +137,14 @@ $app->get('/path', function(...) { ... })
     ->add(new AuthMiddleware($container['db']));
 ```
 
+### Media Routing (Security-Critical)
+- **All /media/* requests** go through PHP (not served directly by web server)
+- `public/router.php` routes `/media/*` to `index.php` for mandatory access control
+- Routes defined in order: `/media/protected/{id}/*` → `/media/{path:.*}` (catch-all)
+- MediaController validates session state before streaming any protected/NSFW album images
+- Prevents bypassing NSFW/password protection via direct file access or URL manipulation
+- Blur variants (for previews) always allowed without session validation
+
 <!-- END AUTO-MANAGED -->
 
 <!-- AUTO-MANAGED: patterns -->
@@ -154,10 +166,31 @@ $app->get('/path', function(...) { ... })
 - Three categories: Essential, Analytics, Marketing
 - Safari private browsing safe (localStorage wrappers)
 
+### Protected Media Serving (Server-Side)
+- **MediaController**: Centralized server-side validation before streaming files from protected/NSFW albums
+- **Three routes**:
+  - `/media/protected/{id}/{variant}.{format}` - Protected image variants (rate limited: 100 req/min)
+  - `/media/protected/{id}/original` - Protected original images (rate limited: 100 req/min)
+  - `/media/{path:.*}` - Public media with protection validation (rate limited: 200 req/min)
+- **Session-based access**:
+  - Password-protected: `$_SESSION['album_access'][$albumId]` (24h TTL) via POST `/album/{slug}/unlock`
+  - NSFW confirmation: `$_SESSION['nsfw_confirmed'][$albumId]` via POST `/album/{slug}/nsfw-confirm` (rate limited: 10 req/10min)
+  - Blur variants always allowed (for preview purposes)
+- **Template security**: NSFW album cards only show blur variants, never expose real image URLs in srcset or data-src
+- **Path traversal protection**: Validates realpath against allowed directories (storage/ or public/media/)
+- **MIME type validation**: Only serves image/* types (jpeg, webp, avif, png)
+- **ETag caching**: `private, max-age=3600, must-revalidate` for variants
+- **Router enforcement**: `public/router.php` routes all /media/* requests through PHP (prevents direct file access bypass)
+
 ### Authentication
 - Session-based admin auth with `$_SESSION['admin_id']`
 - Password hashing with `password_hash()`
 - CSRF tokens on all forms
+
+### Auto-Repair (Bootstrap)
+- Auto-creates `.env` from template if missing and `database/template.sqlite` exists
+- Auto-copies `template.sqlite` to `database.sqlite` if database is empty
+- Auto-redirects to `/install` if installation incomplete
 
 <!-- END AUTO-MANAGED -->
 
@@ -168,8 +201,16 @@ $app->get('/path', function(...) { ... })
 - Never commit `.env` (contains secrets)
 - Always use PDO prepared statements
 - Validate CSRF tokens on POST requests
-- Rate limit authentication endpoints
+- Rate limit all sensitive endpoints (login: 5/10min, media: 100-200/min, NSFW confirm: 10/5min)
 - Sanitize file uploads (allowed extensions, MIME validation)
+- Route all /media/* requests through PHP for mandatory access control
+- Validate file paths with realpath to prevent directory traversal
+- Check MIME types server-side before serving files
+- NSFW protection: Never expose real image URLs in templates for age-gated content (only blur variants)
+- Use server-side session validation for protected albums (not client-side localStorage)
+- MediaController enforces session checks before streaming any protected/NSFW image
+- Blur variants always allowed for preview purposes (no session required)
+- Admin users bypass all access restrictions
 
 ### Performance
 - Use responsive images with `<picture>` element
@@ -189,12 +230,14 @@ $app->get('/path', function(...) { ... })
 
 This section is for manual notes and project-specific information.
 
-### Current PR Work
-- Server-side NSFW blur protection (PR #13)
+### Recent Completed Work
+- Server-side NSFW and protected album enforcement (commits eb289e5-d1435a2)
+- Comprehensive OWASP security hardening
 - Cookie consent banner with GDPR compliance
+- SEO enhancements (robots.txt, meta tags)
 
 ### Pending Tasks
-- **NSFW Server-Side Gating**: Currently NSFW protection uses client-side localStorage confirmation. A future improvement should enforce NSFW age verification server-side via session state before serving album content. This prevents bypassing via disabled JavaScript or localStorage manipulation.
+None currently.
 
 ### Important Reminders
 - Never list Claude as git commit co-author

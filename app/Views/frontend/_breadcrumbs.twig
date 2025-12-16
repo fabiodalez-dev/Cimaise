@@ -2,7 +2,7 @@
 {% set items = [] %}
 
 {# Home always #}
-{% set items = items|merge([{ label: 'Home', url: '/' }]) %}
+{% set items = items|merge([{ label: trans('nav.home'), url: '/' }]) %}
 
 {# Category page #}
 {% if category is defined and category.slug is defined %}
@@ -33,7 +33,7 @@
   {% set items = items|merge([{ label: page_title, url: canonical_url|default(current_url)|default('') }]) %}
 {% endif %}
 
-<nav aria-label="Breadcrumb" class="text-sm text-neutral-600">
+<nav aria-label="{{ trans('nav.breadcrumb') }}" class="text-sm text-neutral-600">
   <ol class="flex flex-wrap items-center gap-2">
     {% for it in items %}
       <li class="flex items-center">
