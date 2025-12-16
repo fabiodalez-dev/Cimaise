@@ -72,7 +72,7 @@ $app->post('/install/run', function (Request $request, Response $response) use (
 $app->post('/install/test-mysql', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
     return $controller->testMySQLConnection($request, $response);
-});
+})->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 10, 300, 'mysql_test'));
 
 // Post-install setup (site settings)
 }
