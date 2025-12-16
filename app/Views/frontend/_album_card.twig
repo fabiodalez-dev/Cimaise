@@ -16,7 +16,7 @@
           {# SECURITY: For NSFW albums, only show blur image - never expose real URLs in srcset or data-src #}
           {% if album.is_nsfw and not is_admin and blur_path %}
           <img src="{{ blur_path }}"
-               alt="{{ album.cover.alt_text|e }}"
+               alt="{{ (album.cover.alt_text ?? album.title)|e }}"
                width="{{ album.cover.width }}"
                height="{{ album.cover.height }}"
                loading="lazy"
@@ -70,7 +70,7 @@
 
         {# NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through #}
         {% if album.is_nsfw and not is_admin %}
-        <div class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10" role="img" aria-label="{{ trans('album.nsfw_warning_short') }}">
+        <div class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10" role="img" aria-label="{{ trans('album.nsfw_warning_short') }}">
           <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
           <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
         </div>
