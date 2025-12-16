@@ -388,7 +388,31 @@
 <script src="{{ base_path }}/assets/vendor/jquery/jquery.min.js"></script>
 <script src="{{ base_path }}/assets/vendor/select2/select2.min.js"></script>
 
-<script>
+{# CollectionPage JSON-LD for SEO #}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": {{ page_texts.title|default(trans('galleries.title'))|json_encode|raw }},
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  "description": {{ meta_description|default('')|json_encode|raw }},
+  "numberOfItems": {{ albums|length }},
+  "hasPart": [
+    {% for album in albums|slice(0, 20) %}
+    {
+      "@type": "ImageGallery",
+      "name": {{ album.title|json_encode|raw }},
+      "url": "{{ base_path }}/album/{{ album.slug }}"
+      {% if album.images_count %},
+      "numberOfItems": {{ album.images_count }}
+      {% endif %}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+<script nonce="{{ csp_nonce() }}">
 // Galleries Page JavaScript with GSAP Animations
 $(document).ready(function() {
     // Global base path for API calls
@@ -1120,7 +1144,7 @@ function debounce(func, wait) {
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // NSFW Content Handling
 let pendingNsfwUrl = null;
 
