@@ -88,6 +88,24 @@ $app->post('/install/post-setup', function (Request $request, Response $response
     return $controller->processPostSetup($request, $response);
 });
 
+// Protected media serving (for password-protected and NSFW albums)
+$app->get('/media/protected/{id}/{variant}.{format}', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\MediaController($container['db']);
+    return $controller->serveProtected($request, $response, $args);
+});
+$app->get('/media/protected/{id}/original', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\MediaController($container['db']);
+    return $controller->serveOriginal($request, $response, $args);
+});
+
+// Public media serving with protection validation
+// All /media/* requests go through PHP to check if album is protected
+// This MUST be after /media/protected/* routes to not intercept them
+$app->get('/media/{path:.*}', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\MediaController($container['db']);
+    return $controller->servePublic($request, $response, $args);
+});
+
 $app->get('/album/{slug}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
     return $controller->album($request, $response, $args);
@@ -97,6 +115,12 @@ $app->post('/album/{slug}/unlock', function (Request $request, Response $respons
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
     return $controller->unlockAlbum($request, $response, $args);
 })->add(new RateLimitMiddleware(5, 600));
+
+// NSFW age verification confirmation (for albums without password)
+$app->post('/album/{slug}/nsfw-confirm', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+    return $controller->confirmNsfw($request, $response, $args);
+})->add(new RateLimitMiddleware(10, 300));
 
 // Album template switcher API
 $app->get('/api/album/{slug}/template', function (Request $request, Response $response, array $args) use ($container) {
