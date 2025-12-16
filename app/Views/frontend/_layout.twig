@@ -2227,7 +2227,7 @@
             var origSrc = img.getAttribute('data-src');
             if (origSrc) {
                 img.src = origSrc;
-                img.classList.remove('nsfw-card-image');
+                img.classList.remove('nsfw-card-image', 'nsfw-blur');
                 img.removeAttribute('data-src');
             }
         });
@@ -2237,7 +2237,7 @@
             var origSrc = img.getAttribute('data-src');
             if (origSrc) {
                 img.src = origSrc;
-                img.classList.remove('nsfw-image');
+                img.classList.remove('nsfw-image', 'nsfw-blur');
                 img.removeAttribute('data-src');
             }
         });
