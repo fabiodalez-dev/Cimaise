@@ -20,6 +20,7 @@ class DateTwigExtension extends AbstractExtension
         return [
             new TwigFilter('date_format', [$this, 'formatDate']),
             new TwigFilter('datetime_format', [$this, 'formatDateTime']),
+            new TwigFilter('replace_year', [$this, 'replaceYear']),
         ];
     }
 
@@ -67,5 +68,21 @@ class DateTwigExtension extends AbstractExtension
     public function getPattern(): string
     {
         return DateHelper::getDisplayFormat();
+    }
+
+    /**
+     * Replace {year} placeholder with current year
+     *
+     * Usage in Twig: {{ settings['site.copyright']|replace_year }}
+     *
+     * @param string|null $text Text containing {year} placeholder
+     * @return string Text with {year} replaced by current year
+     */
+    public function replaceYear(?string $text): string
+    {
+        if ($text === null) {
+            return '';
+        }
+        return str_replace('{year}', date('Y'), $text);
     }
 }
