@@ -1,13 +1,13 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Updates — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.updates.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">System Updates</h1>
-      <p class="text-gray-600 mt-1">Manage application updates and backups</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.updates.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.updates.description') }}</p>
     </div>
     <div class="text-sm text-gray-500">
-      <span class="font-medium">Current Version:</span>
+      <span class="font-medium">{{ trans('admin.updates.current_version') }}:</span>
       <span class="font-mono bg-gray-100 px-2 py-1 rounded">v{{ updateInfo.current }}</span>
     </div>
   </div>
@@ -18,7 +18,7 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-cloud-download-alt mr-3 text-gray-600"></i>
-          Update Status
+          {{ trans('admin.updates.update_status') }}
         </h3>
 
         {% if updateInfo.error %}
@@ -26,7 +26,7 @@
             <div class="flex items-center">
               <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
               <div>
-                <p class="text-sm font-medium text-red-800">Error checking for updates</p>
+                <p class="text-sm font-medium text-red-800">{{ trans('admin.updates.error_checking') }}</p>
                 <p class="text-sm text-red-700">{{ updateInfo.error }}</p>
               </div>
             </div>
@@ -37,21 +37,20 @@
               <div class="flex items-start">
                 <i class="fas fa-arrow-circle-up text-blue-500 mr-3 mt-1"></i>
                 <div>
-                  <p class="text-sm font-medium text-blue-800">New version available!</p>
+                  <p class="text-sm font-medium text-blue-800">{{ trans('admin.updates.new_version_available') }}</p>
                   <p class="text-sm text-blue-700">
-                    Version <span class="font-mono font-bold">v{{ updateInfo.latest }}</span> is available.
-                    You are currently running <span class="font-mono">v{{ updateInfo.current }}</span>.
+                    {{ trans('admin.updates.version') }} <span class="font-mono font-bold">v{{ updateInfo.latest }}</span> {{ trans('admin.updates.version_available') }} <span class="font-mono">v{{ updateInfo.current }}</span>.
                   </p>
                   {% if updateInfo.release.published_at %}
                     <p class="text-xs text-blue-600 mt-1">
-                      Released: {{ updateInfo.release.published_at|date('F j, Y') }}
+                      {{ trans('admin.updates.released') }}: {{ updateInfo.release.published_at|date('F j, Y') }}
                     </p>
                   {% endif %}
                 </div>
               </div>
               <button type="button" id="update-btn" class="btn-primary" onclick="startUpdate('{{ updateInfo.latest|e('js') }}')">
                 <i class="fas fa-download mr-2"></i>
-                Update Now
+                {{ trans('admin.updates.update_now') }}
               </button>
             </div>
           </div>
@@ -60,9 +59,9 @@
             <div class="flex items-center">
               <i class="fas fa-check-circle text-green-500 mr-3"></i>
               <div>
-                <p class="text-sm font-medium text-green-800">You're up to date!</p>
+                <p class="text-sm font-medium text-green-800">{{ trans('admin.updates.up_to_date_title') }}</p>
                 <p class="text-sm text-green-700">
-                  Cimaise <span class="font-mono">v{{ updateInfo.current }}</span> is the latest version.
+                  Cimaise <span class="font-mono">v{{ updateInfo.current }}</span> {{ trans('admin.updates.up_to_date_text') }}
                 </p>
               </div>
             </div>
@@ -72,11 +71,11 @@
         <div class="flex items-center gap-4 mt-4">
           <button type="button" class="btn-secondary text-sm" onclick="checkForUpdatesManual()">
             <i class="fas fa-sync-alt mr-2" id="check-updates-icon"></i>
-            Check for Updates
+            {{ trans('admin.updates.check_updates') }}
           </button>
           <a href="https://github.com/fabiodalez-dev/cimaise/releases" target="_blank" class="text-sm text-gray-600 hover:text-gray-900">
             <i class="fab fa-github mr-1"></i>
-            View all releases
+            {{ trans('admin.updates.view_releases') }}
           </a>
         </div>
       </div>
@@ -87,17 +86,17 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-server mr-3 text-gray-600"></i>
-          System Requirements
+          {{ trans('admin.updates.requirements') }}
         </h3>
 
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requirement</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Required</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.requirement') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.required') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.current') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.status') }}</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -109,11 +108,11 @@
                 <td class="px-4 py-3">
                   {% if req.met %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      <i class="fas fa-check mr-1"></i> OK
+                      <i class="fas fa-check mr-1"></i> {{ trans('admin.updates.ok') }}
                     </span>
                   {% else %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      <i class="fas fa-times mr-1"></i> Failed
+                      <i class="fas fa-times mr-1"></i> {{ trans('admin.updates.failed') }}
                     </span>
                   {% endif %}
                 </td>
@@ -128,7 +127,7 @@
             <div class="flex items-center">
               <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
               <p class="text-sm text-yellow-800">
-                Some requirements are not met. Please fix these before updating.
+                {{ trans('admin.updates.requirements_not_met') }}
               </p>
             </div>
           </div>
@@ -142,7 +141,7 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-list-alt mr-3 text-gray-600"></i>
-          Changelog
+          {{ trans('admin.updates.changelog') }}
         </h3>
 
         <div class="space-y-4 max-h-96 overflow-y-auto">
@@ -153,7 +152,7 @@
                 {{ release.name }}
                 {% if release.prerelease %}
                   <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                    Pre-release
+                    {{ trans('admin.updates.pre_release') }}
                   </span>
                 {% endif %}
               </h4>
@@ -179,11 +178,11 @@
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-medium text-gray-900 flex items-center">
             <i class="fas fa-database mr-3 text-gray-600"></i>
-            Database Backups
+            {{ trans('admin.updates.database_backups') }}
           </h3>
           <button type="button" class="btn-secondary text-sm" onclick="createBackup()">
             <i class="fas fa-plus mr-2" id="backup-icon"></i>
-            Create Backup
+            {{ trans('admin.updates.create_backup') }}
           </button>
         </div>
 
@@ -193,10 +192,10 @@
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Backup</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Size</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.backup') }}</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.date') }}</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.size') }}</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.actions') }}</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200" id="backups-tbody">
@@ -223,7 +222,7 @@
           {% else %}
             <p class="text-sm text-gray-500 text-center py-8">
               <i class="fas fa-info-circle mr-2"></i>
-              No backups available. Create a backup before updating.
+              {{ trans('admin.updates.no_backups') }}
             </p>
           {% endif %}
         </div>
@@ -236,18 +235,18 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-history mr-3 text-gray-600"></i>
-          Update History
+          {{ trans('admin.updates.update_history') }}
         </h3>
 
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">From</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">To</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.from') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.to') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.status') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.date') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.user') }}</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -256,7 +255,7 @@
                 <td class="px-4 py-3 text-sm font-mono text-gray-900">v{{ log.from_version }}</td>
                 <td class="px-4 py-3 text-sm font-mono text-gray-900">
                   {% if log.to_version == 'backup' %}
-                    <span class="text-gray-500">Backup</span>
+                    <span class="text-gray-500">{{ trans('admin.updates.backup') }}</span>
                   {% else %}
                     v{{ log.to_version }}
                   {% endif %}
@@ -264,15 +263,15 @@
                 <td class="px-4 py-3">
                   {% if log.status == 'completed' %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      <i class="fas fa-check mr-1"></i> Completed
+                      <i class="fas fa-check mr-1"></i> {{ trans('admin.updates.completed') }}
                     </span>
                   {% elseif log.status == 'failed' %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      <i class="fas fa-times mr-1"></i> Failed
+                      <i class="fas fa-times mr-1"></i> {{ trans('admin.updates.failed') }}
                     </span>
                   {% elseif log.status == 'started' %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                      <i class="fas fa-spinner fa-spin mr-1"></i> In Progress
+                      <i class="fas fa-spinner fa-spin mr-1"></i> {{ trans('admin.updates.in_progress') }}
                     </span>
                   {% else %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -281,7 +280,7 @@
                   {% endif %}
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-500">{{ log.started_at }}</td>
-                <td class="px-4 py-3 text-sm text-gray-500">{{ log.executed_by_name ?? 'System' }}</td>
+                <td class="px-4 py-3 text-sm text-gray-500">{{ log.executed_by_name ?? trans('admin.updates.system') }}</td>
               </tr>
               {% if log.error_message %}
               <tr class="bg-red-50">
@@ -304,14 +303,14 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-orange-800 mb-4 flex items-center">
           <i class="fas fa-exclamation-triangle mr-3 text-orange-600"></i>
-          Emergency Actions
+          {{ trans('admin.updates.emergency') }}
         </h3>
         <p class="text-sm text-gray-600 mb-4">
-          Use these actions only if something went wrong during an update.
+          {{ trans('admin.updates.emergency_desc') }}
         </p>
         <button type="button" class="btn-secondary border-orange-300 text-orange-700 hover:bg-orange-50" onclick="clearMaintenance()">
           <i class="fas fa-unlock mr-2"></i>
-          Clear Maintenance Mode
+          {{ trans('admin.updates.clear_maintenance') }}
         </button>
       </div>
     </div>
@@ -322,21 +321,21 @@
     <div class="flex items-center justify-end gap-3">
       <button type="button" class="btn-secondary" onclick="checkForUpdatesManual()">
         <i class="fas fa-sync-alt mr-2" id="footer-check-icon"></i>
-        Check for Updates
+        {{ trans('admin.updates.check_updates') }}
       </button>
       <button type="button" class="btn-secondary" onclick="createBackup()">
         <i class="fas fa-database mr-2" id="footer-backup-icon"></i>
-        Create Backup
+        {{ trans('admin.updates.create_backup') }}
       </button>
       {% if updateInfo.available %}
       <button type="button" class="btn-primary" onclick="startUpdate('{{ updateInfo.latest|e('js') }}')">
         <i class="fas fa-download mr-2"></i>
-        Update Now
+        {{ trans('admin.updates.update_now') }}
       </button>
       {% else %}
       <button type="button" class="btn-primary opacity-50 cursor-not-allowed" disabled>
         <i class="fas fa-check mr-2"></i>
-        Up to Date
+        {{ trans('admin.updates.up_to_date') }}
       </button>
       {% endif %}
     </div>
@@ -348,32 +347,32 @@
       <div class="p-6">
         <div class="flex items-center mb-4">
           <i class="fas fa-spinner fa-spin text-2xl text-blue-500 mr-3"></i>
-          <h3 class="text-lg font-medium text-gray-900">Updating Cimaise...</h3>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.updates.updating') }}</h3>
         </div>
         <div class="space-y-3">
           <div class="flex items-center text-sm" id="step-backup">
             <i class="fas fa-circle-notch fa-spin text-blue-500 mr-3 w-5"></i>
-            <span>Creating backup...</span>
+            <span>{{ trans('admin.updates.creating_backup') }}</span>
           </div>
           <div class="flex items-center text-sm text-gray-400" id="step-download">
             <i class="fas fa-circle text-gray-300 mr-3 w-5"></i>
-            <span>Downloading update...</span>
+            <span>{{ trans('admin.updates.downloading') }}</span>
           </div>
           <div class="flex items-center text-sm text-gray-400" id="step-install">
             <i class="fas fa-circle text-gray-300 mr-3 w-5"></i>
-            <span>Installing update...</span>
+            <span>{{ trans('admin.updates.installing') }}</span>
           </div>
         </div>
         <div id="update-error" class="hidden mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700"></div>
         <p class="text-xs text-gray-500 mt-4">
           <i class="fas fa-info-circle mr-1"></i>
-          Do not close this window or navigate away during the update.
+          {{ trans('admin.updates.do_not_close') }}
         </p>
       </div>
     </div>
   </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 const csrfToken = '{{ csrf|e('js') }}';
 const basePath = '{{ base_path|e('js') }}';
 

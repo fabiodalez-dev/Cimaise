@@ -1,13 +1,13 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Add Text — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.texts.add') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Add Text</h1>
-      <p class="text-gray-600 mt-1">Add a new translatable text for the frontend</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.texts.add') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.texts.add_description') }}</p>
     </div>
     <a href="{{ base_path }}/admin/texts" class="btn-secondary">
-      <i class="fas fa-arrow-left mr-2"></i>Back to Texts
+      <i class="fas fa-arrow-left mr-2"></i>{{ trans('admin.texts.back_to_texts') }}
     </a>
   </div>
 
@@ -17,21 +17,21 @@
     <div class="card">
       <div class="p-6 space-y-6">
         <div>
-          <label for="text_key" class="block text-sm font-medium text-gray-700 mb-1">Key <span class="text-red-500">*</span></label>
-          <input type="text" id="text_key" name="text_key" class="input w-full" required placeholder="e.g., nav.custom_link">
+          <label for="text_key" class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.texts.key') }} <span class="text-red-500">*</span></label>
+          <input type="text" id="text_key" name="text_key" class="input w-full" required placeholder="{{ trans('admin.texts.key_placeholder') }}">
           <p class="mt-1 text-sm text-gray-500">
-            Unique identifier for this text. Use dot notation for organization (e.g., filter.custom_label).
+            {{ trans('admin.texts.key_hint') }}
           </p>
         </div>
 
         <div>
-          <label for="text_value" class="block text-sm font-medium text-gray-700 mb-1">Value <span class="text-red-500">*</span></label>
-          <textarea id="text_value" name="text_value" rows="3" class="input w-full" required placeholder="The translated text..."></textarea>
-          <p class="mt-1 text-sm text-gray-500">The translated text. Use {param} for dynamic values (e.g., {count}, {year}).</p>
+          <label for="text_value" class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.texts.value') }} <span class="text-red-500">*</span></label>
+          <textarea id="text_value" name="text_value" rows="3" class="input w-full" required placeholder="{{ trans('admin.texts.value_placeholder') }}"></textarea>
+          <p class="mt-1 text-sm text-gray-500">{{ trans('admin.texts.value_hint') }}</p>
         </div>
 
         <div>
-          <label for="context" class="block text-sm font-medium text-gray-700 mb-1">Context</label>
+          <label for="context" class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.texts.context') }}</label>
           <input type="text" id="context" name="context" value="general" class="input w-full" list="context-list">
           <datalist id="context-list">
             {% for ctx in contexts %}
@@ -51,20 +51,20 @@
             <option value="meta">
             <option value="general">
           </datalist>
-          <p class="mt-1 text-sm text-gray-500">Group texts by context (e.g., navigation, filter, album).</p>
+          <p class="mt-1 text-sm text-gray-500">{{ trans('admin.texts.context_hint') }}</p>
         </div>
 
         <div>
-          <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <input type="text" id="description" name="description" class="input w-full" placeholder="Optional description...">
-          <p class="mt-1 text-sm text-gray-500">Optional description to help translators understand the context.</p>
+          <label for="description" class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.texts.description_field') }}</label>
+          <input type="text" id="description" name="description" class="input w-full" placeholder="{{ trans('admin.texts.description_placeholder') }}">
+          <p class="mt-1 text-sm text-gray-500">{{ trans('admin.texts.description_hint') }}</p>
         </div>
       </div>
 
       <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
-        <a href="{{ base_path }}/admin/texts" class="btn-secondary">Cancel</a>
+        <a href="{{ base_path }}/admin/texts" class="btn-secondary">{{ trans('admin.texts.cancel') }}</a>
         <button type="submit" class="btn-primary">
-          <i class="fas fa-plus mr-2"></i>Add Text
+          <i class="fas fa-plus mr-2"></i>{{ trans('admin.texts.add_button') }}
         </button>
       </div>
     </div>

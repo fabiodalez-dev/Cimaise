@@ -1,13 +1,13 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Films — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.films.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Films</h1>
-      <p class="text-gray-600 mt-1">Manage film stocks and their characteristics</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.films.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.films.description') }}</p>
     </div>
     <a href="{{ base_path }}/admin/films/create" class="btn-primary">
-      <i class="fas fa-plus mr-2"></i>New Film
+      <i class="fas fa-plus mr-2"></i>{{ trans('admin.films.new') }}
     </a>
   </div>
 
@@ -16,12 +16,12 @@
       <table class="min-w-full">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ISO</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Format</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.films.brand') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.films.name') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.films.iso') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.films.format') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.films.type') }}</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.common.actions') }}</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -65,7 +65,7 @@
                 <a href="{{ base_path }}/admin/films/{{ f.id }}/edit" class="text-gray-600 hover:text-black transition-colors">
                   <i class="fas fa-edit"></i>
                 </a>
-                <form method="post" action="{{ base_path }}/admin/films/{{ f.id }}/delete" class="inline" onsubmit="return confirm('Delete this film?')">
+                <form method="post" action="{{ base_path }}/admin/films/{{ f.id }}/delete" class="inline" onsubmit="return confirm('{{ trans('admin.films.delete_confirm') }}')">
                   <input type="hidden" name="csrf" value="{{ csrf }}">
                   <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">
                     <i class="fas fa-trash"></i>
@@ -82,10 +82,10 @@
     {% if items|length == 0 %}
       <div class="text-center py-12">
         <i class="fas fa-film text-4xl text-gray-300 mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No films yet</h3>
-        <p class="text-gray-600 mb-6">Add film stocks to track your analog photography.</p>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.films.no_films') }}</h3>
+        <p class="text-gray-600 mb-6">{{ trans('admin.films.no_films_hint') }}</p>
         <a href="{{ base_path }}/admin/films/create" class="btn-primary">
-          <i class="fas fa-plus mr-2"></i>Add Film
+          <i class="fas fa-plus mr-2"></i>{{ trans('admin.films.add') }}
         </a>
       </div>
     {% endif %}
