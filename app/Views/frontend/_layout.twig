@@ -1119,17 +1119,17 @@
                     
                     <div class="flex items-center gap-3">
                         <label for="filter-search" class="text-sm font-medium text-gray-700 sr-only">Search:</label>
-                        <input type="text" id="filter-search" placeholder="Search camera, film..." 
+                        <input type="text" id="filter-search" placeholder="{{ trans('filter.search_equipment') }}"
                                class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                     </div>
                     
                     <div class="flex items-center gap-2">
                         <button id="apply-filters" class="bg-black text-white px-4 py-1.5 text-sm rounded-md hover:bg-gray-800 transition-colors duration-200 shadow-sm">
-                            Apply
+                            {{ trans('filter.apply') }}
                         </button>
-                        
+
                         <button id="clear-filters" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 text-sm transition-colors duration-200">
-                            Clear
+                            {{ trans('filter.clear') }}
                         </button>
                     </div>
                 </div>
@@ -2156,10 +2156,10 @@
             wrap.id = 'slb-overlay';
             wrap.innerHTML = `
               <div id="slb-content">
-                <button class="slb-close" aria-label="Close">✕</button>
-                <button class="slb-btn slb-prev" aria-label="Prev">‹</button>
+                <button class="slb-close" aria-label="{{ trans('general.close') }}">✕</button>
+                <button class="slb-btn slb-prev" aria-label="{{ trans('general.previous') }}">‹</button>
                 <img id="slb-img" alt="" />
-                <button class="slb-btn slb-next" aria-label="Next">›</button>
+                <button class="slb-btn slb-next" aria-label="{{ trans('general.next') }}">›</button>
                 <div id="slb-caption"></div>
               </div>`;
             document.body.appendChild(wrap);
