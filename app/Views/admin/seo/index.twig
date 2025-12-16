@@ -1,6 +1,6 @@
 {% extends "admin/_layout.twig" %}
 
-{% block title %}SEO Settings — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.seo.title') }} — Cimaise{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -9,17 +9,17 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">SEO Settings</h1>
-          <p class="mt-2 text-gray-600">Configure SEO, schema markup, and metadata for your photography portfolio</p>
+          <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.seo.title') }}</h1>
+          <p class="mt-2 text-gray-600">{{ trans('admin.seo.description') }}</p>
         </div>
         <div class="flex items-center gap-3">
           <button type="submit" form="seo-form" class="btn-primary">
             <i class="fas fa-save mr-2"></i>
-            Save Settings
+            {{ trans('admin.seo.save_settings') }}
           </button>
           <button type="submit" form="sitemap-form" class="btn-secondary">
             <i class="fas fa-sitemap mr-2"></i>
-            Generate Sitemap
+            {{ trans('admin.seo.generate_sitemap') }}
           </button>
         </div>
       </div>
@@ -33,17 +33,17 @@
         <div class="flex items-center gap-3">
           <button type="submit" form="seo-form" class="btn-primary">
             <i class="fas fa-save mr-2"></i>
-            Save Settings
+            {{ trans('admin.seo.save_settings') }}
           </button>
           <a href="{{ base_path }}/admin" class="btn-secondary">
             <i class="fas fa-arrow-left mr-2"></i>
-            Dashboard
+            {{ trans('admin.common.dashboard') }}
           </a>
         </div>
-        
+
         <div class="text-sm text-gray-500">
           <i class="fas fa-info-circle mr-1"></i>
-          Configure SEO settings for your photography portfolio
+          {{ trans('admin.seo.configure_hint') }}
         </div>
       </div>
     </div>
@@ -59,46 +59,46 @@
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
             <i class="fas fa-globe mr-3 text-blue-600"></i>
-            Site-wide SEO
+            {{ trans('admin.seo.sitewide_seo') }}
           </h2>
-          <p class="text-sm text-gray-600 mt-1">Basic SEO settings that apply to your entire website</p>
+          <p class="text-sm text-gray-600 mt-1">{{ trans('admin.seo.sitewide_seo_hint') }}</p>
         </div>
         <div class="p-6 space-y-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Site Title</label>
-              <input type="text" name="site_title" class="form-input" value="{{ settings.site_title }}" placeholder="Photography Portfolio">
-              <p class="text-xs text-gray-500 mt-1">Main title of your website (used in title tags)</p>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.site_title') }}</label>
+              <input type="text" name="site_title" class="form-input" value="{{ settings.site_title }}" placeholder="{{ trans('admin.seo.site_title_placeholder') }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.site_title_hint') }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Author Name</label>
-              <input type="text" name="author_name" class="form-input" value="{{ settings.author_name }}" placeholder="Your Name">
-              <p class="text-xs text-gray-500 mt-1">Your name as the photographer/author</p>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.author_name') }}</label>
+              <input type="text" name="author_name" class="form-input" value="{{ settings.author_name }}" placeholder="{{ trans('admin.seo.author_name_placeholder') }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.author_name_hint') }}</p>
             </div>
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Site Description</label>
-            <textarea name="site_description" rows="3" class="form-input" placeholder="Professional photography portfolio showcasing creative work and artistic vision">{{ settings.site_description }}</textarea>
-            <p class="text-xs text-gray-500 mt-1">Default meta description for your website</p>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.site_description_label') }}</label>
+            <textarea name="site_description" rows="3" class="form-input" placeholder="{{ trans('admin.seo.site_description_placeholder') }}">{{ settings.site_description }}</textarea>
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.site_description_hint') }}</p>
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Keywords</label>
-            <input type="text" name="site_keywords" class="form-input" value="{{ settings.site_keywords }}" placeholder="photography, portfolio, professional photographer, creative photography">
-            <p class="text-xs text-gray-500 mt-1">Comma-separated keywords that describe your work</p>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.keywords') }}</label>
+            <input type="text" name="site_keywords" class="form-input" value="{{ settings.site_keywords }}" placeholder="{{ trans('admin.seo.keywords_placeholder') }}">
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.keywords_hint') }}</p>
           </div>
           
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Author URL</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.author_url') }}</label>
               <input type="url" name="author_url" class="form-input" value="{{ settings.author_url }}" placeholder="https://yourwebsite.com">
-              <p class="text-xs text-gray-500 mt-1">Your personal or portfolio website URL</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.author_url_hint') }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Organization Name</label>
-              <input type="text" name="organization_name" class="form-input" value="{{ settings.organization_name }}" placeholder="Your Studio Name">
-              <p class="text-xs text-gray-500 mt-1">Studio or business name (if applicable)</p>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.organization_name') }}</label>
+              <input type="text" name="organization_name" class="form-input" value="{{ settings.organization_name }}" placeholder="{{ trans('admin.seo.organization_name_placeholder') }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.organization_name_hint') }}</p>
             </div>
           </div>
         </div>
@@ -109,58 +109,58 @@
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
             <i class="fab fa-facebook mr-3 text-blue-600"></i>
-            Open Graph & Social Media
+            {{ trans('admin.seo.open_graph') }}
           </h2>
-          <p class="text-sm text-gray-600 mt-1">Settings for how your content appears when shared on social media</p>
+          <p class="text-sm text-gray-600 mt-1">{{ trans('admin.seo.open_graph_hint') }}</p>
         </div>
         <div class="p-6 space-y-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Site Name (Open Graph)</label>
-              <input type="text" name="og_site_name" class="form-input" value="{{ settings.og_site_name }}" placeholder="Photography Portfolio">
-              <p class="text-xs text-gray-500 mt-1">Name of your site for Open Graph</p>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.og_site_name') }}</label>
+              <input type="text" name="og_site_name" class="form-input" value="{{ settings.og_site_name }}" placeholder="{{ trans('admin.seo.og_site_name_placeholder') }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.og_site_name_hint') }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Content Type</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.content_type') }}</label>
               <select name="og_type" class="form-input">
-                <option value="website" {{ settings.og_type == 'website' ? 'selected' : '' }}>Website</option>
-                <option value="profile" {{ settings.og_type == 'profile' ? 'selected' : '' }}>Profile</option>
-                <option value="article" {{ settings.og_type == 'article' ? 'selected' : '' }}>Article</option>
+                <option value="website" {{ settings.og_type == 'website' ? 'selected' : '' }}>{{ trans('admin.seo.type_website') }}</option>
+                <option value="profile" {{ settings.og_type == 'profile' ? 'selected' : '' }}>{{ trans('admin.seo.type_profile') }}</option>
+                <option value="article" {{ settings.og_type == 'article' ? 'selected' : '' }}>{{ trans('admin.seo.type_article') }}</option>
               </select>
             </div>
           </div>
           
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Locale</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.locale') }}</label>
               <select name="og_locale" class="form-input">
-                <option value="en_US" {{ settings.og_locale == 'en_US' ? 'selected' : '' }}>English (US)</option>
-                <option value="en_GB" {{ settings.og_locale == 'en_GB' ? 'selected' : '' }}>English (UK)</option>
-                <option value="it_IT" {{ settings.og_locale == 'it_IT' ? 'selected' : '' }}>Italian</option>
-                <option value="fr_FR" {{ settings.og_locale == 'fr_FR' ? 'selected' : '' }}>French</option>
-                <option value="de_DE" {{ settings.og_locale == 'de_DE' ? 'selected' : '' }}>German</option>
-                <option value="es_ES" {{ settings.og_locale == 'es_ES' ? 'selected' : '' }}>Spanish</option>
+                <option value="en_US" {{ settings.og_locale == 'en_US' ? 'selected' : '' }}>{{ trans('admin.seo.locale_en_us') }}</option>
+                <option value="en_GB" {{ settings.og_locale == 'en_GB' ? 'selected' : '' }}>{{ trans('admin.seo.locale_en_gb') }}</option>
+                <option value="it_IT" {{ settings.og_locale == 'it_IT' ? 'selected' : '' }}>{{ trans('admin.seo.locale_it') }}</option>
+                <option value="fr_FR" {{ settings.og_locale == 'fr_FR' ? 'selected' : '' }}>{{ trans('admin.seo.locale_fr') }}</option>
+                <option value="de_DE" {{ settings.og_locale == 'de_DE' ? 'selected' : '' }}>{{ trans('admin.seo.locale_de') }}</option>
+                <option value="es_ES" {{ settings.og_locale == 'es_ES' ? 'selected' : '' }}>{{ trans('admin.seo.locale_es') }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Twitter Card Type</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.twitter_card_type') }}</label>
               <select name="twitter_card" class="form-input">
-                <option value="summary_large_image" {{ settings.twitter_card == 'summary_large_image' ? 'selected' : '' }}>Large Image</option>
-                <option value="summary" {{ settings.twitter_card == 'summary' ? 'selected' : '' }}>Summary</option>
+                <option value="summary_large_image" {{ settings.twitter_card == 'summary_large_image' ? 'selected' : '' }}>{{ trans('admin.seo.twitter_large_image') }}</option>
+                <option value="summary" {{ settings.twitter_card == 'summary' ? 'selected' : '' }}>{{ trans('admin.seo.twitter_summary') }}</option>
               </select>
             </div>
           </div>
           
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Twitter Site</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.twitter_site') }}</label>
               <input type="text" name="twitter_site" class="form-input" value="{{ settings.twitter_site }}" placeholder="@yourusername">
-              <p class="text-xs text-gray-500 mt-1">Your Twitter username (with @)</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.twitter_site_hint') }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Twitter Creator</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.twitter_creator') }}</label>
               <input type="text" name="twitter_creator" class="form-input" value="{{ settings.twitter_creator }}" placeholder="@yourusername">
-              <p class="text-xs text-gray-500 mt-1">Content creator Twitter username</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.twitter_creator_hint') }}</p>
             </div>
           </div>
         </div>
@@ -171,22 +171,22 @@
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
             <i class="fas fa-code mr-3 text-green-600"></i>
-            Schema.org & Structured Data
+            {{ trans('admin.seo.schema_structured_data') }}
           </h2>
-          <p class="text-sm text-gray-600 mt-1">Configure structured data markup for better search engine understanding</p>
+          <p class="text-sm text-gray-600 mt-1">{{ trans('admin.seo.schema_hint') }}</p>
         </div>
         <div class="p-6 space-y-6">
           <div class="flex items-center gap-6">
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="schema_enabled" value="1" class="sr-only peer" {{ settings.schema_enabled ? 'checked' : '' }}>
               <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              <span class="ml-3 text-sm font-medium text-gray-900">Enable Schema.org markup</span>
+              <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.enable_schema') }}</span>
             </label>
-            
+
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="breadcrumbs_enabled" value="1" class="sr-only peer" {{ settings.breadcrumbs_enabled ? 'checked' : '' }}>
               <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              <span class="ml-3 text-sm font-medium text-gray-900">Enable breadcrumbs schema</span>
+              <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.enable_breadcrumbs') }}</span>
             </label>
           </div>
 
@@ -194,26 +194,26 @@
           <div class="border border-gray-200 rounded-lg p-4">
             <h3 class="text-md font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-camera mr-2 text-purple-600"></i>
-              Professional Photographer Schema
+              {{ trans('admin.seo.photographer_schema') }}
             </h3>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
-                <input type="text" name="photographer_job_title" class="form-input" value="{{ settings.photographer_job_title }}" placeholder="Professional Photographer">
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.job_title') }}</label>
+                <input type="text" name="photographer_job_title" class="form-input" value="{{ settings.photographer_job_title }}" placeholder="{{ trans('admin.seo.job_title_placeholder') }}">
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Services Offered</label>
-                <input type="text" name="photographer_services" class="form-input" value="{{ settings.photographer_services }}" placeholder="Professional Photography Services">
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.services_offered') }}</label>
+                <input type="text" name="photographer_services" class="form-input" value="{{ settings.photographer_services }}" placeholder="{{ trans('admin.seo.services_placeholder') }}">
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Area Served</label>
-                <input type="text" name="photographer_area_served" class="form-input" value="{{ settings.photographer_area_served }}" placeholder="New York, NY">
-                <p class="text-xs text-gray-500 mt-1">Geographic area you serve</p>
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.area_served') }}</label>
+                <input type="text" name="photographer_area_served" class="form-input" value="{{ settings.photographer_area_served }}" placeholder="{{ trans('admin.seo.area_served_placeholder') }}">
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.area_served_hint') }}</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Social Media Links</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.social_media_links') }}</label>
                 <textarea name="photographer_same_as" rows="3" class="form-input" placeholder="https://instagram.com/username&#10;https://facebook.com/page&#10;https://linkedin.com/in/profile">{{ settings.photographer_same_as }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">One URL per line (Instagram, Facebook, LinkedIn, etc.)</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.social_media_hint') }}</p>
               </div>
             </div>
           </div>
@@ -223,73 +223,73 @@
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-md font-medium text-gray-900 flex items-center">
                 <i class="fas fa-map-marker-alt mr-2 text-red-600"></i>
-                Local Business Schema
+                {{ trans('admin.seo.local_business_schema') }}
               </h3>
               <label class="flex items-center cursor-pointer">
                 <input type="checkbox" name="local_business_enabled" value="1" class="sr-only peer" {{ settings.local_business_enabled ? 'checked' : '' }}>
                 <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                <span class="ml-3 text-sm font-medium text-gray-900">Enable Local Business</span>
+                <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.enable_local_business') }}</span>
               </label>
             </div>
             
             <div id="local-business-fields" class="{{ settings.local_business_enabled ? '' : 'opacity-50 pointer-events-none' }}">
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Business Name</label>
-                  <input type="text" name="local_business_name" class="form-input" value="{{ settings.local_business_name }}" placeholder="Your Studio Name">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.business_name') }}</label>
+                  <input type="text" name="local_business_name" class="form-input" value="{{ settings.local_business_name }}" placeholder="{{ trans('admin.seo.business_name_placeholder') }}">
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Business Type</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.business_type') }}</label>
                   <select name="local_business_type" class="form-input">
-                    <option value="ProfessionalService" {{ settings.local_business_type == 'ProfessionalService' ? 'selected' : '' }}>Professional Service</option>
-                    <option value="LocalBusiness" {{ settings.local_business_type == 'LocalBusiness' ? 'selected' : '' }}>Local Business</option>
-                    <option value="Store" {{ settings.local_business_type == 'Store' ? 'selected' : '' }}>Store</option>
+                    <option value="ProfessionalService" {{ settings.local_business_type == 'ProfessionalService' ? 'selected' : '' }}>{{ trans('admin.seo.professional_service') }}</option>
+                    <option value="LocalBusiness" {{ settings.local_business_type == 'LocalBusiness' ? 'selected' : '' }}>{{ trans('admin.seo.local_business') }}</option>
+                    <option value="Store" {{ settings.local_business_type == 'Store' ? 'selected' : '' }}>{{ trans('admin.seo.store') }}</option>
                   </select>
                 </div>
               </div>
               
               <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
                 <div class="lg:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                  <input type="text" name="local_business_address" class="form-input" value="{{ settings.local_business_address }}" placeholder="123 Main Street">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.address') }}</label>
+                  <input type="text" name="local_business_address" class="form-input" value="{{ settings.local_business_address }}" placeholder="{{ trans('admin.seo.address_placeholder') }}">
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.phone') }}</label>
                   <input type="tel" name="local_business_phone" class="form-input" value="{{ settings.local_business_phone }}" placeholder="+1-555-123-4567">
                 </div>
               </div>
               
               <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">City</label>
-                  <input type="text" name="local_business_city" class="form-input" value="{{ settings.local_business_city }}" placeholder="New York">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.city') }}</label>
+                  <input type="text" name="local_business_city" class="form-input" value="{{ settings.local_business_city }}" placeholder="{{ trans('admin.seo.city_placeholder') }}">
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.postal_code') }}</label>
                   <input type="text" name="local_business_postal_code" class="form-input" value="{{ settings.local_business_postal_code }}" placeholder="10001">
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.country') }}</label>
                   <input type="text" name="local_business_country" class="form-input" value="{{ settings.local_business_country }}" placeholder="US">
                 </div>
               </div>
               
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Latitude</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.latitude') }}</label>
                   <input type="text" name="local_business_geo_lat" class="form-input" value="{{ settings.local_business_geo_lat }}" placeholder="40.7128">
-                  <p class="text-xs text-gray-500 mt-1">Geographic coordinates for maps</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.geo_hint') }}</p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Longitude</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.longitude') }}</label>
                   <input type="text" name="local_business_geo_lng" class="form-input" value="{{ settings.local_business_geo_lng }}" placeholder="-74.0060">
                 </div>
               </div>
               
               <div class="mt-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Opening Hours</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.opening_hours') }}</label>
                 <textarea name="local_business_opening_hours" rows="3" class="form-input" placeholder="Mo-Fr 09:00-18:00&#10;Sa 10:00-16:00">{{ settings.local_business_opening_hours }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">One time range per line (e.g., Mo-Fr 09:00-18:00)</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.opening_hours_hint') }}</p>
               </div>
             </div>
           </div>
@@ -301,25 +301,25 @@
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
             <i class="fas fa-cogs mr-3 text-gray-600"></i>
-            Technical SEO
+            {{ trans('admin.seo.technical_seo') }}
           </h2>
-          <p class="text-sm text-gray-600 mt-1">Technical settings for search engines and crawlers</p>
+          <p class="text-sm text-gray-600 mt-1">{{ trans('admin.seo.technical_seo_hint') }}</p>
         </div>
         <div class="p-6 space-y-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Default Robots Meta</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.robots_meta') }}</label>
               <select name="robots_default" class="form-input">
-                <option value="index,follow" {{ settings.robots_default == 'index,follow' ? 'selected' : '' }}>Index, Follow</option>
-                <option value="index,nofollow" {{ settings.robots_default == 'index,nofollow' ? 'selected' : '' }}>Index, No Follow</option>
-                <option value="noindex,follow" {{ settings.robots_default == 'noindex,follow' ? 'selected' : '' }}>No Index, Follow</option>
-                <option value="noindex,nofollow" {{ settings.robots_default == 'noindex,nofollow' ? 'selected' : '' }}>No Index, No Follow</option>
+                <option value="index,follow" {{ settings.robots_default == 'index,follow' ? 'selected' : '' }}>{{ trans('admin.seo.index_follow') }}</option>
+                <option value="index,nofollow" {{ settings.robots_default == 'index,nofollow' ? 'selected' : '' }}>{{ trans('admin.seo.index_nofollow') }}</option>
+                <option value="noindex,follow" {{ settings.robots_default == 'noindex,follow' ? 'selected' : '' }}>{{ trans('admin.seo.noindex_follow') }}</option>
+                <option value="noindex,nofollow" {{ settings.robots_default == 'noindex,nofollow' ? 'selected' : '' }}>{{ trans('admin.seo.noindex_nofollow') }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Canonical Base URL</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.canonical_url') }}</label>
               <input type="url" name="canonical_base_url" class="form-input" value="{{ settings.canonical_base_url }}" placeholder="https://yourwebsite.com">
-              <p class="text-xs text-gray-500 mt-1">Base URL for canonical links and sitemap</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.canonical_url_hint') }}</p>
             </div>
           </div>
           
@@ -327,20 +327,20 @@
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="sitemap_enabled" value="1" class="sr-only peer" {{ settings.sitemap_enabled ? 'checked' : '' }}>
               <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              <span class="ml-3 text-sm font-medium text-gray-900">Enable XML sitemap</span>
+              <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.enable_sitemap') }}</span>
             </label>
           </div>
           
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Google Analytics (gtag)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.google_analytics') }}</label>
               <input type="text" name="analytics_gtag" class="form-input" value="{{ settings.analytics_gtag }}" placeholder="G-XXXXXXXXXX">
-              <p class="text-xs text-gray-500 mt-1">Google Analytics 4 Measurement ID</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.google_analytics_hint') }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Google Tag Manager</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.google_tag_manager') }}</label>
               <input type="text" name="analytics_gtm" class="form-input" value="{{ settings.analytics_gtm }}" placeholder="GTM-XXXXXXX">
-              <p class="text-xs text-gray-500 mt-1">Google Tag Manager Container ID</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.google_tag_manager_hint') }}</p>
             </div>
           </div>
         </div>
@@ -351,47 +351,47 @@
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
             <i class="fas fa-image mr-3 text-yellow-600"></i>
-            Image SEO & Copyright
+            {{ trans('admin.seo.image_seo') }}
           </h2>
-          <p class="text-sm text-gray-600 mt-1">Settings for image optimization and copyright protection</p>
+          <p class="text-sm text-gray-600 mt-1">{{ trans('admin.seo.image_seo_hint') }}</p>
         </div>
         <div class="p-6 space-y-6">
           <div class="flex items-center gap-6">
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="image_alt_auto" value="1" class="sr-only peer" {{ settings.image_alt_auto ? 'checked' : '' }}>
               <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              <span class="ml-3 text-sm font-medium text-gray-900">Auto-generate alt text from captions</span>
+              <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.auto_alt_text') }}</span>
             </label>
-            
+
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="preload_critical_images" value="1" class="sr-only peer" {{ settings.preload_critical_images ? 'checked' : '' }}>
               <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              <span class="ml-3 text-sm font-medium text-gray-900">Preload critical images</span>
+              <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.preload_critical') }}</span>
             </label>
-            
+
             <label class="flex items-center cursor-pointer">
               <input type="checkbox" name="lazy_load_images" value="1" class="sr-only peer" {{ settings.lazy_load_images ? 'checked' : '' }}>
               <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              <span class="ml-3 text-sm font-medium text-gray-900">Enable lazy loading</span>
+              <span class="ml-3 text-sm font-medium text-gray-900">{{ trans('admin.seo.lazy_loading') }}</span>
             </label>
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Copyright Notice</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.copyright_notice') }}</label>
             <input type="text" name="image_copyright_notice" class="form-input" value="{{ settings.image_copyright_notice }}" placeholder="© {year} Your Name. All rights reserved.">
-            <p class="text-xs text-gray-500 mt-1">Default copyright notice for images. Use <code class="bg-gray-100 px-1 rounded">{year}</code> for current year.</p>
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.copyright_hint') }}</p>
           </div>
           
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">License URL</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.license_url') }}</label>
               <input type="url" name="image_license_url" class="form-input" value="{{ settings.image_license_url }}" placeholder="https://creativecommons.org/licenses/by-nc/4.0/">
-              <p class="text-xs text-gray-500 mt-1">URL to license terms (e.g., Creative Commons)</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.license_url_hint') }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">License Purchase Page</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.seo.license_purchase') }}</label>
               <input type="url" name="image_acquire_license_page" class="form-input" value="{{ settings.image_acquire_license_page }}" placeholder="https://yourwebsite.com/licensing">
-              <p class="text-xs text-gray-500 mt-1">Page where visitors can purchase licenses</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.seo.license_purchase_hint') }}</p>
             </div>
           </div>
         </div>
@@ -405,7 +405,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // SEO page initialization - Compatible with SPA
 function initializeSEOPage() {
   // Local business toggle

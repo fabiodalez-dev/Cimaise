@@ -60,6 +60,7 @@ class SettingsService
             'site.copyright' => '© {year} Photography Portfolio',
             'site.email' => '',
             'site.language' => 'en',
+            'admin.language' => 'en',
             'date.format' => 'Y-m-d',
             // TODO: performance.compression is stored but not consumed by middleware - wire up or remove
             'performance.compression' => true,

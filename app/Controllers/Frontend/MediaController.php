@@ -71,7 +71,7 @@ class MediaController extends BaseController
         }
 
         // Validate variant name (prevent path traversal)
-        if (!preg_match('/^(sm|md|lg|blur|thumb)$/', $variant)) {
+        if (!preg_match('/^(sm|md|lg|xl|xxl|blur|thumb)$/', $variant)) {
             return $response->withStatus(400);
         }
 
@@ -104,7 +104,8 @@ class MediaController extends BaseController
         // Check access for protected albums
         if (!$isAdmin) {
             // Password-protected album check (session stores timestamp, valid for 24h)
-            if ($isPasswordProtected) {
+            // Blur variant is always allowed for preview purposes
+            if ($isPasswordProtected && $variant !== 'blur') {
                 $accessTime = $_SESSION['album_access'][$albumId] ?? null;
                 $hasAccess = $accessTime !== null && time() - (int)$accessTime < 86400;
                 if (!$hasAccess) {
@@ -133,7 +134,7 @@ class MediaController extends BaseController
             return $response->withStatus(404);
         }
 
-        // Build file path - variants are stored in storage/protected/
+        // Build file path - DB stores URL paths like /media/... which map to public/media/
         $root = dirname(__DIR__, 3);
         $relativePath = ltrim($variantRow['path'], '/');
 
@@ -142,7 +143,12 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        $filePath = "{$root}/{$relativePath}";
+        // Convert URL path to filesystem path (media/ -> public/media/)
+        if (str_starts_with($relativePath, 'media/')) {
+            $filePath = "{$root}/public/{$relativePath}";
+        } else {
+            $filePath = "{$root}/{$relativePath}";
+        }
         $realPath = realpath($filePath);
 
         // Validate file exists and is within allowed directories
@@ -345,7 +351,8 @@ class MediaController extends BaseController
         // Check access for protected albums
         if (!$isAdmin) {
             // Password-protected album check (session stores timestamp, valid for 24h)
-            if ($isPasswordProtected) {
+            // Blur variant is always allowed for preview purposes
+            if ($isPasswordProtected && $variant !== 'blur') {
                 $accessTime = $_SESSION['album_access'][$albumId] ?? null;
                 $hasAccess = $accessTime !== null && time() - (int)$accessTime < 86400;
                 if (!$hasAccess) {

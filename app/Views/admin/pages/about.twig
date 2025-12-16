@@ -1,12 +1,12 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Pages — About{% endblock %}
+{% block title %}{{ trans('admin.pages.title') }} — About{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Pages</h1>
-      <p class="text-gray-600 mt-1">Modifica la pagina <strong>About</strong></p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.pages.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.pages.about.edit')|raw }}</p>
     </div>
-    <a href="{{ base_path }}/about" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt mr-2"></i>Vedi pagina</a>
+    <a href="{{ base_path }}/about" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt mr-2"></i>{{ trans('admin.pages.view_page') }}</a>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -19,24 +19,24 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-heading mr-3 text-gray-600"></i>
-              Testi base
+              {{ trans('admin.pages.basic_texts') }}
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Titolo pagina</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.page_title') }}</label>
                 <input type="text" name="about_title" class="form-input" placeholder="About" value="{{ settings['about.title']|default('About') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Sottotitolo</label>
-                <input type="text" name="about_subtitle" class="form-input" placeholder="Fotografia analogica e digitale, ..." value="{{ settings['about.subtitle']|default('') }}">
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.subtitle') }}</label>
+                <input type="text" name="about_subtitle" class="form-input" placeholder="Analog and digital photography, ..." value="{{ settings['about.subtitle']|default('') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Permalink</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.permalink') }}</label>
                 <div class="flex items-center gap-2">
                   <span class="text-sm text-gray-500 select-none">/</span>
                   <input type="text" name="about_slug" class="form-input" placeholder="about" value="{{ settings['about.slug']|default('about') }}">
                 </div>
-                <p class="text-xs text-gray-500 mt-1">Solo lettere, numeri e trattini (kebab-case)</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.permalink_help') }}</p>
               </div>
             </div>
           </div>
@@ -46,10 +46,10 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-user mr-3 text-gray-600"></i>
-              Testo di presentazione
+              {{ trans('admin.pages.about.bio_text') }}
             </h3>
-            <textarea name="about_text" rows="14" class="form-input richtext" placeholder="Scrivi una breve bio, il tuo approccio, riconoscimenti, contatti...">{{ settings['about.text'] }}</textarea>
-            <p class="text-xs text-gray-500 mt-2">Supporta testo semplice con a capo. Il frontend mantiene uno stile minimale B/N.</p>
+            <textarea name="about_text" rows="14" class="form-input richtext" placeholder="{{ trans('admin.pages.about.bio_placeholder') }}">{{ settings['about.text'] }}</textarea>
+            <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.about.bio_help') }}</p>
           </div>
         </div>
 
@@ -57,10 +57,10 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-quote-left mr-3 text-gray-600"></i>
-              Testo introduzione contatti
+              {{ trans('admin.pages.about.contact_intro') }}
             </h3>
-            <input type="text" name="about_footer_text" class="form-input" placeholder="Per collaborazioni e commissioni, contattami via email o social." value="{{ settings['about.footer_text']|default('') }}">
-            <p class="text-xs text-gray-500 mt-2">Breve frase mostrata come introduzione al form contatti</p>
+            <input type="text" name="about_footer_text" class="form-input" placeholder="{{ trans('admin.pages.about.contact_intro_placeholder') }}" value="{{ settings['about.footer_text']|default('') }}">
+            <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.about.contact_intro_help') }}</p>
           </div>
         </div>
 
@@ -68,19 +68,19 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-image mr-3 text-gray-600"></i>
-              Foto profilo
+              {{ trans('admin.pages.about.profile_photo') }}
             </h3>
             <div class="flex items-start gap-6">
               <div class="w-40 h-40 bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
                 {% if settings['about.photo_url'] %}
                   <img src="{{ settings['about.photo_url'] }}" alt="About photo" class="object-cover w-full h-full">
                 {% else %}
-                  <span class="text-gray-400 text-sm">Nessuna foto</span>
+                  <span class="text-gray-400 text-sm">{{ trans('admin.pages.about.no_photo') }}</span>
                 {% endif %}
               </div>
               <div class="flex-1">
                 <input type="file" name="about_photo" accept="image/jpeg,image/png" class="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800" />
-                <p class="text-xs text-gray-500 mt-2">Carica JPG o PNG. Verrà generata una versione web ottimizzata (max 1600px).</p>
+                <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.about.photo_help') }}</p>
               </div>
             </div>
           </div>
@@ -125,29 +125,29 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-envelope mr-3 text-gray-600"></i>
-              Contatti
+              {{ trans('admin.pages.about.contact') }}
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Titolo sezione contatti</label>
-                <input type="text" name="contact_title" class="form-input" placeholder="Contatti" value="{{ settings['about.contact_title']|default('Contatti') }}">
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.about.contact_section_title') }}</label>
+                <input type="text" name="contact_title" class="form-input" placeholder="Contact" value="{{ settings['about.contact_title']|default('Contact') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Email destinatario</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.about.recipient_email') }}</label>
                 <input type="email" name="contact_email" class="form-input" placeholder="you@example.com" value="{{ settings['about.contact_email']|default('') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Prefisso oggetto</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.about.subject_prefix') }}</label>
                 <input type="text" name="contact_subject" class="form-input" placeholder="Portfolio" value="{{ settings['about.contact_subject']|default('Portfolio') }}">
               </div>
             </div>
-            <p class="text-xs text-gray-500 mt-2">Il form About invierà una email a questo indirizzo usando PHP mail()</p>
+            <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.about.contact_help') }}</p>
           </div>
         </div>
 
         <div class="flex items-center justify-end gap-3">
-          <a href="{{ base_path }}/admin" class="btn-secondary">Annulla</a>
-          <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>Salva</button>
+          <a href="{{ base_path }}/admin" class="btn-secondary">{{ trans('admin.pages.cancel') }}</a>
+          <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>{{ trans('admin.pages.save') }}</button>
         </div>
       </form>
     </div>
@@ -156,14 +156,14 @@
     <div class="lg:col-span-1">
       <div class="card">
         <div class="p-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-2">Stile</h3>
-          <p class="text-sm text-gray-600">La pagina About usa un layout minimale in bianco e nero, con ampia tipografia e immagine a tutta altezza su desktop.</p>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.pages.about.style') }}</h3>
+          <p class="text-sm text-gray-600">{{ trans('admin.pages.about.style_description') }}</p>
         </div>
       </div>
     </div>
   </div>
   <script src="{{ base_path }}/assets/vendor/tinymce/tinymce.min.js"></script>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     document.addEventListener('DOMContentLoaded', function(){
       if (window.tinymce) {
         tinymce.init({

@@ -3,14 +3,18 @@
 <!-- AUTO-MANAGED: project-description -->
 ## Overview
 
-**Cimaise** is a minimalist photography CMS built with PHP 8.2+, Slim 4, Twig, and SQLite/MySQL. It provides photographers with elegant galleries, advanced image processing (AVIF, WebP, JPEG), film photography metadata support, and comprehensive SEO.
+**Cimaise** is a photography portfolio CMS built by photographers, for photographers. Built with PHP 8.2+, Slim 4, Twig, and SQLite/MySQL.
 
-Key features:
-- Multi-database support (SQLite default, MySQL optional)
-- Responsive image variants with modern formats
-- Multiple gallery templates with NSFW protection
-- Built-in analytics and cookie consent (GDPR)
-- Plugin architecture for extensibility
+Tagline: "The photography portfolio CMS that gets out of your way."
+
+Core value propositions:
+- **Blazing Fast**: AVIF, WebP, JPEG optimization with 6 responsive breakpoints
+- **Film-Ready**: Track cameras, lenses, film stocks, developers, labs
+- **SEO That Works**: Server-side rendering, structured data, automatic sitemaps
+- **Privacy First**: GDPR-compliant cookie consent, no third-party tracking by default
+- **Truly Yours**: Self-hosted, open source (MIT), no vendor lock-in
+
+Gallery templates: Classic Grid, Masonry, Magazine, Magazine + Cover
 
 <!-- END AUTO-MANAGED -->
 
@@ -88,7 +92,7 @@ photoCMS/
 ├── plugins/                 # Plugin directory
 ├── resources/               # Source assets (pre-build)
 ├── storage/
-│   ├── translations/        # i18n JSON files (en.json, it.json)
+│   ├── translations/        # i18n JSON files (en.json, it.json, en_admin.json, it_admin.json)
 │   ├── cache/               # Template cache
 │   ├── logs/                # Application logs
 │   └── tmp/                 # Temporary files
@@ -107,17 +111,19 @@ photoCMS/
 - `app/Services/UploadService.php` - Image processing and variant generation (AVIF, WebP, JPEG, blur)
 - `app/Services/SettingsService.php` - Settings management with JSON storage, defaults, and type tracking (null/boolean/number/string)
 - `app/Services/TranslationService.php` - i18n with JSON storage (storage/translations/)
-- `app/Controllers/Admin/TextsController.php` - Translation management with import/export, search/filter, and preset language support
+- `app/Controllers/Admin/TextsController.php` - Translation management with import/export, search/filter, server-side language dropdown via `getAvailableLanguages()`, and preset language support
+- `app/Controllers/Admin/SocialController.php` - Social sharing settings management with network enable/disable, ordering, AJAX/form support
 - `app/Extensions/DateTwigExtension.php` - Twig extension for date formatting (filters: date_format, datetime_format, replace_year; functions: date_format_pattern)
 - `app/Middlewares/RateLimitMiddleware.php` - Brute-force protection and API rate limiting
+- `app/Middlewares/SecurityHeadersMiddleware.php` - Security headers (CSP, HSTS, X-Frame-Options) with per-request nonce generation
 - `app/Views/admin/settings.twig` - Settings page with image formats, breakpoints, site config, and gallery templates
-- `app/Views/admin/texts/index.twig` - Translation management UI with import/export/upload and language preset selection
+- `app/Views/admin/texts/index.twig` - Translation management UI with import/export/upload, server-side language dropdown, and language preset selection
 - `app/Views/frontend/_album_card.twig` - Album card template with NSFW blur variant logic
 - `app/Views/frontend/_breadcrumbs.twig` - Breadcrumbs with automatic JSON-LD schema generation
 - `app/Views/frontend/_social_sharing.twig` - Social sharing buttons template
 - `app/Views/frontend/galleries.twig` - Galleries page with filter UI and album grid
 - `app/Views/installer/database.twig` - Database configuration step with SQLite/MySQL connection options and testing
-- `app/Views/installer/*.twig` - 5-step installer wizard templates (index, database, admin, settings, confirm)
+- `app/Views/installer/*.twig` - 5-step installer wizard templates (index, database, admin, settings, confirm) - post_setup step removed
 
 ### Data Flow
 1. Request → `public/index.php` → Slim App
@@ -147,8 +153,10 @@ photoCMS/
 
 ### Frontend
 - **Twig templates**: `{% extends %}` for layouts, `{% include %}` for partials
-- **Translation function**: `{{ trans('key.name') }}` for i18n
+- **Translation function**: `{{ trans('key.name') }}` for i18n (used in both frontend and admin templates)
+- **Admin panel i18n**: Fully internationalized with `trans('admin.*')` keys and `en_admin.json`/`it_admin.json` files
 - **Date formatting**: Use `{{ date|date_format }}`, `{{ datetime|datetime_format }}`, `{{ text|replace_year }}` filters
+- **CSP nonce**: Use `{{ csp_nonce() }}` for inline scripts (required by Content Security Policy)
 - **Tailwind CSS**: Utility-first styling
 - **JavaScript**: ES6 modules, localStorage with Safari-safe wrappers
 
@@ -210,6 +218,15 @@ $app->get('/path', function(...) { ... })
 - Password hashing with `password_hash()`
 - CSRF tokens on all forms
 
+### Content Security Policy (CSP)
+- **SecurityHeadersMiddleware**: Generates unique nonce per request for inline scripts
+- **Nonce generation**: `base64_encode(random_bytes(16))` stored in static property
+- **Request attribute**: Nonce attached to request as `csp_nonce` attribute
+- **Twig function**: `{{ csp_nonce() }}` function via SecurityTwigExtension
+- **CSP header**: `script-src 'self' 'unsafe-inline' 'nonce-{nonce}'` allows nonce-tagged scripts
+- **Usage pattern**: `<script nonce="{{ csp_nonce() }}">...</script>` for inline JavaScript
+- **Additional headers**: X-Content-Type-Options, X-Frame-Options, HSTS, Referrer-Policy, Permissions-Policy
+
 ### Advanced Filtering (Galleries)
 - Multi-criteria filtering: categories, tags, cameras, lenses, films, locations, year, search
 - AJAX-based filter API endpoint (`/galleries/filter`)
@@ -236,6 +253,7 @@ $app->get('/path', function(...) { ... })
 
 ### Installer Flow (Multi-Step Wizard)
 - **5-step process**: Welcome (requirements check) → Database → Admin User → Settings → Confirm & Install
+- **Note**: Post-setup step removed (commit 30e830d) - settings now collected before installation, not after
 - **Session-based config storage**: Each step stores data in `$_SESSION['install_*_config']` arrays (db_config, admin_config, settings_config)
 - **CSRF protection**: All forms include CSRF token validation with hash_equals comparison
 - **MySQL auto-detection**: AJAX endpoint `/install/test-mysql` tests connection and auto-detects charset/collation (rate limited: 10 req/5min)
@@ -243,7 +261,7 @@ $app->get('/path', function(...) { ... })
 - **Default collation**: Uses `utf8mb4_unicode_ci` (more compatible than `utf8mb4_0900_ai_ci`)
 - **Database connection testing**: Validates MySQL/SQLite connection before proceeding to next step
 - **Visual step indicator**: Shows progress through installer stages with step numbers
-- **Settings step**: Collects site title, description, copyright (with {year} placeholder), email, language (en/it), date format (Y-m-d/d-m-Y), and optional logo upload
+- **Settings step**: Collects site title, description, copyright (with {year} placeholder), email, language (en/it for both frontend and admin), date format (Y-m-d/d-m-Y), and optional logo upload
 - **Rollback on failure**: Auto-cleanup of .env and SQLite database files if installation fails; drops MySQL tables via `rollback()` method
 - **State tracking**: `Installer` class tracks `envWritten`, `dbCreated`, `createdDbPath` for proper rollback logic
 - **CLI installer**: `php bin/console install` provides interactive command-line installation with SymfonyStyle prompts for all configuration
@@ -266,25 +284,41 @@ $app->get('/path', function(...) { ... })
 - **Used extensively**: Album shoot dates, user timestamps, admin panel date displays, footer copyright
 
 ### Translation Management (i18n)
-- **TextsController**: Admin panel for managing translations with CRUD operations, search/filter, and context grouping
+- **Dual translation system**: Separate JSON files for frontend and admin panel
+  - Frontend: `en.json`, `it.json` (public-facing UI)
+  - Admin: `en_admin.json`, `it_admin.json` (admin panel UI)
+- **Settings**: Two separate language settings:
+  - `site.language` - Language for public website (selectable at install)
+  - `admin.language` - Language for admin panel (selectable at install)
+- **TranslationService scope**: Service uses `setScope('frontend'|'admin')` to switch between translation contexts
+  - Separate language tracking: `language` (frontend) and `adminLanguage` (admin)
+  - Method `getActiveLanguage()` returns current scope's language
+  - Cache invalidation on scope/language changes
+- **TextsController**: Admin panel for managing translations with CRUD operations, search/filter, and scope selector (frontend/admin/all)
 - **Import/Export system**: Download translations as JSON, import from preset languages, upload custom JSON files
 - **Three import modes**:
   - Merge: Update existing keys, add new ones (default)
   - Replace: Overwrite existing keys, add new ones
   - Skip: Only add new keys, leave existing unchanged
-- **Preset languages**: Server-side language files with versioning (e.g., en.json v1.0, it.json v1.0)
+- **Preset languages**: Server-side language files with versioning in `storage/translations/`
+- **Language dropdown**: Server-side rendering via `getAvailableLanguages()` method (not AJAX) to prevent silent failures on fresh installs
 - **Save as preset**: Upload custom JSON and save it as a preset language file in storage/translations/
+- **Translation source**: Loads from JSON files in `storage/translations/` by default; database table used only for user customizations
+- **Schema approach**: Database schemas do not include default translation INSERTs; keeps JSON as single source of truth
 - **Context grouping**: Organize translations by context (general, admin, nav, etc.) for easier management
 - **Inline editing**: AJAX-based inline text editing without page reload (with CSRF protection)
-- **TranslationService**: Backend service for database-driven i18n with fallback to JSON files
-- **Usage in templates**: `{{ trans('key.name') }}` function for all translatable text
+- **TranslationService**: Backend service with JSON-first loading, loads appropriate file based on context (frontend vs admin)
+- **Usage in templates**: `{{ trans('key.name') }}` function for all translatable text in both frontend and admin
 
 ### Social Sharing
 - **Template component**: `_social_sharing.twig` for social media sharing buttons
-- **Configurable networks**: Dynamically enables/disables social networks via settings
+- **Admin management**: `SocialController` provides UI for enabling/disabling networks and reordering
+- **Settings storage**: `social.enabled` (array of enabled networks) and `social.order` (display order)
+- **Default networks**: Behance, WhatsApp, Facebook, X, DeviantArt, Instagram, Pinterest, Telegram, Threads, Bluesky
+- **Dual input support**: Accepts both form-encoded and JSON payloads with AJAX response capability
+- **Network configuration**: Each network has name, icon, color, and URL template with {title}/{url} placeholders
 - **URL encoding**: Properly encodes title and URL for sharing parameters
-- **Multiple link types**: Supports standard URLs, JavaScript handlers, and display-only buttons
-- **Security**: Validates share URLs, adds `rel="noopener noreferrer"` for external links
+- **Security**: Validates share URLs, adds `rel="noopener noreferrer"` for external links, CSRF protection
 - **Icon support**: Uses FontAwesome icons for network branding
 
 <!-- END AUTO-MANAGED -->
@@ -306,6 +340,7 @@ $app->get('/path', function(...) { ... })
 - MediaController enforces session checks before streaming any protected/NSFW image
 - Blur variants always allowed for preview purposes (no session required)
 - Admin users bypass all access restrictions
+- **CSP nonce**: Always add `nonce="{{ csp_nonce() }}"` to inline `<script>` tags for Content Security Policy compliance
 
 ### Performance
 - Use responsive images with `<picture>` element
