@@ -73,7 +73,7 @@
             <i class="fas fa-folder-open mr-1 text-gray-600"></i>
             {{ trans('filter.categories') }}
           </label>
-          <select id="filter-categories" class="filter-select" multiple data-placeholder="Select categories...">
+          <select id="filter-categories" class="filter-select" multiple data-placeholder="{{ trans('filter.select_categories') }}">
             {% for category in filter_options.categories %}
             <option value="{{ category.id }}" {% if category.id in active_filters.category|default([]) %}selected{% endif %}>
               {{ category.name }} ({{ category.albums_count }})
@@ -90,7 +90,7 @@
             <i class="fas fa-tags mr-1 text-gray-600"></i>
             {{ trans('filter.tags') }}
           </label>
-          <select id="filter-tags" class="filter-select" multiple data-placeholder="Select tags...">
+          <select id="filter-tags" class="filter-select" multiple data-placeholder="{{ trans('filter.select_tags') }}">
             {% for tag in filter_options.tags %}
             <option value="{{ tag.id }}" {% if tag.id in active_filters.tags|default([]) %}selected{% endif %}>
               {{ tag.name }} ({{ tag.albums_count }})
@@ -107,7 +107,7 @@
             <i class="fas fa-camera mr-1 text-gray-600"></i>
             {{ trans('album.camera') }}
           </label>
-          <select id="filter-cameras" class="filter-select" multiple data-placeholder="Select cameras...">
+          <select id="filter-cameras" class="filter-select" multiple data-placeholder="{{ trans('filter.select_cameras') }}">
             {% for camera in filter_options.cameras %}
             <option value="{{ camera.id }}" {% if camera.id in active_filters.cameras|default([]) %}selected{% endif %}>
               {{ camera.make }} {{ camera.model }} ({{ camera.albums_count }})
@@ -124,7 +124,7 @@
             <i class="fas fa-eye mr-1 text-gray-600"></i>
             {{ trans('album.lens') }}
           </label>
-          <select id="filter-lenses" class="filter-select" multiple data-placeholder="Select lenses...">
+          <select id="filter-lenses" class="filter-select" multiple data-placeholder="{{ trans('filter.select_lenses') }}">
             {% for lens in filter_options.lenses %}
             <option value="{{ lens.id }}" {% if lens.id in active_filters.lenses|default([]) %}selected{% endif %}>
               {{ lens.brand }} {{ lens.model }} ({{ lens.albums_count }})
@@ -141,7 +141,7 @@
             <i class="fas fa-film mr-1 text-gray-600"></i>
             {{ trans('filter.film', {}, 'Film') }}
           </label>
-          <select id="filter-films" class="filter-select" multiple data-placeholder="Select films...">
+          <select id="filter-films" class="filter-select" multiple data-placeholder="{{ trans('filter.select_films') }}">
             {% for film in filter_options.films %}
             <option value="{{ film.id }}" {% if film.id in active_filters.films|default([]) %}selected{% endif %}>
               {{ film.brand }} {{ film.name }} ({{ film.albums_count }})
@@ -158,7 +158,7 @@
             <i class="fas fa-map-marker-alt mr-1 text-gray-600"></i>
             {{ trans('filter.location') }}
           </label>
-          <select id="filter-locations" class="filter-select" multiple data-placeholder="Select locations...">
+          <select id="filter-locations" class="filter-select" multiple data-placeholder="{{ trans('filter.select_locations') }}">
             {% for location in filter_options.locations %}
             <option value="{{ location.id }}" {% if location.id in active_filters.locations|default([]) %}selected{% endif %}>
               {{ location.name }} ({{ location.albums_count }})
@@ -175,7 +175,7 @@
             <i class="fas fa-calendar mr-1 text-gray-600"></i>
             {{ trans('filter.year') }}
           </label>
-          <select id="filter-year" class="filter-select" data-placeholder="Select year...">
+          <select id="filter-year" class="filter-select" data-placeholder="{{ trans('filter.select_year') }}">
             <option value="">{{ trans('filter.all') }}</option>
             {% for year in filter_options.years %}
             <option value="{{ year.year }}" {% if year.year == active_filters.year|default('') %}selected{% endif %}>
@@ -258,6 +258,11 @@
                  alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
                  class="nsfw-image w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
                  loading="lazy">
+            {% elseif is_nsfw_unconfirmed %}
+            {# NSFW without blur variant - show placeholder, DO NOT expose real image URL #}
+            <div class="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
+              <i class="fas fa-eye-slash text-4xl text-gray-500"></i>
+            </div>
             {% else %}
             <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
                  alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
@@ -278,20 +283,20 @@
           </div>
           {% endif %}
 
-          <!-- Image Count Badge -->
-          {% if album.images_count > 0 %}
-          <div class="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm z-20">
-            <i class="fas fa-images mr-1"></i>
-            {{ album.images_count }}
+          <!-- Top Right Badges (lock + count) -->
+          <div class="absolute top-4 right-4 flex items-center gap-2 z-20">
+            {% if album.is_password_protected %}
+            <div class="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" title="{{ trans('album.password_protected') }}">
+              <i class="fas fa-lock text-lg"></i>
+            </div>
+            {% endif %}
+            {% if album.images_count > 0 %}
+            <div class="bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
+              <i class="fas fa-images mr-1"></i>
+              {{ album.images_count }}
+            </div>
+            {% endif %}
           </div>
-          {% endif %}
-
-          <!-- Password Protected Badge -->
-          {% if album.is_password_protected %}
-          <div class="absolute top-4 {% if album.images_count > 0 %}right-20{% else %}right-4{% endif %} bg-amber-500/90 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm z-20" title="{{ trans('album.password_protected') }}">
-            <i class="fas fa-lock"></i>
-          </div>
-          {% endif %}
 
           <!-- Category Badge -->
           {% if album.category_name %}
@@ -758,19 +763,33 @@ function generateGalleryCard(album) {
     const rel = document.createElement('div');
     rel.className = 'relative aspect-[4/3] overflow-hidden bg-gray-100';
     if (safeSrc) {
-        const img = document.createElement('img');
         // For NSFW albums: use blurred image, store original in data-src
-        if (isNsfw && safeBlurSrc && !hasConfirmedNsfw()) {
-            img.src = safeBlurSrc;
-            img.setAttribute('data-src', safeSrc);
-            img.classList.add('nsfw-image');
+        if (isNsfw && !hasConfirmedNsfw()) {
+            if (safeBlurSrc) {
+                // NSFW with blur variant - show blur image
+                const img = document.createElement('img');
+                img.src = safeBlurSrc;
+                img.setAttribute('data-src', safeSrc);
+                img.classList.add('nsfw-image');
+                img.alt = alt;
+                img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
+                img.loading = 'lazy';
+                rel.appendChild(img);
+            } else {
+                // NSFW without blur variant - show placeholder, DO NOT expose real URL
+                const ph = document.createElement('div');
+                ph.className = 'w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center';
+                ph.innerHTML = '<i class="fas fa-eye-slash text-4xl text-gray-500"></i>';
+                rel.appendChild(ph);
+            }
         } else {
+            const img = document.createElement('img');
             img.src = safeSrc;
+            img.alt = alt;
+            img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
+            img.loading = 'lazy';
+            rel.appendChild(img);
         }
-        img.alt = alt;
-        img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
-        img.loading = 'lazy';
-        rel.appendChild(img);
     } else {
         const ph = document.createElement('div');
         ph.className = 'w-full h-full flex items-center justify-center text-gray-400';
@@ -784,18 +803,25 @@ function generateGalleryCard(album) {
         nsfwOverlay.innerHTML = '<i class="fas fa-eye-slash text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.nsfwWarningShort || '18+') + '</span>';
         rel.appendChild(nsfwOverlay);
     }
-    if ((album.images_count||0) > 0){
-        const badge = document.createElement('div');
-        badge.className = 'absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm';
-        badge.innerHTML = '<i class="fas fa-images mr-1"></i>' + esc(album.images_count);
-        rel.appendChild(badge);
-    }
+    // Top right badges container (lock + count)
+    const badgesContainer = document.createElement('div');
+    badgesContainer.className = 'absolute top-4 right-4 flex items-center gap-2 z-20';
+
     if (album.is_password_protected){
         const lock = document.createElement('div');
-        lock.className = 'absolute top-4 ' + ((album.images_count||0) > 0 ? 'right-20' : 'right-4') + ' bg-amber-500/90 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm';
+        lock.className = 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]';
         lock.title = window.pageTexts.passwordProtected || 'Password Protected';
-        lock.innerHTML = '<i class="fas fa-lock"></i>';
-        rel.appendChild(lock);
+        lock.innerHTML = '<i class="fas fa-lock text-lg"></i>';
+        badgesContainer.appendChild(lock);
+    }
+    if ((album.images_count||0) > 0){
+        const badge = document.createElement('div');
+        badge.className = 'bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm';
+        badge.innerHTML = '<i class="fas fa-images mr-1"></i>' + esc(album.images_count);
+        badgesContainer.appendChild(badge);
+    }
+    if (album.is_password_protected || (album.images_count||0) > 0) {
+        rel.appendChild(badgesContainer);
     }
     if (category){
         const cat = document.createElement('div');

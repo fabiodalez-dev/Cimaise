@@ -10,7 +10,7 @@
       {% set repeats = 6 %}
       {% for r in 1..repeats %}
         {% for album in albums %}
-          <div class="album-carousel-item flex-shrink-0 w-80 md:w-96 mx-12">
+          <div class="album-carousel-item flex-shrink-0 w-80 md:w-96 mx-4
             {% include "frontend/_album_card.twig" %}
           </div>
         {% endfor %}
@@ -19,8 +19,8 @@
     </div>
     <div class="albums-edge-left"></div>
     <div class="albums-edge-right"></div>
-    <button class="albums-arrow albums-arrow-left" aria-label="Previous" type="button">&#10094;</button>
-    <button class="albums-arrow albums-arrow-right" aria-label="Next" type="button">&#10095;</button>
+    <button class="albums-arrow albums-arrow-left" aria-label="{{ trans('general.previous') }}" type="button">&#10094;</button>
+    <button class="albums-arrow albums-arrow-right" aria-label="{{ trans('general.next') }}" type="button">&#10095;</button>
   </div>
   {% else %}
   <div class="text-center py-20">
