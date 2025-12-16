@@ -183,7 +183,16 @@ class RateLimitMiddleware implements MiddlewareInterface
 
         // For login pages: check response body for error message (supports multiple languages)
         $body = (string)$response->getBody();
-        $response->getBody()->rewind(); // Rewind stream so downstream can read body
+        // Rewind stream so downstream can read body (if seekable)
+        if ($response->getBody()->isSeekable()) {
+            $response->getBody()->rewind();
+        } else {
+            // Recreate body for non-seekable streams
+            $stream = fopen('php://temp', 'r+');
+            fwrite($stream, $body);
+            rewind($stream);
+            $response = $response->withBody(new \Slim\Psr7\Stream($stream));
+        }
         if ($statusCode === 200 && (
             str_contains($body, 'Credenziali non valide') ||
             str_contains($body, 'Invalid credentials') ||

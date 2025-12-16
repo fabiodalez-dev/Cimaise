@@ -80,7 +80,10 @@
     "album.nsfw_remember": "Your preference will be remembered for future visits.",
     "album.nsfw_warning_short": "18+",
     "album.nsfw_password_notice": "This gallery contains adult content. You must be 18 or older to access it.",
-    "album.nsfw_checkbox": "I confirm I am 18 years or older and wish to view this content"
+    "album.nsfw_checkbox": "I confirm I am 18 years or older and wish to view this content",
+    "album.nsfw_description": "This gallery contains content intended for mature audiences only.",
+    "album.nsfw_age_verification": "Please confirm your age to proceed.",
+    "album.nsfw_confirm_button": "Enter Gallery"
   },
   "pagination": {
     "pagination.previous": "Previous",

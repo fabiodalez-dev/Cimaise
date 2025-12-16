@@ -82,6 +82,7 @@ CREATE TABLE `albums` (
   `template_id` int(11) DEFAULT NULL,
   `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `allow_downloads` tinyint(1) NOT NULL DEFAULT 0,
+  `is_nsfw` tinyint(1) NOT NULL DEFAULT 0,
   `location_id` int(11) DEFAULT NULL,
   `sort_order` int(11) DEFAULT 0,
   `seo_title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -107,6 +108,8 @@ CREATE TABLE `albums` (
   KEY `idx_albums_template` (`template_id`),
   KEY `idx_albums_seo_title` (`seo_title`),
   KEY `idx_albums_robots` (`robots_index`, `robots_follow`),
+  KEY `idx_albums_nsfw` (`is_nsfw`),
+  KEY `idx_albums_published_nsfw` (`is_published`, `is_nsfw`),
   FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -1,11 +1,15 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  
-  # Serve real files and directories directly
+
+  # SECURITY: Route /media/ requests through PHP for access control
+  # Protected albums (password/NSFW) require session validation before serving
+  RewriteRule ^media/(.+)$ index.php [QSA,L]
+
+  # Serve real files and directories directly (media excluded above)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
-  
+
   # Route all other requests to index.php
   RewriteRule ^ index.php [QSA,L]
 </IfModule>
