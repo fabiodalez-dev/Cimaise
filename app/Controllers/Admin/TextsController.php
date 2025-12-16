@@ -51,12 +51,16 @@ class TextsController extends BaseController
 
         $contexts = $this->translations->getContexts();
 
+        // Get available language files for the dropdown (server-side)
+        $languages = $this->getAvailableLanguages();
+
         return $this->view->render($response, 'admin/texts/index.twig', [
             'grouped' => $grouped,
             'contexts' => $contexts,
             'search' => $search,
             'current_context' => $context,
-            'csrf' => $_SESSION['csrf'] ?? ''
+            'csrf' => $_SESSION['csrf'] ?? '',
+            'languages' => $languages
         ]);
     }
 
@@ -503,5 +507,32 @@ class TextsController extends BaseController
         }
 
         return ['added' => $added, 'updated' => $updated];
+    }
+
+    /**
+     * Get available language files from storage/translations
+     */
+    private function getAvailableLanguages(): array
+    {
+        $translationsDir = dirname(__DIR__, 3) . '/storage/translations';
+        $languages = [];
+
+        if (is_dir($translationsDir)) {
+            foreach (glob($translationsDir . '/*.json') as $file) {
+                $content = @file_get_contents($file);
+                if ($content) {
+                    $data = json_decode($content, true);
+                    $meta = $data['_meta'] ?? [];
+                    $languages[] = [
+                        'code' => $meta['code'] ?? pathinfo($file, PATHINFO_FILENAME),
+                        'name' => $meta['language'] ?? pathinfo($file, PATHINFO_FILENAME),
+                        'file' => basename($file),
+                        'version' => $meta['version'] ?? '1.0.0'
+                    ];
+                }
+            }
+        }
+
+        return $languages;
     }
 }
