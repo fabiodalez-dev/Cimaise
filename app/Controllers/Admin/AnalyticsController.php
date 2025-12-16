@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 
+use App\Controllers\BaseController;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -11,33 +12,18 @@ use App\Support\Database;
 use App\Support\Logger;
 use PDO;
 
-class AnalyticsController
+class AnalyticsController extends BaseController
 {
     private PDO $db;
     private Twig $twig;
     private AnalyticsService $analytics;
-    private string $basePath;
 
     public function __construct(Database $database, Twig $twig)
     {
+        parent::__construct();
         $this->db = $database->pdo();
         $this->twig = $twig;
         $this->analytics = new AnalyticsService($this->db);
-
-        // Calculate base path for redirects
-        $basePath = dirname($_SERVER['SCRIPT_NAME']);
-        $basePath = $basePath === '/' ? '' : $basePath;
-        if (str_ends_with($basePath, '/public')) {
-            $basePath = substr($basePath, 0, -7);
-        }
-        $this->basePath = $basePath;
-    }
-
-    private function validateCsrf(Request $request): bool
-    {
-        $data = (array)$request->getParsedBody();
-        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
-        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
     }
 
     /**
@@ -154,7 +140,7 @@ class AnalyticsController
                 session_start();
             }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
-            return $response->withHeader('Location', $this->basePath . '/admin/analytics/settings')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/analytics/settings'))->withStatus(302);
         }
 
         $data = $request->getParsedBody();
@@ -205,7 +191,7 @@ class AnalyticsController
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Error updating settings: ' . $e->getMessage()];
         }
 
-        return $response->withHeader('Location', $this->basePath . '/admin/analytics/settings')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/analytics/settings'))->withStatus(302);
     }
 
     /**
@@ -579,7 +565,7 @@ class AnalyticsController
                     session_start();
                 }
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
-                return $response->withHeader('Location', $this->basePath . '/admin/analytics/settings')->withStatus(302);
+                return $response->withHeader('Location', $this->redirect('/admin/analytics/settings'))->withStatus(302);
             }
 
             try {
@@ -599,7 +585,7 @@ class AnalyticsController
                 ];
             }
 
-            return $response->withHeader('Location', $this->basePath . '/admin/analytics/settings')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/analytics/settings'))->withStatus(302);
         }
 
         return $response->withStatus(405); // Method not allowed

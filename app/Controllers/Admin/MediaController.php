@@ -16,13 +16,6 @@ class MediaController extends BaseController
         parent::__construct();
     }
 
-    private function validateCsrf(Request $request): bool
-    {
-        $data = (array)$request->getParsedBody();
-        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
-        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
-    }
-
     private function csrfErrorJson(Response $response): Response
     {
         $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid CSRF token']));

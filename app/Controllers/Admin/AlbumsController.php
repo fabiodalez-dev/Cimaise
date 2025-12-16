@@ -16,17 +16,6 @@ class AlbumsController extends BaseController
     }
 
     /**
-     * Validate CSRF token from request body or header
-     * @return bool True if valid, false otherwise
-     */
-    private function validateCsrf(Request $request): bool
-    {
-        $data = (array)$request->getParsedBody();
-        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
-        return is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
-    }
-
-    /**
      * Return JSON error response for invalid CSRF
      */
     private function csrfErrorJson(Response $response): Response
