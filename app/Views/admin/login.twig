@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login — Cimaise</title>
+  <title>{{ trans('admin.login.title') }} — Cimaise</title>
   <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
 </head>
@@ -17,7 +17,7 @@
         <i class="fas fa-camera text-4xl text-black mb-4"></i>
       {% endif %}
       <h2 class="text-3xl font-bold text-gray-900">{{ site_title|default('Cimaise') }}</h2>
-      <p class="mt-2 text-sm text-gray-600">Admin Panel</p>
+      <p class="mt-2 text-sm text-gray-600">{{ trans('admin.login.admin_panel') }}</p>
     </div>
 
     {% if error %}
@@ -31,7 +31,7 @@
       
       <div class="space-y-4">
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.login.email') }}</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <i class="fas fa-envelope text-gray-400"></i>
@@ -49,7 +49,7 @@
         </div>
 
         <div>
-          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.login.password') }}</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <i class="fas fa-lock text-gray-400"></i>
@@ -74,7 +74,7 @@
             class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
           >
           <label for="remember_me" class="ml-2 block text-sm text-gray-700">
-            Resta connesso
+            {{ trans('admin.login.remember_me') }}
           </label>
         </div>
       </div>
@@ -84,7 +84,7 @@
         class="w-full bg-black hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
       >
         <i class="fas fa-sign-in-alt mr-2"></i>
-        Login
+        {{ trans('admin.login.submit') }}
       </button>
     </form>
 

@@ -2,6 +2,7 @@
   "_meta": {
     "language": "Italiano",
     "code": "it",
+    "type": "frontend",
     "version": "1.0.0"
   },
   "navigation": {
@@ -121,7 +122,7 @@
     "date.days_ago": "{count} giorni fa"
   },
   "footer": {
-    "footer.copyright": "\u00a9 {year} Tutti i diritti riservati",
+    "footer.copyright": "© {year} Tutti i diritti riservati",
     "footer.powered_by": "Powered by Cimaise",
     "footer.privacy": "Privacy Policy",
     "footer.terms": "Termini di Servizio"
@@ -188,8 +189,8 @@
     "error.404": "Pagina non trovata",
     "error.404_message": "La pagina che stai cercando non esiste.",
     "error.500": "Errore del server",
-    "error.500_message": "Qualcosa \u00e8 andato storto. Riprova pi\u00f9 tardi.",
-    "error.generic": "Si \u00e8 verificato un errore",
+    "error.500_message": "Qualcosa è andato storto. Riprova più tardi.",
+    "error.generic": "Si è verificato un errore",
     "error.go_home": "Vai alla Homepage"
   },
   "contact": {
@@ -239,7 +240,9 @@
   },
   "installer": {
     "installer.site_language": "Lingua del sito",
-    "installer.site_language_help": "Lingua predefinita per il frontend",
+    "installer.site_language_help": "Lingua per il sito pubblico (frontend)",
+    "installer.admin_language": "Lingua pannello admin",
+    "installer.admin_language_help": "Lingua per il pannello di amministrazione (backend)",
     "installer.date_format": "Formato data",
     "installer.date_format_help": "Formato utilizzato per visualizzare le date",
     "installer.date_format_iso": "ISO",
@@ -259,47 +262,5 @@
   },
   "image": {
     "image.download": "Scarica"
-  },
-  "admin": {
-    "admin.texts.title": "Traduzioni",
-    "admin.texts.heading": "Gestisci Traduzioni",
-    "admin.texts.description": "Gestisci le traduzioni dei testi del frontend",
-    "admin.texts.seed_confirm": "Verranno aggiunte le traduzioni predefinite. Le traduzioni esistenti non verranno sovrascritte. Continuare?",
-    "admin.texts.seed_defaults": "Carica Predefiniti",
-    "admin.texts.add_text": "Aggiungi Traduzione",
-    "admin.texts.import_translations": "Importa Traduzioni",
-    "admin.texts.download_json": "Scarica JSON",
-    "admin.texts.upload_json": "Carica JSON",
-    "admin.texts.hide_upload": "Nascondi Caricamento",
-    "admin.texts.language": "Lingua",
-    "admin.texts.select_language": "Seleziona una lingua",
-    "admin.texts.no_preset_languages": "Nessuna lingua preimpostata disponibile",
-    "admin.texts.mode": "Modalità",
-    "admin.texts.mode_merge": "Unisci",
-    "admin.texts.mode_replace": "Sostituisci",
-    "admin.texts.mode_skip": "Salta esistenti",
-    "admin.texts.mode_merge_desc": "Aggiorna esistenti, aggiungi nuovi",
-    "admin.texts.mode_replace_desc": "Sovrascrivi tutto",
-    "admin.texts.mode_skip_desc": "Aggiungi solo nuovi",
-    "admin.texts.import": "Importa",
-    "admin.texts.upload_custom_json": "Carica JSON Personalizzato",
-    "admin.texts.json_file": "File JSON",
-    "admin.texts.upload": "Carica",
-    "admin.texts.save_as_preset": "Salva come file lingua preimpostato",
-    "admin.texts.search_placeholder": "Cerca traduzioni...",
-    "admin.texts.all_contexts": "Tutti i Contesti",
-    "admin.texts.col_key": "Chiave",
-    "admin.texts.col_value": "Valore",
-    "admin.texts.col_description": "Descrizione",
-    "admin.texts.col_actions": "Azioni",
-    "admin.texts.quick_edit": "Modifica Rapida",
-    "admin.texts.quick": "Rapida",
-    "admin.texts.full_edit": "Modifica Completa",
-    "admin.texts.delete_confirm": "Sei sicuro di voler eliminare questa traduzione?",
-    "admin.texts.no_texts_found": "Nessuna traduzione trovata",
-    "admin.texts.no_texts_match": "Nessuna traduzione corrisponde ai criteri di ricerca",
-    "admin.texts.no_texts_hint": "Inizia caricando le traduzioni predefinite o aggiungendone di nuove",
-    "admin.texts.save_failed": "Salvataggio fallito",
-    "admin.texts.unknown_error": "Errore sconosciuto"
   }
 }

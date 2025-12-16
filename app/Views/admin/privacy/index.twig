@@ -1,6 +1,6 @@
 {% extends "admin/_layout.twig" %}
 
-{% block title %}Privacy Settings — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.privacy.title') }} — Cimaise{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -9,13 +9,13 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Privacy Settings</h1>
-          <p class="mt-2 text-gray-600">Configure cookie banner and custom JavaScript injection based on user consent</p>
+          <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.privacy.title') }}</h1>
+          <p class="mt-2 text-gray-600">{{ trans('admin.privacy.description') }}</p>
         </div>
         <div class="flex items-center gap-3">
           <button type="submit" form="privacy-form" class="btn-primary">
             <i class="fas fa-save mr-2"></i>
-            Save Settings
+            {{ trans('admin.privacy.save_settings') }}
           </button>
         </div>
       </div>
@@ -29,17 +29,17 @@
         <div class="flex items-center gap-3">
           <button type="submit" form="privacy-form" class="btn-primary">
             <i class="fas fa-save mr-2"></i>
-            Save Settings
+            {{ trans('admin.privacy.save_settings') }}
           </button>
           <a href="{{ base_path }}/admin" class="btn-secondary">
             <i class="fas fa-arrow-left mr-2"></i>
-            Dashboard
+            {{ trans('admin.common.dashboard') }}
           </a>
         </div>
 
         <div class="text-sm text-gray-500">
           <i class="fas fa-info-circle mr-1"></i>
-          Configure cookie consent and custom scripts
+          {{ trans('admin.privacy.configure_hint') }}
         </div>
       </div>
     </div>
@@ -55,15 +55,15 @@
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
             <i class="fas fa-cookie-bite mr-3 text-amber-600"></i>
-            Cookie Banner
+            {{ trans('admin.privacy.cookie_banner') }}
           </h2>
-          <p class="text-sm text-gray-600 mt-1">Enable or disable the cookie consent banner on the frontend</p>
+          <p class="text-sm text-gray-600 mt-1">{{ trans('admin.privacy.cookie_banner_hint') }}</p>
         </div>
         <div class="p-6 space-y-6">
           <div class="flex items-center justify-between">
             <div>
-              <label class="block text-sm font-medium text-gray-700">Enable Cookie Banner</label>
-              <p class="text-xs text-gray-500 mt-1">Show cookie consent banner to visitors</p>
+              <label class="block text-sm font-medium text-gray-700">{{ trans('admin.privacy.enable_banner') }}</label>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.privacy.enable_banner_hint') }}</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" name="cookie_banner_enabled" class="sr-only peer" {{ settings.cookie_banner_enabled ? 'checked' : '' }}>
@@ -75,7 +75,7 @@
             <div class="flex items-start">
               <i class="fas fa-info-circle text-blue-600 mt-0.5 mr-3"></i>
               <div class="text-sm text-blue-800">
-                <strong>How it works:</strong> The Analytics and Marketing categories will automatically appear in the cookie banner when you add JavaScript code in the respective sections below.
+                <strong>{{ trans('admin.privacy.how_it_works') }}</strong> {{ trans('admin.privacy.how_it_works_desc') }}
               </div>
             </div>
           </div>
@@ -87,22 +87,21 @@
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
             <i class="fas fa-shield-alt mr-3 text-green-600"></i>
-            Essential JavaScript
+            {{ trans('admin.privacy.essential_js') }}
           </h2>
-          <p class="text-sm text-gray-600 mt-1">Scripts that are always loaded (cannot be blocked by cookie consent)</p>
+          <p class="text-sm text-gray-600 mt-1">{{ trans('admin.privacy.essential_js_hint') }}</p>
         </div>
         <div class="p-6">
           <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
             <div class="flex items-start">
               <i class="fas fa-info-circle text-green-600 mt-0.5 mr-3"></i>
               <div class="text-sm text-green-800">
-                <strong>Always Loaded:</strong> These scripts run regardless of user cookie preferences. Use for critical functionality only.
+                <strong>{{ trans('admin.privacy.always_loaded') }}</strong> {{ trans('admin.privacy.always_loaded_desc') }}
               </div>
             </div>
           </div>
-          <textarea name="custom_js_essential" rows="8" class="form-input font-mono text-sm" placeholder="// Essential JavaScript code here
-// Example: Critical tracking, error logging, etc.">{{ settings.custom_js_essential }}</textarea>
-          <p class="text-xs text-gray-500 mt-2">Enter pure JavaScript code (without &lt;script&gt; tags)</p>
+          <textarea name="custom_js_essential" rows="8" class="form-input font-mono text-sm" placeholder="{{ trans('admin.privacy.essential_placeholder') }}">{{ settings.custom_js_essential }}</textarea>
+          <p class="text-xs text-gray-500 mt-2">{{ trans('admin.privacy.js_hint') }}</p>
         </div>
       </div>
 
@@ -111,23 +110,21 @@
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
             <i class="fas fa-chart-line mr-3 text-blue-600"></i>
-            Analytics JavaScript
+            {{ trans('admin.privacy.analytics_js') }}
           </h2>
-          <p class="text-sm text-gray-600 mt-1">Scripts loaded only when user accepts analytics cookies</p>
+          <p class="text-sm text-gray-600 mt-1">{{ trans('admin.privacy.analytics_js_hint') }}</p>
         </div>
         <div class="p-6">
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div class="flex items-start">
               <i class="fas fa-info-circle text-blue-600 mt-0.5 mr-3"></i>
               <div class="text-sm text-blue-800">
-                <strong>Consent Required:</strong> These scripts only load after the user accepts analytics cookies. Use for Google Analytics, Matomo, etc.
+                <strong>{{ trans('admin.privacy.consent_required') }}</strong> {{ trans('admin.privacy.consent_analytics_desc') }}
               </div>
             </div>
           </div>
-          <textarea name="custom_js_analytics" rows="8" class="form-input font-mono text-sm" placeholder="// Analytics JavaScript code here
-// Example: Google Analytics initialization
-// gtag('config', 'GA_MEASUREMENT_ID');">{{ settings.custom_js_analytics }}</textarea>
-          <p class="text-xs text-gray-500 mt-2">Enter pure JavaScript code (without &lt;script&gt; tags)</p>
+          <textarea name="custom_js_analytics" rows="8" class="form-input font-mono text-sm" placeholder="{{ trans('admin.privacy.analytics_placeholder') }}">{{ settings.custom_js_analytics }}</textarea>
+          <p class="text-xs text-gray-500 mt-2">{{ trans('admin.privacy.js_hint') }}</p>
         </div>
       </div>
 
@@ -136,24 +133,21 @@
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-medium text-gray-900 flex items-center">
             <i class="fas fa-bullhorn mr-3 text-purple-600"></i>
-            Marketing JavaScript
+            {{ trans('admin.privacy.marketing_js') }}
           </h2>
-          <p class="text-sm text-gray-600 mt-1">Scripts loaded only when user accepts marketing cookies</p>
+          <p class="text-sm text-gray-600 mt-1">{{ trans('admin.privacy.marketing_js_hint') }}</p>
         </div>
         <div class="p-6">
           <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
             <div class="flex items-start">
               <i class="fas fa-info-circle text-purple-600 mt-0.5 mr-3"></i>
               <div class="text-sm text-purple-800">
-                <strong>Consent Required:</strong> These scripts only load after the user accepts marketing cookies. Use for Facebook Pixel, advertising tags, etc.
+                <strong>{{ trans('admin.privacy.consent_required') }}</strong> {{ trans('admin.privacy.consent_marketing_desc') }}
               </div>
             </div>
           </div>
-          <textarea name="custom_js_marketing" rows="8" class="form-input font-mono text-sm" placeholder="// Marketing JavaScript code here
-// Example: Facebook Pixel, advertising tracking
-// fbq('init', 'YOUR_PIXEL_ID');
-// fbq('track', 'PageView');">{{ settings.custom_js_marketing }}</textarea>
-          <p class="text-xs text-gray-500 mt-2">Enter pure JavaScript code (without &lt;script&gt; tags)</p>
+          <textarea name="custom_js_marketing" rows="8" class="form-input font-mono text-sm" placeholder="{{ trans('admin.privacy.marketing_placeholder') }}">{{ settings.custom_js_marketing }}</textarea>
+          <p class="text-xs text-gray-500 mt-2">{{ trans('admin.privacy.js_hint') }}</p>
         </div>
       </div>
 

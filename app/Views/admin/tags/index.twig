@@ -1,13 +1,13 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Tags — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.tags.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Tags</h1>
-      <p class="text-gray-600 mt-1">Label and categorize your photos with tags</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.tags.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.tags.page_description') }}</p>
     </div>
     <a href="{{ base_path }}/admin/tags/create" class="btn-primary">
-      <i class="fas fa-plus mr-2"></i>New Tag
+      <i class="fas fa-plus mr-2"></i>{{ trans('admin.tags.new') }}
     </a>
   </div>
 
@@ -16,10 +16,10 @@
       <table class="min-w-full">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.tags.name') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.tags.slug') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.tags.usage') }}</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.tags.actions') }}</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -37,7 +37,7 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                {{ t.usage_count ?? 0 }} albums
+                {{ t.usage_count ?? 0 }} {{ trans('admin.tags.albums') }}
               </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -45,7 +45,7 @@
                 <a href="{{ base_path }}/admin/tags/{{ t.id }}/edit" class="text-gray-600 hover:text-black transition-colors">
                   <i class="fas fa-edit"></i>
                 </a>
-                <form method="post" action="{{ base_path }}/admin/tags/{{ t.id }}/delete" class="inline" onsubmit="return confirm('Delete this tag? This will remove it from all albums.')">
+                <form method="post" action="{{ base_path }}/admin/tags/{{ t.id }}/delete" class="inline" onsubmit="return confirm('{{ trans('admin.tags.delete_confirm_full') }}')">
                   <input type="hidden" name="csrf" value="{{ csrf }}">
                   <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">
                     <i class="fas fa-trash"></i>
@@ -62,10 +62,10 @@
     {% if items|length == 0 %}
       <div class="text-center py-12">
         <i class="fas fa-tags text-4xl text-gray-300 mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No tags yet</h3>
-        <p class="text-gray-600 mb-6">Create tags to label and organize your photos.</p>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.tags.no_tags') }}</h3>
+        <p class="text-gray-600 mb-6">{{ trans('admin.tags.empty_hint') }}</p>
         <a href="{{ base_path }}/admin/tags/create" class="btn-primary">
-          <i class="fas fa-plus mr-2"></i>Create Tag
+          <i class="fas fa-plus mr-2"></i>{{ trans('admin.tags.create') }}
         </a>
       </div>
     {% endif %}

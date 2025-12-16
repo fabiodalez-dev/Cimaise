@@ -16,7 +16,7 @@ class SocialController extends BaseController
         parent::__construct();
     }
 
-    private function validateCsrf(Request $request): bool
+    protected function validateCsrf(Request $request): bool
     {
         $data = (array)$request->getParsedBody();
         $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
