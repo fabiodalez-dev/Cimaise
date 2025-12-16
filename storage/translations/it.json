@@ -80,7 +80,10 @@
     "album.nsfw_remember": "La tua preferenza sarà ricordata per le visite future.",
     "album.nsfw_warning_short": "18+",
     "album.nsfw_password_notice": "Questa galleria contiene contenuti per adulti. Devi avere almeno 18 anni per accedervi.",
-    "album.nsfw_checkbox": "Confermo di avere almeno 18 anni e di voler visualizzare questo contenuto"
+    "album.nsfw_checkbox": "Confermo di avere almeno 18 anni e di voler visualizzare questo contenuto",
+    "album.nsfw_description": "Questa galleria contiene contenuti destinati esclusivamente ad un pubblico adulto.",
+    "album.nsfw_age_verification": "Conferma la tua età per procedere.",
+    "album.nsfw_confirm_button": "Entra nella Galleria"
   },
   "pagination": {
     "pagination.previous": "Precedente",

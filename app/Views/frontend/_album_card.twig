@@ -13,6 +13,16 @@
         {% endif %}
 
         <picture>
+          {# SECURITY: For NSFW albums, only show blur image - never expose real URLs in srcset or data-src #}
+          {% if album.is_nsfw and not is_admin and blur_path %}
+          <img src="{{ blur_path }}"
+               alt="{{ album.cover.alt_text|e }}"
+               width="{{ album.cover.width }}"
+               height="{{ album.cover.height }}"
+               loading="lazy"
+               decoding="async"
+               class="nsfw-card-image w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+          {% else %}
           {% set variants_avif = [] %}
           {% set variants_webp = [] %}
           {% set variants_jpg = [] %}
@@ -43,17 +53,6 @@
           {% set card_img_url = album.cover.variants[0].path ?? album.cover.original_path %}
           {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
 
-          {# For NSFW albums: show blurred image initially, store original in data-src #}
-          {% if album.is_nsfw and not is_admin and blur_path %}
-          <img src="{{ blur_path }}"
-               data-src="{{ original_url }}"
-               alt="{{ album.cover.alt_text|e }}"
-               width="{{ album.cover.width }}"
-               height="{{ album.cover.height }}"
-               loading="lazy"
-               decoding="async"
-               class="nsfw-card-image w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
-          {% else %}
           <img src="{{ original_url }}"
                alt="{{ album.cover.alt_text|e }}"
                width="{{ album.cover.width }}"
