@@ -1,5 +1,34 @@
 {% extends 'frontend/_layout.twig' %}
 
+{% block scripts %}
+{# ProfilePage JSON-LD for SEO #}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{
+  "@context": "https://schema.org",
+  "@type": "ProfilePage",
+  "name": {{ about_title|default(trans('nav.about'))|json_encode|raw }},
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  {% if meta_description %}
+  "description": {{ meta_description|json_encode|raw }},
+  {% endif %}
+  "mainEntity": {
+    "@type": "Person",
+    "name": {{ about_title|default(site_title)|json_encode|raw }}
+    {% if about_photo_url %},
+    "image": "{% if about_photo_url starts with '/' %}{{ base_path }}{{ about_photo_url }}{% else %}{{ about_photo_url }}{% endif %}"
+    {% endif %}
+    {% if about_socials %}
+    ,"sameAs": [
+      {% for key, url in about_socials %}
+        {{ url|json_encode|raw }}{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+    {% endif %}
+  }
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}

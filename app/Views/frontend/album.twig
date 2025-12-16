@@ -32,7 +32,7 @@
   #nsfw-gate.active { display: flex !important; }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
   const hasConfirmed = localStorage.getItem('nsfw_confirmed') === 'true';
   const gate = document.getElementById('nsfw-gate');
@@ -435,7 +435,7 @@ function confirmNsfwAndShow() {
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Global base path for API calls
 window.basePath = '{{ base_path }}';
 

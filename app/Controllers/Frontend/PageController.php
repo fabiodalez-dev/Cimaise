@@ -638,6 +638,12 @@ class PageController extends BaseController
         $coverPath = null;
         try { $coverPath = $album['cover']['variants'][0]['path'] ?? null; } catch (\Throwable) {}
         $seoMeta = $this->buildSeo($request, (string)$album['title'], (string)($album['excerpt'] ?? ''), $coverPath);
+
+        // Compute album-specific robots directive from album fields (default both to true if null)
+        $robotsIndex = ($album['robots_index'] ?? 1) ? 'index' : 'noindex';
+        $robotsFollow = ($album['robots_follow'] ?? 1) ? 'follow' : 'nofollow';
+        $albumRobots = $robotsIndex . ',' . $robotsFollow;
+
         return $this->view->render($response, $twigTemplate, [
             'album' => $galleryMeta,
             'images' => $images,
@@ -654,7 +660,8 @@ class PageController extends BaseController
             'current_url' => $seoMeta['current_url'],
             'canonical_url' => $seoMeta['canonical_url'],
             'og_site_name' => $seoMeta['og_site_name'],
-            'robots' => $seoMeta['robots'],
+            'robots' => $albumRobots,
+            'schema' => $seoMeta['schema'],
             'enabled_socials' => $orderedSocials,
             'available_socials' => $availableSocials
         ]);
