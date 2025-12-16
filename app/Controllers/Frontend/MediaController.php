@@ -223,6 +223,11 @@ class MediaController extends BaseController
             return $response->withStatus(404);
         }
 
+        // Check if downloads are allowed for this album
+        if (!(int)$row['allow_downloads']) {
+            return $response->withStatus(403);
+        }
+
         $albumId = (int)$row['album_id'];
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
