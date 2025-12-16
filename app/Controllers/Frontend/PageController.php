@@ -235,7 +235,7 @@ class PageController extends BaseController
         }
 
         // Check if user is admin (admins bypass password/NSFW protection)
-        $isAdmin = !empty($_SESSION['admin_id']);
+        $isAdmin = $this->isAdmin();
 
         // Password protection with session timeout - skip for admins
         if (!empty($album['password_hash']) && !$isAdmin) {
@@ -781,6 +781,9 @@ class PageController extends BaseController
             // Redirect back to album (will show gate again)
             return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
         }
+
+        // Regenerate session ID to prevent session fixation attacks
+        session_regenerate_id(true);
 
         // Store NSFW confirmation in session for server-side validation (per-album)
         if (!isset($_SESSION['nsfw_confirmed'])) {

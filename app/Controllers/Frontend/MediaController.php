@@ -20,6 +20,43 @@ class MediaController extends BaseController
     }
 
     /**
+     * Stream a file to the response body and set common headers.
+     * Returns null on failure (caller should return 500 response).
+     */
+    private function streamFile(Response $response, string $realPath, string $mime): ?Response
+    {
+        $filesize = filesize($realPath);
+        $stream = fopen($realPath, 'rb');
+
+        if (!$stream) {
+            return null;
+        }
+
+        $body = $response->getBody();
+        while (!feof($stream)) {
+            $chunk = fread($stream, 8192);
+            if ($chunk === false) {
+                break;
+            }
+            $body->write($chunk);
+        }
+        fclose($stream);
+
+        return $response
+            ->withHeader('Content-Type', $mime)
+            ->withHeader('Content-Length', (string)$filesize)
+            ->withHeader('X-Content-Type-Options', 'nosniff');
+    }
+
+    /**
+     * Generate ETag for cache validation.
+     */
+    private function generateEtag(string $realPath, int $filesize): string
+    {
+        return '"' . md5($realPath . filemtime($realPath) . $filesize) . '"';
+    }
+
+    /**
      * Serve a protected image variant.
      * Route: /media/protected/{id}/{variant}.{format}
      */
@@ -140,33 +177,16 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        // Stream file
-        $filesize = filesize($realPath);
-        $stream = fopen($realPath, 'rb');
-
-        if (!$stream) {
+        $streamed = $this->streamFile($response, $realPath, $detectedMime);
+        if ($streamed === null) {
             return $response->withStatus(500);
         }
 
-        $body = $response->getBody();
-        while (!feof($stream)) {
-            $chunk = fread($stream, 8192);
-            if ($chunk === false) break;
-            $body->write($chunk);
-        }
-        fclose($stream);
-
-        // ETag based on file modification time and size (variants can be regenerated)
-        $etag = '"' . md5($realPath . filemtime($realPath) . $filesize) . '"';
-
         // Cache headers for variants: shorter cache with ETag validation
-        // Variants can be regenerated, so use revalidation strategy
-        return $response
-            ->withHeader('Content-Type', $detectedMime)
-            ->withHeader('Content-Length', (string)$filesize)
+        $filesize = filesize($realPath);
+        return $streamed
             ->withHeader('Cache-Control', 'private, max-age=3600, must-revalidate')
-            ->withHeader('ETag', $etag)
-            ->withHeader('X-Content-Type-Options', 'nosniff');
+            ->withHeader('ETag', $this->generateEtag($realPath, $filesize));
     }
 
     /**
@@ -253,28 +273,14 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        // Stream file
-        $filesize = filesize($realPath);
-        $stream = fopen($realPath, 'rb');
-
-        if (!$stream) {
+        $streamed = $this->streamFile($response, $realPath, $detectedMime);
+        if ($streamed === null) {
             return $response->withStatus(500);
         }
 
-        $body = $response->getBody();
-        while (!feof($stream)) {
-            $chunk = fread($stream, 8192);
-            if ($chunk === false) break;
-            $body->write($chunk);
-        }
-        fclose($stream);
-
         // Cache headers for originals: long cache (originals are immutable)
-        return $response
-            ->withHeader('Content-Type', $detectedMime)
-            ->withHeader('Content-Length', (string)$filesize)
-            ->withHeader('Cache-Control', 'private, max-age=31536000, immutable')
-            ->withHeader('X-Content-Type-Options', 'nosniff');
+        return $streamed
+            ->withHeader('Cache-Control', 'private, max-age=31536000, immutable');
     }
 
     /**
@@ -392,32 +398,15 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        // Stream file
-        $filesize = filesize($realPath);
-        $stream = fopen($realPath, 'rb');
-
-        if (!$stream) {
+        $streamed = $this->streamFile($response, $realPath, $detectedMime);
+        if ($streamed === null) {
             return $response->withStatus(500);
         }
 
-        $body = $response->getBody();
-        while (!feof($stream)) {
-            $chunk = fread($stream, 8192);
-            if ($chunk === false) break;
-            $body->write($chunk);
-        }
-        fclose($stream);
-
-        // ETag based on file modification time and size (variants can be regenerated)
-        $etag = '"' . md5($realPath . filemtime($realPath) . $filesize) . '"';
-
         // Cache headers for public variants: use ETag for revalidation
-        // Variants can be regenerated, so shorter cache with ETag validation
-        return $response
-            ->withHeader('Content-Type', $detectedMime)
-            ->withHeader('Content-Length', (string)$filesize)
+        $filesize = filesize($realPath);
+        return $streamed
             ->withHeader('Cache-Control', 'public, max-age=86400, must-revalidate')
-            ->withHeader('ETag', $etag)
-            ->withHeader('X-Content-Type-Options', 'nosniff');
+            ->withHeader('ETag', $this->generateEtag($realPath, $filesize));
     }
 }
