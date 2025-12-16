@@ -83,16 +83,6 @@ $app->get('/', function (Request $request, Response $response) use ($container) 
     return $controller->home($request, $response);
 });
 
-// Post-install setup (must be available after install)
-$app->get('/install/post-setup', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-    return $controller->showPostSetup($request, $response);
-});
-$app->post('/install/post-setup', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-    return $controller->processPostSetup($request, $response);
-});
-
 // Protected media serving (for password-protected and NSFW albums)
 // Rate limited to prevent scraping/enumeration attacks
 $app->get('/media/protected/{id}/{variant}.{format}', function (Request $request, Response $response, array $args) use ($container) {
