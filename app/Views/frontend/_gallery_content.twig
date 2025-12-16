@@ -206,6 +206,6 @@
 {% endif %}
 
 {# Include template settings for JavaScript #}
-<script>
+<script nonce="{{ csp_nonce() }}">
 window.templateSettings = {{ template_settings|json_encode|raw }};
 </script>
