@@ -51,7 +51,7 @@ class PluginsController extends BaseController
 
         if (empty($slug)) {
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
-            return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
         $pluginManager = PluginManager::getInstance();
@@ -62,7 +62,7 @@ class PluginsController extends BaseController
             'message' => $result['message']
         ];
 
-        return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
     }
 
     /**
@@ -81,7 +81,7 @@ class PluginsController extends BaseController
 
         if (empty($slug)) {
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
-            return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
         $pluginManager = PluginManager::getInstance();
@@ -92,7 +92,7 @@ class PluginsController extends BaseController
             'message' => $result['message']
         ];
 
-        return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
     }
 
     /**
@@ -111,7 +111,7 @@ class PluginsController extends BaseController
 
         if (empty($slug)) {
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
-            return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
         $pluginManager = PluginManager::getInstance();
@@ -122,7 +122,7 @@ class PluginsController extends BaseController
             'message' => $result['message']
         ];
 
-        return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
     }
 
     /**
@@ -141,7 +141,7 @@ class PluginsController extends BaseController
 
         if (empty($slug)) {
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
-            return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
         $pluginManager = PluginManager::getInstance();
@@ -152,7 +152,7 @@ class PluginsController extends BaseController
             'message' => $result['message']
         ];
 
-        return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
     }
 
     /**
@@ -368,8 +368,15 @@ class PluginsController extends BaseController
             $extension = strtolower(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
 
             // Check for suspicious file extensions
-            if (in_array($extension, ['phtml', 'phar', 'htaccess'])) {
+            if (in_array($extension, ['phtml', 'phar'])) {
                 $errors[] = "Suspicious file type detected: {$file->getFilename()}";
+                continue;
+            }
+
+            // Check for .htaccess and similar Apache config dotfiles
+            $filename = $file->getFilename();
+            if (preg_match('/^\.ht/', $filename)) {
+                $errors[] = "Apache config file detected: {$filename}";
                 continue;
             }
 

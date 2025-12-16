@@ -15,15 +15,6 @@ class AlbumsController extends BaseController
         parent::__construct();
     }
 
-    /**
-     * Return JSON error response for invalid CSRF
-     */
-    private function csrfErrorJson(Response $response): Response
-    {
-        $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid CSRF token']));
-        return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
-    }
-
     public function index(Request $request, Response $response): Response
     {
         $page = max(1, (int)($request->getQueryParams()['page'] ?? 1));

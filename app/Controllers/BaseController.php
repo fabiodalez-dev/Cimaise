@@ -42,4 +42,14 @@ abstract class BaseController
         $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
         return \is_string($token) && isset($_SESSION['csrf']) && \hash_equals($_SESSION['csrf'], $token);
     }
+
+    /**
+     * Return JSON error response for invalid CSRF token.
+     * For use in AJAX/API endpoints.
+     */
+    protected function csrfErrorJson(\Psr\Http\Message\ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    {
+        $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid CSRF token']));
+        return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+    }
 }
