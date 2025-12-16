@@ -52,4 +52,12 @@ abstract class BaseController
         $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid CSRF token']));
         return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
     }
+
+    /**
+     * Check if current user is an authenticated admin.
+     */
+    protected function isAdmin(): bool
+    {
+        return !empty($_SESSION['admin_id']);
+    }
 }

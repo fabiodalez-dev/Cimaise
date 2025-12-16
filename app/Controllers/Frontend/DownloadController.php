@@ -36,8 +36,8 @@ class DownloadController extends BaseController
 
         // NSFW server-side enforcement: block downloads for unconfirmed NSFW albums
         // Admins bypass this check
-        $isAdmin = !empty($_SESSION['admin_id']);
-        if (!empty($row['is_nsfw']) && !$isAdmin) {
+        $isAdmin = $this->isAdmin();
+        if ((bool)$row['is_nsfw'] && !$isAdmin) {
             $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$row['album_id']]) && $_SESSION['nsfw_confirmed'][$row['album_id']] === true;
             if (!$nsfwConfirmed) {
                 return $response->withStatus(403);
