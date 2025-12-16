@@ -489,7 +489,7 @@ CREATE TABLE IF NOT EXISTS plugin_status (
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_plugin_status_slug ON plugin_status(slug);
+-- Note: slug already has UNIQUE constraint which creates an implicit index
 CREATE INDEX IF NOT EXISTS idx_plugin_status_active ON plugin_status(is_active);
 
 -- ============================================
