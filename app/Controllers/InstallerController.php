@@ -79,10 +79,11 @@ class InstallerController
             'db_connection' => 'sqlite',
             'db_host' => '127.0.0.1',
             'db_port' => 3306,
-            'db_database' => 'database/database.sqlite',
+            'sqlite_database' => 'database/database.sqlite',
+            'mysql_database' => 'cimaise',
             'db_username' => 'root',
             'db_charset' => 'utf8mb4',
-            'db_collation' => 'utf8mb4_0900_ai_ci',
+            'db_collation' => 'utf8mb4_unicode_ci',
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -524,6 +525,65 @@ class InstallerController
         ];
     }
     
+    /**
+     * AJAX endpoint to test MySQL connection and detect charset/collation
+     */
+    public function testMySQLConnection(Request $request, Response $response): Response
+    {
+        $data = (array)$request->getParsedBody();
+
+        try {
+            // Connect without specifying database first to test credentials
+            $dsn = sprintf('mysql:host=%s;port=%d',
+                $data['db_host'] ?? '127.0.0.1',
+                (int)($data['db_port'] ?? 3306)
+            );
+
+            $pdo = new \PDO($dsn,
+                $data['db_username'] ?? 'root',
+                $data['db_password'] ?? '',
+                [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                ]
+            );
+
+            // Get server charset and collation
+            $charsetResult = $pdo->query("SHOW VARIABLES LIKE 'character_set_server'")->fetch();
+            $collationResult = $pdo->query("SHOW VARIABLES LIKE 'collation_server'")->fetch();
+
+            $charset = $charsetResult['Value'] ?? 'utf8mb4';
+            $collation = $collationResult['Value'] ?? 'utf8mb4_unicode_ci';
+
+            // Check if database exists
+            $dbName = $data['db_database'] ?? 'cimaise';
+            $stmt = $pdo->prepare("SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?");
+            $stmt->execute([$dbName]);
+            $dbExists = $stmt->fetch() !== false;
+
+            $payload = json_encode([
+                'success' => true,
+                'charset' => $charset,
+                'collation' => $collation,
+                'database_exists' => $dbExists,
+                'message' => $dbExists
+                    ? "Connection successful! Database '{$dbName}' exists."
+                    : "Connection successful! Database '{$dbName}' will be created during installation."
+            ]);
+
+            $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
+            return $response->withHeader('Content-Type', 'application/json');
+
+        } catch (\Throwable $e) {
+            $payload = json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+            $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+    }
+
     /**
      * Test database connection
      */
