@@ -79,11 +79,6 @@
     @apply flex-1 min-w-0 flex flex-col;
   }
   
-  /* Gallery grid animations - smooth elegant transitions */
-  .gallery-card {
-    @apply transition-shadow duration-300 ease-out;
-  }
-  
   /* Loading animations */
   .animate-pulse {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -134,4 +129,16 @@
   .text-shadow-lg {
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
+}
+
+/* Gallery card overrides - MUST be after Tailwind utilities for specificity */
+.gallery-card {
+  transition: box-shadow 0.3s ease-out !important;
+  transform: none !important;
+}
+
+.gallery-card:hover {
+  transform: none !important;
+  --tw-translate-y: 0 !important;
+  --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
 }
