@@ -148,20 +148,20 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('settings.date_format') }}</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
             <select name="date_format" class="form-input">
-              <option value="Y-m-d" {{ settings['date.format']|default('Y-m-d') == 'Y-m-d' ? 'selected' }}>{{ trans('settings.date_format_iso') }}</option>
-              <option value="d-m-Y" {{ settings['date.format'] == 'd-m-Y' ? 'selected' }}>{{ trans('settings.date_format_european') }}</option>
+              <option value="Y-m-d" {{ settings['date.format']|default('Y-m-d') == 'Y-m-d' ? 'selected' }}>ISO (YYYY-MM-DD)</option>
+              <option value="d-m-Y" {{ settings['date.format'] == 'd-m-Y' ? 'selected' }}>European (DD-MM-YYYY)</option>
             </select>
-            <p class="text-xs text-gray-500 mt-1">{{ trans('settings.date_format_help') }}</p>
+            <p class="text-xs text-gray-500 mt-1">Choose how dates are displayed throughout the site</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('settings.site_language') }}</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Frontend Language</label>
             <select name="site_language" class="form-input">
-              <option value="en" {{ settings['site.language']|default('en') == 'en' ? 'selected' }}>{{ trans('settings.language_en') }}</option>
-              <option value="it" {{ settings['site.language'] == 'it' ? 'selected' }}>{{ trans('settings.language_it') }}</option>
+              <option value="en" {{ settings['site.language']|default('en') == 'en' ? 'selected' }}>English</option>
+              <option value="it" {{ settings['site.language'] == 'it' ? 'selected' }}>Italiano</option>
             </select>
-            <p class="text-xs text-gray-500 mt-1">{{ trans('settings.site_language_help') }}</p>
+            <p class="text-xs text-gray-500 mt-1">Language for the public-facing website</p>
           </div>
         </div>
       </div>
