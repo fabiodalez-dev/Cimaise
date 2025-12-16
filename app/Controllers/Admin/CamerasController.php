@@ -15,13 +15,6 @@ class CamerasController extends BaseController
         parent::__construct();
     }
 
-    private function validateCsrf(Request $request): bool
-    {
-        $data = (array)$request->getParsedBody();
-        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
-        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
-    }
-
     public function index(Request $request, Response $response): Response
     {
         $page = max(1, (int)($request->getQueryParams()['page'] ?? 1));

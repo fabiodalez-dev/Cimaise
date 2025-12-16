@@ -20,13 +20,6 @@ class PluginsController extends BaseController
         $this->pluginsDir = dirname(__DIR__, 3) . '/plugins';
     }
 
-    private function validateCsrf(Request $request): bool
-    {
-        $data = (array)$request->getParsedBody();
-        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
-        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
-    }
-
     /**
      * Show the plugin management page
      */
