@@ -179,19 +179,22 @@
       .then(data => {
         if (data.success) {
           result.className = 'alert alert-success mt-2';
-          result.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + data.message;
+          result.innerHTML = '<i class="fas fa-check-circle me-2"></i><span class="ms-1"></span>';
+          result.querySelector('span').textContent = data.message;
           // Auto-fill charset and collation
           document.getElementById('db-charset').value = data.charset;
           document.getElementById('db-collation').value = data.collation;
         } else {
           result.className = 'alert alert-danger mt-2';
-          result.innerHTML = '<i class="fas fa-times-circle me-2"></i>' + (data.error || 'Connection failed');
+          result.innerHTML = '<i class="fas fa-times-circle me-2"></i><span class="ms-1"></span>';
+          result.querySelector('span').textContent = data.error || 'Connection failed';
         }
         result.style.display = 'block';
       })
       .catch(error => {
         result.className = 'alert alert-danger mt-2';
-        result.innerHTML = '<i class="fas fa-times-circle me-2"></i>Error: ' + error.message;
+        result.innerHTML = '<i class="fas fa-times-circle me-2"></i><span class="ms-1"></span>';
+        result.querySelector('span').textContent = 'Error: ' + error.message;
         result.style.display = 'block';
       })
       .finally(() => {
