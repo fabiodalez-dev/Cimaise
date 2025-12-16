@@ -260,7 +260,7 @@
   {% endif %}
 </section>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
   var basePath = '{{ base_path }}';
   // Trigger same init used in gallery.twig after load
   window.addEventListener('DOMContentLoaded', function(){

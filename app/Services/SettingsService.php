@@ -51,6 +51,7 @@ class SettingsService
             'image.quality' => ['avif' => 50, 'webp' => 75, 'jpg' => 85],
             'image.breakpoints' => ['sm' => 768, 'md' => 1200, 'lg' => 1920, 'xl' => 2560, 'xxl' => 3840],
             'image.preview' => ['width' => 480, 'height' => null],
+            // TODO: visibility.public is a placeholder - implement server-side enforcement or remove
             'visibility' => ['public' => true],
             'gallery.default_template_id' => null,
             'site.title' => 'Cimaise',
@@ -60,6 +61,7 @@ class SettingsService
             'site.email' => '',
             'site.language' => 'en',
             'date.format' => 'Y-m-d',
+            // TODO: performance.compression is stored but not consumed by middleware - wire up or remove
             'performance.compression' => true,
             'pagination.limit' => 12,
             'cache.ttl' => 24,
