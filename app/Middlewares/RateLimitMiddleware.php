@@ -12,9 +12,50 @@ class RateLimitMiddleware implements MiddlewareInterface
 {
     public function __construct(private int $maxAttempts = 5, private int $windowSec = 600) {}
 
+    /**
+     * Get client IP address, accounting for reverse proxies.
+     * Only trusts X-Forwarded-For if TRUSTED_PROXIES env is configured.
+     */
+    private function getClientIp(Request $request): string
+    {
+        $serverParams = $request->getServerParams();
+        $remoteAddr = $serverParams['REMOTE_ADDR'] ?? 'unknown';
+
+        // Only trust X-Forwarded-For if request comes from a trusted proxy
+        $trustedProxies = getenv('TRUSTED_PROXIES') ?: '';
+        if ($trustedProxies !== '' && $remoteAddr !== 'unknown') {
+            $trustedList = array_map('trim', explode(',', $trustedProxies));
+
+            // Check if remote address is in trusted proxies list
+            if (\in_array($remoteAddr, $trustedList, true) || \in_array('*', $trustedList, true)) {
+                // Check X-Forwarded-For header
+                $forwardedFor = $request->getHeaderLine('X-Forwarded-For');
+                if ($forwardedFor !== '') {
+                    // X-Forwarded-For can contain multiple IPs: client, proxy1, proxy2
+                    // The leftmost IP is the original client
+                    $ips = array_map('trim', explode(',', $forwardedFor));
+                    $clientIp = $ips[0] ?? '';
+
+                    // Validate IP format to prevent spoofing
+                    if (filter_var($clientIp, FILTER_VALIDATE_IP)) {
+                        return $clientIp;
+                    }
+                }
+
+                // Fallback: check X-Real-IP (used by nginx)
+                $realIp = $request->getHeaderLine('X-Real-IP');
+                if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP)) {
+                    return $realIp;
+                }
+            }
+        }
+
+        return $remoteAddr;
+    }
+
     public function process(Request $request, Handler $handler): Response
     {
-        $ip = $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown';
+        $ip = $this->getClientIp($request);
         $path = $request->getUri()->getPath();
 
         // Use different keys for different endpoints to track separately
