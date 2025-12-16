@@ -43,6 +43,11 @@
             <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.texts.language') }}</label>
             <select name="language" id="language-select" class="input w-full">
               <option value="">{{ trans('admin.texts.select_language') }}</option>
+              {% for lang in languages %}
+                <option value="{{ lang.code }}">{{ lang.name }} ({{ lang.code }}) - v{{ lang.version }}</option>
+              {% else %}
+                <option value="" disabled>{{ trans('admin.texts.no_preset_languages') }}</option>
+              {% endfor %}
             </select>
           </div>
           <div class="w-28">
@@ -211,39 +216,8 @@
     </div>
   {% endfor %}
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     document.addEventListener('DOMContentLoaded', function() {
-      // Load available languages for the dropdown
-      async function loadLanguages() {
-        try {
-          const response = await fetch('{{ base_path }}/admin/texts/languages');
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          const data = await response.json();
-          const select = document.getElementById('language-select');
-
-          if (data.languages && data.languages.length > 0) {
-            data.languages.forEach(lang => {
-              const option = document.createElement('option');
-              option.value = lang.code;
-              option.textContent = `${lang.name} (${lang.code}) - v${lang.version}`;
-              select.appendChild(option);
-            });
-          } else {
-            const option = document.createElement('option');
-            option.value = '';
-            option.textContent = '{{ trans('admin.texts.no_preset_languages')|e('js') }}';
-            option.disabled = true;
-            select.appendChild(option);
-          }
-        } catch (error) {
-          console.error('Failed to load languages:', error);
-        }
-      }
-
-      loadLanguages();
-
       // Toggle upload section
       const toggleBtn = document.getElementById('toggle-upload-btn');
       const uploadSection = document.getElementById('upload-section');
