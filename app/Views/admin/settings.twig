@@ -138,7 +138,8 @@
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Copyright Notice</label>
-            <input type="text" name="site_copyright" value="{{ settings['site.copyright'] ?? '© 2024 Photography Portfolio' }}" class="form-input">
+            <input type="text" name="site_copyright" value="{{ settings['site.copyright'] ?? '© {year} Photography Portfolio' }}" class="form-input">
+            <p class="text-xs text-gray-500 mt-1">Use <code class="bg-gray-100 px-1 rounded">{year}</code> for current year</p>
           </div>
           
           <div>

@@ -378,8 +378,8 @@
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Copyright Notice</label>
-            <input type="text" name="image_copyright_notice" class="form-input" value="{{ settings.image_copyright_notice }}" placeholder="© 2024 Your Name. All rights reserved.">
-            <p class="text-xs text-gray-500 mt-1">Default copyright notice for images</p>
+            <input type="text" name="image_copyright_notice" class="form-input" value="{{ settings.image_copyright_notice }}" placeholder="© {year} Your Name. All rights reserved.">
+            <p class="text-xs text-gray-500 mt-1">Default copyright notice for images. Use <code class="bg-gray-100 px-1 rounded">{year}</code> for current year.</p>
           </div>
           
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

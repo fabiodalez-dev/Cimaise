@@ -203,7 +203,7 @@ class InstallerController
         return $this->view->render($response, 'installer/settings.twig', [
             'site_title' => 'Cimaise',
             'site_description' => 'Professional Photography Portfolio',
-            'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
+            'site_copyright' => '© {year} Photography Portfolio',
             'site_email' => '',
             'site_language' => 'en',
             'date_format' => 'Y-m-d',
@@ -387,7 +387,7 @@ class InstallerController
         return $this->view->render($response, 'installer/post_setup.twig', [
             'site_title' => 'Cimaise',
             'site_description' => 'Professional Photography Portfolio',
-            'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
+            'site_copyright' => '© {year} Photography Portfolio',
             'site_email' => '',
             'site_language' => 'en',
             'date_format' => 'Y-m-d',
@@ -448,7 +448,7 @@ class InstallerController
             'site.title' => (string)($data['site_title'] ?? 'Cimaise'),
             'site.logo' => $data['site_logo'] ?? null,
             'site.description' => (string)($data['site_description'] ?? 'Professional Photography Portfolio'),
-            'site.copyright' => (string)($data['site_copyright'] ?? ('© ' . date('Y') . ' Photography Portfolio')),
+            'site.copyright' => (string)($data['site_copyright'] ?? '© {year} Photography Portfolio'),
             'site.email' => (string)($data['site_email'] ?? ''),
             'site.language' => $language,
             'date.format' => $dateFormat,
