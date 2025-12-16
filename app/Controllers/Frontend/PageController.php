@@ -17,6 +17,13 @@ class PageController extends BaseController
         parent::__construct();
     }
 
+    private function validateCsrf(Request $request): bool
+    {
+        $data = (array)$request->getParsedBody();
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
+    }
+
     private function buildSeo(Request $request, string $title, string $description = '', ?string $imagePath = null): array
     {
         $svc = new \App\Services\SettingsService($this->db);
@@ -1003,6 +1010,11 @@ class PageController extends BaseController
 
     public function aboutContact(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
+        }
+
         $data = (array)($request->getParsedBody() ?? []);
         $name = trim((string)($data['name'] ?? ''));
         $email = trim((string)($data['email'] ?? ''));
@@ -1018,14 +1030,29 @@ class PageController extends BaseController
             $to = (string)(\envv('CONTACT_EMAIL', \envv('MAIL_TO', 'webmaster@localhost')));
         }
         $subjectPrefix = (string)($settings->get('about.contact_subject', 'Portfolio') ?? 'Portfolio');
-        $subject = '[' . $subjectPrefix . '] Nuovo messaggio da ' . $name;
-        // Basic header-safe sanitization
-        $safeName = str_replace(["\r","\n"], ' ', $name);
-        $safeEmail = str_replace(["\r","\n"], ' ', $email);
 
-        $body = "Nome: {$safeName}\nEmail: {$safeEmail}\n\nMessaggio:\n{$message}\n";
-        $headers = 'From: ' . $safeName . ' <' . $safeEmail . '>' . "\r\n" .
-                   'Reply-To: ' . $safeEmail . "\r\n" .
+        // Strict header injection prevention
+        // Remove ALL control characters (including tabs) from name and subject
+        $safeName = preg_replace('/[\x00-\x1F\x7F]/', '', $name);
+        $safeName = mb_substr($safeName, 0, 100); // Limit length
+
+        // Additional email validation - must match the validated email exactly
+        // FILTER_VALIDATE_EMAIL already passed, but double-check for header chars
+        if (preg_match('/[\x00-\x1F\x7F]/', $email)) {
+            return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
+        }
+
+        // Encode subject with =?UTF-8?B? to prevent header injection
+        $subjectText = '[' . $subjectPrefix . '] Nuovo messaggio da ' . $safeName;
+        $subject = '=?UTF-8?B?' . base64_encode($subjectText) . '?=';
+
+        $body = "Nome: {$safeName}\nEmail: {$email}\n\nMessaggio:\n{$message}\n";
+
+        // SECURITY: Use system email as From, user email only in Reply-To
+        // This prevents email spoofing and header injection via From header
+        $systemFrom = (string)(\envv('MAIL_FROM', 'noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost')));
+        $headers = 'From: ' . $systemFrom . "\r\n" .
+                   'Reply-To: ' . $email . "\r\n" .
                    'Content-Type: text/plain; charset=UTF-8';
 
         @mail($to, $subject, $body, $headers);

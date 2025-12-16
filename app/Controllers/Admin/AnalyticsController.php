@@ -33,6 +33,13 @@ class AnalyticsController
         $this->basePath = $basePath;
     }
 
+    private function validateCsrf(Request $request): bool
+    {
+        $data = (array)$request->getParsedBody();
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
+    }
+
     /**
      * Validate and sanitize date range from query parameters
      *
@@ -141,8 +148,17 @@ class AnalyticsController
      */
     private function saveSettings(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->basePath . '/admin/analytics/settings')->withStatus(302);
+        }
+
         $data = $request->getParsedBody();
-        
+
         // Define allowed settings
         $allowedSettings = [
             'analytics_enabled',
@@ -557,6 +573,15 @@ class AnalyticsController
     public function cleanup(Request $request, Response $response): Response
     {
         if ($request->getMethod() === 'POST') {
+            // CSRF validation
+            if (!$this->validateCsrf($request)) {
+                if (session_status() === PHP_SESSION_NONE) {
+                    session_start();
+                }
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+                return $response->withHeader('Location', $this->basePath . '/admin/analytics/settings')->withStatus(302);
+            }
+
             try {
                 $deletedRecords = $this->analytics->cleanupOldData();
                 

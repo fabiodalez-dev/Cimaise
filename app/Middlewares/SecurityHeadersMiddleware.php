@@ -10,16 +10,25 @@ use Psr\Http\Server\RequestHandlerInterface as Handler;
 
 class SecurityHeadersMiddleware implements MiddlewareInterface
 {
+    private static ?string $nonce = null;
+
     public function process(Request $request, Handler $handler): Response
     {
+        // Generate a unique nonce for this request
+        self::$nonce = base64_encode(random_bytes(16));
+
+        // Store nonce in request attribute for use by templates
+        $request = $request->withAttribute('csp_nonce', self::$nonce);
+
         $response = $handler->handle($request);
+
         $csp = "upgrade-insecure-requests; default-src 'self'; "
              . "img-src 'self' data: blob:; "
-             . "script-src 'self' 'unsafe-inline'; "
+             . "script-src 'self' 'nonce-" . self::$nonce . "'; "
              . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
              . "font-src 'self' https://fonts.gstatic.com data:; "
              . "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
-        
+
         return $response
             ->withHeader('X-Content-Type-Options','nosniff')
             ->withHeader('X-Frame-Options', 'DENY')
@@ -31,5 +40,13 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
             ->withHeader('X-Permitted-Cross-Domain-Policies', 'none')
             ->withHeader('Expect-CT', 'enforce, max-age=30')
             ->withHeader('Content-Security-Policy', $csp);
+    }
+
+    /**
+     * Get the current request's CSP nonce
+     */
+    public static function getNonce(): ?string
+    {
+        return self::$nonce;
     }
 }

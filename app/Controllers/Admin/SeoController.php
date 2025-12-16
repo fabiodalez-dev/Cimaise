@@ -18,6 +18,13 @@ class SeoController extends BaseController
         parent::__construct();
     }
 
+    private function validateCsrf(Request $request): bool
+    {
+        $data = (array)$request->getParsedBody();
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
+    }
+
     public function index(Request $request, Response $response): Response
     {
         $svc = new SettingsService($this->db);
@@ -89,9 +96,15 @@ class SeoController extends BaseController
 
     public function save(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/seo'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $svc = new SettingsService($this->db);
-        
+
         try {
             // Site-wide SEO settings
             $svc->set('seo.site_title', trim((string)($data['site_title'] ?? '')));
@@ -165,6 +178,12 @@ class SeoController extends BaseController
 
     public function generateSitemap(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/seo'))->withStatus(302);
+        }
+
         try {
             // Get published albums for sitemap
             $pdo = $this->db->pdo();

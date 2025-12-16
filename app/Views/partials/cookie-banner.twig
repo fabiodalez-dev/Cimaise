@@ -7,12 +7,13 @@
 
 {# Custom JS Loader - Conditional script injection based on consent #}
 {% if custom_js_analytics or custom_js_marketing %}
-<script id="custom-js-loader">
+<script id="custom-js-loader" nonce="{{ csp_nonce() }}">
 (function() {
     'use strict';
 
     var analyticsScript = {{ custom_js_analytics|json_encode|raw }};
     var marketingScript = {{ custom_js_marketing|json_encode|raw }};
+    var cspNonce = {{ csp_nonce()|json_encode|raw }};
 
     function injectScript(scriptContent, id) {
         if (!scriptContent || document.getElementById(id)) return;
@@ -27,6 +28,7 @@
 
         var script = document.createElement('script');
         script.id = id;
+        script.nonce = cspNonce;
         script.textContent = scriptContent;
         document.head.appendChild(script);
     }
@@ -76,7 +78,7 @@
 {% endif %}
 
 {# Silktide Consent Manager Configuration #}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
     function initCookieBannerConfig() {
         try {

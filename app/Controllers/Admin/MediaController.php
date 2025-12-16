@@ -16,6 +16,19 @@ class MediaController extends BaseController
         parent::__construct();
     }
 
+    private function validateCsrf(Request $request): bool
+    {
+        $data = (array)$request->getParsedBody();
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
+    }
+
+    private function csrfErrorJson(Response $response): Response
+    {
+        $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid CSRF token']));
+        return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+    }
+
     public function index(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
@@ -72,6 +85,11 @@ class MediaController extends BaseController
 
     public function delete(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $id = (int)($args['id'] ?? 0);
         if ($id <= 0) return $response->withStatus(400);
         $pdo = $this->db->pdo();
@@ -105,9 +123,14 @@ class MediaController extends BaseController
 
     public function update(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $id = (int)($args['id'] ?? 0);
         if ($id <= 0) return $response->withStatus(400);
-        
+
         $d = (array)$request->getParsedBody();
         $pdo = $this->db->pdo();
 
