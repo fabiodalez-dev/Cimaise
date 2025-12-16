@@ -101,7 +101,7 @@ function confirmNsfwAndShow() {
         "@type": "Person",
         "name": {{ schema.author_name|json_encode|raw }}
       },{% endif %}
-      {% if schema is defined and schema.image_copyright_notice %}"copyrightNotice": {{ schema.image_copyright_notice|json_encode|raw }},{% endif %}
+      {% if schema is defined and schema.image_copyright_notice %}"copyrightNotice": {{ schema.image_copyright_notice|replace_year|json_encode|raw }},{% endif %}
       {% if schema is defined and schema.image_license_url %}"license": {{ schema.image_license_url|json_encode|raw }},{% endif %}
       {% if schema is defined and schema.image_acquire_license_page %}"acquireLicensePage": {{ schema.image_acquire_license_page|json_encode|raw }},{% endif %}
       "thumbnailUrl": "{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}"
