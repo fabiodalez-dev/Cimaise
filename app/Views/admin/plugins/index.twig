@@ -1,22 +1,22 @@
 {% extends "admin/_layout.twig" %}
 
-{% block title %}Plugin - Cimaise{% endblock %}
+{% block title %}{{ trans('admin.plugins.title') }} - Cimaise{% endblock %}
 
 {% block content %}
 <div class="mb-6">
   <div class="flex justify-between items-center">
     <div>
-      <h1 class="text-3xl font-bold text-gray-900">Plugin</h1>
-      <p class="text-gray-600 mt-2">Gestisci i plugin installati e disponibili per Cimaise</p>
+      <h1 class="text-3xl font-bold text-gray-900">{{ trans('admin.plugins.title') }}</h1>
+      <p class="text-gray-600 mt-2">{{ trans('admin.plugins.description') }}</p>
     </div>
     <div class="flex items-center space-x-4">
       <div class="text-sm text-gray-600">
         <i class="fas fa-puzzle-piece mr-2"></i>
-        <strong>{{ plugins|length }}</strong> plugin totali
+        <strong>{{ plugins|length }}</strong> {{ trans('admin.plugins.total_plugins') }}
       </div>
       <div class="text-sm text-gray-600">
         <i class="fas fa-check-circle text-green-600 mr-2"></i>
-        <strong>{{ plugins|filter(p => p.is_active)|length }}</strong> attivi
+        <strong>{{ plugins|filter(p => p.is_active)|length }}</strong> {{ trans('admin.plugins.active_plugins') }}
       </div>
     </div>
   </div>
@@ -26,19 +26,19 @@
 {% if stats %}
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4">
-    <div class="text-sm text-gray-600">Hooks Registrati</div>
+    <div class="text-sm text-gray-600">{{ trans('admin.plugins.registered_hooks') }}</div>
     <div class="text-2xl font-bold text-gray-900">{{ stats.total_hooks }}</div>
   </div>
   <div class="card p-4">
-    <div class="text-sm text-gray-600">Callbacks Totali</div>
+    <div class="text-sm text-gray-600">{{ trans('admin.plugins.total_callbacks') }}</div>
     <div class="text-2xl font-bold text-gray-900">{{ stats.total_callbacks }}</div>
   </div>
   <div class="card p-4">
-    <div class="text-sm text-gray-600">Plugin Caricati</div>
+    <div class="text-sm text-gray-600">{{ trans('admin.plugins.loaded_plugins') }}</div>
     <div class="text-2xl font-bold text-gray-900">{{ stats.plugins_count }}</div>
   </div>
   <div class="card p-4">
-    <div class="text-sm text-gray-600">Cache Entries</div>
+    <div class="text-sm text-gray-600">{{ trans('admin.plugins.cache_entries') }}</div>
     <div class="text-2xl font-bold text-gray-900">{{ stats.cache_entries }}</div>
   </div>
 </div>
@@ -48,16 +48,16 @@
 <div class="card mb-6">
   <div class="p-6 border-b border-gray-200">
     <h2 class="text-lg font-semibold text-gray-900">
-      <i class="fas fa-upload text-blue-600 mr-2"></i>Carica Plugin
+      <i class="fas fa-upload text-blue-600 mr-2"></i>{{ trans('admin.plugins.upload_plugin') }}
     </h2>
-    <p class="text-sm text-gray-600 mt-1">Carica un plugin in formato ZIP contenente un file <code>plugin.json</code></p>
+    <p class="text-sm text-gray-600 mt-1">{{ trans('admin.plugins.upload_description') }}</p>
   </div>
   <div class="p-6">
     <div id="plugin-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
       <div id="plugin-upload-content">
         <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
-        <p class="text-gray-600 mb-2">Trascina qui il file ZIP del plugin</p>
-        <p class="text-sm text-gray-500">oppure clicca per selezionare</p>
+        <p class="text-gray-600 mb-2">{{ trans('admin.plugins.drag_drop') }}</p>
+        <p class="text-sm text-gray-500">{{ trans('admin.plugins.or_click') }}</p>
       </div>
       <div id="plugin-upload-progress" class="hidden">
         <div class="flex items-center justify-center space-x-3">
@@ -65,7 +65,7 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span class="text-gray-600">Caricamento in corso...</span>
+          <span class="text-gray-600">{{ trans('admin.plugins.uploading') }}</span>
         </div>
         <div class="mt-4 w-full bg-gray-200 rounded-full h-2">
           <div id="plugin-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
@@ -79,8 +79,8 @@
 <!-- Plugin List -->
 <div class="card">
   <div class="p-6 border-b border-gray-200">
-    <h2 class="text-lg font-semibold text-gray-900">Plugin Disponibili</h2>
-    <p class="text-sm text-gray-600 mt-1">Tutti i plugin trovati nella directory plugins/</p>
+    <h2 class="text-lg font-semibold text-gray-900">{{ trans('admin.plugins.available_plugins') }}</h2>
+    <p class="text-sm text-gray-600 mt-1">{{ trans('admin.plugins.all_found') }}</p>
   </div>
 
   {% if plugins|length > 0 %}
@@ -99,21 +99,21 @@
                   <div class="flex items-center space-x-3 mt-1">
                     <span class="text-sm text-gray-500">v{{ plugin.version }}</span>
                     {% if plugin.author %}
-                      <span class="text-sm text-gray-500">by {{ plugin.author }}</span>
+                      <span class="text-sm text-gray-500">{{ trans('admin.plugins.by_author') }} {{ plugin.author }}</span>
                     {% endif %}
 
                     <!-- Status Badges -->
                     {% if plugin.is_active %}
                       <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <i class="fas fa-check-circle mr-1"></i> Attivo
+                        <i class="fas fa-check-circle mr-1"></i> {{ trans('admin.plugins.status_active') }}
                       </span>
                     {% elseif plugin.is_installed %}
                       <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        <i class="fas fa-pause-circle mr-1"></i> Disattivato
+                        <i class="fas fa-pause-circle mr-1"></i> {{ trans('admin.plugins.status_deactivated') }}
                       </span>
                     {% else %}
                       <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        <i class="fas fa-circle mr-1"></i> Non Installato
+                        <i class="fas fa-circle mr-1"></i> {{ trans('admin.plugins.status_not_installed') }}
                       </span>
                     {% endif %}
                   </div>
@@ -127,7 +127,7 @@
               <div class="flex items-center space-x-4 mt-3 ml-15 text-xs text-gray-500">
                 <div><i class="fas fa-folder mr-1"></i> {{ plugin.slug }}</div>
                 {% if plugin.installed_at %}
-                  <div><i class="fas fa-clock mr-1"></i> Installato il {{ plugin.installed_at|datetime_format }}</div>
+                  <div><i class="fas fa-clock mr-1"></i> {{ trans('admin.plugins.installed_on') }} {{ plugin.installed_at|datetime_format }}</div>
                 {% endif %}
               </div>
             </div>
@@ -140,17 +140,17 @@
                   <input type="hidden" name="csrf" value="{{ csrf }}">
                   <input type="hidden" name="slug" value="{{ slug }}">
                   <button type="submit" class="btn-primary btn-sm">
-                    <i class="fas fa-download mr-2"></i>Installa
+                    <i class="fas fa-download mr-2"></i>{{ trans('admin.plugins.install') }}
                   </button>
                 </form>
               {% else %}
                 {% if plugin.is_active %}
                   <!-- Deactivate Button -->
-                  <form method="post" action="{{ base_path }}/admin/plugins/deactivate" class="inline" onsubmit="return confirm('Disattivare questo plugin?')">
+                  <form method="post" action="{{ base_path }}/admin/plugins/deactivate" class="inline" onsubmit="return confirm('{{ trans('admin.plugins.deactivate_confirm') }}')">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
                     <input type="hidden" name="slug" value="{{ slug }}">
                     <button type="submit" class="btn-secondary btn-sm">
-                      <i class="fas fa-pause mr-2"></i>Disattiva
+                      <i class="fas fa-pause mr-2"></i>{{ trans('admin.plugins.deactivate') }}
                     </button>
                   </form>
                 {% else %}
@@ -159,17 +159,17 @@
                     <input type="hidden" name="csrf" value="{{ csrf }}">
                     <input type="hidden" name="slug" value="{{ slug }}">
                     <button type="submit" class="btn-primary btn-sm">
-                      <i class="fas fa-play mr-2"></i>Attiva
+                      <i class="fas fa-play mr-2"></i>{{ trans('admin.plugins.activate') }}
                     </button>
                   </form>
                 {% endif %}
 
                 <!-- Uninstall Button -->
-                <form method="post" action="{{ base_path }}/admin/plugins/uninstall" class="inline" onsubmit="return confirm('Sei sicuro di voler disinstallare questo plugin? Questa azione non può essere annullata.')">
+                <form method="post" action="{{ base_path }}/admin/plugins/uninstall" class="inline" onsubmit="return confirm('{{ trans('admin.plugins.uninstall_confirm') }}')">
                   <input type="hidden" name="csrf" value="{{ csrf }}">
                   <input type="hidden" name="slug" value="{{ slug }}">
                   <button type="submit" class="btn-outline-danger btn-sm">
-                    <i class="fas fa-trash mr-2"></i>Disinstalla
+                    <i class="fas fa-trash mr-2"></i>{{ trans('admin.plugins.uninstall') }}
                   </button>
                 </form>
               {% endif %}
@@ -183,10 +183,10 @@
       <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <i class="fas fa-puzzle-piece text-3xl text-gray-400"></i>
       </div>
-      <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun Plugin Trovato</h3>
-      <p class="text-gray-600 mb-6">Non ci sono plugin disponibili nella directory <code class="bg-gray-100 px-2 py-1 rounded">plugins/</code></p>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.plugins.no_plugins') }}</h3>
+      <p class="text-gray-600 mb-6">{{ trans('admin.plugins.no_plugins_message') }}</p>
       <a href="https://github.com/Cimaise/plugins" target="_blank" class="btn-primary">
-        <i class="fas fa-download mr-2"></i>Scarica Plugin
+        <i class="fas fa-download mr-2"></i>{{ trans('admin.plugins.download_plugins') }}
       </a>
     </div>
   {% endif %}
@@ -195,28 +195,28 @@
 <!-- Documentation -->
 <div class="mt-6 card p-6">
   <h3 class="text-lg font-semibold text-gray-900 mb-3">
-    <i class="fas fa-book text-blue-600 mr-2"></i>Documentazione Plugin
+    <i class="fas fa-book text-blue-600 mr-2"></i>{{ trans('admin.plugins.documentation') }}
   </h3>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <a href="{{ base_path }}/PLUGIN_DEVELOPMENT.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all">
       <i class="fas fa-code text-blue-600 text-xl mb-2"></i>
-      <div class="font-medium text-gray-900">Guida Sviluppo</div>
-      <div class="text-sm text-gray-600">Come creare un plugin</div>
+      <div class="font-medium text-gray-900">{{ trans('admin.plugins.dev_guide') }}</div>
+      <div class="text-sm text-gray-600">{{ trans('admin.plugins.dev_guide_desc') }}</div>
     </a>
     <a href="{{ base_path }}/HOOKS_REFERENCE.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:shadow-md transition-all">
       <i class="fas fa-list text-green-600 text-xl mb-2"></i>
-      <div class="font-medium text-gray-900">Riferimento Hooks</div>
-      <div class="text-sm text-gray-600">60 hooks disponibili</div>
+      <div class="font-medium text-gray-900">{{ trans('admin.plugins.hooks_reference') }}</div>
+      <div class="text-sm text-gray-600">60 {{ trans('admin.plugins.hooks_available') }}</div>
     </a>
     <a href="{{ base_path }}/PLUGINS_AND_FEATURES_IDEAS.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-purple-500 hover:shadow-md transition-all">
       <i class="fas fa-lightbulb text-purple-600 text-xl mb-2"></i>
-      <div class="font-medium text-gray-900">Idee & Features</div>
-      <div class="text-sm text-gray-600">25 plugin + 25 features</div>
+      <div class="font-medium text-gray-900">{{ trans('admin.plugins.ideas_features') }}</div>
+      <div class="text-sm text-gray-600">25 {{ trans('admin.plugins.ideas_features_desc') }}</div>
     </a>
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
   const basePath = '{{ base_path }}';
   const csrf = '{{ csrf }}';
@@ -275,7 +275,7 @@
         <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4">
           <div class="flex items-center">
             <i class="fas fa-exclamation-triangle text-yellow-600 mr-3 text-xl"></i>
-            <div class="font-medium">Il file deve essere un archivio ZIP</div>
+            <div class="font-medium">{{ trans('admin.plugins.file_must_be_zip') }}</div>
           </div>
         </div>
       `);
@@ -288,7 +288,7 @@
         <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4">
           <div class="flex items-center">
             <i class="fas fa-exclamation-triangle text-yellow-600 mr-3 text-xl"></i>
-            <div class="font-medium">Il file è troppo grande (max 10MB)</div>
+            <div class="font-medium">{{ trans('admin.plugins.file_too_large') }}</div>
           </div>
         </div>
       `);
@@ -323,7 +323,7 @@
       try {
         result = JSON.parse(xhr.responseText);
       } catch (e) {
-        result = { success: false, message: 'Risposta non valida dal server' };
+        result = { success: false, message: '{{ trans('admin.plugins.invalid_response') }}' };
       }
 
       if (xhr.status === 200 && result.success) {
@@ -340,7 +340,7 @@
             </div>
             <div class="mt-3">
               <button onclick="location.reload()" class="btn-primary btn-sm">
-                <i class="fas fa-sync mr-2"></i>Ricarica Pagina
+                <i class="fas fa-sync mr-2"></i>{{ trans('admin.plugins.reload_page') }}
               </button>
             </div>
           </div>
@@ -350,7 +350,7 @@
           <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
             <div class="flex items-center">
               <i class="fas fa-exclamation-circle text-red-600 mr-3 text-xl"></i>
-              <div class="font-medium">${escapeHtml(result.message || 'Errore durante il caricamento')}</div>
+              <div class="font-medium">${escapeHtml(result.message || '{{ trans('admin.plugins.upload_error') }}')}</div>
             </div>
           </div>
         `);
@@ -364,7 +364,7 @@
         <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
           <div class="flex items-center">
             <i class="fas fa-exclamation-circle text-red-600 mr-3 text-xl"></i>
-            <div class="font-medium">Errore di rete durante il caricamento</div>
+            <div class="font-medium">{{ trans('admin.plugins.network_error') }}</div>
           </div>
         </div>
       `);

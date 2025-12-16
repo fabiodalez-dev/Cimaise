@@ -1,5 +1,5 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Filter Settings — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.filter_settings.title') }} — Cimaise{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -8,20 +8,20 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-black">Filter Settings</h1>
-          <p class="text-gray-600 mt-1">Configure galleries page filtering options and grid layout</p>
+          <h1 class="text-3xl font-bold text-black">{{ trans('admin.filter_settings.title') }}</h1>
+          <p class="text-gray-600 mt-1">{{ trans('admin.filter_settings.description') }}</p>
         </div>
         <div class="flex items-center gap-3">
           <a href="{{ base_path }}/galleries" target="_blank" class="btn-secondary">
             <i class="fas fa-external-link-alt mr-2"></i>
-            Preview Galleries Page
+            {{ trans('admin.filter_settings.preview') }}
           </a>
-          <form method="post" action="{{ base_path }}/admin/filter-settings/reset" class="inline" 
-                onsubmit="return confirm('Are you sure you want to reset all filter settings to defaults?');">
+          <form method="post" action="{{ base_path }}/admin/filter-settings/reset" class="inline"
+                onsubmit="return confirm('{{ trans('admin.filter_settings.reset_confirm') }}');">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <button type="submit" class="btn-outline-danger">
               <i class="fas fa-undo mr-2"></i>
-              Reset to Defaults
+              {{ trans('admin.filter_settings.reset') }}
             </button>
           </form>
         </div>
@@ -44,15 +44,15 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-cogs mr-3 text-gray-600"></i>
-                General Settings
+                {{ trans('admin.filter_settings.general') }}
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Global filter functionality and animation settings</p>
+              <p class="text-gray-600 text-sm mt-1">{{ trans('admin.filter_settings.general_hint') }}</p>
             </div>
             <div class="p-6 space-y-6">
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="text-sm font-medium text-black">Enable Filter System</label>
-                  <p class="text-xs text-gray-500 mt-1">Enable or disable the entire filter functionality on galleries page</p>
+                  <label class="text-sm font-medium text-black">{{ trans('admin.filter_settings.enable_filter') }}</label>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.filter_settings.enable_filter_hint') }}</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" name="enabled" value="1" class="sr-only peer" 
@@ -63,8 +63,8 @@
               
               <div class="flex items-center justify-between">
                 <div>
-                  <label class="text-sm font-medium text-black">Enable GSAP Animations</label>
-                  <p class="text-xs text-gray-500 mt-1">Enable smooth animations for filter interactions</p>
+                  <label class="text-sm font-medium text-black">{{ trans('admin.filter_settings.enable_animations') }}</label>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.filter_settings.enable_animations_hint') }}</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" name="animation_enabled" value="1" class="sr-only peer" 
@@ -74,11 +74,11 @@
               </div>
               
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Animation Duration (seconds)</label>
-                <input type="number" name="animation_duration" step="0.1" min="0.1" max="2.0" 
-                       value="{{ settings.general.animation_duration }}" 
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.filter_settings.animation_duration') }}</label>
+                <input type="number" name="animation_duration" step="0.1" min="0.1" max="2.0"
+                       value="{{ settings.general.animation_duration }}"
                        class="form-input w-full">
-                <p class="text-xs text-gray-500 mt-1">Duration for GSAP animations (0.1 - 2.0 seconds)</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.filter_settings.animation_duration_hint') }}</p>
               </div>
             </div>
           </div>
@@ -88,9 +88,9 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-filter mr-3 text-gray-600"></i>
-                Available Filters
+                {{ trans('admin.filter_settings.available_filters') }}
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Choose which filter options to display to users</p>
+              <p class="text-gray-600 text-sm mt-1">{{ trans('admin.filter_settings.available_filters_hint') }}</p>
             </div>
             <div class="p-6">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -100,8 +100,8 @@
                     <div class="flex items-center gap-3">
                       <i class="fas fa-folder-open text-gray-600"></i>
                       <div>
-                        <span class="text-sm font-medium text-black">Categories</span>
-                        <p class="text-xs text-gray-500">{{ stats.categories }} available</p>
+                        <span class="text-sm font-medium text-black">{{ trans('admin.filter_settings.categories') }}</span>
+                        <p class="text-xs text-gray-500">{{ stats.categories }} {{ trans('admin.filter_settings.available') }}</p>
                       </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -115,8 +115,8 @@
                     <div class="flex items-center gap-3">
                       <i class="fas fa-tags text-gray-600"></i>
                       <div>
-                        <span class="text-sm font-medium text-black">Tags</span>
-                        <p class="text-xs text-gray-500">{{ stats.tags }} available</p>
+                        <span class="text-sm font-medium text-black">{{ trans('admin.filter_settings.tags') }}</span>
+                        <p class="text-xs text-gray-500">{{ stats.tags }} {{ trans('admin.filter_settings.available') }}</p>
                       </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -130,8 +130,8 @@
                     <div class="flex items-center gap-3">
                       <i class="fas fa-camera text-gray-600"></i>
                       <div>
-                        <span class="text-sm font-medium text-black">Cameras</span>
-                        <p class="text-xs text-gray-500">{{ stats.cameras }} available</p>
+                        <span class="text-sm font-medium text-black">{{ trans('admin.filter_settings.cameras') }}</span>
+                        <p class="text-xs text-gray-500">{{ stats.cameras }} {{ trans('admin.filter_settings.available') }}</p>
                       </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -145,8 +145,8 @@
                     <div class="flex items-center gap-3">
                       <i class="fas fa-eye text-gray-600"></i>
                       <div>
-                        <span class="text-sm font-medium text-black">Lenses</span>
-                        <p class="text-xs text-gray-500">{{ stats.lenses }} available</p>
+                        <span class="text-sm font-medium text-black">{{ trans('admin.filter_settings.lenses') }}</span>
+                        <p class="text-xs text-gray-500">{{ stats.lenses }} {{ trans('admin.filter_settings.available') }}</p>
                       </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -160,8 +160,8 @@
                     <div class="flex items-center gap-3">
                       <i class="fas fa-film text-gray-600"></i>
                       <div>
-                        <span class="text-sm font-medium text-black">Films</span>
-                        <p class="text-xs text-gray-500">{{ stats.films }} available</p>
+                        <span class="text-sm font-medium text-black">{{ trans('admin.filter_settings.films') }}</span>
+                        <p class="text-xs text-gray-500">{{ stats.films }} {{ trans('admin.filter_settings.available') }}</p>
                       </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -177,8 +177,8 @@
                     <div class="flex items-center gap-3">
                       <i class="fas fa-flask text-gray-600"></i>
                       <div>
-                        <span class="text-sm font-medium text-black">Developers</span>
-                        <p class="text-xs text-gray-500">For analog photography</p>
+                        <span class="text-sm font-medium text-black">{{ trans('admin.filter_settings.developers') }}</span>
+                        <p class="text-xs text-gray-500">{{ trans('admin.filter_settings.for_analog') }}</p>
                       </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -192,8 +192,8 @@
                     <div class="flex items-center gap-3">
                       <i class="fas fa-microscope text-gray-600"></i>
                       <div>
-                        <span class="text-sm font-medium text-black">Labs</span>
-                        <p class="text-xs text-gray-500">Development labs</p>
+                        <span class="text-sm font-medium text-black">{{ trans('admin.filter_settings.labs') }}</span>
+                        <p class="text-xs text-gray-500">{{ trans('admin.filter_settings.dev_labs') }}</p>
                       </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -207,8 +207,8 @@
                     <div class="flex items-center gap-3">
                       <i class="fas fa-map-marker-alt text-gray-600"></i>
                       <div>
-                        <span class="text-sm font-medium text-black">Locations</span>
-                        <p class="text-xs text-gray-500">{{ stats.locations }} available</p>
+                        <span class="text-sm font-medium text-black">{{ trans('admin.filter_settings.locations') }}</span>
+                        <p class="text-xs text-gray-500">{{ stats.locations }} {{ trans('admin.filter_settings.available') }}</p>
                       </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -222,8 +222,8 @@
                     <div class="flex items-center gap-3">
                       <i class="fas fa-calendar text-gray-600"></i>
                       <div>
-                        <span class="text-sm font-medium text-black">Year Filter</span>
-                        <p class="text-xs text-gray-500">Filter by shoot year</p>
+                        <span class="text-sm font-medium text-black">{{ trans('admin.filter_settings.year_filter') }}</span>
+                        <p class="text-xs text-gray-500">{{ trans('admin.filter_settings.year_filter_hint') }}</p>
                       </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -242,60 +242,60 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-th mr-3 text-gray-600"></i>
-                Grid Layout Settings
+                {{ trans('admin.filter_settings.grid_layout') }}
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Configure responsive grid layout for galleries display</p>
+              <p class="text-gray-600 text-sm mt-1">{{ trans('admin.filter_settings.grid_layout_hint') }}</p>
             </div>
             <div class="p-6 space-y-6">
               <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Desktop Columns</label>
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.filter_settings.desktop_columns') }}</label>
                   <select name="grid_columns_desktop" class="form-input w-full">
-                    <option value="2" {% if settings.grid.grid_columns_desktop == '2' %}selected{% endif %}>2 Columns</option>
-                    <option value="3" {% if settings.grid.grid_columns_desktop == '3' %}selected{% endif %}>3 Columns</option>
-                    <option value="4" {% if settings.grid.grid_columns_desktop == '4' %}selected{% endif %}>4 Columns</option>
-                    <option value="5" {% if settings.grid.grid_columns_desktop == '5' %}selected{% endif %}>5 Columns</option>
+                    <option value="2" {% if settings.grid.grid_columns_desktop == '2' %}selected{% endif %}>2 {{ trans('admin.filter_settings.columns') }}</option>
+                    <option value="3" {% if settings.grid.grid_columns_desktop == '3' %}selected{% endif %}>3 {{ trans('admin.filter_settings.columns') }}</option>
+                    <option value="4" {% if settings.grid.grid_columns_desktop == '4' %}selected{% endif %}>4 {{ trans('admin.filter_settings.columns') }}</option>
+                    <option value="5" {% if settings.grid.grid_columns_desktop == '5' %}selected{% endif %}>5 {{ trans('admin.filter_settings.columns') }}</option>
                   </select>
-                  <p class="text-xs text-gray-500 mt-1">For screens ≥ 1024px</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.filter_settings.screen_desktop') }}</p>
                 </div>
-                
+
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Tablet Columns</label>
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.filter_settings.tablet_columns') }}</label>
                   <select name="grid_columns_tablet" class="form-input w-full">
-                    <option value="1" {% if settings.grid.grid_columns_tablet == '1' %}selected{% endif %}>1 Column</option>
-                    <option value="2" {% if settings.grid.grid_columns_tablet == '2' %}selected{% endif %}>2 Columns</option>
-                    <option value="3" {% if settings.grid.grid_columns_tablet == '3' %}selected{% endif %}>3 Columns</option>
+                    <option value="1" {% if settings.grid.grid_columns_tablet == '1' %}selected{% endif %}>1 {{ trans('admin.filter_settings.column') }}</option>
+                    <option value="2" {% if settings.grid.grid_columns_tablet == '2' %}selected{% endif %}>2 {{ trans('admin.filter_settings.columns') }}</option>
+                    <option value="3" {% if settings.grid.grid_columns_tablet == '3' %}selected{% endif %}>3 {{ trans('admin.filter_settings.columns') }}</option>
                   </select>
-                  <p class="text-xs text-gray-500 mt-1">For screens 768px - 1023px</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.filter_settings.screen_tablet') }}</p>
                 </div>
-                
+
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Mobile Columns</label>
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.filter_settings.mobile_columns') }}</label>
                   <select name="grid_columns_mobile" class="form-input w-full">
-                    <option value="1" {% if settings.grid.grid_columns_mobile == '1' %}selected{% endif %}>1 Column</option>
-                    <option value="2" {% if settings.grid.grid_columns_mobile == '2' %}selected{% endif %}>2 Columns</option>
+                    <option value="1" {% if settings.grid.grid_columns_mobile == '1' %}selected{% endif %}>1 {{ trans('admin.filter_settings.column') }}</option>
+                    <option value="2" {% if settings.grid.grid_columns_mobile == '2' %}selected{% endif %}>2 {{ trans('admin.filter_settings.columns') }}</option>
                   </select>
-                  <p class="text-xs text-gray-500 mt-1">For screens < 768px</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.filter_settings.screen_mobile') }}</p>
                 </div>
               </div>
-              
+
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Grid Gap Size</label>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.filter_settings.grid_gap') }}</label>
                 <div class="flex items-center gap-4">
                   <label class="flex items-center gap-2">
-                    <input type="radio" name="grid_gap" value="small" class="w-4 h-4 text-black border-gray-300 focus:ring-black" 
+                    <input type="radio" name="grid_gap" value="small" class="w-4 h-4 text-black border-gray-300 focus:ring-black"
                            {% if settings.grid.grid_gap == 'small' %}checked{% endif %}>
-                    <span class="text-sm text-gray-700">Small (1rem)</span>
+                    <span class="text-sm text-gray-700">{{ trans('admin.filter_settings.gap_small') }}</span>
                   </label>
                   <label class="flex items-center gap-2">
-                    <input type="radio" name="grid_gap" value="normal" class="w-4 h-4 text-black border-gray-300 focus:ring-black" 
+                    <input type="radio" name="grid_gap" value="normal" class="w-4 h-4 text-black border-gray-300 focus:ring-black"
                            {% if settings.grid.grid_gap == 'normal' %}checked{% endif %}>
-                    <span class="text-sm text-gray-700">Normal (1.5rem)</span>
+                    <span class="text-sm text-gray-700">{{ trans('admin.filter_settings.gap_normal') }}</span>
                   </label>
                   <label class="flex items-center gap-2">
-                    <input type="radio" name="grid_gap" value="large" class="w-4 h-4 text-black border-gray-300 focus:ring-black" 
+                    <input type="radio" name="grid_gap" value="large" class="w-4 h-4 text-black border-gray-300 focus:ring-black"
                            {% if settings.grid.grid_gap == 'large' %}checked{% endif %}>
-                    <span class="text-sm text-gray-700">Large (2rem)</span>
+                    <span class="text-sm text-gray-700">{{ trans('admin.filter_settings.gap_large') }}</span>
                   </label>
                 </div>
               </div>
@@ -310,37 +310,37 @@
             <div class="p-6 border-b border-gray-200">
               <h3 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-chart-bar mr-3 text-gray-600"></i>
-                Statistics
+                {{ trans('admin.filter_settings.statistics') }}
               </h3>
-              <p class="text-gray-600 text-sm mt-1">Current data available for filtering</p>
+              <p class="text-gray-600 text-sm mt-1">{{ trans('admin.filter_settings.statistics_hint') }}</p>
             </div>
             <div class="p-6 space-y-4">
               <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Total Albums</span>
+                <span class="text-sm text-gray-600">{{ trans('admin.filter_settings.total_albums') }}</span>
                 <span class="text-lg font-semibold text-black">{{ stats.total_albums }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Categories</span>
+                <span class="text-sm text-gray-600">{{ trans('admin.filter_settings.categories') }}</span>
                 <span class="text-lg font-semibold text-black">{{ stats.categories }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Tags</span>
+                <span class="text-sm text-gray-600">{{ trans('admin.filter_settings.tags') }}</span>
                 <span class="text-lg font-semibold text-black">{{ stats.tags }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Cameras</span>
+                <span class="text-sm text-gray-600">{{ trans('admin.filter_settings.cameras') }}</span>
                 <span class="text-lg font-semibold text-black">{{ stats.cameras }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Lenses</span>
+                <span class="text-sm text-gray-600">{{ trans('admin.filter_settings.lenses') }}</span>
                 <span class="text-lg font-semibold text-black">{{ stats.lenses }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Films</span>
+                <span class="text-sm text-gray-600">{{ trans('admin.filter_settings.films') }}</span>
                 <span class="text-lg font-semibold text-black">{{ stats.films }}</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Locations</span>
+                <span class="text-sm text-gray-600">{{ trans('admin.filter_settings.locations') }}</span>
                 <span class="text-lg font-semibold text-black">{{ stats.locations }}</span>
               </div>
             </div>
@@ -351,9 +351,9 @@
             <div class="p-6 border-b border-gray-200">
               <h3 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-eye mr-3 text-gray-600"></i>
-                Live Preview
+                {{ trans('admin.filter_settings.live_preview') }}
               </h3>
-              <p class="text-gray-600 text-sm mt-1">See how settings affect the galleries page</p>
+              <p class="text-gray-600 text-sm mt-1">{{ trans('admin.filter_settings.live_preview_hint') }}</p>
             </div>
             <div class="p-6">
               <div id="preview-grid" class="grid gap-4 mb-4">
@@ -361,7 +361,7 @@
                 <div class="aspect-[4/3] bg-gray-200 rounded-lg animate-pulse"></div>
                 <div class="aspect-[4/3] bg-gray-200 rounded-lg animate-pulse"></div>
               </div>
-              <p class="text-xs text-gray-500 text-center">Grid preview will update based on your settings</p>
+              <p class="text-xs text-gray-500 text-center">{{ trans('admin.filter_settings.preview_update_hint') }}</p>
             </div>
           </div>
         </div>
@@ -377,23 +377,23 @@
       <div class="flex items-center gap-3">
         <button type="submit" form="filter-settings-form" class="btn-primary">
           <i class="fas fa-save mr-2"></i>
-          Save Settings
+          {{ trans('admin.filter_settings.save_settings') }}
         </button>
         <button type="button" id="preview-settings" class="btn-secondary">
           <i class="fas fa-eye mr-2"></i>
-          Preview Changes
+          {{ trans('admin.filter_settings.preview_changes') }}
         </button>
       </div>
-      
+
       <div class="text-sm text-gray-500">
         <i class="fas fa-info-circle mr-1"></i>
-        Changes will be applied immediately to the galleries page
+        {{ trans('admin.filter_settings.changes_applied_hint') }}
       </div>
     </div>
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Live preview functionality
 document.addEventListener('DOMContentLoaded', function() {
     updateGridPreview();

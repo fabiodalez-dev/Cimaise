@@ -1,21 +1,21 @@
 {% extends 'admin/_layout.twig' %}
 
-{% block title %}Social Sharing — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.social.title') }} — Cimaise{% endblock %}
 
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Social Sharing</h1>
-      <p class="text-gray-600 mt-1">Seleziona e ordina i social di condivisione</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.social.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.social.description') }}</p>
     </div>
     <div class="flex items-center gap-3">
       <button type="submit" form="social-form" class="btn-primary">
         <i class="fas fa-save mr-2"></i>
-        Salva Impostazioni
+        {{ trans('admin.social.save_settings') }}
       </button>
       <a href="{{ base_path }}/admin" class="btn-secondary">
         <i class="fas fa-arrow-left mr-2"></i>
-        Dashboard
+        {{ trans('admin.common.dashboard') }}
       </a>
     </div>
   </div>
@@ -27,17 +27,17 @@
         <div class="flex items-center gap-3">
           <button type="submit" form="social-form" class="btn-primary">
             <i class="fas fa-save mr-2"></i>
-            Salva Impostazioni
+            {{ trans('admin.social.save_settings') }}
           </button>
           <a href="{{ base_path }}/admin" class="btn-secondary">
             <i class="fas fa-arrow-left mr-2"></i>
-            Dashboard
+            {{ trans('admin.common.dashboard') }}
           </a>
         </div>
         
         <div class="text-sm text-gray-500">
           <i class="fas fa-info-circle mr-1"></i>
-          Configura i social sharing del sito
+          {{ trans('admin.social.configure_hint') }}
         </div>
       </div>
     </div>
@@ -53,13 +53,13 @@
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-medium text-gray-900 flex items-center">
-              <i class="fas fa-eye mr-3 text-gray-600"></i>Preview & Ordine (trascina per riordinare)
+              <i class="fas fa-eye mr-3 text-gray-600"></i>{{ trans('admin.social.preview_order') }}
             </h3>
-            <div class="text-sm text-gray-500"><span id="selected-count">{{ enabled_socials|length }}</span> selezionati</div>
+            <div class="text-sm text-gray-500"><span id="selected-count">{{ enabled_socials|length }}</span> {{ trans('admin.social.selected') }}</div>
           </div>
           <div id="preview-wrap" class="p-4 bg-gray-50 rounded-lg">
             <div id="preview" class="flex gap-3 flex-wrap"></div>
-            <p id="preview-empty" class="text-sm text-gray-500 py-2" style="display:none">Nessun social selezionato</p>
+            <p id="preview-empty" class="text-sm text-gray-500 py-2" style="display:none">{{ trans('admin.social.no_social_selected') }}</p>
           </div>
         </div>
       </div>
@@ -69,12 +69,12 @@
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-medium text-gray-900 flex items-center">
-              <i class="fas fa-share-alt mr-3 text-gray-600"></i>Social disponibili
+              <i class="fas fa-share-alt mr-3 text-gray-600"></i>{{ trans('admin.social.available') }}
             </h3>
             <div class="flex items-center gap-2">
-              <button type="button" id="btn-select-all" class="btn btn-sm btn-outline"><i class="fas fa-check-square mr-2"></i>Seleziona tutti</button>
-              <button type="button" id="btn-deselect-all" class="btn btn-sm btn-outline"><i class="fas fa-square mr-2"></i>Deseleziona tutti</button>
-              <button type="submit" class="btn btn-sm"><i class="fas fa-save mr-2"></i>Salva</button>
+              <button type="button" id="btn-select-all" class="btn btn-sm btn-outline"><i class="fas fa-check-square mr-2"></i>{{ trans('admin.social.select_all') }}</button>
+              <button type="button" id="btn-deselect-all" class="btn btn-sm btn-outline"><i class="fas fa-square mr-2"></i>{{ trans('admin.social.deselect_all') }}</button>
+              <button type="submit" class="btn btn-sm"><i class="fas fa-save mr-2"></i>{{ trans('admin.common.save') }}</button>
             </div>
           </div>
 
@@ -87,9 +87,9 @@
                   <div class="text-sm font-medium text-gray-900">{{ cfg.name }}</div>
                   {% set url = cfg.url %}
                   {% if url == '#' or url starts with 'javascript:' %}
-                    <div class="text-xs text-gray-500">Solo icona</div>
+                    <div class="text-xs text-gray-500">{{ trans('admin.social.icon_only') }}</div>
                   {% else %}
-                    <div class="text-xs text-green-600">Condivisione disponibile</div>
+                    <div class="text-xs text-green-600">{{ trans('admin.social.sharing_available') }}</div>
                   {% endif %}
                 </div>
               </label>
@@ -99,7 +99,7 @@
       </div>
     </form>
   </div>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
 (function(){
   // Data dal server
   const AVAILABLE = {{ available_socials|json_encode|raw }};

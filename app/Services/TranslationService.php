@@ -11,7 +11,9 @@ class TranslationService
 {
     private array $cache = [];
     private bool $loaded = false;
-    private string $language = 'en';
+    private string $language = 'en';        // Frontend language
+    private string $adminLanguage = 'en';   // Admin panel language
+    private string $scope = 'frontend';     // Current scope: 'frontend' or 'admin'
     private string $translationsDir;
 
     public function __construct(private Database $db)
@@ -20,7 +22,7 @@ class TranslationService
     }
 
     /**
-     * Set the active language code
+     * Set the frontend language code
      */
     public function setLanguage(string $code): void
     {
@@ -28,17 +30,76 @@ class TranslationService
         $code = strtolower(preg_replace('/[^a-z0-9_-]/i', '', $code) ?: 'en');
         if ($this->language !== $code) {
             $this->language = $code;
+            // Only invalidate cache if we're in frontend scope
+            if ($this->scope === 'frontend') {
+                $this->loaded = false;
+                $this->cache = [];
+            }
+        }
+    }
+
+    /**
+     * Get the frontend language code
+     */
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    /**
+     * Set the admin panel language code
+     */
+    public function setAdminLanguage(string $code): void
+    {
+        $code = strtolower(preg_replace('/[^a-z0-9_-]/i', '', $code) ?: 'en');
+        if ($this->adminLanguage !== $code) {
+            $this->adminLanguage = $code;
+            // Only invalidate cache if we're in admin scope
+            if ($this->scope === 'admin') {
+                $this->loaded = false;
+                $this->cache = [];
+            }
+        }
+    }
+
+    /**
+     * Get the admin panel language code
+     */
+    public function getAdminLanguage(): string
+    {
+        return $this->adminLanguage;
+    }
+
+    /**
+     * Set the current translation scope
+     * @param string $scope 'frontend' or 'admin'
+     */
+    public function setScope(string $scope): void
+    {
+        if (!\in_array($scope, ['frontend', 'admin'], true)) {
+            $scope = 'frontend';
+        }
+        if ($this->scope !== $scope) {
+            $this->scope = $scope;
             $this->loaded = false;
             $this->cache = [];
         }
     }
 
     /**
-     * Get the active language code
+     * Get the current translation scope
      */
-    public function getLanguage(): string
+    public function getScope(): string
     {
-        return $this->language;
+        return $this->scope;
+    }
+
+    /**
+     * Get the active language for the current scope
+     */
+    public function getActiveLanguage(): string
+    {
+        return $this->scope === 'admin' ? $this->adminLanguage : $this->language;
     }
 
     /**
@@ -261,24 +322,37 @@ class TranslationService
     }
 
     /**
-     * Load translations from JSON file for current language
+     * Load translations from JSON file for current language and scope
      */
     private function loadFromJsonFile(): void
     {
-        $filePath = $this->translationsDir . '/' . $this->language . '.json';
+        $lang = $this->getActiveLanguage();
+
+        // Determine file path based on scope
+        // Frontend: {lang}.json (e.g., en.json, it.json)
+        // Admin: {lang}_admin.json (e.g., en_admin.json, it_admin.json)
+        if ($this->scope === 'admin') {
+            $filePath = $this->translationsDir . '/' . $lang . '_admin.json';
+            $fallbackPath = $this->translationsDir . '/en_admin.json';
+        } else {
+            $filePath = $this->translationsDir . '/' . $lang . '.json';
+            $fallbackPath = $this->translationsDir . '/en.json';
+        }
 
         // Fall back to English if language file doesn't exist
         if (!file_exists($filePath)) {
             Logger::debug('Translation file not found, falling back to English', [
-                'requested' => $this->language,
+                'requested' => $lang,
+                'scope' => $this->scope,
                 'path' => $filePath
             ], 'translation');
-            $filePath = $this->translationsDir . '/en.json';
+            $filePath = $fallbackPath;
         }
 
         if (!file_exists($filePath)) {
             Logger::warning('No translation file found', [
-                'language' => $this->language,
+                'language' => $lang,
+                'scope' => $this->scope,
                 'path' => $filePath
             ], 'translation');
             return;
@@ -293,7 +367,7 @@ class TranslationService
         }
 
         $data = json_decode($content, true);
-        if (!is_array($data)) {
+        if (!\is_array($data)) {
             Logger::warning('Invalid JSON in translation file', [
                 'path' => $filePath,
                 'json_error' => json_last_error_msg()
@@ -304,11 +378,11 @@ class TranslationService
         // Flatten nested structure: category.key => value
         $loadedCount = 0;
         foreach ($data as $context => $translations) {
-            if ($context === '_meta' || !is_array($translations)) {
+            if ($context === '_meta' || !\is_array($translations)) {
                 continue;
             }
             foreach ($translations as $key => $value) {
-                if (is_string($value)) {
+                if (\is_string($value)) {
                     $this->cache[$key] = $value;
                     $loadedCount++;
                 }
@@ -317,6 +391,7 @@ class TranslationService
 
         Logger::debug('Loaded translations from JSON', [
             'path' => $filePath,
+            'scope' => $this->scope,
             'count' => $loadedCount
         ], 'translation');
     }
@@ -328,6 +403,81 @@ class TranslationService
     {
         $this->loaded = false;
         $this->cache = [];
+    }
+
+    /**
+     * Get available preset language files for a given scope
+     * @param string $scope 'frontend' or 'admin'
+     * @return array Array of ['code' => 'en', 'name' => 'English', ...]
+     */
+    public function getAvailableLanguages(string $scope = 'frontend'): array
+    {
+        $languages = [];
+        $pattern = $scope === 'admin' ? '*_admin.json' : '[!_]*.json';
+
+        foreach (glob($this->translationsDir . '/' . $pattern) as $file) {
+            $filename = basename($file, '.json');
+
+            // For admin files, extract language code (e.g., "en_admin" -> "en")
+            if ($scope === 'admin') {
+                $code = str_replace('_admin', '', $filename);
+            } else {
+                // Skip admin files in frontend scope
+                if (str_ends_with($filename, '_admin')) {
+                    continue;
+                }
+                $code = $filename;
+            }
+
+            $content = @file_get_contents($file);
+            if (!$content) {
+                continue;
+            }
+
+            $data = json_decode($content, true);
+            if (!\is_array($data) || !isset($data['_meta'])) {
+                continue;
+            }
+
+            // Verify the type matches the scope
+            $type = $data['_meta']['type'] ?? 'frontend';
+            if ($type !== $scope) {
+                continue;
+            }
+
+            $languages[] = [
+                'code' => $code,
+                'name' => $data['_meta']['language'] ?? ucfirst($code),
+                'type' => $type,
+                'version' => $data['_meta']['version'] ?? '1.0.0',
+            ];
+        }
+
+        return $languages;
+    }
+
+    /**
+     * Load translations from a specific JSON file (for import/preview)
+     * @param string $filePath Full path to the JSON file
+     * @return array|null Parsed translations or null on error
+     */
+    public function loadFromFile(string $filePath): ?array
+    {
+        if (!file_exists($filePath)) {
+            return null;
+        }
+
+        $content = @file_get_contents($filePath);
+        if (!$content) {
+            return null;
+        }
+
+        $data = json_decode($content, true);
+        if (!\is_array($data)) {
+            return null;
+        }
+
+        return $data;
     }
 
     /**

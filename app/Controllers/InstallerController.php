@@ -206,6 +206,7 @@ class InstallerController
             'site_copyright' => '© {year} Photography Portfolio',
             'site_email' => '',
             'site_language' => 'en',
+            'admin_language' => 'en',
             'date_format' => 'Y-m-d',
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
@@ -220,56 +221,55 @@ class InstallerController
         if ($this->installer->isInstalled()) {
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
-        
+
         // Check if we have database and admin config
         if (!isset($_SESSION['install_db_config']) || !isset($_SESSION['install_admin_config'])) {
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
-        
+
         $data = (array)$request->getParsedBody();
 
-        // Handle optional logo upload (no Uppy). Store as '/media/site/<file>'
-        try {
-            $files = $request->getUploadedFiles();
-            $logo = $files['site_logo'] ?? null;
-            if ($logo && $logo->getError() === UPLOAD_ERR_OK) {
-                $stream = $logo->getStream();
-                if (method_exists($stream, 'rewind')) { $stream->rewind(); }
-                $contents = (string)$stream->getContents();
-                if ($contents !== '') {
-                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                    $mime = $finfo->buffer($contents) ?: '';
-                    $allowed = ['image/png'=>'.png','image/jpeg'=>'.jpg','image/webp'=>'.webp'];
-                    if (isset($allowed[$mime])) {
-                        $info = @getimagesizefromstring($contents);
-                        if ($info !== false) {
-                            $hash = sha1($contents) ?: bin2hex(random_bytes(20));
-                            $ext = $allowed[$mime];
-                            $destDir = dirname(__DIR__, 2) . '/public/media';
-                            if (!is_dir($destDir)) { @mkdir($destDir, 0775, true); }
-                            $destPath = $destDir . '/logo-' . $hash . $ext;
-                            if (@file_put_contents($destPath, $contents) === false) {
-                                throw new \RuntimeException('Failed to write uploaded logo');
-                            }
-                            $data['site_logo'] = '/media/' . basename($destPath);
-                        }
-                    }
-                }
-            }
-        } catch (\Throwable $e) {
-            // Ignore logo errors during install; proceed without a logo
-        }
-        
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
         }
-        
+
+        // Handle logo upload
+        $uploadedFiles = $request->getUploadedFiles();
+        $logoPath = null;
+
+        if (isset($uploadedFiles['site_logo']) && $uploadedFiles['site_logo']->getError() === UPLOAD_ERR_OK) {
+            $logo = $uploadedFiles['site_logo'];
+            $allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+            $mediaType = $logo->getClientMediaType();
+
+            if (in_array($mediaType, $allowedTypes, true)) {
+                // Create media directory if it doesn't exist
+                $mediaDir = $this->rootPath . '/public/media';
+                if (!is_dir($mediaDir)) {
+                    mkdir($mediaDir, 0755, true);
+                }
+
+                // Generate unique filename
+                $extension = match ($mediaType) {
+                    'image/png' => 'png',
+                    'image/webp' => 'webp',
+                    default => 'jpg',
+                };
+                $filename = 'logo_' . bin2hex(random_bytes(8)) . '.' . $extension;
+                $targetPath = $mediaDir . '/' . $filename;
+
+                $logo->moveTo($targetPath);
+                $logoPath = '/media/' . $filename;
+            }
+        }
+
         // Store settings config in session
+        $data['site_logo_path'] = $logoPath;
         $_SESSION['install_settings_config'] = $data;
-        
+
         return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
     }
     
@@ -461,7 +461,7 @@ class InstallerController
             $connection = $data['db_connection'] ?? 'sqlite';
             
             if ($connection === 'sqlite') {
-                $dbPath = $data['db_database'] ?? $this->rootPath . '/database/database.sqlite';
+                $dbPath = $data['sqlite_path'] ?? $this->rootPath . '/database/database.sqlite';
                 $dir = dirname($dbPath);
                 if (!is_dir($dir)) {
                     mkdir($dir, 0755, true);

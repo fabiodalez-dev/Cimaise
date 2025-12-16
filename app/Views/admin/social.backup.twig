@@ -131,7 +131,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Load SortableJS for drag & drop ordering
 (function loadSortable(){
   try {

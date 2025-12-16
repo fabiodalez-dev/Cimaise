@@ -134,7 +134,7 @@ Interactive prompts guide you through the same setup without a browser.
 
 Every uploaded image automatically generates:
 
-```
+```text
 Original (stored safely in storage/originals/)
     └── Variants in public/media/
         ├── image_sm.avif   (768px)
@@ -273,7 +273,7 @@ Cimaise automatically detects subdirectory installations (e.g., `yoursite.com/po
 
 ## Project Structure
 
-```
+```text
 cimaise/
 ├── app/
 │   ├── Controllers/      # Admin (28) and Frontend (6) controllers

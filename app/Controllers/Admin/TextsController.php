@@ -28,6 +28,12 @@ class TextsController extends BaseController
         $queryParams = $request->getQueryParams();
         $search = trim((string)($queryParams['search'] ?? ''));
         $context = trim((string)($queryParams['context'] ?? ''));
+        $scope = trim((string)($queryParams['scope'] ?? 'frontend'));
+
+        // Validate scope
+        if (!\in_array($scope, ['frontend', 'admin'], true)) {
+            $scope = 'frontend';
+        }
 
         if ($search !== '') {
             $texts = $this->translations->search($search);
@@ -51,14 +57,15 @@ class TextsController extends BaseController
 
         $contexts = $this->translations->getContexts();
 
-        // Get available language files for the dropdown (server-side)
-        $languages = $this->getAvailableLanguages();
+        // Get available language files for the dropdown based on scope
+        $languages = $this->getAvailableLanguages($scope);
 
         return $this->view->render($response, 'admin/texts/index.twig', [
             'grouped' => $grouped,
             'contexts' => $contexts,
             'search' => $search,
             'current_context' => $context,
+            'current_scope' => $scope,
             'csrf' => $_SESSION['csrf'] ?? '',
             'languages' => $languages
         ]);
@@ -262,31 +269,13 @@ class TextsController extends BaseController
     }
 
     /**
-     * Get available language files
+     * Get available language files (AJAX endpoint)
      *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function languages(Request $request, Response $response): Response
     {
-        $translationsDir = dirname(__DIR__, 3) . '/storage/translations';
-        $languages = [];
-
-        if (is_dir($translationsDir)) {
-            foreach (glob($translationsDir . '/*.json') as $file) {
-                $content = @file_get_contents($file);
-                if ($content) {
-                    $data = json_decode($content, true);
-                    $meta = $data['_meta'] ?? [];
-                    $languages[] = [
-                        'code' => $meta['code'] ?? pathinfo($file, PATHINFO_FILENAME),
-                        'name' => $meta['language'] ?? pathinfo($file, PATHINFO_FILENAME),
-                        'file' => basename($file),
-                        'version' => $meta['version'] ?? '1.0.0'
-                    ];
-                }
-            }
-        }
-
+        $languages = $this->getAvailableLanguages();
         $response->getBody()->write(json_encode(['languages' => $languages]));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -306,19 +295,29 @@ class TextsController extends BaseController
 
         $langCode = trim((string)($data['language'] ?? ''));
         $mode = (string)($data['mode'] ?? 'merge'); // merge or replace
+        $scope = trim((string)($data['scope'] ?? 'frontend'));
+
+        // Validate scope
+        if (!\in_array($scope, ['frontend', 'admin'], true)) {
+            $scope = 'frontend';
+        }
 
         if ($langCode === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Please select a language.'];
-            return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/texts?scope=' . $scope))->withStatus(302);
         }
 
         // Sanitize language code to prevent path traversal
         $langCode = preg_replace('/[^a-z0-9_-]/i', '', $langCode);
-        $filePath = dirname(__DIR__, 3) . '/storage/translations/' . $langCode . '.json';
+
+        // Build file path based on scope
+        // Frontend: {lang}.json, Admin: {lang}_admin.json
+        $filename = $scope === 'admin' ? $langCode . '_admin.json' : $langCode . '.json';
+        $filePath = dirname(__DIR__, 3) . '/storage/translations/' . $filename;
 
         if (!file_exists($filePath)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Language file not found.'];
-            return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/texts?scope=' . $scope))->withStatus(302);
         }
 
         $result = $this->importFromJsonFile($filePath, $mode);
@@ -327,7 +326,7 @@ class TextsController extends BaseController
             'type' => 'success',
             'message' => "Imported {$result['added']} new, updated {$result['updated']} existing translations."
         ];
-        return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/texts?scope=' . $scope))->withStatus(302);
     }
 
     /**
@@ -511,26 +510,56 @@ class TextsController extends BaseController
 
     /**
      * Get available language files from storage/translations
+     * @param string $scope 'frontend' or 'admin'
      */
-    private function getAvailableLanguages(): array
+    private function getAvailableLanguages(string $scope = 'frontend'): array
     {
         $translationsDir = dirname(__DIR__, 3) . '/storage/translations';
         $languages = [];
 
-        if (is_dir($translationsDir)) {
-            foreach (glob($translationsDir . '/*.json') as $file) {
-                $content = @file_get_contents($file);
-                if ($content) {
-                    $data = json_decode($content, true);
-                    $meta = $data['_meta'] ?? [];
-                    $languages[] = [
-                        'code' => $meta['code'] ?? pathinfo($file, PATHINFO_FILENAME),
-                        'name' => $meta['language'] ?? pathinfo($file, PATHINFO_FILENAME),
-                        'file' => basename($file),
-                        'version' => $meta['version'] ?? '1.0.0'
-                    ];
-                }
+        if (!is_dir($translationsDir)) {
+            return $languages;
+        }
+
+        // Pattern: frontend = *.json (not *_admin.json), admin = *_admin.json
+        $pattern = $scope === 'admin' ? '*_admin.json' : '*.json';
+
+        foreach (glob($translationsDir . '/' . $pattern) as $file) {
+            $filename = basename($file, '.json');
+
+            // For frontend scope, skip admin files
+            if ($scope === 'frontend' && str_ends_with($filename, '_admin')) {
+                continue;
             }
+
+            $content = @file_get_contents($file);
+            if (!$content) {
+                continue;
+            }
+
+            $data = json_decode($content, true);
+            if (!\is_array($data)) {
+                continue;
+            }
+
+            $meta = $data['_meta'] ?? [];
+
+            // Verify the type matches the scope (if type is specified)
+            $type = $meta['type'] ?? 'frontend';
+            if ($type !== $scope) {
+                continue;
+            }
+
+            // For admin files, extract language code (e.g., "en_admin" -> "en")
+            $code = $scope === 'admin' ? str_replace('_admin', '', $filename) : $filename;
+
+            $languages[] = [
+                'code' => $meta['code'] ?? $code,
+                'name' => $meta['language'] ?? ucfirst($code),
+                'file' => basename($file),
+                'version' => $meta['version'] ?? '1.0.0',
+                'type' => $type
+            ];
         }
 
         return $languages;

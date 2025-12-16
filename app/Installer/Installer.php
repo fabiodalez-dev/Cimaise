@@ -260,7 +260,7 @@ class Installer
 
         if ($connection === 'sqlite') {
             // Use user-provided path or default
-            $dbPath = $data['db_database'] ?? ($this->rootPath . '/database/database.sqlite');
+            $dbPath = $data['sqlite_path'] ?? ($this->rootPath . '/database/database.sqlite');
 
             // Handle relative paths
             if (!str_starts_with($dbPath, '/')) {
@@ -416,6 +416,9 @@ class Installer
         $rawLanguage = (string)($data['site_language'] ?? 'en');
         $language = in_array($rawLanguage, ['en', 'it'], true) ? $rawLanguage : 'en';
 
+        $rawAdminLanguage = (string)($data['admin_language'] ?? 'en');
+        $adminLanguage = \in_array($rawAdminLanguage, ['en', 'it'], true) ? $rawAdminLanguage : 'en';
+
         $rawDateFormat = (string)($data['date_format'] ?? 'Y-m-d');
         $dateFormat = in_array($rawDateFormat, ['Y-m-d', 'd-m-Y'], true) ? $rawDateFormat : 'Y-m-d';
 
@@ -425,8 +428,14 @@ class Installer
             'site.copyright' => $data['site_copyright'] ?? '© {year} Photography Portfolio',
             'site.email' => $data['site_email'] ?? '',
             'site.language' => $language,
+            'admin.language' => $adminLanguage,
             'date.format' => $dateFormat,
+            'site.logo' => $data['site_logo_path'] ?? null,
         ];
+
+        // Add page settings based on selected language
+        $pageSettings = $this->getPageSettingsForLanguage($language);
+        $settings = array_merge($settings, $pageSettings);
 
         foreach ($settings as $key => $value) {
             $encodedValue = json_encode($value, JSON_UNESCAPED_SLASHES);
@@ -444,6 +453,62 @@ class Installer
                 $stmt->execute([$key, $encodedValue, $type]);
             }
         }
+    }
+
+    /**
+     * Get page settings based on installation language
+     * These are the DEFAULT VALUES for page content fields (not UI labels)
+     */
+    private function getPageSettingsForLanguage(string $language): array
+    {
+        $translations = [
+            'en' => [
+                // Home page
+                'home.hero_title' => 'Portfolio',
+                'home.hero_subtitle' => 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.',
+                'home.albums_title' => 'Latest Albums',
+                'home.albums_subtitle' => 'Discover my recent photographic work, from analog experiments to digital explorations.',
+                'home.empty_title' => 'No albums yet',
+                'home.empty_text' => 'Check back soon for new work.',
+                // About page
+                'about.title' => 'About',
+                'about.contact_title' => 'Contact',
+                'about.contact_subject' => 'Portfolio',
+                // Galleries page
+                'galleries.title' => 'All Galleries',
+                'galleries.subtitle' => 'Explore our complete collection of photography galleries',
+                'galleries.filter_button_text' => 'Filters',
+                'galleries.clear_filters_text' => 'Clear filters',
+                'galleries.results_text' => 'galleries',
+                'galleries.no_results_title' => 'No galleries found',
+                'galleries.no_results_text' => 'We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.',
+                'galleries.view_button_text' => 'View',
+            ],
+            'it' => [
+                // Home page
+                'home.hero_title' => 'Portfolio',
+                'home.hero_subtitle' => 'Una collezione di fotografia analogica e digitale che esplora la luce, la forma e la bellezza dei momenti quotidiani.',
+                'home.albums_title' => 'Ultimi Album',
+                'home.albums_subtitle' => 'Scopri i miei lavori fotografici più recenti, dagli esperimenti analogici alle esplorazioni digitali.',
+                'home.empty_title' => 'Nessun album ancora',
+                'home.empty_text' => 'Torna presto per nuovi lavori.',
+                // About page
+                'about.title' => 'Chi sono',
+                'about.contact_title' => 'Contatti',
+                'about.contact_subject' => 'Portfolio',
+                // Galleries page
+                'galleries.title' => 'Tutte le Gallerie',
+                'galleries.subtitle' => 'Esplora la nostra collezione completa di gallerie fotografiche',
+                'galleries.filter_button_text' => 'Filtri',
+                'galleries.clear_filters_text' => 'Cancella filtri',
+                'galleries.results_text' => 'gallerie',
+                'galleries.no_results_title' => 'Nessuna galleria trovata',
+                'galleries.no_results_text' => 'Non abbiamo trovato gallerie che corrispondono ai filtri selezionati. Prova a modificare i criteri di ricerca o a cancellare tutti i filtri.',
+                'galleries.view_button_text' => 'Vedi',
+            ],
+        ];
+
+        return $translations[$language] ?? $translations['en'];
     }
 
     private function createEnvFile(array $data): void
