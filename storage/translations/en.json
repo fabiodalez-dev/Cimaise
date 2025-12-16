@@ -11,7 +11,8 @@
     "nav.contact": "Contact",
     "nav.back": "Back",
     "nav.menu": "Menu",
-    "nav.close": "Close"
+    "nav.close": "Close",
+    "nav.breadcrumb": "Breadcrumb"
   },
   "filter": {
     "filter.all": "All",
@@ -41,7 +42,15 @@
     "filter.galleries_count": "{count} galleries",
     "filter.gallery_count": "1 gallery",
     "filter.no_galleries_title": "No galleries found",
-    "filter.no_galleries_text": "We couldn't find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters."
+    "filter.no_galleries_text": "We couldn't find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.",
+    "filter.select_categories": "Select categories...",
+    "filter.select_tags": "Select tags...",
+    "filter.select_cameras": "Select cameras...",
+    "filter.select_lenses": "Select lenses...",
+    "filter.select_films": "Select films...",
+    "filter.select_locations": "Select locations...",
+    "filter.select_year": "Select year...",
+    "filter.search_equipment": "Search camera, film..."
   },
   "album": {
     "album.photos": "Photos",
@@ -165,7 +174,8 @@
     "share.linkedin": "Share on LinkedIn",
     "share.email": "Share via Email",
     "share.copy_link": "Copy Link",
-    "share.link_copied": "Link copied!"
+    "share.link_copied": "Link copied!",
+    "share.share_on": "Share on {network}"
   },
   "search": {
     "search.placeholder": "Search...",
@@ -217,7 +227,11 @@
     "general.submit": "Submit",
     "general.reset": "Reset",
     "general.view": "View",
-    "general.more_count": "+{count} more"
+    "general.more_count": "+{count} more",
+    "general.no_cover": "No cover",
+    "general.close": "Close",
+    "general.previous": "Previous",
+    "general.next": "Next"
   },
   "galleries": {
     "galleries.title": "All Galleries",
