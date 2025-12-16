@@ -64,8 +64,29 @@ class GalleriesController extends BaseController
         // Get filtered albums
         $albums = $this->getFilteredAlbums($filters);
 
+        // Check admin status for NSFW handling
+        $isAdmin = !empty($_SESSION['admin_id']);
+
         // Sanitize album data - remove sensitive fields
-        $safeAlbums = array_map(function($album) {
+        // SECURITY: For NSFW albums, only expose blur_path, never the real preview_path
+        $safeAlbums = array_map(function($album) use ($isAdmin) {
+            $isNsfw = (bool)($album['is_nsfw'] ?? false);
+
+            // For NSFW albums (non-admin), only return blur_path
+            $coverImage = null;
+            if (isset($album['cover_image'])) {
+                $coverImage = [
+                    'id' => $album['cover_image']['id'],
+                    'blur_path' => $album['cover_image']['blur_path'] ?? null,
+                    'width' => $album['cover_image']['width'] ?? null,
+                    'height' => $album['cover_image']['height'] ?? null,
+                ];
+                // Only include preview_path for non-NSFW albums or admins
+                if (!$isNsfw || $isAdmin) {
+                    $coverImage['preview_path'] = $album['cover_image']['preview_path'] ?? null;
+                }
+            }
+
             return [
                 'id' => $album['id'],
                 'slug' => $album['slug'],
@@ -77,14 +98,8 @@ class GalleriesController extends BaseController
                 'category_slug' => $album['category_slug'] ?? null,
                 'images_count' => $album['images_count'] ?? 0,
                 'is_password_protected' => $album['is_password_protected'] ?? false,
-                'is_nsfw' => (bool)($album['is_nsfw'] ?? false),
-                'cover_image' => isset($album['cover_image']) ? [
-                    'id' => $album['cover_image']['id'],
-                    'preview_path' => $album['cover_image']['preview_path'] ?? null,
-                    'blur_path' => $album['cover_image']['blur_path'] ?? null,
-                    'width' => $album['cover_image']['width'] ?? null,
-                    'height' => $album['cover_image']['height'] ?? null,
-                ] : null,
+                'is_nsfw' => $isNsfw,
+                'cover_image' => $coverImage,
                 'tags' => array_map(function($tag) {
                     return ['id' => $tag['id'], 'name' => $tag['name'], 'slug' => $tag['slug']];
                 }, $album['tags'] ?? []),

@@ -20,18 +20,28 @@ class DownloadController extends BaseController
         if ($id <= 0) return $response->withStatus(404);
         
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('SELECT i.id, i.original_path, i.mime, a.id as album_id, a.allow_downloads, a.password_hash
+        $stmt = $pdo->prepare('SELECT i.id, i.original_path, i.mime, a.id as album_id, a.allow_downloads, a.password_hash, a.is_nsfw
                                FROM images i JOIN albums a ON a.id = i.album_id WHERE i.id = :id');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch();
-        
+
         if (!$row) return $response->withStatus(404);
         if (!(int)$row['allow_downloads']) return $response->withStatus(403);
-        
+
         // Check album password if present
         if (!empty($row['password_hash'])) {
             $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$row['album_id']]);
             if (!$allowed) return $response->withStatus(403);
+        }
+
+        // NSFW server-side enforcement: block downloads for unconfirmed NSFW albums
+        // Admins bypass this check
+        $isAdmin = !empty($_SESSION['admin_id']);
+        if (!empty($row['is_nsfw']) && !$isAdmin) {
+            $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$row['album_id']]) && $_SESSION['nsfw_confirmed'][$row['album_id']] === true;
+            if (!$nsfwConfirmed) {
+                return $response->withStatus(403);
+            }
         }
         
         $root = dirname(__DIR__, 3);
