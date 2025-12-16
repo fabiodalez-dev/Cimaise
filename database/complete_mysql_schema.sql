@@ -108,7 +108,6 @@ CREATE TABLE `albums` (
   KEY `idx_albums_template` (`template_id`),
   KEY `idx_albums_seo_title` (`seo_title`),
   KEY `idx_albums_robots` (`robots_index`, `robots_follow`),
-  KEY `idx_albums_nsfw` (`is_nsfw`),
   KEY `idx_albums_published_nsfw` (`is_published`, `is_nsfw`),
   FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

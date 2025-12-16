@@ -104,7 +104,7 @@ class RateLimitMiddleware implements MiddlewareInterface
      */
     private function getAttempts(string $key): array
     {
-        $file = $this->storageDir . '/' . $key . '.json';
+        $file = "{$this->storageDir}/{$key}.json";
         if (!file_exists($file)) {
             return [];
         }
@@ -115,7 +115,7 @@ class RateLimitMiddleware implements MiddlewareInterface
         }
 
         $attempts = json_decode($data, true);
-        return is_array($attempts) ? $attempts : [];
+        return \is_array($attempts) ? $attempts : [];
     }
 
     /**
@@ -124,7 +124,7 @@ class RateLimitMiddleware implements MiddlewareInterface
      */
     private function saveAttempts(string $key, array $attempts): void
     {
-        $file = $this->storageDir . '/' . $key . '.json';
+        $file = "{$this->storageDir}/{$key}.json";
 
         if (empty($attempts)) {
             @unlink($file);
@@ -142,7 +142,7 @@ class RateLimitMiddleware implements MiddlewareInterface
      */
     private function updateAttemptsAtomic(string $key, callable $modifier): array
     {
-        $file = $this->storageDir . '/' . $key . '.json';
+        $file = "{$this->storageDir}/{$key}.json";
         $fp = @fopen($file, 'c+');
 
         if (!$fp) {
@@ -188,7 +188,7 @@ class RateLimitMiddleware implements MiddlewareInterface
      */
     public static function cleanup(string $storageDir, int $maxAge = 86400): void
     {
-        $files = glob($storageDir . '/*.json');
+        $files = glob("{$storageDir}/*.json") ?: [];
         $now = time();
 
         foreach ($files as $file) {
@@ -220,7 +220,7 @@ class RateLimitMiddleware implements MiddlewareInterface
 
         // Use different keys for different endpoints to track separately
         $keyIdentifier = $this->getEndpointIdentifier($path);
-        $key = 'rl_' . sha1($keyIdentifier . ':' . $ip);
+        $key = 'rl_' . sha1("{$keyIdentifier}:{$ip}");
         $now = time();
 
         // Get attempts from file storage
@@ -232,7 +232,7 @@ class RateLimitMiddleware implements MiddlewareInterface
         if (\count($attempts) >= $this->maxAttempts) {
             $remaining = $this->windowSec - $now + min($attempts);
             $resp = new \Slim\Psr7\Response(429);
-            $resp->getBody()->write('Too Many Attempts. Please try again in ' . ceil($remaining / 60) . ' minutes.');
+            $resp->getBody()->write("Too Many Attempts. Please try again in " . ceil($remaining / 60) . " minutes.");
             return $resp->withHeader('Retry-After', (string)$remaining);
         }
 
@@ -285,15 +285,20 @@ class RateLimitMiddleware implements MiddlewareInterface
             }
         }
 
-        if ($isFailedAttempt) {
-            $attempts[] = $now;
-            $this->saveAttempts($key, $attempts);
-        } elseif ($isSuccessfulAuth) {
-            // Only reset rate limit for this specific endpoint on successful auth
-            $this->saveAttempts($key, []);
-        } else {
-            // Save pruned attempts (no new failure, no reset)
-            $this->saveAttempts($key, $attempts);
+        // Only write to filesystem when there's an actual change to avoid unnecessary I/O
+        // Old attempts are pruned via maybeCleanup() probabilistically
+        if ($isFailedAttempt || $isSuccessfulAuth) {
+            $this->updateAttemptsAtomic($key, function (array $currentAttempts) use ($now, $isSuccessfulAuth): array {
+                if ($isSuccessfulAuth) {
+                    return [];
+                }
+
+                // If we're here, it's a failed attempt - purge old and add new
+                $filtered = array_filter($currentAttempts, fn($ts) => $now - (int)$ts < $this->windowSec);
+                $filtered[] = $now;
+
+                return array_values($filtered);
+            });
         }
 
         return $response;

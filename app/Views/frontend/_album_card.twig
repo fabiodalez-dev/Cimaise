@@ -54,7 +54,7 @@
           {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
 
           <img src="{{ original_url }}"
-               alt="{{ album.cover.alt_text|e }}"
+               alt="{{ (album.cover.alt_text ?? album.title)|e }}"
                width="{{ album.cover.width }}"
                height="{{ album.cover.height }}"
                loading="lazy"
