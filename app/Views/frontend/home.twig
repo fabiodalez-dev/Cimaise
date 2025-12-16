@@ -41,7 +41,28 @@
 
 {% block scripts %}
   {% include 'frontend/home/_styles.twig' %}
-  <script>window.basePath = '{{ base_path }}';</script>
+  <script nonce="{{ csp_nonce() }}">window.basePath = '{{ base_path }}';</script>
   <script type="module" src="{{ base_path }}/assets/js/home.js"></script>
+
+  {# WebSite JSON-LD for home page #}
+  <script type="application/ld+json" nonce="{{ csp_nonce() }}">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": {{ site_title|default('Portfolio')|json_encode|raw }},
+    "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+    {% if meta_description %}
+    "description": {{ meta_description|json_encode|raw }},
+    {% endif %}
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "{{ base_path }}/galleries?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
 {% endblock %}
 
