@@ -157,24 +157,30 @@ class AnalyticsController extends BaseController
             'export_enabled'
         ];
 
+        // Define which settings are boolean checkboxes
+        $booleanSettings = ['analytics_enabled', 'ip_anonymization', 'real_time_enabled', 'geolocation_enabled', 'bot_detection_enabled', 'export_enabled'];
+
         try {
             $this->db->beginTransaction();
 
             foreach ($allowedSettings as $key) {
-                if (isset($data[$key])) {
-                    $value = $data[$key];
-                    
-                    // Convert checkboxes to boolean strings
-                    if (in_array($key, ['analytics_enabled', 'ip_anonymization', 'real_time_enabled', 'geolocation_enabled', 'bot_detection_enabled', 'export_enabled'])) {
-                        $value = isset($data[$key]) ? 'true' : 'false';
-                    }
-
+                // Boolean checkbox settings: checked = present in POST, unchecked = absent
+                if (in_array($key, $booleanSettings)) {
+                    $value = isset($data[$key]) ? 'true' : 'false';
                     $stmt = $this->db->prepare('
-                        UPDATE analytics_settings 
-                        SET setting_value = ?, updated_at = CURRENT_TIMESTAMP 
+                        UPDATE analytics_settings
+                        SET setting_value = ?, updated_at = CURRENT_TIMESTAMP
                         WHERE setting_key = ?
                     ');
                     $stmt->execute([$value, $key]);
+                } elseif (isset($data[$key])) {
+                    // Non-boolean settings: only update if present in POST
+                    $stmt = $this->db->prepare('
+                        UPDATE analytics_settings
+                        SET setting_value = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE setting_key = ?
+                    ');
+                    $stmt->execute([$data[$key], $key]);
                 }
             }
 

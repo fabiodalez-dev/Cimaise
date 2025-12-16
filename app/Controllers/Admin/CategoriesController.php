@@ -15,12 +15,6 @@ class CategoriesController extends BaseController
         parent::__construct();
     }
 
-    private function csrfErrorJson(Response $response): Response
-    {
-        $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid CSRF token']));
-        return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
-    }
-
     public function index(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
