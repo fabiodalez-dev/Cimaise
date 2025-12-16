@@ -346,13 +346,14 @@ document.addEventListener('DOMContentLoaded', function() {
           if (!response.ok) {
             throw new Error('Export failed');
           }
-          return response.blob();
+          // Return both blob and headers to preserve response scope
+          return response.blob().then(blob => ({ blob, headers: response.headers }));
         })
-        .then(blob => {
+        .then(({ blob, headers }) => {
           // Extract filename from Content-Disposition header or URL
-          const contentDisposition = response.headers.get('Content-Disposition');
+          const contentDisposition = headers.get('Content-Disposition');
           let filename = 'analytics_export';
-          
+
           if (contentDisposition) {
             const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['\"]).*?\2|[^;\n]*)/);
             if (filenameMatch && filenameMatch[1]) {
@@ -366,15 +367,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const format = params.get('format') || 'csv';
             filename = `analytics_${type}_export.${format}`;
           }
-          
+
           // Create download link
-          const url = window.URL.createObjectURL(blob);
+          const blobUrl = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = url;
+          a.href = blobUrl;
           a.download = filename;
           document.body.appendChild(a);
           a.click();
-          window.URL.revokeObjectURL(url);
+          window.URL.revokeObjectURL(blobUrl);
           document.body.removeChild(a);
         })
         .catch(error => {

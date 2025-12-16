@@ -532,8 +532,11 @@ class TextsController extends BaseController
                 continue;
             }
 
-            $content = @file_get_contents($file);
-            if (!$content) {
+            if (!is_readable($file)) {
+                continue;
+            }
+            $content = file_get_contents($file);
+            if ($content === false) {
                 continue;
             }
 
