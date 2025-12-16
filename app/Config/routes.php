@@ -69,6 +69,11 @@ $app->post('/install/run', function (Request $request, Response $response) use (
     return $controller->runInstall($request, $response);
 });
 
+$app->post('/install/test-mysql', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->testMySQLConnection($request, $response);
+});
+
 // Post-install setup (site settings)
 }
 
