@@ -71,11 +71,35 @@ class UploadController extends BaseController
             return $response->withStatus(400)->withHeader('Content-Type','application/json');
         }
 
+        // Check if album is NSFW for blur generation
+        $isNsfw = false;
+        try {
+            $nsfwCheck = $this->db->pdo()->prepare('SELECT is_nsfw FROM albums WHERE id = ?');
+            $nsfwCheck->execute([$albumId]);
+            $isNsfw = (bool)$nsfwCheck->fetchColumn();
+        } catch (\Throwable) {
+            // Column might not exist, assume not NSFW
+        }
+
         // Prepare array compatible with UploadService
         $fArr = [ 'tmp_name' => $tmpPath, 'error' => $file->getError() ];
         try {
             $svc = new UploadService($this->db);
             $meta = $svc->ingestAlbumUpload($albumId, $fArr);
+
+            // Generate blurred variant if album is NSFW
+            if ($isNsfw && !empty($meta['id'])) {
+                try {
+                    $svc->generateBlurredVariant((int)$meta['id']);
+                } catch (\Throwable $blurError) {
+                    // Log but don't fail the upload
+                    \App\Support\Logger::warning('Failed to generate NSFW blur for uploaded image', [
+                        'image_id' => $meta['id'],
+                        'error' => $blurError->getMessage()
+                    ], 'upload');
+                }
+            }
+
             // Also expose id at top-level for existing frontend logic
             $payload = [
                 'ok' => true,

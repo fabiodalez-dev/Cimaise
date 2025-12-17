@@ -2,6 +2,7 @@
   "_meta": {
     "language": "English",
     "code": "en",
+    "type": "frontend",
     "version": "1.0.0"
   },
   "navigation": {
@@ -11,7 +12,8 @@
     "nav.contact": "Contact",
     "nav.back": "Back",
     "nav.menu": "Menu",
-    "nav.close": "Close"
+    "nav.close": "Close",
+    "nav.breadcrumb": "Breadcrumb"
   },
   "filter": {
     "filter.all": "All",
@@ -41,7 +43,15 @@
     "filter.galleries_count": "{count} galleries",
     "filter.gallery_count": "1 gallery",
     "filter.no_galleries_title": "No galleries found",
-    "filter.no_galleries_text": "We couldn't find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters."
+    "filter.no_galleries_text": "We couldn't find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.",
+    "filter.select_categories": "Select categories...",
+    "filter.select_tags": "Select tags...",
+    "filter.select_cameras": "Select cameras...",
+    "filter.select_lenses": "Select lenses...",
+    "filter.select_films": "Select films...",
+    "filter.select_locations": "Select locations...",
+    "filter.select_year": "Select year...",
+    "filter.search_equipment": "Search camera, film..."
   },
   "album": {
     "album.photos": "Photos",
@@ -80,7 +90,10 @@
     "album.nsfw_remember": "Your preference will be remembered for future visits.",
     "album.nsfw_warning_short": "18+",
     "album.nsfw_password_notice": "This gallery contains adult content. You must be 18 or older to access it.",
-    "album.nsfw_checkbox": "I confirm I am 18 years or older and wish to view this content"
+    "album.nsfw_checkbox": "I confirm I am 18 years or older and wish to view this content",
+    "album.nsfw_description": "This gallery contains content intended for mature audiences only.",
+    "album.nsfw_age_verification": "Please confirm your age to proceed.",
+    "album.nsfw_confirm_button": "Enter Gallery"
   },
   "pagination": {
     "pagination.previous": "Previous",
@@ -109,10 +122,38 @@
     "date.days_ago": "{count} days ago"
   },
   "footer": {
-    "footer.copyright": "\u00a9 {year} All rights reserved",
+    "footer.copyright": "© {year} All rights reserved",
     "footer.powered_by": "Powered by Cimaise",
     "footer.privacy": "Privacy Policy",
     "footer.terms": "Terms of Service"
+  },
+  "cookie": {
+    "cookie.title": "Cookie Settings",
+    "cookie.description": "We use cookies to improve your experience. You can choose which cookies to accept.",
+    "cookie.essential": "Essential",
+    "cookie.essential_desc": "Required for the website to function",
+    "cookie.analytics": "Analytics",
+    "cookie.analytics_desc": "Help us understand how you use the site",
+    "cookie.marketing": "Marketing",
+    "cookie.marketing_desc": "Personalized ads and content",
+    "cookie.accept": "Accept Selected",
+    "cookie.reject": "Reject All",
+    "cookie.bar_text": "We use cookies to enhance your experience.",
+    "cookie.manage": "Manage cookie preferences",
+    "cookie.banner_description": "This website uses cookies to improve your browsing experience.",
+    "cookie.accept_all": "Accept all",
+    "cookie.reject_non_essential": "Reject non-essential",
+    "cookie.preferences": "Preferences",
+    "cookie.save_selected": "Save selected",
+    "cookie.preferences_title": "Cookie Preferences",
+    "cookie.preferences_description": "Manage your cookie preferences. Essential cookies are required for the website to function.",
+    "cookie.essential_name": "Essential Cookies",
+    "cookie.essential_description": "Required for the website to function. Cannot be disabled.",
+    "cookie.analytics_name": "Analytics Cookies",
+    "cookie.analytics_description": "Help us understand how you use the site to improve your experience.",
+    "cookie.marketing_name": "Marketing Cookies",
+    "cookie.marketing_description": "Used to show you relevant ads based on your interests.",
+    "cookie.privacy_statement_label": "More information about cookies"
   },
   "lightbox": {
     "lightbox.close": "Close",
@@ -134,7 +175,8 @@
     "share.linkedin": "Share on LinkedIn",
     "share.email": "Share via Email",
     "share.copy_link": "Copy Link",
-    "share.link_copied": "Link copied!"
+    "share.link_copied": "Link copied!",
+    "share.share_on": "Share on {network}"
   },
   "search": {
     "search.placeholder": "Search...",
@@ -186,7 +228,11 @@
     "general.submit": "Submit",
     "general.reset": "Reset",
     "general.view": "View",
-    "general.more_count": "+{count} more"
+    "general.more_count": "+{count} more",
+    "general.no_cover": "No cover",
+    "general.close": "Close",
+    "general.previous": "Previous",
+    "general.next": "Next"
   },
   "galleries": {
     "galleries.title": "All Galleries",
@@ -194,7 +240,9 @@
   },
   "installer": {
     "installer.site_language": "Site Language",
-    "installer.site_language_help": "Default language for the frontend",
+    "installer.site_language_help": "Language for the public website (frontend)",
+    "installer.admin_language": "Admin Language",
+    "installer.admin_language_help": "Language for the admin panel (backend)",
     "installer.date_format": "Date Format",
     "installer.date_format_help": "Format used for displaying dates",
     "installer.date_format_iso": "ISO",
@@ -214,47 +262,5 @@
   },
   "image": {
     "image.download": "Download"
-  },
-  "admin": {
-    "admin.texts.title": "Translations",
-    "admin.texts.heading": "Manage Translations",
-    "admin.texts.description": "Manage frontend text translations",
-    "admin.texts.seed_confirm": "This will add default translations. Existing translations will not be overwritten. Continue?",
-    "admin.texts.seed_defaults": "Seed Defaults",
-    "admin.texts.add_text": "Add Translation",
-    "admin.texts.import_translations": "Import Translations",
-    "admin.texts.download_json": "Download JSON",
-    "admin.texts.upload_json": "Upload JSON",
-    "admin.texts.hide_upload": "Hide Upload",
-    "admin.texts.language": "Language",
-    "admin.texts.select_language": "Select a language",
-    "admin.texts.no_preset_languages": "No preset languages available",
-    "admin.texts.mode": "Mode",
-    "admin.texts.mode_merge": "Merge",
-    "admin.texts.mode_replace": "Replace",
-    "admin.texts.mode_skip": "Skip existing",
-    "admin.texts.mode_merge_desc": "Update existing, add new",
-    "admin.texts.mode_replace_desc": "Overwrite all",
-    "admin.texts.mode_skip_desc": "Only add new",
-    "admin.texts.import": "Import",
-    "admin.texts.upload_custom_json": "Upload Custom JSON",
-    "admin.texts.json_file": "JSON File",
-    "admin.texts.upload": "Upload",
-    "admin.texts.save_as_preset": "Save as preset language file",
-    "admin.texts.search_placeholder": "Search translations...",
-    "admin.texts.all_contexts": "All Contexts",
-    "admin.texts.col_key": "Key",
-    "admin.texts.col_value": "Value",
-    "admin.texts.col_description": "Description",
-    "admin.texts.col_actions": "Actions",
-    "admin.texts.quick_edit": "Quick Edit",
-    "admin.texts.quick": "Quick",
-    "admin.texts.full_edit": "Full Edit",
-    "admin.texts.delete_confirm": "Are you sure you want to delete this translation?",
-    "admin.texts.no_texts_found": "No translations found",
-    "admin.texts.no_texts_match": "No translations match your search criteria",
-    "admin.texts.no_texts_hint": "Start by seeding default translations or adding new ones",
-    "admin.texts.save_failed": "Failed to save",
-    "admin.texts.unknown_error": "Unknown error"
   }
 }

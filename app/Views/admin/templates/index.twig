@@ -1,12 +1,11 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Templates — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.templates.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8 flex-wrap gap-3">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Templates</h1>
-      <p class="text-gray-600 mt-1">Gestisci i template per la visualizzazione degli album</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.templates.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.templates.page_description') }}</p>
     </div>
-    <!-- Rimuoviamo il pulsante di creazione -->
   </div>
 
   <div class="card">
@@ -14,11 +13,11 @@
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrizione</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Layout</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Librerie</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Azioni</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.templates.name') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.templates.description_label') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.templates.layout') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.templates.libraries') }}</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.templates.actions') }}</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -43,14 +42,13 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-900">
                   {{ template.settings.layout|default('grid')|title }}
-                  {% if template.settings.masonry %}<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded ml-2">Masonry</span>{% endif %}
+                  {% if template.settings.masonry %}<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded ml-2">{{ trans('admin.templates.masonry') }}</span>{% endif %}
                 </div>
                 {% set cols = template.settings.columns is defined ? template.settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
-                {# Estraiamo i valori delle colonne direttamente #}
                 {% set desktop_cols = cols.desktop %}
-                {% set tablet_cols = cols.tablet %}  
+                {% set tablet_cols = cols.tablet %}
                 {% set mobile_cols = cols.mobile %}
-                
+
                 <div class="text-xs text-gray-500">
                   <i class="fas fa-desktop mr-1"></i>{{ desktop_cols|default(3) }}
                   <i class="fas fa-tablet-alt ml-2 mr-1"></i>{{ tablet_cols|default(2) }}
@@ -64,11 +62,10 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex justify-end gap-2">
-                  <a href="{{ base_path }}/admin/templates/{{ template.id }}/edit" 
+                  <a href="{{ base_path }}/admin/templates/{{ template.id }}/edit"
                      class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors">
-                    <i class="fas fa-edit mr-1"></i>Modifica
+                    <i class="fas fa-edit mr-1"></i>{{ trans('admin.templates.edit') }}
                   </a>
-                  <!-- Rimuoviamo il pulsante di eliminazione -->
                 </div>
               </td>
             </tr>
@@ -79,8 +76,8 @@
                   <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
                     <i class="fas fa-palette text-gray-400 text-xl"></i>
                   </div>
-                  <h3 class="text-sm font-medium text-gray-900 mb-1">Nessun template</h3>
-                  <p class="text-sm text-gray-500">Non sono disponibili template per la visualizzazione degli album</p>
+                  <h3 class="text-sm font-medium text-gray-900 mb-1">{{ trans('admin.templates.no_templates') }}</h3>
+                  <p class="text-sm text-gray-500">{{ trans('admin.templates.no_templates_hint') }}</p>
                 </div>
               </td>
             </tr>

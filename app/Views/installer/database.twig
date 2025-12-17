@@ -77,7 +77,7 @@
         
         <div class="mb-3">
             <label for="db-database" class="form-label">Database Name</label>
-            <input type="text" id="db-database" class="form-control" name="db_database" value="{{ db_database }}" required>
+            <input type="text" id="db-database" class="form-control" name="db_database" value="{{ mysql_database }}" required>
         </div>
         
         <div class="row">
@@ -110,13 +110,20 @@
                 </div>
             </div>
         </div>
+
+        <div class="mb-3">
+            <button type="button" id="test-connection-btn" class="btn btn-outline-secondary">
+                <i class="fas fa-plug me-2"></i>Test Connection
+            </button>
+            <div id="connection-result" class="alert mt-2" style="display: none;"></div>
+        </div>
     </div>
     
     <div id="sqlite-fields" {% if db_connection == 'mysql' %}style="display: none;"{% endif %}>
-        <input type="hidden" name="db_database" value="{{ db_database }}">
+        <input type="hidden" name="sqlite_path" value="{{ sqlite_database }}">
         <div class="alert alert-light border">
             <div class="d-flex align-items-center mb-1"><i class="fas fa-file-alt me-2"></i><strong>SQLite database path</strong></div>
-            <div class="text-muted small">{{ db_database }}</div>
+            <div class="text-muted small">{{ sqlite_database }}</div>
         </div>
     </div>
     
@@ -131,18 +138,87 @@
 </form>
 {% endblock %}
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
   function toggle(val){
     const showMy = val === 'mysql';
-    document.getElementById('mysql-fields').style.display = showMy ? 'block':'none';
-    document.getElementById('sqlite-fields').style.display = showMy ? 'none':'block';
+    const mysqlFields = document.getElementById('mysql-fields');
+    const sqliteFields = document.getElementById('sqlite-fields');
+    if (mysqlFields) {
+      mysqlFields.style.display = showMy ? 'block':'none';
+      mysqlFields.querySelectorAll('input,select').forEach(el => { el.disabled = !showMy; });
+    }
+    if (sqliteFields) {
+      sqliteFields.style.display = showMy ? 'none':'block';
+      const sqliteInput = sqliteFields.querySelector('input[name=\"sqlite_path\"]');
+      if (sqliteInput) {
+        sqliteInput.disabled = showMy;
+      }
+    }
   }
   const rSqlite = document.getElementById('db-conn-sqlite');
   const rMysql = document.getElementById('db-conn-mysql');
   if (rSqlite && rMysql){
     rSqlite.addEventListener('change', ()=> toggle('sqlite'));
     rMysql.addEventListener('change', ()=> toggle('mysql'));
+    toggle(rMysql.checked ? 'mysql' : 'sqlite');
+  }
+
+  // Test MySQL connection
+  const testBtn = document.getElementById('test-connection-btn');
+  if (testBtn) {
+    testBtn.addEventListener('click', function() {
+      const btn = this;
+      const result = document.getElementById('connection-result');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Testing...';
+      result.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('csrf', document.querySelector('input[name="csrf"]').value);
+      formData.append('db_host', document.getElementById('db-host').value);
+      formData.append('db_port', document.getElementById('db-port').value);
+      formData.append('db_database', document.getElementById('db-database').value);
+      formData.append('db_username', document.getElementById('db-username').value);
+      formData.append('db_password', document.getElementById('db-password').value);
+
+      fetch('{{ base_path }}/install/test-mysql', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('HTTP error! status: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          result.className = 'alert alert-success mt-2';
+          result.innerHTML = '<i class="fas fa-check-circle me-2"></i><span class="ms-1"></span>';
+          result.querySelector('span').textContent = data.message;
+          // Auto-fill charset and collation
+          document.getElementById('db-charset').value = data.charset;
+          document.getElementById('db-collation').value = data.collation;
+        } else {
+          result.className = 'alert alert-danger mt-2';
+          result.innerHTML = '<i class="fas fa-times-circle me-2"></i><span class="ms-1"></span>';
+          result.querySelector('span').textContent = data.error || 'Connection failed';
+        }
+        result.style.display = 'block';
+      })
+      .catch(error => {
+        result.className = 'alert alert-danger mt-2';
+        result.innerHTML = '<i class="fas fa-times-circle me-2"></i><span class="ms-1"></span>';
+        result.querySelector('span').textContent = 'Error: ' + error.message;
+        result.style.display = 'block';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plug me-2"></i>Test Connection';
+      });
+    });
   }
 })();
 </script>

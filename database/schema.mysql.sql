@@ -173,6 +173,7 @@ CREATE TABLE IF NOT EXISTS `albums` (
   KEY `idx_albums_robots` (`robots_index`, `robots_follow`),
   KEY `idx_albums_published_date` (`is_published`, `published_at`),
   KEY `idx_albums_published_shoot` (`is_published`, `shoot_date`),
+  KEY `idx_albums_published_nsfw` (`is_published`, `is_nsfw`),
   CONSTRAINT `fk_albums_category` FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_albums_location` FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_albums_template` FOREIGN KEY (`template_id`) REFERENCES `templates`(`id`) ON DELETE SET NULL
@@ -509,14 +510,14 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Default category
 INSERT INTO `categories` (`name`, `slug`, `sort_order`) VALUES ('Photo', 'photo', 1);
 
--- Default templates
-INSERT INTO `templates` (`name`, `slug`, `description`, `settings`, `libs`) VALUES
-('Grid Classica', 'grid-classica', 'Layout a griglia responsivo - desktop 3 colonne, tablet 2, mobile 1', '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]'),
-('Masonry Portfolio', 'masonry-portfolio', 'Layout masonry responsivo per portfolio - desktop 4 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":4,"tablet":3,"mobile":2},"masonry":true,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.1,"allowPanToNext":true}}', '["photoswipe"]'),
-('Magazine Split', 'magazine-split', 'Slideshow minimalista con controlli essenziali', '{"layout":"magazine","columns":{"desktop":1,"tablet":1,"mobile":1},"masonry":1,"magazine":{"autoplay":true,"delay":4000,"showThumbs":true,"showProgress":false,"external_navigation":true},"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":false,"arrowKeys":true,"escKey":true,"bgOpacity":0.95,"spacing":0.05,"allowPanToNext":false}}', '["photoswipe"]'),
-('Gallery Fullscreen', 'gallery-fullscreen', 'Layout fullscreen responsivo - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"fullscreen","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":1.0,"spacing":0,"allowPanToNext":true}}', '["photoswipe"]'),
-('Grid Compatta', 'grid-compatta', 'Layout compatto con molte colonne - desktop 5 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":5,"tablet":3,"mobile":2},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]'),
-('Grid Ampia', 'grid-ampia', 'Layout con poche colonne per immagini grandi - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"grid","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.85,"spacing":0.15,"allowPanToNext":true}}', '["photoswipe"]');
+-- Default templates (IDs 1-6, Magazine Split = ID 3)
+INSERT INTO `templates` (`id`, `name`, `slug`, `description`, `settings`, `libs`) VALUES
+(1, 'Grid Classica', 'grid-classica', 'Layout a griglia responsivo - desktop 3 colonne, tablet 2, mobile 1', '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]'),
+(2, 'Masonry Portfolio', 'masonry-portfolio', 'Layout masonry responsivo per portfolio - desktop 4 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":4,"tablet":3,"mobile":2},"masonry":true,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.1,"allowPanToNext":true}}', '["photoswipe"]'),
+(3, 'Magazine Split', 'magazine-split', 'Galleria a colonne con scorrimento infinito/masonry in stile magazine', '{"layout":"magazine","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":true,"magazine":{"durations":[60,72,84],"gap":20},"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.10,"allowPanToNext":true}}', '["photoswipe"]'),
+(4, 'Gallery Fullscreen', 'gallery-fullscreen', 'Layout fullscreen responsivo - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"fullscreen","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":1.0,"spacing":0,"allowPanToNext":true}}', '["photoswipe"]'),
+(5, 'Grid Compatta', 'grid-compatta', 'Layout compatto con molte colonne - desktop 5 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":5,"tablet":3,"mobile":2},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]'),
+(6, 'Grid Ampia', 'grid-ampia', 'Layout con poche colonne per immagini grandi - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"grid","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.85,"spacing":0.15,"allowPanToNext":true}}', '["photoswipe"]');
 
 -- Default settings
 INSERT INTO `settings` (`key`, `value`, `type`) VALUES
@@ -622,119 +623,5 @@ CREATE TABLE IF NOT EXISTS `frontend_texts` (
   KEY `idx_frontend_texts_context` (`context`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Default English translations
-INSERT INTO `frontend_texts` (`text_key`, `text_value`, `context`, `description`) VALUES
--- Navigation
-('nav.home', 'Home', 'navigation', 'Home link text'),
-('nav.about', 'About', 'navigation', 'About link text'),
-('nav.contact', 'Contact', 'navigation', 'Contact link text'),
-('nav.gallery', 'Gallery', 'navigation', 'Gallery link text'),
-('nav.albums', 'Albums', 'navigation', 'Albums link text'),
-('nav.categories', 'Categories', 'navigation', 'Categories link text'),
-
--- Filters
-('filter.all', 'All', 'filters', 'All filter option'),
-('filter.all_photos', 'All Photos', 'filters', 'All photos filter option'),
-('filter.categories', 'Categories', 'filters', 'Categories filter label'),
-('filter.tags', 'Tags', 'filters', 'Tags filter label'),
-('filter.cameras', 'Cameras', 'filters', 'Cameras filter label'),
-('filter.lenses', 'Lenses', 'filters', 'Lenses filter label'),
-('filter.films', 'Films', 'filters', 'Films filter label'),
-('filter.developers', 'Developers', 'filters', 'Developers filter label'),
-('filter.labs', 'Labs', 'filters', 'Labs filter label'),
-('filter.locations', 'Locations', 'filters', 'Locations filter label'),
-('filter.year', 'Year', 'filters', 'Year filter label'),
-('filter.clear', 'Clear filters', 'filters', 'Clear all filters button'),
-('filter.apply', 'Apply', 'filters', 'Apply filters button'),
-('filter.no_results', 'No results found', 'filters', 'No results message'),
-('filter.results_count', '{count} results', 'filters', 'Results count with placeholder'),
-
--- Album
-('album.photos', 'photos', 'album', 'Photos count label'),
-('album.photo', 'photo', 'album', 'Single photo label'),
-('album.view', 'View album', 'album', 'View album button'),
-('album.more_from', 'More from', 'album', 'More from category section title'),
-('album.related', 'Related albums', 'album', 'Related albums section title'),
-('album.protected', 'This album is password protected', 'album', 'Password protected message'),
-('album.password', 'Password', 'album', 'Password field label'),
-('album.unlock', 'Unlock', 'album', 'Unlock button'),
-('album.wrong_password', 'Incorrect password', 'album', 'Wrong password error'),
-
--- Pagination
-('pagination.previous', 'Previous', 'pagination', 'Previous page button'),
-('pagination.next', 'Next', 'pagination', 'Next page button'),
-('pagination.page', 'Page', 'pagination', 'Page label'),
-('pagination.of', 'of', 'pagination', 'Of separator'),
-('pagination.load_more', 'Load more', 'pagination', 'Load more button'),
-
--- Dates
-('date.published', 'Published', 'dates', 'Published date label'),
-('date.updated', 'Updated', 'dates', 'Updated date label'),
-('date.taken', 'Taken', 'dates', 'Photo taken date label'),
-
--- Footer
-('footer.copyright', '© {year} All rights reserved', 'footer', 'Copyright text with year placeholder'),
-('footer.privacy', 'Privacy Policy', 'footer', 'Privacy policy link'),
-('footer.terms', 'Terms of Service', 'footer', 'Terms of service link'),
-
--- Lightbox
-('lightbox.close', 'Close (Esc)', 'lightbox', 'Close button title'),
-('lightbox.zoom', 'Zoom', 'lightbox', 'Zoom button title'),
-('lightbox.prev', 'Previous', 'lightbox', 'Previous image title'),
-('lightbox.next', 'Next', 'lightbox', 'Next image title'),
-('lightbox.of', 'of', 'lightbox', 'Image counter separator'),
-('lightbox.download', 'Download image', 'lightbox', 'Download button title'),
-('lightbox.error', 'Unable to load image', 'lightbox', 'Error loading image'),
-
--- Social Share
-('share.title', 'Share', 'social', 'Share section title'),
-('share.facebook', 'Share on Facebook', 'social', 'Facebook share button'),
-('share.twitter', 'Share on X', 'social', 'X/Twitter share button'),
-('share.pinterest', 'Pin on Pinterest', 'social', 'Pinterest share button'),
-('share.whatsapp', 'Share on WhatsApp', 'social', 'WhatsApp share button'),
-('share.telegram', 'Share on Telegram', 'social', 'Telegram share button'),
-('share.email', 'Share via Email', 'social', 'Email share button'),
-('share.copy', 'Copy link', 'social', 'Copy link button'),
-('share.copied', 'Link copied!', 'social', 'Link copied confirmation'),
-
--- Search
-('search.placeholder', 'Search...', 'search', 'Search input placeholder'),
-('search.no_results', 'No results found', 'search', 'No search results'),
-('search.results_for', 'Results for', 'search', 'Search results title prefix'),
-
--- Errors
-('error.404.title', 'Page not found', 'errors', '404 error title'),
-('error.404.message', 'The page you are looking for does not exist or has been moved.', 'errors', '404 error message'),
-('error.500.title', 'Server error', 'errors', '500 error title'),
-('error.500.message', 'An error occurred. Please try again later.', 'errors', '500 error message'),
-('error.back_home', 'Back to Home', 'errors', 'Back to home button'),
-
--- Contact Form
-('contact.title', 'Contact', 'contact', 'Contact form title'),
-('contact.name', 'Name', 'contact', 'Name field label'),
-('contact.email', 'Email', 'contact', 'Email field label'),
-('contact.message', 'Message', 'contact', 'Message field label'),
-('contact.send', 'Send', 'contact', 'Send button'),
-('contact.success', 'Message sent successfully', 'contact', 'Success message'),
-('contact.error', 'An error occurred. Please check your data.', 'contact', 'Error message'),
-
--- Metadata
-('meta.camera', 'Camera', 'metadata', 'Camera metadata label'),
-('meta.lens', 'Lens', 'metadata', 'Lens metadata label'),
-('meta.film', 'Film', 'metadata', 'Film metadata label'),
-('meta.developer', 'Developer', 'metadata', 'Developer metadata label'),
-('meta.lab', 'Lab', 'metadata', 'Lab metadata label'),
-('meta.location', 'Location', 'metadata', 'Location metadata label'),
-('meta.date', 'Date', 'metadata', 'Date metadata label'),
-
--- General
-('general.loading', 'Loading...', 'general', 'Loading indicator'),
-('general.read_more', 'Read more', 'general', 'Read more link'),
-('general.see_all', 'See all', 'general', 'See all link'),
-('general.back', 'Back', 'general', 'Back button'),
-('general.close', 'Close', 'general', 'Close button'),
-('general.yes', 'Yes', 'general', 'Yes button'),
-('general.no', 'No', 'general', 'No button'),
-('general.cancel', 'Cancel', 'general', 'Cancel button'),
-('general.save', 'Save', 'general', 'Save button'),
-('general.submit', 'Submit', 'general', 'Submit button')
+-- NOTE: Frontend texts are loaded from JSON files in storage/translations/
+-- The frontend_texts table is for user-customized translations only

@@ -1,18 +1,18 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Albums — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.albums.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8 flex-wrap gap-3">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Albums</h1>
-      <p class="text-gray-600 mt-1">Manage your photo albums and collections</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.albums.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.albums.description') }}</p>
     </div>
     <div class="flex items-center gap-3">
       <div class="inline-flex rounded overflow-hidden border border-gray-300">
-        <a href="?order=manual" class="px-3 py-2 text-sm {{ order_mode=='manual' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">Manual order</a>
-        <a href="?order=date" class="px-3 py-2 text-sm {{ order_mode=='date' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">Date order</a>
+        <a href="?order=manual" class="px-3 py-2 text-sm {{ order_mode=='manual' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">{{ trans('admin.albums.manual_order') }}</a>
+        <a href="?order=date" class="px-3 py-2 text-sm {{ order_mode=='date' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">{{ trans('admin.albums.date_order') }}</a>
       </div>
       <a href="{{ base_path }}/admin/albums/create" class="btn-primary">
-        <i class="fas fa-plus mr-2"></i>New Album
+        <i class="fas fa-plus mr-2"></i>{{ trans('admin.albums.new_album') }}
       </a>
     </div>
   </div>
@@ -25,12 +25,12 @@
             {% if order_mode == 'manual' %}
             <th class="px-2 py-3 w-10"></th>
             {% endif %}
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cover</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.albums.cover') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.albums.title_field') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.albums.categories') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.albums.status') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.albums.slug') }}</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.common.actions') }}</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200" id="albums-tbody">
@@ -61,11 +61,11 @@
             <td class="px-6 py-4 whitespace-nowrap">
               {% if a.is_published %}
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                  Published
+                  {{ trans('admin.albums.published') }}
                 </span>
               {% else %}
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                  Draft
+                  {{ trans('admin.albums.draft') }}
                 </span>
               {% endif %}
             </td>
@@ -74,30 +74,30 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
               <div class="flex items-center justify-end space-x-2">
-                <a href="{{ base_path }}/album/{{ a.slug }}" class="text-gray-600 hover:text-black" target="_blank" rel="noopener" title="Preview album">
+                <a href="{{ base_path }}/album/{{ a.slug }}" class="text-gray-600 hover:text-black" target="_blank" rel="noopener" title="{{ trans('admin.albums.preview') }}">
                   <i class="fas fa-th"></i>
                 </a>
-                <a href="{{ base_path }}/admin/albums/{{ a.id }}/edit" class="text-gray-600 hover:text-black">
+                <a href="{{ base_path }}/admin/albums/{{ a.id }}/edit" class="text-gray-600 hover:text-black" title="{{ trans('admin.common.edit') }}">
                   <i class="fas fa-edit"></i>
                 </a>
                 {% if a.is_published %}
                   <form method="post" action="{{ base_path }}/admin/albums/{{ a.id }}/unpublish" class="inline">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <button type="submit" class="text-yellow-600 hover:text-yellow-800" title="Unpublish">
+                    <button type="submit" class="text-yellow-600 hover:text-yellow-800" title="{{ trans('admin.albums.unpublish') }}">
                       <i class="fas fa-eye-slash"></i>
                     </button>
                   </form>
                 {% else %}
                   <form method="post" action="{{ base_path }}/admin/albums/{{ a.id }}/publish" class="inline">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <button type="submit" class="text-green-600 hover:text-green-800" title="Publish">
+                    <button type="submit" class="text-green-600 hover:text-green-800" title="{{ trans('admin.albums.publish') }}">
                       <i class="fas fa-eye"></i>
                     </button>
                   </form>
                 {% endif %}
-                <form method="post" action="{{ base_path }}/admin/albums/{{ a.id }}/delete" class="inline" onsubmit="return confirm('Delete this album?')">
+                <form method="post" action="{{ base_path }}/admin/albums/{{ a.id }}/delete" class="inline" data-confirm="{{ trans('admin.albums.delete_confirm')|e('html_attr') }}">
                   <input type="hidden" name="csrf" value="{{ csrf }}">
-                  <button type="submit" class="text-red-600 hover:text-red-800" title="Delete">
+                  <button type="submit" class="text-red-600 hover:text-red-800" title="{{ trans('admin.common.delete') }}">
                     <i class="fas fa-trash"></i>
                   </button>
                 </form>
@@ -112,17 +112,17 @@
     {% if items|length == 0 %}
       <div class="text-center py-12">
         <i class="fas fa-images text-4xl text-gray-300 mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No albums yet</h3>
-        <p class="text-gray-600 mb-6">Get started by creating your first album.</p>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.albums.no_albums') }}</h3>
+        <p class="text-gray-600 mb-6">{{ trans('admin.albums.no_albums_hint') }}</p>
         <a href="{{ base_path }}/admin/albums/create" class="btn-primary">
-          <i class="fas fa-plus mr-2"></i>Create Album
+          <i class="fas fa-plus mr-2"></i>{{ trans('admin.albums.create_album') }}
         </a>
       </div>
     {% endif %}
   </div>
 
   <script src="{{ base_path }}/assets/vendor/sortablejs/Sortable.min.js"></script>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     // Albums index page initialization - Compatible with SPA
     function initializeAlbumsIndexPage() {
       initAlbumsTableSorting();
@@ -215,13 +215,13 @@
   {% if pagination.pages > 1 %}
     <div class="flex items-center justify-between mt-6">
       <div class="text-sm text-gray-700">
-        Showing {{ (pagination.page - 1) * pagination.per_page + 1 }} to {{ min(pagination.page * pagination.per_page, pagination.total) }} of {{ pagination.total }} results
+        {{ trans('admin.albums.showing_results')|replace({'{from}': (pagination.page - 1) * pagination.per_page + 1, '{to}': min(pagination.page * pagination.per_page, pagination.total), '{total}': pagination.total}) }}
       </div>
       <div class="flex space-x-1">
         {% if pagination.has_prev %}
-          <a href="?page={{ pagination.page - 1 }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">Previous</a>
+          <a href="?page={{ pagination.page - 1 }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ trans('admin.albums.previous') }}</a>
         {% endif %}
-        
+
         {% for p in range(max(1, pagination.page - 2), min(pagination.pages, pagination.page + 2) + 1) %}
           {% if p == pagination.page %}
             <span class="px-3 py-2 text-sm bg-black text-white rounded">{{ p }}</span>
@@ -229,9 +229,9 @@
             <a href="?page={{ p }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ p }}</a>
           {% endif %}
         {% endfor %}
-        
+
         {% if pagination.has_next %}
-          <a href="?page={{ pagination.page + 1 }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">Next</a>
+          <a href="?page={{ pagination.page + 1 }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ trans('admin.albums.next') }}</a>
         {% endif %}
       </div>
     </div>

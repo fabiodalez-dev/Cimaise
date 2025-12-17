@@ -18,11 +18,14 @@ CREATE TABLE `users` (
   `last_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `last_login` datetime DEFAULT NULL,
+  `remember_token` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `remember_token_expires_at` datetime DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
-  KEY `idx_users_email` (`email`)
+  KEY `idx_users_email` (`email`),
+  KEY `idx_users_remember_token` (`remember_token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Categories table
@@ -82,6 +85,7 @@ CREATE TABLE `albums` (
   `template_id` int(11) DEFAULT NULL,
   `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `allow_downloads` tinyint(1) NOT NULL DEFAULT 0,
+  `is_nsfw` tinyint(1) NOT NULL DEFAULT 0,
   `location_id` int(11) DEFAULT NULL,
   `sort_order` int(11) DEFAULT 0,
   `seo_title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -107,6 +111,7 @@ CREATE TABLE `albums` (
   KEY `idx_albums_template` (`template_id`),
   KEY `idx_albums_seo_title` (`seo_title`),
   KEY `idx_albums_robots` (`robots_index`, `robots_follow`),
+  KEY `idx_albums_published_nsfw` (`is_published`, `is_nsfw`),
   FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -137,8 +142,8 @@ CREATE TABLE `films` (
   `brand` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `iso` int(11) DEFAULT NULL,
-  `format` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '35mm',
-  `type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'color_negative',
+  `format` ENUM('35mm', '120', '4x5', '8x10', 'other') DEFAULT '35mm',
+  `type` ENUM('color_negative', 'color_reversal', 'bw') NOT NULL DEFAULT 'color_negative',
   PRIMARY KEY (`id`),
   UNIQUE KEY `brand_name_iso_format` (`brand`, `name`, `iso`, `format`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -348,7 +353,7 @@ INSERT INTO `settings` (`id`, `key`, `value`, `type`, `created_at`, `updated_at`
 (274, 'image.quality', '{"avif":50,"webp":75,"jpg":85}', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (275, 'image.preview', '{"width":480,"height":null}', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (276, 'image.breakpoints', '{"sm":768,"md":1200,"lg":1920,"xl":2560,"xxl":3840}', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
-(277, 'gallery.default_template_id', '3', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(277, 'gallery.default_template_id', '1', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (282, 'performance.compression', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (283, 'pagination.limit', '12', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (284, 'cache.ttl', '24', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
@@ -401,84 +406,43 @@ INSERT INTO `settings` (`id`, `key`, `value`, `type`, `created_at`, `updated_at`
 (327, 'social.enabled', '["bluesky","facebook","pinterest","telegram","threads","whatsapp","x"]', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (328, 'social.order', '["bluesky","facebook","pinterest","telegram","threads","whatsapp","x"]', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37');
 
--- Insert film types data
+-- Insert film types data (using standard ENUM values: color_negative, color_reversal, bw)
 INSERT INTO `films` (`id`, `brand`, `name`, `iso`, `format`, `type`) VALUES
--- B/W Negative tradizionale  
-(1, 'Ilford', 'HP5 Plus', 400, '35mm', 'bw_negative'),
-(2, 'Kodak', 'Tri-X', 400, '35mm', 'bw_negative'), 
-(3, 'Kodak', 'T-Max 100', 100, '35mm', 'bw_negative'),
-(4, 'Kodak', 'T-Max 400', 400, '35mm', 'bw_negative'),
-(5, 'Foma', 'Fomapan 100', 100, '35mm', 'bw_negative'),
-(6, 'Foma', 'Fomapan 200', 200, '35mm', 'bw_negative'),
-(7, 'Foma', 'Fomapan 400', 400, '35mm', 'bw_negative'),
-
--- B/W Chromogenic (C-41)
-(8, 'Ilford', 'XP2 Super', 400, '35mm', 'bw_chromogenic'),
-
--- C-41 Color Negative
-(9, 'Kodak', 'Portra 160', 160, '35mm', 'c41_color_negative'),
-(10, 'Kodak', 'Portra 400', 400, '35mm', 'c41_color_negative'),
-(11, 'Kodak', 'Ektar 100', 100, '35mm', 'c41_color_negative'),
-(12, 'Kodak', 'Gold 200', 200, '35mm', 'c41_color_negative'),
-(13, 'Kodak', 'Ultramax 400', 400, '35mm', 'c41_color_negative'),
-(14, 'Fujifilm', 'Superia 400', 400, '35mm', 'c41_color_negative'),
-(15, 'Lomography', 'Color Negative 100', 100, '35mm', 'c41_color_negative'),
-
--- E-6 Slide/Diapositiva
-(16, 'Fujifilm', 'Provia 100F', 100, '35mm', 'e6_slide'),
-(17, 'Fujifilm', 'Velvia 50', 50, '35mm', 'e6_slide'),
-(18, 'Fujifilm', 'Velvia 100', 100, '35mm', 'e6_slide'),
-(19, 'Kodak', 'Ektachrome E100', 100, '35mm', 'e6_slide'),
-
--- B/W Reversal
-(20, 'Foma', 'Fomapan R100', 100, '35mm', 'bw_reversal'),
-(21, 'ADOX', 'Scala 160', 160, '35mm', 'bw_reversal'),
-
--- ECN-2 Cinema
-(22, 'Kodak', 'Vision3 50D', 50, '35mm', 'ecn2_cinema'),
-(23, 'Kodak', 'Vision3 250D', 250, '35mm', 'ecn2_cinema'), 
-(24, 'Kodak', 'Vision3 500T', 500, '35mm', 'ecn2_cinema'),
-(25, 'ORWO', 'NC400', 400, '35mm', 'ecn2_cinema'),
-(26, 'ORWO', 'NC500', 500, '35mm', 'ecn2_cinema'),
-
--- Instant
-(27, 'Polaroid', 'SX-70', NULL, 'instant', 'instant_integral'),
-(28, 'Polaroid', '600', NULL, 'instant', 'instant_integral'),
-(29, 'Polaroid', 'i-Type', NULL, 'instant', 'instant_integral'),
-(30, 'Fujifilm', 'Instax Mini', NULL, 'instant_mini', 'instant_integral'),
-(31, 'Fujifilm', 'Instax Square', NULL, 'instant_square', 'instant_integral'),
-(32, 'Fujifilm', 'Instax Wide', NULL, 'instant_wide', 'instant_integral'),
-
--- Special/Experimental
-(33, 'Rollei', 'Infrared 400', 400, '35mm', 'bw_infrared'),
-(34, 'Ilford', 'SFX 200', 200, '35mm', 'bw_infrared'),
-
--- Digitale
-(35, 'Canon', 'Digital Camera', NULL, 'digital', 'digital'),
-(36, 'Nikon', 'Digital Camera', NULL, 'digital', 'digital'),
-(37, 'Sony', 'Digital Camera', NULL, 'digital', 'digital'),
-(38, 'Fujifilm', 'Digital Camera', NULL, 'digital', 'digital'),
-(39, 'Leica', 'Digital Camera', NULL, 'digital', 'digital'),
-
--- Altro/Sperimentale
-(40, 'Custom', 'Altro/Sperimentale', NULL, 'other', 'other'),
-(41, 'Expired', 'Pellicola Scaduta', NULL, 'other', 'other'),
-(42, 'Cross-processed', 'Cross Processing', NULL, 'other', 'other'),
-(43, 'Redscale', 'Redscale', NULL, '35mm', 'other'),
-(44, 'Double Exposure', 'Doppia Esposizione', NULL, 'other', 'other');
+-- B/W Films
+(1, 'Ilford', 'HP5 Plus', 400, '35mm', 'bw'),
+(2, 'Kodak', 'Tri-X', 400, '35mm', 'bw'),
+(3, 'Kodak', 'T-Max 100', 100, '35mm', 'bw'),
+(4, 'Kodak', 'T-Max 400', 400, '35mm', 'bw'),
+(5, 'Foma', 'Fomapan 100', 100, '35mm', 'bw'),
+(6, 'Foma', 'Fomapan 200', 200, '35mm', 'bw'),
+(7, 'Foma', 'Fomapan 400', 400, '35mm', 'bw'),
+(8, 'Ilford', 'XP2 Super', 400, '35mm', 'bw'),
+-- Color Negative Films
+(9, 'Kodak', 'Portra 160', 160, '35mm', 'color_negative'),
+(10, 'Kodak', 'Portra 400', 400, '35mm', 'color_negative'),
+(11, 'Kodak', 'Ektar 100', 100, '35mm', 'color_negative'),
+(12, 'Kodak', 'Gold 200', 200, '35mm', 'color_negative'),
+(13, 'Kodak', 'Ultramax 400', 400, '35mm', 'color_negative'),
+(14, 'Fujifilm', 'Superia 400', 400, '35mm', 'color_negative'),
+(15, 'Lomography', 'Color Negative 100', 100, '35mm', 'color_negative'),
+-- Color Reversal (Slide) Films
+(16, 'Fujifilm', 'Provia 100F', 100, '35mm', 'color_reversal'),
+(17, 'Fujifilm', 'Velvia 50', 50, '35mm', 'color_reversal'),
+(18, 'Fujifilm', 'Velvia 100', 100, '35mm', 'color_reversal'),
+(19, 'Kodak', 'Ektachrome E100', 100, '35mm', 'color_reversal');
 
 INSERT INTO `templates` (`id`, `name`, `slug`, `description`, `settings`, `libs`, `created_at`) VALUES
-(7, 'Grid Classica', 'grid-classica', 'Layout a griglia responsivo - desktop 3 colonne, tablet 2, mobile 1', '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]', '2025-08-25 14:21:20'),
-(8, 'Masonry Portfolio', 'masonry-portfolio', 'Layout masonry responsivo per portfolio - desktop 4 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":4,"tablet":3,"mobile":2},"masonry":true,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.1,"allowPanToNext":true}}', '["photoswipe","masonry"]', '2025-08-25 14:21:20'),
-(9, 'Magazine Split', 'magazine-split', 'Galleria a colonne con scorrimento infinito/masonry in stile magazine', '{"layout":"magazine","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":true,"magazine":{"durations":[60,72,84],"gap":20},"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.10,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20'),
-(10, 'Gallery Fullscreen', 'gallery-fullscreen', 'Layout fullscreen responsivo - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"fullscreen","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":1.0,"spacing":0,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20'),
-(11, 'Grid Compatta', 'grid-compatta', 'Layout compatto con molte colonne - desktop 5 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":5,"tablet":3,"mobile":2},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]', '2025-08-25 14:21:20'),
-(12, 'Grid Ampia', 'grid-ampia', 'Layout con poche colonne per immagini grandi - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"grid","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.85,"spacing":0.15,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20');
+(1, 'Grid Classica', 'grid-classica', 'Layout a griglia responsivo - desktop 3 colonne, tablet 2, mobile 1', '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]', '2025-08-25 14:21:20'),
+(2, 'Masonry Portfolio', 'masonry-portfolio', 'Layout masonry responsivo per portfolio - desktop 4 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":4,"tablet":3,"mobile":2},"masonry":true,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.1,"allowPanToNext":true}}', '["photoswipe","masonry"]', '2025-08-25 14:21:20'),
+(3, 'Magazine Split', 'magazine-split', 'Galleria a colonne con scorrimento infinito/masonry in stile magazine', '{"layout":"magazine","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":true,"magazine":{"durations":[60,72,84],"gap":20},"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.10,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20'),
+(4, 'Gallery Fullscreen', 'gallery-fullscreen', 'Layout fullscreen responsivo - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"fullscreen","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":1.0,"spacing":0,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20'),
+(5, 'Grid Compatta', 'grid-compatta', 'Layout compatto con molte colonne - desktop 5 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":5,"tablet":3,"mobile":2},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]', '2025-08-25 14:21:20'),
+(6, 'Grid Ampia', 'grid-ampia', 'Layout con poche colonne per immagini grandi - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"grid","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.85,"spacing":0.15,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20');
 
 -- Set AUTO_INCREMENT values to match the SQLite sequence
 ALTER TABLE `categories` AUTO_INCREMENT = 10;
 ALTER TABLE `settings` AUTO_INCREMENT = 329;
-ALTER TABLE `templates` AUTO_INCREMENT = 13;
+ALTER TABLE `templates` AUTO_INCREMENT = 7;
 ALTER TABLE `films` AUTO_INCREMENT = 45;
 
 -- Analytics system tables
@@ -597,5 +561,167 @@ INSERT IGNORE INTO `analytics_settings` (`setting_key`, `setting_value`, `descri
 ('bot_detection_enabled', 'true', 'Filter out bot traffic'),
 ('session_timeout_minutes', '30', 'Session timeout in minutes'),
 ('export_enabled', 'true', 'Allow data export functionality');
+
+-- ============================================
+-- FRONTEND TEXTS TABLE (Translation System)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `frontend_texts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `text_key` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `text_value` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `context` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT 'general',
+  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_frontend_texts_key` (`text_key`),
+  KEY `idx_frontend_texts_context` (`context`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- PLUGIN STATUS TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `plugin_status` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `slug` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `version` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `author` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `path` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `is_installed` tinyint(1) DEFAULT 1,
+  `installed_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_plugin_status_slug` (`slug`),
+  KEY `idx_plugin_status_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- LOGS TABLE (Structured Logging System)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `level` int(11) NOT NULL,
+  `level_name` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `category` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT 'app',
+  `message` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `context` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_logs_level` (`level`),
+  KEY `idx_logs_category` (`category`),
+  KEY `idx_logs_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- DEFAULT FILTER SETTINGS
+-- ============================================
+
+INSERT IGNORE INTO `filter_settings` (`setting_key`, `setting_value`, `description`, `sort_order`) VALUES
+('enabled', '1', 'Enable/disable filter functionality', 1),
+('show_categories', '1', 'Show categories filter', 2),
+('show_tags', '1', 'Show tags filter', 3),
+('show_cameras', '1', 'Show cameras filter', 4),
+('show_lenses', '1', 'Show lenses filter', 5),
+('show_films', '1', 'Show films filter', 6),
+('show_developers', '0', 'Show developers filter', 7),
+('show_labs', '0', 'Show labs filter', 8),
+('show_locations', '1', 'Show locations filter', 9),
+('show_year', '1', 'Show year filter', 10),
+('grid_columns_desktop', '3', 'Grid columns on desktop', 11),
+('grid_columns_tablet', '2', 'Grid columns on tablet', 12),
+('grid_columns_mobile', '1', 'Grid columns on mobile', 13),
+('grid_gap', 'normal', 'Grid gap size (small, normal, large)', 14),
+('animation_enabled', '1', 'Enable GSAP animations', 15),
+('animation_duration', '0.6', 'Animation duration in seconds', 16);
+
+-- ============================================
+-- DEFAULT FRONTEND TEXTS (English)
+-- ============================================
+
+INSERT IGNORE INTO `frontend_texts` (`text_key`, `text_value`, `context`, `description`) VALUES
+-- Navigation
+('nav.home', 'Home', 'navigation', 'Home link text'),
+('nav.about', 'About', 'navigation', 'About link text'),
+('nav.contact', 'Contact', 'navigation', 'Contact link text'),
+('nav.gallery', 'Gallery', 'navigation', 'Gallery link text'),
+('nav.albums', 'Albums', 'navigation', 'Albums link text'),
+('nav.categories', 'Categories', 'navigation', 'Categories link text'),
+('nav.galleries', 'Galleries', 'navigation', 'Galleries link text'),
+('nav.back', 'Back', 'navigation', 'Back link text'),
+('nav.menu', 'Menu', 'navigation', 'Menu text'),
+('nav.close', 'Close', 'navigation', 'Close text'),
+('nav.breadcrumb', 'Breadcrumb', 'navigation', 'Breadcrumb aria-label'),
+-- Filters
+('filter.all', 'All', 'filters', 'All filter option'),
+('filter.categories', 'Categories', 'filters', 'Categories filter label'),
+('filter.tags', 'Tags', 'filters', 'Tags filter label'),
+('filter.cameras', 'Cameras', 'filters', 'Cameras filter label'),
+('filter.lenses', 'Lenses', 'filters', 'Lenses filter label'),
+('filter.films', 'Films', 'filters', 'Films filter label'),
+('filter.locations', 'Locations', 'filters', 'Locations filter label'),
+('filter.year', 'Year', 'filters', 'Year filter label'),
+('filter.clear', 'Clear filters', 'filters', 'Clear all filters button'),
+('filter.apply', 'Apply', 'filters', 'Apply filters button'),
+('filter.no_results', 'No results found', 'filters', 'No results message'),
+-- Album
+('album.photos', 'photos', 'album', 'Photos count label'),
+('album.photo', 'photo', 'album', 'Single photo label'),
+('album.view', 'View album', 'album', 'View album button'),
+('album.more_from', 'More from', 'album', 'More from category section title'),
+('album.password_protected', 'Password Protected', 'album', 'Password protected label'),
+('album.enter_password', 'Enter Password', 'album', 'Password field label'),
+('album.wrong_password', 'Wrong password', 'album', 'Wrong password error'),
+('album.unlock', 'Unlock', 'album', 'Unlock button'),
+('album.nsfw_warning_short', '18+', 'album', 'Short NSFW warning'),
+-- Pagination
+('pagination.previous', 'Previous', 'pagination', 'Previous page button'),
+('pagination.next', 'Next', 'pagination', 'Next page button'),
+('pagination.page', 'Page', 'pagination', 'Page label'),
+('pagination.of', 'of', 'pagination', 'Of separator'),
+-- Footer
+('footer.copyright', '© {year} All rights reserved', 'footer', 'Copyright text'),
+('footer.privacy', 'Privacy Policy', 'footer', 'Privacy policy link'),
+('footer.terms', 'Terms of Service', 'footer', 'Terms of service link'),
+-- Lightbox
+('lightbox.close', 'Close', 'lightbox', 'Close button'),
+('lightbox.zoom', 'Zoom', 'lightbox', 'Zoom button'),
+('lightbox.previous', 'Previous', 'lightbox', 'Previous image'),
+('lightbox.next', 'Next', 'lightbox', 'Next image'),
+('lightbox.download', 'Download', 'lightbox', 'Download button'),
+-- Social Share
+('share.title', 'Share', 'social', 'Share section title'),
+('share.facebook', 'Share on Facebook', 'social', 'Facebook share'),
+('share.twitter', 'Share on X', 'social', 'X/Twitter share'),
+('share.pinterest', 'Pin on Pinterest', 'social', 'Pinterest share'),
+('share.copy_link', 'Copy Link', 'social', 'Copy link button'),
+('share.link_copied', 'Link copied!', 'social', 'Link copied confirmation'),
+('share.share_on', 'Share on {network}', 'social', 'Share on network template'),
+-- Search
+('search.placeholder', 'Search...', 'search', 'Search input placeholder'),
+('search.no_results', 'No results found', 'search', 'No search results'),
+-- Errors
+('error.404', 'Page not found', 'errors', '404 error title'),
+('error.404_message', 'The page you are looking for does not exist.', 'errors', '404 error message'),
+('error.500', 'Server error', 'errors', '500 error title'),
+('error.500_message', 'Something went wrong. Please try again later.', 'errors', '500 error message'),
+('error.go_home', 'Go to Homepage', 'errors', 'Go home button'),
+-- General
+('general.loading', 'Loading...', 'general', 'Loading indicator'),
+('general.read_more', 'Read more', 'general', 'Read more link'),
+('general.see_all', 'See all', 'general', 'See all link'),
+('general.close', 'Close', 'general', 'Close button'),
+('general.previous', 'Previous', 'general', 'Previous button'),
+('general.next', 'Next', 'general', 'Next button'),
+('general.no_cover', 'No cover', 'general', 'No cover image text'),
+('general.yes', 'Yes', 'general', 'Yes button'),
+('general.no', 'No', 'general', 'No button'),
+('general.cancel', 'Cancel', 'general', 'Cancel button'),
+('general.save', 'Save', 'general', 'Save button');
 
 COMMIT;

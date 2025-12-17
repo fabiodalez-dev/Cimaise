@@ -1,12 +1,12 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Pages — Home{% endblock %}
+{% block title %}{{ trans('admin.pages.home.page_title') }}{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Pages</h1>
-      <p class="text-gray-600 mt-1">Edit <strong>Home</strong> page texts</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.pages.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.pages.home.edit')|raw }}</p>
     </div>
-    <a href="{{ base_path }}/" class="btn-secondary" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt mr-2"></i>View page</a>
+    <a href="{{ base_path }}/" class="btn-secondary" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt mr-2"></i>{{ trans('admin.pages.home.view_page') }}</a>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -19,18 +19,18 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-star mr-3 text-gray-600"></i>
-              Hero Section
+              {{ trans('admin.pages.home.hero_section') }}
             </h3>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Title</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.title') }}</label>
                 <input type="text" name="hero_title" class="form-input" placeholder="Portfolio" value="{{ settings['home.hero_title']|default('Portfolio')|e('html_attr') }}">
-                <p class="text-xs text-gray-500 mt-1">Main heading displayed at the top of the homepage</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.title_hint') }}</p>
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Subtitle</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.subtitle') }}</label>
                 <textarea name="hero_subtitle" rows="3" class="form-input" placeholder="A collection of analog and digital photography...">{{ settings['home.hero_subtitle']|default('') }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Brief description shown below the main title</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.subtitle_hint') }}</p>
               </div>
             </div>
           </div>
@@ -40,19 +40,19 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-th mr-3 text-gray-600"></i>
-              Infinite Gallery
+              {{ trans('admin.pages.home.infinite_gallery') }}
             </h3>
-            <p class="text-sm text-gray-600 mb-4">Configure the auto-scrolling image gallery</p>
+            <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.infinite_gallery_desc') }}</p>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm text-gray-700 mb-2">Scroll Direction</label>
+                <label class="block text-sm text-gray-700 mb-2">{{ trans('admin.pages.home.scroll_direction') }}</label>
                 <div class="flex gap-4">
                   <label class="flex items-center cursor-pointer">
                     <input type="radio" name="gallery_scroll_direction" value="vertical"
                            {{ settings['home.gallery_scroll_direction']|default('vertical') == 'vertical' ? 'checked' : '' }}
                            class="w-4 h-4 text-black border-gray-300 focus:ring-black">
                     <span class="ml-2 text-sm text-gray-700">
-                      <i class="fas fa-arrows-alt-v mr-1"></i>Vertical
+                      <i class="fas fa-arrows-alt-v mr-1"></i>{{ trans('admin.pages.home.vertical') }}
                     </span>
                   </label>
                   <label class="flex items-center cursor-pointer">
@@ -60,11 +60,11 @@
                            {{ settings['home.gallery_scroll_direction']|default('vertical') == 'horizontal' ? 'checked' : '' }}
                            class="w-4 h-4 text-black border-gray-300 focus:ring-black">
                     <span class="ml-2 text-sm text-gray-700">
-                      <i class="fas fa-arrows-alt-h mr-1"></i>Horizontal
+                      <i class="fas fa-arrows-alt-h mr-1"></i>{{ trans('admin.pages.home.horizontal') }}
                     </span>
                   </label>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">Choose how images scroll in the infinite gallery</p>
+                <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.home.scroll_direction_hint') }}</p>
               </div>
             </div>
           </div>
@@ -74,18 +74,18 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-align-left mr-3 text-gray-600"></i>
-              Gallery Text Section
+              {{ trans('admin.pages.home.gallery_text_section') }}
             </h3>
-            <p class="text-sm text-gray-600 mb-4">Optional text section displayed after the infinite gallery</p>
+            <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.gallery_text_desc') }}</p>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Title</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.title') }}</label>
                 <input type="text" name="gallery_text_title" class="form-input" placeholder="About my work..." value="{{ settings['home.gallery_text_title']|default('')|e('html_attr') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Content</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.content') }}</label>
                 <textarea name="gallery_text_content" rows="8" class="form-input richtext" placeholder="Write about your photography, your approach, or anything you want to share...">{{ settings['home.gallery_text_content']|default('') }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Supports rich text formatting. Leave empty to hide this section.</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.content_hint') }}</p>
               </div>
             </div>
           </div>
@@ -95,15 +95,15 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-images mr-3 text-gray-600"></i>
-              Albums Carousel Section
+              {{ trans('admin.pages.home.albums_carousel_section') }}
             </h3>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Section Title</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.section_title') }}</label>
                 <input type="text" name="albums_title" class="form-input" placeholder="Latest Albums" value="{{ settings['home.albums_title']|default('Latest Albums')|e('html_attr') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Section Subtitle</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.section_subtitle') }}</label>
                 <textarea name="albums_subtitle" rows="2" class="form-input" placeholder="Discover my recent photographic work...">{{ settings['home.albums_subtitle']|default('') }}</textarea>
               </div>
             </div>
@@ -114,16 +114,16 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-folder-open mr-3 text-gray-600"></i>
-              Empty State
+              {{ trans('admin.pages.home.empty_state') }}
             </h3>
-            <p class="text-sm text-gray-600 mb-4">Text displayed when there are no albums to show</p>
+            <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.empty_state_desc') }}</p>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Empty State Title</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.empty_state_title') }}</label>
                 <input type="text" name="empty_title" class="form-input" placeholder="No albums yet" value="{{ settings['home.empty_title']|default('No albums yet')|e('html_attr') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Empty State Message</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.empty_state_message') }}</label>
                 <input type="text" name="empty_text" class="form-input" placeholder="Check back soon for new work." value="{{ settings['home.empty_text']|default('Check back soon for new work.')|e('html_attr') }}">
               </div>
             </div>
@@ -131,8 +131,8 @@
         </div>
 
         <div class="flex items-center justify-end gap-3">
-          <a href="{{ base_path }}/admin/pages" class="btn-secondary">Cancel</a>
-          <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>Save</button>
+          <a href="{{ base_path }}/admin/pages" class="btn-secondary">{{ trans('admin.pages.home.cancel') }}</a>
+          <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>{{ trans('admin.pages.home.save') }}</button>
         </div>
       </form>
     </div>
@@ -141,24 +141,24 @@
     <div class="lg:col-span-1">
       <div class="card">
         <div class="p-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-2">Homepage Structure</h3>
-          <p class="text-sm text-gray-600 mb-4">The homepage consists of these main sections:</p>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.pages.home.structure_title') }}</h3>
+          <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.structure_desc') }}</p>
           <ul class="text-sm text-gray-600 space-y-2">
             <li class="flex items-start">
               <i class="fas fa-star text-gray-400 mr-2 mt-1"></i>
-              <span><strong>Hero</strong> - Title and subtitle introducing your portfolio</span>
+              <span><strong>Hero</strong> - {{ trans('admin.pages.home.hero_desc') }}</span>
             </li>
             <li class="flex items-start">
               <i class="fas fa-th text-gray-400 mr-2 mt-1"></i>
-              <span><strong>Infinite Gallery</strong> - Auto-scrolling mosaic of images from your albums</span>
+              <span><strong>{{ trans('admin.pages.home.infinite_gallery') }}</strong> - {{ trans('admin.pages.home.infinite_gallery_info') }}</span>
             </li>
             <li class="flex items-start">
               <i class="fas fa-align-left text-gray-400 mr-2 mt-1"></i>
-              <span><strong>Gallery Text</strong> - Optional text section after the gallery</span>
+              <span><strong>{{ trans('admin.pages.home.gallery_text_section') }}</strong> - {{ trans('admin.pages.home.gallery_text_info') }}</span>
             </li>
             <li class="flex items-start">
               <i class="fas fa-images text-gray-400 mr-2 mt-1"></i>
-              <span><strong>Albums Carousel</strong> - Horizontal carousel featuring your latest albums</span>
+              <span><strong>{{ trans('admin.pages.home.albums_carousel_section') }}</strong> - {{ trans('admin.pages.home.albums_carousel_info') }}</span>
             </li>
           </ul>
         </div>
@@ -166,7 +166,7 @@
     </div>
   </div>
   <script src="{{ base_path }}/assets/vendor/tinymce/tinymce.min.js"></script>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     document.addEventListener('DOMContentLoaded', function(){
       if (window.tinymce) {
         tinymce.init({

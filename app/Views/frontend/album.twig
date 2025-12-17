@@ -14,7 +14,7 @@
       {{ trans('album.nsfw_album_message') }}
     </p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <button id="nsfw-confirm-btn" onclick="confirmNsfwAndShow()" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+      <button id="nsfw-confirm-btn" data-action="confirm-nsfw-album" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
         {{ trans('album.nsfw_confirm') }}
       </button>
       <a href="{{ base_path }}/galleries" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium inline-block">
@@ -32,11 +32,24 @@
   #nsfw-gate.active { display: flex !important; }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
   const hasConfirmed = localStorage.getItem('nsfw_confirmed') === 'true';
   const gate = document.getElementById('nsfw-gate');
   const mainContent = document.getElementById('album-main-content');
+  const csrfToken = '{{ csrf|e('js') }}';
+  const albumSlug = '{{ album.slug|e('js') }}';
+  const basePath = '{{ base_path|e('js') }}';
+
+  // If already confirmed in localStorage, ensure server session is updated for media access
+  if (hasConfirmed && albumSlug && csrfToken) {
+    fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
+    }).catch(() => {});
+  }
 
   if (!hasConfirmed && gate) {
     gate.classList.add('active');
@@ -53,6 +66,15 @@
 
 function confirmNsfwAndShow() {
   localStorage.setItem('nsfw_confirmed', 'true');
+  // Inform backend to set session flag for NSFW protection
+  if (albumSlug && csrfToken) {
+    fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
+    }).catch(() => { /* non-blocking */ });
+  }
   const gate = document.getElementById('nsfw-gate');
   const mainContent = document.getElementById('album-main-content');
   if (gate) {
@@ -65,6 +87,25 @@ function confirmNsfwAndShow() {
   }
   document.body.style.overflow = '';
 }
+
+document.getElementById('nsfw-confirm-btn')?.addEventListener('click', function(event) {
+  event.preventDefault();
+  confirmNsfwAndShow();
+});
+
+// Delegated handler for CSP-safe actions (downloads, etc.)
+document.addEventListener('click', function(event) {
+  const downloadBtn = event.target.closest('[data-action="download-image"]');
+  if (downloadBtn) {
+    event.preventDefault();
+    event.stopPropagation();
+    const url = downloadBtn.dataset.downloadUrl;
+    if (url) {
+      window.location.href = url;
+    }
+    return;
+  }
+});
 </script>
 {% endif %}
 
@@ -101,7 +142,7 @@ function confirmNsfwAndShow() {
         "@type": "Person",
         "name": {{ schema.author_name|json_encode|raw }}
       },{% endif %}
-      {% if schema is defined and schema.image_copyright_notice %}"copyrightNotice": {{ schema.image_copyright_notice|json_encode|raw }},{% endif %}
+      {% if schema is defined and schema.image_copyright_notice %}"copyrightNotice": {{ schema.image_copyright_notice|replace_year|json_encode|raw }},{% endif %}
       {% if schema is defined and schema.image_license_url %}"license": {{ schema.image_license_url|json_encode|raw }},{% endif %}
       {% if schema is defined and schema.image_acquire_license_page %}"acquireLicensePage": {{ schema.image_acquire_license_page|json_encode|raw }},{% endif %}
       "thumbnailUrl": "{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}"
@@ -337,6 +378,10 @@ function confirmNsfwAndShow() {
                 {% include "frontend/_image_item.twig" %}
             {% endfor %}
         </div>
+    {% elseif layout == 'magazine' %}
+        <div id="images-gallery" class="mt-6">
+            {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
+        </div>
     {% elseif masonry %}
         <div id="images-gallery" class="masonry-grid" style="column-count: {{ desktop_cols }};">
             {% for image in images %}
@@ -435,7 +480,7 @@ function confirmNsfwAndShow() {
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Global base path for API calls
 window.basePath = '{{ base_path }}';
 
@@ -482,6 +527,44 @@ if (masonry && typeof Masonry !== 'undefined') {
         });
     };
     initMasonry();
+}
+
+// Magazine Split autoscroll initializer
+function initMagazineAutoscroll() {
+    try {
+        var container = document.getElementById('images-gallery') || document;
+        var isMobile = window.matchMedia('(max-width: 767px)').matches;
+        var isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
+        var isDesktop = window.matchMedia('(min-width: 1200px)').matches;
+
+        var mob = container.querySelector('.m-mobile-wrap');
+        var tablet = container.querySelector('.m-tablet-wrap');
+        var desk = container.querySelector('.m-desktop-wrap');
+
+        if (mob) mob.style.display = isMobile ? 'block' : 'none';
+        if (tablet) tablet.style.display = isTablet ? 'flex' : 'none';
+        if (desk) desk.style.display = isDesktop ? 'flex' : 'none';
+
+        container.querySelectorAll('.m-col').forEach(function(col) {
+            var track = col.querySelector('.m-track'); if (!track) return;
+            track.style.animation = 'none';
+            track.offsetHeight;
+            var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
+            var dur = (getComputedStyle(col).getPropertyValue('--m-duration') || '60s').trim() || '60s';
+            var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
+            track.style.animation = anim;
+            track.style.animationPlayState = 'running';
+        });
+    } catch(e) {
+        console.error('initMagazineAutoscroll error:', e);
+    }
+}
+
+// Initialize magazine if active
+if (layout === 'magazine') {
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(initMagazineAutoscroll, 100);
+    });
 }
 
 // Image filtering

@@ -1,56 +1,56 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Modifica categoria — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.categories.edit') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Modifica categoria</h1>
+    <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.categories.edit') }}</h1>
   </div>
   <div class="card p-6">
     <form method="post" action="{{ base_path }}/admin/categories/{{ item.id }}" enctype="multipart/form-data" class="space-y-4">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.name') }}</label>
         <input class="form-input" type="text" name="name" value="{{ item.name }}" required>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.slug') }}</label>
         <input class="form-input" type="text" name="slug" value="{{ item.slug }}">
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Categoria genitore</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.parent') }}</label>
         <select class="form-input" name="parent_id">
-          <option value="">Nessuna (categoria principale)</option>
+          <option value="">{{ trans('admin.categories.none_main') }}</option>
           {% for parent in parents|default([]) %}
             <option value="{{ parent.id }}" {{ item.parent_id == parent.id ? 'selected' : '' }}>{{ parent.name }}</option>
           {% endfor %}
         </select>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Immagine categoria</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.category_image') }}</label>
         {% if item.image_path %}
           <div class="mb-3 p-3 border border-gray-200 rounded-lg">
             <img src="{{ base_path }}{{ item.image_path }}" alt="{{ item.name }}" class="w-48 h-32 object-cover rounded border mb-2">
             <div class="flex items-center gap-2">
-              <small class="text-gray-600">Immagine corrente</small>
+              <small class="text-gray-600">{{ trans('admin.categories.current_image') }}</small>
               <label class="flex items-center gap-1 text-red-600 cursor-pointer">
                 <input type="checkbox" name="remove_image" value="1" class="rounded">
-                <small>Rimuovi immagine</small>
+                <small>{{ trans('admin.categories.remove_image') }}</small>
               </label>
             </div>
           </div>
         {% endif %}
         <input class="form-input" type="file" name="image" accept="image/*">
-        <small class="text-gray-500">Solo per categorie principali (usata nel mega menu). Formati supportati: JPG, PNG, WebP</small>
+        <small class="text-gray-500">{{ trans('admin.categories.image_supported') }}</small>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.sort_order') }}</label>
         <input class="form-input" type="number" name="sort_order" value="{{ item.sort_order }}">
       </div>
       <div class="flex gap-3 pt-2">
-        <button class="btn-primary" type="submit">Aggiorna</button>
-        <a class="btn-secondary" href="{{ base_path }}/admin/categories">Annulla</a>
-        <form method="post" action="{{ base_path }}/admin/categories/{{ item.id }}/delete" class="inline ml-auto" onsubmit="return confirm('Eliminare questa categoria?');">
+        <button class="btn-primary" type="submit">{{ trans('admin.categories.update') }}</button>
+        <a class="btn-secondary" href="{{ base_path }}/admin/categories">{{ trans('admin.categories.cancel') }}</a>
+        <form method="post" action="{{ base_path }}/admin/categories/{{ item.id }}/delete" class="inline ml-auto" data-confirm="{{ trans('admin.categories.delete_confirm')|e('html_attr') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
-          <button class="btn-secondary text-red-700" type="submit">Elimina</button>
+          <button class="btn-secondary text-red-700" type="submit">{{ trans('admin.categories.delete') }}</button>
         </form>
       </div>
     </form>

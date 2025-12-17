@@ -43,12 +43,19 @@
         <textarea class="form-control" name="site_description" rows="3">{{ site_description }}</textarea>
         <div class="form-text">A short description of your photography portfolio</div>
     </div>
-    
+
+    <div class="mb-3">
+        <label for="site-logo" class="form-label">Site Logo <span class="text-muted">(optional)</span></label>
+        <input type="file" id="site-logo" class="form-control" name="site_logo" accept="image/png,image/jpeg,image/webp">
+        <div class="form-text">If not set, the site title will be displayed. Recommended: PNG or WebP, 200x200px</div>
+    </div>
+
     <div class="row">
         <div class="col-md-6">
             <div class="mb-3">
                 <label for="site-copyright" class="form-label">Copyright Notice</label>
                 <input type="text" id="site-copyright" class="form-control" name="site_copyright" value="{{ site_copyright }}">
+                <div class="form-text">Use <code>{year}</code> for current year</div>
             </div>
         </div>
         <div class="col-md-6">
@@ -73,6 +80,19 @@
         </div>
         <div class="col-md-6">
             <div class="mb-3">
+                <label for="admin-language" class="form-label">{{ trans('installer.admin_language') }}</label>
+                <select id="admin-language" class="form-control" name="admin_language">
+                    <option value="en" {{ admin_language|default('en') == 'en' ? 'selected' }}>{{ trans('installer.english') }}</option>
+                    <option value="it" {{ admin_language == 'it' ? 'selected' }}>{{ trans('installer.italian') }}</option>
+                </select>
+                <div class="form-text">{{ trans('installer.admin_language_help') }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
                 <label for="date-format" class="form-label">{{ trans('installer.date_format') }}</label>
                 <select id="date-format" class="form-control" name="date_format">
                     <option value="Y-m-d" {{ date_format|default('Y-m-d') == 'Y-m-d' ? 'selected' }}>2025-01-15 ({{ trans('installer.date_format_iso') }})</option>
@@ -83,12 +103,6 @@
         </div>
     </div>
 
-    <div class="mb-3">
-        <label for="site-logo" class="form-label">Site Logo (optional)</label>
-        <input type="file" id="site-logo" class="form-control" name="site_logo" accept="image/png,image/jpeg,image/webp">
-        <div class="form-text">PNG/JPG/WebP. If omitted, the site title will be used.</div>
-    </div>
-    
     <div class="alert alert-info">
         <h5><i class="fas fa-lightbulb me-2"></i>Default Content</h5>
         <p>The installer will automatically create:</p>

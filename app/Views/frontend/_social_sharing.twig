@@ -15,7 +15,7 @@
             <a href="{{ share_url }}" 
                target="_blank" rel="noopener noreferrer" 
                class="social-btn {{ social }}" 
-               title="Share on {{ config.name }}">
+               title="{{ trans('share.share_on')|replace({'{network}': config.name}) }}">
               <i class="{{ config.icon }}"></i>
             </a>
           {% elseif share_url starts with 'javascript:' %}

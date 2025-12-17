@@ -1,6 +1,6 @@
 {% extends "admin/_layout.twig" %}
 
-{% block title %}Analytics Dashboard — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.analytics.title') }} — Cimaise{% endblock %}
 
 {% block content %}
 <div class="min-h-full bg-gray-50">
@@ -9,8 +9,8 @@
     <div class="px-6 py-8">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div class="flex-1">
-          <h1 class="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-          <p class="mt-2 text-lg text-gray-600">Monitor your site's performance and visitor behavior</p>
+          <h1 class="text-3xl font-bold text-gray-900">{{ trans('admin.analytics.title') }}</h1>
+          <p class="mt-2 text-lg text-gray-600">{{ trans('admin.analytics.description') }}</p>
         </div>
         <div class="mt-6 lg:mt-0 flex flex-wrap items-center gap-3">
           <a href="{{ base_path }}/admin/analytics/realtime" 
@@ -19,22 +19,22 @@
             <svg class="mr-2 -ml-1 w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
             </svg>
-            Real-time
+            {{ trans('admin.analytics.realtime') }}
           </a>
-          <a href="{{ base_path }}/admin/analytics/export" 
+          <a href="{{ base_path }}/admin/analytics/export"
              class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
             <svg class="mr-2 -ml-1 w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
-            Export Data
+            {{ trans('admin.analytics.export') }}
           </a>
-          <a href="{{ base_path }}/admin/analytics/settings" 
-             class="inline-flex items-center px-4 py-2 bg-black border border-transparent rounded-lg text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black" 
+          <a href="{{ base_path }}/admin/analytics/settings"
+             class="inline-flex items-center px-4 py-2 bg-black border border-transparent rounded-lg text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
              data-spa-link>
             <svg class="mr-2 -ml-1 w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
             </svg>
-            Settings
+            {{ trans('admin.common.settings') }}
           </a>
         </div>
       </div>
@@ -52,8 +52,8 @@
             </svg>
           </div>
           <div class="ml-4">
-            <h3 class="text-lg font-semibold text-amber-800">Analytics are currently disabled</h3>
-            <p class="mt-1 text-amber-700">Enable analytics in <a href="{{ base_path }}/admin/analytics/settings" class="underline font-medium hover:text-amber-900" data-spa-link>settings</a> to start collecting visitor data.</p>
+            <h3 class="text-lg font-semibold text-amber-800">{{ trans('admin.analytics.disabled') }}</h3>
+            <p class="mt-1 text-amber-700">{{ trans('admin.analytics.disabled_hint')|raw }}</p>
           </div>
         </div>
       </div>
@@ -64,29 +64,29 @@
   <div class="px-6 py-6 space-y-8">
     <!-- Date Range Picker -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">Date Range</h2>
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ trans('admin.analytics.date_range') }}</h2>
       <form method="get" id="date-range-form" class="flex flex-wrap items-center gap-4">
         <div class="flex items-center gap-3">
-          <label for="start_date" class="text-sm font-medium text-gray-700">From:</label>
+          <label for="start_date" class="text-sm font-medium text-gray-700">{{ trans('admin.analytics.from') }}:</label>
           <input type="date" name="start_date" id="start_date" value="{{ start_date }}" 
                  class="block w-auto rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black text-sm">
         </div>
         <div class="flex items-center gap-3">
-          <label for="end_date" class="text-sm font-medium text-gray-700">To:</label>
-          <input type="date" name="end_date" id="end_date" value="{{ end_date }}" 
+          <label for="end_date" class="text-sm font-medium text-gray-700">{{ trans('admin.analytics.to') }}:</label>
+          <input type="date" name="end_date" id="end_date" value="{{ end_date }}"
                  class="block w-auto rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black text-sm">
         </div>
         <button type="submit" class="inline-flex items-center px-4 py-2 bg-black border border-transparent rounded-lg text-sm font-medium text-white hover:bg-gray-800">
           <svg class="mr-2 -ml-1 w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
           </svg>
-          Update
+          {{ trans('admin.analytics.update') }}
         </button>
         <div class="hidden sm:block w-px h-6 bg-gray-300"></div>
         <div class="flex flex-wrap gap-2">
-          <button type="button" onclick="setDateRange('today')" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Today</button>
-          <button type="button" onclick="setDateRange('7days')" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">7 Days</button>
-          <button type="button" onclick="setDateRange('30days')" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">30 Days</button>
+          <button type="button" data-range="today" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{{ trans('admin.analytics.today') }}</button>
+          <button type="button" data-range="7days" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{{ trans('admin.analytics.7days') }}</button>
+          <button type="button" data-range="30days" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{{ trans('admin.analytics.30days') }}</button>
         </div>
       </form>
     </div>
@@ -97,11 +97,11 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600 mb-1">Sessions (Period)</p>
+            <p class="text-sm font-medium text-gray-600 mb-1">{{ trans('admin.analytics.sessions') }}</p>
             <p class="text-3xl font-bold text-gray-900">{{ trends.current.sessions|default(0) }}</p>
             {% set sessChange = trends.changes.sessions|default(0) %}
             <p class="text-xs mt-1 {% if sessChange > 0 %}text-emerald-600{% elseif sessChange < 0 %}text-red-600{% else %}text-gray-500{% endif %}">
-              {% if sessChange > 0 %}+{% endif %}{{ sessChange }}% vs previous
+              {% if sessChange > 0 %}+{% endif %}{{ sessChange }}% {{ trans('admin.analytics.vs_previous') }}
             </p>
           </div>
           <div class="flex-shrink-0">
@@ -118,11 +118,11 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600 mb-1">Page Views (Period)</p>
+            <p class="text-sm font-medium text-gray-600 mb-1">{{ trans('admin.analytics.pageviews') }}</p>
             <p class="text-3xl font-bold text-gray-900">{{ trends.current.pageviews|default(0) }}</p>
             {% set pvChange = trends.changes.pageviews|default(0) %}
             <p class="text-xs mt-1 {% if pvChange > 0 %}text-emerald-600{% elseif pvChange < 0 %}text-red-600{% else %}text-gray-500{% endif %}">
-              {% if pvChange > 0 %}+{% endif %}{{ pvChange }}% vs previous
+              {% if pvChange > 0 %}+{% endif %}{{ pvChange }}% {{ trans('admin.analytics.vs_previous') }}
             </p>
           </div>
           <div class="flex-shrink-0">
@@ -140,9 +140,9 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600 mb-1">Lightbox Opens</p>
+            <p class="text-sm font-medium text-gray-600 mb-1">{{ trans('admin.analytics.lightbox_opens') }}</p>
             <p class="text-3xl font-bold text-gray-900">{{ engagement.lightbox.total|default(0) }}</p>
-            <p class="text-xs text-gray-500 mt-1">{{ engagement.lightbox.unique_users|default(0) }} unique users</p>
+            <p class="text-xs text-gray-500 mt-1">{{ engagement.lightbox.unique_users|default(0) }} {{ trans('admin.analytics.unique_users') }}</p>
           </div>
           <div class="flex-shrink-0">
             <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
@@ -158,9 +158,9 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600 mb-1">Downloads</p>
+            <p class="text-sm font-medium text-gray-600 mb-1">{{ trans('admin.analytics.downloads') }}</p>
             <p class="text-3xl font-bold text-gray-900">{{ engagement.downloads.total|default(0) }}</p>
-            <p class="text-xs text-gray-500 mt-1">{{ engagement.downloads.unique_users|default(0) }} unique users</p>
+            <p class="text-xs text-gray-500 mt-1">{{ engagement.downloads.unique_users|default(0) }} {{ trans('admin.analytics.unique_users') }}</p>
           </div>
           <div class="flex-shrink-0">
             <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
@@ -178,10 +178,10 @@
       <!-- Sessions Chart -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Sessions Over Time</h3>
+          <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.analytics.sessions_over_time') }}</h3>
           <div class="flex items-center space-x-1 text-sm text-gray-500">
             <div class="w-3 h-3 bg-black rounded-full"></div>
-            <span>Sessions</span>
+            <span>{{ trans('admin.analytics.sessions') }}</span>
           </div>
         </div>
         <div class="h-80">
@@ -192,10 +192,10 @@
       <!-- Page Views Chart -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Page Views Over Time</h3>
+          <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.analytics.pageviews_over_time') }}</h3>
           <div class="flex items-center space-x-1 text-sm text-gray-500">
             <div class="w-3 h-3 bg-black rounded"></div>
-            <span>Page Views</span>
+            <span>{{ trans('admin.analytics.pageviews') }}</span>
           </div>
         </div>
         <div class="h-80">
@@ -208,7 +208,7 @@
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
       <!-- Device Types -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Device Types</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">{{ trans('admin.analytics.device_types') }}</h3>
         <div class="h-80">
           <canvas id="deviceChart"></canvas>
         </div>
@@ -216,7 +216,7 @@
 
       <!-- Top Browsers -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Browsers</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">{{ trans('admin.analytics.top_browsers') }}</h3>
         <div class="h-80">
           <canvas id="browserChart"></canvas>
         </div>
@@ -227,7 +227,7 @@
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
       <!-- Peak Hours Chart -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Traffic by Hour</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">{{ trans('admin.analytics.traffic_by_hour') }}</h3>
         <div class="h-80">
           <canvas id="peakHoursChart"></canvas>
         </div>
@@ -236,7 +236,7 @@
       <!-- 404 Errors -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">404 Errors</h3>
+          <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.analytics.errors_404') }}</h3>
           <span class="px-2.5 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">{{ errors_404.total|default(0) }} hits</span>
         </div>
         <div class="space-y-3 max-h-72 overflow-y-auto">
@@ -247,7 +247,7 @@
               </div>
               <div class="flex-shrink-0 text-right">
                 <p class="text-sm font-semibold text-gray-900">{{ page.hits }}</p>
-                <p class="text-xs text-gray-500">{{ page.unique_visitors }} visitors</p>
+                <p class="text-xs text-gray-500">{{ page.unique_visitors }} {{ trans('admin.analytics.visitors') }}</p>
               </div>
             </div>
           {% else %}
@@ -255,7 +255,7 @@
               <svg class="mx-auto h-12 w-12 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p class="mt-2 text-sm text-gray-500">No 404 errors found</p>
+              <p class="mt-2 text-sm text-gray-500">{{ trans('admin.analytics.no_404_errors') }}</p>
             </div>
           {% endfor %}
         </div>
@@ -266,17 +266,17 @@
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
       <!-- Top Downloaded Images -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Downloaded Images</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">{{ trans('admin.analytics.top_downloads') }}</h3>
         <div class="space-y-3">
           {% for item in engagement.top_downloads|slice(0, 8) %}
             <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-gray-900 truncate">{{ item.image_title|default(item.filename|default('Image #' ~ item.image_id)) }}</p>
-                <p class="text-xs text-gray-500 mt-0.5">{{ item.album_title|default('Unknown album') }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">{{ item.album_title|default(trans('admin.analytics.unknown_album')) }}</p>
               </div>
               <div class="flex-shrink-0 ml-4 text-right">
                 <p class="text-sm font-semibold text-gray-900">{{ item.download_count }}</p>
-                <p class="text-xs text-gray-500">downloads</p>
+                <p class="text-xs text-gray-500">{{ trans('admin.analytics.downloads') }}</p>
               </div>
             </div>
           {% else %}
@@ -284,7 +284,7 @@
               <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              <p class="mt-2 text-sm text-gray-500">No downloads recorded</p>
+              <p class="mt-2 text-sm text-gray-500">{{ trans('admin.analytics.no_downloads') }}</p>
             </div>
           {% endfor %}
         </div>
@@ -292,17 +292,17 @@
 
       <!-- Top Lightbox Views -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Most Viewed in Lightbox</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">{{ trans('admin.analytics.most_viewed_lightbox') }}</h3>
         <div class="space-y-3">
           {% for item in engagement.top_lightbox_views|slice(0, 8) %}
             <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-gray-900 truncate">{{ item.image_title|default(item.filename|default('Image #' ~ item.image_id)) }}</p>
-                <p class="text-xs text-gray-500 mt-0.5">{{ item.album_title|default('Unknown album') }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">{{ item.album_title|default(trans('admin.analytics.unknown_album')) }}</p>
               </div>
               <div class="flex-shrink-0 ml-4 text-right">
                 <p class="text-sm font-semibold text-gray-900">{{ item.view_count }}</p>
-                <p class="text-xs text-gray-500">views</p>
+                <p class="text-xs text-gray-500">{{ trans('admin.analytics.views') }}</p>
               </div>
             </div>
           {% else %}
@@ -310,7 +310,7 @@
               <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <p class="mt-2 text-sm text-gray-500">No lightbox views recorded</p>
+              <p class="mt-2 text-sm text-gray-500">{{ trans('admin.analytics.no_lightbox_views') }}</p>
             </div>
           {% endfor %}
         </div>
@@ -321,18 +321,18 @@
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
       <!-- Top Pages -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Pages Today</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">{{ trans('admin.analytics.top_pages_today') }}</h3>
         <div class="space-y-4">
           {% for page in stats.top_pages %}
             <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-gray-900 truncate">{{ page.page_title|default('Untitled')|e }}</p>
+                <p class="text-sm font-medium text-gray-900 truncate">{{ page.page_title|default(trans('admin.analytics.untitled'))|e }}</p>
                 <p class="text-xs text-gray-500 truncate mt-1">{{ page.page_url|e }}</p>
               </div>
               <div class="flex-shrink-0 ml-4">
                 <div class="text-right">
                   <p class="text-sm font-semibold text-gray-900">{{ page.views }}</p>
-                  <p class="text-xs text-gray-500">views</p>
+                  <p class="text-xs text-gray-500">{{ trans('admin.analytics.views') }}</p>
                 </div>
               </div>
             </div>
@@ -341,7 +341,7 @@
               <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p class="mt-2 text-sm text-gray-500">No page views today</p>
+              <p class="mt-2 text-sm text-gray-500">{{ trans('admin.analytics.no_page_views') }}</p>
             </div>
           {% endfor %}
         </div>
@@ -349,7 +349,7 @@
 
       <!-- Top Countries -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Countries Today</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">{{ trans('admin.analytics.top_countries_today') }}</h3>
         <div class="space-y-4">
           {% for country in stats.top_countries %}
             <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
@@ -363,7 +363,7 @@
               <div class="flex-shrink-0">
                 <div class="text-right">
                   <p class="text-sm font-semibold text-gray-900">{{ country.sessions }}</p>
-                  <p class="text-xs text-gray-500">sessions</p>
+                  <p class="text-xs text-gray-500">{{ trans('admin.analytics.sessions') }}</p>
                 </div>
               </div>
             </div>
@@ -372,7 +372,7 @@
               <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p class="mt-2 text-sm text-gray-500">No geographic data available</p>
+              <p class="mt-2 text-sm text-gray-500">{{ trans('admin.analytics.no_geographic_data') }}</p>
             </div>
           {% endfor %}
         </div>
@@ -384,7 +384,7 @@
 <!-- Chart.js -->
 <script src="{{ base_path }}/assets/vendor/chartjs/chart.umd.js"></script>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Chart.js default configuration for minimal black/white/silver theme
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.color = '#374151';
@@ -723,6 +723,15 @@ function setDateRange(range) {
   document.getElementById('date-range-form').submit();
 }
 
+// Bind date range buttons (data-range) to avoid inline handlers
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[data-range]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setDateRange(btn.getAttribute('data-range'));
+    });
+  });
+});
+
 // Auto-refresh data every 30 seconds if on current date
 {% if end_date == 'now'|date('Y-m-d') %}
 setInterval(function() {
@@ -734,7 +743,7 @@ setInterval(function() {
 {% endif %}
 </script>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
 /* Custom analytics styles */
 .card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;

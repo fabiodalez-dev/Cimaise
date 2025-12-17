@@ -1,14 +1,14 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Gestione Utenti — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.users.title') }} — Cimaise{% endblock %}
 
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Gestione Utenti</h1>
-    <p class="text-gray-600 mt-1">{{ total }} utenti totali</p>
+    <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.users.title') }}</h1>
+    <p class="text-gray-600 mt-1">{{ total }} {{ trans('admin.users.total_users') }}</p>
   </div>
   <a href="{{ base_path }}/admin/users/create" class="btn-primary">
-    <i class="fas fa-plus mr-2"></i>Nuovo Utente
+    <i class="fas fa-plus mr-2"></i>{{ trans('admin.users.new_user') }}
   </a>
 </div>
 
@@ -17,12 +17,12 @@
     <table class="w-full">
       <thead class="bg-gray-50">
         <tr>
-          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utente</th>
-          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ruolo</th>
-          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ultimo Accesso</th>
-          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registrato</th>
-          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Azioni</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.users.col_user') }}</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.users.col_role') }}</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.users.col_status') }}</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.users.col_last_login') }}</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.users.col_registered') }}</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.users.col_actions') }}</th>
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
@@ -38,19 +38,19 @@
           </td>
           <td class="px-4 py-4 whitespace-nowrap">
             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ user.role == 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' }}">
-              {{ user.role == 'admin' ? 'Amministratore' : 'Utente' }}
+              {{ user.role == 'admin' ? trans('admin.users.role_admin') : trans('admin.users.role_user') }}
             </span>
           </td>
           <td class="px-4 py-4 whitespace-nowrap">
             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-              {{ user.is_active ? 'Attivo' : 'Disattivo' }}
+              {{ user.is_active ? trans('admin.users.status_active') : trans('admin.users.status_inactive') }}
             </span>
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
             {% if user.last_login %}
               {{ user.last_login|datetime_format }}
             {% else %}
-              <span class="text-gray-400">Mai</span>
+              <span class="text-gray-400">{{ trans('admin.users.never') }}</span>
             {% endif %}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -63,19 +63,19 @@
             {% if user.id != session.admin_id %}
               <form method="post" action="{{ base_path }}/admin/users/{{ user.id }}/toggle" class="inline">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
-                <button type="submit" class="text-yellow-600 hover:text-yellow-900" title="{{ user.is_active ? 'Disattiva' : 'Attiva' }}">
+                <button type="submit" class="text-yellow-600 hover:text-yellow-900" title="{{ user.is_active ? trans('admin.users.deactivate') : trans('admin.users.activate') }}">
                   <i class="fas fa-{{ user.is_active ? 'pause' : 'play' }}"></i>
                 </button>
               </form>
-              <form method="post" action="{{ base_path }}/admin/users/{{ user.id }}/delete" class="inline" 
-                    onsubmit="return confirm('Eliminare questo utente? Questa azione non può essere annullata.');">
+              <form method="post" action="{{ base_path }}/admin/users/{{ user.id }}/delete" class="inline"
+                    data-confirm="{{ trans('admin.users.delete_confirm')|e('html_attr') }}">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
                 <button type="submit" class="text-red-600 hover:text-red-900">
                   <i class="fas fa-trash"></i>
                 </button>
               </form>
             {% else %}
-              <span class="text-gray-400" title="Non puoi modificare il tuo account da qui">
+              <span class="text-gray-400" title="{{ trans('admin.users.cannot_edit_self') }}">
                 <i class="fas fa-lock"></i>
               </span>
             {% endif %}
@@ -85,7 +85,7 @@
         <tr>
           <td colspan="6" class="px-4 py-8 text-center text-gray-500">
             <i class="fas fa-users text-4xl mb-2 block text-gray-300"></i>
-            Nessun utente trovato
+            {{ trans('admin.users.no_users') }}
           </td>
         </tr>
         {% endfor %}
@@ -97,14 +97,14 @@
   <div class="bg-gray-50 px-4 py-3 border-t border-gray-200 sm:px-6">
     <div class="flex items-center justify-between">
       <div class="text-sm text-gray-700">
-        Pagina {{ page }} di {{ pages }}
+        {{ trans('admin.users.page_of', {page: page, pages: pages}) }}
       </div>
       <div class="flex space-x-2">
         {% if page > 1 %}
-          <a href="{{ base_path }}/admin/users?page={{ page - 1 }}" class="btn-secondary">Precedente</a>
+          <a href="{{ base_path }}/admin/users?page={{ page - 1 }}" class="btn-secondary">{{ trans('admin.users.previous') }}</a>
         {% endif %}
         {% if page < pages %}
-          <a href="{{ base_path }}/admin/users?page={{ page + 1 }}" class="btn-secondary">Successivo</a>
+          <a href="{{ base_path }}/admin/users?page={{ page + 1 }}" class="btn-secondary">{{ trans('admin.users.next') }}</a>
         {% endif %}
       </div>
     </div>

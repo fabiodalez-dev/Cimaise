@@ -40,12 +40,18 @@ class PluginsController extends BaseController
      */
     public function install(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
-            return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
         $pluginManager = PluginManager::getInstance();
@@ -56,7 +62,7 @@ class PluginsController extends BaseController
             'message' => $result['message']
         ];
 
-        return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
     }
 
     /**
@@ -64,12 +70,18 @@ class PluginsController extends BaseController
      */
     public function uninstall(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
-            return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
         $pluginManager = PluginManager::getInstance();
@@ -80,7 +92,7 @@ class PluginsController extends BaseController
             'message' => $result['message']
         ];
 
-        return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
     }
 
     /**
@@ -88,12 +100,18 @@ class PluginsController extends BaseController
      */
     public function activate(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
-            return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
         $pluginManager = PluginManager::getInstance();
@@ -104,7 +122,7 @@ class PluginsController extends BaseController
             'message' => $result['message']
         ];
 
-        return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
     }
 
     /**
@@ -112,12 +130,18 @@ class PluginsController extends BaseController
      */
     public function deactivate(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
-            return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
         $pluginManager = PluginManager::getInstance();
@@ -128,7 +152,7 @@ class PluginsController extends BaseController
             'message' => $result['message']
         ];
 
-        return $response->withHeader('Location', '/admin/plugins')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
     }
 
     /**
@@ -138,9 +162,10 @@ class PluginsController extends BaseController
     {
         $response = $response->withHeader('Content-Type', 'application/json');
 
-        // Verify CSRF
+        // Verify CSRF with timing-safe comparison
         $csrf = $request->getHeaderLine('X-CSRF-Token');
-        if (empty($csrf) || $csrf !== ($_SESSION['csrf'] ?? '')) {
+        $sessionCsrf = $_SESSION['csrf'] ?? '';
+        if (empty($csrf) || !is_string($sessionCsrf) || !hash_equals($sessionCsrf, $csrf)) {
             $response->getBody()->write(json_encode(['success' => false, 'message' => 'Invalid CSRF token']));
             return $response->withStatus(403);
         }
@@ -220,6 +245,18 @@ class PluginsController extends BaseController
             return $response->withStatus(400);
         }
 
+        // Security validation: scan for dangerous code patterns
+        $securityCheck = $this->validatePluginSecurity($pluginDir);
+        if (!$securityCheck['valid']) {
+            $this->cleanupTemp($tempDir);
+            $errorMessage = 'Plugin rejected due to security concerns: ' . implode('; ', array_slice($securityCheck['errors'], 0, 3));
+            if (count($securityCheck['errors']) > 3) {
+                $errorMessage .= ' (and ' . (count($securityCheck['errors']) - 3) . ' more issues)';
+            }
+            $response->getBody()->write(json_encode(['success' => false, 'message' => $errorMessage]));
+            return $response->withStatus(400);
+        }
+
         // Create slug from name
         $slug = preg_replace('/[^a-z0-9-]/', '-', strtolower($pluginData['name']));
         $slug = preg_replace('/-+/', '-', trim($slug, '-'));
@@ -280,5 +317,118 @@ class PluginsController extends BaseController
             }
         }
         rmdir($dir);
+    }
+
+    /**
+     * Validate plugin code for security issues
+     *
+     * @param string $pluginDir Directory containing extracted plugin files
+     * @return array{valid: bool, errors: string[]}
+     */
+    private function validatePluginSecurity(string $pluginDir): array
+    {
+        $errors = [];
+
+        // Dangerous functions that could allow code execution
+        $dangerousPatterns = [
+            // Direct code execution
+            '/\beval\s*\(/i' => 'eval() function detected - arbitrary code execution risk',
+            '/\bcreate_function\s*\(/i' => 'create_function() detected - arbitrary code execution risk',
+            '/\bassert\s*\([^)]*\$[^)]*\)/i' => 'assert() with variable input detected - code execution risk',
+
+            // Shell command execution
+            '/\bexec\s*\(/i' => 'exec() function detected - shell command execution risk',
+            '/\bshell_exec\s*\(/i' => 'shell_exec() function detected - shell command execution risk',
+            '/\bsystem\s*\(/i' => 'system() function detected - shell command execution risk',
+            '/\bpassthru\s*\(/i' => 'passthru() function detected - shell command execution risk',
+            '/\bpopen\s*\(/i' => 'popen() function detected - shell command execution risk',
+            '/\bproc_open\s*\(/i' => 'proc_open() function detected - shell command execution risk',
+            '/`[^`]*\$[^`]*`/' => 'Backtick operator with variable detected - shell execution risk',
+
+            // Obfuscation patterns
+            '/\bbase64_decode\s*\([^)]*\beval\b/i' => 'base64_decode + eval pattern detected - obfuscated code risk',
+            '/\bgzinflate\s*\([^)]*\beval\b/i' => 'gzinflate + eval pattern detected - obfuscated code risk',
+            '/\bstr_rot13\s*\([^)]*\beval\b/i' => 'str_rot13 + eval pattern detected - obfuscated code risk',
+
+            // File inclusion with variables (potential RFI/LFI)
+            '/\b(include|require|include_once|require_once)\s*\([^)]*\$_(GET|POST|REQUEST|COOKIE)/i' => 'File inclusion with user input detected - RFI/LFI risk',
+
+            // Superglobal abuse in dangerous contexts
+            '/\bpreg_replace\s*\([^)]*\/[^\/]*e[^\/]*\//i' => 'preg_replace with /e modifier detected - code execution risk',
+        ];
+
+        // Find all PHP files
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($pluginDir, \RecursiveDirectoryIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if (!$file->isFile()) continue;
+
+            $extension = strtolower(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
+
+            // Check for suspicious file extensions
+            if (in_array($extension, ['phtml', 'phar'])) {
+                $errors[] = "Suspicious file type detected: {$file->getFilename()}";
+                continue;
+            }
+
+            // Check for .htaccess and similar Apache config dotfiles
+            $filename = $file->getFilename();
+            if (preg_match('/^\.ht/', $filename)) {
+                $errors[] = "Apache config file detected: {$filename}";
+                continue;
+            }
+
+            // Only scan PHP files for code patterns
+            if ($extension !== 'php') continue;
+
+            $content = file_get_contents($file->getRealPath());
+            if ($content === false) continue;
+
+            // Remove comments and strings for more accurate pattern matching
+            $strippedContent = $this->stripCommentsAndStrings($content);
+
+            foreach ($dangerousPatterns as $pattern => $message) {
+                if (preg_match($pattern, $strippedContent)) {
+                    $relativePath = str_replace($pluginDir . '/', '', $file->getRealPath());
+                    $errors[] = "{$relativePath}: {$message}";
+                }
+            }
+        }
+
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors
+        ];
+    }
+
+    /**
+     * Strip comments and string literals from PHP code for pattern matching
+     */
+    private function stripCommentsAndStrings(string $code): string
+    {
+        // Use token_get_all to properly parse PHP
+        try {
+            $tokens = @token_get_all($code);
+            $result = '';
+
+            foreach ($tokens as $token) {
+                if (is_array($token)) {
+                    // Skip comments and strings
+                    if (in_array($token[0], [T_COMMENT, T_DOC_COMMENT, T_CONSTANT_ENCAPSED_STRING, T_ENCAPSED_AND_WHITESPACE])) {
+                        continue;
+                    }
+                    $result .= $token[1];
+                } else {
+                    $result .= $token;
+                }
+            }
+
+            return $result;
+        } catch (\Throwable) {
+            // If parsing fails, return original code
+            return $code;
+        }
     }
 }
