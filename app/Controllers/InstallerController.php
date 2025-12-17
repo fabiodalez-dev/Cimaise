@@ -79,7 +79,7 @@ class InstallerController
             'db_connection' => 'sqlite',
             'db_host' => '127.0.0.1',
             'db_port' => 3306,
-            'sqlite_database' => 'database/database.sqlite',
+            'sqlite_path' => 'database/database.sqlite',
             'mysql_database' => 'cimaise',
             'db_username' => 'root',
             'db_charset' => 'utf8mb4',

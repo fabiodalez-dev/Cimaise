@@ -948,7 +948,7 @@ class PageController extends BaseController
             // Render only the gallery part (not the full page)
             $partial = 'frontend/_gallery_content.twig';
             try {
-                if ((int)($template['id'] ?? 0) === 9 || (($template['slug'] ?? '') === 'magazine-split')) {
+                if ((int)($template['id'] ?? 0) === 3 || (($template['slug'] ?? '') === 'magazine-split')) {
                     $partial = 'frontend/_gallery_magazine_content.twig';
                 }
             } catch (\Throwable) {}

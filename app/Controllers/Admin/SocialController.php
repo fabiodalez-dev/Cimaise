@@ -16,13 +16,6 @@ class SocialController extends BaseController
         parent::__construct();
     }
 
-    protected function validateCsrf(Request $request): bool
-    {
-        $data = (array)$request->getParsedBody();
-        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
-        return \is_string($token) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
-    }
-
     public function show(Request $request, Response $response): Response
     {
         $svc = new SettingsService($this->db);
@@ -71,20 +64,11 @@ class SocialController extends BaseController
             }
         }
 
-        // CSRF validation
+        // CSRF validation (check from parsed data or header)
         $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
-        if (!\is_string($token) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $token)) {
-            // Check if AJAX request
-            $isAjax = false;
-            try {
-                $hdr = $request->getHeaderLine('X-Requested-With');
-                $acc = $request->getHeaderLine('Accept');
-                $isAjax = (stripos($hdr, 'XMLHttpRequest') !== false) || (stripos($acc, 'application/json') !== false);
-            } catch (\Throwable) {}
-
-            if ($isAjax) {
-                $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid CSRF token']));
-                return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        if (!\is_string($token) || !isset($_SESSION['csrf']) || !\hash_equals($_SESSION['csrf'], $token)) {
+            if ($this->isAjaxRequest($request)) {
+                return $this->csrfErrorJson($response);
             }
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
             return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
@@ -141,14 +125,7 @@ class SocialController extends BaseController
         $svc->set('social.order', $socialOrder);
         
         // AJAX request support: return JSON instead of redirect
-        $isAjax = false;
-        try {
-            $hdr = $request->getHeaderLine('X-Requested-With');
-            $acc = $request->getHeaderLine('Accept');
-            $isAjax = (stripos($hdr, 'XMLHttpRequest') !== false) || (stripos($acc, 'application/json') !== false);
-        } catch (\Throwable) {}
-
-        if ($isAjax) {
+        if ($this->isAjaxRequest($request)) {
             $payload = json_encode([
                 'ok' => true,
                 'enabled' => $enabledSocials,

@@ -353,7 +353,7 @@ INSERT INTO `settings` (`id`, `key`, `value`, `type`, `created_at`, `updated_at`
 (274, 'image.quality', '{"avif":50,"webp":75,"jpg":85}', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (275, 'image.preview', '{"width":480,"height":null}', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (276, 'image.breakpoints', '{"sm":768,"md":1200,"lg":1920,"xl":2560,"xxl":3840}', 'string', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
-(277, 'gallery.default_template_id', '3', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
+(277, 'gallery.default_template_id', '1', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (282, 'performance.compression', 'true', 'boolean', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (283, 'pagination.limit', '12', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
 (284, 'cache.ttl', '24', 'number', '2025-08-25 12:42:37', '2025-08-25 12:42:37'),
@@ -432,17 +432,17 @@ INSERT INTO `films` (`id`, `brand`, `name`, `iso`, `format`, `type`) VALUES
 (19, 'Kodak', 'Ektachrome E100', 100, '35mm', 'color_reversal');
 
 INSERT INTO `templates` (`id`, `name`, `slug`, `description`, `settings`, `libs`, `created_at`) VALUES
-(7, 'Grid Classica', 'grid-classica', 'Layout a griglia responsivo - desktop 3 colonne, tablet 2, mobile 1', '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]', '2025-08-25 14:21:20'),
-(8, 'Masonry Portfolio', 'masonry-portfolio', 'Layout masonry responsivo per portfolio - desktop 4 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":4,"tablet":3,"mobile":2},"masonry":true,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.1,"allowPanToNext":true}}', '["photoswipe","masonry"]', '2025-08-25 14:21:20'),
-(9, 'Magazine Split', 'magazine-split', 'Galleria a colonne con scorrimento infinito/masonry in stile magazine', '{"layout":"magazine","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":true,"magazine":{"durations":[60,72,84],"gap":20},"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.10,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20'),
-(10, 'Gallery Fullscreen', 'gallery-fullscreen', 'Layout fullscreen responsivo - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"fullscreen","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":1.0,"spacing":0,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20'),
-(11, 'Grid Compatta', 'grid-compatta', 'Layout compatto con molte colonne - desktop 5 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":5,"tablet":3,"mobile":2},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]', '2025-08-25 14:21:20'),
-(12, 'Grid Ampia', 'grid-ampia', 'Layout con poche colonne per immagini grandi - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"grid","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.85,"spacing":0.15,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20');
+(1, 'Grid Classica', 'grid-classica', 'Layout a griglia responsivo - desktop 3 colonne, tablet 2, mobile 1', '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]', '2025-08-25 14:21:20'),
+(2, 'Masonry Portfolio', 'masonry-portfolio', 'Layout masonry responsivo per portfolio - desktop 4 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":4,"tablet":3,"mobile":2},"masonry":true,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.1,"allowPanToNext":true}}', '["photoswipe","masonry"]', '2025-08-25 14:21:20'),
+(3, 'Magazine Split', 'magazine-split', 'Galleria a colonne con scorrimento infinito/masonry in stile magazine', '{"layout":"magazine","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":true,"magazine":{"durations":[60,72,84],"gap":20},"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.9,"spacing":0.10,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20'),
+(4, 'Gallery Fullscreen', 'gallery-fullscreen', 'Layout fullscreen responsivo - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"fullscreen","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":1.0,"spacing":0,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20'),
+(5, 'Grid Compatta', 'grid-compatta', 'Layout compatto con molte colonne - desktop 5 colonne, tablet 3, mobile 2', '{"layout":"grid","columns":{"desktop":5,"tablet":3,"mobile":2},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":false,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.8,"spacing":0.12,"allowPanToNext":false}}', '["photoswipe"]', '2025-08-25 14:21:20'),
+(6, 'Grid Ampia', 'grid-ampia', 'Layout con poche colonne per immagini grandi - desktop 2 colonne, tablet 1, mobile 1', '{"layout":"grid","columns":{"desktop":2,"tablet":1,"mobile":1},"masonry":false,"photoswipe":{"loop":true,"zoom":true,"share":true,"counter":true,"arrowKeys":true,"escKey":true,"bgOpacity":0.85,"spacing":0.15,"allowPanToNext":true}}', '["photoswipe"]', '2025-08-25 14:21:20');
 
 -- Set AUTO_INCREMENT values to match the SQLite sequence
 ALTER TABLE `categories` AUTO_INCREMENT = 10;
 ALTER TABLE `settings` AUTO_INCREMENT = 329;
-ALTER TABLE `templates` AUTO_INCREMENT = 13;
+ALTER TABLE `templates` AUTO_INCREMENT = 7;
 ALTER TABLE `films` AUTO_INCREMENT = 45;
 
 -- Analytics system tables
