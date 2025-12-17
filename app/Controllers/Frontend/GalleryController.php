@@ -46,7 +46,7 @@ class GalleryController extends BaseController
             ]);
         }
         // Check if user is admin (admins bypass password/NSFW protection)
-        $isAdmin = !empty($_SESSION['admin_id']);
+        $isAdmin = $this->isAdmin();
 
         // Password protection with session timeout (24h) - skip for admins
         if (!empty($album['password_hash']) && !$isAdmin) {
@@ -474,7 +474,7 @@ class GalleryController extends BaseController
             }
 
             // Check if user is admin (admins bypass password protection)
-            $isAdmin = !empty($_SESSION['admin_id']);
+            $isAdmin = $this->isAdmin();
 
             // Password protection with session timeout (24h) - skip for admins
             if (!empty($album['password_hash']) && !$isAdmin) {
@@ -591,8 +591,8 @@ class GalleryController extends BaseController
                 'base_path' => $this->basePath
             ];
 
-            // Use Magazine template for template ID 3 or layout 'magazine'
-            if ($templateId === 3 || ($templateSettings['layout'] ?? '') === 'magazine') {
+            // Use Magazine template for magazine-split slug or layout 'magazine'
+            if (($template['slug'] ?? '') === 'magazine-split' || ($templateSettings['layout'] ?? '') === 'magazine') {
                 $templateFile = 'frontend/_gallery_magazine_content.twig';
                 $templateData['album'] = $album; // Magazine template needs album data
             }

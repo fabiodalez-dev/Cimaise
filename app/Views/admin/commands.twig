@@ -334,7 +334,7 @@ function runSitemapCommand() {
 }
 
 function runAnalyticsCleanup() {
-  const confirmMsg = '{{ trans('admin.commands.analytics_cleanup_confirm')|default("Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.")|e('js') }}';
+  const confirmMsg = '{{ trans('admin.commands.analytics_cleanup_confirm')|default("Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.")|e('html_attr') }}';
   if (!confirm(confirmMsg)) return;
   runCommand('analytics:cleanup', { 'force': true });
 }

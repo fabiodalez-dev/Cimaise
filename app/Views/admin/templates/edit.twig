@@ -99,7 +99,7 @@
           </div>
         </div>
 
-        {% if item.id == 3 %}
+        {% if item.slug == 'magazine-split' %}
         <div class="card p-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.magazine_settings') }}</h2>
           <p class="text-sm text-gray-600 mb-4">{{ trans('admin.templates.magazine_description') }}</p>
@@ -216,7 +216,7 @@
       document.getElementById('preview-desktop').textContent = desktopSelect.value;
       document.getElementById('preview-tablet').textContent = tabletSelect.value;
       document.getElementById('preview-mobile').textContent = mobileSelect.value;
-      document.getElementById('preview-masonry').textContent = masonryCheck.checked ? '{{ trans('admin.templates.yes')|e('js') }}' : '{{ trans('admin.templates.no')|e('js') }}';
+      document.getElementById('preview-masonry').textContent = masonryCheck.checked ? '{{ trans('admin.templates.yes')|e('html_attr') }}' : '{{ trans('admin.templates.no')|e('html_attr') }}';
     }
 
     layoutSelect.addEventListener('change', updatePreview);

@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
     generateForm.addEventListener('submit', function(event) {
       event.preventDefault();
 
-      const confirmMessage = '{{ (trans('admin.settings.confirm_generate') ?? 'Generate image variants? This operation may take a few minutes.')|e('js') }}';
+      const confirmMessage = '{{ (trans('admin.settings.confirm_generate') ?? 'Generate image variants? This operation may take a few minutes.')|e('html_attr') }}';
       if (!confirm(confirmMessage)) {
         return;
       }
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       btn.disabled = true;
       icon.className = 'fas fa-spinner fa-spin mr-2';
-      text.textContent = '{{ trans('admin.settings.generating')|default('Generating...')|e('js') }}';
+      text.textContent = '{{ trans('admin.settings.generating')|default('Generating...')|e('html_attr') }}';
       status.classList.remove('hidden');
       result.classList.add('hidden');
 
@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset button state
         btn.disabled = false;
         icon.className = 'fas fa-images mr-2';
-        text.textContent = '{{ trans('admin.settings.generate_variants')|e('js') }}';
+        text.textContent = '{{ trans('admin.settings.generate_variants')|e('html_attr') }}';
         status.classList.add('hidden');
 
         // Validate backend response
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
           throw new Error(data.message || data.error || 'Generation failed');
         }
 
-        const message = data.message || '{{ trans('admin.settings.generate_started')|default('Generation process started! It may take a few minutes.')|e('js') }}';
+        const message = data.message || '{{ trans('admin.settings.generate_started')|default('Generation process started! It may take a few minutes.')|e('html_attr') }}';
         result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span>' + message + '</span></div>';
         result.classList.remove('hidden');
 
@@ -396,11 +396,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset button state
         btn.disabled = false;
         icon.className = 'fas fa-images mr-2';
-        text.textContent = '{{ trans('admin.settings.generate_variants')|e('js') }}';
+        text.textContent = '{{ trans('admin.settings.generate_variants')|e('html_attr') }}';
         status.classList.add('hidden');
 
         // Show error result
-        result.innerHTML = `<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>{{ trans('admin.settings.generate_error')|default('Error starting generation')|e('js') }}: ${error.message}</span></div>`;
+        result.innerHTML = `<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>{{ trans('admin.settings.generate_error')|default('Error starting generation')|e('html_attr') }}: ${error.message}</span></div>`;
         result.classList.remove('hidden');
       });
     });
