@@ -71,5 +71,6 @@ updater.md
 
 # Local database files
 storage/database.sqlite
+database/database.sqlite
 app/database/
 CLAUDE.md
