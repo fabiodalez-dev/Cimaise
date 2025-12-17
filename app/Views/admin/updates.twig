@@ -48,7 +48,7 @@
                   {% endif %}
                 </div>
               </div>
-              <button type="button" id="update-btn" class="btn-primary" onclick="startUpdate('{{ updateInfo.latest|e('js') }}')">
+              <button type="button" id="update-btn" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('js') }}">
                 <i class="fas fa-download mr-2"></i>
                 {{ trans('admin.updates.update_now') }}
               </button>
@@ -69,7 +69,7 @@
         {% endif %}
 
         <div class="flex items-center gap-4 mt-4">
-          <button type="button" class="btn-secondary text-sm" onclick="checkForUpdatesManual()">
+          <button type="button" class="btn-secondary text-sm" data-action="check-updates">
             <i class="fas fa-sync-alt mr-2" id="check-updates-icon"></i>
             {{ trans('admin.updates.check_updates') }}
           </button>
@@ -180,7 +180,7 @@
             <i class="fas fa-database mr-3 text-gray-600"></i>
             {{ trans('admin.updates.database_backups') }}
           </h3>
-          <button type="button" class="btn-secondary text-sm" onclick="createBackup()">
+          <button type="button" class="btn-secondary text-sm" data-action="create-backup">
             <i class="fas fa-plus mr-2" id="backup-icon"></i>
             {{ trans('admin.updates.create_backup') }}
           </button>
@@ -209,8 +209,10 @@
                          class="text-blue-600 hover:text-blue-800 mr-3">
                         <i class="fas fa-download"></i>
                       </a>
-                      <button type="button" onclick="deleteBackup('{{ backup.name|e('js') }}')"
-                              class="text-red-600 hover:text-red-800">
+                      <button type="button"
+                              class="text-red-600 hover:text-red-800"
+                              data-action="delete-backup"
+                              data-backup="{{ backup.name|e('js') }}">
                         <i class="fas fa-trash"></i>
                       </button>
                     </td>
@@ -308,7 +310,7 @@
         <p class="text-sm text-gray-600 mb-4">
           {{ trans('admin.updates.emergency_desc') }}
         </p>
-        <button type="button" class="btn-secondary border-orange-300 text-orange-700 hover:bg-orange-50" onclick="clearMaintenance()">
+        <button type="button" class="btn-secondary border-orange-300 text-orange-700 hover:bg-orange-50" data-action="clear-maintenance">
           <i class="fas fa-unlock mr-2"></i>
           {{ trans('admin.updates.clear_maintenance') }}
         </button>
@@ -319,16 +321,16 @@
   <!-- Sticky Footer with Action Buttons -->
   <div class="fixed bottom-0 left-0 md:left-64 right-0 bg-white border-t border-gray-200 px-6 py-4 z-40">
     <div class="flex items-center justify-end gap-3">
-      <button type="button" class="btn-secondary" onclick="checkForUpdatesManual()">
+      <button type="button" class="btn-secondary" data-action="check-updates">
         <i class="fas fa-sync-alt mr-2" id="footer-check-icon"></i>
         {{ trans('admin.updates.check_updates') }}
       </button>
-      <button type="button" class="btn-secondary" onclick="createBackup()">
+      <button type="button" class="btn-secondary" data-action="create-backup">
         <i class="fas fa-database mr-2" id="footer-backup-icon"></i>
         {{ trans('admin.updates.create_backup') }}
       </button>
       {% if updateInfo.available %}
-      <button type="button" class="btn-primary" onclick="startUpdate('{{ updateInfo.latest|e('js') }}')">
+      <button type="button" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('js') }}">
         <i class="fas fa-download mr-2"></i>
         {{ trans('admin.updates.update_now') }}
       </button>
@@ -375,6 +377,15 @@
 <script nonce="{{ csp_nonce() }}">
 const csrfToken = '{{ csrf|e('js') }}';
 const basePath = '{{ base_path|e('js') }}';
+const i18n = {
+    confirmUpdate: '{{ trans('admin.updates.confirm_update')|e('js') }}',
+    confirmDeleteBackup: '{{ trans('admin.updates.confirm_delete_backup')|e('js') }}',
+    confirmMaintenance: '{{ trans('admin.updates.confirm_clear_maintenance')|e('js') }}',
+    updateSuccess: '{{ trans('admin.updates.update_success')|e('js') }}',
+    backupSuccess: '{{ trans('admin.updates.backup_created')|e('js') }}',
+    latestVersion: '{{ trans('admin.updates.up_to_date_title')|e('js') }}',
+    errorChecking: '{{ trans('admin.updates.error_checking')|e('js') }}'
+};
 
 function checkForUpdatesManual() {
     const icons = [
@@ -395,19 +406,20 @@ function checkForUpdatesManual() {
         if (data.available) {
             location.reload();
         } else if (data.error) {
-            alert('Error: ' + data.error);
+            alert(i18n.errorChecking + ': ' + data.error);
         } else {
-            alert('You are running the latest version (v' + data.current + ')');
+            alert(i18n.latestVersion.replace('{version}', data.current || ''));
         }
     })
     .catch(error => {
         icons.forEach(icon => icon.classList.remove('fa-spin'));
-        alert('Error checking for updates: ' + error.message);
+        alert(i18n.errorChecking + ': ' + error.message);
     });
 }
 
 function startUpdate(version) {
-    if (!confirm('Are you sure you want to update to version ' + version + '?\n\nA backup will be created before the update.')) {
+    const message = i18n.confirmUpdate.replace('{version}', version);
+    if (!confirm(message)) {
         return;
     }
 
@@ -431,7 +443,7 @@ function startUpdate(version) {
             updateStep('step-install', 'completed');
 
             setTimeout(() => {
-                alert('Update completed successfully! The page will now reload.');
+                alert(i18n.updateSuccess);
                 location.reload();
             }, 1000);
         } else {
@@ -481,21 +493,21 @@ function createBackup() {
         if (headerIcon) headerIcon.className = 'fas fa-plus mr-2';
         if (footerIcon) footerIcon.className = 'fas fa-database mr-2';
         if (data.success) {
-            alert('Backup created successfully!');
+            alert(i18n.backupSuccess);
             location.reload();
         } else {
-            alert('Error creating backup: ' + data.error);
+            alert((i18n.errorChecking || 'Error') + ': ' + data.error);
         }
     })
     .catch(error => {
         if (headerIcon) headerIcon.className = 'fas fa-plus mr-2';
         if (footerIcon) footerIcon.className = 'fas fa-database mr-2';
-        alert('Error creating backup: ' + error.message);
+        alert((i18n.errorChecking || 'Error') + ': ' + error.message);
     });
 }
 
 function deleteBackup(backupName) {
-    if (!confirm('Are you sure you want to delete this backup?\n\nThis action cannot be undone.')) {
+    if (!confirm(i18n.confirmDeleteBackup)) {
         return;
     }
 
@@ -515,16 +527,16 @@ function deleteBackup(backupName) {
                 row.remove();
             }
         } else {
-            alert('Error deleting backup: ' + data.error);
+            alert((i18n.errorChecking || 'Error') + ': ' + data.error);
         }
     })
     .catch(error => {
-        alert('Error deleting backup: ' + error.message);
+        alert((i18n.errorChecking || 'Error') + ': ' + error.message);
     });
 }
 
 function clearMaintenance() {
-    if (!confirm('Clear maintenance mode?\n\nOnly use this if an update failed and the site is stuck in maintenance mode.')) {
+    if (!confirm(i18n.confirmMaintenance)) {
         return;
     }
 
@@ -540,12 +552,35 @@ function clearMaintenance() {
         if (data.success) {
             alert(data.message);
         } else {
-            alert('Error: ' + data.error);
+            alert((i18n.errorChecking || 'Error') + ': ' + data.error);
         }
     })
     .catch(error => {
-        alert('Error: ' + error.message);
+        alert((i18n.errorChecking || 'Error') + ': ' + error.message);
     });
 }
+
+function bindUpdateActions() {
+    const actionHandlers = {
+        'check-updates': () => checkForUpdatesManual(),
+        'start-update': (el) => startUpdate(el.dataset.version),
+        'create-backup': () => createBackup(),
+        'delete-backup': (el) => deleteBackup(el.dataset.backup),
+        'clear-maintenance': () => clearMaintenance()
+    };
+
+    document.querySelectorAll('[data-action]').forEach((el) => {
+        const action = el.dataset.action;
+        const handler = actionHandlers[action];
+        if (handler) {
+            el.addEventListener('click', (event) => {
+                event.preventDefault();
+                handler(el);
+            });
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', bindUpdateActions);
 </script>
 {% endblock %}

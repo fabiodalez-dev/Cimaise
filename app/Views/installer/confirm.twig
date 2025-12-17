@@ -46,11 +46,11 @@
                 <dd class="col-sm-9">{{ db_config.db_database }}</dd>
 
                 <dt class="col-sm-3">Username</dt>
-                <dd class="col-sm-9">{{ db_config.db_username }}</dd>
-            {% else %}
-                <dt class="col-sm-3">File Path</dt>
-                <dd class="col-sm-9">{{ db_config.db_database }}</dd>
-            {% endif %}
+            <dd class="col-sm-9">{{ db_config.db_username }}</dd>
+        {% else %}
+            <dt class="col-sm-3">File Path</dt>
+            <dd class="col-sm-9">{{ db_config.sqlite_path ?? db_config.db_database }}</dd>
+        {% endif %}
         </dl>
     </div>
 </div>

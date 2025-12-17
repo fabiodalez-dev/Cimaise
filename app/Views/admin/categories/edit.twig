@@ -48,7 +48,7 @@
       <div class="flex gap-3 pt-2">
         <button class="btn-primary" type="submit">{{ trans('admin.categories.update') }}</button>
         <a class="btn-secondary" href="{{ base_path }}/admin/categories">{{ trans('admin.categories.cancel') }}</a>
-        <form method="post" action="{{ base_path }}/admin/categories/{{ item.id }}/delete" class="inline ml-auto" onsubmit="return confirm('{{ trans('admin.categories.delete_confirm') }}');">
+        <form method="post" action="{{ base_path }}/admin/categories/{{ item.id }}/delete" class="inline ml-auto" data-confirm="{{ trans('admin.categories.delete_confirm')|e('js') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button class="btn-secondary text-red-700" type="submit">{{ trans('admin.categories.delete') }}</button>
         </form>

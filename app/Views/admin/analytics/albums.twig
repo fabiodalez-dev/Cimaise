@@ -36,8 +36,8 @@
       <button type="submit" class="btn-primary btn-sm">
         <i class="fas fa-search mr-2"></i>{{ trans('admin.analytics.albums.update') }}
       </button>
-      <button type="button" onclick="setDateRange('7days')" class="btn-secondary btn-sm">{{ trans('admin.analytics.albums.7_days') }}</button>
-      <button type="button" onclick="setDateRange('30days')" class="btn-secondary btn-sm">{{ trans('admin.analytics.albums.30_days') }}</button>
+      <button type="button" data-range="7days" class="btn-secondary btn-sm">{{ trans('admin.analytics.albums.7_days') }}</button>
+      <button type="button" data-range="30days" class="btn-secondary btn-sm">{{ trans('admin.analytics.albums.30_days') }}</button>
     </form>
   </div>
 
@@ -308,6 +308,12 @@ function setDateRange(range) {
   document.getElementById('date-range-form').submit();
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[data-range]').forEach(btn => {
+    btn.addEventListener('click', () => setDateRange(btn.getAttribute('data-range')));
+  });
+});
+
 // Enhanced table interactions
 document.addEventListener('DOMContentLoaded', function() {
   // Add hover effects to table rows
@@ -323,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
 /* Custom album analytics styles */
 .card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
