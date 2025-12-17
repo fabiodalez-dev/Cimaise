@@ -1234,6 +1234,7 @@
     "admin.seo.save_settings": "Save SEO Settings",
     "admin.seo.generate_sitemap": "Generate Sitemap",
     "admin.seo.configure_hint": "Optimize your site for search engines",
+    "admin.seo.canonical_required": "Please set a canonical base URL when sitemap is enabled.",
     "admin.seo.sitewide_seo": "Site-wide SEO",
     "admin.seo.sitewide_seo_hint": "Default SEO settings applied across your entire site",
     "admin.seo.site_title": "Site Title",
