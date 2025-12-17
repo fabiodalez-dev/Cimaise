@@ -649,7 +649,7 @@
         {{ do_action('admin_album_footer_actions', {album: item, base_path: base_path}) }}
 
         <form method="post" action="{{ base_path }}/admin/albums/{{ item.id }}/delete" class="inline"
-              data-confirm="{{ trans('admin.albums.delete_confirm_full')|e('js') }}">
+              data-confirm="{{ trans('admin.albums.delete_confirm_full')|e('html_attr') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button type="submit" class="btn-outline-danger">
             <i class="fas fa-trash mr-2"></i>

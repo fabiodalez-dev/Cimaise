@@ -109,6 +109,7 @@
 
 # Development scripts (exclude from package)
 - bin/build-release.sh
+- bin/dev/
 - scripts/
 
 # Development dependencies

@@ -95,7 +95,7 @@
                     </button>
                   </form>
                 {% endif %}
-                <form method="post" action="{{ base_path }}/admin/albums/{{ a.id }}/delete" class="inline" data-confirm="{{ trans('admin.albums.delete_confirm')|e('js') }}">
+                <form method="post" action="{{ base_path }}/admin/albums/{{ a.id }}/delete" class="inline" data-confirm="{{ trans('admin.albums.delete_confirm')|e('html_attr') }}">
                   <input type="hidden" name="csrf" value="{{ csrf }}">
                   <button type="submit" class="text-red-600 hover:text-red-800" title="{{ trans('admin.common.delete') }}">
                     <i class="fas fa-trash"></i>
