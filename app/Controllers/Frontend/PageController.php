@@ -687,6 +687,7 @@ class PageController extends BaseController
             'available_templates' => $availableTemplates,
             'current_template_id' => $templateId,
             'album_ref' => $albumRef,
+            'is_admin' => $isAdmin,
             'categories' => $navCategories,
             'parent_categories' => $this->getParentCategoriesForNavigation(),
             'page_title' => $seoMeta['page_title'],
