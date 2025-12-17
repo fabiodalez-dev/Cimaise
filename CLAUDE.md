@@ -418,6 +418,7 @@ $app->get('/path', function(...) { ... })
 - **Masonry library**: Auto-included in `libs` array when masonry is enabled
 - **PhotoSwipe configuration**: Boolean toggles (loop, zoom, share, counter, arrowKeys, escKey, allowPanToNext) plus numeric settings (bgOpacity: 0-1, spacing: 0-1)
 - **Magazine-specific settings** (template id 3): Separate duration values for 3 columns (min: 10s, max: 300s) and gap setting (0-80px)
+- **Template normalization**: `normalizeTemplateSettings()` method flattens deeply nested column structures and validates responsive column counts (desktop: 1-6, tablet: 1-4, mobile: 1-2) with fallback defaults
 - **Settings structure example**:
   ```php
   {
