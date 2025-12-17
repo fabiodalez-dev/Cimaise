@@ -84,9 +84,9 @@
         </button>
         <div class="hidden sm:block w-px h-6 bg-gray-300"></div>
         <div class="flex flex-wrap gap-2">
-          <button type="button" onclick="setDateRange('today')" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{{ trans('admin.analytics.today') }}</button>
-          <button type="button" onclick="setDateRange('7days')" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{{ trans('admin.analytics.7days') }}</button>
-          <button type="button" onclick="setDateRange('30days')" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{{ trans('admin.analytics.30days') }}</button>
+          <button type="button" data-range="today" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{{ trans('admin.analytics.today') }}</button>
+          <button type="button" data-range="7days" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{{ trans('admin.analytics.7days') }}</button>
+          <button type="button" data-range="30days" class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{{ trans('admin.analytics.30days') }}</button>
         </div>
       </form>
     </div>
@@ -723,6 +723,15 @@ function setDateRange(range) {
   document.getElementById('date-range-form').submit();
 }
 
+// Bind date range buttons (data-range) to avoid inline handlers
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[data-range]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setDateRange(btn.getAttribute('data-range'));
+    });
+  });
+});
+
 // Auto-refresh data every 30 seconds if on current date
 {% if end_date == 'now'|date('Y-m-d') %}
 setInterval(function() {
@@ -734,7 +743,7 @@ setInterval(function() {
 {% endif %}
 </script>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
 /* Custom analytics styles */
 .card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;

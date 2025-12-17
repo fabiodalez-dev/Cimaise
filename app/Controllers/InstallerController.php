@@ -246,6 +246,31 @@ class InstallerController
             $mediaType = $logo->getClientMediaType();
 
             if (in_array($mediaType, $allowedTypes, true)) {
+                // Validate actual file content (magic bytes + size + dimensions)
+                $tmpPath = $logo->getStream()->getMetadata('uri');
+                if (!is_string($tmpPath) || !is_file($tmpPath)) {
+                    $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid logo upload'];
+                    return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+                }
+
+                if (filesize($tmpPath) > 10 * 1024 * 1024) { // 10MB limit
+                    $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Logo file too large'];
+                    return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+                }
+
+                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                $actualType = $finfo->file($tmpPath);
+                if (!in_array($actualType, $allowedTypes, true)) {
+                    $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid image file'];
+                    return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+                }
+
+                $imgInfo = @getimagesize($tmpPath);
+                if ($imgInfo === false || ($imgInfo[0] ?? 0) <= 0 || ($imgInfo[1] ?? 0) <= 0) {
+                    $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Corrupted image file'];
+                    return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+                }
+
                 // Create media directory if it doesn't exist
                 $mediaDir = $this->rootPath . '/public/media';
                 if (!is_dir($mediaDir)) {

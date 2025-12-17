@@ -142,14 +142,26 @@
 (function(){
   function toggle(val){
     const showMy = val === 'mysql';
-    document.getElementById('mysql-fields').style.display = showMy ? 'block':'none';
-    document.getElementById('sqlite-fields').style.display = showMy ? 'none':'block';
+    const mysqlFields = document.getElementById('mysql-fields');
+    const sqliteFields = document.getElementById('sqlite-fields');
+    if (mysqlFields) {
+      mysqlFields.style.display = showMy ? 'block':'none';
+      mysqlFields.querySelectorAll('input,select').forEach(el => { el.disabled = !showMy; });
+    }
+    if (sqliteFields) {
+      sqliteFields.style.display = showMy ? 'none':'block';
+      const sqliteInput = sqliteFields.querySelector('input[name=\"sqlite_path\"]');
+      if (sqliteInput) {
+        sqliteInput.disabled = showMy;
+      }
+    }
   }
   const rSqlite = document.getElementById('db-conn-sqlite');
   const rMysql = document.getElementById('db-conn-mysql');
   if (rSqlite && rMysql){
     rSqlite.addEventListener('change', ()=> toggle('sqlite'));
     rMysql.addEventListener('change', ()=> toggle('mysql'));
+    toggle(rMysql.checked ? 'mysql' : 'sqlite');
   }
 
   // Test MySQL connection
