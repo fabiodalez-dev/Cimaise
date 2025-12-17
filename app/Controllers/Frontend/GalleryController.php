@@ -75,7 +75,7 @@ class GalleryController extends BaseController
                     'page_title' => $album['title'] . ' — Protected',
                     'error' => $error,
                     'csrf' => $_SESSION['csrf'] ?? '',
-                    'is_admin' => false
+                    'is_admin' => $isAdmin
                 ]);
             }
         }

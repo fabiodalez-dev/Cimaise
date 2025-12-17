@@ -412,6 +412,16 @@ class InstallerController
      */
     public function testMySQLConnection(Request $request, Response $response): Response
     {
+        // Check if already installed
+        if ($this->installer->isInstalled()) {
+            $payload = json_encode([
+                'success' => false,
+                'error' => 'Installation already completed'
+            ]);
+            $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
+        }
+
         $data = (array)$request->getParsedBody();
 
         // Verify CSRF token

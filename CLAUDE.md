@@ -115,6 +115,7 @@ photoCMS/
 - `app/Services/TranslationService.php` - i18n with dual-scope support (frontend/admin), JSON storage (storage/translations/), separate language tracking
 - `app/Controllers/Admin/TextsController.php` - Translation management with import/export, search/filter, scope selector, server-side language dropdown via `getAvailableLanguages()`, and preset language support
 - `app/Controllers/Admin/SocialController.php` - Social sharing settings management with network enable/disable, ordering, AJAX/form support
+- `app/Controllers/Admin/TemplatesController.php` - Gallery template management (edit only, creation/deletion disabled) with responsive column configuration, layout settings, PhotoSwipe options, and magazine-specific animations
 - `app/Extensions/DateTwigExtension.php` - Twig extension for date formatting (filters: date_format, datetime_format, replace_year; functions: date_format_pattern)
 - `app/Middlewares/RateLimitMiddleware.php` - Brute-force protection and API rate limiting
 - `app/Middlewares/SecurityHeadersMiddleware.php` - Security headers (CSP, HSTS, X-Frame-Options) with per-request nonce generation
@@ -408,6 +409,31 @@ $app->get('/path', function(...) { ... })
 - **URL encoding**: Properly encodes title and URL for sharing parameters
 - **Security**: Validates share URLs, adds `rel="noopener noreferrer"` for external links
 - **Icon support**: Uses FontAwesome icons for network branding
+
+### Gallery Templates Management
+- **TemplatesController**: Admin panel for editing pre-built gallery templates (creation/deletion disabled for safety)
+- **Template data structure**: JSON-encoded `settings` (layout, columns, masonry, photoswipe) and `libs` (required libraries like photoswipe, masonry)
+- **Layout options**: grid, masonry, slideshow, fullscreen
+- **Responsive columns**: Separate configuration for desktop (1-6 columns), tablet (1-4), and mobile (1-2)
+- **Masonry library**: Auto-included in `libs` array when masonry is enabled
+- **PhotoSwipe configuration**: Boolean toggles (loop, zoom, share, counter, arrowKeys, escKey, allowPanToNext) plus numeric settings (bgOpacity: 0-1, spacing: 0-1)
+- **Magazine-specific settings** (template id 3): Separate duration values for 3 columns (min: 10s, max: 300s) and gap setting (0-80px)
+- **Settings structure example**:
+  ```php
+  {
+    "layout": "grid|masonry|slideshow|fullscreen",
+    "columns": {"desktop": 3, "tablet": 2, "mobile": 1},
+    "masonry": true|false,
+    "photoswipe": {
+      "loop": true, "zoom": true, "share": false,
+      "counter": true, "arrowKeys": true, "escKey": true,
+      "bgOpacity": 0.8, "spacing": 0.12, "allowPanToNext": true
+    },
+    "magazine": {"durations": [60, 72, 84], "gap": 20}  // template id 3 only
+  }
+  ```
+- **CSRF protection**: All form submissions validated with timing-safe CSRF tokens
+- **Slug auto-generation**: Uses `App\Support\Str::slug()` for SEO-friendly identifiers
 
 <!-- END AUTO-MANAGED -->
 
