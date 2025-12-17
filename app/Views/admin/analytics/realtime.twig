@@ -303,8 +303,8 @@
 let autoRefreshEnabled = true;
 let refreshInterval;
 const refreshLabels = {
-  resume: '{{ trans('admin.analytics.realtime.resume')|e('js') }}',
-  pause: '{{ trans('admin.analytics.realtime.pause')|e('js') }}'
+  resume: '{{ trans('admin.analytics.realtime.resume')|e('html_attr') }}',
+  pause: '{{ trans('admin.analytics.realtime.pause')|e('html_attr') }}'
 };
 
 // Start auto refresh

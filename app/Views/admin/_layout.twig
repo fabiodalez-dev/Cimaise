@@ -734,22 +734,6 @@
         }
       });
 
-      // Convert legacy inline handlers to addEventListener
-      const attrMap = [
-        { attr: 'onclick', event: 'click' },
-        { attr: 'onsubmit', event: 'submit' },
-        { attr: 'onchange', event: 'change' }
-      ];
-      attrMap.forEach(({ attr, event }) => {
-        document.querySelectorAll(`[${attr}]`).forEach(el => {
-          const code = el.getAttribute(attr);
-          if (!code) return;
-          el.removeAttribute(attr);
-          el.addEventListener(event, function(ev) {
-            return (new Function('event', code)).call(this, ev);
-          });
-        });
-      });
     });
 
     // Enhanced dropdown behavior with delays and expanded hover areas

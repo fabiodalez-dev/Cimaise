@@ -99,7 +99,7 @@
 
       <div class="text-right">
         <form action="{{ base_path }}/admin/locations/{{ location.id }}/delete" method="post" class="inline"
-              data-confirm="{{ trans('admin.locations.delete_confirm_full')|e('js') }}">
+              data-confirm="{{ trans('admin.locations.delete_confirm_full')|e('html_attr') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button type="submit"
                   class="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded font-medium transition-colors flex items-center">

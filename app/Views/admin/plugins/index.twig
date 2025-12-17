@@ -146,7 +146,7 @@
               {% else %}
                 {% if plugin.is_active %}
                   <!-- Deactivate Button -->
-                  <form method="post" action="{{ base_path }}/admin/plugins/deactivate" class="inline" data-confirm="{{ trans('admin.plugins.deactivate_confirm')|e('js') }}">
+                  <form method="post" action="{{ base_path }}/admin/plugins/deactivate" class="inline" data-confirm="{{ trans('admin.plugins.deactivate_confirm')|e('html_attr') }}">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
                     <input type="hidden" name="slug" value="{{ slug }}">
                     <button type="submit" class="btn-secondary btn-sm">
@@ -165,7 +165,7 @@
                 {% endif %}
 
                 <!-- Uninstall Button -->
-                <form method="post" action="{{ base_path }}/admin/plugins/uninstall" class="inline" data-confirm="{{ trans('admin.plugins.uninstall_confirm')|e('js') }}">
+                <form method="post" action="{{ base_path }}/admin/plugins/uninstall" class="inline" data-confirm="{{ trans('admin.plugins.uninstall_confirm')|e('html_attr') }}">
                   <input type="hidden" name="csrf" value="{{ csrf }}">
                   <input type="hidden" name="slug" value="{{ slug }}">
                   <button type="submit" class="btn-outline-danger btn-sm">

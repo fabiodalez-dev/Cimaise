@@ -18,7 +18,7 @@
       <div class="flex gap-3 pt-2">
         <button class="btn-primary" type="submit">{{ trans('admin.cameras.update') }}</button>
         <a class="btn-secondary" href="{{ base_path }}/admin/cameras">{{ trans('admin.cameras.cancel') }}</a>
-        <form method="post" action="{{ base_path }}/admin/cameras/{{ item.id }}/delete" class="inline ml-auto" data-confirm="{{ trans('admin.cameras.delete_confirm')|e('js') }}">
+        <form method="post" action="{{ base_path }}/admin/cameras/{{ item.id }}/delete" class="inline ml-auto" data-confirm="{{ trans('admin.cameras.delete_confirm')|e('html_attr') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button class="btn-secondary text-red-700">{{ trans('admin.common.delete') }}</button>
         </form>

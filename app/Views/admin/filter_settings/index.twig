@@ -17,7 +17,7 @@
             {{ trans('admin.filter_settings.preview') }}
           </a>
           <form method="post" action="{{ base_path }}/admin/filter-settings/reset" class="inline"
-                data-confirm="{{ trans('admin.filter_settings.reset_confirm')|e('js') }}">
+                data-confirm="{{ trans('admin.filter_settings.reset_confirm')|e('html_attr') }}">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <button type="submit" class="btn-outline-danger">
               <i class="fas fa-undo mr-2"></i>
