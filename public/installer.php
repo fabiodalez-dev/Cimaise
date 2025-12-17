@@ -834,9 +834,9 @@ $requirementsPassed = !in_array(false, array_values($requirements));
                                         <i class="fas fa-exclamation-triangle mr-2"></i>
                                         Please fix the failed requirements before continuing.
                                     </div>
-                                    <button onclick="window.location.reload()" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
+                                    <a href="" class="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center">
                                         <i class="fas fa-sync mr-2"></i>Recheck Requirements
-                                    </button>
+                                    </a>
                                 <?php endif; ?>
                             </div>
                         </div>

@@ -14,6 +14,8 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  */
 class MediaController extends BaseController
 {
+    private const ACCESS_WINDOW_SECONDS = 86400; // 24 hours
+
     public function __construct(private Database $db)
     {
         parent::__construct();
@@ -99,27 +101,9 @@ class MediaController extends BaseController
         $albumId = (int)$row['album_id'];
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
-        $isAdmin = $this->isAdmin();
 
-        // Check access for protected albums
-        if (!$isAdmin) {
-            // Password-protected album check (session stores timestamp, valid for 24h)
-            // Blur variant is always allowed for preview purposes
-            if ($isPasswordProtected && $variant !== 'blur') {
-                $accessTime = $_SESSION['album_access'][$albumId] ?? null;
-                $hasAccess = $accessTime !== null && time() - (int)$accessTime < 86400;
-                if (!$hasAccess) {
-                    return $response->withStatus(403);
-                }
-            }
-
-            // NSFW album check (blur variant is always allowed)
-            if ($isNsfw && $variant !== 'blur') {
-                $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$albumId]) && $_SESSION['nsfw_confirmed'][$albumId] === true;
-                if (!$nsfwConfirmed) {
-                    return $response->withStatus(403);
-                }
-            }
+        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant)) {
+            return $response->withStatus(403);
         }
 
         // Get the variant path from database
@@ -188,11 +172,20 @@ class MediaController extends BaseController
             return $response->withStatus(500);
         }
 
-        // Cache headers for variants: shorter cache with ETag validation
         $filesize = filesize($realPath);
+        $etag = $this->generateEtag($realPath, $filesize);
+        $clientEtag = $request->getHeaderLine('If-None-Match');
+        if ($clientEtag !== '' && $clientEtag === $etag) {
+            return $response
+                ->withStatus(304)
+                ->withHeader('ETag', $etag)
+                ->withHeader('Cache-Control', 'private, max-age=3600, must-revalidate');
+        }
+
+        // Cache headers for variants: shorter cache with ETag validation
         return $streamed
             ->withHeader('Cache-Control', 'private, max-age=3600, must-revalidate')
-            ->withHeader('ETag', $this->generateEtag($realPath, $filesize));
+            ->withHeader('ETag', $etag);
     }
 
     /**
@@ -223,22 +216,23 @@ class MediaController extends BaseController
             return $response->withStatus(404);
         }
 
-        // Check if downloads are allowed for this album
-        if (!(int)$row['allow_downloads']) {
-            return $response->withStatus(403);
-        }
-
         $albumId = (int)$row['album_id'];
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
         $isAdmin = $this->isAdmin();
+        $allowDownloads = (int)($row['allow_downloads'] ?? 0);
+
+        // Respect album download flag for non-admin users
+        if (!$isAdmin && !$allowDownloads) {
+            return $response->withStatus(403);
+        }
 
         // Check access for protected albums
         if (!$isAdmin) {
             // Password-protected album check (session stores timestamp, valid for 24h)
             if ($isPasswordProtected) {
                 $accessTime = $_SESSION['album_access'][$albumId] ?? null;
-                $hasAccess = $accessTime !== null && time() - (int)$accessTime < 86400;
+                $hasAccess = $accessTime !== null && time() - (int)$accessTime < self::ACCESS_WINDOW_SECONDS;
                 if (!$hasAccess) {
                     return $response->withStatus(403);
                 }
@@ -289,9 +283,20 @@ class MediaController extends BaseController
             return $response->withStatus(500);
         }
 
+        $filesize = filesize($realPath);
+        $etag = $this->generateEtag($realPath, $filesize);
+        $clientEtag = $request->getHeaderLine('If-None-Match');
+        if ($clientEtag !== '' && $clientEtag === $etag) {
+            return $response
+                ->withStatus(304)
+                ->withHeader('ETag', $etag)
+                ->withHeader('Cache-Control', 'private, max-age=31536000, immutable');
+        }
+
         // Cache headers for originals: long cache (originals are immutable)
         return $streamed
-            ->withHeader('Cache-Control', 'private, max-age=31536000, immutable');
+            ->withHeader('Cache-Control', 'private, max-age=31536000, immutable')
+            ->withHeader('ETag', $etag);
     }
 
     /**
@@ -320,7 +325,7 @@ class MediaController extends BaseController
         if (!preg_match('/^(\d+)_([a-z]+)\.(jpg|webp|avif|png)$/i', $filename, $matches)) {
             // Not a variant file - could be uploads or other media
             // For non-variant files, serve directly (they're not protected)
-            return $this->serveStaticFile($response, $path);
+            return $this->serveStaticFile($request, $response, $path);
         }
 
         $imageId = (int)$matches[1];
@@ -340,7 +345,7 @@ class MediaController extends BaseController
 
         // If image not found in DB, serve static file (might be orphan or non-album media)
         if (!$row) {
-            return $this->serveStaticFile($response, $path);
+            return $this->serveStaticFile($request, $response, $path);
         }
 
         // Unpublished albums - 404
@@ -351,37 +356,18 @@ class MediaController extends BaseController
         $albumId = (int)$row['album_id'];
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
-        $isAdmin = $this->isAdmin();
-
-        // Check access for protected albums
-        if (!$isAdmin) {
-            // Password-protected album check (session stores timestamp, valid for 24h)
-            // Blur variant is always allowed for preview purposes
-            if ($isPasswordProtected && $variant !== 'blur') {
-                $accessTime = $_SESSION['album_access'][$albumId] ?? null;
-                $hasAccess = $accessTime !== null && time() - (int)$accessTime < 86400;
-                if (!$hasAccess) {
-                    return $response->withStatus(403);
-                }
-            }
-
-            // NSFW album check (blur variant is always allowed for preview)
-            if ($isNsfw && $variant !== 'blur') {
-                $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$albumId]) && $_SESSION['nsfw_confirmed'][$albumId] === true;
-                if (!$nsfwConfirmed) {
-                    return $response->withStatus(403);
-                }
-            }
+        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant)) {
+            return $response->withStatus(403);
         }
 
         // Access granted - serve the file
-        return $this->serveStaticFile($response, $path);
+        return $this->serveStaticFile($request, $response, $path);
     }
 
     /**
      * Helper to serve a static file from public/media/
      */
-    private function serveStaticFile(Response $response, string $relativePath): Response
+    private function serveStaticFile(Request $request, Response $response, string $relativePath): Response
     {
         $root = dirname(__DIR__, 3);
         $filePath = "{$root}/public/media/{$relativePath}";
@@ -410,15 +396,54 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
+        $filesize = filesize($realPath);
+        $etag = $this->generateEtag($realPath, $filesize);
+        $clientEtag = $request->getHeaderLine('If-None-Match');
+        if ($clientEtag !== '' && $clientEtag === $etag) {
+            return $response
+                ->withStatus(304)
+                ->withHeader('ETag', $etag)
+                ->withHeader('Cache-Control', 'public, max-age=86400, must-revalidate');
+        }
+
         $streamed = $this->streamFile($response, $realPath, $detectedMime);
         if ($streamed === null) {
             return $response->withStatus(500);
         }
 
         // Cache headers for public variants: use ETag for revalidation
-        $filesize = filesize($realPath);
         return $streamed
             ->withHeader('Cache-Control', 'public, max-age=86400, must-revalidate')
-            ->withHeader('ETag', $this->generateEtag($realPath, $filesize));
+            ->withHeader('ETag', $etag);
+    }
+
+    /**
+     * Centralized access validation for protected albums (password/NSFW).
+     * Blur variants are always allowed for preview.
+     */
+    private function validateAlbumAccess(int $albumId, bool $isPasswordProtected, bool $isNsfw, ?string $variant = null): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($isPasswordProtected && $variant !== 'blur') {
+            $accessTime = $_SESSION['album_access'][$albumId] ?? null;
+            $hasAccess = $accessTime !== null && time() - (int)$accessTime < self::ACCESS_WINDOW_SECONDS;
+            if (!$hasAccess) {
+                error_log("[MediaAccess] DENY password album={$albumId} variant={$variant} session_access=" . json_encode($_SESSION['album_access'] ?? []));
+                return false;
+            }
+        }
+
+        if ($isNsfw && $variant !== 'blur') {
+            $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$albumId]) && $_SESSION['nsfw_confirmed'][$albumId] === true;
+            if (!$nsfwConfirmed) {
+                error_log("[MediaAccess] DENY nsfw album={$albumId} variant={$variant} session_nsfw=" . json_encode($_SESSION['nsfw_confirmed'] ?? []));
+                return false;
+            }
+        }
+
+        return true;
     }
 }

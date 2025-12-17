@@ -531,7 +531,7 @@ window.pageInitializers = window.pageInitializers || {};
 window.pageInitializers.social = initAdminSocialPage;
 </script>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
 .social-option:hover input[type="checkbox"]:not(:checked) {
   border-color: #6b7280;
 }

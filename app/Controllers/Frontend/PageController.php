@@ -595,6 +595,7 @@ class PageController extends BaseController
             'category' => ['name' => $album['category_name'], 'slug' => $album['category_slug']],
             'categories' => $cats,
             'excerpt' => $album['excerpt'] ?? '',
+            'slug' => $album['slug'],
             'body' => $album['body'] ?? '',
             'shoot_date' => $album['shoot_date'] ?? '',
             'show_date' => (int)($album['show_date'] ?? 1),
@@ -697,7 +698,8 @@ class PageController extends BaseController
             'robots' => $albumRobots,
             'schema' => $seoMeta['schema'],
             'enabled_socials' => $orderedSocials,
-            'available_socials' => $availableSocials
+            'available_socials' => $availableSocials,
+            'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
 
@@ -779,6 +781,7 @@ class PageController extends BaseController
 
         if (!$nsfwConfirmed) {
             // Redirect back to album (will show gate again)
+            error_log("[NSFW Confirm] Missing confirmation for album slug={$slug}");
             return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
         }
 
@@ -790,6 +793,7 @@ class PageController extends BaseController
             $_SESSION['nsfw_confirmed'] = [];
         }
         $_SESSION['nsfw_confirmed'][(int)$album['id']] = true;
+        error_log("[NSFW Confirm] Stored session confirmation for album id={$album['id']} slug={$slug}");
 
         return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
     }

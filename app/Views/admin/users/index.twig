@@ -68,7 +68,7 @@
                 </button>
               </form>
               <form method="post" action="{{ base_path }}/admin/users/{{ user.id }}/delete" class="inline"
-                    onsubmit="return confirm('{{ trans('admin.users.delete_confirm') }}');">
+                    data-confirm="{{ trans('admin.users.delete_confirm')|e('js') }}">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
                 <button type="submit" class="text-red-600 hover:text-red-900">
                   <i class="fas fa-trash"></i>

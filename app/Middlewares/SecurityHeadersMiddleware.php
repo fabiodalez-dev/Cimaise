@@ -22,9 +22,10 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
 
         $response = $handler->handle($request);
 
+        $nonce = self::$nonce ?? '';
         $csp = "upgrade-insecure-requests; default-src 'self'; "
              . "img-src 'self' data: blob:; "
-             . "script-src 'self' 'unsafe-inline'; "
+             . "script-src 'self' 'nonce-{$nonce}'; "
              . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
              . "font-src 'self' https://fonts.gstatic.com data:; "
              . "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
