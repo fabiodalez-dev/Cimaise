@@ -42,6 +42,8 @@
 + storage/translations/.gitkeep
 + storage/translations/en.json
 + storage/translations/it.json
++ storage/translations/en_admin.json
++ storage/translations/it_admin.json
 
 # Keep public directory structure
 + public/

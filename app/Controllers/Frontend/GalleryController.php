@@ -591,8 +591,8 @@ class GalleryController extends BaseController
                 'base_path' => $this->basePath
             ];
 
-            // Use Magazine template for template ID 9 or layout 'magazine'
-            if ($templateId === 9 || ($templateSettings['layout'] ?? '') === 'magazine') {
+            // Use Magazine template for template ID 3 or layout 'magazine'
+            if ($templateId === 3 || ($templateSettings['layout'] ?? '') === 'magazine') {
                 $templateFile = 'frontend/_gallery_magazine_content.twig';
                 $templateData['album'] = $album; // Magazine template needs album data
             }
