@@ -31,25 +31,51 @@ onReady(() => {
   if (gallery) {
     gallery.classList.add('entry-init');
     const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    const isHorizontal = gallery.closest('.home-horizontal') !== null;
     const scope = isDesktop ? document.querySelector('.home-desktop-wrap') : document.querySelector('.home-mobile-wrap');
     let items = scope ? Array.from(scope.querySelectorAll('.home-item')) : [];
-    // Build priority: items currently in viewport first (top to bottom, then left), then near viewport, then others (shuffled)
+
     const ih = window.innerHeight || document.documentElement.clientHeight;
-    const withRect = items.map((el) => { const r = el.getBoundingClientRect(); return { el, top: r.top, left: r.left, vis: (r.top < ih && r.bottom > 0), near: (r.top < ih * 2) }; });
-    const inView = withRect.filter(x => x.vis).sort((a,b)=> a.top-b.top || a.left-b.left);
+    const iw = window.innerWidth || document.documentElement.clientWidth;
+
+    // Build priority based on layout direction
+    const withRect = items.map((el) => {
+      const r = el.getBoundingClientRect();
+      // For horizontal: check if item is in horizontal viewport
+      const visH = r.left < iw && r.right > 0 && r.top < ih && r.bottom > 0;
+      // For vertical: standard top/bottom check
+      const visV = r.top < ih && r.bottom > 0;
+      const nearH = r.left < iw * 2;
+      const nearV = r.top < ih * 2;
+      return { el, top: r.top, left: r.left, vis: isHorizontal ? visH : visV, near: isHorizontal ? nearH : nearV };
+    });
+
+    // Sort: horizontal by row then left position, vertical by top then left
+    // Threshold for grouping items into logical rows during horizontal reveal.
+    // Items within this vertical distance are considered part of the same row.
+    const ROW_BUCKET_SIZE = 50;
+    const inView = withRect.filter(x => x.vis).sort((a,b) => {
+      if (isHorizontal) {
+        const rowA = Math.floor(a.top / ROW_BUCKET_SIZE);
+        const rowB = Math.floor(b.top / ROW_BUCKET_SIZE);
+        if (rowA !== rowB) return rowA - rowB;
+        return a.left - b.left;
+      }
+      return a.top - b.top || a.left - b.left;
+    });
+
     const nearView = withRect.filter(x => !x.vis && x.near);
-    // shuffle nearView
     for (let i = nearView.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [nearView[i], nearView[j]] = [nearView[j], nearView[i]]; }
     const others = withRect.filter(x => !x.vis && !x.near);
     for (let i = others.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [others[i], others[j]] = [others[j], others[i]]; }
     const order = [...inView, ...nearView, ...others].map(x => x.el);
 
-    // Schedule: fill visible area fast (~1s), rest by 6s total
-    const totalMs = 6000;
-    const visibleMs = Math.min(1200, Math.max(400, Math.floor(totalMs * 0.2)));
+    // Schedule: horizontal uses faster, tighter stagger; vertical spreads over 6s
+    const totalMs = isHorizontal ? 1500 : 6000;
+    const visibleMs = isHorizontal ? Math.min(600, Math.max(150, Math.floor(totalMs * 0.4))) : Math.min(1200, Math.max(400, Math.floor(totalMs * 0.2)));
     const base = 0;
     const k = Math.max(1, inView.length);
-    const stepVisible = Math.max(6, Math.floor(visibleMs / k));
+    const stepVisible = isHorizontal ? Math.max(20, Math.floor(visibleMs / k)) : Math.max(6, Math.floor(visibleMs / k));
     const remaining = Math.max(0, totalMs - (k * stepVisible));
     const stepRest = order.length > k ? Math.max(6, Math.floor(remaining / (order.length - k))) : 0;
 

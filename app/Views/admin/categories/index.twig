@@ -1,13 +1,13 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Categories — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.categories.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-3xl font-bold text-black">Categories</h1>
-      <p class="text-gray-600 mt-1">Drag horizontally to create hierarchy or use Edit to open full form</p>
+      <h1 class="text-3xl font-bold text-black">{{ trans('admin.categories.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.categories.drag_hint') }}</p>
     </div>
     <a href="{{ base_path }}/admin/categories/create" class="btn-primary">
-      <i class="fas fa-plus mr-2"></i>New Category
+      <i class="fas fa-plus mr-2"></i>{{ trans('admin.categories.new') }}
     </a>
   </div>
 
@@ -17,12 +17,12 @@
         <div class="p-6 border-b border-gray-200">
           <h2 class="text-lg font-semibold text-black flex items-center">
             <i class="fas fa-layer-group mr-3 text-gray-600"></i>
-            Category Management
+            {{ trans('admin.categories.management') }}
           </h2>
-          <p class="text-gray-600 text-sm mt-1">Drag items to create hierarchy - 5 levels maximum</p>
+          <p class="text-gray-600 text-sm mt-1">{{ trans('admin.categories.drag_levels_hint') }}</p>
         </div>
 
-        <style>
+        <style nonce="{{ csp_nonce() }}">
           /* Clean minimal drag system */
           .categories-container {
             min-height: 300px;
@@ -290,7 +290,7 @@
                 
                 <div class="category-icon">
                   {% if category.image_path and category.image_path != '' %}
-                    <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name }}" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=&quot;placeholder&quot;><i class=&quot;fas fa-folder&quot;></i></div>';">
+                    <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name }}" data-fallback="category-image">
                   {% else %}
                     <div class="placeholder">
                       <i class="fas fa-folder"></i>
@@ -301,12 +301,12 @@
                 <div class="category-name">{{ category.name }}</div>
                 
                 <div class="category-actions">
-                  <button class="action-btn edit" data-edit="{{ category.id }}" title="Quick Edit">
+                  <button class="action-btn edit" data-edit="{{ category.id }}" title="{{ trans('admin.categories.quick_edit') }}">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <form method="post" action="{{ base_path }}/admin/categories/{{ category.id }}/delete" class="inline" onsubmit="return confirm('Delete this category?')">
+                  <form method="post" action="{{ base_path }}/admin/categories/{{ category.id }}/delete" class="inline" data-confirm="{{ trans('admin.categories.delete_confirm')|e('html_attr') }}">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <button class="action-btn delete" title="Delete">
+                    <button class="action-btn delete" title="{{ trans('admin.categories.delete') }}">
                       <i class="fas fa-trash"></i>
                     </button>
                   </form>
@@ -316,10 +316,10 @@
           {% else %}
             <div class="empty-state">
               <i class="fas fa-folder-open"></i>
-              <div class="text-lg font-medium mb-2 text-gray-900">No categories yet</div>
-              <div class="text-sm mb-4">Create your first category to get started</div>
+              <div class="text-lg font-medium mb-2 text-gray-900">{{ trans('admin.categories.no_categories') }}</div>
+              <div class="text-sm mb-4">{{ trans('admin.categories.no_categories_hint') }}</div>
               <a href="{{ base_path }}/admin/categories/create" class="btn-primary">
-                <i class="fas fa-plus mr-2"></i>Create First Category
+                <i class="fas fa-plus mr-2"></i>{{ trans('admin.categories.create_first') }}
               </a>
             </div>
           {% endif %}
@@ -327,7 +327,7 @@
         
         <!-- Level indicator -->
         <div class="level-indicator" id="level-indicator">
-          Level 0
+          {{ trans('admin.categories.level') }} 0
         </div>
       </div>
     </div>
@@ -336,102 +336,102 @@
     <div class="xl:col-span-1">
       <div class="card p-6 sticky top-24">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">
-          <i class="fas fa-edit mr-2 text-gray-600"></i>Quick Edit
+          <i class="fas fa-edit mr-2 text-gray-600"></i>{{ trans('admin.categories.quick_edit') }}
         </h2>
-        
+
         <form id="cat-form" method="post" action="{{ base_path }}/admin/categories" enctype="multipart/form-data" class="space-y-4">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="id" id="cat-id" value="">
-          
+
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
-            <input class="form-input" type="text" name="name" id="cat-name" placeholder="Enter category name..." required>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.categories.category_name') }}</label>
+            <input class="form-input" type="text" name="name" id="cat-name" placeholder="{{ trans('admin.categories.enter_name') }}" required>
           </div>
-          
+
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">URL Slug</label>
-            <input class="form-input" type="text" name="slug" id="cat-slug" placeholder="Auto-generated if empty">
-            <small class="text-gray-500 text-xs mt-1">Used in URLs, leave empty for auto-generation</small>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.categories.url_slug') }}</label>
+            <input class="form-input" type="text" name="slug" id="cat-slug" placeholder="{{ trans('admin.categories.auto_generated') }}">
+            <small class="text-gray-500 text-xs mt-1">{{ trans('admin.categories.slug_hint') }}</small>
           </div>
-          
+
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Parent Category</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.categories.parent') }}</label>
             <select class="form-input" name="parent_id" id="cat-parent">
-              <option value="">None (Main category)</option>
+              <option value="">{{ trans('admin.categories.none_main') }}</option>
               {% for parent in byParent[0]|default([]) %}
                 <option value="{{ parent.id }}">{{ parent.name }}</option>
               {% endfor %}
             </select>
           </div>
-          
+
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Category Image</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.categories.category_image') }}</label>
             <div id="current-image" class="hidden mb-3">
-              <img id="current-image-preview" class="w-full h-32 object-cover rounded-lg border" alt="Current image">
+              <img id="current-image-preview" class="w-full h-32 object-cover rounded-lg border" alt="{{ trans('admin.categories.current_image') }}">
               <div class="flex items-center justify-between mt-2 p-2 bg-gray-50 rounded">
-                <small class="text-gray-600">Current image</small>
+                <small class="text-gray-600">{{ trans('admin.categories.current_image') }}</small>
                 <label class="flex items-center gap-1 text-red-600 cursor-pointer text-sm">
                   <input type="checkbox" name="remove_image" value="1" class="rounded">
-                  Remove image
+                  {{ trans('admin.categories.remove_image') }}
                 </label>
               </div>
             </div>
             <div class="upload-area" id="upload-area">
               <input class="form-input hidden" type="file" name="image" accept="image/*" id="cat-image">
-              <div class="upload-zone border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors cursor-pointer" onclick="document.getElementById('cat-image').click()">
+              <div class="upload-zone border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors cursor-pointer" data-action="trigger-cat-image">
                 <i class="fas fa-cloud-upload-alt text-gray-400 text-2xl mb-2"></i>
-                <div class="text-sm text-gray-600">Click to upload or drag & drop</div>
-                <div class="text-xs text-gray-500 mt-1">JPG, PNG, WebP • Max 5MB</div>
+                <div class="text-sm text-gray-600">{{ trans('admin.categories.click_upload') }}</div>
+                <div class="text-xs text-gray-500 mt-1">{{ trans('admin.categories.upload_formats') }}</div>
               </div>
               <div id="upload-preview" class="hidden mt-3">
-                <img id="upload-preview-img" class="w-full h-32 object-cover rounded-lg border" alt="Upload preview">
+                <img id="upload-preview-img" class="w-full h-32 object-cover rounded-lg border" alt="{{ trans('admin.categories.preview') }}">
                 <div class="flex items-center justify-between mt-2 p-2 bg-blue-50 rounded">
-                  <small class="text-blue-600">New image selected</small>
-                  <button type="button" onclick="clearUploadPreview()" class="text-red-600 text-sm hover:underline">
-                    Remove
+                  <small class="text-blue-600">{{ trans('admin.categories.new_image_selected') }}</small>
+                  <button type="button" data-action="clear-upload-preview" class="text-red-600 text-sm hover:underline">
+                    {{ trans('admin.categories.remove') }}
                   </button>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Sort Order</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.categories.sort_order') }}</label>
             <input class="form-input" type="number" name="sort_order" id="cat-sort" value="0" min="0">
           </div>
-          
+
           <div class="flex flex-col gap-2 pt-4">
             <button class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-colors w-full flex items-center justify-center" type="submit">
-              <i class="fas fa-save mr-2"></i>Save Category
+              <i class="fas fa-save mr-2"></i>{{ trans('admin.categories.save') }}
             </button>
             <button id="cat-reset" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition-colors w-full flex items-center justify-center" type="button">
-              <i class="fas fa-plus mr-2"></i>New Category
+              <i class="fas fa-plus mr-2"></i>{{ trans('admin.categories.new') }}
             </button>
           </div>
         </form>
-        
+
         <div class="mt-6 pt-6 border-t border-gray-200">
           <div class="text-sm text-gray-600">
             <div class="flex items-center mb-3">
               <i class="fas fa-info-circle text-gray-500 mr-2"></i>
-              <strong>Drag System:</strong>
+              <strong>{{ trans('admin.categories.drag_system') }}</strong>
             </div>
             <ul class="space-y-2 text-xs">
               <li class="flex items-start">
                 <i class="fas fa-arrows-alt-h text-gray-400 mr-2 mt-0.5"></i>
-                <span><strong>Horizontal drag:</strong> Move left/right to change hierarchy level</span>
+                <span><strong>{{ trans('admin.categories.drag_horizontal') }}</strong> {{ trans('admin.categories.drag_horizontal_hint') }}</span>
               </li>
               <li class="flex items-start">
                 <i class="fas fa-arrows-alt-v text-gray-400 mr-2 mt-0.5"></i>
-                <span><strong>Vertical drag:</strong> Move up/down to reorder categories</span>
+                <span><strong>{{ trans('admin.categories.drag_vertical') }}</strong> {{ trans('admin.categories.drag_vertical_hint') }}</span>
               </li>
               <li class="flex items-start">
                 <i class="fas fa-layer-group text-gray-400 mr-2 mt-0.5"></i>
-                <span><strong>5 Levels:</strong> 0=Main, 1=Sub, 2=Sub-sub, 3=Deep, 4=Maximum</span>
+                <span><strong>{{ trans('admin.categories.levels_info') }}</strong> {{ trans('admin.categories.levels_info_hint') }}</span>
               </li>
               <li class="flex items-start">
                 <i class="fas fa-save text-gray-400 mr-2 mt-0.5"></i>
-                <span><strong>Auto-save:</strong> Changes save automatically when you release</span>
+                <span><strong>{{ trans('admin.categories.auto_save') }}</strong> {{ trans('admin.categories.auto_save_hint') }}</span>
               </li>
             </ul>
           </div>
@@ -445,8 +445,8 @@
     <div id="category-modal-overlay" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 class="text-xl font-semibold text-black">Modifica categoria</h3>
-          <button type="button" class="text-gray-500 hover:text-black" data-modal-close aria-label="Chiudi">
+          <h3 class="text-xl font-semibold text-black">{{ trans('admin.categories.edit') }}</h3>
+          <button type="button" class="text-gray-500 hover:text-black" data-modal-close aria-label="{{ trans('admin.common.close') }}">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -458,24 +458,24 @@
 
           <div class="px-6 py-5 space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.name') }}</label>
               <input id="modal-cat-name" class="form-input" type="text" name="name" required>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                <input id="modal-cat-slug" class="form-input" type="text" name="slug" placeholder="auto se vuoto">
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.slug') }}</label>
+                <input id="modal-cat-slug" class="form-input" type="text" name="slug" placeholder="{{ trans('admin.categories.auto_generated') }}">
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Ordine</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.sort_order') }}</label>
                 <input id="modal-cat-sort" class="form-input" type="number" name="sort_order" value="0" min="0">
               </div>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Categoria genitore</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.parent') }}</label>
               <select id="modal-cat-parent" class="form-input" name="parent_id">
-                <option value="">Nessuna</option>
+                <option value="">{{ trans('admin.categories.no_parent') }}</option>
                 {% for parent in byParent[0]|default([]) %}
                   <option value="{{ parent.id }}">{{ parent.name }}</option>
                 {% endfor %}
@@ -483,36 +483,36 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Immagine</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.categories.category_image') }}</label>
               <div id="modal-current-image" class="hidden mb-3">
-                <img id="modal-current-image-preview" class="w-full h-40 object-cover rounded-lg border" alt="Immagine attuale">
+                <img id="modal-current-image-preview" class="w-full h-40 object-cover rounded-lg border" alt="{{ trans('admin.categories.current_image') }}">
                 <label class="flex items-center gap-2 mt-2 text-sm text-red-600">
                   <input id="modal-remove-image" type="checkbox" name="remove_image" value="1" class="rounded">
-                  Rimuovi immagine
+                  {{ trans('admin.categories.remove_image') }}
                 </label>
               </div>
               <input id="modal-cat-image" class="hidden" type="file" name="image" accept="image/*">
-              <div id="modal-upload-zone" class="upload-zone border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer" onclick="document.getElementById('modal-cat-image').click()">
+              <div id="modal-upload-zone" class="upload-zone border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer" data-action="trigger-modal-cat-image">
                 <i class="fas fa-cloud-upload-alt text-gray-400 text-2xl mb-2"></i>
-                <div class="text-sm text-gray-600">Clicca o trascina un'immagine</div>
-                <div class="text-xs text-gray-500">JPG, PNG, WebP • Max 5MB</div>
+                <div class="text-sm text-gray-600">{{ trans('admin.categories.click_upload') }}</div>
+                <div class="text-xs text-gray-500">{{ trans('admin.categories.upload_formats') }}</div>
               </div>
               <div id="modal-upload-preview" class="hidden mt-3">
-                <img id="modal-upload-preview-img" class="w-full h-40 object-cover rounded-lg border" alt="Anteprima">
+                <img id="modal-upload-preview-img" class="w-full h-40 object-cover rounded-lg border" alt="{{ trans('admin.categories.preview') }}">
               </div>
             </div>
           </div>
 
           <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
-            <button type="button" class="btn-secondary" data-modal-close>Annulla</button>
-            <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>Salva</button>
+            <button type="button" class="btn-secondary" data-modal-close>{{ trans('admin.categories.cancel') }}</button>
+            <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>{{ trans('admin.common.save') }}</button>
           </div>
         </form>
       </div>
     </div>
   </div>
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     // Global base path for API calls
     window.basePath = '{{ base_path }}';
     
@@ -626,9 +626,9 @@
       }
       
       updateIndicator(level) {
-        this.indicator.textContent = `Level ${level}${level >= this.maxLevel ? ' (MAX)' : ''}`;
+        this.indicator.textContent = `{{ trans('admin.categories.level') }} ${level}${level >= this.maxLevel ? ' ({{ trans('admin.categories.max') }})' : ''}`;
         this.indicator.classList.add('show');
-        
+
         if (level >= this.maxLevel) {
           this.indicator.classList.add('max-level');
         } else {
@@ -677,12 +677,12 @@
           });
           
           if (response.ok) {
-            this.showToast('Categories reordered successfully!');
+            this.showToast('{{ trans('admin.categories.reorder_success') }}');
           } else {
             throw new Error('Failed to save');
           }
         } catch (error) {
-          this.showToast('Failed to save changes', 'error');
+          this.showToast('{{ trans('admin.categories.save_error') }}', 'error');
           console.error('Save error:', error);
         }
       }
@@ -711,9 +711,9 @@
       } catch (error) {
         console.error('Failed to load category data:', error);
         if (window.showToast) {
-          window.showToast('Errore nel caricamento dei dati della categoria', 'error');
+          window.showToast('{{ trans('admin.categories.load_error') }}', 'error');
         } else {
-          alert('Errore nel caricamento dei dati della categoria');
+          alert('{{ trans('admin.categories.load_error') }}');
         }
       }
     });
@@ -756,6 +756,25 @@
       setupImageUpload();
       setupFormValidation();
       setupCategoryModal();
+      // Bind data-action triggers to avoid inline handlers
+      document.querySelectorAll('[data-action="trigger-cat-image"]').forEach(el => {
+        el.addEventListener('click', () => document.getElementById('cat-image')?.click());
+      });
+      document.querySelectorAll('[data-action="trigger-modal-cat-image"]').forEach(el => {
+        el.addEventListener('click', () => document.getElementById('modal-cat-image')?.click());
+      });
+      document.querySelectorAll('[data-action="clear-upload-preview"]').forEach(el => {
+        el.addEventListener('click', clearUploadPreview);
+      });
+      // Fallback for broken category images
+      document.querySelectorAll('img[data-fallback="category-image"]').forEach(img => {
+        img.addEventListener('error', function() {
+          this.style.display = 'none';
+          if (this.parentNode) {
+            this.parentNode.innerHTML = '<div class="placeholder"><i class="fas fa-folder"></i></div>';
+          }
+        });
+      });
     });
     
     // Enhanced image upload with drag & drop
@@ -796,12 +815,12 @@
       function handleFileSelection(file) {
         // Validate file
         if (!file.type.startsWith('image/')) {
-          alert('Please select an image file (JPG, PNG, WebP)');
+          alert('{{ trans('admin.categories.image_required') }}');
           return;
         }
-        
+
         if (file.size > 5 * 1024 * 1024) { // 5MB limit
-          alert('File size must be less than 5MB');
+          alert('{{ trans('admin.categories.max_size') }}');
           return;
         }
         
@@ -869,17 +888,17 @@
       // Form submission validation
       document.getElementById('cat-form').addEventListener('submit', (e) => {
         const name = nameInput.value.trim();
-        
+
         if (!name) {
           e.preventDefault();
-          alert('Category name is required');
+          alert('{{ trans('admin.categories.name_required') }}');
           nameInput.focus();
           return;
         }
-        
+
         if (name.length < 2) {
           e.preventDefault();
-          alert('Category name must be at least 2 characters long');
+          alert('{{ trans('admin.categories.name_min_length') }}');
           nameInput.focus();
           return;
         }
@@ -925,8 +944,8 @@
       }
 
       function handleModalFile(file) {
-        if (!file.type.startsWith('image/')) { alert('Seleziona un file immagine'); return; }
-        if (file.size > 5 * 1024 * 1024) { alert('Max 5MB'); return; }
+        if (!file.type.startsWith('image/')) { alert('{{ trans('admin.categories.image_required') }}'); return; }
+        if (file.size > 5 * 1024 * 1024) { alert('{{ trans('admin.categories.max_size') }}'); return; }
         const reader = new FileReader();
         reader.onload = (ev) => {
           uploadPreviewImg.src = ev.target.result;
@@ -962,11 +981,11 @@
             } else {
               const errorText = await response.text();
               console.error('Update failed:', errorText);
-              alert('Errore durante l\'aggiornamento della categoria');
+              alert('{{ trans('admin.categories.update_error') }}');
             }
           } catch (error) {
             console.error('Update error:', error);
-            alert('Errore durante l\'aggiornamento della categoria');
+            alert('{{ trans('admin.categories.update_error') }}');
           }
         });
       }

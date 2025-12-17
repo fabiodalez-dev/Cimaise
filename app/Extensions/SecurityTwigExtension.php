@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace App\Extensions;
 
+use App\Middlewares\SecurityHeadersMiddleware;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
+use Twig\TwigFunction;
 
 class SecurityTwigExtension extends AbstractExtension
 {
@@ -13,6 +15,21 @@ class SecurityTwigExtension extends AbstractExtension
         return [
             new TwigFilter('safe_html', [$this, 'sanitizeHtml'], ['is_safe' => ['html']]),
         ];
+    }
+
+    public function getFunctions(): array
+    {
+        return [
+            new TwigFunction('csp_nonce', [$this, 'getCspNonce']),
+        ];
+    }
+
+    /**
+     * Get the current request's CSP nonce for use in inline scripts
+     */
+    public function getCspNonce(): string
+    {
+        return SecurityHeadersMiddleware::getNonce() ?? '';
     }
 
     public function sanitizeHtml(?string $html): string

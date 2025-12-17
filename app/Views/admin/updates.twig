@@ -1,0 +1,586 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}{{ trans('admin.updates.title') }} — Cimaise{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.updates.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.updates.description') }}</p>
+    </div>
+    <div class="text-sm text-gray-500">
+      <span class="font-medium">{{ trans('admin.updates.current_version') }}:</span>
+      <span class="font-mono bg-gray-100 px-2 py-1 rounded">v{{ updateInfo.current }}</span>
+    </div>
+  </div>
+
+  <div class="space-y-8 pb-24">
+    <!-- Update Status Card -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-cloud-download-alt mr-3 text-gray-600"></i>
+          {{ trans('admin.updates.update_status') }}
+        </h3>
+
+        {% if updateInfo.error %}
+          <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+            <div class="flex items-center">
+              <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+              <div>
+                <p class="text-sm font-medium text-red-800">{{ trans('admin.updates.error_checking') }}</p>
+                <p class="text-sm text-red-700">{{ updateInfo.error }}</p>
+              </div>
+            </div>
+          </div>
+        {% elseif updateInfo.available %}
+          <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-start">
+                <i class="fas fa-arrow-circle-up text-blue-500 mr-3 mt-1"></i>
+                <div>
+                  <p class="text-sm font-medium text-blue-800">{{ trans('admin.updates.new_version_available') }}</p>
+                  <p class="text-sm text-blue-700">
+                    {{ trans('admin.updates.version') }} <span class="font-mono font-bold">v{{ updateInfo.latest }}</span> {{ trans('admin.updates.version_available') }} <span class="font-mono">v{{ updateInfo.current }}</span>.
+                  </p>
+                  {% if updateInfo.release.published_at %}
+                    <p class="text-xs text-blue-600 mt-1">
+                      {{ trans('admin.updates.released') }}: {{ updateInfo.release.published_at|date('F j, Y') }}
+                    </p>
+                  {% endif %}
+                </div>
+              </div>
+              <button type="button" id="update-btn" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
+                <i class="fas fa-download mr-2"></i>
+                {{ trans('admin.updates.update_now') }}
+              </button>
+            </div>
+          </div>
+        {% else %}
+          <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+            <div class="flex items-center">
+              <i class="fas fa-check-circle text-green-500 mr-3"></i>
+              <div>
+                <p class="text-sm font-medium text-green-800">{{ trans('admin.updates.up_to_date_title') }}</p>
+                <p class="text-sm text-green-700">
+                  Cimaise <span class="font-mono">v{{ updateInfo.current }}</span> {{ trans('admin.updates.up_to_date_text') }}
+                </p>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="flex items-center gap-4 mt-4">
+          <button type="button" class="btn-secondary text-sm" data-action="check-updates">
+            <i class="fas fa-sync-alt mr-2" id="check-updates-icon"></i>
+            {{ trans('admin.updates.check_updates') }}
+          </button>
+          <a href="https://github.com/fabiodalez-dev/cimaise/releases" target="_blank" class="text-sm text-gray-600 hover:text-gray-900">
+            <i class="fab fa-github mr-1"></i>
+            {{ trans('admin.updates.view_releases') }}
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Requirements -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-server mr-3 text-gray-600"></i>
+          {{ trans('admin.updates.requirements') }}
+        </h3>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.requirement') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.required') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.current') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.status') }}</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {% for req in requirements.requirements %}
+              <tr>
+                <td class="px-4 py-3 text-sm text-gray-900">{{ req.name }}</td>
+                <td class="px-4 py-3 text-sm text-gray-500 font-mono">{{ req.required }}</td>
+                <td class="px-4 py-3 text-sm text-gray-500 font-mono">{{ req.current }}</td>
+                <td class="px-4 py-3">
+                  {% if req.met %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <i class="fas fa-check mr-1"></i> {{ trans('admin.updates.ok') }}
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      <i class="fas fa-times mr-1"></i> {{ trans('admin.updates.failed') }}
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if not requirements.met %}
+          <div class="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-4">
+            <div class="flex items-center">
+              <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+              <p class="text-sm text-yellow-800">
+                {{ trans('admin.updates.requirements_not_met') }}
+              </p>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Changelog -->
+    {% if changelog|length > 0 %}
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-list-alt mr-3 text-gray-600"></i>
+          {{ trans('admin.updates.changelog') }}
+        </h3>
+
+        <div class="space-y-4 max-h-96 overflow-y-auto">
+          {% for release in changelog %}
+          <div class="border-l-4 border-blue-500 pl-4 py-2">
+            <div class="flex items-center justify-between">
+              <h4 class="font-medium text-gray-900">
+                {{ release.name }}
+                {% if release.prerelease %}
+                  <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                    {{ trans('admin.updates.pre_release') }}
+                  </span>
+                {% endif %}
+              </h4>
+              {% if release.published_at %}
+                <span class="text-xs text-gray-500">{{ release.published_at|date('M j, Y') }}</span>
+              {% endif %}
+            </div>
+            {% if release.body %}
+              <div class="mt-2 text-sm text-gray-600 prose prose-sm max-w-none">
+                {{ release.body|safe_html|nl2br }}
+              </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Backups Section -->
+    <div class="card">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-medium text-gray-900 flex items-center">
+            <i class="fas fa-database mr-3 text-gray-600"></i>
+            {{ trans('admin.updates.database_backups') }}
+          </h3>
+          <button type="button" class="btn-secondary text-sm" data-action="create-backup">
+            <i class="fas fa-plus mr-2" id="backup-icon"></i>
+            {{ trans('admin.updates.create_backup') }}
+          </button>
+        </div>
+
+        <div id="backups-list">
+          {% if backups|length > 0 %}
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.backup') }}</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.date') }}</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.size') }}</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.actions') }}</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200" id="backups-tbody">
+                  {% for backup in backups %}
+                  <tr data-backup-name="{{ backup.name|e('html_attr') }}">
+                    <td class="px-4 py-3 text-sm font-mono text-gray-900">{{ backup.name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">{{ backup.date }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">{{ (backup.size / 1024)|round(2) }} KB</td>
+                    <td class="px-4 py-3 text-sm text-right">
+                      <a href="{{ base_path }}/admin/updates/backup/download?backup={{ backup.name|url_encode }}"
+                         class="text-blue-600 hover:text-blue-800 mr-3">
+                        <i class="fas fa-download"></i>
+                      </a>
+                      <button type="button"
+                              class="text-red-600 hover:text-red-800"
+                              data-action="delete-backup"
+                              data-backup="{{ backup.name|e('html_attr') }}">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-sm text-gray-500 text-center py-8">
+              <i class="fas fa-info-circle mr-2"></i>
+              {{ trans('admin.updates.no_backups') }}
+            </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Update History -->
+    {% if history|length > 0 %}
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-history mr-3 text-gray-600"></i>
+          {{ trans('admin.updates.update_history') }}
+        </h3>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.from') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.to') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.status') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.date') }}</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ trans('admin.updates.user') }}</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {% for log in history %}
+              <tr>
+                <td class="px-4 py-3 text-sm font-mono text-gray-900">v{{ log.from_version }}</td>
+                <td class="px-4 py-3 text-sm font-mono text-gray-900">
+                  {% if log.to_version == 'backup' %}
+                    <span class="text-gray-500">{{ trans('admin.updates.backup') }}</span>
+                  {% else %}
+                    v{{ log.to_version }}
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                  {% if log.status == 'completed' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <i class="fas fa-check mr-1"></i> {{ trans('admin.updates.completed') }}
+                    </span>
+                  {% elseif log.status == 'failed' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      <i class="fas fa-times mr-1"></i> {{ trans('admin.updates.failed') }}
+                    </span>
+                  {% elseif log.status == 'started' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <i class="fas fa-spinner fa-spin mr-1"></i> {{ trans('admin.updates.in_progress') }}
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {{ log.status }}
+                    </span>
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-500">{{ log.started_at }}</td>
+                <td class="px-4 py-3 text-sm text-gray-500">{{ log.executed_by_name ?? trans('admin.updates.system') }}</td>
+              </tr>
+              {% if log.error_message %}
+              <tr class="bg-red-50">
+                <td colspan="5" class="px-4 py-2 text-xs text-red-700">
+                  <i class="fas fa-exclamation-circle mr-1"></i>
+                  {{ log.error_message }}
+                </td>
+              </tr>
+              {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Emergency Actions -->
+    <div class="card border-orange-200">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-orange-800 mb-4 flex items-center">
+          <i class="fas fa-exclamation-triangle mr-3 text-orange-600"></i>
+          {{ trans('admin.updates.emergency') }}
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">
+          {{ trans('admin.updates.emergency_desc') }}
+        </p>
+        <button type="button" class="btn-secondary border-orange-300 text-orange-700 hover:bg-orange-50" data-action="clear-maintenance">
+          <i class="fas fa-unlock mr-2"></i>
+          {{ trans('admin.updates.clear_maintenance') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky Footer with Action Buttons -->
+  <div class="fixed bottom-0 left-0 md:left-64 right-0 bg-white border-t border-gray-200 px-6 py-4 z-40">
+    <div class="flex items-center justify-end gap-3">
+      <button type="button" class="btn-secondary" data-action="check-updates">
+        <i class="fas fa-sync-alt mr-2" id="footer-check-icon"></i>
+        {{ trans('admin.updates.check_updates') }}
+      </button>
+      <button type="button" class="btn-secondary" data-action="create-backup">
+        <i class="fas fa-database mr-2" id="footer-backup-icon"></i>
+        {{ trans('admin.updates.create_backup') }}
+      </button>
+      {% if updateInfo.available %}
+      <button type="button" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
+        <i class="fas fa-download mr-2"></i>
+        {{ trans('admin.updates.update_now') }}
+      </button>
+      {% else %}
+      <button type="button" class="btn-primary opacity-50 cursor-not-allowed" disabled>
+        <i class="fas fa-check mr-2"></i>
+        {{ trans('admin.updates.up_to_date') }}
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Update Progress Modal -->
+  <div id="update-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div class="p-6">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-spinner fa-spin text-2xl text-blue-500 mr-3"></i>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.updates.updating') }}</h3>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center text-sm" id="step-backup">
+            <i class="fas fa-circle-notch fa-spin text-blue-500 mr-3 w-5"></i>
+            <span>{{ trans('admin.updates.creating_backup') }}</span>
+          </div>
+          <div class="flex items-center text-sm text-gray-400" id="step-download">
+            <i class="fas fa-circle text-gray-300 mr-3 w-5"></i>
+            <span>{{ trans('admin.updates.downloading') }}</span>
+          </div>
+          <div class="flex items-center text-sm text-gray-400" id="step-install">
+            <i class="fas fa-circle text-gray-300 mr-3 w-5"></i>
+            <span>{{ trans('admin.updates.installing') }}</span>
+          </div>
+        </div>
+        <div id="update-error" class="hidden mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700"></div>
+        <p class="text-xs text-gray-500 mt-4">
+          <i class="fas fa-info-circle mr-1"></i>
+          {{ trans('admin.updates.do_not_close') }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+<script nonce="{{ csp_nonce() }}">
+const csrfToken = '{{ csrf|e('html_attr') }}';
+const basePath = '{{ base_path|e('html_attr') }}';
+const i18n = {
+    confirmUpdate: '{{ trans('admin.updates.confirm_update')|e('html_attr') }}',
+    confirmDeleteBackup: '{{ trans('admin.updates.confirm_delete_backup')|e('html_attr') }}',
+    confirmMaintenance: '{{ trans('admin.updates.confirm_clear_maintenance')|e('html_attr') }}',
+    updateSuccess: '{{ trans('admin.updates.update_success')|e('html_attr') }}',
+    backupSuccess: '{{ trans('admin.updates.backup_created')|e('html_attr') }}',
+    latestVersion: '{{ trans('admin.updates.up_to_date_title')|e('html_attr') }}',
+    errorChecking: '{{ trans('admin.updates.error_checking')|e('html_attr') }}'
+};
+
+function checkForUpdatesManual() {
+    const icons = [
+        document.getElementById('check-updates-icon'),
+        document.getElementById('footer-check-icon')
+    ].filter(Boolean);
+    icons.forEach(icon => icon.classList.add('fa-spin'));
+
+    fetch(basePath + '/admin/updates/check', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        icons.forEach(icon => icon.classList.remove('fa-spin'));
+        if (data.available) {
+            location.reload();
+        } else if (data.error) {
+            alert(i18n.errorChecking + ': ' + data.error);
+        } else {
+            alert(i18n.latestVersion.replace('{version}', data.current || ''));
+        }
+    })
+    .catch(error => {
+        icons.forEach(icon => icon.classList.remove('fa-spin'));
+        alert(i18n.errorChecking + ': ' + error.message);
+    });
+}
+
+function startUpdate(version) {
+    const message = i18n.confirmUpdate.replace('{version}', version);
+    if (!confirm(message)) {
+        return;
+    }
+
+    const modal = document.getElementById('update-modal');
+    modal.classList.remove('hidden');
+
+    const formData = new FormData();
+    formData.append('csrf_token', csrfToken);
+    formData.append('version', version);
+
+    fetch(basePath + '/admin/updates/perform', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update step indicators
+            updateStep('step-backup', 'completed');
+            updateStep('step-download', 'completed');
+            updateStep('step-install', 'completed');
+
+            setTimeout(() => {
+                alert(i18n.updateSuccess);
+                location.reload();
+            }, 1000);
+        } else {
+            document.getElementById('update-error').textContent = data.error;
+            document.getElementById('update-error').classList.remove('hidden');
+        }
+    })
+    .catch(error => {
+        document.getElementById('update-error').textContent = 'Update failed: ' + error.message;
+        document.getElementById('update-error').classList.remove('hidden');
+    });
+}
+
+function updateStep(stepId, status) {
+    const step = document.getElementById(stepId);
+    const icon = step.querySelector('i');
+
+    if (status === 'completed') {
+        icon.className = 'fas fa-check-circle text-green-500 mr-3 w-5';
+        step.classList.remove('text-gray-400');
+        step.classList.add('text-green-700');
+    } else if (status === 'active') {
+        icon.className = 'fas fa-circle-notch fa-spin text-blue-500 mr-3 w-5';
+        step.classList.remove('text-gray-400');
+    } else if (status === 'failed') {
+        icon.className = 'fas fa-times-circle text-red-500 mr-3 w-5';
+        step.classList.remove('text-gray-400');
+        step.classList.add('text-red-700');
+    }
+}
+
+function createBackup() {
+    const headerIcon = document.getElementById('backup-icon');
+    const footerIcon = document.getElementById('footer-backup-icon');
+    if (headerIcon) headerIcon.className = 'fas fa-spinner fa-spin mr-2';
+    if (footerIcon) footerIcon.className = 'fas fa-spinner fa-spin mr-2';
+
+    const formData = new FormData();
+    formData.append('csrf_token', csrfToken);
+
+    fetch(basePath + '/admin/updates/backup', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (headerIcon) headerIcon.className = 'fas fa-plus mr-2';
+        if (footerIcon) footerIcon.className = 'fas fa-database mr-2';
+        if (data.success) {
+            alert(i18n.backupSuccess);
+            location.reload();
+        } else {
+            alert((i18n.errorChecking || 'Error') + ': ' + data.error);
+        }
+    })
+    .catch(error => {
+        if (headerIcon) headerIcon.className = 'fas fa-plus mr-2';
+        if (footerIcon) footerIcon.className = 'fas fa-database mr-2';
+        alert((i18n.errorChecking || 'Error') + ': ' + error.message);
+    });
+}
+
+function deleteBackup(backupName) {
+    if (!confirm(i18n.confirmDeleteBackup)) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('csrf_token', csrfToken);
+    formData.append('backup', backupName);
+
+    fetch(basePath + '/admin/updates/backup/delete', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const row = document.querySelector('[data-backup-name="' + CSS.escape(backupName) + '"]');
+            if (row) {
+                row.remove();
+            }
+        } else {
+            alert((i18n.errorChecking || 'Error') + ': ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert((i18n.errorChecking || 'Error') + ': ' + error.message);
+    });
+}
+
+function clearMaintenance() {
+    if (!confirm(i18n.confirmMaintenance)) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('csrf_token', csrfToken);
+
+    fetch(basePath + '/admin/updates/maintenance/clear', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert((i18n.errorChecking || 'Error') + ': ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert((i18n.errorChecking || 'Error') + ': ' + error.message);
+    });
+}
+
+function bindUpdateActions() {
+    const actionHandlers = {
+        'check-updates': () => checkForUpdatesManual(),
+        'start-update': (el) => startUpdate(el.dataset.version),
+        'create-backup': () => createBackup(),
+        'delete-backup': (el) => deleteBackup(el.dataset.backup),
+        'clear-maintenance': () => clearMaintenance()
+    };
+
+    document.querySelectorAll('[data-action]').forEach((el) => {
+        const action = el.dataset.action;
+        const handler = actionHandlers[action];
+        if (handler) {
+            el.addEventListener('click', (event) => {
+                event.preventDefault();
+                handler(el);
+            });
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', bindUpdateActions);
+</script>
+{% endblock %}

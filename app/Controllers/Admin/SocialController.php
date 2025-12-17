@@ -48,6 +48,8 @@ class SocialController extends BaseController
         // Support both form-encoded and JSON payloads
         $data = (array)($request->getParsedBody() ?? []);
         $contentType = strtolower($request->getHeaderLine('Content-Type'));
+
+        // For JSON payloads, parse the body first to get CSRF token
         if (str_contains($contentType, 'application/json')) {
             try {
                 $raw = (string)$request->getBody();
@@ -61,6 +63,17 @@ class SocialController extends BaseController
                 // fall back to parsed body if JSON decoding fails
             }
         }
+
+        // CSRF validation (check from parsed data or header)
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        if (!\is_string($token) || !isset($_SESSION['csrf']) || !\hash_equals($_SESSION['csrf'], $token)) {
+            if ($this->isAjaxRequest($request)) {
+                return $this->csrfErrorJson($response);
+            }
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
+        }
+
         $svc = new SettingsService($this->db);
         
         // Determine enabled socials
@@ -112,14 +125,7 @@ class SocialController extends BaseController
         $svc->set('social.order', $socialOrder);
         
         // AJAX request support: return JSON instead of redirect
-        $isAjax = false;
-        try {
-            $hdr = $request->getHeaderLine('X-Requested-With');
-            $acc = $request->getHeaderLine('Accept');
-            $isAjax = (stripos($hdr, 'XMLHttpRequest') !== false) || (stripos($acc, 'application/json') !== false);
-        } catch (\Throwable) {}
-
-        if ($isAjax) {
+        if ($this->isAjaxRequest($request)) {
             $payload = json_encode([
                 'ok' => true,
                 'enabled' => $enabledSocials,
@@ -260,12 +266,6 @@ class SocialController extends BaseController
                 'icon' => 'fab fa-google',
                 'color' => '#3A7CEC',
                 'url' => '#' // Not a sharing service
-            ],
-            'googleplus' => [
-                'name' => 'Google+',
-                'icon' => 'fab fa-google-plus-g',
-                'color' => '#DB483B',
-                'url' => 'https://plus.google.com/share?url={url}'
             ],
             'hackernews' => [
                 'name' => 'Hacker News',

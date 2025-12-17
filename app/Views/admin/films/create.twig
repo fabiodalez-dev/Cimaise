@@ -1,57 +1,55 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Nuova pellicola — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.films.new') }} — Cimaise{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-4"><h1 class="text-2xl font-bold text-gray-900">Nuova pellicola</h1></div>
+  <div class="flex items-center justify-between mb-4"><h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.films.new') }}</h1></div>
   <form method="post" action="{{ base_path }}/admin/films">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">Brand</label><input class="form-input" type="text" name="brand" required></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">Nome</label><input class="form-input" type="text" name="name" required></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">ISO</label><input class="form-input" type="number" name="iso"></div>
-      <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Formato</label>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.brand') }}</label><input class="form-input" type="text" name="brand" required></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.name') }}</label><input class="form-input" type="text" name="name" required></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.iso') }}</label><input class="form-input" type="number" name="iso"></div>
+      <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.format') }}</label>
         <select name="format" class="form-input">
-          <option value="35mm" selected>35mm</option>
-          <option value="120">120</option>
-          <option value="4x5">4x5</option>
-          <option value="8x10">8x10</option>
-          <option value="instant">Instant</option>
-          <option value="instant_mini">Instant Mini</option>
-          <option value="instant_square">Instant Square</option>
-          <option value="instant_wide">Instant Wide</option>
-          <option value="digital">Digital</option>
-          <option value="other">Other</option>
+          <option value="35mm" selected>{{ trans('admin.films.format_35mm') }}</option>
+          <option value="120">{{ trans('admin.films.format_120') }}</option>
+          <option value="4x5">{{ trans('admin.films.format_4x5') }}</option>
+          <option value="8x10">{{ trans('admin.films.format_8x10') }}</option>
+          <option value="instant">{{ trans('admin.films.format_instant') }}</option>
+          <option value="instant_mini">{{ trans('admin.films.format_instant_mini') }}</option>
+          <option value="instant_square">{{ trans('admin.films.format_instant_square') }}</option>
+          <option value="instant_wide">{{ trans('admin.films.format_instant_wide') }}</option>
+          <option value="digital">{{ trans('admin.films.format_digital') }}</option>
+          <option value="other">{{ trans('admin.films.format_other') }}</option>
         </select>
       </div>
-      <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+      <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.type') }}</label>
         <select name="type" class="form-input">
-          <optgroup label="B/W">
-            <option value="bw_negative">B/W Negative (tradizionale)</option>
-            <option value="bw_chromogenic">B/W Chromogenic (C-41)</option>
-            <option value="bw_reversal">B/W Reversal (slide)</option>
-            <option value="bw_infrared">B/W Infrared</option>
-            <!-- Legacy compatibility -->
-            <option value="bw">B/W (legacy)</option>
+          <optgroup label="{{ trans('admin.films.group_bw') }}">
+            <option value="bw_negative">{{ trans('admin.films.type_bw_traditional') }}</option>
+            <option value="bw_chromogenic">{{ trans('admin.films.type_bw_chromogenic') }}</option>
+            <option value="bw_reversal">{{ trans('admin.films.type_bw_reversal') }}</option>
+            <option value="bw_infrared">{{ trans('admin.films.type_bw_infrared') }}</option>
+            <option value="bw">{{ trans('admin.films.type_bw_legacy') }}</option>
           </optgroup>
-          <optgroup label="Colore">
-            <option value="c41_color_negative" selected>C-41 Color Negative</option>
-            <option value="e6_slide">E-6 Slide/Diapositiva</option>
-            <option value="ecn2_cinema">ECN-2 Cinema</option>
-            <!-- Legacy compatibility -->
-            <option value="color_negative">C-41 (legacy)</option>
-            <option value="color_reversal">E-6 (legacy)</option>
+          <optgroup label="{{ trans('admin.films.group_color') }}">
+            <option value="c41_color_negative" selected>{{ trans('admin.films.type_c41_color_negative') }}</option>
+            <option value="e6_slide">{{ trans('admin.films.type_e6_slide') }}</option>
+            <option value="ecn2_cinema">{{ trans('admin.films.type_ecn2_cinema') }}</option>
+            <option value="color_negative">{{ trans('admin.films.type_c41_legacy') }}</option>
+            <option value="color_reversal">{{ trans('admin.films.type_e6_legacy') }}</option>
           </optgroup>
-          <optgroup label="Instant">
-            <option value="instant_integral">Instant (Polaroid/Instax)</option>
+          <optgroup label="{{ trans('admin.films.group_instant') }}">
+            <option value="instant_integral">{{ trans('admin.films.type_instant_integral') }}</option>
           </optgroup>
-          <optgroup label="Digitale">
-            <option value="digital">Digitale</option>
+          <optgroup label="{{ trans('admin.films.group_digital') }}">
+            <option value="digital">{{ trans('admin.films.type_digital') }}</option>
           </optgroup>
-          <optgroup label="Altro/Sperimentale">
-            <option value="other">Altro/Sperimentale</option>
+          <optgroup label="{{ trans('admin.films.group_other') }}">
+            <option value="other">{{ trans('admin.films.type_other') }}</option>
           </optgroup>
         </select>
       </div>
     </div>
-    <div class="mt-3 flex gap-3"><button class="btn-primary">Salva</button> <a class="btn-secondary" href="{{ base_path }}/admin/films">Annulla</a></div>
+    <div class="mt-3 flex gap-3"><button class="btn-primary">{{ trans('admin.common.save') }}</button> <a class="btn-secondary" href="{{ base_path }}/admin/films">{{ trans('admin.common.cancel') }}</a></div>
   </form>
 {% endblock %}
