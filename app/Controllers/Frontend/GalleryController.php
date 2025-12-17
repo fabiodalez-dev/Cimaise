@@ -45,8 +45,11 @@ class GalleryController extends BaseController
                 'meta_description' => 'Album not found or unpublished'
             ]);
         }
-        // Password protection with session timeout (24h)
-        if (!empty($album['password_hash'])) {
+        // Check if user is admin (admins bypass password/NSFW protection)
+        $isAdmin = $this->isAdmin();
+
+        // Password protection with session timeout (24h) - skip for admins
+        if (!empty($album['password_hash']) && !$isAdmin) {
             $allowed = false;
             if (isset($_SESSION['album_access'][$album['id']])) {
                 $accessTime = $_SESSION['album_access'][$album['id']];
@@ -71,7 +74,8 @@ class GalleryController extends BaseController
                     'categories' => $navCategories,
                     'page_title' => $album['title'] . ' — Protected',
                     'error' => $error,
-                    'csrf' => $_SESSION['csrf'] ?? ''
+                    'csrf' => $_SESSION['csrf'] ?? '',
+                    'is_admin' => $isAdmin
                 ]);
             }
         }
@@ -468,8 +472,12 @@ class GalleryController extends BaseController
                 $response->getBody()->write('Album not found');
                 return $response->withStatus(404);
             }
-            // Password protection with session timeout (24h)
-            if (!empty($album['password_hash'])) {
+
+            // Check if user is admin (admins bypass password protection)
+            $isAdmin = $this->isAdmin();
+
+            // Password protection with session timeout (24h) - skip for admins
+            if (!empty($album['password_hash']) && !$isAdmin) {
                 $allowed = false;
                 if (isset($_SESSION['album_access'][$album['id']])) {
                     $accessTime = $_SESSION['album_access'][$album['id']];
@@ -583,8 +591,8 @@ class GalleryController extends BaseController
                 'base_path' => $this->basePath
             ];
 
-            // Use Magazine template for template ID 9 or layout 'magazine'
-            if ($templateId === 9 || ($templateSettings['layout'] ?? '') === 'magazine') {
+            // Use Magazine template for magazine-split slug or layout 'magazine'
+            if (($template['slug'] ?? '') === 'magazine-split' || ($templateSettings['layout'] ?? '') === 'magazine') {
                 $templateFile = 'frontend/_gallery_magazine_content.twig';
                 $templateData['album'] = $album; // Magazine template needs album data
             }

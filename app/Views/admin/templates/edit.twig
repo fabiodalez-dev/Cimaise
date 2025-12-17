@@ -1,79 +1,78 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Modifica Template — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.templates.edit_template') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-6">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Modifica Template</h1>
-      <p class="text-gray-600 mt-1">Modifica il template "{{ item.name }}"</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.templates.edit_template') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.templates.editing_template') }} "{{ item.name }}"</p>
     </div>
     <a href="{{ base_path }}/admin/templates" class="btn-secondary">
-      <i class="fas fa-arrow-left mr-2"></i>Torna alla lista
+      <i class="fas fa-arrow-left mr-2"></i>{{ trans('admin.templates.back_to_list') }}
     </a>
   </div>
 
   <form method="post" action="{{ base_path }}/admin/templates/{{ item.id }}" class="space-y-6">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 space-y-6">
         <div class="card p-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">Informazioni Generali</h2>
+          <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.general_info') }}</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.name_required') }}</label>
               <input class="form-input" type="text" name="name" value="{{ item.name }}" required>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-              <input class="form-input" type="text" name="slug" value="{{ item.slug }}" placeholder="(auto se vuoto)">
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.slug') }}</label>
+              <input class="form-input" type="text" name="slug" value="{{ item.slug }}" placeholder="{{ trans('admin.templates.slug_placeholder') }}">
             </div>
           </div>
           <div class="mt-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Descrizione</label>
-            <textarea class="form-input" name="description" rows="3" placeholder="Descrizione del template...">{{ item.description }}</textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.description_label') }}</label>
+            <textarea class="form-input" name="description" rows="3" placeholder="{{ trans('admin.templates.description_placeholder') }}">{{ item.description }}</textarea>
           </div>
         </div>
 
         <div class="card p-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">Impostazioni Layout</h2>
+          <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.layout_settings') }}</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo Layout</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.layout_type') }}</label>
               <select class="form-input" name="layout">
-                <option value="grid"{% if item.settings.layout == 'grid' %} selected{% endif %}>Griglia</option>
-                <option value="masonry"{% if item.settings.layout == 'masonry' %} selected{% endif %}>Masonry</option>
-                <option value="slideshow"{% if item.settings.layout == 'slideshow' %} selected{% endif %}>Slideshow</option>
-                <option value="fullscreen"{% if item.settings.layout == 'fullscreen' %} selected{% endif %}>Fullscreen</option>
+                <option value="grid"{% if item.settings.layout == 'grid' %} selected{% endif %}>{{ trans('admin.templates.grid') }}</option>
+                <option value="masonry"{% if item.settings.layout == 'masonry' %} selected{% endif %}>{{ trans('admin.templates.masonry') }}</option>
+                <option value="slideshow"{% if item.settings.layout == 'slideshow' %} selected{% endif %}>{{ trans('admin.templates.slideshow') }}</option>
+                <option value="fullscreen"{% if item.settings.layout == 'fullscreen' %} selected{% endif %}>{{ trans('admin.templates.fullscreen') }}</option>
               </select>
             </div>
             <div>
               <label class="flex items-center">
                 <input type="checkbox" name="masonry" class="form-checkbox"{% if item.settings.masonry %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">Abilita layout Masonry</span>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.enable_masonry') }}</span>
               </label>
             </div>
           </div>
-          
+
           <div class="border-t pt-4">
-            <h3 class="text-md font-medium text-gray-800 mb-3">Colonne per Dispositivo</h3>
+            <h3 class="text-md font-medium text-gray-800 mb-3">{{ trans('admin.templates.columns_per_device') }}</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               {% set cols = item.settings.columns is defined ? item.settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
-              {# Usiamo direttamente i valori semplici #}
               {% set desktop_cols = cols.desktop %}
               {% set tablet_cols = cols.tablet %}
               {% set mobile_cols = cols.mobile %}
-              
+
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                   <i class="fas fa-desktop text-gray-500 mr-1"></i>Desktop
                 </label>
                 <select class="form-input" name="columns_desktop">
-                  <option value="1"{% if desktop_cols == 1 %} selected{% endif %}>1 colonna</option>
-                  <option value="2"{% if desktop_cols == 2 %} selected{% endif %}>2 colonne</option>
-                  <option value="3"{% if desktop_cols == 3 %} selected{% endif %}>3 colonne</option>
-                  <option value="4"{% if desktop_cols == 4 %} selected{% endif %}>4 colonne</option>
-                  <option value="5"{% if desktop_cols == 5 %} selected{% endif %}>5 colonne</option>
-                  <option value="6"{% if desktop_cols == 6 %} selected{% endif %}>6 colonne</option>
+                  <option value="1"{% if desktop_cols == 1 %} selected{% endif %}>1 {{ trans('admin.templates.column') }}</option>
+                  <option value="2"{% if desktop_cols == 2 %} selected{% endif %}>2 {{ trans('admin.templates.columns') }}</option>
+                  <option value="3"{% if desktop_cols == 3 %} selected{% endif %}>3 {{ trans('admin.templates.columns') }}</option>
+                  <option value="4"{% if desktop_cols == 4 %} selected{% endif %}>4 {{ trans('admin.templates.columns') }}</option>
+                  <option value="5"{% if desktop_cols == 5 %} selected{% endif %}>5 {{ trans('admin.templates.columns') }}</option>
+                  <option value="6"{% if desktop_cols == 6 %} selected{% endif %}>6 {{ trans('admin.templates.columns') }}</option>
                 </select>
               </div>
               <div>
@@ -81,10 +80,10 @@
                   <i class="fas fa-tablet-alt text-gray-500 mr-1"></i>Tablet
                 </label>
                 <select class="form-input" name="columns_tablet">
-                  <option value="1"{% if tablet_cols == 1 %} selected{% endif %}>1 colonna</option>
-                  <option value="2"{% if tablet_cols == 2 %} selected{% endif %}>2 colonne</option>
-                  <option value="3"{% if tablet_cols == 3 %} selected{% endif %}>3 colonne</option>
-                  <option value="4"{% if tablet_cols == 4 %} selected{% endif %}>4 colonne</option>
+                  <option value="1"{% if tablet_cols == 1 %} selected{% endif %}>1 {{ trans('admin.templates.column') }}</option>
+                  <option value="2"{% if tablet_cols == 2 %} selected{% endif %}>2 {{ trans('admin.templates.columns') }}</option>
+                  <option value="3"{% if tablet_cols == 3 %} selected{% endif %}>3 {{ trans('admin.templates.columns') }}</option>
+                  <option value="4"{% if tablet_cols == 4 %} selected{% endif %}>4 {{ trans('admin.templates.columns') }}</option>
                 </select>
               </div>
               <div>
@@ -92,35 +91,35 @@
                   <i class="fas fa-mobile-alt text-gray-500 mr-1"></i>Mobile
                 </label>
                 <select class="form-input" name="columns_mobile">
-                  <option value="1"{% if mobile_cols == 1 %} selected{% endif %}>1 colonna</option>
-                  <option value="2"{% if mobile_cols == 2 %} selected{% endif %}>2 colonne</option>
+                  <option value="1"{% if mobile_cols == 1 %} selected{% endif %}>1 {{ trans('admin.templates.column') }}</option>
+                  <option value="2"{% if mobile_cols == 2 %} selected{% endif %}>2 {{ trans('admin.templates.columns') }}</option>
                 </select>
               </div>
             </div>
           </div>
         </div>
 
-        {% if item.id == 9 %}
+        {% if item.slug == 'magazine-split' %}
         <div class="card p-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">Impostazioni Magazine Split</h2>
-          <p class="text-sm text-gray-600 mb-4">Scorrimento verticale continuo di 3 colonne. Configura durate e gap.</p>
+          <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.magazine_settings') }}</h2>
+          <p class="text-sm text-gray-600 mb-4">{{ trans('admin.templates.magazine_description') }}</p>
           {% set mag = item.settings.magazine|default({}) %}
           {% set durs = mag.durations|default([60,72,84]) %}
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Durata Colonna 1 (s)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.column_1_duration') }}</label>
               <input class="form-input" type="number" name="mag_duration_1" min="10" max="300" step="1" value="{{ durs[0]|default(60) }}">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Durata Colonna 2 (s)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.column_2_duration') }}</label>
               <input class="form-input" type="number" name="mag_duration_2" min="10" max="300" step="1" value="{{ durs[1]|default(72) }}">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Durata Colonna 3 (s)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.column_3_duration') }}</label>
               <input class="form-input" type="number" name="mag_duration_3" min="10" max="300" step="1" value="{{ durs[2]|default(84) }}">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Gap (px)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.gap') }}</label>
               <input class="form-input" type="number" name="mag_gap" min="0" max="80" step="1" value="{{ mag.gap|default(20) }}">
             </div>
           </div>
@@ -128,48 +127,48 @@
         {% endif %}
 
         <div class="card p-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">Impostazioni PhotoSwipe</h2>
+          <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.photoswipe_settings') }}</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-3">
               <label class="flex items-center">
                 <input type="checkbox" name="photoswipe_loop" class="form-checkbox"{% if item.settings.photoswipe.loop is defined and item.settings.photoswipe.loop %} checked{% elseif item.settings.photoswipe.loop is not defined %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">Loop infinito</span>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.infinite_loop') }}</span>
               </label>
               <label class="flex items-center">
                 <input type="checkbox" name="photoswipe_zoom" class="form-checkbox"{% if item.settings.photoswipe.zoom is defined and item.settings.photoswipe.zoom %} checked{% elseif item.settings.photoswipe.zoom is not defined %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">Abilita zoom</span>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.enable_zoom') }}</span>
               </label>
               <label class="flex items-center">
                 <input type="checkbox" name="photoswipe_share" class="form-checkbox"{% if item.settings.photoswipe.share %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">Pulsante condivisione</span>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.share_button') }}</span>
               </label>
               <label class="flex items-center">
                 <input type="checkbox" name="photoswipe_counter" class="form-checkbox"{% if item.settings.photoswipe.counter is defined and item.settings.photoswipe.counter %} checked{% elseif item.settings.photoswipe.counter is not defined %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">Contatore immagini</span>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.image_counter') }}</span>
               </label>
             </div>
             <div class="space-y-3">
               <label class="flex items-center">
                 <input type="checkbox" name="photoswipe_arrowkeys" class="form-checkbox"{% if item.settings.photoswipe.arrowKeys is defined and item.settings.photoswipe.arrowKeys %} checked{% elseif item.settings.photoswipe.arrowKeys is not defined %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">Navigazione con frecce</span>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.arrow_navigation') }}</span>
               </label>
               <label class="flex items-center">
                 <input type="checkbox" name="photoswipe_esckey" class="form-checkbox"{% if item.settings.photoswipe.escKey is defined and item.settings.photoswipe.escKey %} checked{% elseif item.settings.photoswipe.escKey is not defined %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">Chiusura con ESC</span>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.esc_close') }}</span>
               </label>
               <label class="flex items-center">
                 <input type="checkbox" name="photoswipe_pan_to_next" class="form-checkbox"{% if item.settings.photoswipe.allowPanToNext %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">Pan per immagine successiva</span>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.pan_to_next') }}</span>
               </label>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Opacità sfondo</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.bg_opacity') }}</label>
               <input class="form-input" type="number" name="photoswipe_bg_opacity" min="0" max="1" step="0.1" value="{{ item.settings.photoswipe.bgOpacity|default(0.8) }}">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Spaziatura immagini</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.image_spacing') }}</label>
               <input class="form-input" type="number" name="photoswipe_spacing" min="0" max="1" step="0.01" value="{{ item.settings.photoswipe.spacing|default(0.12) }}">
             </div>
           </div>
@@ -178,48 +177,48 @@
 
       <div class="space-y-6">
         <div class="card p-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">Anteprima</h2>
+          <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.preview') }}</h2>
           <div class="text-sm text-gray-600 space-y-2">
-            <p><strong>Layout:</strong> <span id="preview-layout">{{ item.settings.layout|default('grid')|title }}</span></p>
-            <p><strong>Masonry:</strong> <span id="preview-masonry">{% if item.settings.masonry %}Sì{% else %}No{% endif %}</span></p>
+            <p><strong>{{ trans('admin.templates.layout') }}:</strong> <span id="preview-layout">{{ item.settings.layout|default('grid')|title }}</span></p>
+            <p><strong>{{ trans('admin.templates.masonry') }}:</strong> <span id="preview-masonry">{% if item.settings.masonry %}{{ trans('admin.templates.yes') }}{% else %}{{ trans('admin.templates.no') }}{% endif %}</span></p>
             <div class="mt-3">
-              <p class="font-medium">Colonne:</p>
+              <p class="font-medium">{{ trans('admin.templates.columns_label') }}</p>
               <ul class="ml-4 space-y-1">
                 <li><i class="fas fa-desktop text-gray-400 mr-1"></i>Desktop: <span id="preview-desktop">{{ desktop_cols|default(3) }}</span></li>
                 <li><i class="fas fa-tablet-alt text-gray-400 mr-1"></i>Tablet: <span id="preview-tablet">{{ tablet_cols|default(2) }}</span></li>
                 <li><i class="fas fa-mobile-alt text-gray-400 mr-1"></i>Mobile: <span id="preview-mobile">{{ mobile_cols|default(1) }}</span></li>
               </ul>
             </div>
-            <p><strong>PhotoSwipe:</strong> Abilitato</p>
+            <p><strong>PhotoSwipe:</strong> {{ trans('admin.templates.photoswipe_enabled') }}</p>
           </div>
         </div>
 
         <div class="card p-6">
           <div class="flex gap-2">
-            <button type="submit" class="btn-primary">Salva Modifiche</button>
-            <a href="{{ base_path }}/admin/templates" class="btn-secondary">Annulla</a>
+            <button type="submit" class="btn-primary">{{ trans('admin.templates.save_changes') }}</button>
+            <a href="{{ base_path }}/admin/templates" class="btn-secondary">{{ trans('admin.templates.cancel') }}</a>
           </div>
         </div>
       </div>
     </div>
   </form>
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     // Live preview updates
     const layoutSelect = document.querySelector('select[name="layout"]');
     const desktopSelect = document.querySelector('select[name="columns_desktop"]');
     const tabletSelect = document.querySelector('select[name="columns_tablet"]');
     const mobileSelect = document.querySelector('select[name="columns_mobile"]');
     const masonryCheck = document.querySelector('input[name="masonry"]');
-    
+
     function updatePreview() {
       document.getElementById('preview-layout').textContent = layoutSelect.options[layoutSelect.selectedIndex].text;
       document.getElementById('preview-desktop').textContent = desktopSelect.value;
       document.getElementById('preview-tablet').textContent = tabletSelect.value;
       document.getElementById('preview-mobile').textContent = mobileSelect.value;
-      document.getElementById('preview-masonry').textContent = masonryCheck.checked ? 'Sì' : 'No';
+      document.getElementById('preview-masonry').textContent = masonryCheck.checked ? '{{ trans('admin.templates.yes')|e('html_attr') }}' : '{{ trans('admin.templates.no')|e('html_attr') }}';
     }
-    
+
     layoutSelect.addEventListener('change', updatePreview);
     desktopSelect.addEventListener('change', updatePreview);
     tabletSelect.addEventListener('change', updatePreview);

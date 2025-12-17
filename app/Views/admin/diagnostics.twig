@@ -1,12 +1,14 @@
 {% extends "admin/_layout.twig" %}
 
+{% block title %}{{ trans('admin.diagnostics.title') }} — Cimaise{% endblock %}
+
 {% block content %}
 <div class="max-w-6xl mx-auto">
-    
+
     <div class="flex justify-between items-center mb-8">
-        <h1 class="text-2xl font-semibold text-gray-900">System Diagnostics</h1>
-        <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
-            Refresh
+        <h1 class="text-2xl font-semibold text-gray-900">{{ trans('admin.diagnostics.title') }}</h1>
+        <button data-action="reload-page" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+            {{ trans('admin.diagnostics.refresh') }}
         </button>
     </div>
 
@@ -49,7 +51,7 @@
                     
                     {% if diagnostic.details %}
                     <div class="bg-gray-50 rounded p-3">
-                        <h4 class="text-sm font-medium text-gray-800 mb-2">Details</h4>
+                        <h4 class="text-sm font-medium text-gray-800 mb-2">{{ trans('admin.diagnostics.details') }}</h4>
                         <dl class="text-sm space-y-1">
                             {% for key, value in diagnostic.details %}
                             <div class="flex justify-between">
@@ -67,54 +69,74 @@
     </div>
 
     <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 class="text-lg font-medium text-blue-900 mb-2">System Requirements</h3>
+        <h3 class="text-lg font-medium text-blue-900 mb-2">{{ trans('admin.diagnostics.system_requirements') }}</h3>
         <p class="text-blue-800 text-sm mb-4">
-            For optimal performance, ensure your system meets these requirements:
+            {{ trans('admin.diagnostics.requirements_hint') }}
         </p>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-                <h4 class="font-medium text-blue-900 mb-2">Minimum Requirements</h4>
+                <h4 class="font-medium text-blue-900 mb-2">{{ trans('admin.diagnostics.minimum_requirements') }}</h4>
                 <ul class="text-blue-800 space-y-1">
                     <li>• PHP 8.2+</li>
-                    <li>• MySQL 8.0+ or MariaDB 10.6+</li>
+                    <li>• MySQL 8.0+ / MariaDB 10.6+</li>
                     <li>• 128MB memory limit</li>
-                    <li>• Extensions: PDO, pdo_mysql, mbstring, json, fileinfo</li>
+                    <li>• {{ trans('admin.diagnostics.extensions') }}: PDO, pdo_mysql, mbstring, json, fileinfo</li>
                 </ul>
             </div>
-            
+
             <div>
-                <h4 class="font-medium text-blue-900 mb-2">Recommended</h4>
+                <h4 class="font-medium text-blue-900 mb-2">{{ trans('admin.diagnostics.recommended') }}</h4>
                 <ul class="text-blue-800 space-y-1">
                     <li>• 256MB+ memory limit</li>
-                    <li>• GD or ImageMagick extension</li>
-                    <li>• EXIF extension for metadata</li>
-                    <li>• Writable storage directories</li>
+                    <li>• GD / ImageMagick</li>
+                    <li>• EXIF</li>
+                    <li>• {{ trans('admin.diagnostics.writable_dirs') }}</li>
                 </ul>
             </div>
         </div>
     </div>
 
     <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-2">CLI Commands</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.diagnostics.cli_commands') }}</h3>
         <p class="text-gray-600 text-sm mb-4">
-            Useful commands for maintenance and troubleshooting:
+            {{ trans('admin.diagnostics.cli_commands_hint') }}
         </p>
-        
+
         <div class="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm space-y-2 overflow-x-auto">
-            <div># Generate image variants</div>
+            <div># {{ trans('admin.diagnostics.generate_variants') }}</div>
             <div>php bin/console images:generate --missing</div>
             <div></div>
-            <div># Build sitemap</div>
+            <div># {{ trans('admin.diagnostics.build_sitemap') }}</div>
             <div>php bin/console sitemap:build --base-url https://yourdomain.com</div>
             <div></div>
-            <div># Run diagnostics</div>
+            <div># {{ trans('admin.diagnostics.run_diagnostics') }}</div>
             <div>php bin/console diagnostics</div>
             <div></div>
-            <div># Create admin user</div>
+            <div># {{ trans('admin.diagnostics.create_admin') }}</div>
             <div>php bin/console user:create admin@example.com</div>
         </div>
     </div>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.diagnostic-card').forEach(card => {
+    card.addEventListener('click', () => {
+      card.classList.toggle('expanded');
+    });
+  });
+  document.querySelectorAll('[data-action="reload-page"]').forEach(btn => {
+    btn.addEventListener('click', () => location.reload());
+  });
+});
+</script>
+<style nonce="{{ csp_nonce() }}">
+.diagnostic-card.expanded .text-sm.text-gray-600 {
+  max-height: none;
+}
+</style>
 {% endblock %}

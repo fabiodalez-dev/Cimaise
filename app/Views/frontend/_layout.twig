@@ -158,7 +158,7 @@
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
     
     <!-- JS flag class on <html> if needed elsewhere -->
-    <script>(function(){ document.documentElement.classList.add('js'); })();</script>
+    <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); })();</script>
     
     <!-- Custom styles -->
     <style>
@@ -180,8 +180,6 @@
         
         /* Template-specific styles */
         .masonry-grid {
-            /* Use CSS variables so Twig/JS can control columns per template */
-            column-count: var(--cols-desktop, 3);
             column-gap: var(--grid-gap, 1rem);
         }
         .masonry-item {
@@ -230,16 +228,6 @@
             filter: saturate(0.1) opacity(0.35);
         }
 
-        @media (max-width: 768px) {
-            .masonry-grid {
-                column-count: var(--cols-tablet, 2);
-            }
-        }
-        @media (max-width: 480px) {
-            .masonry-grid {
-                column-count: var(--cols-mobile, 1);
-            }
-        }
         
         /* Swiper custom styles */
         .gallery-swiper .swiper-button-next,
@@ -273,6 +261,11 @@
             }
         }
 
+        /* NSFW content blur */
+        .nsfw-blur {
+            filter: blur(20px);
+            transition: filter 0.3s ease;
+        }
 
         /* Simple Lightbox fallback */
         #slb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.95); color:#fff; display:none; align-items:center; justify-content:center; z-index: 10000; }
@@ -288,16 +281,10 @@
         @media (max-width: 1024px) { #slb-content .slb-media { width: min(80%, 1200px); } }
         @media (max-width: 640px)  { #slb-content .slb-media { width: 92%; } .slb-prev { left: 8px; } .slb-next { right: 8px; } }
         
-        /* PhotoSwipe image sizing fix - minimal approach that works */
+        /* PhotoSwipe image sizing - no max constraints to allow proper zoom */
         .pswp__img {
             object-fit: contain !important;
-        }
-        
-        /* Ensure proper container support */
-        .pswp__content {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            cursor: pointer !important;
         }
         
         /* Migliorate PhotoSwipe caption con responsive design */
@@ -672,134 +659,47 @@
             opacity: 0.97 !important;
         }
 
+        /* Minimal buttons: no background or shadow */
+        .pswp__button {
+            background: none !important;
+            box-shadow: none !important;
+        }
+
         /* Prevent background scroll when lightbox is open */
+        html.pswp-open,
         body.pswp-open {
             overflow: hidden !important;
+            height: 100% !important;
+        }
+        html.pswp-open .lenis,
+        body.pswp-open .lenis {
+            position: fixed;
+            inset: 0;
+            width: 100%;
         }
 
         /* CRITICAL: Hide placeholder images to prevent double image */
         .pswp__img--placeholder {
             display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
         }
 
-        /* Hide the opening animation thumbnail clone */
-        .pswp__img.pswp__img--initial {
-            display: none !important;
-        }
-
-        /* During opening animation, only show the zoom-wrap content */
-        .pswp--opening .pswp__item img:not(:last-child) {
-            display: none !important;
-        }
-
-        /* Elegant entrance animation for lightbox */
-        @keyframes pswpImageEntrance {
-            from {
-                opacity: 0;
-                transform: scale(0.96);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .pswp__content {
-            animation: pswpImageEntrance 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        }
-        
-        /* Remove all shadows and outlines */
-        .pswp__icn-shadow {
-            display: none !important;
-        }
-        
-        .pswp__button {
-            box-shadow: none !important;
-            text-shadow: none !important;
-            color: #000 !important;
-        }
-        
-        /* Download button - force black color */
-        .pswp__button--download-button {
-            color: #000 !important;
-        }
-        
-        .pswp__button--download-button i,
-        .pswp__button--download-button svg,
-        .pswp__button--download-button * {
-            color: #000 !important;
-            fill: #000 !important;
-            stroke: #000 !important;
-        }
-        
-        /* Counter - remove text-shadow */
+        /* Counter - no shadow */
         .pswp__counter {
-            height: 30px;
-            margin-top: 15px;
-            margin-inline-start: 20px;
-            font-size: 14px;
-            line-height: 30px;
-            color: var(--pswp-icon-color);
             text-shadow: none !important;
-            opacity: 0.85;
         }
-        
-        /* Bullets indicator - black dots */
-        .pswp__bullets-indicator {
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            position: absolute !important;
-            bottom: 30px !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            gap: 8px !important;
+
+        /* Smaller icons */
+        .pswp__icn {
+            width: 24px !important;
+            height: 24px !important;
         }
-        
-        .pswp__bullet {
-            width: 8px !important;
-            height: 8px !important;
-            border-radius: 50% !important;
-            background: #ccc !important;
-            border: none !important;
-            cursor: pointer !important;
-            transition: background 0.2s !important;
-        }
-        
-        .pswp__bullet--active {
-            background: #000 !important;
-        }
-        
-        /* Image centering */
-        .pswp__img {
-            object-fit: contain !important;
-            object-position: center !important;
-        }
-        
-        .pswp__content {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        
-        /* Caption - minimal */
+
+        /* Caption styling */
         .pswp__custom-caption {
-            background: none !important;
-            color: #000 !important;
-            border: none !important;
-            padding: 16px !important;
-            text-align: center !important;
-        }
-        
-        .pswp__custom-caption .cc-title {
-            color: #000 !important;
-            font-weight: 600 !important;
-        }
-        
-        .pswp__custom-caption .cc-item {
-            color: #000 !important;
+            background: none;
+            color: #000;
+            padding: 16px;
+            text-align: center;
         }
         
         .pswp__custom-caption .cc-item i {
@@ -939,8 +839,8 @@
                                                 <div class="relative aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-gray-50 transition-all duration-300 group-hover:shadow-lg">
                                                     {% if category.image_path and category.image_path != '' %}
                                                         <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" 
-                                                             class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                                             onerror="this.style.display='none';">
+                                                             class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                                                             data-fallback="hide">
                                                     {% else %}
                                                         <div class="w-full h-full flex items-center justify-center text-gray-400 group-hover:text-gray-600 transition-colors duration-300">
                                                             <i class="fas fa-folder-open text-2xl"></i>
@@ -1033,7 +933,7 @@
                                     <a href="{{ base_path }}/category/{{ category.slug }}" class="flex-grow flex items-center gap-4 p-3 w-full">
                                         {% if category.image_path and category.image_path != '' %}
                                             <div class="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                                                <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                                                <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" data-fallback="hide">
                                             </div>
                                         {% else %}
                                             <div class="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -1063,7 +963,7 @@
                                 <a href="{{ base_path }}/category/{{ category.slug }}" class="flex items-center gap-4 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors duration-200 p-3 rounded-md">
                                     {% if category.image_path and category.image_path != '' %}
                                         <div class="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                                            <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                                            <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" data-fallback="hide">
                                         </div>
                                     {% else %}
                                         <div class="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -1114,17 +1014,17 @@
                     
                     <div class="flex items-center gap-3">
                         <label for="filter-search" class="text-sm font-medium text-gray-700 sr-only">Search:</label>
-                        <input type="text" id="filter-search" placeholder="Search camera, film..." 
+                        <input type="text" id="filter-search" placeholder="{{ trans('filter.search_equipment') }}"
                                class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                     </div>
                     
                     <div class="flex items-center gap-2">
                         <button id="apply-filters" class="bg-black text-white px-4 py-1.5 text-sm rounded-md hover:bg-gray-800 transition-colors duration-200 shadow-sm">
-                            Apply
+                            {{ trans('filter.apply') }}
                         </button>
-                        
+
                         <button id="clear-filters" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 text-sm transition-colors duration-200">
-                            Clear
+                            {{ trans('filter.clear') }}
                         </button>
                     </div>
                 </div>
@@ -1172,7 +1072,7 @@
     <script src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
     
     <!-- App JS -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         // Enhanced Mobile menu with animations
         document.addEventListener('DOMContentLoaded', function() {
             // 1. Menu Toggle
@@ -1634,6 +1534,7 @@
                         gallerySelector = '#images-gallery .m-mobile-wrap';
                       }
                     }
+
                     const lb = new PhotoSwipeLightbox({
                         gallery: gallerySelector,
                         // Exclude duplicates that are rendered for infinite scroll columns
@@ -1643,14 +1544,15 @@
                         // Modern image sizing and layout
                         bgOpacity: 0.97,
                         spacing: (typeof psCfg.spacing === 'number') ? psCfg.spacing : 0.12,
-                        allowPanToNext: !!psCfg.allowPanToNext,
+                        // Prevent accidental swipes while zooming
+                        allowPanToNext: false,
                         loop: !!psCfg.loop,
-                        wheelToZoom: !!psCfg.zoom,
+                        wheelToZoom: false,
                         pinchToClose: true,
-                        closeOnVerticalDrag: true,
+                        closeOnVerticalDrag: false,
                         
-                        // Minimal padding to show images at full size
-                        padding: { top: 20, bottom: 20, left: 20, right: 20 },
+                        // Padding to leave space for top icons and bottom captions
+                        padding: { top: 60, bottom: 100, left: 40, right: 40 },
                         
                         // Modern smooth animations
                         showHideAnimationType: 'fade',
@@ -1659,12 +1561,11 @@
                         zoomAnimationDuration: 300,
                         easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                         
-                        // Better interaction for modern UX
-                        imageClickAction: (psCfg.imageClickAction ?? 'next'),
+                        // Click/tap interactions (handled manually for centered zoom)
+                        imageClickAction: false,
                         bgClickAction: 'close',
-                        tapAction: (psCfg.tapAction ?? 'next'),
-                        // tap delay removed if set to false
-                        doubleTapAction: (psCfg.doubleTapAction ?? false),
+                        tapAction: false,
+                        doubleTapAction: false,
                         
                         // Performance optimizations
                         preloadFirstSlide: true,
@@ -1681,15 +1582,6 @@
                         clickToCloseNonZoomable: true,
                         maxWidthToAnimate: 2000,
                         
-                        // Custom viewport for smaller, contained images
-                        getViewportSizeFn: function(options, pswp) {
-                            const isMobile = window.innerWidth < 768;
-                            const padding = isMobile ? 40 : 120;
-                            return {
-                                x: window.innerWidth - padding,
-                                y: window.innerHeight - padding
-                            };
-                        },
                         
                         // Enhanced UI with icons (share/counter driven by template)
                         closeTitle: 'Chiudi (Esc)',
@@ -1721,8 +1613,48 @@
                     });
 
                     // Prevent background scrolling and hide placeholders
-                    lb.on('openingAnimationStart', () => {
+                    // Scroll lock helpers
+                    let prevHtmlOverflow = '';
+                    let prevBodyOverflow = '';
+                    let prevHtmlPadding = '';
+                    let prevBodyPadding = '';
+                    let scrollLocked = false;
+                    const lockScroll = () => {
+                        if (scrollLocked) return;
+                        scrollLocked = true;
+                        prevHtmlOverflow = document.documentElement.style.overflow;
+                        prevBodyOverflow = document.body.style.overflow;
+                        prevHtmlPadding = document.documentElement.style.paddingRight;
+                        prevBodyPadding = document.body.style.paddingRight;
+                        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+                        document.documentElement.style.overflow = 'hidden';
+                        document.body.style.overflow = 'hidden';
+                        if (scrollbarWidth > 0) {
+                            document.documentElement.style.paddingRight = `${scrollbarWidth}px`;
+                            document.body.style.paddingRight = `${scrollbarWidth}px`;
+                        }
+                        document.documentElement.classList.add('pswp-open');
                         document.body.classList.add('pswp-open');
+                        if (window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
+                            window.lenisInstance.stop();
+                        }
+                    };
+                    const unlockScroll = () => {
+                        if (!scrollLocked) return;
+                        scrollLocked = false;
+                        document.documentElement.classList.remove('pswp-open');
+                        document.body.classList.remove('pswp-open');
+                        document.documentElement.style.overflow = prevHtmlOverflow;
+                        document.body.style.overflow = prevBodyOverflow;
+                        document.documentElement.style.paddingRight = prevHtmlPadding;
+                        document.body.style.paddingRight = prevBodyPadding;
+                        if (window.lenisInstance && typeof window.lenisInstance.start === 'function') {
+                            window.lenisInstance.start();
+                        }
+                    };
+
+                    lb.on('openingAnimationStart', () => {
+                        lockScroll();
                         document.querySelectorAll('.pswp__img--placeholder, .pswp__img--initial').forEach(el => {
                             el.style.display = 'none';
                             el.style.visibility = 'hidden';
@@ -1731,7 +1663,45 @@
                     });
 
                     lb.on('closingAnimationEnd', () => {
-                        document.body.classList.remove('pswp-open');
+                        unlockScroll();
+                    });
+
+                    // Centered zoom toggle for zoom button only
+                    const toggleZoomCentered = (pswp) => {
+                        const slide = pswp?.currSlide;
+                        if (!slide || !slide.zoomLevels) return;
+                        const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+                        const max = slide.zoomLevels.max ?? fit;
+                        const current = slide.currZoomLevel ?? fit;
+                        const target = current <= fit * 1.05
+                          ? Math.min(max, Math.max(fit * 1.75, fit * 3))
+                          : fit;
+                        const center = { x: pswp.viewportSize.x / 2, y: pswp.viewportSize.y / 2 };
+                        pswp.zoomTo(target, center, 350);
+                    };
+
+                    lb.on('open', () => {
+                        const pswp = lb.pswp;
+                        if (pswp && !pswp._customZoomBound) {
+                            // Zoom button handler - use toggleZoom with viewport center
+                            const zoomBtn = pswp.element?.querySelector('.pswp__button--zoom');
+                            if (zoomBtn) {
+                                zoomBtn.addEventListener('click', (ev) => {
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    toggleZoomCentered(pswp);
+                                }, { capture: true });
+                            }
+                            // Click on image toggles zoom (no navigation)
+                            pswp.element?.addEventListener('click', (ev) => {
+                                if (ev.target && ev.target.classList.contains('pswp__img')) {
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    toggleZoomCentered(pswp);
+                                }
+                            }, { capture: true });
+                            pswp._customZoomBound = true;
+                        }
                     });
 
                     // Enhanced Caption UI with metadata
@@ -1798,7 +1768,7 @@
                           name: 'zoom-indicator-br', order: 6, appendTo: 'root',
                           onInit: (el, pswp) => {
                             el.className = 'pswp__zoom-indicator-br pswp__hide-on-close';
-                            el.style.cssText = 'position:absolute; bottom:18px; right:12px; color:#fff; font-size:12px; pointer-events:none; opacity:0; transition:opacity .2s;';
+                            el.style.cssText = 'position:absolute; bottom:18px; right:12px; color:#fff; font-size:12px; pointer-events:none; opacity:0; transition:opacity .2s; background:rgba(0,0,0,0.72); padding:4px 8px; border-radius:999px;';
                             const update = () => { const z = Math.round((pswp.currSlide?.currZoomLevel || 1) * 100); el.textContent = 'zoom: ' + z + '%'; el.style.opacity = '1'; };
                             pswp.on('zoomPanUpdate', (e) => { if (e.slide === pswp.currSlide) update(); });
                             pswp.on('change', update);
@@ -1822,13 +1792,13 @@
                         // Hide any meta-panel (not used)
                         lb.pswp.ui.registerElement({ name: 'meta-panel', order: 99, appendTo: 'root', onInit: (el)=>{ el.style.display='none'; el.className='pswp__meta-panel'; } });
                     
-                        // Download button
+                        // Download button - SVG structure matching PhotoSwipe
                         lb.pswp.ui.registerElement({
                             name: 'download-button', order: 8, isButton: true, appendTo: 'bar',
-                            html: '<i class="fa-solid fa-download"></i>',
+                            html: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 32 32" width="32" height="32"><path d="M16 18l-6-6h4V6h4v6h4l-6 6zm-8 2v4h16v-4h2v6H6v-6h2z" fill="currentColor"/></svg>',
                             onInit: (el, pswp) => {
                                 el.setAttribute('title', 'Scarica immagine');
-                                el.style.cssText = 'color: white; padding: 8px 12px; margin-left: 4px;';
+                                el.setAttribute('aria-label', 'Scarica immagine');
                                 el.onclick = () => {
                                     if (pswp.currSlide && pswp.currSlide.data) {
                                         const link = document.createElement('a');
@@ -1842,57 +1812,56 @@
                                 };
                             }
                         });
-                        
-                        // Fullscreen button
+
+                        // Fullscreen button - SVG structure matching PhotoSwipe
                         lb.pswp.ui.registerElement({
                             name: 'fullscreen-button', order: 7, isButton: true, appendTo: 'bar',
-                            html: '<i class="fa-solid fa-expand"></i>',
+                            html: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 32 32" width="32" height="32"><path d="M6 6v8h2V8h6V6H6zm18 0h-8v2h6v6h2V6zm0 20v-8h-2v6h-6v2h8zM6 26h8v-2H8v-6H6v8z" fill="currentColor" class="pswp__icn-fullscreen-expand"/><path d="M14 6v8h-2V8H6V6h8zm4 0h8v8h-2V8h-6V6zm8 20h-8v-2h6v-6h2v8zM6 18v8h8v-2H8v-6H6z" fill="currentColor" class="pswp__icn-fullscreen-compress" style="display:none"/></svg>',
                             onInit: (el, pswp) => {
                                 el.setAttribute('title', 'Schermo intero');
-                                el.style.cssText = 'color: white; padding: 8px 12px; margin-left: 4px;';
+                                el.setAttribute('aria-label', 'Schermo intero');
+                                const expandPath = el.querySelector('.pswp__icn-fullscreen-expand');
+                                const compressPath = el.querySelector('.pswp__icn-fullscreen-compress');
                                 el.onclick = () => {
                                     if (document.fullscreenElement) {
                                         document.exitFullscreen();
-                                        el.innerHTML = '<i class="fa-solid fa-expand"></i>';
-                                        el.setAttribute('title', 'Schermo intero');
                                     } else {
                                         pswp.template.requestFullscreen();
-                                        el.innerHTML = '<i class="fa-solid fa-compress"></i>';
-                                        el.setAttribute('title', 'Esci da schermo intero');
                                     }
                                 };
-                                document.addEventListener('fullscreenchange', () => {
-                                    if (!document.fullscreenElement) {
-                                        el.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                                const updateIcon = () => {
+                                    if (document.fullscreenElement) {
+                                        expandPath.style.display = 'none';
+                                        compressPath.style.display = '';
+                                        el.setAttribute('title', 'Esci da schermo intero');
+                                    } else {
+                                        expandPath.style.display = '';
+                                        compressPath.style.display = 'none';
                                         el.setAttribute('title', 'Schermo intero');
                                     }
-                                });
+                                };
+                                document.addEventListener('fullscreenchange', updateIcon);
                             }
                         });
-                        
-                        // Share button (toggle by template)
+
+                        // Share button - SVG structure matching PhotoSwipe
                         lb.pswp.ui.registerElement({
                             name: 'share-button', order: 6, isButton: true, appendTo: 'bar',
-                            html: '<i class="fa-solid fa-share"></i>',
+                            html: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 32 32" width="32" height="32"><path d="M20 22c-1.18 0-2.24.51-2.97 1.32l-7.54-4.4A4.007 4.007 0 0 0 10 17c0-.67-.17-1.3-.46-1.85l7.5-4.38A3.98 3.98 0 0 0 20 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4c0 .67.17 1.3.46 1.85l-7.5 4.38A3.98 3.98 0 0 0 6 13c-2.21 0-4 1.79-4 4s1.79 4 4 4c1.18 0 2.24-.51 2.97-1.32l7.54 4.4c-.29.55-.51 1.18-.51 1.92 0 2.21 1.79 4 4 4s4-1.79 4-4-1.79-4-4-4z" fill="currentColor"/></svg>',
                             onInit: (el, pswp) => {
                                 if (psCfg.share === false) { el.style.display = 'none'; return; }
                                 el.setAttribute('title', 'Condividi');
-                                el.style.cssText = 'color: white; padding: 8px 12px; margin-left: 4px;';
+                                el.setAttribute('aria-label', 'Condividi');
                                 el.onclick = async () => {
                                     if (pswp.currSlide && pswp.currSlide.data) {
                                         const url = window.location.href;
                                         if (navigator.share) {
                                             try {
-                                                await navigator.share({
-                                                    title: document.title,
-                                                    url: url
-                                                });
+                                                await navigator.share({ title: document.title, url: url });
                                             } catch(e) {
-                                                // Fallback to clipboard
                                                 navigator.clipboard.writeText(url);
                                             }
                                         } else {
-                                            // Fallback to clipboard
                                             navigator.clipboard.writeText(url);
                                         }
                                     }
@@ -1930,11 +1899,11 @@
                     // Modern configuration matching main lightbox
                     bgOpacity: 0.97,
                     spacing: 0.12,
-                    allowPanToNext: true,
+                    allowPanToNext: false,
                     loop: !!psCfg.loop,
-                    wheelToZoom: true,
+                    wheelToZoom: false,
                     pinchToClose: true,
-                    closeOnVerticalDrag: true,
+                    closeOnVerticalDrag: false,
                     
                     // Minimal padding to show images at full size
                     padding: { top: 20, bottom: 20, left: 20, right: 20 },
@@ -1946,25 +1915,47 @@
                     zoomAnimationDuration: 300,
                     easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                     
-                    // Modern interactions
-                    imageClickAction: 'zoom-or-close',
-                    bgClickAction: 'close',
-                    tapAction: 'toggle-controls',
-                    doubleTapAction: 'zoom',
-                    
-                    // Custom viewport
-                    getViewportSizeFn: function(options, pswp) {
-                        const isMobile = window.innerWidth < 768;
-                        const padding = isMobile ? 40 : 120;
-                        return {
-                            x: window.innerWidth - padding,
-                            y: window.innerHeight - padding
-                        };
-                    }
+                        // Custom interactions: zoom handled manually
+                        imageClickAction: false,
+                        bgClickAction: 'close',
+                        tapAction: false,
+                        doubleTapAction: false
                   });
                   let psCaptionEl;
+                  const toggleZoomCentered = (pswp) => {
+                    const slide = pswp?.currSlide;
+                    if (!slide || !slide.zoomLevels) return;
+                    const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+                    const max = slide.zoomLevels.max ?? fit;
+                    const current = slide.currZoomLevel ?? fit;
+                    const target = current <= fit * 1.05
+                      ? Math.min(max, Math.max(fit * 1.75, fit * 3))
+                      : fit;
+                    const center = { x: pswp.viewportSize.x / 2, y: pswp.viewportSize.y / 2 };
+                    pswp.zoomTo(target, center, 350);
+                  };
                   lb.on('open', () => {
                     const pswp = lb.pswp;
+                    // Custom zoom: toggle between fit and zoom using built-in toggleZoom
+                    if (pswp && !pswp._customZoomBound) {
+                      const zoomBtn = pswp.element?.querySelector('.pswp__button--zoom');
+                      if (zoomBtn) {
+                        zoomBtn.addEventListener('click', (ev) => {
+                          ev.preventDefault();
+                          ev.stopPropagation();
+                          toggleZoomCentered(pswp);
+                        }, { capture: true });
+                      }
+                      // Click on image toggles zoom
+                      pswp.element?.addEventListener('click', (ev) => {
+                        if (ev.target && ev.target.classList.contains('pswp__img')) {
+                          ev.preventDefault();
+                          ev.stopPropagation();
+                          toggleZoomCentered(pswp);
+                        }
+                      }, { capture: true });
+                      pswp._customZoomBound = true;
+                    }
                     psCaptionEl = document.createElement('div');
                     psCaptionEl.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
                     pswp.on('change', () => {
@@ -1984,12 +1975,44 @@
                     pswp.on('close', () => { if (psCaptionEl && psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
                   });
 
-                  // Prevent background scroll when lightbox is open
+                  // Prevent background scroll when lightbox is open (fallback)
+                  let fbPrevHtmlOverflow = '';
+                  let fbPrevBodyOverflow = '';
+                  let fbPrevHtmlPadding = '';
+                  let fbPrevBodyPadding = '';
+                  let fbScrollLocked = false;
                   lb.on('openingAnimationStart', () => {
+                      if (!fbScrollLocked) {
+                          fbScrollLocked = true;
+                          fbPrevHtmlOverflow = document.documentElement.style.overflow;
+                          fbPrevBodyOverflow = document.body.style.overflow;
+                          fbPrevHtmlPadding = document.documentElement.style.paddingRight;
+                          fbPrevBodyPadding = document.body.style.paddingRight;
+                          const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+                          document.documentElement.style.overflow = 'hidden';
+                          document.body.style.overflow = 'hidden';
+                          if (scrollbarWidth > 0) {
+                              document.documentElement.style.paddingRight = `${scrollbarWidth}px`;
+                              document.body.style.paddingRight = `${scrollbarWidth}px`;
+                          }
+                      }
+                      document.documentElement.classList.add('pswp-open');
                       document.body.classList.add('pswp-open');
+                      if (window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
+                          window.lenisInstance.stop();
+                      }
                   });
                   lb.on('closingAnimationEnd', () => {
+                      document.documentElement.classList.remove('pswp-open');
                       document.body.classList.remove('pswp-open');
+                      document.documentElement.style.overflow = fbPrevHtmlOverflow;
+                      document.body.style.overflow = fbPrevBodyOverflow;
+                      document.documentElement.style.paddingRight = fbPrevHtmlPadding;
+                      document.body.style.paddingRight = fbPrevBodyPadding;
+                      fbScrollLocked = false;
+                      if (window.lenisInstance && typeof window.lenisInstance.start === 'function') {
+                          window.lenisInstance.start();
+                      }
                   });
 
                   lb.init();
@@ -2026,10 +2049,18 @@
                   lightbox.on('close', ()=>{ if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
                   // Prevent background scroll when lightbox is open
                   lightbox.on('openingAnimationStart', () => {
+                      document.documentElement.classList.add('pswp-open');
                       document.body.classList.add('pswp-open');
+                      if (window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
+                          window.lenisInstance.stop();
+                      }
                   });
                   lightbox.on('closingAnimationEnd', () => {
+                      document.documentElement.classList.remove('pswp-open');
                       document.body.classList.remove('pswp-open');
+                      if (window.lenisInstance && typeof window.lenisInstance.start === 'function') {
+                          window.lenisInstance.start();
+                      }
                   });
                   lightbox.init();
                   updatePsCaption();
@@ -2067,15 +2098,7 @@
                   lightbox.on('change', fitToContainer);
                   lightbox.on('resize', fitToContainer);
                   
-                  // Ensure arrows are positioned correctly
-                  setTimeout(() => {
-                    const prevArrow = lightbox.element.querySelector('.pswp__button--arrow--prev');
-                    const nextArrow = lightbox.element.querySelector('.pswp__button--arrow--next');
-                    if (prevArrow) prevArrow.style.left = '20px';
-                    if (nextArrow) nextArrow.style.right = '20px';
-                  }, 50);
-                  
-                  setTimeout(fitToContainer, 100); // Initial sizing
+                        setTimeout(fitToContainer, 100); // Initial sizing
                 }
             }).catch((err) => {
                 if (!__psWarned) {
@@ -2151,10 +2174,10 @@
             wrap.id = 'slb-overlay';
             wrap.innerHTML = `
               <div id="slb-content">
-                <button class="slb-close" aria-label="Close">✕</button>
-                <button class="slb-btn slb-prev" aria-label="Prev">‹</button>
+                <button class="slb-close" aria-label="{{ trans('general.close') }}">✕</button>
+                <button class="slb-btn slb-prev" aria-label="{{ trans('general.previous') }}">‹</button>
                 <img id="slb-img" alt="" />
-                <button class="slb-btn slb-next" aria-label="Next">›</button>
+                <button class="slb-btn slb-next" aria-label="{{ trans('general.next') }}">›</button>
                 <div id="slb-caption"></div>
               </div>`;
             document.body.appendChild(wrap);
@@ -2189,7 +2212,7 @@
 
     <!-- Analytics Tracking (Cookieless) -->
     <script src="{{ base_path }}/assets/js/analytics.js"></script>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         // Initialize analytics with site configuration
         // Enable by default; JS guard will self-disable if endpoint fails
         window.CimaiseAnalyticsEnabled = true;
@@ -2210,6 +2233,61 @@
         {% endif %}
     </script>
 
+    <script nonce="{{ csp_nonce() }}">
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('img[data-fallback="hide"]').forEach(function(img) {
+            img.addEventListener('error', function() {
+                this.style.display = 'none';
+            });
+        });
+    });
+    </script>
+
+    <!-- Global NSFW Image Swap (runs on all pages) -->
+    <script nonce="{{ csp_nonce() }}">
+    (function() {
+        // Check if user has confirmed they are of age
+        var confirmed = localStorage.getItem('nsfw_confirmed') === 'true';
+        if (!confirmed) return;
+
+        // Swap all NSFW card images from blur to original
+        document.querySelectorAll('img.nsfw-card-image[data-src]').forEach(function(img) {
+            var origSrc = img.getAttribute('data-src');
+            if (origSrc) {
+                img.src = origSrc;
+                img.classList.remove('nsfw-card-image', 'nsfw-blur');
+                img.removeAttribute('data-src');
+            }
+        });
+
+        // Also handle galleries.twig style images
+        document.querySelectorAll('img.nsfw-image[data-src]').forEach(function(img) {
+            var origSrc = img.getAttribute('data-src');
+            if (origSrc) {
+                img.src = origSrc;
+                img.classList.remove('nsfw-image', 'nsfw-blur');
+                img.removeAttribute('data-src');
+            }
+        });
+
+        // Hide NSFW overlays on confirmed pages
+        document.querySelectorAll('[data-nsfw="1"]').forEach(function(card) {
+            var overlay = card.querySelector('.backdrop-blur-sm');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        });
+    })();
+    </script>
+
     {% block scripts %}{% endblock %}
+
+    {# Essential JavaScript - Always loaded (no consent required) #}
+    {% if custom_js_essential %}
+    <script id="custom-js-essential" nonce="{{ csp_nonce() }}">{{ custom_js_essential|raw }}</script>
+    {% endif %}
+
+    {# Cookie Banner with conditional script loader #}
+    {% include 'partials/cookie-banner.twig' %}
 </body>
 </html>

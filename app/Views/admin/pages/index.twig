@@ -1,10 +1,10 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Pages — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.pages.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Pages</h1>
-      <p class="text-gray-600 mt-1">Gestisci le pagine statiche del sito</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.pages.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.pages.description') }}</p>
     </div>
   </div>
 
@@ -20,12 +20,11 @@
           <span class="inline-flex items-center text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ p.slug }}</span>
         </div>
         <div class="mt-4 flex items-center gap-3">
-          <a href="{{ base_path }}{{ p.edit_url }}" class="btn-primary btn-sm"><i class="fas fa-pen mr-2"></i>Modifica</a>
-          <a href="{{ base_path }}{{ p.public_url }}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm"><i class="fas fa-external-link-alt mr-2"></i>Vedi</a>
+          <a href="{{ base_path }}{{ p.edit_url }}" class="btn-primary btn-sm"><i class="fas fa-pen mr-2"></i>{{ trans('admin.pages.edit') }}</a>
+          <a href="{{ base_path }}{{ p.public_url }}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm"><i class="fas fa-external-link-alt mr-2"></i>{{ trans('admin.pages.view') }}</a>
         </div>
       </div>
     </div>
     {% endfor %}
   </div>
 {% endblock %}
-

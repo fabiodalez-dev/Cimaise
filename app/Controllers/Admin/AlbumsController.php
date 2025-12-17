@@ -103,6 +103,16 @@ class AlbumsController extends BaseController
 
     public function store(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $accept = $request->getHeaderLine('Accept');
+            if (str_contains($accept, 'application/json')) {
+                return $this->csrfErrorJson($response);
+            }
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/albums/create'))->withStatus(302);
+        }
+
         $d = (array)$request->getParsedBody();
         $title = trim((string)($d['title'] ?? ''));
         $slug = trim((string)($d['slug'] ?? ''));
@@ -401,6 +411,16 @@ class AlbumsController extends BaseController
 
     public function updateImageMeta(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $accept = $request->getHeaderLine('Accept');
+            if (str_contains($accept, 'application/json')) {
+                return $this->csrfErrorJson($response);
+            }
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
+        }
+
         $albumId = (int)($args['id'] ?? 0);
         $imageId = (int)($args['imageId'] ?? 0);
         $d = (array)$request->getParsedBody();
@@ -446,6 +466,19 @@ class AlbumsController extends BaseController
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);
+
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
+        }
+
+        // Get old album data to detect NSFW changes
+        $pdo = $this->db->pdo();
+        $oldAlbum = $pdo->prepare('SELECT is_nsfw FROM albums WHERE id = ?');
+        $oldAlbum->execute([$id]);
+        $oldNsfw = (int)($oldAlbum->fetchColumn() ?: 0);
+
         $d = (array)$request->getParsedBody();
         $title = trim((string)($d['title'] ?? ''));
         $slug = trim((string)($d['slug'] ?? ''));
@@ -628,7 +661,27 @@ class AlbumsController extends BaseController
             } catch (\Throwable $e) {
                 // Equipment tables might not exist yet, continue without error
             }
-            
+
+            // Handle NSFW blur generation when flag changes
+            if ($is_nsfw !== $oldNsfw) {
+                try {
+                    $uploadService = new \App\Services\UploadService($this->db);
+                    if ($is_nsfw === 1) {
+                        // Album became NSFW - generate blurred variants
+                        $uploadService->generateBlurredVariantsForAlbum($id);
+                    } else {
+                        // Album is no longer NSFW - optionally delete blurred variants
+                        $uploadService->deleteBlurredVariantsForAlbum($id);
+                    }
+                } catch (\Throwable $blurError) {
+                    // Log but don't fail the update
+                    \App\Support\Logger::warning('Failed to process NSFW blur variants', [
+                        'album_id' => $id,
+                        'error' => $blurError->getMessage()
+                    ], 'admin');
+                }
+            }
+
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album updated'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -638,6 +691,12 @@ class AlbumsController extends BaseController
 
     public function delete(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
+        }
+
         $id = (int)($args['id'] ?? 0);
         $stmt = $this->db->pdo()->prepare('DELETE FROM albums WHERE id=:id');
         try {
@@ -651,6 +710,12 @@ class AlbumsController extends BaseController
 
     public function publish(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
+        }
+
         $id = (int)($args['id'] ?? 0);
         // Use portable CURRENT_TIMESTAMP instead of MySQL-specific NOW()
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET is_published=1, published_at=CURRENT_TIMESTAMP WHERE id=:id');
@@ -661,6 +726,12 @@ class AlbumsController extends BaseController
 
     public function unpublish(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
+        }
+
         $id = (int)($args['id'] ?? 0);
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET is_published=0, published_at=NULL WHERE id=:id');
         $stmt->execute([':id'=>$id]);
@@ -670,6 +741,16 @@ class AlbumsController extends BaseController
 
     public function setCover(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $accept = $request->getHeaderLine('Accept');
+            if (str_contains($accept, 'application/json')) {
+                return $this->csrfErrorJson($response);
+            }
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
+        }
+
         $albumId = (int)($args['id'] ?? 0);
         $imageId = (int)($args['imageId'] ?? 0);
         // ensure image belongs to album
@@ -692,6 +773,11 @@ class AlbumsController extends BaseController
 
     public function reorderImages(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $albumId = (int)($args['id'] ?? 0);
         $data = (array)$request->getParsedBody();
         $ids = (array)($data['order'] ?? []);
@@ -716,6 +802,11 @@ class AlbumsController extends BaseController
 
     public function reorderList(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $data = json_decode((string)$request->getBody(), true) ?: [];
         $ids = array_map('intval', (array)($data['order'] ?? []));
         if (!$ids) {
@@ -740,6 +831,11 @@ class AlbumsController extends BaseController
 
     public function updateTags(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $albumId = (int)($args['id'] ?? 0);
         $data = json_decode((string)$request->getBody(), true) ?: [];
         $tagIds = array_map('intval', (array)($data['tags'] ?? []));
@@ -768,6 +864,11 @@ class AlbumsController extends BaseController
 
     public function deleteImage(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $albumId = (int)($args['id'] ?? 0);
         $imageId = (int)($args['imageId'] ?? 0);
         $pdo = $this->db->pdo();
@@ -805,6 +906,11 @@ class AlbumsController extends BaseController
 
     public function bulkDeleteImages(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $albumId = (int)($args['id'] ?? 0);
         $data = json_decode((string)$request->getBody(), true) ?: [];
         $ids = array_map('intval', (array)($data['ids'] ?? []));
@@ -844,6 +950,11 @@ class AlbumsController extends BaseController
 
     public function attachExisting(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $albumId = (int)($args['id'] ?? 0);
         $d = (array)$request->getParsedBody();
         $sourceId = (int)($d['image_id'] ?? 0);

@@ -1,18 +1,18 @@
 {% extends "admin/_layout.twig" %}
 
-{% block title %}Export Analytics Data — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.analytics.export.page_title') }} — Cimaise{% endblock %}
 
 {% block content %}
 <div class="p-6">
   <!-- Header -->
   <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900 mb-2">Export Analytics Data</h1>
-      <p class="text-gray-600">Download your analytics data in various formats</p>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ trans('admin.analytics.export.page_title') }}</h1>
+      <p class="text-gray-600">{{ trans('admin.analytics.export.description') }}</p>
     </div>
     <div class="flex gap-2 mt-4 md:mt-0">
       <a href="{{ base_path }}/admin/analytics" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors" data-spa-link>
-        <i class="fas fa-arrow-left mr-1.5 text-xs"></i>Back to Dashboard
+        <i class="fas fa-arrow-left mr-1.5 text-xs"></i>{{ trans('admin.analytics.export.back_to_dashboard') }}
       </a>
     </div>
   </div>
@@ -22,23 +22,23 @@
     <!-- Quick Exports -->
     <div class="card p-6">
       <div class="border-b border-gray-200 pb-4 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900">Quick Exports</h2>
-        <p class="text-sm text-gray-600 mt-1">Pre-configured exports for common use cases</p>
+        <h2 class="text-lg font-semibold text-gray-900">{{ trans('admin.analytics.export.quick_exports') }}</h2>
+        <p class="text-sm text-gray-600 mt-1">{{ trans('admin.analytics.export.quick_exports_desc') }}</p>
       </div>
 
       <div class="space-y-4">
         <!-- Sessions Export -->
         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div class="flex-1">
-            <h3 class="font-medium text-gray-900">Sessions Data</h3>
-            <p class="text-sm text-gray-600">All visitor sessions with browser, location, and duration data</p>
+            <h3 class="font-medium text-gray-900">{{ trans('admin.analytics.export.sessions_data') }}</h3>
+            <p class="text-sm text-gray-600">{{ trans('admin.analytics.export.sessions_data_desc') }}</p>
           </div>
           <div class="flex gap-2">
-            <a href="{{ base_path }}/admin/analytics/export?type=sessions&format=csv" 
+            <a href="{{ base_path }}/admin/analytics/export?type=sessions&format=csv"
                class="btn-secondary btn-sm">
               <i class="fas fa-file-csv mr-1"></i>CSV
             </a>
-            <a href="{{ base_path }}/admin/analytics/export?type=sessions&format=json" 
+            <a href="{{ base_path }}/admin/analytics/export?type=sessions&format=json"
                class="btn-secondary btn-sm">
               <i class="fas fa-file-code mr-1"></i>JSON
             </a>
@@ -48,15 +48,15 @@
         <!-- Page Views Export -->
         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div class="flex-1">
-            <h3 class="font-medium text-gray-900">Page Views</h3>
-            <p class="text-sm text-gray-600">Individual page view records with timing and referrer data</p>
+            <h3 class="font-medium text-gray-900">{{ trans('admin.analytics.export.page_views') }}</h3>
+            <p class="text-sm text-gray-600">{{ trans('admin.analytics.export.page_views_desc') }}</p>
           </div>
           <div class="flex gap-2">
-            <a href="{{ base_path }}/admin/analytics/export?type=pageviews&format=csv" 
+            <a href="{{ base_path }}/admin/analytics/export?type=pageviews&format=csv"
                class="btn-secondary btn-sm">
               <i class="fas fa-file-csv mr-1"></i>CSV
             </a>
-            <a href="{{ base_path }}/admin/analytics/export?type=pageviews&format=json" 
+            <a href="{{ base_path }}/admin/analytics/export?type=pageviews&format=json"
                class="btn-secondary btn-sm">
               <i class="fas fa-file-code mr-1"></i>JSON
             </a>
@@ -66,15 +66,15 @@
         <!-- Events Export -->
         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div class="flex-1">
-            <h3 class="font-medium text-gray-900">Events Data</h3>
-            <p class="text-sm text-gray-600">User interactions like downloads, searches, and clicks</p>
+            <h3 class="font-medium text-gray-900">{{ trans('admin.analytics.export.events_data') }}</h3>
+            <p class="text-sm text-gray-600">{{ trans('admin.analytics.export.events_data_desc') }}</p>
           </div>
           <div class="flex gap-2">
-            <a href="{{ base_path }}/admin/analytics/export?type=events&format=csv" 
+            <a href="{{ base_path }}/admin/analytics/export?type=events&format=csv"
                class="btn-secondary btn-sm">
               <i class="fas fa-file-csv mr-1"></i>CSV
             </a>
-            <a href="{{ base_path }}/admin/analytics/export?type=events&format=json" 
+            <a href="{{ base_path }}/admin/analytics/export?type=events&format=json"
                class="btn-secondary btn-sm">
               <i class="fas fa-file-code mr-1"></i>JSON
             </a>
@@ -84,11 +84,11 @@
         <!-- Dashboard Summary -->
         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div class="flex-1">
-            <h3 class="font-medium text-gray-900">Dashboard Summary</h3>
-            <p class="text-sm text-gray-600">Current dashboard statistics and key metrics</p>
+            <h3 class="font-medium text-gray-900">{{ trans('admin.analytics.export.dashboard_summary') }}</h3>
+            <p class="text-sm text-gray-600">{{ trans('admin.analytics.export.dashboard_summary_desc') }}</p>
           </div>
           <div class="flex gap-2">
-            <a href="{{ base_path }}/admin/analytics/export?type=dashboard&format=json" 
+            <a href="{{ base_path }}/admin/analytics/export?type=dashboard&format=json"
                class="btn-secondary btn-sm">
               <i class="fas fa-file-code mr-1"></i>JSON
             </a>
@@ -98,11 +98,11 @@
         <!-- Charts Data -->
         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div class="flex-1">
-            <h3 class="font-medium text-gray-900">Charts Data</h3>
-            <p class="text-sm text-gray-600">Time-series data for charts and visualizations</p>
+            <h3 class="font-medium text-gray-900">{{ trans('admin.analytics.export.charts_data') }}</h3>
+            <p class="text-sm text-gray-600">{{ trans('admin.analytics.export.charts_data_desc') }}</p>
           </div>
           <div class="flex gap-2">
-            <a href="{{ base_path }}/admin/analytics/export?type=charts&format=json" 
+            <a href="{{ base_path }}/admin/analytics/export?type=charts&format=json"
                class="btn-secondary btn-sm">
               <i class="fas fa-file-code mr-1"></i>JSON
             </a>
@@ -114,73 +114,73 @@
     <!-- Custom Export -->
     <div class="card p-6">
       <div class="border-b border-gray-200 pb-4 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900">Custom Export</h2>
-        <p class="text-sm text-gray-600 mt-1">Configure your own export with date range and filters</p>
+        <h2 class="text-lg font-semibold text-gray-900">{{ trans('admin.analytics.export.custom_export') }}</h2>
+        <p class="text-sm text-gray-600 mt-1">{{ trans('admin.analytics.export.custom_export_desc') }}</p>
       </div>
 
       <form id="custom-export-form" class="space-y-6">
         <!-- Data Type -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Data Type</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.analytics.export.data_type') }}</label>
           <select name="type" class="form-input" required>
-            <option value="sessions">Sessions Data</option>
-            <option value="pageviews">Page Views</option>
-            <option value="events">Events Data</option>
-            <option value="albums">Album Analytics</option>
-            <option value="dashboard">Dashboard Summary</option>
-            <option value="charts">Charts Data</option>
+            <option value="sessions">{{ trans('admin.analytics.export.sessions_data') }}</option>
+            <option value="pageviews">{{ trans('admin.analytics.export.page_views') }}</option>
+            <option value="events">{{ trans('admin.analytics.export.events_data') }}</option>
+            <option value="albums">{{ trans('admin.analytics.export.album_analytics') }}</option>
+            <option value="dashboard">{{ trans('admin.analytics.export.dashboard_summary') }}</option>
+            <option value="charts">{{ trans('admin.analytics.export.charts_data') }}</option>
           </select>
         </div>
 
         <!-- Date Range -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-            <input type="date" name="start_date" class="form-input" 
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.analytics.export.start_date') }}</label>
+            <input type="date" name="start_date" class="form-input"
                    value="{{ 'now'|date_modify('-30 days')|date('Y-m-d') }}" required>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-            <input type="date" name="end_date" class="form-input" 
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.analytics.export.end_date') }}</label>
+            <input type="date" name="end_date" class="form-input"
                    value="{{ 'now'|date('Y-m-d') }}" required>
           </div>
         </div>
 
         <!-- Format -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.analytics.export.export_format') }}</label>
           <div class="flex gap-4">
             <label class="flex items-center">
               <input type="radio" name="format" value="csv" class="mr-2" checked>
-              <span class="text-sm">CSV (Spreadsheet)</span>
+              <span class="text-sm">{{ trans('admin.analytics.export.csv_spreadsheet') }}</span>
             </label>
             <label class="flex items-center">
               <input type="radio" name="format" value="json" class="mr-2">
-              <span class="text-sm">JSON (Data)</span>
+              <span class="text-sm">{{ trans('admin.analytics.export.json_data') }}</span>
             </label>
           </div>
         </div>
 
         <!-- Advanced Options -->
         <div class="border-t border-gray-200 pt-6">
-          <h3 class="text-sm font-medium text-gray-900 mb-4">Advanced Options</h3>
-          
+          <h3 class="text-sm font-medium text-gray-900 mb-4">{{ trans('admin.analytics.export.advanced_options') }}</h3>
+
           <div class="space-y-4">
             <!-- Include Bot Traffic -->
             <label class="flex items-center">
               <input type="checkbox" name="include_bots" class="mr-2">
-              <span class="text-sm text-gray-700">Include bot traffic in export</span>
+              <span class="text-sm text-gray-700">{{ trans('admin.analytics.export.include_bots') }}</span>
             </label>
 
             <!-- Limit Records -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Limit Records</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.analytics.export.limit_records') }}</label>
               <select name="limit" class="form-input w-32">
-                <option value="">No limit</option>
-                <option value="1000">1,000 records</option>
-                <option value="5000">5,000 records</option>
-                <option value="10000">10,000 records</option>
-                <option value="50000">50,000 records</option>
+                <option value="">{{ trans('admin.analytics.export.no_limit') }}</option>
+                <option value="1000">{{ trans('admin.analytics.export.records', {count: '1.000'}) }}</option>
+                <option value="5000">{{ trans('admin.analytics.export.records', {count: '5.000'}) }}</option>
+                <option value="10000">{{ trans('admin.analytics.export.records', {count: '10.000'}) }}</option>
+                <option value="50000">{{ trans('admin.analytics.export.records', {count: '50.000'}) }}</option>
               </select>
             </div>
           </div>
@@ -189,7 +189,7 @@
         <!-- Export Button -->
         <div class="flex justify-end pt-4">
           <button type="submit" class="btn-primary">
-            <i class="fas fa-download mr-2"></i>Generate Export
+            <i class="fas fa-download mr-2"></i>{{ trans('admin.analytics.export.generate') }}
           </button>
         </div>
       </form>
@@ -203,12 +203,12 @@
       <div class="flex items-start">
         <i class="fas fa-shield-alt text-blue-600 mt-1 mr-3"></i>
         <div>
-          <h3 class="text-sm font-medium text-blue-800 mb-2">Data Privacy & Security</h3>
+          <h3 class="text-sm font-medium text-blue-800 mb-2">{{ trans('admin.analytics.export.privacy_title') }}</h3>
           <ul class="text-sm text-blue-700 space-y-1">
-            <li>• Exported data respects your privacy settings</li>
-            <li>• IP addresses are hashed and anonymized when enabled</li>
-            <li>• No personally identifiable information is included</li>
-            <li>• Geographic data is limited to country/region level</li>
+            <li>• {{ trans('admin.analytics.export.privacy_1') }}</li>
+            <li>• {{ trans('admin.analytics.export.privacy_2') }}</li>
+            <li>• {{ trans('admin.analytics.export.privacy_3') }}</li>
+            <li>• {{ trans('admin.analytics.export.privacy_4') }}</li>
           </ul>
         </div>
       </div>
@@ -219,12 +219,12 @@
       <div class="flex items-start">
         <i class="fas fa-info-circle text-gray-600 mt-1 mr-3"></i>
         <div>
-          <h3 class="text-sm font-medium text-gray-800 mb-2">Export Formats</h3>
+          <h3 class="text-sm font-medium text-gray-800 mb-2">{{ trans('admin.analytics.export.formats_title') }}</h3>
           <ul class="text-sm text-gray-700 space-y-1">
-            <li>• <strong>CSV:</strong> Best for Excel, Google Sheets, and data analysis</li>
-            <li>• <strong>JSON:</strong> Perfect for developers and API integration</li>
-            <li>• Files are generated on-demand and not stored</li>
-            <li>• Large exports may take a few moments to generate</li>
+            <li>• {{ trans('admin.analytics.export.formats_csv')|raw }}</li>
+            <li>• {{ trans('admin.analytics.export.formats_json')|raw }}</li>
+            <li>• {{ trans('admin.analytics.export.formats_note_1') }}</li>
+            <li>• {{ trans('admin.analytics.export.formats_note_2') }}</li>
           </ul>
         </div>
       </div>
@@ -232,7 +232,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
   const form = document.getElementById('custom-export-form');
   
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show feedback
     const button = form.querySelector('button[type="submit"]');
     const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>{{ trans('admin.analytics.export.generating') }}';
     button.disabled = true;
   });
   
@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Show loading state
       const originalText = this.innerHTML;
-      this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Loading...';
+      this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>{{ trans('admin.analytics.export.loading') }}';
       const originalClasses = this.className;
       this.className = originalClasses.replace('btn-secondary', 'btn-primary');
       
@@ -346,13 +346,14 @@ document.addEventListener('DOMContentLoaded', function() {
           if (!response.ok) {
             throw new Error('Export failed');
           }
-          return response.blob();
+          // Return both blob and headers to preserve response scope
+          return response.blob().then(blob => ({ blob, headers: response.headers }));
         })
-        .then(blob => {
+        .then(({ blob, headers }) => {
           // Extract filename from Content-Disposition header or URL
-          const contentDisposition = response.headers.get('Content-Disposition');
+          const contentDisposition = headers.get('Content-Disposition');
           let filename = 'analytics_export';
-          
+
           if (contentDisposition) {
             const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['\"]).*?\2|[^;\n]*)/);
             if (filenameMatch && filenameMatch[1]) {
@@ -366,15 +367,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const format = params.get('format') || 'csv';
             filename = `analytics_${type}_export.${format}`;
           }
-          
+
           // Create download link
-          const url = window.URL.createObjectURL(blob);
+          const blobUrl = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = url;
+          a.href = blobUrl;
           a.download = filename;
           document.body.appendChild(a);
           a.click();
-          window.URL.revokeObjectURL(url);
+          window.URL.revokeObjectURL(blobUrl);
           document.body.removeChild(a);
         })
         .catch(error => {
@@ -392,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
 /* Custom export page styles */
 .card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;

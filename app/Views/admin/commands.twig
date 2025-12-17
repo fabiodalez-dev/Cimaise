@@ -1,13 +1,13 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Commands — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.commands.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">System Commands</h1>
-      <p class="text-gray-600 mt-1">Execute system commands and maintenance tasks</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.commands.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.commands.description') }}</p>
     </div>
     <a href="{{ base_path }}/CLI_GUIDE.md" target="_blank" class="btn-secondary">
-      <i class="fas fa-book mr-2"></i>CLI Guide
+      <i class="fas fa-book mr-2"></i>{{ trans('admin.commands.cli_guide') }}
     </a>
   </div>
 
@@ -19,19 +19,19 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center">
           <i class="fas fa-database mr-3 text-blue-600"></i>
-          Database
+          {{ trans('admin.commands.database') }}
         </h3>
-        <p class="text-gray-600 text-sm mb-4">Manage database migrations and seeding</p>
-        
+        <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.database_desc') }}</p>
+
         <div class="space-y-2">
-          <button onclick="runCommand('db:migrate')" class="w-full btn-primary text-sm">
-            <i class="fas fa-arrow-up mr-2"></i>Run Migrations
+          <button data-command="db:migrate" class="w-full btn-primary text-sm">
+            <i class="fas fa-arrow-up mr-2"></i>{{ trans('admin.commands.run_migrations') }}
           </button>
-          <button onclick="runCommand('db:seed')" class="w-full btn-secondary text-sm">
-            <i class="fas fa-seedling mr-2"></i>Seed Data
+          <button data-command="db:seed" class="w-full btn-secondary text-sm">
+            <i class="fas fa-seedling mr-2"></i>{{ trans('admin.commands.seed_data') }}
           </button>
-          <button onclick="runCommand('db:test')" class="w-full btn-secondary text-sm">
-            <i class="fas fa-stethoscope mr-2"></i>Test Connection
+          <button data-command="db:test" class="w-full btn-secondary text-sm">
+            <i class="fas fa-stethoscope mr-2"></i>{{ trans('admin.commands.test_connection') }}
           </button>
         </div>
       </div>
@@ -42,23 +42,23 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center">
           <i class="fas fa-images mr-3 text-green-600"></i>
-          Images
+          {{ trans('admin.commands.images') }}
         </h3>
-        <p class="text-gray-600 text-sm mb-4">Generate variants and optimize images</p>
-        
+        <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.images_desc') }}</p>
+
         <div class="space-y-2">
-          <button onclick="runCommand('images:generate', {'missing': true})" class="w-full btn-primary text-sm">
-            <i class="fas fa-images mr-2"></i>Generate Missing Variants
+          <button data-command="images:generate" data-payload='{"missing":true}' class="w-full btn-primary text-sm">
+            <i class="fas fa-images mr-2"></i>{{ trans('admin.commands.generate_missing') }}
           </button>
-          <button onclick="runCommand('media:normalize-paths')" class="w-full btn-secondary text-sm">
-            <i class="fas fa-link mr-2"></i>Normalize Media Paths
+          <button data-command="media:normalize-paths" class="w-full btn-secondary text-sm">
+            <i class="fas fa-link mr-2"></i>{{ trans('admin.commands.normalize_paths') }}
           </button>
         </div>
-        
+
         <div class="mt-3 text-xs text-gray-500">
-          <div><strong>Generate Missing:</strong> Crea solo le varianti mancanti per i nuovi breakpoint</div>
-          <div><strong>Normalize:</strong> Correggi i path legacy /public/media</div>
-          <p class="mt-2 text-xs"><strong>Nota:</strong> Usa il bottone in Settings per generare le immagini dopo aver modificato i breakpoint</p>
+          <div><strong>{{ trans('admin.commands.generate_missing') }}:</strong> {{ trans('admin.commands.generate_missing_note') }}</div>
+          <div><strong>{{ trans('admin.commands.normalize_paths') }}:</strong> {{ trans('admin.commands.normalize_note') }}</div>
+          <p class="mt-2 text-xs"><strong>{{ trans('admin.common.note') }}:</strong> {{ trans('admin.commands.settings_note') }}</p>
         </div>
       </div>
     </div>
@@ -68,24 +68,24 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center">
           <i class="fas fa-sitemap mr-3 text-purple-600"></i>
-          SEO
+          {{ trans('admin.commands.seo') }}
         </h3>
-        <p class="text-gray-600 text-sm mb-4">Sitemap and SEO optimization</p>
-        
+        <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.seo_desc') }}</p>
+
         <div class="mb-4">
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div class="flex items-center">
               <i class="fas fa-info-circle text-blue-600 mr-2"></i>
               <div class="text-sm">
-                <div class="font-medium text-blue-800">Auto-detected Base URL:</div>
+                <div class="font-medium text-blue-800">{{ trans('admin.commands.detected_base_url') }}:</div>
                 <div class="text-blue-700" id="detected-base-url">{{ detected_base_url }}</div>
               </div>
             </div>
           </div>
         </div>
-        
-        <button onclick="runSitemapCommand()" class="w-full btn-primary text-sm">
-          <i class="fas fa-map mr-2"></i>Build Sitemap
+
+        <button data-action="run-sitemap" class="w-full btn-primary text-sm">
+          <i class="fas fa-map mr-2"></i>{{ trans('admin.commands.build_sitemap') }}
         </button>
       </div>
     </div>
@@ -95,16 +95,16 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center">
           <i class="fas fa-cogs mr-3 text-orange-600"></i>
-          System
+          {{ trans('admin.commands.system') }}
         </h3>
-        <p class="text-gray-600 text-sm mb-4">Diagnostics and maintenance</p>
-        
+        <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.system_desc') }}</p>
+
         <div class="space-y-2">
-          <button onclick="runCommand('diagnostics:report')" class="w-full btn-primary text-sm">
-            <i class="fas fa-stethoscope mr-2"></i>Run Diagnostics
+          <button data-command="diagnostics:report" class="w-full btn-primary text-sm">
+            <i class="fas fa-stethoscope mr-2"></i>{{ trans('admin.commands.run_diagnostics') }}
           </button>
           <a href="{{ base_path }}/admin/diagnostics" class="w-full btn-secondary text-sm text-center block">
-            <i class="fas fa-eye mr-2"></i>View Diagnostics
+            <i class="fas fa-eye mr-2"></i>{{ trans('admin.commands.view_diagnostics') }}
           </a>
         </div>
       </div>
@@ -117,16 +117,16 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center">
           <i class="fas fa-tools mr-3 text-red-600"></i>
-          Tools
+          {{ trans('admin.commands.tools') }}
         </h3>
-        <p class="text-gray-600 text-sm mb-4">Additional system utilities</p>
-        
+        <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.tools_desc') }}</p>
+
         <div class="space-y-2">
-          <button onclick="runCommand('init')" class="w-full btn-secondary text-sm">
-            <i class="fas fa-sync mr-2"></i>Initialize System
+          <button data-command="init" class="w-full btn-secondary text-sm">
+            <i class="fas fa-sync mr-2"></i>{{ trans('admin.commands.initialize_system') }}
           </button>
           <a href="{{ base_path }}/admin/diagnostics" class="w-full btn-secondary text-sm text-center block">
-            <i class="fas fa-chart-line mr-2"></i>View System Status
+            <i class="fas fa-chart-line mr-2"></i>{{ trans('admin.commands.view_system_status') }}
           </a>
         </div>
       </div>
@@ -137,26 +137,26 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center">
           <i class="fas fa-chart-bar mr-3 text-teal-600"></i>
-          Analytics
+          {{ trans('admin.commands.analytics') }}
         </h3>
-        <p class="text-gray-600 text-sm mb-4">Analytics data management and optimization</p>
-        
+        <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.analytics_desc') }}</p>
+
         <div class="space-y-2">
-          <button onclick="runCommand('analytics:cleanup', {'dry-run': true})" class="w-full btn-secondary text-sm">
-            <i class="fas fa-preview mr-2"></i>Preview Cleanup
+          <button data-command="analytics:cleanup" data-payload='{"dry-run":true}' class="w-full btn-secondary text-sm">
+            <i class="fas fa-preview mr-2"></i>{{ trans('admin.commands.preview_cleanup') }}
           </button>
-          <button onclick="runAnalyticsCleanup()" class="w-full btn-primary text-sm">
-            <i class="fas fa-trash-alt mr-2"></i>Clean Old Data
+          <button data-action="run-analytics-cleanup" class="w-full btn-primary text-sm">
+            <i class="fas fa-trash-alt mr-2"></i>{{ trans('admin.commands.clean_old_data') }}
           </button>
-          <button onclick="runCommand('analytics:summarize')" class="w-full btn-secondary text-sm">
-            <i class="fas fa-chart-pie mr-2"></i>Generate Summaries
+          <button data-command="analytics:summarize" class="w-full btn-secondary text-sm">
+            <i class="fas fa-chart-pie mr-2"></i>{{ trans('admin.commands.generate_summaries') }}
           </button>
         </div>
-        
+
         <div class="mt-3 text-xs text-gray-500">
-          <div><strong>Preview:</strong> Shows what would be deleted without deleting</div>
-          <div><strong>Clean:</strong> Removes data older than retention period</div>
-          <div><strong>Summarize:</strong> Generates daily stats for faster dashboards</div>
+          <div><strong>{{ trans('admin.commands.preview_cleanup') }}:</strong> {{ trans('admin.commands.preview_note') }}</div>
+          <div><strong>{{ trans('admin.commands.clean_old_data') }}:</strong> {{ trans('admin.commands.clean_note') }}</div>
+          <div><strong>{{ trans('admin.commands.generate_summaries') }}:</strong> {{ trans('admin.commands.summarize_note') }}</div>
         </div>
       </div>
     </div>
@@ -167,13 +167,13 @@
   <div class="card">
     <div class="p-6">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-medium text-gray-900">Command Output</h3>
-        <button onclick="clearOutput()" class="btn-secondary text-sm">
-          <i class="fas fa-trash mr-2"></i>Clear
+        <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.commands.command_output') }}</h3>
+        <button data-action="clear-output" class="btn-secondary text-sm">
+          <i class="fas fa-trash mr-2"></i>{{ trans('admin.commands.clear') }}
         </button>
       </div>
-      
-      <div id="command-output" class="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm whitespace-pre-wrap min-h-48 max-h-96 overflow-y-auto">Ready to execute commands...</div>
+
+      <div id="command-output" class="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm whitespace-pre-wrap min-h-48 max-h-96 overflow-y-auto">{{ trans('admin.commands.ready') }}</div>
       
       <div id="command-status" class="hidden mt-4 flex items-center justify-between text-sm">
         <div class="text-gray-600">
@@ -188,31 +188,31 @@
   <!-- CLI Quick Reference -->
   <div class="card mt-8">
     <div class="p-6">
-      <h3 class="text-lg font-medium text-gray-900 mb-4">CLI Quick Reference</h3>
-      
+      <h3 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.commands.cli_reference') }}</h3>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <h4 class="font-medium text-gray-900 mb-2">Database Commands</h4>
+          <h4 class="font-medium text-gray-900 mb-2">{{ trans('admin.commands.database_commands') }}</h4>
           <div class="space-y-1 text-sm font-mono text-gray-600">
             <div class="bg-gray-100 p-2 rounded">php bin/console db:migrate</div>
             <div class="bg-gray-100 p-2 rounded">php bin/console db:seed</div>
             <div class="bg-gray-100 p-2 rounded">php bin/console db:test</div>
           </div>
-          
-          <h4 class="font-medium text-gray-900 mb-2 mt-4">Image Commands</h4>
+
+          <h4 class="font-medium text-gray-900 mb-2 mt-4">{{ trans('admin.commands.image_commands') }}</h4>
           <div class="space-y-1 text-sm font-mono text-gray-600">
             <div class="bg-gray-100 p-2 rounded">php bin/console images:generate --missing</div>
             <div class="bg-gray-100 p-2 rounded">php bin/console media:normalize-paths</div>
           </div>
         </div>
-        
+
         <div>
-          <h4 class="font-medium text-gray-900 mb-2">SEO Commands</h4>
+          <h4 class="font-medium text-gray-900 mb-2">{{ trans('admin.commands.seo_commands') }}</h4>
           <div class="space-y-1 text-sm font-mono text-gray-600">
             <div class="bg-gray-100 p-2 rounded">php bin/console sitemap:build --base-url=https://example.com</div>
           </div>
-          
-          <h4 class="font-medium text-gray-900 mb-2 mt-4">System Commands</h4>
+
+          <h4 class="font-medium text-gray-900 mb-2 mt-4">{{ trans('admin.commands.system_commands') }}</h4>
           <div class="space-y-1 text-sm font-mono text-gray-600">
             <div class="bg-gray-100 p-2 rounded">php bin/console init</div>
             <div class="bg-gray-100 p-2 rounded">php bin/console diagnostics:report</div>
@@ -223,8 +223,8 @@
     </div>
   </div>
 
-<script>
-// Commands page - functions are directly on window to work with onclick handlers
+<script nonce="{{ csp_nonce() }}">
+// Commands page - keep functions on window but wire buttons via JS listeners
 // Use var to allow redeclaration during SPA navigation
 var _commandsIsRunning = _commandsIsRunning || false;
 
@@ -334,9 +334,8 @@ function runSitemapCommand() {
 }
 
 function runAnalyticsCleanup() {
-  if (!confirm('Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.')) {
-    return;
-  }
+  const confirmMsg = '{{ trans('admin.commands.analytics_cleanup_confirm')|default("Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.")|e('html_attr') }}';
+  if (!confirm(confirmMsg)) return;
   runCommand('analytics:cleanup', { 'force': true });
 }
 
@@ -344,5 +343,36 @@ function clearOutput() {
   document.getElementById('command-output').textContent = 'Ready to execute commands...';
   document.getElementById('command-status').classList.add('hidden');
 }
+
+// Attach event listeners to buttons (no inline handlers)
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[data-command]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cmd = btn.getAttribute('data-command');
+      const payloadRaw = btn.getAttribute('data-payload');
+      let payload;
+      if (payloadRaw) {
+        try { payload = JSON.parse(payloadRaw); } catch (e) { payload = undefined; }
+      }
+      runCommand(cmd, payload);
+    });
+  });
+
+  const actionMap = {
+    'run-sitemap': runSitemapCommand,
+    'run-analytics-cleanup': runAnalyticsCleanup,
+    'clear-output': clearOutput
+  };
+  document.querySelectorAll('[data-action]').forEach(btn => {
+    const action = btn.getAttribute('data-action');
+    const fn = actionMap[action];
+    if (fn) {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        fn();
+      });
+    }
+  });
+});
 </script>
 {% endblock %}
