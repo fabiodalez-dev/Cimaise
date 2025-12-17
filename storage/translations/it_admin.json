@@ -1233,6 +1233,7 @@
     "admin.seo.save_settings": "Salva Impostazioni SEO",
     "admin.seo.generate_sitemap": "Genera Sitemap",
     "admin.seo.configure_hint": "Ottimizza il tuo sito per i motori di ricerca",
+    "admin.seo.canonical_required": "Imposta un URL canonico di base quando la sitemap è attiva.",
     "admin.seo.sitewide_seo": "SEO Globale",
     "admin.seo.sitewide_seo_hint": "Impostazioni SEO predefinite applicate a tutto il sito",
     "admin.seo.site_title": "Titolo Sito",
