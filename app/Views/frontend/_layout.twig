@@ -659,10 +659,23 @@
             opacity: 0.97 !important;
         }
 
+        /* Minimal buttons: no background or shadow */
+        .pswp__button {
+            background: none !important;
+            box-shadow: none !important;
+        }
+
         /* Prevent background scroll when lightbox is open */
         html.pswp-open,
         body.pswp-open {
             overflow: hidden !important;
+            height: 100% !important;
+        }
+        html.pswp-open .lenis,
+        body.pswp-open .lenis {
+            position: fixed;
+            inset: 0;
+            width: 100%;
         }
 
         /* CRITICAL: Hide placeholder images to prevent double image */
@@ -1531,7 +1544,8 @@
                         // Modern image sizing and layout
                         bgOpacity: 0.97,
                         spacing: (typeof psCfg.spacing === 'number') ? psCfg.spacing : 0.12,
-                        allowPanToNext: !!psCfg.allowPanToNext,
+                        // Prevent accidental swipes while zooming
+                        allowPanToNext: false,
                         loop: !!psCfg.loop,
                         wheelToZoom: false,
                         pinchToClose: true,
@@ -1547,11 +1561,11 @@
                         zoomAnimationDuration: 300,
                         easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                         
-                        // Click/tap interactions
-                        imageClickAction: (psCfg.imageClickAction ?? 'next'),
+                        // Click/tap interactions (handled manually for centered zoom)
+                        imageClickAction: false,
                         bgClickAction: 'close',
-                        tapAction: (psCfg.tapAction ?? 'next'),
-                        doubleTapAction: (psCfg.doubleTapAction ?? 'zoom'),
+                        tapAction: false,
+                        doubleTapAction: false,
                         
                         // Performance optimizations
                         preloadFirstSlide: true,
@@ -1600,8 +1614,25 @@
 
                     // Prevent background scrolling and hide placeholders
                     // Scroll lock helpers
+                    let prevHtmlOverflow = '';
+                    let prevBodyOverflow = '';
+                    let prevHtmlPadding = '';
+                    let prevBodyPadding = '';
+                    let scrollLocked = false;
                     const lockScroll = () => {
-                        if (document.documentElement.classList.contains('pswp-open')) return;
+                        if (scrollLocked) return;
+                        scrollLocked = true;
+                        prevHtmlOverflow = document.documentElement.style.overflow;
+                        prevBodyOverflow = document.body.style.overflow;
+                        prevHtmlPadding = document.documentElement.style.paddingRight;
+                        prevBodyPadding = document.body.style.paddingRight;
+                        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+                        document.documentElement.style.overflow = 'hidden';
+                        document.body.style.overflow = 'hidden';
+                        if (scrollbarWidth > 0) {
+                            document.documentElement.style.paddingRight = `${scrollbarWidth}px`;
+                            document.body.style.paddingRight = `${scrollbarWidth}px`;
+                        }
                         document.documentElement.classList.add('pswp-open');
                         document.body.classList.add('pswp-open');
                         if (window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
@@ -1609,8 +1640,14 @@
                         }
                     };
                     const unlockScroll = () => {
+                        if (!scrollLocked) return;
+                        scrollLocked = false;
                         document.documentElement.classList.remove('pswp-open');
                         document.body.classList.remove('pswp-open');
+                        document.documentElement.style.overflow = prevHtmlOverflow;
+                        document.body.style.overflow = prevBodyOverflow;
+                        document.documentElement.style.paddingRight = prevHtmlPadding;
+                        document.body.style.paddingRight = prevBodyPadding;
                         if (window.lenisInstance && typeof window.lenisInstance.start === 'function') {
                             window.lenisInstance.start();
                         }
@@ -1630,6 +1667,19 @@
                     });
 
                     // Centered zoom toggle for zoom button only
+                    const toggleZoomCentered = (pswp) => {
+                        const slide = pswp?.currSlide;
+                        if (!slide || !slide.zoomLevels) return;
+                        const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+                        const max = slide.zoomLevels.max ?? fit;
+                        const current = slide.currZoomLevel ?? fit;
+                        const target = current <= fit * 1.05
+                          ? Math.min(max, Math.max(fit * 1.75, fit * 3))
+                          : fit;
+                        const center = { x: pswp.viewportSize.x / 2, y: pswp.viewportSize.y / 2 };
+                        pswp.zoomTo(target, center, 350);
+                    };
+
                     lb.on('open', () => {
                         const pswp = lb.pswp;
                         if (pswp && !pswp._customZoomBound) {
@@ -1639,11 +1689,17 @@
                                 zoomBtn.addEventListener('click', (ev) => {
                                     ev.preventDefault();
                                     ev.stopPropagation();
-                                    // toggleZoom with center point zooms to viewport center
-                                    const center = { x: pswp.viewportSize.x / 2, y: pswp.viewportSize.y / 2 };
-                                    pswp.toggleZoom(center);
+                                    toggleZoomCentered(pswp);
                                 }, { capture: true });
                             }
+                            // Click on image toggles zoom (no navigation)
+                            pswp.element?.addEventListener('click', (ev) => {
+                                if (ev.target && ev.target.classList.contains('pswp__img')) {
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    toggleZoomCentered(pswp);
+                                }
+                            }, { capture: true });
                             pswp._customZoomBound = true;
                         }
                     });
@@ -1712,7 +1768,7 @@
                           name: 'zoom-indicator-br', order: 6, appendTo: 'root',
                           onInit: (el, pswp) => {
                             el.className = 'pswp__zoom-indicator-br pswp__hide-on-close';
-                            el.style.cssText = 'position:absolute; bottom:18px; right:12px; color:#000; font-size:12px; pointer-events:none; opacity:0; transition:opacity .2s; background:rgba(255,255,255,0.9); padding:4px 8px; border-radius:999px;';
+                            el.style.cssText = 'position:absolute; bottom:18px; right:12px; color:#fff; font-size:12px; pointer-events:none; opacity:0; transition:opacity .2s; background:rgba(0,0,0,0.72); padding:4px 8px; border-radius:999px;';
                             const update = () => { const z = Math.round((pswp.currSlide?.currZoomLevel || 1) * 100); el.textContent = 'zoom: ' + z + '%'; el.style.opacity = '1'; };
                             pswp.on('zoomPanUpdate', (e) => { if (e.slide === pswp.currSlide) update(); });
                             pswp.on('change', update);
@@ -1843,7 +1899,7 @@
                     // Modern configuration matching main lightbox
                     bgOpacity: 0.97,
                     spacing: 0.12,
-                    allowPanToNext: true,
+                    allowPanToNext: false,
                     loop: !!psCfg.loop,
                     wheelToZoom: false,
                     pinchToClose: true,
@@ -1920,7 +1976,26 @@
                   });
 
                   // Prevent background scroll when lightbox is open (fallback)
+                  let fbPrevHtmlOverflow = '';
+                  let fbPrevBodyOverflow = '';
+                  let fbPrevHtmlPadding = '';
+                  let fbPrevBodyPadding = '';
+                  let fbScrollLocked = false;
                   lb.on('openingAnimationStart', () => {
+                      if (!fbScrollLocked) {
+                          fbScrollLocked = true;
+                          fbPrevHtmlOverflow = document.documentElement.style.overflow;
+                          fbPrevBodyOverflow = document.body.style.overflow;
+                          fbPrevHtmlPadding = document.documentElement.style.paddingRight;
+                          fbPrevBodyPadding = document.body.style.paddingRight;
+                          const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+                          document.documentElement.style.overflow = 'hidden';
+                          document.body.style.overflow = 'hidden';
+                          if (scrollbarWidth > 0) {
+                              document.documentElement.style.paddingRight = `${scrollbarWidth}px`;
+                              document.body.style.paddingRight = `${scrollbarWidth}px`;
+                          }
+                      }
                       document.documentElement.classList.add('pswp-open');
                       document.body.classList.add('pswp-open');
                       if (window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
@@ -1930,6 +2005,11 @@
                   lb.on('closingAnimationEnd', () => {
                       document.documentElement.classList.remove('pswp-open');
                       document.body.classList.remove('pswp-open');
+                      document.documentElement.style.overflow = fbPrevHtmlOverflow;
+                      document.body.style.overflow = fbPrevBodyOverflow;
+                      document.documentElement.style.paddingRight = fbPrevHtmlPadding;
+                      document.body.style.paddingRight = fbPrevBodyPadding;
+                      fbScrollLocked = false;
                       if (window.lenisInstance && typeof window.lenisInstance.start === 'function') {
                           window.lenisInstance.start();
                       }
