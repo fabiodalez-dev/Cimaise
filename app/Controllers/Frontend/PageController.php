@@ -781,7 +781,6 @@ class PageController extends BaseController
 
         if (!$nsfwConfirmed) {
             // Redirect back to album (will show gate again)
-            error_log("[NSFW Confirm] Missing confirmation for album slug={$slug}");
             return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
         }
 
@@ -793,7 +792,6 @@ class PageController extends BaseController
             $_SESSION['nsfw_confirmed'] = [];
         }
         $_SESSION['nsfw_confirmed'][(int)$album['id']] = true;
-        error_log("[NSFW Confirm] Stored session confirmation for album id={$album['id']} slug={$slug}");
 
         return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
     }
@@ -828,7 +826,7 @@ class PageController extends BaseController
             }
 
             // Check if user is admin (admins bypass password protection)
-            $isAdmin = !empty($_SESSION['admin_id']);
+            $isAdmin = $this->isAdmin();
 
             if (!empty($album['password_hash']) && !$isAdmin) {
                 $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$album['id']]);
@@ -948,7 +946,7 @@ class PageController extends BaseController
             // Render only the gallery part (not the full page)
             $partial = 'frontend/_gallery_content.twig';
             try {
-                if ((int)($template['id'] ?? 0) === 3 || (($template['slug'] ?? '') === 'magazine-split')) {
+                if (($template['slug'] ?? '') === 'magazine-split') {
                     $partial = 'frontend/_gallery_magazine_content.twig';
                 }
             } catch (\Throwable) {}

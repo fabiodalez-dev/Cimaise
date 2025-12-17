@@ -267,12 +267,6 @@ class SocialController extends BaseController
                 'color' => '#3A7CEC',
                 'url' => '#' // Not a sharing service
             ],
-            'googleplus' => [
-                'name' => 'Google+',
-                'icon' => 'fab fa-google-plus-g',
-                'color' => '#DB483B',
-                'url' => 'https://plus.google.com/share?url={url}'
-            ],
             'hackernews' => [
                 'name' => 'Hacker News',
                 'icon' => 'fab fa-hacker-news',
