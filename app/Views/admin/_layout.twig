@@ -8,7 +8,7 @@
   <link href="{{ base_path }}/assets/admin.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
   <script nonce="{{ csp_nonce() }}">window.basePath = '{{ base_path }}'; window.cspNonce = '{{ csp_nonce() }}';</script>
-  <style>
+  <style nonce="{{ csp_nonce() }}">
     body {
       margin: 0;
       padding: 0;
@@ -335,7 +335,7 @@
               </div>
               
               <!-- Menu Items -->
-              <a href="#" onclick="openProfileModal()" class="dropdown-item">
+              <a href="#" data-action="open-profile-modal" class="dropdown-item">
                 <i class="fas fa-user-edit"></i>
                 <div>
                   <div class="font-medium">{{ trans('admin.profile.my_profile') }}</div>
@@ -343,7 +343,7 @@
                 </div>
               </a>
 
-              <a href="#" onclick="openPasswordModal()" class="dropdown-item">
+              <a href="#" data-action="open-password-modal" class="dropdown-item">
                 <i class="fas fa-key"></i>
                 <div>
                   <div class="font-medium">{{ trans('admin.profile.change_password') }}</div>
@@ -569,7 +569,7 @@
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.profile.my_profile') }}</h3>
-          <button onclick="closeProfileModal()" class="text-gray-400 hover:text-gray-600">
+          <button data-action="close-profile-modal" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -590,7 +590,7 @@
             </div>
           </div>
           <div class="flex justify-end space-x-3 mt-6">
-            <button type="button" onclick="closeProfileModal()" class="btn-secondary">{{ trans('admin.profile.cancel') }}</button>
+            <button type="button" data-action="close-profile-modal" class="btn-secondary">{{ trans('admin.profile.cancel') }}</button>
             <button type="submit" class="btn-primary">{{ trans('admin.profile.update_profile') }}</button>
           </div>
         </form>
@@ -604,7 +604,7 @@
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.profile.change_password') }}</h3>
-          <button onclick="closePasswordModal()" class="text-gray-400 hover:text-gray-600">
+          <button data-action="close-password-modal" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -627,7 +627,7 @@
             </div>
           </div>
           <div class="flex justify-end space-x-3 mt-6">
-            <button type="button" onclick="closePasswordModal()" class="btn-secondary">{{ trans('admin.profile.cancel') }}</button>
+            <button type="button" data-action="close-password-modal" class="btn-secondary">{{ trans('admin.profile.cancel') }}</button>
             <button type="submit" class="btn-primary">{{ trans('admin.profile.change_password') }}</button>
           </div>
         </form>
@@ -658,23 +658,19 @@
       setTimeout(()=>{ box.classList.add('hidden'); }, 2000);
     }
 
-    // Profile Modal Functions
+    // Profile / Password Modal Functions
     function openProfileModal() {
-      document.getElementById('profileModal').classList.remove('hidden');
+      document.getElementById('profileModal')?.classList.remove('hidden');
     }
-
     function closeProfileModal() {
-      document.getElementById('profileModal').classList.add('hidden');
+      document.getElementById('profileModal')?.classList.add('hidden');
     }
-
-    // Password Modal Functions
     function openPasswordModal() {
-      document.getElementById('passwordModal').classList.remove('hidden');
+      document.getElementById('passwordModal')?.classList.remove('hidden');
     }
-
     function closePasswordModal() {
-      document.getElementById('passwordModal').classList.add('hidden');
-      document.getElementById('passwordForm').reset();
+      document.getElementById('passwordModal')?.classList.add('hidden');
+      document.getElementById('passwordForm')?.reset();
     }
 
     // Password confirmation validation
@@ -702,6 +698,63 @@
       if (e.target.id === 'passwordModal') {
         closePasswordModal();
       }
+    });
+
+    // Toggle sidebar on smaller screens
+    document.getElementById('sidebar-toggle')?.addEventListener('click', function() {
+      document.getElementById('sidebar')?.classList.toggle('hidden');
+    });
+
+    // Migrate inline handlers to JS for CSP compliance
+    document.addEventListener('DOMContentLoaded', function() {
+      const actions = {
+        'open-profile-modal': openProfileModal,
+        'close-profile-modal': closeProfileModal,
+        'open-password-modal': openPasswordModal,
+        'close-password-modal': closePasswordModal,
+      };
+      Object.entries(actions).forEach(([key, fn]) => {
+        document.querySelectorAll(`[data-action="${key}"]`).forEach(el => {
+          el.addEventListener('click', function(ev) {
+            ev.preventDefault();
+            fn();
+          });
+        });
+      });
+
+      // Generic confirm handler for elements with data-confirm
+      document.querySelectorAll('[data-confirm]').forEach(el => {
+        const msg = el.getAttribute('data-confirm');
+        if (!msg) return;
+        const handler = (ev) => {
+          if (!confirm(msg)) {
+            ev.preventDefault();
+            ev.stopPropagation();
+          }
+        };
+        if (el.tagName.toLowerCase() === 'form') {
+          el.addEventListener('submit', handler);
+        } else {
+          el.addEventListener('click', handler);
+        }
+      });
+
+      // Convert legacy inline handlers to addEventListener
+      const attrMap = [
+        { attr: 'onclick', event: 'click' },
+        { attr: 'onsubmit', event: 'submit' },
+        { attr: 'onchange', event: 'change' }
+      ];
+      attrMap.forEach(({ attr, event }) => {
+        document.querySelectorAll(`[${attr}]`).forEach(el => {
+          const code = el.getAttribute(attr);
+          if (!code) return;
+          el.removeAttribute(attr);
+          el.addEventListener(event, function(ev) {
+            return (new Function('event', code)).call(this, ev);
+          });
+        });
+      });
     });
 
     // Enhanced dropdown behavior with delays and expanded hover areas

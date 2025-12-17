@@ -110,14 +110,16 @@ photoCMS/
 - `app/Tasks/InstallCommand.php` - CLI installer command (interactive prompts)
 - `app/Services/UploadService.php` - Image processing and variant generation (AVIF, WebP, JPEG, blur)
 - `app/Services/SettingsService.php` - Settings management with JSON storage, defaults, and type tracking (null/boolean/number/string)
-- `app/Services/TranslationService.php` - i18n with JSON storage (storage/translations/)
-- `app/Controllers/Admin/TextsController.php` - Translation management with import/export, search/filter, server-side language dropdown via `getAvailableLanguages()`, and preset language support
+- `app/Services/TranslationService.php` - i18n with dual-scope support (frontend/admin), JSON storage (storage/translations/), separate language tracking
+- `app/Controllers/Admin/TextsController.php` - Translation management with import/export, search/filter, scope selector, server-side language dropdown via `getAvailableLanguages()`, and preset language support
 - `app/Controllers/Admin/SocialController.php` - Social sharing settings management with network enable/disable, ordering, AJAX/form support
 - `app/Extensions/DateTwigExtension.php` - Twig extension for date formatting (filters: date_format, datetime_format, replace_year; functions: date_format_pattern)
 - `app/Middlewares/RateLimitMiddleware.php` - Brute-force protection and API rate limiting
 - `app/Middlewares/SecurityHeadersMiddleware.php` - Security headers (CSP, HSTS, X-Frame-Options) with per-request nonce generation
+- `app/Views/admin/_layout.twig` - Admin panel layout with CSP nonce, sidebar navigation, TinyMCE toolbar fixes
 - `app/Views/admin/settings.twig` - Settings page with image formats, breakpoints, site config, and gallery templates
-- `app/Views/admin/texts/index.twig` - Translation management UI with import/export/upload, server-side language dropdown, and language preset selection
+- `app/Views/admin/texts/index.twig` - Translation management UI with import/export/upload, scope selector, server-side language dropdown, and language preset selection
+- `app/Views/admin/albums/*.twig` - Album CRUD views with full i18n via trans() function
 - `app/Views/frontend/_album_card.twig` - Album card template with NSFW blur variant logic
 - `app/Views/frontend/_breadcrumbs.twig` - Breadcrumbs with automatic JSON-LD schema generation
 - `app/Views/frontend/_social_sharing.twig` - Social sharing buttons template
@@ -213,6 +215,14 @@ $app->get('/path', function(...) { ... })
 - **ETag caching**: `private, max-age=3600, must-revalidate` for variants
 - **Router enforcement**: `public/router.php` routes all /media/* requests through PHP (prevents direct file access bypass)
 
+### System Updater & Maintenance
+- **UpdaterService**: Manages GitHub Releases, backup/restore, and rollback support
+- **Database backup/restore**: Automatic backup before updates with restore and rollback paths
+- **Maintenance mode**: Blocks access during updates to prevent inconsistent states
+- **Update history tracking**: Records update attempts and outcomes
+- **Rollback support**: Restore previous version on failure
+- **Admin interface**: `/admin/updates` dashboard for monitoring, backups, and maintenance toggles
+
 ### Authentication
 - Session-based admin auth with `$_SESSION['admin_id']`
 - Password hashing with `password_hash()`
@@ -292,8 +302,8 @@ $app->get('/path', function(...) { ... })
   - `admin.language` - Language for admin panel (selectable at install)
 - **TranslationService scope**: Service uses `setScope('frontend'|'admin')` to switch between translation contexts
   - Separate language tracking: `language` (frontend) and `adminLanguage` (admin)
-  - Method `getActiveLanguage()` returns current scope's language
-  - Cache invalidation on scope/language changes
+  - Methods: `setLanguage()`, `setAdminLanguage()`, `getActiveLanguage()` returns current scope's language
+  - Cache invalidation on scope/language changes via `loaded` and `cache` properties
 - **TextsController**: Admin panel for managing translations with CRUD operations, search/filter, and scope selector (frontend/admin/all)
 - **Import/Export system**: Download translations as JSON, import from preset languages, upload custom JSON files
 - **Three import modes**:
@@ -309,6 +319,7 @@ $app->get('/path', function(...) { ... })
 - **Inline editing**: AJAX-based inline text editing without page reload (with CSRF protection)
 - **TranslationService**: Backend service with JSON-first loading, loads appropriate file based on context (frontend vs admin)
 - **Usage in templates**: `{{ trans('key.name') }}` function for all translatable text in both frontend and admin
+- **Admin panel i18n**: All admin templates use `trans('admin.*')` keys for full internationalization
 
 ### Social Sharing
 - **Template component**: `_social_sharing.twig` for social media sharing buttons

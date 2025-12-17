@@ -7,9 +7,9 @@
       <p class="text-gray-600 mt-1">{{ trans('admin.texts.description') }}</p>
     </div>
     <div class="flex gap-2">
-      <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline">
+      <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline" data-confirm="{{ trans('admin.texts.seed_confirm')|e('js') }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button type="submit" class="btn-secondary" onclick="return confirm('{{ trans('admin.texts.seed_confirm')|e('js') }}')">
+        <button type="submit" class="btn-secondary">
           <i class="fas fa-seedling mr-2"></i>{{ trans('admin.texts.seed_defaults') }}
         </button>
       </form>
@@ -192,7 +192,7 @@
                     <a href="{{ base_path }}/admin/texts/{{ text.id }}/edit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200" title="{{ trans('admin.texts.full_edit') }}">
                       <i class="fas fa-edit mr-1"></i>{{ trans('general.edit') }}
                     </a>
-                    <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" onsubmit="return confirm('{{ trans('admin.texts.delete_confirm')|e('js') }}')">
+                    <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" data-confirm="{{ trans('admin.texts.delete_confirm')|e('js') }}">
                       <input type="hidden" name="csrf" value="{{ csrf }}">
                       <input type="hidden" name="_method" value="DELETE">
                       <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200" title="{{ trans('general.delete') }}">

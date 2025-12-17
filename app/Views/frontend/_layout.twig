@@ -945,7 +945,7 @@
                                                     {% if category.image_path and category.image_path != '' %}
                                                         <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" 
                                                              class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-                                                             onerror="this.style.display='none';">
+                                                             data-fallback="hide">
                                                     {% else %}
                                                         <div class="w-full h-full flex items-center justify-center text-gray-400 group-hover:text-gray-600 transition-colors duration-300">
                                                             <i class="fas fa-folder-open text-2xl"></i>
@@ -1038,7 +1038,7 @@
                                     <a href="{{ base_path }}/category/{{ category.slug }}" class="flex-grow flex items-center gap-4 p-3 w-full">
                                         {% if category.image_path and category.image_path != '' %}
                                             <div class="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                                                <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                                                <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" data-fallback="hide">
                                             </div>
                                         {% else %}
                                             <div class="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -1068,7 +1068,7 @@
                                 <a href="{{ base_path }}/category/{{ category.slug }}" class="flex items-center gap-4 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors duration-200 p-3 rounded-md">
                                     {% if category.image_path and category.image_path != '' %}
                                         <div class="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                                            <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                                            <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" data-fallback="hide">
                                         </div>
                                     {% else %}
                                         <div class="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -2213,6 +2213,16 @@
         {% if current_tag %}
         window.tagId = {{ current_tag.id }};
         {% endif %}
+    </script>
+
+    <script nonce="{{ csp_nonce() }}">
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('img[data-fallback="hide"]').forEach(function(img) {
+            img.addEventListener('error', function() {
+                this.style.display = 'none';
+            });
+        });
+    });
     </script>
 
     <!-- Global NSFW Image Swap (runs on all pages) -->

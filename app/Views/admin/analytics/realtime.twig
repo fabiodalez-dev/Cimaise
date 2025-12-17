@@ -14,7 +14,7 @@
       <a href="{{ base_path }}/admin/analytics" class="inline-flex items-center px-2 py-1.5 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors" data-spa-link>
         <i class="fas fa-arrow-left mr-1 text-xs"></i>{{ trans('admin.analytics.realtime.back_to_dashboard') }}
       </a>
-      <button onclick="toggleAutoRefresh()" id="refresh-toggle" class="inline-flex items-center px-2 py-1.5 border border-transparent rounded text-xs font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">
+      <button data-action="toggle-auto-refresh" id="refresh-toggle" class="inline-flex items-center px-2 py-1.5 border border-transparent rounded text-xs font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">
         <i class="fas fa-pause mr-1 text-xs"></i><span id="refresh-toggle-text">{{ trans('admin.analytics.realtime.pause') }}</span>
       </button>
     </div>
@@ -149,7 +149,7 @@
   </div>
 </div>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
 /* Real-time specific styles */
 .card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -302,6 +302,10 @@
 <script nonce="{{ csp_nonce() }}">
 let autoRefreshEnabled = true;
 let refreshInterval;
+const refreshLabels = {
+  resume: '{{ trans('admin.analytics.realtime.resume')|e('js') }}',
+  pause: '{{ trans('admin.analytics.realtime.pause')|e('js') }}'
+};
 
 // Start auto refresh
 function startAutoRefresh() {
@@ -325,12 +329,12 @@ function toggleAutoRefresh() {
     stopAutoRefresh();
     autoRefreshEnabled = false;
     icon.className = 'fas fa-play mr-1 text-xs';
-    textSpan.textContent = '{{ trans('admin.analytics.realtime.resume') }}';
+    textSpan.textContent = refreshLabels.resume;
   } else {
     startAutoRefresh();
     autoRefreshEnabled = true;
     icon.className = 'fas fa-pause mr-1 text-xs';
-    textSpan.textContent = '{{ trans('admin.analytics.realtime.pause') }}';
+    textSpan.textContent = refreshLabels.pause;
   }
 }
 
@@ -547,6 +551,13 @@ document.addEventListener('visibilitychange', function() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   loadRealTimeData(); // Load initial data
+  const refreshToggle = document.getElementById('refresh-toggle');
+  if (refreshToggle) {
+    refreshToggle.addEventListener('click', function(event) {
+      event.preventDefault();
+      toggleAutoRefresh();
+    });
+  }
   
   {% if analytics_enabled %}
   if (autoRefreshEnabled) {
