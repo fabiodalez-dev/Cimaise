@@ -1,5 +1,5 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Edit Album — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.albums.edit_album') }} — Cimaise{% endblock %}
 {% block content %}
 {# Hook: admin_album_edit_before - Before the entire edit page #}
 {{ do_action('admin_album_edit_before', {album: item, base_path: base_path}) }}
@@ -10,21 +10,21 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-black">Edit Album</h1>
-          <p class="text-gray-600 mt-1">Update information and manage images</p>
+          <h1 class="text-3xl font-bold text-black">{{ trans('admin.albums.edit_album') }}</h1>
+          <p class="text-gray-600 mt-1">{{ trans('admin.albums.edit_description') }}</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
           <a href="{{ base_path }}/admin/albums" class="btn-secondary" data-spa-link>
             <i class="fas fa-arrow-left mr-2"></i>
-            Back to albums
+            {{ trans('admin.albums.back_to_albums') }}
           </a>
           <a href="{{ base_path }}/album/{{ item.slug }}" class="btn-secondary" target="_blank" rel="noopener">
             <i class="fas fa-eye mr-2"></i>
-            View page
+            {{ trans('admin.albums.view_page') }}
           </a>
           <a href="{{ base_path }}/admin/settings" class="btn-secondary" data-spa-link>
             <i class="fas fa-cog mr-2"></i>
-            Settings
+            {{ trans('admin.settings.title') }}
           </a>
           {# Hook: admin_album_edit_header_actions - Add custom header buttons #}
           {{ do_action('admin_album_edit_header_actions', {album: item, base_path: base_path}) }}
@@ -46,64 +46,64 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-info-circle mr-3 text-gray-600"></i>
-                Basic Information
+                {{ trans('admin.albums.basic_info') }}
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Title, description and album content</p>
+              <p class="text-gray-600 text-sm mt-1">{{ trans('admin.albums.basic_info_desc') }}</p>
             </div>
             <div class="p-6 space-y-6">
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Title <span class="text-red-500">*</span></label>
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.title_field') }} <span class="text-red-500">*</span></label>
                   <input class="form-input border-gray-300 focus:border-black focus:ring-black"
                          type="text" name="title" value="{{ item.title }}" required
-                         placeholder="Enter album title">
+                         placeholder="{{ trans('admin.albums.title_placeholder') }}">
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Slug URL</label>
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.slug_url') }}</label>
                   <input class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm"
                          type="text" name="slug" value="{{ item.slug }}"
-                         placeholder="url-friendly-slug">
-                  <p class="text-xs text-gray-500 mt-1">Leave empty for automatic generation</p>
+                         placeholder="{{ trans('admin.albums.slug_placeholder') }}">
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.slug_help') }}</p>
                 </div>
               </div>
 
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Categories <span class="text-red-500">*</span></label>
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.categories') }} <span class="text-red-500">*</span></label>
                   <select name="categories[]" id="album-categories" class="form-input" multiple required>
                     {% set selectedCats = categoryIds|default([item.category_id ? item.category_id : 0]) %}
                     {% for c in categories %}
                       <option value="{{ c.id }}" {% if c.id in selectedCats %}selected{% endif %}>{{ c.name }}</option>
                     {% endfor %}
                   </select>
-                  <p class="text-xs text-gray-500 mt-1">Select one or more categories</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.categories_help') }}</p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Tag</label>
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.tags') }}</label>
                   <select class="form-input" name="tags[]" id="album-tags" multiple>
                     {% for t in tags %}
                       <option value="{{ t.id }}" {% if t.id in tagIds %}selected{% endif %}>{{ t.name }}</option>
                     {% endfor %}
                   </select>
-                  <p class="text-xs text-gray-500 mt-1">Optional tags for advanced categorization</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.tags_help') }}</p>
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Short Description</label>
-                <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                          name="excerpt" rows="4" 
-                          placeholder="Short description that appears in previews..."
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.short_description') }}</label>
+                <textarea class="form-input border-gray-300 focus:border-black focus:ring-black"
+                          name="excerpt" rows="4"
+                          placeholder="{{ trans('admin.albums.short_desc_placeholder') }}"
                           maxlength="150">{{ item.excerpt|striptags }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Maximum 150 characters for optimal display. Plain text only.</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.short_desc_help') }}</p>
               </div>
-              
+
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Full Content</label>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.full_content') }}</label>
                 <textarea class="form-input richtext border-gray-300 focus:border-black focus:ring-black"
                           name="body" rows="32"
-                          placeholder="Full description with formatting...">{{ item.body }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Supports rich formatting: bold, italic, lists, links</p>
+                          placeholder="{{ trans('admin.albums.full_content_placeholder') }}">{{ item.body }}</textarea>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.full_content_help') }}</p>
               </div>
 
               {# Hook: admin_album_form_basic_info_fields - Add custom fields inside basic info card #}
@@ -121,34 +121,34 @@
                 <div>
                   <h2 class="text-lg font-semibold text-black flex items-center">
                     <i class="fas fa-images mr-3 text-gray-600"></i>
-                    Image Management
+                    {{ trans('admin.albums.image_management') }}
                   </h2>
-                  <p class="text-gray-600 text-sm mt-1">Upload and organize album images</p>
+                  <p class="text-gray-600 text-sm mt-1">{{ trans('admin.albums.image_management_desc') }}</p>
                 </div>
                 <div class="flex items-center gap-3">
                   <select id="sort-images" class="form-input text-sm py-2">
-                    <option value="manual">Manual order</option>
-                    <option value="created_newest">Date (newest)</option>
-                    <option value="created_oldest">Date (oldest)</option>
-                    <option value="id_asc">ID ascending</option>
-                    <option value="id_desc">ID descending</option>
+                    <option value="manual">{{ trans('admin.albums.sort_manual') }}</option>
+                    <option value="created_newest">{{ trans('admin.albums.sort_date_newest') }}</option>
+                    <option value="created_oldest">{{ trans('admin.albums.sort_date_oldest') }}</option>
+                    <option value="id_asc">{{ trans('admin.albums.sort_id_asc') }}</option>
+                    <option value="id_desc">{{ trans('admin.albums.sort_id_desc') }}</option>
                   </select>
                   <button id="save-order" type="button" class="btn-secondary text-sm">
                     <i class="fas fa-save mr-1"></i>
-                    Save order
+                    {{ trans('admin.albums.save_order') }}
                   </button>
                 </div>
               </div>
             </div>
-            
+
             <div class="p-6">
               <!-- Uppy Drag & Drop Upload -->
               <div id="uppy" class="w-full border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all flex items-center justify-center min-h-[200px] text-gray-600"
                    data-endpoint="{{ base_path }}/admin/albums/{{ item.id }}/upload" data-csrf="{{ csrf }}" data-album-id="{{ item.id }}">
                 <div class="text-center py-8">
                   <i class="fas fa-cloud-upload-alt text-4xl mb-4 text-gray-400"></i>
-                  <div class="text-lg font-medium mb-1">Drag images here</div>
-                  <div class="text-sm text-gray-500">or click to select from your computer</div>
+                  <div class="text-lg font-medium mb-1">{{ trans('admin.albums.drag_images') }}</div>
+                  <div class="text-sm text-gray-500">{{ trans('admin.albums.or_click_select') }}</div>
                   <div class="text-xs text-gray-400 mt-2">JPG, PNG, WebP</div>
                 </div>
               </div>
@@ -177,20 +177,20 @@
               </div>
 
               <div class="mt-3 text-right">
-                <button type="button" id="open-media-library" class="btn-secondary"><i class="fas fa-images mr-2"></i>Upload from gallery</button>
+                <button type="button" id="open-media-library" class="btn-secondary"><i class="fas fa-images mr-2"></i>{{ trans('admin.albums.upload_from_gallery') }}</button>
               </div>
 
               <!-- Bulk Actions - Always present -->
               <div class="flex items-center justify-between mt-6 mb-4">
                 <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
                   <input type="checkbox" id="select-all" class="rounded border-gray-300 text-black focus:ring-black">
-                  Select all ({{ images|length }} images)
+                  {{ trans('admin.albums.select_all_images')|replace({'{count}': images|length}) }}
                 </label>
-                <button id="bulk-delete" type="button" 
-                        class="btn-outline-danger text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+                <button id="bulk-delete" type="button"
+                        class="btn-outline-danger text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled>
                   <i class="fas fa-trash mr-1"></i>
-                  Delete selected
+                  {{ trans('admin.albums.delete_selected') }}
                 </button>
               </div>
 
@@ -209,12 +209,12 @@
                         <input type="checkbox" class="absolute top-2 left-2 w-4 h-4 bg-white rounded border z-10" data-select-id="{{ img.id }}">
                         <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition-all flex items-center justify-center">
                           <div class="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
-                            <i class="fas fa-edit mr-1"></i>Edit details
+                            <i class="fas fa-edit mr-1"></i>{{ trans('admin.albums.edit_details') }}
                           </div>
                         </div>
                       </div>
                       <div class="p-2 flex items-center justify-between text-sm">
-                        <button type="button" data-cover-id="{{ img.id }}" class="px-2 py-1 rounded border {{ item.cover_image_id == img.id ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 text-gray-700' }}">Cover</button>
+                        <button type="button" data-cover-id="{{ img.id }}" class="px-2 py-1 rounded border {{ item.cover_image_id == img.id ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 text-gray-700' }}">{{ trans('admin.albums.modal_cover') }}</button>
                         <button type="button" data-delete-id="{{ img.id }}" class="px-2 py-1 rounded border border-red-300 text-red-700"><i class="fa-solid fa-trash"></i></button>
                       </div>
                     </div>
@@ -222,11 +222,11 @@
                 {% else %}
                   <!-- Empty state message inside the grid -->
                   <div class="col-span-full text-center py-8">
-                    <p class="text-gray-500">No images in this album.</p>
+                    <p class="text-gray-500">{{ trans('admin.albums.no_images') }}</p>
                   </div>
                 {% endif %}
               </div>
-              <div class="text-gray-500 text-sm mt-2">Drag to reorder or use the selector to sort by date/ID; click "Save order" to persist.</div>
+              <div class="text-gray-500 text-sm mt-2">{{ trans('admin.albums.drag_hint_edit') }}</div>
             </div>
           </div>
 
@@ -240,9 +240,9 @@
                 <div>
                   <h2 class="text-lg font-semibold text-black flex items-center">
                     <i class="fas fa-search mr-3 text-gray-600"></i>
-                    SEO & Schema Markup
+                    {{ trans('admin.albums.seo_schema') }}
                   </h2>
-                  <p class="text-gray-600 text-sm mt-1">Search engine and social media optimization (optional)</p>
+                  <p class="text-gray-600 text-sm mt-1">{{ trans('admin.albums.seo_schema_desc') }}</p>
                 </div>
                 <i id="seo-accordion-icon" class="fas fa-chevron-down text-gray-400 transition-transform"></i>
               </button>
@@ -250,72 +250,72 @@
             <div id="seo-accordion-content" class="hidden p-6 space-y-6">
               <!-- Basic SEO -->
               <div class="space-y-4">
-                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">Basic SEO</h3>
+                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">{{ trans('admin.albums.basic_seo') }}</h3>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-black mb-2">SEO Title</label>
-                    <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                           type="text" name="seo_title" value="{{ item.seo_title }}" 
-                           placeholder="{{ item.title }} - Leave empty for auto-generation">
-                    <p class="text-xs text-gray-500 mt-1">Specific SEO title (max 60 characters). If empty, will use album title.</p>
+                    <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.seo_title') }}</label>
+                    <input class="form-input border-gray-300 focus:border-black focus:ring-black"
+                           type="text" name="seo_title" value="{{ item.seo_title }}"
+                           placeholder="{{ trans('admin.albums.seo_title_placeholder') }}">
+                    <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.seo_title_help') }}</p>
                   </div>
-                  
+
                   <div>
-                    <label class="block text-sm font-medium text-black mb-2">Keywords SEO</label>
-                    <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                           type="text" name="seo_keywords" value="{{ item.seo_keywords }}" 
-                           placeholder="photography, portfolio, art, creativity">
-                    <p class="text-xs text-gray-500 mt-1">Keywords separated by commas (max 10-15 keywords).</p>
+                    <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.keywords_seo') }}</label>
+                    <input class="form-input border-gray-300 focus:border-black focus:ring-black"
+                           type="text" name="seo_keywords" value="{{ item.seo_keywords }}"
+                           placeholder="{{ trans('admin.albums.keywords_placeholder') }}">
+                    <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.keywords_help') }}</p>
                   </div>
                 </div>
-                
+
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Meta Description</label>
-                  <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                            name="seo_description" rows="3" 
-                            placeholder="Concise description for search engines..." 
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.meta_description') }}</label>
+                  <textarea class="form-input border-gray-300 focus:border-black focus:ring-black"
+                            name="seo_description" rows="3"
+                            placeholder="{{ trans('admin.albums.meta_desc_placeholder') }}"
                             maxlength="160">{{ item.seo_description }}</textarea>
-                  <p class="text-xs text-gray-500 mt-1">Description for search engines (max 160 characters). If empty, will use the album excerpt.</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.meta_desc_help') }}</p>
                 </div>
               </div>
 
               <!-- Open Graph & Social Media -->
               <div class="space-y-4">
-                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">Open Graph & Social Media</h3>
+                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">{{ trans('admin.albums.og_social') }}</h3>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-black mb-2">OG Title</label>
-                    <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                           type="text" name="og_title" value="{{ item.og_title }}" 
+                    <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.og_title') }}</label>
+                    <input class="form-input border-gray-300 focus:border-black focus:ring-black"
+                           type="text" name="og_title" value="{{ item.og_title }}"
                            placeholder="{{ item.title }}">
-                    <p class="text-xs text-gray-500 mt-1">Title for social media. If empty, will use SEO title or album title.</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.og_title_help') }}</p>
                   </div>
-                  
+
                   <div>
-                    <label class="block text-sm font-medium text-black mb-2">OG Image Path</label>
-                    <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                           type="text" name="og_image_path" value="{{ item.og_image_path }}" 
+                    <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.og_image_path') }}</label>
+                    <input class="form-input border-gray-300 focus:border-black focus:ring-black"
+                           type="text" name="og_image_path" value="{{ item.og_image_path }}"
                            placeholder="/uploads/thumbnails/cover-image.jpg">
-                    <p class="text-xs text-gray-500 mt-1">Social image path. If empty, will use album cover image.</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.og_image_help') }}</p>
                   </div>
                 </div>
-                
+
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">OG Description</label>
-                  <textarea class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                            name="og_description" rows="3" 
-                            placeholder="Engaging description for social media..." 
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.og_description') }}</label>
+                  <textarea class="form-input border-gray-300 focus:border-black focus:ring-black"
+                            name="og_description" rows="3"
+                            placeholder="{{ trans('admin.albums.og_desc_placeholder') }}"
                             maxlength="200">{{ item.og_description }}</textarea>
-                  <p class="text-xs text-gray-500 mt-1">Description for social media (max 200 characters). If empty, will use meta description.</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.og_desc_help') }}</p>
                 </div>
               </div>
 
               <!-- Schema.org Structured Data -->
               <div class="space-y-4">
-                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">Schema.org Structured Data</h3>
+                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">{{ trans('admin.albums.schema_structured') }}</h3>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-black mb-2">Schema Type</label>
+                    <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.schema_type') }}</label>
                     <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="schema_type">
                       <option value="ImageGallery" {% if item.schema_type == 'ImageGallery' or not item.schema_type %}selected{% endif %}>ImageGallery</option>
                       <option value="PhotographAction" {% if item.schema_type == 'PhotographAction' %}selected{% endif %}>PhotographAction</option>
@@ -323,22 +323,22 @@
                       <option value="VisualArtwork" {% if item.schema_type == 'VisualArtwork' %}selected{% endif %}>VisualArtwork</option>
                       <option value="MediaGallery" {% if item.schema_type == 'MediaGallery' %}selected{% endif %}>MediaGallery</option>
                     </select>
-                    <p class="text-xs text-gray-500 mt-1">Structured schema type for markup.</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.schema_type_help') }}</p>
                   </div>
-                  
+
                   <div>
-                    <label class="block text-sm font-medium text-black mb-2">Canonical URL</label>
-                    <input class="form-input border-gray-300 focus:border-black focus:ring-black" 
-                           type="url" name="canonical_url" value="{{ item.canonical_url }}" 
+                    <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.canonical_url') }}</label>
+                    <input class="form-input border-gray-300 focus:border-black focus:ring-black"
+                           type="url" name="canonical_url" value="{{ item.canonical_url }}"
                            placeholder="https://example.com/album/{{ item.slug }}">
-                    <p class="text-xs text-gray-500 mt-1">Canonical URL. If empty, will use current album URL.</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.canonical_help') }}</p>
                   </div>
                 </div>
-                
+
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Schema Data (JSON-LD)</label>
-                  <textarea class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm" 
-                            name="schema_data" rows="6" 
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.schema_data') }}</label>
+                  <textarea class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm"
+                            name="schema_data" rows="6"
                             placeholder='{
   "@type": "ImageGallery",
   "name": "{{ item.title }}",
@@ -348,39 +348,39 @@
     "name": "Professional Photographer"
   }
 }'>{{ item.schema_data }}</textarea>
-                  <p class="text-xs text-gray-500 mt-1">Custom JSON-LD structured data. If empty, will be generated automatically.</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.schema_data_help') }}</p>
                 </div>
               </div>
 
               <!-- Technical SEO -->
               <div class="space-y-4">
-                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">Technical SEO</h3>
+                <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">{{ trans('admin.albums.technical_seo') }}</h3>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div class="space-y-3">
                     <label class="flex items-center gap-3">
-                      <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
-                             type="checkbox" name="robots_index" 
+                      <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                             type="checkbox" name="robots_index"
                              {% if item.robots_index is null or item.robots_index %}checked{% endif %}>
-                      <span class="text-sm font-medium text-gray-700">Index on search engines</span>
+                      <span class="text-sm font-medium text-gray-700">{{ trans('admin.albums.robots_index') }}</span>
                     </label>
-                    <p class="text-xs text-gray-500 ml-7">Allow search engines to index this album.</p>
+                    <p class="text-xs text-gray-500 ml-7">{{ trans('admin.albums.robots_index_help') }}</p>
                   </div>
-                  
+
                   <div class="space-y-3">
                     <label class="flex items-center gap-3">
-                      <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
-                             type="checkbox" name="robots_follow" 
+                      <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                             type="checkbox" name="robots_follow"
                              {% if item.robots_follow is null or item.robots_follow %}checked{% endif %}>
-                      <span class="text-sm font-medium text-gray-700">Follow album links</span>
+                      <span class="text-sm font-medium text-gray-700">{{ trans('admin.albums.robots_follow') }}</span>
                     </label>
-                    <p class="text-xs text-gray-500 ml-7">Allow search engines to follow links in this album.</p>
+                    <p class="text-xs text-gray-500 ml-7">{{ trans('admin.albums.robots_follow_help') }}</p>
                   </div>
                 </div>
               </div>
 
               <!-- Preview Section -->
               <div class="border-t pt-4 mt-6">
-                <h3 class="text-md font-medium text-gray-900 mb-4">SEO Preview</h3>
+                <h3 class="text-md font-medium text-gray-900 mb-4">{{ trans('admin.albums.seo_preview') }}</h3>
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
                   <div class="text-blue-600 text-lg hover:underline cursor-pointer" id="seo-preview-title">
                     {{ item.seo_title ?: item.title }}
@@ -392,7 +392,7 @@
                     {{ item.seo_description ?: item.excerpt ?: 'Professional photo gallery.' }}
                   </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">Preview of how the album will appear in Google search results.</p>
+                <p class="text-xs text-gray-500 mt-2">{{ trans('admin.albums.seo_preview_hint') }}</p>
               </div>
             </div>
           </div>
@@ -411,64 +411,64 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-globe mr-3 text-gray-600"></i>
-                Publishing Settings
+                {{ trans('admin.albums.publishing') }}
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Date, template and visibility</p>
+              <p class="text-gray-600 text-sm mt-1">{{ trans('admin.albums.publishing_desc') }}</p>
             </div>
             <div class="p-6 space-y-4">
               <div class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Shoot Date</label>
-                  <input class="form-input border-gray-300 focus:border-black focus:ring-black w-full" 
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.shoot_date') }}</label>
+                  <input class="form-input border-gray-300 focus:border-black focus:ring-black w-full"
                          type="date" name="shoot_date" value="{{ item.shoot_date }}">
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-black mb-2">Order</label>
-                  <input class="form-input border-gray-300 focus:border-black focus:ring-black w-full" 
-                         type="number" name="sort_order" value="{{ item.sort_order }}" 
+                  <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.order') }}</label>
+                  <input class="form-input border-gray-300 focus:border-black focus:ring-black w-full"
+                         type="number" name="sort_order" value="{{ item.sort_order }}"
                          placeholder="0">
                 </div>
               </div>
-              
+
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Template</label>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.template') }}</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="template_id">
-                  <option value="">Default Template</option>
+                  <option value="">{{ trans('admin.albums.default_template') }}</option>
                   {% for template in templates %}
                     <option value="{{ template.id }}" {% if template.id == item.template_id %}selected{% endif %}>{{ template.name }}</option>
                   {% endfor %}
                 </select>
               </div>
-              
+
               <div class="space-y-3">
                 <label class="flex items-center gap-3">
-                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
-                         type="checkbox" name="show_date" id="show_date" 
+                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                         type="checkbox" name="show_date" id="show_date"
                          {% if item.show_date %}checked{% endif %}>
-                  <span class="text-sm font-medium text-gray-700">Show shoot date</span>
+                  <span class="text-sm font-medium text-gray-700">{{ trans('admin.albums.show_date') }}</span>
                 </label>
-                
+
                 <label class="flex items-center gap-3">
-                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
-                         type="checkbox" name="is_published" id="pub" 
+                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                         type="checkbox" name="is_published" id="pub"
                          {% if item.is_published %}checked{% endif %}>
-                  <span class="text-sm font-medium text-gray-700">Album published</span>
+                  <span class="text-sm font-medium text-gray-700">{{ trans('admin.albums.published') }}</span>
                 </label>
-                
+
                 <label class="flex items-center gap-3">
                   <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
                          type="checkbox" name="allow_downloads" id="allow_downloads"
                          {% if item.allow_downloads %}checked{% endif %}>
-                  <span class="text-sm font-medium text-gray-700">Allow image downloads</span>
+                  <span class="text-sm font-medium text-gray-700">{{ trans('admin.albums.allow_downloads') }}</span>
                 </label>
 
                 <label class="flex items-center gap-3">
                   <input class="h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
                          type="checkbox" name="is_nsfw" id="is_nsfw"
                          {% if item.is_nsfw %}checked{% endif %}>
-                  <span class="text-sm font-medium text-gray-700">{{ trans('album.nsfw_label')|default('NSFW Content') }}</span>
+                  <span class="text-sm font-medium text-gray-700">{{ trans('admin.albums.nsfw_content') }}</span>
                 </label>
-                <p class="text-xs text-gray-500 ml-7">{{ trans('album.nsfw_help')|default('Mark if album contains adult or sensitive content') }}</p>
+                <p class="text-xs text-gray-500 ml-7">{{ trans('admin.albums.nsfw_help') }}</p>
               </div>
             </div>
           </div>
@@ -481,49 +481,49 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-camera mr-3 text-gray-600"></i>
-                Photo Equipment
+                {{ trans('admin.albums.equipment') }}
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Equipment used for the album</p>
+              <p class="text-gray-600 text-sm mt-1">{{ trans('admin.albums.equipment_desc') }}</p>
             </div>
             <div class="p-6 space-y-4">
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Cameras</label>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.cameras.title') }}</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="cameras[]" id="album-cameras" multiple>
                   {% for camera in cameras %}
                     <option value="{{ camera.id }}" {% if camera.id in cameraIds %}selected{% endif %}>{{ camera.make }} {{ camera.model }}</option>
                   {% endfor %}
                 </select>
               </div>
-              
+
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Lenses</label>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.lenses.title') }}</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="lenses[]" id="album-lenses" multiple>
                   {% for lens in lenses %}
                     <option value="{{ lens.id }}" {% if lens.id in lensIds %}selected{% endif %}>{{ lens.brand }} {{ lens.model }}</option>
                   {% endfor %}
                 </select>
               </div>
-              
+
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Films</label>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.films.title') }}</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="films[]" id="album-films" multiple>
                   {% for film in films %}
                     <option value="{{ film.id }}" {% if film.id in filmIds %}selected{% endif %}>{{ film.brand }} {{ film.name }}</option>
                   {% endfor %}
                 </select>
               </div>
-              
+
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Developers</label>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.developers.title') }}</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="developers[]" id="album-developers" multiple>
                   {% for developer in developers %}
                     <option value="{{ developer.id }}" {% if developer.id in developerIds %}selected{% endif %}>{{ developer.name }}</option>
                   {% endfor %}
                 </select>
               </div>
-              
+
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Labs</label>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.labs.title') }}</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="labs[]" id="album-labs" multiple>
                   {% for lab in labs %}
                     <option value="{{ lab.id }}" {% if lab.id in labIds %}selected{% endif %}>{{ lab.name }}</option>
@@ -544,76 +544,76 @@
             <div class="p-6 border-b border-gray-200">
               <h2 class="text-lg font-semibold text-black flex items-center">
                 <i class="fas fa-map-marker-alt mr-3 text-gray-600"></i>
-                Locations and Security
+                {{ trans('admin.albums.locations_security') }}
               </h2>
-              <p class="text-gray-600 text-sm mt-1">Positions and album protection</p>
+              <p class="text-gray-600 text-sm mt-1">{{ trans('admin.albums.locations_security_desc') }}</p>
             </div>
             <div class="p-6 space-y-4">
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Shooting Locations</label>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.shooting_locations') }}</label>
                 <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="locations[]" id="album-locations" multiple>
                   {% for loc in locations %}
                     <option value="{{ loc.id }}" {% if loc.id in locationIds %}selected{% endif %}>{{ loc.name }}</option>
                   {% endfor %}
                 </select>
-                <p class="text-xs text-gray-500 mt-1">Select one or more locations where the album was shot</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.locations_help') }}</p>
               </div>
-              
+
               <div>
-                <label class="block text-sm font-medium text-black mb-2">Album Password</label>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.album_password') }}</label>
                 <div class="space-y-3" id="password-section">
                   {% if item.password %}
                     <!-- Album has password -->
                     <div class="bg-green-50 border border-green-200 rounded-lg p-3" id="password-status">
                       <div class="flex items-center gap-2 mb-2">
                         <i class="fas fa-lock text-green-600"></i>
-                        <span class="text-sm font-medium text-green-800">Album protected by password</span>
+                        <span class="text-sm font-medium text-green-800">{{ trans('admin.albums.password_protected') }}</span>
                       </div>
                       <div class="flex gap-2">
                         <button type="button" id="change-password-btn" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                          <i class="fas fa-edit mr-1"></i>Change password
+                          <i class="fas fa-edit mr-1"></i>{{ trans('admin.albums.change_password') }}
                         </button>
                         <button type="button" id="remove-password-btn" class="text-sm text-red-600 hover:text-red-800 font-medium">
-                          <i class="fas fa-times mr-1"></i>Remove password
+                          <i class="fas fa-times mr-1"></i>{{ trans('admin.albums.remove_password') }}
                         </button>
                       </div>
                     </div>
-                    
+
                     <div class="hidden" id="change-password-form">
                       <input class="form-input border-gray-300 focus:border-black focus:ring-black"
                              type="password" name="password" id="password-input"
-                             placeholder="New password" autocomplete="new-password">
+                             placeholder="{{ trans('admin.albums.new_password_placeholder') }}" autocomplete="new-password">
                       <div class="flex gap-2 mt-2">
-                        <button type="button" id="cancel-change-btn" class="btn-secondary text-sm">Cancel</button>
-                        <button type="button" id="save-change-btn" class="btn-primary text-sm">Change password</button>
+                        <button type="button" id="cancel-change-btn" class="btn-secondary text-sm">{{ trans('admin.albums.modal_cancel') }}</button>
+                        <button type="button" id="save-change-btn" class="btn-primary text-sm">{{ trans('admin.albums.change_password') }}</button>
                       </div>
                     </div>
-                    
+
                     <input type="hidden" name="password_clear" id="password-clear-input" value="">
                   {% else %}
                     <!-- Album doesn't have password -->
                     <div class="bg-gray-50 border border-gray-200 rounded-lg p-3" id="no-password-status">
                       <div class="flex items-center gap-2 mb-2">
                         <i class="fas fa-unlock text-gray-500"></i>
-                        <span class="text-sm text-gray-600">Album not protected</span>
+                        <span class="text-sm text-gray-600">{{ trans('admin.albums.not_protected') }}</span>
                       </div>
                       <button type="button" id="add-password-btn" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                        <i class="fas fa-plus mr-1"></i>Add password
+                        <i class="fas fa-plus mr-1"></i>{{ trans('admin.albums.add_password') }}
                       </button>
                     </div>
-                    
+
                     <div class="hidden" id="add-password-form">
                       <input class="form-input border-gray-300 focus:border-black focus:ring-black"
                              type="password" name="password" id="new-password-input"
-                             placeholder="Enter password" autocomplete="new-password">
+                             placeholder="{{ trans('admin.albums.enter_password') }}" autocomplete="new-password">
                       <div class="flex gap-2 mt-2">
-                        <button type="button" id="cancel-add-btn" class="btn-secondary text-sm">Cancel</button>
-                        <button type="button" id="save-add-btn" class="btn-primary text-sm">Add password</button>
+                        <button type="button" id="cancel-add-btn" class="btn-secondary text-sm">{{ trans('admin.albums.modal_cancel') }}</button>
+                        <button type="button" id="save-add-btn" class="btn-primary text-sm">{{ trans('admin.albums.add_password') }}</button>
                       </div>
                     </div>
                   {% endif %}
                 </div>
-                <p class="text-xs text-gray-500 mt-1">Protect the album with a password to limit access</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.password_help') }}</p>
               </div>
             </div>
           </div>
@@ -636,24 +636,24 @@
       <div class="flex items-center gap-3">
         <button type="submit" form="album-form" class="btn-primary">
           <i class="fas fa-save mr-2"></i>
-          Save Changes
+          {{ trans('admin.albums.save_changes') }}
         </button>
         <a href="{{ base_path }}/admin/albums" class="btn-secondary">
           <i class="fas fa-times mr-2"></i>
-          Cancel
+          {{ trans('admin.albums.cancel') }}
         </a>
       </div>
-      
+
       <div class="flex items-center gap-3">
         {# Hook: admin_album_footer_actions - Add custom action buttons #}
         {{ do_action('admin_album_footer_actions', {album: item, base_path: base_path}) }}
 
         <form method="post" action="{{ base_path }}/admin/albums/{{ item.id }}/delete" class="inline"
-              onsubmit="return confirm('Are you sure you want to delete this album? This action cannot be undone.');">
+              data-confirm="{{ trans('admin.albums.delete_confirm_full')|e('html_attr') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button type="submit" class="btn-outline-danger">
             <i class="fas fa-trash mr-2"></i>
-            Delete Album
+            {{ trans('admin.albums.delete_album') }}
           </button>
         </form>
       </div>
@@ -668,13 +668,13 @@
 <div id="image-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
   <div class="bg-white w-full max-w-5xl rounded-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
     <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
-      <h3 class="text-xl font-semibold text-gray-900">Edit image</h3>
+      <h3 class="text-xl font-semibold text-gray-900">{{ trans('admin.albums.edit_image') }}</h3>
       <button type="button" id="image-modal-close" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
     </div>
     <div class="flex flex-1 min-h-0">
       <!-- Image preview (larger column) -->
       <div class="w-2/3 bg-gray-100 flex items-center justify-center p-6">
-        <img id="modal-preview" src="" alt="Image preview" class="max-w-full max-h-full object-contain rounded-lg shadow-lg">
+        <img id="modal-preview" src="" alt="{{ trans('admin.albums.image_preview') }}" class="max-w-full max-h-full object-contain rounded-lg shadow-lg">
       </div>
       <!-- Form + Actions (smaller column) -->
       <div class="w-1/3 flex flex-col bg-white min-h-0">
@@ -684,32 +684,32 @@
             <div class="space-y-4">
               <!-- Image Actions -->
               <div class="space-y-3">
-                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Actions</h4>
+                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">{{ trans('admin.albums.modal_actions') }}</h4>
                 <div class="flex gap-2">
                   <button type="button" id="modal-cover-btn" class="flex-1 px-3 py-2 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-50">
-                    <i class="fas fa-image mr-1"></i>Cover
+                    <i class="fas fa-image mr-1"></i>{{ trans('admin.albums.modal_cover') }}
                   </button>
                   <button type="button" id="modal-delete-btn" class="flex-1 px-3 py-2 text-xs rounded border border-red-300 text-red-700 hover:bg-red-50">
-                    <i class="fas fa-trash mr-1"></i>Delete
+                    <i class="fas fa-trash mr-1"></i>{{ trans('admin.albums.modal_delete') }}
                   </button>
                 </div>
               </div>
-              
+
               <!-- Basic Info -->
               <div class="space-y-3">
-                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Basic Information</h4>
+                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">{{ trans('admin.albums.basic_info_modal') }}</h4>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Alt text *</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.albums.alt_text') }} *</label>
                   <input type="text" name="alt_text" id="f-alt" class="form-input w-full text-sm">
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Title/Caption</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.albums.caption') }}</label>
                   <input type="text" name="caption" id="f-caption" class="form-input w-full text-sm">
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Location</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.locations.title') }}</label>
                   <select name="location_id" id="f-location" class="form-input w-full text-sm">
-                    <option value="">Select location...</option>
+                    <option value="">{{ trans('admin.albums.select_location') }}</option>
                     {% for loc in locations %}
                       <option value="{{ loc.id }}">{{ loc.name }}</option>
                     {% endfor %}
@@ -719,47 +719,47 @@
 
               <!-- Equipment -->
               <div class="space-y-3">
-                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Equipment</h4>
+                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">{{ trans('admin.albums.equipment') }}</h4>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Camera</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.cameras.title') }}</label>
                   <select name="camera_id" id="f-camera" class="form-input w-full text-sm">
-                    <option value="">Select camera...</option>
+                    <option value="">{{ trans('admin.albums.select_camera') }}</option>
                     {% for camera in cameras %}
                       <option value="{{ camera.id }}">{{ camera.make }} {{ camera.model }}</option>
                     {% endfor %}
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Lens</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.lenses.title') }}</label>
                   <select name="lens_id" id="f-lens" class="form-input w-full text-sm">
-                    <option value="">Select lens...</option>
+                    <option value="">{{ trans('admin.albums.select_lens') }}</option>
                     {% for lens in lenses %}
                       <option value="{{ lens.id }}">{{ lens.brand }} {{ lens.model }}</option>
                     {% endfor %}
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Film</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.films.title') }}</label>
                   <select name="film_id" id="f-film" class="form-input w-full text-sm">
-                    <option value="">Select film...</option>
+                    <option value="">{{ trans('admin.albums.select_film') }}</option>
                     {% for film in films %}
                       <option value="{{ film.id }}">{{ film.brand }} {{ film.name }}</option>
                     {% endfor %}
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Developer</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.developers.title') }}</label>
                   <select name="developer_id" id="f-developer" class="form-input w-full text-sm">
-                    <option value="">Select developer...</option>
+                    <option value="">{{ trans('admin.albums.select_developer') }}</option>
                     {% for dev in developers %}
                       <option value="{{ dev.id }}">{{ dev.name }}</option>
                     {% endfor %}
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Lab</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.labs.title') }}</label>
                   <select name="lab_id" id="f-lab" class="form-input w-full text-sm">
-                    <option value="">Select lab...</option>
+                    <option value="">{{ trans('admin.albums.select_lab') }}</option>
                     {% for lab in labs %}
                       <option value="{{ lab.id }}">{{ lab.name }}</option>
                     {% endfor %}
@@ -769,35 +769,35 @@
 
               <!-- Custom Fields -->
               <div class="space-y-3">
-                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Custom Fields</h4>
+                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">{{ trans('admin.albums.custom_fields') }}</h4>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Custom camera</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.albums.custom_camera') }}</label>
                   <input type="text" name="custom_camera" id="f-custom-camera" class="form-input w-full text-sm">
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Custom lens</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.albums.custom_lens') }}</label>
                   <input type="text" name="custom_lens" id="f-custom-lens" class="form-input w-full text-sm">
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Custom film</label>
+                  <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.albums.custom_film') }}</label>
                   <input type="text" name="custom_film" id="f-custom-film" class="form-input w-full text-sm">
                 </div>
               </div>
 
               <!-- Camera Settings -->
               <div class="space-y-3">
-                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">Shot Settings</h4>
+                <h4 class="font-medium text-gray-900 border-b border-gray-200 pb-1 text-sm">{{ trans('admin.albums.shot_settings') }}</h4>
                 <div class="grid grid-cols-3 gap-2">
                   <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">ISO</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.albums.iso') }}</label>
                     <input type="number" name="iso" id="f-iso" class="form-input w-full text-sm">
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Shutter</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.albums.shutter') }}</label>
                     <input type="text" name="shutter_speed" id="f-shutter" class="form-input w-full text-sm" placeholder="1/125">
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Aperture</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">{{ trans('admin.albums.aperture') }}</label>
                     <input type="number" step="0.1" name="aperture" id="f-aperture" class="form-input w-full text-sm" placeholder="2.8">
                   </div>
                 </div>
@@ -809,10 +809,10 @@
           </div>
           <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-end gap-3">
             <button type="button" id="image-cancel" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              Cancel
+              {{ trans('admin.albums.modal_cancel') }}
             </button>
             <button type="submit" class="px-4 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-              Save changes
+              {{ trans('admin.albums.modal_save') }}
             </button>
           </div>
         </form>
@@ -823,16 +823,16 @@
   <div id="media-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
     <div class="bg-white w-full max-w-5xl rounded-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
       <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
-        <h3 class="text-xl font-semibold text-gray-900">Gallery</h3>
+        <h3 class="text-xl font-semibold text-gray-900">{{ trans('admin.albums.gallery') }}</h3>
         <button type="button" id="media-close" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
       </div>
       <div class="p-4 overflow-auto" id="media-body">
-        <div class="text-center text-gray-500">Loading...</div>
+        <div class="text-center text-gray-500">{{ trans('admin.albums.loading') }}</div>
       </div>
     </div>
   </div>
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     // TomSelect + TinyMCE are initialized by the Vite bundle (resources/admin.js)
 
     // Sortable and sort helpers initialized in Vite bundle (resources/admin.js)
@@ -888,8 +888,8 @@
             ? 'flex-1 px-3 py-2 text-xs rounded border bg-green-600 text-white border-green-600'
             : 'flex-1 px-3 py-2 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-50';
           coverBtn.innerHTML = isCover
-            ? '<i class="fas fa-check mr-1"></i>Current cover'
-            : '<i class="fas fa-image mr-1"></i>Set as Cover';
+            ? '<i class="fas fa-check mr-1"></i>{{ trans('admin.albums.current_cover') }}'
+            : '<i class="fas fa-image mr-1"></i>{{ trans('admin.albums.set_as_cover') }}';
         }
       }
       
@@ -958,19 +958,19 @@
             } else {
               location.reload();
             }
-            if (window.showToast) showToast('Cover set', 'success');
+            if (window.showToast) showToast('{{ trans('admin.albums.cover_set') }}', 'success');
           } else {
-            if (window.showToast) showToast('Error setting cover', 'error');
+            if (window.showToast) showToast('{{ trans('admin.albums.error_cover') }}', 'error');
           }
         } catch (error) {
           console.error('Error setting cover:', error);
-          if (window.showToast) showToast('Error setting cover', 'error');
+          if (window.showToast) showToast('{{ trans('admin.albums.error_cover') }}', 'error');
         }
       });
-      
+
       modalDeleteBtn?.addEventListener('click', async () => {
         if (!currentId) return;
-        if (!confirm('Delete this image?')) return;
+        if (!confirm('{{ trans('admin.albums.delete_image_confirm') }}')) return;
         try {
           const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/${currentId}/delete`, { 
             method:'POST', 
@@ -985,13 +985,13 @@
               const card = document.querySelector(`[data-id="${currentId}"]`);
               card?.parentNode?.removeChild(card);
             }
-            if (window.showToast) showToast('Image deleted', 'success');
+            if (window.showToast) showToast('{{ trans('admin.albums.image_deleted') }}', 'success');
           } else {
-            if (window.showToast) showToast('Deletion error', 'error');
+            if (window.showToast) showToast('{{ trans('admin.albums.error_delete') }}', 'error');
           }
         } catch (error) {
           console.error('Error deleting image:', error);
-          if (window.showToast) showToast('Deletion error', 'error');
+          if (window.showToast) showToast('{{ trans('admin.albums.error_delete') }}', 'error');
         }
       });
       
@@ -1018,13 +1018,13 @@
             } else {
               location.reload();
             }
-            if (window.showToast) showToast('Changes saved', 'success');
+            if (window.showToast) showToast('{{ trans('admin.albums.changes_saved') }}', 'success');
           } else {
-            if (window.showToast) showToast('Save error', 'error');
+            if (window.showToast) showToast('{{ trans('admin.albums.error_save') }}', 'error');
           }
         } catch (error) {
           console.error('Error saving image:', error);
-          if (window.showToast) showToast('Save error', 'error');
+          if (window.showToast) showToast('{{ trans('admin.albums.error_save') }}', 'error');
         }
       });
       
@@ -1046,7 +1046,7 @@
     }
   </script>
   
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     // Album page initialization - Compatible with SPA
     function initializeAlbumPage() {
       console.log('Initializing Album edit page...');
@@ -1107,9 +1107,9 @@
       bulkBtn?.addEventListener('click', handleBulkDelete);
       
       async function handleBulkDelete() {
-        const ids = getSelectedIds(); 
-        if (!ids.length) return; 
-        if (!confirm('Delete selected images?')) return;
+        const ids = getSelectedIds();
+        if (!ids.length) return;
+        if (!confirm('{{ trans('admin.albums.delete_bulk_confirm') }}')) return;
         
         const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/bulk-delete`, { 
           method:'POST', 
@@ -1122,17 +1122,17 @@
         });
         
         if (res.ok) {
-          ids.forEach(id=>{ 
-            const el = document.querySelector(`[data-id="${id}"]`); 
-            el?.parentNode?.removeChild(el); 
+          ids.forEach(id=>{
+            const el = document.querySelector(`[data-id="${id}"]`);
+            el?.parentNode?.removeChild(el);
           });
-          if (window.showToast) showToast('Images deleted', 'success');
+          if (window.showToast) showToast('{{ trans('admin.albums.images_deleted') }}', 'success');
         } else {
-          if (window.showToast) showToast('Deletion error', 'error');
+          if (window.showToast) showToast('{{ trans('admin.albums.error_delete') }}', 'error');
         }
       }
     }
-    
+
     function initPasswordWorkflow() {
       const removeBtn = document.getElementById('remove-password-btn');
       const changeBtn = document.getElementById('change-password-btn');
@@ -1168,7 +1168,7 @@
       saveAddBtn?.addEventListener('click', handleSavePassword);
       
       function handleRemovePassword() {
-        if (confirm('Remove password from album?')) {
+        if (confirm('{{ trans('admin.albums.remove_password_confirm') }}')) {
           if (passwordClearInput) passwordClearInput.value = '1';
           document.getElementById('album-form')?.submit();
         }
@@ -1207,13 +1207,13 @@
         const passwordValue = changeInput?.value || addInput?.value || '';
 
         if (!passwordValue.trim()) {
-          if (window.showToast) showToast('Please enter a password', 'error');
+          if (window.showToast) showToast('{{ trans('admin.albums.please_enter_password') }}', 'error');
           return;
         }
 
         // Validate minimum password length
         if (passwordValue.length < 4) {
-          if (window.showToast) showToast('Password must be at least 4 characters', 'error');
+          if (window.showToast) showToast('{{ trans('admin.albums.password_min_length') }}', 'error');
           return;
         }
 
@@ -1303,7 +1303,7 @@
     
     // Do not auto-call here to avoid double init; SPA orchestrator calls the initializer.
   </script>
-  <style>
+  <style nonce="{{ csp_nonce() }}">
     /* Accordion rotation transition */
     .transition-transform {
       transition: transform 0.2s ease-in-out;

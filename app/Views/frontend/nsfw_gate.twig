@@ -1,0 +1,54 @@
+{% extends "frontend/_layout.twig" %}
+
+{% block content %}
+<div class="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+  {# NSFW Age Verification Gate #}
+  <div class="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-xl">
+    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <i class="fas fa-exclamation-triangle text-amber-600 text-2xl"></i>
+    </div>
+    <h1 class="text-2xl md:text-3xl font-semibold text-amber-800 mb-2">{{ trans('album.nsfw_title') }}</h1>
+    <p class="text-sm text-amber-700 mb-4">
+      {{ trans('album.nsfw_description') }}
+    </p>
+  </div>
+
+  <div class="pt-0">
+    <h2 class="text-xl font-semibold text-gray-800 mb-2">{{ album.title|e }}</h2>
+    <p class="mt-2 text-neutral-600 text-sm">{{ trans('album.nsfw_age_verification') }}</p>
+
+    <form id="nsfw-confirm-form" method="post" action="{{ base_path }}/album/{{ album.slug }}/nsfw-confirm" class="mt-6 max-w-sm mx-auto text-left">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+
+      <div class="mb-4">
+        <label for="nsfw_confirmed" class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="nsfw_confirmed" id="nsfw_confirmed" required
+                 class="mt-1 h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500">
+          <span class="text-sm text-gray-700">{{ trans('album.nsfw_checkbox') }}</span>
+        </label>
+      </div>
+
+      <button type="submit" class="mt-4 w-full bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors">
+        {{ trans('album.nsfw_confirm_button') }}
+      </button>
+
+      <a href="{{ base_path }}/galleries" class="mt-3 block w-full text-center text-neutral-600 hover:text-neutral-800 text-sm">
+        {{ trans('album.nsfw_go_back') }}
+      </a>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+// NOTE: localStorage is only for UX (avoid repeated confirmations).
+// Actual NSFW authorization is verified server-side via session.
+document.getElementById('nsfw-confirm-form')?.addEventListener('submit', function() {
+    var checkbox = document.getElementById('nsfw_confirmed');
+    if (checkbox && checkbox.checked) {
+        localStorage.setItem('nsfw_confirmed', 'true');
+    }
+});
+</script>
+{% endblock %}

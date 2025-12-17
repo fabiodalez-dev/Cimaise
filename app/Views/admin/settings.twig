@@ -1,10 +1,10 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Settings — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.settings.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
-      <p class="text-gray-600 mt-1">Configure your Cimaise installation</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.settings.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.settings.description') }}</p>
     </div>
   </div>
 
@@ -18,43 +18,43 @@
         <div class="p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
             <i class="fas fa-image mr-3 text-gray-600"></i>
-            Image Formats
+            {{ trans('admin.settings.image_formats') }}
           </h3>
-          
+
           <div class="space-y-4 mb-6">
             <label class="flex items-center">
               <input type="checkbox" name="fmt_avif" id="fmt_avif" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['image.formats'].avif %}checked{% endif %}>
               <span class="ml-3 text-sm text-gray-700">
-                <strong>AVIF</strong> - Modern format with excellent compression
+                <strong>AVIF</strong> - {{ trans('admin.settings.avif_desc') }}
               </span>
             </label>
-            
+
             <label class="flex items-center">
               <input type="checkbox" name="fmt_webp" id="fmt_webp" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['image.formats'].webp %}checked{% endif %}>
               <span class="ml-3 text-sm text-gray-700">
-                <strong>WebP</strong> - Good compression with wide support
+                <strong>WebP</strong> - {{ trans('admin.settings.webp_desc') }}
               </span>
             </label>
-            
+
             <label class="flex items-center">
               <input type="checkbox" name="fmt_jpg" id="fmt_jpg" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['image.formats'].jpg %}checked{% endif %}>
               <span class="ml-3 text-sm text-gray-700">
-                <strong>JPEG</strong> - Universal compatibility
+                <strong>JPEG</strong> - {{ trans('admin.settings.jpg_desc') }}
               </span>
             </label>
           </div>
 
           <div class="grid grid-cols-3 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">AVIF Quality</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.avif_quality') }}</label>
               <input type="number" name="q_avif" min="1" max="100" value="{{ settings['image.quality'].avif }}" class="form-input">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">WebP Quality</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.webp_quality') }}</label>
               <input type="number" name="q_webp" min="1" max="100" value="{{ settings['image.quality'].webp }}" class="form-input">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">JPEG Quality</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.jpg_quality') }}</label>
               <input type="number" name="q_jpg" min="1" max="100" value="{{ settings['image.quality'].jpg }}" class="form-input">
             </div>
           </div>
@@ -66,20 +66,20 @@
         <div class="p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
             <i class="fas fa-desktop mr-3 text-gray-600"></i>
-            Breakpoints & Preview
+            {{ trans('admin.settings.breakpoints') }}
           </h3>
-          
+
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Preview Width (px)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.preview_width') }}</label>
               <input type="number" name="preview_w" value="{{ settings['image.preview'].width }}" class="form-input">
-              <p class="text-xs text-gray-500 mt-1">Width for image previews in admin</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.preview_width_hint') }}</p>
             </div>
-            
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Responsive Breakpoints</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.responsive_breakpoints') }}</label>
               <textarea name="breakpoints" rows="6" class="form-input font-mono text-sm">{{ settings['image.breakpoints']|json_encode(constant('JSON_PRETTY_PRINT')) }}</textarea>
-              <p class="text-xs text-gray-500 mt-1">JSON format: {"sm":768,"md":1200,"lg":1920,"xl":2560,"xxl":3840}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.breakpoints_hint') }}</p>
             </div>
           </div>
         </div>
@@ -91,12 +91,12 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-globe mr-3 text-gray-600"></i>
-          Site Configuration
+          {{ trans('admin.settings.site_config') }}
         </h3>
-        
+
         <!-- Logo Upload Section (Full Width) -->
         <div class="mb-8">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Site Logo</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.site_logo') }}</label>
           <input type="hidden" id="site_logo" name="site_logo" value="{{ settings['site.logo'] ?? '' }}">
           <div class="flex flex-col md:flex-row items-start gap-6">
             <div class="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -104,63 +104,64 @@
                 <img id="site-logo-preview" src="{{ base_path ~ settings['site.logo'] }}" alt="Logo" class="max-w-full max-h-full">
               {% else %}
                 <img id="site-logo-preview" src="" alt="Logo" class="max-w-full max-h-full hidden">
-                <span class="text-xs text-gray-500">Nessun logo</span>
+                <span class="text-xs text-gray-500">{{ trans('admin.settings.no_logo') }}</span>
               {% endif %}
             </div>
             <div class="flex-1">
-              <div id="logo-uppy" data-endpoint="{{ base_path }}/admin/settings/logo-upload" data-csrf="{{ csrf }}" 
+              <div id="logo-uppy" data-endpoint="{{ base_path }}/admin/settings/logo-upload" data-csrf="{{ csrf }}"
                    class="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
                 <div class="flex flex-col items-center justify-center gap-2">
                   <i class="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
-                  <div class="font-medium">Carica un nuovo logo</div>
-                  <div class="text-sm text-gray-500">Formati supportati: PNG, JPG, WebP (dimensione consigliata: 200x200px)</div>
+                  <div class="font-medium">{{ trans('admin.settings.upload_logo') }}</div>
+                  <div class="text-sm text-gray-500">{{ trans('admin.settings.logo_formats') }}</div>
                 </div>
               </div>
               <button id="site-logo-clear" type="button" class="mt-3 text-sm text-red-600 hover:underline {{ settings['site.logo'] ? '' : 'hidden' }}">
-                <i class="fas fa-trash mr-1"></i>Rimuovi logo corrente
+                <i class="fas fa-trash mr-1"></i>{{ trans('admin.settings.remove_logo') }}
               </button>
             </div>
           </div>
-          <p class="text-xs text-gray-500 mt-2">Se non impostato, verrà usato il titolo del sito.</p>
+          <p class="text-xs text-gray-500 mt-2">{{ trans('admin.settings.logo_hint') }}</p>
         </div>
-        
+
         <!-- Other Site Settings (Grid Layout) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Site Title</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.site_title') }}</label>
             <input type="text" name="site_title" value="{{ settings['site.title'] ?? 'Cimaise' }}" class="form-input">
           </div>
-          
+
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Site Description</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.site_description') }}</label>
             <input type="text" name="site_description" value="{{ settings['site.description'] ?? 'Professional Photography Portfolio' }}" class="form-input">
           </div>
-          
+
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Copyright Notice</label>
-            <input type="text" name="site_copyright" value="{{ settings['site.copyright'] ?? '© 2024 Photography Portfolio' }}" class="form-input">
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.copyright') }}</label>
+            <input type="text" name="site_copyright" value="{{ settings['site.copyright'] ?? '© {year} Photography Portfolio' }}" class="form-input">
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.copyright_hint') }}</p>
           </div>
-          
+
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.contact_email') }}</label>
             <input type="email" name="site_email" value="{{ settings['site.email'] ?? '' }}" class="form-input">
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('settings.date_format') }}</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.date_format') }}</label>
             <select name="date_format" class="form-input">
-              <option value="Y-m-d" {{ settings['date.format']|default('Y-m-d') == 'Y-m-d' ? 'selected' }}>{{ trans('settings.date_format_iso') }}</option>
-              <option value="d-m-Y" {{ settings['date.format'] == 'd-m-Y' ? 'selected' }}>{{ trans('settings.date_format_european') }}</option>
+              <option value="Y-m-d" {{ settings['date.format']|default('Y-m-d') == 'Y-m-d' ? 'selected' }}>ISO (YYYY-MM-DD)</option>
+              <option value="d-m-Y" {{ settings['date.format'] == 'd-m-Y' ? 'selected' }}>{{ trans('admin.settings.european') }} (DD-MM-YYYY)</option>
             </select>
-            <p class="text-xs text-gray-500 mt-1">{{ trans('settings.date_format_help') }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.date_format_hint') }}</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('settings.site_language') }}</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.frontend_language') }}</label>
             <select name="site_language" class="form-input">
-              <option value="en" {{ settings['site.language']|default('en') == 'en' ? 'selected' }}>{{ trans('settings.language_en') }}</option>
-              <option value="it" {{ settings['site.language'] == 'it' ? 'selected' }}>{{ trans('settings.language_it') }}</option>
+              <option value="en" {{ settings['site.language']|default('en') == 'en' ? 'selected' }}>English</option>
+              <option value="it" {{ settings['site.language'] == 'it' ? 'selected' }}>Italiano</option>
             </select>
-            <p class="text-xs text-gray-500 mt-1">{{ trans('settings.site_language_help') }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.frontend_language_hint') }}</p>
           </div>
         </div>
       </div>
@@ -171,28 +172,28 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-palette mr-3 text-gray-700"></i>
-          Template Pagina Galleria
+          {{ trans('admin.settings.gallery_page_template') }}
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
             <input type="radio" name="gallery_page_template" value="classic" class="mt-1" {% if settings['gallery.page_template']|default('classic') == 'classic' %}checked{% endif %}>
             <div>
-              <div class="font-medium text-gray-900">Classic Grid</div>
-              <div class="text-sm text-gray-600">Layout attuale minimale, B/N, con griglia o slideshow secondo template</div>
+              <div class="font-medium text-gray-900">{{ trans('admin.settings.classic_grid') }}</div>
+              <div class="text-sm text-gray-600">{{ trans('admin.settings.classic_grid_desc') }}</div>
             </div>
           </label>
           <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
             <input type="radio" name="gallery_page_template" value="hero" class="mt-1" {% if settings['gallery.page_template'] == 'hero' %}checked{% endif %}>
             <div>
-              <div class="font-medium text-gray-900">Hero Cover</div>
-              <div class="text-sm text-gray-600">Cover grande con overlay, titolo, data e location; galleria sotto</div>
+              <div class="font-medium text-gray-900">{{ trans('admin.settings.hero_cover') }}</div>
+              <div class="text-sm text-gray-600">{{ trans('admin.settings.hero_cover_desc') }}</div>
             </div>
           </label>
           <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
             <input type="radio" name="gallery_page_template" value="magazine" class="mt-1" {% if settings['gallery.page_template'] == 'magazine' %}checked{% endif %}>
             <div>
-              <div class="font-medium text-gray-900">Magazine Split</div>
-              <div class="text-sm text-gray-600">Colonna sinistra con testi/info in sticky; griglia a destra</div>
+              <div class="font-medium text-gray-900">{{ trans('admin.settings.magazine_split') }}</div>
+              <div class="text-sm text-gray-600">{{ trans('admin.settings.magazine_split_desc') }}</div>
             </div>
           </label>
         </div>
@@ -204,27 +205,27 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-th mr-3 text-gray-600"></i>
-          Template Predefinito Gallery
+          {{ trans('admin.settings.default_gallery_template') }}
         </h3>
-        <p class="text-sm text-gray-600 mb-6">Impostazioni utilizzate quando un album non ha un template specifico assegnato</p>
+        <p class="text-sm text-gray-600 mb-6">{{ trans('admin.settings.default_template_desc') }}</p>
         
         <!-- Debug Information -->
         <div class="default-template-container">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Template Predefinito</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.default_template') }}</label>
           
           
           {% set pageTpl = settings['gallery.page_template']|default('classic') %}
           {% set disableDefault = pageTpl == 'magazine' %}
           <select name="default_template_id" class="form-input {{ disableDefault ? 'bg-gray-100 cursor-not-allowed' : '' }}" {{ disableDefault ? 'disabled' : '' }}>
-            <option value="">Nessun template predefinito</option>
+            <option value="">{{ trans('admin.settings.no_default_template') }}</option>
             {% for template in templates %}
               {% set isSelected = (template.id ~ '') == (settings['gallery.default_template_id'] ~ '') %}
               <option value="{{ template.id }}" {% if isSelected %}selected{% endif %}>{{ template.name }}</option>
             {% endfor %}
           </select>
           <p class="text-xs text-gray-500 mt-1">
-            Template utilizzato quando un album non ha un template specifico assegnato.
-            {% if disableDefault %}<br>Con <strong>Magazine Split</strong> come layout pagina, questo selettore non è applicabile e viene disabilitato.{% endif %}
+            Template used when an album has no specific template assigned.
+            {% if disableDefault %}<br>With <strong>Magazine Split</strong> as page layout, this selector is not applicable and is disabled.{% endif %}
           </p>
         </div>
       </div>
@@ -235,15 +236,15 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-search-plus mr-3 text-gray-600"></i>
-          Lightbox Settings
+          {{ trans('admin.settings.lightbox_settings') }}
         </h3>
 
         <div class="space-y-4">
           <label class="flex items-start">
             <input type="checkbox" name="show_exif_lightbox" id="show_exif_lightbox" class="rounded border-gray-300 text-black focus:ring-black mt-1" {% if settings['lightbox.show_exif'] %}checked{% endif %}>
             <span class="ml-3">
-              <span class="text-sm font-medium text-gray-900 block">Mostra dati EXIF nel lightbox</span>
-              <span class="text-xs text-gray-600 block mt-1">Visualizza informazioni fotografiche (camera, obiettivo, ISO, apertura, tempo di scatto) quando si apre un'immagine nel lightbox</span>
+              <span class="text-sm font-medium text-gray-900 block">{{ trans('admin.settings.show_exif') }}</span>
+              <span class="text-xs text-gray-600 block mt-1">{{ trans('admin.settings.show_exif_desc') }}</span>
             </span>
           </label>
         </div>
@@ -255,24 +256,24 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-tachometer-alt mr-3 text-gray-600"></i>
-          Performance
+          {{ trans('admin.settings.performance') }}
         </h3>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Items per Page</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.items_per_page') }}</label>
             <input type="number" name="pagination_limit" value="{{ settings['pagination.limit'] ?? 12 }}" class="form-input" min="1" max="100">
           </div>
-          
+
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Cache TTL (hours)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.cache_ttl') }}</label>
             <input type="number" name="cache_ttl" value="{{ settings['cache.ttl'] ?? 24 }}" class="form-input" min="1" max="168">
           </div>
-          
+
           <div>
             <label class="flex items-center pt-8">
               <input type="checkbox" name="enable_compression" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['performance.compression'] %}checked{% endif %}>
-              <span class="ml-3 text-sm text-gray-700">Enable Gzip Compression</span>
+              <span class="ml-3 text-sm text-gray-700">{{ trans('admin.settings.enable_compression') }}</span>
             </label>
           </div>
         </div>
@@ -284,20 +285,20 @@
       <div class="p-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
           <i class="fas fa-images mr-3 text-gray-600"></i>
-          Genera Varianti Immagini
+          {{ trans('admin.settings.generate_variants') }}
         </h3>
-        <p class="text-sm text-gray-600 mb-4">Genera automaticamente le varianti ad alta risoluzione per tutte le immagini mancanti</p>
-        
-        <form id="generate-images-form" method="post" action="{{ base_path }}/admin/settings/generate-images" onsubmit="return handleImageGeneration(event);" class="border-t border-gray-200 pt-4">
+        <p class="text-sm text-gray-600 mb-4">{{ trans('admin.settings.generate_variants_desc') }}</p>
+
+        <form id="generate-images-form" method="post" action="{{ base_path }}/admin/settings/generate-images" class="border-t border-gray-200 pt-4">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button id="generate-btn" type="submit" class="btn-secondary">
             <i id="generate-icon" class="fas fa-images mr-2"></i>
-            <span id="generate-text">Genera Varianti Immagini</span>
+            <span id="generate-text">{{ trans('admin.settings.generate_variants') }}</span>
           </button>
           <div id="generate-status" class="mt-2 hidden">
             <div class="text-xs text-blue-600 flex items-center">
               <i class="fas fa-spinner fa-spin mr-2"></i>
-              <span>Generazione in corso... Questa operazione potrebbe richiedere alcuni minuti.</span>
+              <span>Generation in progress... This operation may take a few minutes.</span>
             </div>
           </div>
           <div id="generate-result" class="mt-2 hidden"></div>
@@ -315,119 +316,96 @@
         <div class="flex items-center gap-3">
           <button type="submit" form="settings-form" class="btn-primary">
             <i class="fas fa-save mr-2"></i>
-            Salva Impostazioni
+            {{ trans('admin.common.save') }}
           </button>
           <a href="{{ base_path }}/admin" class="btn-secondary">
             <i class="fas fa-arrow-left mr-2"></i>
-            Dashboard
+            {{ trans('admin.common.dashboard') }}
           </a>
         </div>
-        
+
         <div class="text-sm text-gray-500">
           <i class="fas fa-info-circle mr-1"></i>
-          Configura le impostazioni del sistema
+          {{ trans('admin.settings.configure_hint') }}
         </div>
       </div>
     </div>
   </div>
 
-<script>
-// Handle form submission to ensure checkbox values are properly sent
+<script nonce="{{ csp_nonce() }}">
+// Image generation form handler - attached via addEventListener for CSP compliance
 document.addEventListener('DOMContentLoaded', function() {
-  const form = document.getElementById('settings-form');
-  if (form) {
-    form.addEventListener('submit', function(e) {
-      // Debug: Log form data before submission
-      const formData = new FormData(form);
-      console.log('Settings form data being submitted:');
-      for (let [key, value] of formData.entries()) {
-        console.log(key + ':', value);
+  const generateForm = document.getElementById('generate-images-form');
+  if (generateForm) {
+    generateForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const confirmMessage = '{{ (trans('admin.settings.confirm_generate') ?? 'Generate image variants? This operation may take a few minutes.')|e('html_attr') }}';
+      if (!confirm(confirmMessage)) {
+        return;
       }
-      
-      // Specifically log the default template ID
-      const templateId = formData.get('default_template_id');
-      console.log('Default template ID:', templateId);
-      console.log('Template ID type:', typeof templateId);
-      
-      // Remove any existing hidden checkbox fields to prevent conflicts
-      const existingHidden = form.querySelectorAll('input[type="hidden"][data-checkbox="true"]');
-      existingHidden.forEach(input => input.remove());
-      
-      // Ensure checkbox states are properly handled
-      const checkboxes = form.querySelectorAll('input[type="checkbox"]');
-      checkboxes.forEach(checkbox => {
-        if (!checkbox.checked) {
-          // Create hidden input for unchecked checkboxes
-          const hidden = document.createElement('input');
-          hidden.type = 'hidden';
-          hidden.name = checkbox.name;
-          hidden.value = '0';
-          hidden.setAttribute('data-checkbox', 'true');
-          form.appendChild(hidden);
+
+      // Show loading state
+      const btn = document.getElementById('generate-btn');
+      const icon = document.getElementById('generate-icon');
+      const text = document.getElementById('generate-text');
+      const status = document.getElementById('generate-status');
+      const result = document.getElementById('generate-result');
+
+      btn.disabled = true;
+      icon.className = 'fas fa-spinner fa-spin mr-2';
+      text.textContent = '{{ trans('admin.settings.generating')|default('Generating...')|e('html_attr') }}';
+      status.classList.remove('hidden');
+      result.classList.add('hidden');
+
+      // Submit form via fetch
+      const formData = new FormData(generateForm);
+
+      fetch(generateForm.action, {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+        return response.json();
+      })
+      .then(data => {
+        // Reset button state
+        btn.disabled = false;
+        icon.className = 'fas fa-images mr-2';
+        text.textContent = '{{ trans('admin.settings.generate_variants')|e('html_attr') }}';
+        status.classList.add('hidden');
+
+        // Validate backend response
+        if (data.error || data.success === false) {
+          throw new Error(data.message || data.error || 'Generation failed');
+        }
+
+        const message = data.message || '{{ trans('admin.settings.generate_started')|default('Generation process started! It may take a few minutes.')|e('html_attr') }}';
+        result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span>' + message + '</span></div>';
+        result.classList.remove('hidden');
+
+        // Hide result after 10 seconds
+        setTimeout(() => {
+          result.classList.add('hidden');
+        }, 10000);
+      })
+      .catch(error => {
+        // Reset button state
+        btn.disabled = false;
+        icon.className = 'fas fa-images mr-2';
+        text.textContent = '{{ trans('admin.settings.generate_variants')|e('html_attr') }}';
+        status.classList.add('hidden');
+
+        // Show error result
+        result.innerHTML = `<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>{{ trans('admin.settings.generate_error')|default('Error starting generation')|e('html_attr') }}: ${error.message}</span></div>`;
+        result.classList.remove('hidden');
       });
     });
   }
 });
-
-function handleImageGeneration(event) {
-  event.preventDefault();
-  
-  if (!confirm('Generare le varianti delle immagini? Questa operazione potrebbe richiedere alcuni minuti.')) {
-    return false;
-  }
-  
-  // Show loading state
-  const btn = document.getElementById('generate-btn');
-  const icon = document.getElementById('generate-icon');
-  const text = document.getElementById('generate-text');
-  const status = document.getElementById('generate-status');
-  const result = document.getElementById('generate-result');
-  
-  btn.disabled = true;
-  icon.className = 'fas fa-spinner fa-spin mr-2';
-  text.textContent = 'Generando...';
-  status.classList.remove('hidden');
-  result.classList.add('hidden');
-  
-  // Submit form via fetch
-  const form = document.getElementById('generate-images-form');
-  const formData = new FormData(form);
-  
-  fetch(form.action, {
-    method: 'POST',
-    body: formData
-  })
-  .then(response => {
-    // Reset button state
-    btn.disabled = false;
-    icon.className = 'fas fa-images mr-2';
-    text.textContent = 'Genera Varianti Immagini';
-    status.classList.add('hidden');
-    
-    // Show info result for background process
-    result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span>Processo di generazione avviato! Potrebbe richiedere alcuni minuti. Verrai notificato al completamento.</span></div>';
-    result.classList.remove('hidden');
-    
-    // Hide result after 10 seconds
-    setTimeout(() => {
-      result.classList.add('hidden');
-    }, 10000);
-  })
-  .catch(error => {
-    // Reset button state
-    btn.disabled = false;
-    icon.className = 'fas fa-images mr-2';
-    text.textContent = 'Genera Varianti Immagini';
-    status.classList.add('hidden');
-    
-    // Show error result
-    result.innerHTML = '<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>Errore durante l\'avvio della generazione</span></div>';
-    result.classList.remove('hidden');
-  });
-  
-  return false;
-}
 
 // Handle page template changes for default template selector
 document.addEventListener('DOMContentLoaded', function() {
@@ -467,7 +445,7 @@ function updateDefaultTemplateSelector(selectedValue) {
       if (!msg) {
         msg = document.createElement('div');
         msg.className = 'template-disabled-message text-xs text-gray-500 mt-2 p-3 bg-gray-50 rounded border border-gray-200';
-        msg.innerHTML = '<i class="fas fa-info-circle mr-1"></i>Con <strong>Magazine Split</strong> come layout pagina, questo selettore non è applicabile e viene disabilitato.';
+        msg.innerHTML = '<i class="fas fa-info-circle mr-1"></i>With <strong>Magazine Split</strong> as page layout, this selector is not applicable and is disabled.';
         defaultTemplateContainer.appendChild(msg);
       }
       msg.style.display = 'block';

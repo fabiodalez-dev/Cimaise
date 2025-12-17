@@ -1,20 +1,20 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Dashboard — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.dashboard.title') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-      <p class="text-gray-600 mt-1">Welcome{% if userName %}, {{ userName }}{% endif %}!</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.dashboard.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.dashboard.welcome') }}{% if userName %}, {{ userName }}{% endif %}!</p>
     </div>
-    <a href="{{ base_path }}/admin/albums/create" class="btn-primary"><i class="fas fa-plus mr-2"></i>New Album</a>
+    <a href="{{ base_path }}/admin/albums/create" class="btn-primary"><i class="fas fa-plus mr-2"></i>{{ trans('admin.dashboard.new_album') }}</a>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/albums">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-medium text-gray-900">Albums</h3>
-          <p class="text-gray-600 text-sm">Manage projects and images</p>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.dashboard.albums') }}</h3>
+          <p class="text-gray-600 text-sm">{{ trans('admin.dashboard.albums_desc') }}</p>
         </div>
         <i class="fas fa-images text-2xl text-gray-400"></i>
       </div>
@@ -22,8 +22,8 @@
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/categories">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-medium text-gray-900">Categories</h3>
-          <p class="text-gray-600 text-sm">Organize albums</p>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.dashboard.categories') }}</h3>
+          <p class="text-gray-600 text-sm">{{ trans('admin.dashboard.categories_desc') }}</p>
         </div>
         <i class="fas fa-folder-open text-2xl text-gray-400"></i>
       </div>
@@ -31,8 +31,8 @@
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/tags">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-medium text-gray-900">Tags</h3>
-          <p class="text-gray-600 text-sm">Classify and filter</p>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.dashboard.tags') }}</h3>
+          <p class="text-gray-600 text-sm">{{ trans('admin.dashboard.tags_desc') }}</p>
         </div>
         <i class="fas fa-hashtag text-2xl text-gray-400"></i>
       </div>
@@ -40,8 +40,8 @@
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/cameras">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-medium text-gray-900">Cameras</h3>
-          <p class="text-gray-600 text-sm">Camera lookup</p>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.dashboard.cameras') }}</h3>
+          <p class="text-gray-600 text-sm">{{ trans('admin.dashboard.cameras_desc') }}</p>
         </div>
         <i class="fas fa-camera text-2xl text-gray-400"></i>
       </div>
@@ -49,8 +49,8 @@
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/lenses">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-medium text-gray-900">Lenses</h3>
-          <p class="text-gray-600 text-sm">Lens lookup</p>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.dashboard.lenses') }}</h3>
+          <p class="text-gray-600 text-sm">{{ trans('admin.dashboard.lenses_desc') }}</p>
         </div>
         <i class="fas fa-eye text-2xl text-gray-400"></i>
       </div>
@@ -58,8 +58,8 @@
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/films">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-medium text-gray-900">Films</h3>
-          <p class="text-gray-600 text-sm">Film lookup</p>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.dashboard.films') }}</h3>
+          <p class="text-gray-600 text-sm">{{ trans('admin.dashboard.films_desc') }}</p>
         </div>
         <i class="fas fa-film text-2xl text-gray-400"></i>
       </div>
@@ -67,8 +67,8 @@
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/developers">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-medium text-gray-900">Developers</h3>
-          <p class="text-gray-600 text-sm">Developer lookup</p>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.dashboard.developers') }}</h3>
+          <p class="text-gray-600 text-sm">{{ trans('admin.dashboard.developers_desc') }}</p>
         </div>
         <i class="fas fa-flask text-2xl text-gray-400"></i>
       </div>
@@ -76,8 +76,8 @@
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/labs">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-medium text-gray-900">Labs</h3>
-          <p class="text-gray-600 text-sm">Lab lookup</p>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.dashboard.labs') }}</h3>
+          <p class="text-gray-600 text-sm">{{ trans('admin.dashboard.labs_desc') }}</p>
         </div>
         <i class="fas fa-industry text-2xl text-gray-400"></i>
       </div>
@@ -85,8 +85,8 @@
     <a class="card p-6 hover:bg-gray-50 transition" href="{{ base_path }}/admin/commands">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-medium text-gray-900">Tools</h3>
-          <p class="text-gray-600 text-sm">Migrations, seeding, sitemap</p>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.dashboard.tools') }}</h3>
+          <p class="text-gray-600 text-sm">{{ trans('admin.dashboard.tools_desc') }}</p>
         </div>
         <i class="fas fa-wrench text-2xl text-gray-400"></i>
       </div>

@@ -89,9 +89,15 @@ class SeoController extends BaseController
 
     public function save(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/seo'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $svc = new SettingsService($this->db);
-        
+
         try {
             // Site-wide SEO settings
             $svc->set('seo.site_title', trim((string)($data['site_title'] ?? '')));
@@ -165,6 +171,12 @@ class SeoController extends BaseController
 
     public function generateSitemap(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/seo'))->withStatus(302);
+        }
+
         try {
             // Get published albums for sitemap
             $pdo = $this->db->pdo();

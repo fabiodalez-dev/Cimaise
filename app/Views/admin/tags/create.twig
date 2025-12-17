@@ -1,23 +1,23 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Nuovo tag — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.tags.new') }} — Cimaise{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Nuovo tag</h1>
+    <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.tags.new') }}</h1>
   </div>
   <div class="card p-6">
     <form method="post" action="{{ base_path }}/admin/tags" class="space-y-4">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.tags.name') }}</label>
         <input class="form-input" type="text" name="name" required>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-        <input class="form-input" type="text" name="slug" placeholder="(auto se vuoto)">
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.tags.slug') }}</label>
+        <input class="form-input" type="text" name="slug" placeholder="{{ trans('admin.tags.slug_placeholder') }}">
       </div>
       <div class="flex gap-3 pt-2">
-        <button class="btn-primary" type="submit">Salva</button>
-        <a class="btn-secondary" href="{{ base_path }}/admin/tags">Annulla</a>
+        <button class="btn-primary" type="submit">{{ trans('admin.tags.save') }}</button>
+        <a class="btn-secondary" href="{{ base_path }}/admin/tags">{{ trans('admin.tags.cancel') }}</a>
       </div>
     </form>
   </div>

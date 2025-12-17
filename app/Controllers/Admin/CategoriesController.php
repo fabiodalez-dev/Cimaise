@@ -47,7 +47,13 @@ class CategoriesController extends BaseController
 
     public function reorder(Request $request, Response $response): Response
     {
+        // CSRF validation
         $data = json_decode((string)$request->getBody(), true) ?: [];
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        if (!\is_string($token) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $token)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $tree = $data['tree'] ?? [];
         if (!is_array($tree)) {
             return $response->withStatus(400);
@@ -93,6 +99,12 @@ class CategoriesController extends BaseController
 
     public function store(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/categories/create'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
@@ -194,12 +206,19 @@ class CategoriesController extends BaseController
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);
+
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/categories/'.$id.'/edit'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
         $sort = (int)($data['sort_order'] ?? 0);
         $parentId = !empty($data['parent_id']) ? (int)$data['parent_id'] : null;
-        
+
         if ($name === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
             return $response->withHeader('Location', $this->redirect('/admin/categories/'.$id.'/edit'))->withStatus(302);
@@ -284,6 +303,12 @@ class CategoriesController extends BaseController
 
     public function delete(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
+        }
+
         $id = (int)($args['id'] ?? 0);
         $stmt = $this->db->pdo()->prepare('DELETE FROM categories WHERE id = :id');
         try {
@@ -300,9 +325,15 @@ class CategoriesController extends BaseController
      */
     public function reorderWordPress(Request $request, Response $response): Response
     {
+        // CSRF validation
         $data = json_decode((string)$request->getBody(), true) ?: [];
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        if (!\is_string($token) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $token)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $hierarchy = $data['hierarchy'] ?? [];
-        
+
         if (!is_array($hierarchy)) {
             $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid hierarchy data']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');

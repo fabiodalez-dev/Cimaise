@@ -2,6 +2,7 @@
   "_meta": {
     "language": "Italiano",
     "code": "it",
+    "type": "frontend",
     "version": "1.0.0"
   },
   "navigation": {
@@ -11,7 +12,8 @@
     "nav.contact": "Contatti",
     "nav.back": "Indietro",
     "nav.menu": "Menu",
-    "nav.close": "Chiudi"
+    "nav.close": "Chiudi",
+    "nav.breadcrumb": "Percorso"
   },
   "filter": {
     "filter.all": "Tutti",
@@ -41,7 +43,15 @@
     "filter.galleries_count": "{count} gallerie",
     "filter.gallery_count": "1 galleria",
     "filter.no_galleries_title": "Nessuna galleria trovata",
-    "filter.no_galleries_text": "Non abbiamo trovato gallerie corrispondenti ai filtri selezionati. Prova a modificare i criteri di ricerca o cancella tutti i filtri."
+    "filter.no_galleries_text": "Non abbiamo trovato gallerie corrispondenti ai filtri selezionati. Prova a modificare i criteri di ricerca o cancella tutti i filtri.",
+    "filter.select_categories": "Seleziona categorie...",
+    "filter.select_tags": "Seleziona tag...",
+    "filter.select_cameras": "Seleziona fotocamere...",
+    "filter.select_lenses": "Seleziona obiettivi...",
+    "filter.select_films": "Seleziona pellicole...",
+    "filter.select_locations": "Seleziona luoghi...",
+    "filter.select_year": "Seleziona anno...",
+    "filter.search_equipment": "Cerca fotocamera, pellicola..."
   },
   "album": {
     "album.photos": "Foto",
@@ -80,7 +90,10 @@
     "album.nsfw_remember": "La tua preferenza sarà ricordata per le visite future.",
     "album.nsfw_warning_short": "18+",
     "album.nsfw_password_notice": "Questa galleria contiene contenuti per adulti. Devi avere almeno 18 anni per accedervi.",
-    "album.nsfw_checkbox": "Confermo di avere almeno 18 anni e di voler visualizzare questo contenuto"
+    "album.nsfw_checkbox": "Confermo di avere almeno 18 anni e di voler visualizzare questo contenuto",
+    "album.nsfw_description": "Questa galleria contiene contenuti destinati esclusivamente ad un pubblico adulto.",
+    "album.nsfw_age_verification": "Conferma la tua età per procedere.",
+    "album.nsfw_confirm_button": "Entra nella Galleria"
   },
   "pagination": {
     "pagination.previous": "Precedente",
@@ -109,10 +122,38 @@
     "date.days_ago": "{count} giorni fa"
   },
   "footer": {
-    "footer.copyright": "\u00a9 {year} Tutti i diritti riservati",
+    "footer.copyright": "© {year} Tutti i diritti riservati",
     "footer.powered_by": "Powered by Cimaise",
     "footer.privacy": "Privacy Policy",
     "footer.terms": "Termini di Servizio"
+  },
+  "cookie": {
+    "cookie.title": "Impostazioni Cookie",
+    "cookie.description": "Utilizziamo i cookie per migliorare la tua esperienza. Puoi scegliere quali cookie accettare.",
+    "cookie.essential": "Essenziali",
+    "cookie.essential_desc": "Necessari per il funzionamento del sito",
+    "cookie.analytics": "Analitici",
+    "cookie.analytics_desc": "Ci aiutano a capire come utilizzi il sito",
+    "cookie.marketing": "Marketing",
+    "cookie.marketing_desc": "Pubblicità e contenuti personalizzati",
+    "cookie.accept": "Accetta Selezionati",
+    "cookie.reject": "Rifiuta Tutti",
+    "cookie.bar_text": "Utilizziamo i cookie per migliorare la tua esperienza.",
+    "cookie.manage": "Gestisci preferenze cookie",
+    "cookie.banner_description": "Questo sito utilizza i cookie per migliorare la tua esperienza di navigazione.",
+    "cookie.accept_all": "Accetta tutti",
+    "cookie.reject_non_essential": "Rifiuta non essenziali",
+    "cookie.preferences": "Preferenze",
+    "cookie.save_selected": "Salva selezionati",
+    "cookie.preferences_title": "Preferenze Cookie",
+    "cookie.preferences_description": "Gestisci le tue preferenze sui cookie. I cookie essenziali sono necessari per il funzionamento del sito.",
+    "cookie.essential_name": "Cookie Essenziali",
+    "cookie.essential_description": "Necessari per il funzionamento del sito. Non possono essere disabilitati.",
+    "cookie.analytics_name": "Cookie Analitici",
+    "cookie.analytics_description": "Ci aiutano a capire come utilizzi il sito per migliorare la tua esperienza.",
+    "cookie.marketing_name": "Cookie di Marketing",
+    "cookie.marketing_description": "Utilizzati per mostrare annunci pertinenti ai tuoi interessi.",
+    "cookie.privacy_statement_label": "Maggiori informazioni sui cookie"
   },
   "lightbox": {
     "lightbox.close": "Chiudi",
@@ -134,7 +175,8 @@
     "share.linkedin": "Condividi su LinkedIn",
     "share.email": "Condividi via Email",
     "share.copy_link": "Copia Link",
-    "share.link_copied": "Link copiato!"
+    "share.link_copied": "Link copiato!",
+    "share.share_on": "Condividi su {network}"
   },
   "search": {
     "search.placeholder": "Cerca...",
@@ -147,8 +189,8 @@
     "error.404": "Pagina non trovata",
     "error.404_message": "La pagina che stai cercando non esiste.",
     "error.500": "Errore del server",
-    "error.500_message": "Qualcosa \u00e8 andato storto. Riprova pi\u00f9 tardi.",
-    "error.generic": "Si \u00e8 verificato un errore",
+    "error.500_message": "Qualcosa è andato storto. Riprova più tardi.",
+    "error.generic": "Si è verificato un errore",
     "error.go_home": "Vai alla Homepage"
   },
   "contact": {
@@ -186,7 +228,11 @@
     "general.submit": "Invia",
     "general.reset": "Reimposta",
     "general.view": "Vedi",
-    "general.more_count": "+{count} altri"
+    "general.more_count": "+{count} altri",
+    "general.no_cover": "Nessuna copertina",
+    "general.close": "Chiudi",
+    "general.previous": "Precedente",
+    "general.next": "Successivo"
   },
   "galleries": {
     "galleries.title": "Tutte le Gallerie",
@@ -194,7 +240,9 @@
   },
   "installer": {
     "installer.site_language": "Lingua del sito",
-    "installer.site_language_help": "Lingua predefinita per il frontend",
+    "installer.site_language_help": "Lingua per il sito pubblico (frontend)",
+    "installer.admin_language": "Lingua pannello admin",
+    "installer.admin_language_help": "Lingua per il pannello di amministrazione (backend)",
     "installer.date_format": "Formato data",
     "installer.date_format_help": "Formato utilizzato per visualizzare le date",
     "installer.date_format_iso": "ISO",
@@ -214,47 +262,5 @@
   },
   "image": {
     "image.download": "Scarica"
-  },
-  "admin": {
-    "admin.texts.title": "Traduzioni",
-    "admin.texts.heading": "Gestisci Traduzioni",
-    "admin.texts.description": "Gestisci le traduzioni dei testi del frontend",
-    "admin.texts.seed_confirm": "Verranno aggiunte le traduzioni predefinite. Le traduzioni esistenti non verranno sovrascritte. Continuare?",
-    "admin.texts.seed_defaults": "Carica Predefiniti",
-    "admin.texts.add_text": "Aggiungi Traduzione",
-    "admin.texts.import_translations": "Importa Traduzioni",
-    "admin.texts.download_json": "Scarica JSON",
-    "admin.texts.upload_json": "Carica JSON",
-    "admin.texts.hide_upload": "Nascondi Caricamento",
-    "admin.texts.language": "Lingua",
-    "admin.texts.select_language": "Seleziona una lingua",
-    "admin.texts.no_preset_languages": "Nessuna lingua preimpostata disponibile",
-    "admin.texts.mode": "Modalità",
-    "admin.texts.mode_merge": "Unisci",
-    "admin.texts.mode_replace": "Sostituisci",
-    "admin.texts.mode_skip": "Salta esistenti",
-    "admin.texts.mode_merge_desc": "Aggiorna esistenti, aggiungi nuovi",
-    "admin.texts.mode_replace_desc": "Sovrascrivi tutto",
-    "admin.texts.mode_skip_desc": "Aggiungi solo nuovi",
-    "admin.texts.import": "Importa",
-    "admin.texts.upload_custom_json": "Carica JSON Personalizzato",
-    "admin.texts.json_file": "File JSON",
-    "admin.texts.upload": "Carica",
-    "admin.texts.save_as_preset": "Salva come file lingua preimpostato",
-    "admin.texts.search_placeholder": "Cerca traduzioni...",
-    "admin.texts.all_contexts": "Tutti i Contesti",
-    "admin.texts.col_key": "Chiave",
-    "admin.texts.col_value": "Valore",
-    "admin.texts.col_description": "Descrizione",
-    "admin.texts.col_actions": "Azioni",
-    "admin.texts.quick_edit": "Modifica Rapida",
-    "admin.texts.quick": "Rapida",
-    "admin.texts.full_edit": "Modifica Completa",
-    "admin.texts.delete_confirm": "Sei sicuro di voler eliminare questa traduzione?",
-    "admin.texts.no_texts_found": "Nessuna traduzione trovata",
-    "admin.texts.no_texts_match": "Nessuna traduzione corrisponde ai criteri di ricerca",
-    "admin.texts.no_texts_hint": "Inizia caricando le traduzioni predefinite o aggiungendone di nuove",
-    "admin.texts.save_failed": "Salvataggio fallito",
-    "admin.texts.unknown_error": "Errore sconosciuto"
   }
 }

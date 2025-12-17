@@ -64,8 +64,31 @@ class GalleriesController extends BaseController
         // Get filtered albums
         $albums = $this->getFilteredAlbums($filters);
 
+        // Check admin status for NSFW handling
+        $isAdmin = $this->isAdmin();
+
         // Sanitize album data - remove sensitive fields
-        $safeAlbums = array_map(function($album) {
+        // SECURITY: For NSFW albums, only expose blur_path, never the real preview_path
+        $safeAlbums = array_map(function($album) use ($isAdmin) {
+            $isNsfw = (bool)($album['is_nsfw'] ?? false);
+
+            // For NSFW albums (non-admin), only return blur_path
+            $coverImage = null;
+            if (isset($album['cover_image'])) {
+                // Use fallback dimensions to avoid CLS (Cumulative Layout Shift)
+                // Default 4:3 aspect ratio at 400px width if dimensions missing
+                $coverImage = [
+                    'id' => $album['cover_image']['id'],
+                    'blur_path' => $album['cover_image']['blur_path'] ?? null,
+                    'width' => (int)($album['cover_image']['width'] ?? 400),
+                    'height' => (int)($album['cover_image']['height'] ?? 300),
+                ];
+                // Only include preview_path for non-NSFW albums or admins
+                if (!$isNsfw || $isAdmin) {
+                    $coverImage['preview_path'] = $album['cover_image']['preview_path'] ?? null;
+                }
+            }
+
             return [
                 'id' => $album['id'],
                 'slug' => $album['slug'],
@@ -77,13 +100,8 @@ class GalleriesController extends BaseController
                 'category_slug' => $album['category_slug'] ?? null,
                 'images_count' => $album['images_count'] ?? 0,
                 'is_password_protected' => $album['is_password_protected'] ?? false,
-                'is_nsfw' => (bool)($album['is_nsfw'] ?? false),
-                'cover_image' => isset($album['cover_image']) ? [
-                    'id' => $album['cover_image']['id'],
-                    'preview_path' => $album['cover_image']['preview_path'] ?? null,
-                    'width' => $album['cover_image']['width'] ?? null,
-                    'height' => $album['cover_image']['height'] ?? null,
-                ] : null,
+                'is_nsfw' => $isNsfw,
+                'cover_image' => $coverImage,
                 'tags' => array_map(function($tag) {
                     return ['id' => $tag['id'], 'name' => $tag['name'], 'slug' => $tag['slug']];
                 }, $album['tags'] ?? []),
@@ -477,13 +495,16 @@ class GalleriesController extends BaseController
     private function enrichAlbum(array $album): array
     {
         $pdo = $this->db->pdo();
-        
-        // Get cover image
+
+        // Get cover image with blur variant for NSFW albums
         if (!empty($album['cover_image_id'])) {
             $stmt = $pdo->prepare('
-                SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
+                SELECT i.*,
+                       COALESCE(iv.path, i.original_path) AS preview_path,
+                       blur.path AS blur_path
                 FROM images i
                 LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "sm" AND iv.format = "jpg"
+                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = "blur"
                 WHERE i.id = :id
             ');
             $stmt->execute([':id' => $album['cover_image_id']]);
@@ -492,15 +513,18 @@ class GalleriesController extends BaseController
                 $album['cover_image'] = $cover;
             }
         }
-        
+
         // If no cover image, get first image
         if (empty($album['cover_image'])) {
             $stmt = $pdo->prepare('
-                SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
+                SELECT i.*,
+                       COALESCE(iv.path, i.original_path) AS preview_path,
+                       blur.path AS blur_path
                 FROM images i
                 LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "sm" AND iv.format = "jpg"
-                WHERE i.album_id = :album_id 
-                ORDER BY i.sort_order ASC, i.id ASC 
+                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = "blur"
+                WHERE i.album_id = :album_id
+                ORDER BY i.sort_order ASC, i.id ASC
                 LIMIT 1
             ');
             $stmt->execute([':album_id' => $album['id']]);

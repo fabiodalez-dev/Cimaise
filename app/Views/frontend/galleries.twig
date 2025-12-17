@@ -36,7 +36,7 @@
       <!-- Filter Toggle Button -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <button id="toggle-filters" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5" data-gsap="filter-toggle">
+          <button id="toggle-filters" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors duration-150" data-gsap="filter-toggle">
             <i class="fas fa-filter"></i>
             <span class="font-medium">{{ trans('filter.filters') }}</span>
             <i class="fas fa-chevron-down transition-transform duration-300" id="filter-chevron"></i>
@@ -64,7 +64,7 @@
       </div>
       
       <!-- Filters Grid with proper spacing -->
-      <div id="filters-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 opacity-0 max-h-0 overflow-hidden transition-all duration-500" data-gsap="filters-grid">
+      <div id="filters-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 opacity-0 max-h-0 overflow-hidden transition-[opacity,max-height] duration-200" data-gsap="filters-grid">
         
         <!-- Categories Filter -->
         {% if filter_settings.show_categories and filter_options.categories|length > 0 %}
@@ -73,7 +73,7 @@
             <i class="fas fa-folder-open mr-1 text-gray-600"></i>
             {{ trans('filter.categories') }}
           </label>
-          <select id="filter-categories" class="filter-select" multiple data-placeholder="Select categories...">
+          <select id="filter-categories" class="filter-select" multiple data-placeholder="{{ trans('filter.select_categories') }}">
             {% for category in filter_options.categories %}
             <option value="{{ category.id }}" {% if category.id in active_filters.category|default([]) %}selected{% endif %}>
               {{ category.name }} ({{ category.albums_count }})
@@ -90,7 +90,7 @@
             <i class="fas fa-tags mr-1 text-gray-600"></i>
             {{ trans('filter.tags') }}
           </label>
-          <select id="filter-tags" class="filter-select" multiple data-placeholder="Select tags...">
+          <select id="filter-tags" class="filter-select" multiple data-placeholder="{{ trans('filter.select_tags') }}">
             {% for tag in filter_options.tags %}
             <option value="{{ tag.id }}" {% if tag.id in active_filters.tags|default([]) %}selected{% endif %}>
               {{ tag.name }} ({{ tag.albums_count }})
@@ -107,7 +107,7 @@
             <i class="fas fa-camera mr-1 text-gray-600"></i>
             {{ trans('album.camera') }}
           </label>
-          <select id="filter-cameras" class="filter-select" multiple data-placeholder="Select cameras...">
+          <select id="filter-cameras" class="filter-select" multiple data-placeholder="{{ trans('filter.select_cameras') }}">
             {% for camera in filter_options.cameras %}
             <option value="{{ camera.id }}" {% if camera.id in active_filters.cameras|default([]) %}selected{% endif %}>
               {{ camera.make }} {{ camera.model }} ({{ camera.albums_count }})
@@ -124,7 +124,7 @@
             <i class="fas fa-eye mr-1 text-gray-600"></i>
             {{ trans('album.lens') }}
           </label>
-          <select id="filter-lenses" class="filter-select" multiple data-placeholder="Select lenses...">
+          <select id="filter-lenses" class="filter-select" multiple data-placeholder="{{ trans('filter.select_lenses') }}">
             {% for lens in filter_options.lenses %}
             <option value="{{ lens.id }}" {% if lens.id in active_filters.lenses|default([]) %}selected{% endif %}>
               {{ lens.brand }} {{ lens.model }} ({{ lens.albums_count }})
@@ -141,7 +141,7 @@
             <i class="fas fa-film mr-1 text-gray-600"></i>
             {{ trans('filter.film', {}, 'Film') }}
           </label>
-          <select id="filter-films" class="filter-select" multiple data-placeholder="Select films...">
+          <select id="filter-films" class="filter-select" multiple data-placeholder="{{ trans('filter.select_films') }}">
             {% for film in filter_options.films %}
             <option value="{{ film.id }}" {% if film.id in active_filters.films|default([]) %}selected{% endif %}>
               {{ film.brand }} {{ film.name }} ({{ film.albums_count }})
@@ -158,7 +158,7 @@
             <i class="fas fa-map-marker-alt mr-1 text-gray-600"></i>
             {{ trans('filter.location') }}
           </label>
-          <select id="filter-locations" class="filter-select" multiple data-placeholder="Select locations...">
+          <select id="filter-locations" class="filter-select" multiple data-placeholder="{{ trans('filter.select_locations') }}">
             {% for location in filter_options.locations %}
             <option value="{{ location.id }}" {% if location.id in active_filters.locations|default([]) %}selected{% endif %}>
               {{ location.name }} ({{ location.albums_count }})
@@ -175,7 +175,7 @@
             <i class="fas fa-calendar mr-1 text-gray-600"></i>
             {{ trans('filter.year') }}
           </label>
-          <select id="filter-year" class="filter-select" data-placeholder="Select year...">
+          <select id="filter-year" class="filter-select" data-placeholder="{{ trans('filter.select_year') }}">
             <option value="">{{ trans('filter.all') }}</option>
             {% for year in filter_options.years %}
             <option value="{{ year.year }}" {% if year.year == active_filters.year|default('') %}selected{% endif %}>
@@ -193,7 +193,7 @@
             {{ trans('filter.search') }}
           </label>
           <div class="relative">
-            <input type="text" id="filter-search" class="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 text-sm" placeholder="{{ trans('search.placeholder') }}" value="{{ active_filters.search|default('') }}">
+            <input type="text" id="filter-search" class="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150 text-sm" placeholder="{{ trans('search.placeholder') }}" value="{{ active_filters.search|default('') }}">
             <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
           </div>
         </div>
@@ -229,7 +229,7 @@
   <!-- Main Content -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <!-- Galleries Grid -->
-    <div id="galleries-grid" class="grid gap-8 transition-all duration-500" 
+    <div id="galleries-grid" class="grid gap-8"
          style="grid-template-columns: repeat({{ filter_settings.grid_columns_mobile }}, 1fr); gap: {{ filter_settings.grid_gap == 'small' ? '1rem' : (filter_settings.grid_gap == 'large' ? '2rem' : '1.5rem') }};"
          data-desktop-cols="{{ filter_settings.grid_columns_desktop }}"
          data-tablet-cols="{{ filter_settings.grid_columns_tablet }}"
@@ -237,53 +237,70 @@
          data-gap="{{ filter_settings.grid_gap }}">
       
       {% for album in albums %}
-      <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
+      <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out"
                data-gsap="gallery-card"
                data-album-id="{{ album.id }}"
                data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
+               data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
                data-album-url="{{ base_path }}/album/{{ album.slug }}"
-               onclick="handleGalleryCardClick(event, this)">
-        
+               data-action="open-album">
+
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
           {% if album.cover_image and (album.cover_image.preview_path or album.cover_image.original_path) %}
             {% set cover_path = album.cover_image.preview_path|default(album.cover_image.original_path) %}
+            {% set blur_path = album.cover_image.blur_path %}
+            {% set is_nsfw_unconfirmed = album.is_nsfw and not is_admin %}
+            {# For NSFW albums: show blurred image, store real image in data-src for lazy load after confirmation #}
+            {% if is_nsfw_unconfirmed and blur_path %}
+            <img src="{{ base_path }}{{ blur_path }}"
+                 data-src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
+                 alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                 class="nsfw-image w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                 loading="lazy">
+            {% elseif is_nsfw_unconfirmed %}
+            {# NSFW without blur variant - show placeholder, DO NOT expose real image URL #}
+            <div class="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
+              <i class="fas fa-eye-slash text-4xl text-gray-500"></i>
+            </div>
+            {% else %}
             <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
                  alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
-                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 {% if album.is_nsfw and not is_admin %}nsfw-blur{% endif %}"
+                 class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
                  loading="lazy">
+            {% endif %}
           {% else %}
             <div class="w-full h-full flex items-center justify-center text-gray-400">
               <i class="fas fa-images text-4xl"></i>
             </div>
           {% endif %}
 
-          <!-- NSFW Overlay (skip for admins) -->
+          <!-- NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through -->
           {% if album.is_nsfw and not is_admin %}
-          <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm">
+          <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
             <i class="fas fa-eye-slash text-3xl mb-2"></i>
             <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short') }}</span>
           </div>
           {% endif %}
-          
-          <!-- Image Count Badge -->
-          {% if album.images_count > 0 %}
-          <div class="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
-            <i class="fas fa-images mr-1"></i>
-            {{ album.images_count }}
-          </div>
-          {% endif %}
 
-          <!-- Password Protected Badge -->
-          {% if album.is_password_protected %}
-          <div class="absolute top-4 {% if album.images_count > 0 %}right-20{% else %}right-4{% endif %} bg-amber-500/90 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm" title="{{ trans('album.password_protected') }}">
-            <i class="fas fa-lock"></i>
+          <!-- Top Right Badges (lock + count) -->
+          <div class="absolute top-4 right-4 flex items-center gap-2 z-20">
+            {% if album.is_password_protected %}
+            <div class="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" title="{{ trans('album.password_protected') }}">
+              <i class="fas fa-lock text-lg"></i>
+            </div>
+            {% endif %}
+            {% if album.images_count > 0 %}
+            <div class="bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
+              <i class="fas fa-images mr-1"></i>
+              {{ album.images_count }}
+            </div>
+            {% endif %}
           </div>
-          {% endif %}
 
           <!-- Category Badge -->
           {% if album.category_name %}
-          <div class="absolute top-4 left-4 bg-white/90 text-black px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">
+          <div class="absolute top-4 left-4 bg-white/90 text-black px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm z-20">
             {{ album.category_name }}
           </div>
           {% endif %}
@@ -358,7 +375,7 @@
         <p class="text-gray-600 mb-8 leading-relaxed">
           {{ trans('filter.no_galleries_text') }}
         </p>
-        <button onclick="clearAllFilters()" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
+        <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
           <i class="fas fa-times"></i>
           {{ trans('filter.clear') }}
         </button>
@@ -376,7 +393,31 @@
 <script src="{{ base_path }}/assets/vendor/jquery/jquery.min.js"></script>
 <script src="{{ base_path }}/assets/vendor/select2/select2.min.js"></script>
 
-<script>
+{# CollectionPage JSON-LD for SEO #}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": {{ page_texts.title|default(trans('galleries.title'))|json_encode|raw }},
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  "description": {{ meta_description|default('')|json_encode|raw }},
+  "numberOfItems": {{ albums|length }},
+  "hasPart": [
+    {% for album in albums|slice(0, 20) %}
+    {
+      "@type": "ImageGallery",
+      "name": {{ album.title|json_encode|raw }},
+      "url": "{{ base_path }}/album/{{ album.slug }}"
+      {% if album.images_count %},
+      "numberOfItems": {{ album.images_count }}
+      {% endif %}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+<script nonce="{{ csp_nonce() }}">
 // Galleries Page JavaScript with GSAP Animations
 $(document).ready(function() {
     // Global base path for API calls
@@ -630,7 +671,7 @@ function updateGalleries(albums) {
                             <p class="text-gray-600 mb-8 leading-relaxed">
                                 ${window.pageTexts.noResultsText}
                             </p>
-                            <button onclick="clearAllFilters()" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
+                            <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
                                 <i class="fas fa-times"></i>
                                 ${window.pageTexts.clearFiltersText}
                             </button>
@@ -696,7 +737,9 @@ function generateGalleryCard(album) {
     const coverImage = album.cover_image || {};
     const tags = Array.isArray(album.tags) ? album.tags : [];
     const imgPath = (coverImage.preview_path || coverImage.original_path || '');
+    const blurPath = coverImage.blur_path || '';
     const safeSrc = imgPath.startsWith('/') && window.basePath ? (window.basePath + imgPath) : imgPath;
+    const safeBlurSrc = blurPath.startsWith('/') && window.basePath ? (window.basePath + blurPath) : blurPath;
     const title = esc(album.title);
     const excerpt = esc(album.excerpt || '');
     const category = esc(album.category_name || '');
@@ -707,24 +750,46 @@ function generateGalleryCard(album) {
     const albumUrl = window.basePath + '/album/' + slug;
 
     const wrapper = document.createElement('article');
-    wrapper.className = 'gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2';
+    wrapper.className = 'gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out';
     if (isNsfw && hasConfirmedNsfw()) {
         wrapper.classList.add('nsfw-confirmed');
     }
     wrapper.setAttribute('data-album-id', String(album.id||''));
     wrapper.setAttribute('data-nsfw', isNsfw ? '1' : '0');
+    wrapper.setAttribute('data-password-protected', album.is_password_protected ? '1' : '0');
     wrapper.setAttribute('data-album-url', albumUrl);
     wrapper.addEventListener('click', function(e) { handleGalleryCardClick(e, this); });
 
     const rel = document.createElement('div');
     rel.className = 'relative aspect-[4/3] overflow-hidden bg-gray-100';
     if (safeSrc) {
-        const img = document.createElement('img');
-        img.src = safeSrc; img.alt = alt;
-        img.className = 'w-full h-full object-cover transition-transform duration-700 group-hover:scale-110';
-        if (isNsfw) img.classList.add('nsfw-blur');
-        img.loading = 'lazy';
-        rel.appendChild(img);
+        // For NSFW albums: use blurred image, store original in data-src
+        if (isNsfw && !hasConfirmedNsfw()) {
+            if (safeBlurSrc) {
+                // NSFW with blur variant - show blur image
+                const img = document.createElement('img');
+                img.src = safeBlurSrc;
+                img.setAttribute('data-src', safeSrc);
+                img.classList.add('nsfw-image');
+                img.alt = alt;
+                img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
+                img.loading = 'lazy';
+                rel.appendChild(img);
+            } else {
+                // NSFW without blur variant - show placeholder, DO NOT expose real URL
+                const ph = document.createElement('div');
+                ph.className = 'w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center';
+                ph.innerHTML = '<i class="fas fa-eye-slash text-4xl text-gray-500"></i>';
+                rel.appendChild(ph);
+            }
+        } else {
+            const img = document.createElement('img');
+            img.src = safeSrc;
+            img.alt = alt;
+            img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
+            img.loading = 'lazy';
+            rel.appendChild(img);
+        }
     } else {
         const ph = document.createElement('div');
         ph.className = 'w-full h-full flex items-center justify-center text-gray-400';
@@ -738,18 +803,25 @@ function generateGalleryCard(album) {
         nsfwOverlay.innerHTML = '<i class="fas fa-eye-slash text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.nsfwWarningShort || '18+') + '</span>';
         rel.appendChild(nsfwOverlay);
     }
-    if ((album.images_count||0) > 0){
-        const badge = document.createElement('div');
-        badge.className = 'absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm';
-        badge.innerHTML = '<i class="fas fa-images mr-1"></i>' + esc(album.images_count);
-        rel.appendChild(badge);
-    }
+    // Top right badges container (lock + count)
+    const badgesContainer = document.createElement('div');
+    badgesContainer.className = 'absolute top-4 right-4 flex items-center gap-2 z-20';
+
     if (album.is_password_protected){
         const lock = document.createElement('div');
-        lock.className = 'absolute top-4 ' + ((album.images_count||0) > 0 ? 'right-20' : 'right-4') + ' bg-amber-500/90 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm';
+        lock.className = 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]';
         lock.title = window.pageTexts.passwordProtected || 'Password Protected';
-        lock.innerHTML = '<i class="fas fa-lock"></i>';
-        rel.appendChild(lock);
+        lock.innerHTML = '<i class="fas fa-lock text-lg"></i>';
+        badgesContainer.appendChild(lock);
+    }
+    if ((album.images_count||0) > 0){
+        const badge = document.createElement('div');
+        badge.className = 'bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm';
+        badge.innerHTML = '<i class="fas fa-images mr-1"></i>' + esc(album.images_count);
+        badgesContainer.appendChild(badge);
+    }
+    if (album.is_password_protected || (album.images_count||0) > 0) {
+        rel.appendChild(badgesContainer);
     }
     if (category){
         const cat = document.createElement('div');
@@ -1085,10 +1157,10 @@ function debounce(func, wait) {
       {{ trans('album.nsfw_message') }}
     </p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <button onclick="confirmNsfwAge()" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+      <button data-action="confirm-nsfw" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
         {{ trans('album.nsfw_confirm') }}
       </button>
-      <button onclick="cancelNsfw()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium">
+      <button data-action="cancel-nsfw" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium">
         {{ trans('album.nsfw_cancel') }}
       </button>
     </div>
@@ -1098,7 +1170,7 @@ function debounce(func, wait) {
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // NSFW Content Handling
 let pendingNsfwUrl = null;
 
@@ -1115,9 +1187,12 @@ function handleGalleryCardClick(event, card) {
     event.stopPropagation();
 
     const isNsfw = card.dataset.nsfw === '1';
+    const isPasswordProtected = card.dataset.passwordProtected === '1';
     const albumUrl = card.dataset.albumUrl;
 
-    if (isNsfw && !hasConfirmedNsfw()) {
+    // If album has password protection, skip NSFW modal here
+    // (NSFW confirmation will be handled in the password page)
+    if (isNsfw && !isPasswordProtected && !hasConfirmedNsfw()) {
         pendingNsfwUrl = albumUrl;
         showNsfwModal();
     } else {
@@ -1143,9 +1218,23 @@ function confirmNsfwAge() {
     setNsfwConfirmed();
     hideNsfwModal();
 
-    // Unblur all NSFW images on the page
+    // Swap blurred images with real ones and remove overlay
     document.querySelectorAll('.gallery-card[data-nsfw="1"]').forEach(card => {
         card.classList.add('nsfw-confirmed');
+
+        // Swap blurred images with real ones
+        const img = card.querySelector('img.nsfw-image[data-src]');
+        if (img && img.dataset.src) {
+            img.src = img.dataset.src;
+            img.classList.remove('nsfw-image');
+            img.removeAttribute('data-src');
+        }
+
+        // Remove NSFW overlay
+        const overlay = card.querySelector('.nsfw-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
     });
 
     // Navigate to the pending URL if any
@@ -1159,6 +1248,33 @@ function cancelNsfw() {
     hideNsfwModal();
     pendingNsfwUrl = null;
 }
+
+// Delegated actions for CSP-safe event handling
+document.addEventListener('click', function(event) {
+    const target = event.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.dataset.action;
+    if (action === 'open-album') {
+        handleGalleryCardClick(event, target);
+    } else if (action === 'clear-filters') {
+        event.preventDefault();
+        clearAllFilters();
+    } else if (action === 'confirm-nsfw') {
+        event.preventDefault();
+        confirmNsfwAge();
+    } else if (action === 'cancel-nsfw') {
+        event.preventDefault();
+        cancelNsfw();
+    } else if (action === 'download-image') {
+        event.preventDefault();
+        event.stopPropagation();
+        const url = target.dataset.downloadUrl;
+        if (url) {
+            window.location.href = url;
+        }
+    }
+});
 
 // Close modal on escape key
 document.addEventListener('keydown', function(e) {
@@ -1174,11 +1290,25 @@ document.getElementById('nsfw-modal')?.addEventListener('click', function(e) {
     }
 });
 
-// On page load, if user has confirmed, unblur all NSFW content
+// On page load, if user has confirmed, swap blurred images with real ones
 document.addEventListener('DOMContentLoaded', function() {
     if (hasConfirmedNsfw()) {
         document.querySelectorAll('.gallery-card[data-nsfw="1"]').forEach(card => {
             card.classList.add('nsfw-confirmed');
+
+            // Swap blurred images with real ones
+            const img = card.querySelector('img.nsfw-image[data-src]');
+            if (img && img.dataset.src) {
+                img.src = img.dataset.src;
+                img.classList.remove('nsfw-image');
+                img.removeAttribute('data-src');
+            }
+
+            // Remove NSFW overlay
+            const overlay = card.querySelector('.nsfw-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
         });
     }
 });

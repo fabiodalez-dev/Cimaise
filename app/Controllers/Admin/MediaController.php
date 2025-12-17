@@ -72,6 +72,11 @@ class MediaController extends BaseController
 
     public function delete(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $id = (int)($args['id'] ?? 0);
         if ($id <= 0) return $response->withStatus(400);
         $pdo = $this->db->pdo();
@@ -105,9 +110,14 @@ class MediaController extends BaseController
 
     public function update(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
         $id = (int)($args['id'] ?? 0);
         if ($id <= 0) return $response->withStatus(400);
-        
+
         $d = (array)$request->getParsedBody();
         $pdo = $this->db->pdo();
 

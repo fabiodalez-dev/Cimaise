@@ -79,10 +79,11 @@ class InstallerController
             'db_connection' => 'sqlite',
             'db_host' => '127.0.0.1',
             'db_port' => 3306,
-            'db_database' => 'database/database.sqlite',
+            'sqlite_path' => 'database/database.sqlite',
+            'mysql_database' => 'cimaise',
             'db_username' => 'root',
             'db_charset' => 'utf8mb4',
-            'db_collation' => 'utf8mb4_0900_ai_ci',
+            'db_collation' => 'utf8mb4_unicode_ci',
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -202,9 +203,10 @@ class InstallerController
         return $this->view->render($response, 'installer/settings.twig', [
             'site_title' => 'Cimaise',
             'site_description' => 'Professional Photography Portfolio',
-            'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
+            'site_copyright' => '© {year} Photography Portfolio',
             'site_email' => '',
             'site_language' => 'en',
+            'admin_language' => 'en',
             'date_format' => 'Y-m-d',
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
@@ -219,56 +221,80 @@ class InstallerController
         if ($this->installer->isInstalled()) {
             return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         }
-        
+
         // Check if we have database and admin config
         if (!isset($_SESSION['install_db_config']) || !isset($_SESSION['install_admin_config'])) {
             return $response->withHeader('Location', $this->basePath . '/install/database')->withStatus(302);
         }
-        
+
         $data = (array)$request->getParsedBody();
 
-        // Handle optional logo upload (no Uppy). Store as '/media/site/<file>'
-        try {
-            $files = $request->getUploadedFiles();
-            $logo = $files['site_logo'] ?? null;
-            if ($logo && $logo->getError() === UPLOAD_ERR_OK) {
-                $stream = $logo->getStream();
-                if (method_exists($stream, 'rewind')) { $stream->rewind(); }
-                $contents = (string)$stream->getContents();
-                if ($contents !== '') {
-                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                    $mime = $finfo->buffer($contents) ?: '';
-                    $allowed = ['image/png'=>'.png','image/jpeg'=>'.jpg','image/webp'=>'.webp'];
-                    if (isset($allowed[$mime])) {
-                        $info = @getimagesizefromstring($contents);
-                        if ($info !== false) {
-                            $hash = sha1($contents) ?: bin2hex(random_bytes(20));
-                            $ext = $allowed[$mime];
-                            $destDir = dirname(__DIR__, 2) . '/public/media';
-                            if (!is_dir($destDir)) { @mkdir($destDir, 0775, true); }
-                            $destPath = $destDir . '/logo-' . $hash . $ext;
-                            if (@file_put_contents($destPath, $contents) === false) {
-                                throw new \RuntimeException('Failed to write uploaded logo');
-                            }
-                            $data['site_logo'] = '/media/' . basename($destPath);
-                        }
-                    }
-                }
-            }
-        } catch (\Throwable $e) {
-            // Ignore logo errors during install; proceed without a logo
-        }
-        
         // Verify CSRF token
         $csrf = (string)($data['csrf'] ?? '');
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
             return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
         }
-        
+
+        // Handle logo upload
+        $uploadedFiles = $request->getUploadedFiles();
+        $logoPath = null;
+
+        if (isset($uploadedFiles['site_logo']) && $uploadedFiles['site_logo']->getError() === UPLOAD_ERR_OK) {
+            $logo = $uploadedFiles['site_logo'];
+            $allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+            $mediaType = $logo->getClientMediaType();
+
+            if (in_array($mediaType, $allowedTypes, true)) {
+                // Validate actual file content (magic bytes + size + dimensions)
+                $tmpPath = $logo->getStream()->getMetadata('uri');
+                if (!is_string($tmpPath) || !is_file($tmpPath)) {
+                    $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid logo upload'];
+                    return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+                }
+
+                if (filesize($tmpPath) > 10 * 1024 * 1024) { // 10MB limit
+                    $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Logo file too large'];
+                    return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+                }
+
+                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                $actualType = $finfo->file($tmpPath);
+                if (!in_array($actualType, $allowedTypes, true)) {
+                    $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid image file'];
+                    return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+                }
+
+                $imgInfo = @getimagesize($tmpPath);
+                if ($imgInfo === false || ($imgInfo[0] ?? 0) <= 0 || ($imgInfo[1] ?? 0) <= 0) {
+                    $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Corrupted image file'];
+                    return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+                }
+
+                // Create media directory if it doesn't exist
+                $mediaDir = $this->rootPath . '/public/media';
+                if (!is_dir($mediaDir)) {
+                    mkdir($mediaDir, 0755, true);
+                }
+
+                // Generate unique filename
+                $extension = match ($mediaType) {
+                    'image/png' => 'png',
+                    'image/webp' => 'webp',
+                    default => 'jpg',
+                };
+                $filename = 'logo_' . bin2hex(random_bytes(8)) . '.' . $extension;
+                $targetPath = $mediaDir . '/' . $filename;
+
+                $logo->moveTo($targetPath);
+                $logoPath = '/media/' . $filename;
+            }
+        }
+
         // Store settings config in session
+        $data['site_logo_path'] = $logoPath;
         $_SESSION['install_settings_config'] = $data;
-        
+
         return $response->withHeader('Location', $this->basePath . '/install/confirm')->withStatus(302);
     }
     
@@ -355,8 +381,8 @@ class InstallerController
             // Force session write to ensure flash message is saved
             session_write_close();
             
-            error_log('runInstall: Redirecting to /install/post-setup');
-            return $response->withHeader('Location', $this->basePath . '/install/post-setup')->withStatus(302);
+            error_log('runInstall: Redirecting to /admin/login');
+            return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
         } catch (\Throwable $e) {
             error_log('runInstall: Installation failed: ' . $e->getMessage());
             error_log('runInstall: Stack trace: ' . $e->getTraceAsString());
@@ -365,149 +391,6 @@ class InstallerController
         }
     }
 
-    /**
-     * Post-install setup: site settings after DB and seeds are ready
-     */
-    public function showPostSetup(Request $request, Response $response): Response
-    {
-        // If not installed yet, go to installer
-        if (!$this->installer->isInstalled()) {
-            return $response->withHeader('Location', $this->basePath . '/install')->withStatus(302);
-        }
-        
-        // Fetch available templates from DB, if any
-        $templates = [];
-        try {
-            $dbi = $this->resolveDb();
-            $stmt = $dbi->pdo()->query('SELECT id, name FROM templates ORDER BY id ASC');
-            $templates = $stmt->fetchAll();
-        } catch (\Throwable) {}
-        
-        return $this->view->render($response, 'installer/post_setup.twig', [
-            'site_title' => 'Cimaise',
-            'site_description' => 'Professional Photography Portfolio',
-            'site_copyright' => '© ' . date('Y') . ' Photography Portfolio',
-            'site_email' => '',
-            'site_language' => 'en',
-            'date_format' => 'Y-m-d',
-            'templates' => $templates,
-            'csrf' => $_SESSION['csrf'] ?? ''
-        ]);
-    }
-
-    public function processPostSetup(Request $request, Response $response): Response
-    {
-        if (!$this->installer->isInstalled()) {
-            return $response->withHeader('Location', $this->basePath . '/install')->withStatus(302);
-        }
-        $data = (array)$request->getParsedBody();
-        // Verify CSRF token
-        $csrf = (string)($data['csrf'] ?? '');
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token. Please try again.'];
-            return $response->withHeader('Location', $this->basePath . '/install/post-setup')->withStatus(302);
-        }
-        
-        // Optional logo upload
-        try {
-            $files = $request->getUploadedFiles();
-            $logo = $files['site_logo'] ?? null;
-            if ($logo && $logo->getError() === UPLOAD_ERR_OK) {
-                $stream = $logo->getStream(); if (method_exists($stream,'rewind')) $stream->rewind();
-                $contents = (string)$stream->getContents();
-                if ($contents !== '') {
-                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                    $mime = $finfo->buffer($contents) ?: '';
-                    $allowed = ['image/png'=>'.png','image/jpeg'=>'.jpg','image/webp'=>'.webp'];
-                    if (isset($allowed[$mime])) {
-                        $info = @getimagesizefromstring($contents);
-                        if ($info !== false) {
-                            $hash = sha1($contents) ?: bin2hex(random_bytes(20));
-                            $ext = $allowed[$mime];
-                            $destDir = dirname(__DIR__, 2) . '/public/media';
-                            if (!is_dir($destDir)) { @mkdir($destDir, 0775, true); }
-                            $destPath = $destDir . '/logo-' . $hash . $ext;
-                            @file_put_contents($destPath, $contents);
-                            $data['site_logo'] = '/media/' . basename($destPath);
-                        }
-                    }
-                }
-            }
-        } catch (\Throwable) {}
-        
-        // Validate and sanitize language and date format
-        $rawLanguage = (string)($data['site_language'] ?? 'en');
-        $language = in_array($rawLanguage, ['en', 'it'], true) ? $rawLanguage : 'en';
-
-        $rawDateFormat = (string)($data['date_format'] ?? 'Y-m-d');
-        $dateFormat = in_array($rawDateFormat, ['Y-m-d', 'd-m-Y'], true) ? $rawDateFormat : 'Y-m-d';
-
-        // Persist settings via direct DB writes (same schema as SettingsService)
-        $toSet = [
-            'site.title' => (string)($data['site_title'] ?? 'Cimaise'),
-            'site.logo' => $data['site_logo'] ?? null,
-            'site.description' => (string)($data['site_description'] ?? 'Professional Photography Portfolio'),
-            'site.copyright' => (string)($data['site_copyright'] ?? ('© ' . date('Y') . ' Photography Portfolio')),
-            'site.email' => (string)($data['site_email'] ?? ''),
-            'site.language' => $language,
-            'date.format' => $dateFormat,
-        ];
-        if (!empty($data['default_template_id'])) {
-            $toSet['gallery.default_template_id'] = (int)$data['default_template_id'];
-        }
-        try {
-            $dbi = $this->resolveDb();
-            $pdo = $dbi->pdo();
-            $isSqlite = $dbi->isSqlite();
-            foreach ($toSet as $key => $value) {
-                $encoded = json_encode($value, JSON_UNESCAPED_SLASHES);
-                $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
-                if ($isSqlite) {
-                    $stmt = $pdo->prepare('INSERT OR REPLACE INTO settings(`key`,`value`,`type`,`created_at`,`updated_at`) VALUES(:k,:v,:t,datetime(\'now\'),datetime(\'now\'))');
-                    $stmt->execute([':k'=>$key, ':v'=>$encoded, ':t'=>$type]);
-                } else {
-                    $stmt = $pdo->prepare('INSERT INTO settings(`key`,`value`,`type`,`created_at`,`updated_at`) VALUES(:k,:v,:t,NOW(),NOW()) ON DUPLICATE KEY UPDATE `value`=:v2, `type`=:t2, `updated_at`=NOW()');
-                    $stmt->execute([':k'=>$key, ':v'=>$encoded, ':t'=>$type, ':v2'=>$encoded, ':t2'=>$type]);
-                }
-            }
-        } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Failed to save settings: ' . $e->getMessage()];
-            return $response->withHeader('Location', $this->basePath . '/install/post-setup')->withStatus(302);
-        }
-        
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Setup completed! You can now log in.'];
-        return $response->withHeader('Location', $this->basePath . '/admin/login')->withStatus(302);
-    }
-
-    private function resolveDb(): \App\Support\Database
-    {
-        $root = dirname(__DIR__, 2);
-        // Try to read .env manually
-        $env = @file($root . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-        $vars = [];
-        foreach ($env as $line) {
-            if (strpos($line, '=') !== false && strpos(ltrim($line), '#') !== 0) {
-                [$k, $v] = explode('=', $line, 2);
-                $vars[trim($k)] = trim($v);
-            }
-        }
-        $conn = $vars['DB_CONNECTION'] ?? 'sqlite';
-        if ($conn === 'sqlite') {
-            $dbPath = $vars['DB_DATABASE'] ?? 'database/database.sqlite';
-            if ($dbPath[0] !== '/') { $dbPath = $root . '/' . $dbPath; }
-            return new \App\Support\Database(database: $dbPath, isSqlite: true);
-        }
-        return new \App\Support\Database(
-            host: $vars['DB_HOST'] ?? '127.0.0.1',
-            port: (int)($vars['DB_PORT'] ?? 3306),
-            database: $vars['DB_DATABASE'] ?? 'cimaise',
-            username: $vars['DB_USERNAME'] ?? 'root',
-            password: $vars['DB_PASSWORD'] ?? '',
-            charset: $vars['DB_CHARSET'] ?? 'utf8mb4',
-            collation: $vars['DB_COLLATION'] ?? 'utf8mb4_0900_ai_ci',
-        );
-    }
-    
     /**
      * Check system requirements - delegates to Installer for consistency
      */
@@ -525,6 +408,86 @@ class InstallerController
     }
     
     /**
+     * AJAX endpoint to test MySQL connection and detect charset/collation
+     */
+    public function testMySQLConnection(Request $request, Response $response): Response
+    {
+        // Check if already installed
+        if ($this->installer->isInstalled()) {
+            $payload = json_encode([
+                'success' => false,
+                'error' => 'Installation already completed'
+            ]);
+            $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
+        }
+
+        $data = (array)$request->getParsedBody();
+
+        // Verify CSRF token
+        $csrf = (string)($data['csrf'] ?? '');
+        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $payload = json_encode([
+                'success' => false,
+                'error' => 'Invalid CSRF token'
+            ]);
+            $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
+        }
+
+        try {
+            // Connect without specifying database first to test credentials
+            $dsn = sprintf('mysql:host=%s;port=%d',
+                $data['db_host'] ?? '127.0.0.1',
+                (int)($data['db_port'] ?? 3306)
+            );
+
+            $pdo = new \PDO($dsn,
+                $data['db_username'] ?? 'root',
+                $data['db_password'] ?? '',
+                [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                ]
+            );
+
+            // Get server charset and collation
+            $charsetResult = $pdo->query("SHOW VARIABLES LIKE 'character_set_server'")->fetch();
+            $collationResult = $pdo->query("SHOW VARIABLES LIKE 'collation_server'")->fetch();
+
+            $charset = $charsetResult['Value'] ?? 'utf8mb4';
+            $collation = $collationResult['Value'] ?? 'utf8mb4_unicode_ci';
+
+            // Check if database exists
+            $dbName = $data['db_database'] ?? 'cimaise';
+            $stmt = $pdo->prepare("SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?");
+            $stmt->execute([$dbName]);
+            $dbExists = $stmt->fetch() !== false;
+
+            $payload = json_encode([
+                'success' => true,
+                'charset' => $charset,
+                'collation' => $collation,
+                'database_exists' => $dbExists,
+                'message' => $dbExists
+                    ? "Connection successful! Database '{$dbName}' exists."
+                    : "Connection successful! Database '{$dbName}' will be created during installation."
+            ]);
+
+            $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
+            return $response->withHeader('Content-Type', 'application/json');
+
+        } catch (\Throwable $e) {
+            $payload = json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+            $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    /**
      * Test database connection
      */
     private function testDatabaseConnection(array $data): array
@@ -533,7 +496,7 @@ class InstallerController
             $connection = $data['db_connection'] ?? 'sqlite';
             
             if ($connection === 'sqlite') {
-                $dbPath = $data['db_database'] ?? $this->rootPath . '/database/database.sqlite';
+                $dbPath = $data['sqlite_path'] ?? $this->rootPath . '/database/database.sqlite';
                 $dir = dirname($dbPath);
                 if (!is_dir($dir)) {
                     mkdir($dir, 0755, true);

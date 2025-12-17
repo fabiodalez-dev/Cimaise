@@ -69,6 +69,11 @@ $app->post('/install/run', function (Request $request, Response $response) use (
     return $controller->runInstall($request, $response);
 });
 
+$app->post('/install/test-mysql', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
+    return $controller->testMySQLConnection($request, $response);
+})->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 10, 300, 'mysql_test'));
+
 // Post-install setup (site settings)
 }
 
@@ -78,15 +83,24 @@ $app->get('/', function (Request $request, Response $response) use ($container) 
     return $controller->home($request, $response);
 });
 
-// Post-install setup (must be available after install)
-$app->get('/install/post-setup', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-    return $controller->showPostSetup($request, $response);
-});
-$app->post('/install/post-setup', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\InstallerController(Twig::fromRequest($request));
-    return $controller->processPostSetup($request, $response);
-});
+// Protected media serving (for password-protected and NSFW albums)
+// Rate limited to prevent scraping/enumeration attacks
+$app->get('/media/protected/{id}/{variant}.{format}', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\MediaController($container['db']);
+    return $controller->serveProtected($request, $response, $args);
+})->add(new RateLimitMiddleware(100, 60)); // 100 requests per minute
+$app->get('/media/protected/{id}/original', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\MediaController($container['db']);
+    return $controller->serveOriginal($request, $response, $args);
+})->add(new RateLimitMiddleware(100, 60)); // 100 requests per minute
+
+// Public media serving with protection validation
+// All /media/* requests go through PHP to check if album is protected
+// This MUST be after /media/protected/* routes to not intercept them
+$app->get('/media/{path:.*}', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\MediaController($container['db']);
+    return $controller->servePublic($request, $response, $args);
+})->add(new RateLimitMiddleware(200, 60)); // 200 requests per minute (higher for public media)
 
 $app->get('/album/{slug}', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
@@ -97,6 +111,12 @@ $app->post('/album/{slug}/unlock', function (Request $request, Response $respons
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
     return $controller->unlockAlbum($request, $response, $args);
 })->add(new RateLimitMiddleware(5, 600));
+
+// NSFW age verification confirmation (for albums without password)
+$app->post('/album/{slug}/nsfw-confirm', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+    return $controller->confirmNsfw($request, $response, $args);
+})->add(new RateLimitMiddleware(10, 300));
 
 // Album template switcher API
 $app->get('/api/album/{slug}/template', function (Request $request, Response $response, array $args) use ($container) {
@@ -309,6 +329,16 @@ $app->post('/admin/seo', function (Request $request, Response $response) use ($c
 $app->post('/admin/seo/sitemap', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\SeoController($container['db'], Twig::fromRequest($request));
     return $controller->generateSitemap($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+// Privacy Settings
+$app->get('/admin/privacy', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PrivacyController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/privacy', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\PrivacyController($container['db'], Twig::fromRequest($request));
+    return $controller->save($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Social Settings
@@ -831,6 +861,54 @@ $app->get('/api/admin/analytics/engagement', function (Request $request, Respons
 $app->get('/api/admin/analytics/404-stats', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AnalyticsController($container['db'], Twig::fromRequest($request));
     return $controller->api404Stats($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+// Updates management
+$app->get('/admin/updates', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/updates/check', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->checkUpdates($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/updates/perform', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->performUpdate($request, $response);
+})->add(new RateLimitMiddleware(3, 600)) // 3 attempts per 10 minutes (sensitive operation)
+  ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/updates/backup', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->createBackup($request, $response);
+})->add(new RateLimitMiddleware(5, 600)) // 5 attempts per 10 minutes (resource-intensive operation)
+  ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/updates/backup/download', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->downloadBackup($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/updates/backup/delete', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->deleteBackup($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/updates/history', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->getHistory($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/updates/available', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->checkAvailable($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/updates/maintenance/clear', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\UpdateController($container['db'], Twig::fromRequest($request));
+    return $controller->clearMaintenance($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Public analytics tracking endpoint (no auth required)

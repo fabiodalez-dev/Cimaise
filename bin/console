@@ -30,6 +30,7 @@ if ($isInstallCommand) {
     $cli->add(new App\Tasks\SitemapCommand($container['db']));
     $cli->add(new App\Tasks\InitCommand($container['db']));
     $cli->add(new App\Tasks\NormalizeMediaPathsCommand($container['db']));
+    $cli->add(new App\Tasks\NsfwBlurGenerateCommand($container['db']));
     $cli->add(new App\Tasks\InstallCommand());
 }
 

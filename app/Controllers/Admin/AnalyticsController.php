@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 
+use App\Controllers\BaseController;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -11,26 +12,18 @@ use App\Support\Database;
 use App\Support\Logger;
 use PDO;
 
-class AnalyticsController
+class AnalyticsController extends BaseController
 {
     private PDO $db;
     private Twig $twig;
     private AnalyticsService $analytics;
-    private string $basePath;
 
     public function __construct(Database $database, Twig $twig)
     {
+        parent::__construct();
         $this->db = $database->pdo();
         $this->twig = $twig;
         $this->analytics = new AnalyticsService($this->db);
-
-        // Calculate base path for redirects
-        $basePath = dirname($_SERVER['SCRIPT_NAME']);
-        $basePath = $basePath === '/' ? '' : $basePath;
-        if (str_ends_with($basePath, '/public')) {
-            $basePath = substr($basePath, 0, -7);
-        }
-        $this->basePath = $basePath;
     }
 
     /**
@@ -141,8 +134,17 @@ class AnalyticsController
      */
     private function saveSettings(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/analytics/settings'))->withStatus(302);
+        }
+
         $data = $request->getParsedBody();
-        
+
         // Define allowed settings
         $allowedSettings = [
             'analytics_enabled',
@@ -155,24 +157,30 @@ class AnalyticsController
             'export_enabled'
         ];
 
+        // Define which settings are boolean checkboxes
+        $booleanSettings = ['analytics_enabled', 'ip_anonymization', 'real_time_enabled', 'geolocation_enabled', 'bot_detection_enabled', 'export_enabled'];
+
         try {
             $this->db->beginTransaction();
 
             foreach ($allowedSettings as $key) {
-                if (isset($data[$key])) {
-                    $value = $data[$key];
-                    
-                    // Convert checkboxes to boolean strings
-                    if (in_array($key, ['analytics_enabled', 'ip_anonymization', 'real_time_enabled', 'geolocation_enabled', 'bot_detection_enabled', 'export_enabled'])) {
-                        $value = isset($data[$key]) ? 'true' : 'false';
-                    }
-
+                // Boolean checkbox settings: checked = present in POST, unchecked = absent
+                if (in_array($key, $booleanSettings)) {
+                    $value = isset($data[$key]) ? 'true' : 'false';
                     $stmt = $this->db->prepare('
-                        UPDATE analytics_settings 
-                        SET setting_value = ?, updated_at = CURRENT_TIMESTAMP 
+                        UPDATE analytics_settings
+                        SET setting_value = ?, updated_at = CURRENT_TIMESTAMP
                         WHERE setting_key = ?
                     ');
                     $stmt->execute([$value, $key]);
+                } elseif (isset($data[$key])) {
+                    // Non-boolean settings: only update if present in POST
+                    $stmt = $this->db->prepare('
+                        UPDATE analytics_settings
+                        SET setting_value = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE setting_key = ?
+                    ');
+                    $stmt->execute([$data[$key], $key]);
                 }
             }
 
@@ -189,7 +197,7 @@ class AnalyticsController
             $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Error updating settings: ' . $e->getMessage()];
         }
 
-        return $response->withHeader('Location', $this->basePath . '/admin/analytics/settings')->withStatus(302);
+        return $response->withHeader('Location', $this->redirect('/admin/analytics/settings'))->withStatus(302);
     }
 
     /**
@@ -557,6 +565,15 @@ class AnalyticsController
     public function cleanup(Request $request, Response $response): Response
     {
         if ($request->getMethod() === 'POST') {
+            // CSRF validation
+            if (!$this->validateCsrf($request)) {
+                if (session_status() === PHP_SESSION_NONE) {
+                    session_start();
+                }
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+                return $response->withHeader('Location', $this->redirect('/admin/analytics/settings'))->withStatus(302);
+            }
+
             try {
                 $deletedRecords = $this->analytics->cleanupOldData();
                 
@@ -574,7 +591,7 @@ class AnalyticsController
                 ];
             }
 
-            return $response->withHeader('Location', $this->basePath . '/admin/analytics/settings')->withStatus(302);
+            return $response->withHeader('Location', $this->redirect('/admin/analytics/settings'))->withStatus(302);
         }
 
         return $response->withStatus(405); // Method not allowed

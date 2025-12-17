@@ -257,7 +257,7 @@
 }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 /* === DEBUG + FIX ROBUSTI PHOTOSWIPE === */
 (function(){
   const DEBUG = false; // metti a false per silenziare
@@ -420,7 +420,7 @@
 })();
 </script>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 /* Altre finezze: pause fuori viewport & reduce-motion (come prima) */
 document.addEventListener('DOMContentLoaded', function(){
   const cols = document.querySelectorAll('.m-col');
