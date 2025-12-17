@@ -66,7 +66,7 @@
             {{ trans('admin.common.edit') }}
           </a>
           <form action="{{ base_path }}/admin/locations/{{ location.id }}/delete" method="post" class="inline"
-                onsubmit="return confirm('{{ trans('admin.locations.delete_confirm') }}')">
+                data-confirm="{{ trans('admin.locations.delete_confirm')|e('js') }}">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <button type="submit"
                     class="text-sm font-medium text-red-600 hover:text-red-800 transition-colors flex items-center">

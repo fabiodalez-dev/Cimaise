@@ -333,44 +333,6 @@
   </div>
 
 <script nonce="{{ csp_nonce() }}">
-// Handle form submission to ensure checkbox values are properly sent
-document.addEventListener('DOMContentLoaded', function() {
-  const form = document.getElementById('settings-form');
-  if (form) {
-    form.addEventListener('submit', function(e) {
-      // Debug: Log form data before submission
-      const formData = new FormData(form);
-      console.log('Settings form data being submitted:');
-      for (let [key, value] of formData.entries()) {
-        console.log(key + ':', value);
-      }
-      
-      // Specifically log the default template ID
-      const templateId = formData.get('default_template_id');
-      console.log('Default template ID:', templateId);
-      console.log('Template ID type:', typeof templateId);
-      
-      // Remove any existing hidden checkbox fields to prevent conflicts
-      const existingHidden = form.querySelectorAll('input[type="hidden"][data-checkbox="true"]');
-      existingHidden.forEach(input => input.remove());
-      
-      // Ensure checkbox states are properly handled
-      const checkboxes = form.querySelectorAll('input[type="checkbox"]');
-      checkboxes.forEach(checkbox => {
-        if (!checkbox.checked) {
-          // Create hidden input for unchecked checkboxes
-          const hidden = document.createElement('input');
-          hidden.type = 'hidden';
-          hidden.name = checkbox.name;
-          hidden.value = '0';
-          hidden.setAttribute('data-checkbox', 'true');
-          form.appendChild(hidden);
-        }
-      });
-    });
-  }
-});
-
 // Image generation form handler - attached via addEventListener for CSP compliance
 document.addEventListener('DOMContentLoaded', function() {
   const generateForm = document.getElementById('generate-images-form');
@@ -378,7 +340,8 @@ document.addEventListener('DOMContentLoaded', function() {
     generateForm.addEventListener('submit', function(event) {
       event.preventDefault();
 
-      if (!confirm('Generate image variants? This operation may take a few minutes.')) {
+      const confirmMessage = '{{ (trans('admin.settings.confirm_generate') ?? 'Generate image variants? This operation may take a few minutes.')|e('js') }}';
+      if (!confirm(confirmMessage)) {
         return;
       }
 
@@ -391,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       btn.disabled = true;
       icon.className = 'fas fa-spinner fa-spin mr-2';
-      text.textContent = 'Generating...';
+      text.textContent = '{{ trans('admin.settings.generating')|default('Generating...')|e('js') }}';
       status.classList.remove('hidden');
       result.classList.add('hidden');
 
@@ -412,15 +375,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset button state
         btn.disabled = false;
         icon.className = 'fas fa-images mr-2';
-        text.textContent = 'Generate Image Variants';
+        text.textContent = '{{ trans('admin.settings.generate_variants')|e('js') }}';
         status.classList.add('hidden');
 
         // Validate backend response
-        if (data.success) {
-          result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span>' + (data.message || 'Generation process started! It may take a few minutes.') + '</span></div>';
-        } else {
-          result.innerHTML = '<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>' + (data.error || 'Generation failed') + '</span></div>';
+        if (data.error || data.success === false) {
+          throw new Error(data.message || data.error || 'Generation failed');
         }
+
+        const message = data.message || '{{ trans('admin.settings.generate_started')|default('Generation process started! It may take a few minutes.')|e('js') }}';
+        result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span>' + message + '</span></div>';
         result.classList.remove('hidden');
 
         // Hide result after 10 seconds
@@ -432,11 +396,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset button state
         btn.disabled = false;
         icon.className = 'fas fa-images mr-2';
-        text.textContent = 'Generate Image Variants';
+        text.textContent = '{{ trans('admin.settings.generate_variants')|e('js') }}';
         status.classList.add('hidden');
 
         // Show error result
-        result.innerHTML = '<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>Error starting generation</span></div>';
+        result.innerHTML = `<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>{{ trans('admin.settings.generate_error')|default('Error starting generation')|e('js') }}: ${error.message}</span></div>`;
         result.classList.remove('hidden');
       });
     });

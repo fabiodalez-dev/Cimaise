@@ -22,7 +22,7 @@
           <p class="text-gray-600 text-sm mt-1">{{ trans('admin.categories.drag_levels_hint') }}</p>
         </div>
 
-        <style>
+        <style nonce="{{ csp_nonce() }}">
           /* Clean minimal drag system */
           .categories-container {
             min-height: 300px;
@@ -290,7 +290,7 @@
                 
                 <div class="category-icon">
                   {% if category.image_path and category.image_path != '' %}
-                    <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name }}" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=&quot;placeholder&quot;><i class=&quot;fas fa-folder&quot;></i></div>';">
+                    <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name }}" data-fallback="category-image">
                   {% else %}
                     <div class="placeholder">
                       <i class="fas fa-folder"></i>
@@ -304,7 +304,7 @@
                   <button class="action-btn edit" data-edit="{{ category.id }}" title="{{ trans('admin.categories.quick_edit') }}">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <form method="post" action="{{ base_path }}/admin/categories/{{ category.id }}/delete" class="inline" onsubmit="return confirm('{{ trans('admin.categories.delete_confirm') }}')">
+                  <form method="post" action="{{ base_path }}/admin/categories/{{ category.id }}/delete" class="inline" data-confirm="{{ trans('admin.categories.delete_confirm')|e('js') }}">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
                     <button class="action-btn delete" title="{{ trans('admin.categories.delete') }}">
                       <i class="fas fa-trash"></i>
@@ -378,7 +378,7 @@
             </div>
             <div class="upload-area" id="upload-area">
               <input class="form-input hidden" type="file" name="image" accept="image/*" id="cat-image">
-              <div class="upload-zone border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors cursor-pointer" onclick="document.getElementById('cat-image').click()">
+              <div class="upload-zone border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors cursor-pointer" data-action="trigger-cat-image">
                 <i class="fas fa-cloud-upload-alt text-gray-400 text-2xl mb-2"></i>
                 <div class="text-sm text-gray-600">{{ trans('admin.categories.click_upload') }}</div>
                 <div class="text-xs text-gray-500 mt-1">{{ trans('admin.categories.upload_formats') }}</div>
@@ -387,7 +387,7 @@
                 <img id="upload-preview-img" class="w-full h-32 object-cover rounded-lg border" alt="{{ trans('admin.categories.preview') }}">
                 <div class="flex items-center justify-between mt-2 p-2 bg-blue-50 rounded">
                   <small class="text-blue-600">{{ trans('admin.categories.new_image_selected') }}</small>
-                  <button type="button" onclick="clearUploadPreview()" class="text-red-600 text-sm hover:underline">
+                  <button type="button" data-action="clear-upload-preview" class="text-red-600 text-sm hover:underline">
                     {{ trans('admin.categories.remove') }}
                   </button>
                 </div>
@@ -492,7 +492,7 @@
                 </label>
               </div>
               <input id="modal-cat-image" class="hidden" type="file" name="image" accept="image/*">
-              <div id="modal-upload-zone" class="upload-zone border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer" onclick="document.getElementById('modal-cat-image').click()">
+              <div id="modal-upload-zone" class="upload-zone border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer" data-action="trigger-modal-cat-image">
                 <i class="fas fa-cloud-upload-alt text-gray-400 text-2xl mb-2"></i>
                 <div class="text-sm text-gray-600">{{ trans('admin.categories.click_upload') }}</div>
                 <div class="text-xs text-gray-500">{{ trans('admin.categories.upload_formats') }}</div>
@@ -756,6 +756,25 @@
       setupImageUpload();
       setupFormValidation();
       setupCategoryModal();
+      // Bind data-action triggers to avoid inline handlers
+      document.querySelectorAll('[data-action="trigger-cat-image"]').forEach(el => {
+        el.addEventListener('click', () => document.getElementById('cat-image')?.click());
+      });
+      document.querySelectorAll('[data-action="trigger-modal-cat-image"]').forEach(el => {
+        el.addEventListener('click', () => document.getElementById('modal-cat-image')?.click());
+      });
+      document.querySelectorAll('[data-action="clear-upload-preview"]').forEach(el => {
+        el.addEventListener('click', clearUploadPreview);
+      });
+      // Fallback for broken category images
+      document.querySelectorAll('img[data-fallback="category-image"]').forEach(img => {
+        img.addEventListener('error', function() {
+          this.style.display = 'none';
+          if (this.parentNode) {
+            this.parentNode.innerHTML = '<div class="placeholder"><i class="fas fa-folder"></i></div>';
+          }
+        });
+      });
     });
     
     // Enhanced image upload with drag & drop

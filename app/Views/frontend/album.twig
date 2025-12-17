@@ -14,7 +14,7 @@
       {{ trans('album.nsfw_album_message') }}
     </p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <button id="nsfw-confirm-btn" onclick="confirmNsfwAndShow()" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+      <button id="nsfw-confirm-btn" data-action="confirm-nsfw-album" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
         {{ trans('album.nsfw_confirm') }}
       </button>
       <a href="{{ base_path }}/galleries" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium inline-block">
@@ -37,6 +37,19 @@
   const hasConfirmed = localStorage.getItem('nsfw_confirmed') === 'true';
   const gate = document.getElementById('nsfw-gate');
   const mainContent = document.getElementById('album-main-content');
+  const csrfToken = '{{ csrf|e('js') }}';
+  const albumSlug = '{{ album.slug|e('js') }}';
+  const basePath = '{{ base_path|e('js') }}';
+
+  // If already confirmed in localStorage, ensure server session is updated for media access
+  if (hasConfirmed && albumSlug && csrfToken) {
+    fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
+    }).catch(() => {});
+  }
 
   if (!hasConfirmed && gate) {
     gate.classList.add('active');
@@ -53,6 +66,15 @@
 
 function confirmNsfwAndShow() {
   localStorage.setItem('nsfw_confirmed', 'true');
+  // Inform backend to set session flag for NSFW protection
+  if (albumSlug && csrfToken) {
+    fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
+    }).catch(() => { /* non-blocking */ });
+  }
   const gate = document.getElementById('nsfw-gate');
   const mainContent = document.getElementById('album-main-content');
   if (gate) {
@@ -65,6 +87,25 @@ function confirmNsfwAndShow() {
   }
   document.body.style.overflow = '';
 }
+
+document.getElementById('nsfw-confirm-btn')?.addEventListener('click', function(event) {
+  event.preventDefault();
+  confirmNsfwAndShow();
+});
+
+// Delegated handler for CSP-safe actions (downloads, etc.)
+document.addEventListener('click', function(event) {
+  const downloadBtn = event.target.closest('[data-action="download-image"]');
+  if (downloadBtn) {
+    event.preventDefault();
+    event.stopPropagation();
+    const url = downloadBtn.dataset.downloadUrl;
+    if (url) {
+      window.location.href = url;
+    }
+    return;
+  }
+});
 </script>
 {% endif %}
 

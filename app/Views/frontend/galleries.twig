@@ -243,7 +243,7 @@
                data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
                data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
                data-album-url="{{ base_path }}/album/{{ album.slug }}"
-               onclick="handleGalleryCardClick(event, this)">
+               data-action="open-album">
 
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
@@ -375,7 +375,7 @@
         <p class="text-gray-600 mb-8 leading-relaxed">
           {{ trans('filter.no_galleries_text') }}
         </p>
-        <button onclick="clearAllFilters()" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
+        <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
           <i class="fas fa-times"></i>
           {{ trans('filter.clear') }}
         </button>
@@ -671,7 +671,7 @@ function updateGalleries(albums) {
                             <p class="text-gray-600 mb-8 leading-relaxed">
                                 ${window.pageTexts.noResultsText}
                             </p>
-                            <button onclick="clearAllFilters()" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
+                            <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
                                 <i class="fas fa-times"></i>
                                 ${window.pageTexts.clearFiltersText}
                             </button>
@@ -1157,10 +1157,10 @@ function debounce(func, wait) {
       {{ trans('album.nsfw_message') }}
     </p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <button onclick="confirmNsfwAge()" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
+      <button data-action="confirm-nsfw" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
         {{ trans('album.nsfw_confirm') }}
       </button>
-      <button onclick="cancelNsfw()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium">
+      <button data-action="cancel-nsfw" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium">
         {{ trans('album.nsfw_cancel') }}
       </button>
     </div>
@@ -1248,6 +1248,33 @@ function cancelNsfw() {
     hideNsfwModal();
     pendingNsfwUrl = null;
 }
+
+// Delegated actions for CSP-safe event handling
+document.addEventListener('click', function(event) {
+    const target = event.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.dataset.action;
+    if (action === 'open-album') {
+        handleGalleryCardClick(event, target);
+    } else if (action === 'clear-filters') {
+        event.preventDefault();
+        clearAllFilters();
+    } else if (action === 'confirm-nsfw') {
+        event.preventDefault();
+        confirmNsfwAge();
+    } else if (action === 'cancel-nsfw') {
+        event.preventDefault();
+        cancelNsfw();
+    } else if (action === 'download-image') {
+        event.preventDefault();
+        event.stopPropagation();
+        const url = target.dataset.downloadUrl;
+        if (url) {
+            window.location.href = url;
+        }
+    }
+});
 
 // Close modal on escape key
 document.addEventListener('keydown', function(e) {

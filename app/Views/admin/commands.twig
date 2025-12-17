@@ -24,13 +24,13 @@
         <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.database_desc') }}</p>
 
         <div class="space-y-2">
-          <button onclick="runCommand('db:migrate')" class="w-full btn-primary text-sm">
+          <button data-command="db:migrate" class="w-full btn-primary text-sm">
             <i class="fas fa-arrow-up mr-2"></i>{{ trans('admin.commands.run_migrations') }}
           </button>
-          <button onclick="runCommand('db:seed')" class="w-full btn-secondary text-sm">
+          <button data-command="db:seed" class="w-full btn-secondary text-sm">
             <i class="fas fa-seedling mr-2"></i>{{ trans('admin.commands.seed_data') }}
           </button>
-          <button onclick="runCommand('db:test')" class="w-full btn-secondary text-sm">
+          <button data-command="db:test" class="w-full btn-secondary text-sm">
             <i class="fas fa-stethoscope mr-2"></i>{{ trans('admin.commands.test_connection') }}
           </button>
         </div>
@@ -47,10 +47,10 @@
         <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.images_desc') }}</p>
 
         <div class="space-y-2">
-          <button onclick="runCommand('images:generate', {'missing': true})" class="w-full btn-primary text-sm">
+          <button data-command="images:generate" data-payload='{"missing":true}' class="w-full btn-primary text-sm">
             <i class="fas fa-images mr-2"></i>{{ trans('admin.commands.generate_missing') }}
           </button>
-          <button onclick="runCommand('media:normalize-paths')" class="w-full btn-secondary text-sm">
+          <button data-command="media:normalize-paths" class="w-full btn-secondary text-sm">
             <i class="fas fa-link mr-2"></i>{{ trans('admin.commands.normalize_paths') }}
           </button>
         </div>
@@ -84,7 +84,7 @@
           </div>
         </div>
 
-        <button onclick="runSitemapCommand()" class="w-full btn-primary text-sm">
+        <button data-action="run-sitemap" class="w-full btn-primary text-sm">
           <i class="fas fa-map mr-2"></i>{{ trans('admin.commands.build_sitemap') }}
         </button>
       </div>
@@ -100,7 +100,7 @@
         <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.system_desc') }}</p>
 
         <div class="space-y-2">
-          <button onclick="runCommand('diagnostics:report')" class="w-full btn-primary text-sm">
+          <button data-command="diagnostics:report" class="w-full btn-primary text-sm">
             <i class="fas fa-stethoscope mr-2"></i>{{ trans('admin.commands.run_diagnostics') }}
           </button>
           <a href="{{ base_path }}/admin/diagnostics" class="w-full btn-secondary text-sm text-center block">
@@ -122,7 +122,7 @@
         <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.tools_desc') }}</p>
 
         <div class="space-y-2">
-          <button onclick="runCommand('init')" class="w-full btn-secondary text-sm">
+          <button data-command="init" class="w-full btn-secondary text-sm">
             <i class="fas fa-sync mr-2"></i>{{ trans('admin.commands.initialize_system') }}
           </button>
           <a href="{{ base_path }}/admin/diagnostics" class="w-full btn-secondary text-sm text-center block">
@@ -142,13 +142,13 @@
         <p class="text-gray-600 text-sm mb-4">{{ trans('admin.commands.analytics_desc') }}</p>
 
         <div class="space-y-2">
-          <button onclick="runCommand('analytics:cleanup', {'dry-run': true})" class="w-full btn-secondary text-sm">
+          <button data-command="analytics:cleanup" data-payload='{"dry-run":true}' class="w-full btn-secondary text-sm">
             <i class="fas fa-preview mr-2"></i>{{ trans('admin.commands.preview_cleanup') }}
           </button>
-          <button onclick="runAnalyticsCleanup()" class="w-full btn-primary text-sm">
+          <button data-action="run-analytics-cleanup" class="w-full btn-primary text-sm">
             <i class="fas fa-trash-alt mr-2"></i>{{ trans('admin.commands.clean_old_data') }}
           </button>
-          <button onclick="runCommand('analytics:summarize')" class="w-full btn-secondary text-sm">
+          <button data-command="analytics:summarize" class="w-full btn-secondary text-sm">
             <i class="fas fa-chart-pie mr-2"></i>{{ trans('admin.commands.generate_summaries') }}
           </button>
         </div>
@@ -168,7 +168,7 @@
     <div class="p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.commands.command_output') }}</h3>
-        <button onclick="clearOutput()" class="btn-secondary text-sm">
+        <button data-action="clear-output" class="btn-secondary text-sm">
           <i class="fas fa-trash mr-2"></i>{{ trans('admin.commands.clear') }}
         </button>
       </div>
@@ -224,7 +224,7 @@
   </div>
 
 <script nonce="{{ csp_nonce() }}">
-// Commands page - functions are directly on window to work with onclick handlers
+// Commands page - keep functions on window but wire buttons via JS listeners
 // Use var to allow redeclaration during SPA navigation
 var _commandsIsRunning = _commandsIsRunning || false;
 
@@ -334,9 +334,8 @@ function runSitemapCommand() {
 }
 
 function runAnalyticsCleanup() {
-  if (!confirm('Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.')) {
-    return;
-  }
+  const confirmMsg = '{{ trans('admin.commands.analytics_cleanup_confirm')|default("Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.")|e('js') }}';
+  if (!confirm(confirmMsg)) return;
   runCommand('analytics:cleanup', { 'force': true });
 }
 
@@ -344,5 +343,36 @@ function clearOutput() {
   document.getElementById('command-output').textContent = 'Ready to execute commands...';
   document.getElementById('command-status').classList.add('hidden');
 }
+
+// Attach event listeners to buttons (no inline handlers)
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[data-command]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cmd = btn.getAttribute('data-command');
+      const payloadRaw = btn.getAttribute('data-payload');
+      let payload;
+      if (payloadRaw) {
+        try { payload = JSON.parse(payloadRaw); } catch (e) { payload = undefined; }
+      }
+      runCommand(cmd, payload);
+    });
+  });
+
+  const actionMap = {
+    'run-sitemap': runSitemapCommand,
+    'run-analytics-cleanup': runAnalyticsCleanup,
+    'clear-output': clearOutput
+  };
+  document.querySelectorAll('[data-action]').forEach(btn => {
+    const action = btn.getAttribute('data-action');
+    const fn = actionMap[action];
+    if (fn) {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        fn();
+      });
+    }
+  });
+});
 </script>
 {% endblock %}
