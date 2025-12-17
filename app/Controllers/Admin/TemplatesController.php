@@ -119,8 +119,11 @@ class TemplatesController extends BaseController
             ]
         ];
 
-        // Magazine-specific settings for template id 3 (Magazine Split)
-        if ($id === 3) {
+        // Magazine-specific settings for Magazine Split template
+        $slugStmt = $this->db->pdo()->prepare('SELECT slug FROM templates WHERE id = :id');
+        $slugStmt->execute([':id' => $id]);
+        $templateSlug = $slugStmt->fetchColumn();
+        if ($templateSlug === 'magazine-split') {
             $magDur1 = (int)($data['mag_duration_1'] ?? 60);
             $magDur2 = (int)($data['mag_duration_2'] ?? 72);
             $magDur3 = (int)($data['mag_duration_3'] ?? 84);

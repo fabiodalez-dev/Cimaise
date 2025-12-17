@@ -48,7 +48,7 @@
                   {% endif %}
                 </div>
               </div>
-              <button type="button" id="update-btn" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('js') }}">
+              <button type="button" id="update-btn" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
                 <i class="fas fa-download mr-2"></i>
                 {{ trans('admin.updates.update_now') }}
               </button>
@@ -212,7 +212,7 @@
                       <button type="button"
                               class="text-red-600 hover:text-red-800"
                               data-action="delete-backup"
-                              data-backup="{{ backup.name|e('js') }}">
+                              data-backup="{{ backup.name|e('html_attr') }}">
                         <i class="fas fa-trash"></i>
                       </button>
                     </td>
@@ -330,7 +330,7 @@
         {{ trans('admin.updates.create_backup') }}
       </button>
       {% if updateInfo.available %}
-      <button type="button" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('js') }}">
+      <button type="button" class="btn-primary" data-action="start-update" data-version="{{ updateInfo.latest|e('html_attr') }}">
         <i class="fas fa-download mr-2"></i>
         {{ trans('admin.updates.update_now') }}
       </button>
@@ -375,16 +375,16 @@
   </div>
 
 <script nonce="{{ csp_nonce() }}">
-const csrfToken = '{{ csrf|e('js') }}';
-const basePath = '{{ base_path|e('js') }}';
+const csrfToken = '{{ csrf|e('html_attr') }}';
+const basePath = '{{ base_path|e('html_attr') }}';
 const i18n = {
-    confirmUpdate: '{{ trans('admin.updates.confirm_update')|e('js') }}',
-    confirmDeleteBackup: '{{ trans('admin.updates.confirm_delete_backup')|e('js') }}',
-    confirmMaintenance: '{{ trans('admin.updates.confirm_clear_maintenance')|e('js') }}',
-    updateSuccess: '{{ trans('admin.updates.update_success')|e('js') }}',
-    backupSuccess: '{{ trans('admin.updates.backup_created')|e('js') }}',
-    latestVersion: '{{ trans('admin.updates.up_to_date_title')|e('js') }}',
-    errorChecking: '{{ trans('admin.updates.error_checking')|e('js') }}'
+    confirmUpdate: '{{ trans('admin.updates.confirm_update')|e('html_attr') }}',
+    confirmDeleteBackup: '{{ trans('admin.updates.confirm_delete_backup')|e('html_attr') }}',
+    confirmMaintenance: '{{ trans('admin.updates.confirm_clear_maintenance')|e('html_attr') }}',
+    updateSuccess: '{{ trans('admin.updates.update_success')|e('html_attr') }}',
+    backupSuccess: '{{ trans('admin.updates.backup_created')|e('html_attr') }}',
+    latestVersion: '{{ trans('admin.updates.up_to_date_title')|e('html_attr') }}',
+    errorChecking: '{{ trans('admin.updates.error_checking')|e('html_attr') }}'
 };
 
 function checkForUpdatesManual() {
