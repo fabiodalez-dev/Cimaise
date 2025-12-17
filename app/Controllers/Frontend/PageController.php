@@ -631,6 +631,10 @@ class PageController extends BaseController
         $settingsServiceForPage = new \App\Services\SettingsService($this->db);
         $pageTemplate = (string)($settingsServiceForPage->get('gallery.page_template', 'classic') ?? 'classic');
         $pageTemplate = in_array($pageTemplate, ['classic','hero','magazine'], true) ? $pageTemplate : 'classic';
+        // Override to magazine layout if the album template explicitly requests it (e.g., magazine-split)
+        if (($template['slug'] ?? '') === 'magazine-split') {
+            $pageTemplate = 'magazine';
+        }
         $twigTemplate = match ($pageTemplate) {
             'hero' => 'frontend/gallery_hero.twig',
             'magazine' => 'frontend/gallery_magazine.twig',
