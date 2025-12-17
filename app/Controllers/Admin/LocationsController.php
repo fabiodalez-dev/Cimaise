@@ -1,8 +1,10 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 
-use App\Controllers\BaseController;use App\Repositories\LocationRepository;
+use App\Controllers\BaseController;
+use App\Repositories\LocationRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -32,6 +34,12 @@ class LocationsController extends BaseController
 
     public function store(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/locations/create'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
@@ -64,6 +72,13 @@ class LocationsController extends BaseController
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);
+
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/locations/' . $id . '/edit'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
@@ -83,6 +98,12 @@ class LocationsController extends BaseController
 
     public function delete(Request $request, Response $response, array $args): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
+        }
+
         $id = (int)($args['id'] ?? 0);
         try {
             $this->locations->delete($id);

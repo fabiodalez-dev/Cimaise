@@ -51,18 +51,28 @@ class SettingsService
             'image.quality' => ['avif' => 50, 'webp' => 75, 'jpg' => 85],
             'image.breakpoints' => ['sm' => 768, 'md' => 1200, 'lg' => 1920, 'xl' => 2560, 'xxl' => 3840],
             'image.preview' => ['width' => 480, 'height' => null],
+            // TODO: visibility.public is a placeholder - implement server-side enforcement or remove
             'visibility' => ['public' => true],
             'gallery.default_template_id' => null,
             'site.title' => 'Cimaise',
             'site.logo' => null,
             'site.description' => 'Professional Photography Portfolio',
-            'site.copyright' => '© 2024 Photography Portfolio',
+            'site.copyright' => '© {year} Photography Portfolio',
             'site.email' => '',
             'site.language' => 'en',
+            'admin.language' => 'en',
             'date.format' => 'Y-m-d',
+            // TODO: performance.compression is stored but not consumed by middleware - wire up or remove
             'performance.compression' => true,
             'pagination.limit' => 12,
             'cache.ttl' => 24,
+            // Privacy & Cookie Banner
+            'privacy.cookie_banner_enabled' => true,
+            'privacy.custom_js_essential' => '',
+            'privacy.custom_js_analytics' => '',
+            'privacy.custom_js_marketing' => '',
+            'cookie_banner.show_analytics' => false,
+            'cookie_banner.show_marketing' => false,
         ];
     }
 }

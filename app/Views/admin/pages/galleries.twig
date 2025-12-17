@@ -1,14 +1,14 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Pages — Galleries{% endblock %}
+{% block title %}{{ trans('admin.pages.title') }} — Galleries{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Pages</h1>
-      <p class="text-gray-600 mt-1">Modifica la pagina <strong>Galleries</strong> e configura i filtri</p>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.pages.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.pages.galleries.edit')|raw }}</p>
     </div>
     <div class="flex items-center gap-3">
-      <a href="{{ base_path }}/galleries" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt mr-2"></i>Vedi pagina</a>
-      <button id="preview-filters" class="btn-outline"><i class="fas fa-eye mr-2"></i>Anteprima filtri</button>
+      <a href="{{ base_path }}/galleries" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt mr-2"></i>{{ trans('admin.pages.view_page') }}</a>
+      <button id="preview-filters" class="btn-outline"><i class="fas fa-eye mr-2"></i>{{ trans('admin.pages.galleries.preview_filters') }}</button>
     </div>
   </div>
 
@@ -24,29 +24,29 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-palette mr-3 text-gray-700"></i>
-              Template Pagina Galleria
+              {{ trans('admin.pages.galleries.gallery_template') }}
             </h3>
               {# The main form starts later; we only render fields here #}
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
                   <input type="radio" name="page_template" value="classic" class="mt-1" {% if settings['gallery.page_template'] == 'classic' %}checked{% endif %}>
                   <div>
-                    <div class="font-medium text-gray-900">Classic Grid</div>
-                    <div class="text-sm text-gray-600">Layout attuale minimale, B/N, con griglia o slideshow secondo template</div>
+                    <div class="font-medium text-gray-900">{{ trans('admin.pages.galleries.classic_grid') }}</div>
+                    <div class="text-sm text-gray-600">{{ trans('admin.pages.galleries.classic_grid_desc') }}</div>
                   </div>
                 </label>
                 <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
                   <input type="radio" name="page_template" value="hero" class="mt-1" {% if settings['gallery.page_template'] == 'hero' %}checked{% endif %}>
                   <div>
-                    <div class="font-medium text-gray-900">Hero Cover</div>
-                    <div class="text-sm text-gray-600">Cover grande con overlay, titolo, data e location; galleria sotto</div>
+                    <div class="font-medium text-gray-900">{{ trans('admin.pages.galleries.hero_cover') }}</div>
+                    <div class="text-sm text-gray-600">{{ trans('admin.pages.galleries.hero_cover_desc') }}</div>
                   </div>
                 </label>
                 <label class="flex items-start gap-3 p-4 border rounded-lg hover:border-gray-300 cursor-pointer">
                   <input type="radio" name="page_template" value="magazine" class="mt-1" {% if settings['gallery.page_template'] == 'magazine' %}checked{% endif %}>
                   <div>
-                    <div class="font-medium text-gray-900">Magazine Split</div>
-                    <div class="text-sm text-gray-600">Colonna sinistra con testi/info in sticky; griglia a destra</div>
+                    <div class="font-medium text-gray-900">{{ trans('admin.pages.galleries.magazine_split') }}</div>
+                    <div class="text-sm text-gray-600">{{ trans('admin.pages.galleries.magazine_split_desc') }}</div>
                   </div>
                 </label>
               </div>
@@ -55,14 +55,14 @@
                 <div class="p-4 bg-gray-50 border rounded-lg">
                   <div class="flex items-center justify-between">
                     <div>
-                      <div class="text-sm font-medium text-gray-900">Template Predefinito Gallery</div>
-                      <p class="text-xs text-gray-500">Gestisci il template predefinito in Impostazioni → Generali.</p>
+                      <div class="text-sm font-medium text-gray-900">{{ trans('admin.pages.galleries.default_template') }}</div>
+                      <p class="text-xs text-gray-500">{{ trans('admin.pages.galleries.default_template_help') }}</p>
                     </div>
-                    <a href="{{ base_path }}/admin/settings" class="btn-secondary btn-sm"><i class="fas fa-cog mr-2"></i>Apri Impostazioni</a>
+                    <a href="{{ base_path }}/admin/settings" class="btn-secondary btn-sm"><i class="fas fa-cog mr-2"></i>{{ trans('admin.pages.galleries.open_settings') }}</a>
                   </div>
-                  <div class="mt-2 text-sm text-gray-700">Attuale:
+                  <div class="mt-2 text-sm text-gray-700">{{ trans('admin.pages.galleries.current') }}:
                     {% set current = (templates|filter(t => t.id == settings['gallery.default_template_id'])|first) %}
-                    <strong>{{ current ? current.name : 'Nessun template predefinito' }}</strong>
+                    <strong>{{ current ? current.name : trans('admin.pages.galleries.no_default_template') }}</strong>
                   </div>
                 </div>
               </div>
@@ -75,15 +75,15 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-sliders-h mr-3 text-blue-600"></i>
-              Configurazione Filtri
+              {{ trans('admin.pages.galleries.filter_config') }}
             </h3>
-            
+
             <div class="space-y-6">
               <!-- Master Enable/Disable -->
               <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <h4 class="font-medium text-gray-900">Abilita Sistema Filtri</h4>
-                  <p class="text-sm text-gray-600">Attiva o disattiva tutti i filtri sulla pagina galleries</p>
+                  <h4 class="font-medium text-gray-900">{{ trans('admin.pages.galleries.enable_filters') }}</h4>
+                  <p class="text-sm text-gray-600">{{ trans('admin.pages.galleries.enable_filters_help') }}</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="filters-enabled" class="sr-only peer" {{ filter_settings.enabled ? 'checked' : '' }}>
@@ -93,18 +93,18 @@
               
               <!-- Individual Filters -->
               <div id="individual-filters" class="{{ filter_settings.enabled ? '' : 'opacity-50 pointer-events-none' }}">
-                <h4 class="font-medium text-gray-900 mb-3">Filtri Disponibili</h4>
+                <h4 class="font-medium text-gray-900 mb-3">{{ trans('admin.pages.galleries.available_filters') }}</h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {% set filter_configs = {
-                    'categories': { 'label': 'Categorie', 'icon': 'fas fa-folder', 'enabled': filter_settings.show_categories },
-                    'tags': { 'label': 'Tag', 'icon': 'fas fa-tags', 'enabled': filter_settings.show_tags },
-                    'cameras': { 'label': 'Fotocamere', 'icon': 'fas fa-camera', 'enabled': filter_settings.show_cameras },
-                    'lenses': { 'label': 'Obiettivi', 'icon': 'fas fa-dot-circle', 'enabled': filter_settings.show_lenses },
-                    'films': { 'label': 'Pellicole', 'icon': 'fas fa-film', 'enabled': filter_settings.show_films },
-                    'locations': { 'label': 'Località', 'icon': 'fas fa-map-marker-alt', 'enabled': filter_settings.show_locations },
-                    'year': { 'label': 'Anno', 'icon': 'fas fa-calendar-alt', 'enabled': filter_settings.show_year },
-                    'developers': { 'label': 'Sviluppatori', 'icon': 'fas fa-flask', 'enabled': filter_settings.show_developers|default(false) },
-                    'labs': { 'label': 'Laboratori', 'icon': 'fas fa-industry', 'enabled': filter_settings.show_labs|default(false) }
+                    'categories': { 'label': trans('admin.pages.galleries.filter_categories'), 'icon': 'fas fa-folder', 'enabled': filter_settings.show_categories },
+                    'tags': { 'label': trans('admin.pages.galleries.filter_tags'), 'icon': 'fas fa-tags', 'enabled': filter_settings.show_tags },
+                    'cameras': { 'label': trans('admin.pages.galleries.filter_cameras'), 'icon': 'fas fa-camera', 'enabled': filter_settings.show_cameras },
+                    'lenses': { 'label': trans('admin.pages.galleries.filter_lenses'), 'icon': 'fas fa-dot-circle', 'enabled': filter_settings.show_lenses },
+                    'films': { 'label': trans('admin.pages.galleries.filter_films'), 'icon': 'fas fa-film', 'enabled': filter_settings.show_films },
+                    'locations': { 'label': trans('admin.pages.galleries.filter_locations'), 'icon': 'fas fa-map-marker-alt', 'enabled': filter_settings.show_locations },
+                    'year': { 'label': trans('admin.pages.galleries.filter_year'), 'icon': 'fas fa-calendar-alt', 'enabled': filter_settings.show_year },
+                    'developers': { 'label': trans('admin.pages.galleries.filter_developers'), 'icon': 'fas fa-flask', 'enabled': filter_settings.show_developers|default(false) },
+                    'labs': { 'label': trans('admin.pages.galleries.filter_labs'), 'icon': 'fas fa-industry', 'enabled': filter_settings.show_labs|default(false) }
                   } %}
                   
                   {% for key, config in filter_configs %}
@@ -126,56 +126,56 @@
               
               <!-- Animation Settings -->
               <div class="border-t pt-4">
-                <h4 class="font-medium text-gray-900 mb-3">Animazioni</h4>
+                <h4 class="font-medium text-gray-900 mb-3">{{ trans('admin.pages.galleries.animations') }}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div class="flex items-center justify-between">
-                    <label class="text-sm text-gray-700">Abilita animazioni fade</label>
+                    <label class="text-sm text-gray-700">{{ trans('admin.pages.galleries.enable_fade') }}</label>
                     <label class="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" id="animation-enabled" class="sr-only peer" {{ filter_settings.animation_enabled ? 'checked' : '' }}>
                       <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
                   <div>
-                    <label class="block text-sm text-gray-700 mb-1">Durata animazione (s)</label>
+                    <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.galleries.animation_duration') }}</label>
                     <input type="number" id="animation-duration" class="form-input" min="0.1" max="2" step="0.1" value="{{ filter_settings.animation_duration|default(0.6) }}">
                   </div>
                 </div>
               </div>
-              
+
               <!-- Grid Settings -->
               <div class="border-t pt-4">
-                <h4 class="font-medium text-gray-900 mb-3">Layout Griglia</h4>
+                <h4 class="font-medium text-gray-900 mb-3">{{ trans('admin.pages.galleries.grid_layout') }}</h4>
                 <div class="grid grid-cols-3 gap-4">
                   <div>
-                    <label class="block text-sm text-gray-700 mb-1">Desktop</label>
+                    <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.galleries.desktop') }}</label>
                     <select id="grid-desktop" class="form-input">
                       {% for i in 1..6 %}
-                      <option value="{{ i }}" {{ filter_settings.grid_columns_desktop == i ? 'selected' : '' }}>{{ i }} colonne</option>
+                      <option value="{{ i }}" {{ filter_settings.grid_columns_desktop == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.galleries.columns') }}</option>
                       {% endfor %}
                     </select>
                   </div>
                   <div>
-                    <label class="block text-sm text-gray-700 mb-1">Tablet</label>
+                    <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.galleries.tablet') }}</label>
                     <select id="grid-tablet" class="form-input">
                       {% for i in 1..4 %}
-                      <option value="{{ i }}" {{ filter_settings.grid_columns_tablet == i ? 'selected' : '' }}>{{ i }} colonne</option>
+                      <option value="{{ i }}" {{ filter_settings.grid_columns_tablet == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.galleries.columns') }}</option>
                       {% endfor %}
                     </select>
                   </div>
                   <div>
-                    <label class="block text-sm text-gray-700 mb-1">Mobile</label>
+                    <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.galleries.mobile') }}</label>
                     <select id="grid-mobile" class="form-input">
                       {% for i in 1..2 %}
-                      <option value="{{ i }}" {{ filter_settings.grid_columns_mobile == i ? 'selected' : '' }}>{{ i }} colonne</option>
+                      <option value="{{ i }}" {{ filter_settings.grid_columns_mobile == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.galleries.columns') }}</option>
                       {% endfor %}
                     </select>
                   </div>
                 </div>
               </div>
-              
+
               <div class="flex justify-end">
                 <button type="button" id="save-filter-settings" class="btn-primary">
-                  <i class="fas fa-save mr-2"></i>Salva Configurazione Filtri
+                  <i class="fas fa-save mr-2"></i>{{ trans('admin.pages.galleries.save_filter_settings') }}
                 </button>
               </div>
             </div>
@@ -189,30 +189,30 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-heading mr-3 text-gray-600"></i>
-              Testi base
+              {{ trans('admin.pages.basic_texts') }}
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Titolo pagina</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.page_title') }}</label>
                 <input type="text" name="galleries_title" class="form-input" placeholder="All Galleries" value="{{ settings['galleries.title']|default('All Galleries') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Sottotitolo</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.subtitle') }}</label>
                 <input type="text" name="galleries_subtitle" class="form-input" placeholder="Explore our complete collection..." value="{{ settings['galleries.subtitle']|default('Explore our complete collection of photography galleries') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Permalink</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.permalink') }}</label>
                 <div class="flex items-center gap-2">
                   <span class="text-sm text-gray-500 select-none">/</span>
                   <input type="text" name="galleries_slug" class="form-input" placeholder="galleries" value="{{ settings['galleries.slug']|default('galleries') }}">
                 </div>
-                <p class="text-xs text-gray-500 mt-1">Solo lettere, numeri e trattini (kebab-case)</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.permalink_help') }}</p>
               </div>
             </div>
             <div class="mt-4">
-              <label class="block text-sm text-gray-700 mb-1">Descrizione SEO</label>
-              <textarea name="galleries_description" rows="3" class="form-input" placeholder="Breve descrizione per motori di ricerca...">{{ settings['galleries.description']|default('') }}</textarea>
-              <p class="text-xs text-gray-500 mt-1">Usata come meta description per SEO</p>
+              <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.seo_description') }}</label>
+              <textarea name="galleries_description" rows="3" class="form-input" placeholder="Short description for search engines...">{{ settings['galleries.description']|default('') }}</textarea>
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.seo_description_help') }}</p>
             </div>
           </div>
         </div>
@@ -221,24 +221,24 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-filter mr-3 text-gray-600"></i>
-              Testi filtri
+              {{ trans('admin.pages.galleries.filter_texts') }}
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Testo pulsante filtri</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.galleries.filter_button_text') }}</label>
                 <input type="text" name="filter_button_text" class="form-input" placeholder="Filters" value="{{ settings['galleries.filter_button_text']|default('Filters') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Testo cancella filtri</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.galleries.clear_filters_text') }}</label>
                 <input type="text" name="clear_filters_text" class="form-input" placeholder="Clear filters" value="{{ settings['galleries.clear_filters_text']|default('Clear filters') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Testo conteggio risultati</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.galleries.results_count_text') }}</label>
                 <input type="text" name="results_text" class="form-input" placeholder="galleries" value="{{ settings['galleries.results_text']|default('galleries') }}">
-                <p class="text-xs text-gray-500 mt-1">Es: "25 galleries" - solo la parola dopo il numero</p>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.galleries.results_count_help') }}</p>
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Testo pulsante visualizza</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.galleries.view_button_text') }}</label>
                 <input type="text" name="view_button_text" class="form-input" placeholder="View" value="{{ settings['galleries.view_button_text']|default('View') }}">
               </div>
             </div>
@@ -249,15 +249,15 @@
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <i class="fas fa-search-minus mr-3 text-gray-600"></i>
-              Testi stato vuoto
+              {{ trans('admin.pages.galleries.empty_state') }}
             </h3>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Titolo nessun risultato</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.galleries.no_results_title') }}</label>
                 <input type="text" name="no_results_title" class="form-input" placeholder="No galleries found" value="{{ settings['galleries.no_results_title']|default('No galleries found') }}">
               </div>
               <div>
-                <label class="block text-sm text-gray-700 mb-1">Messaggio nessun risultato</label>
+                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.galleries.no_results_message') }}</label>
                 <textarea name="no_results_text" rows="3" class="form-input" placeholder="We couldn't find any galleries matching your current filters...">{{ settings['galleries.no_results_text']|default('We couldn\'t find any galleries matching your current filters. Try adjusting your search criteria or clearing all filters.') }}</textarea>
               </div>
             </div>
@@ -270,57 +270,58 @@
     <div class="lg:col-span-1">
       <div class="card">
         <div class="p-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Impostazioni filtri</h3>
+          <h3 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.pages.galleries.filter_settings') }}</h3>
           <div class="space-y-3 text-sm">
             <div class="flex justify-between">
-              <span class="text-gray-600">Filtri abilitati:</span>
+              <span class="text-gray-600">{{ trans('admin.pages.galleries.filters_enabled') }}:</span>
               <span class="font-medium {{ filter_settings.enabled ? 'text-green-600' : 'text-red-600' }}">
-                {{ filter_settings.enabled ? 'Sì' : 'No' }}
+                {{ filter_settings.enabled ? trans('admin.pages.galleries.yes') : trans('admin.pages.galleries.no') }}
               </span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-600">Animazioni:</span>
+              <span class="text-gray-600">{{ trans('admin.pages.galleries.animations') }}:</span>
               <span class="font-medium {{ filter_settings.animation_enabled ? 'text-green-600' : 'text-red-600' }}">
-                {{ filter_settings.animation_enabled ? 'Abilitate' : 'Disabilitate' }}
+                {{ filter_settings.animation_enabled ? trans('admin.pages.galleries.enabled') : trans('admin.pages.galleries.disabled') }}
               </span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-600">Griglia desktop:</span>
-              <span class="font-medium">{{ filter_settings.grid_columns_desktop }} colonne</span>
+              <span class="text-gray-600">{{ trans('admin.pages.galleries.desktop_grid') }}:</span>
+              <span class="font-medium">{{ filter_settings.grid_columns_desktop }} {{ trans('admin.pages.galleries.columns') }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-600">Griglia tablet:</span>
-              <span class="font-medium">{{ filter_settings.grid_columns_tablet }} colonne</span>
+              <span class="text-gray-600">{{ trans('admin.pages.galleries.tablet_grid') }}:</span>
+              <span class="font-medium">{{ filter_settings.grid_columns_tablet }} {{ trans('admin.pages.galleries.columns') }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-600">Griglia mobile:</span>
-              <span class="font-medium">{{ filter_settings.grid_columns_mobile }} colonne</span>
+              <span class="text-gray-600">{{ trans('admin.pages.galleries.mobile_grid') }}:</span>
+              <span class="font-medium">{{ filter_settings.grid_columns_mobile }} {{ trans('admin.pages.galleries.columns') }}</span>
             </div>
           </div>
           <a href="{{ base_path }}/admin/filter-settings" class="inline-flex items-center gap-2 mt-4 text-sm text-blue-600 hover:text-blue-800">
             <i class="fas fa-cog"></i>
-            Gestisci impostazioni filtri
+            {{ trans('admin.pages.galleries.manage_filter_settings') }}
           </a>
         </div>
       </div>
 
       <div class="card mt-6">
         <div class="p-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-2">Filtri disponibili</h3>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.pages.galleries.available_filters') }}</h3>
           <div class="space-y-2 text-sm">
-            {% for filter_name, enabled in {
-              'Categories': filter_settings.show_categories,
-              'Tags': filter_settings.show_tags,
-              'Cameras': filter_settings.show_cameras,
-              'Lenses': filter_settings.show_lenses,
-              'Films': filter_settings.show_films,
-              'Locations': filter_settings.show_locations,
-              'Year': filter_settings.show_year
+            {% set sidebar_filters = {
+              (trans('admin.pages.galleries.filter_categories')): filter_settings.show_categories,
+              (trans('admin.pages.galleries.filter_tags')): filter_settings.show_tags,
+              (trans('admin.pages.galleries.filter_cameras')): filter_settings.show_cameras,
+              (trans('admin.pages.galleries.filter_lenses')): filter_settings.show_lenses,
+              (trans('admin.pages.galleries.filter_films')): filter_settings.show_films,
+              (trans('admin.pages.galleries.filter_locations')): filter_settings.show_locations,
+              (trans('admin.pages.galleries.filter_year')): filter_settings.show_year
             } %}
+            {% for filter_name, enabled in sidebar_filters %}
             <div class="flex justify-between items-center">
               <span class="text-gray-600">{{ filter_name }}:</span>
               <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                {{ enabled ? 'Attivo' : 'Disattivo' }}
+                {{ enabled ? trans('admin.pages.galleries.active') : trans('admin.pages.galleries.inactive') }}
               </span>
             </div>
             {% endfor %}
@@ -335,7 +336,7 @@
     <div class="flex items-center justify-center min-h-screen p-4">
       <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
         <div class="flex items-center justify-between p-6 border-b">
-          <h3 class="text-lg font-medium text-gray-900">Anteprima Filtri</h3>
+          <h3 class="text-lg font-medium text-gray-900">{{ trans('admin.pages.galleries.filter_preview') }}</h3>
           <button id="close-preview-modal" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times"></i>
           </button>
@@ -354,28 +355,40 @@
         <div class="flex items-center gap-3">
           <button type="submit" form="galleries-form" class="btn-primary">
             <i class="fas fa-save mr-2"></i>
-            Salva Impostazioni
+            {{ trans('admin.pages.save') }}
           </button>
           <button id="preview-filters" class="btn-secondary">
             <i class="fas fa-eye mr-2"></i>
-            Anteprima Filtri
+            {{ trans('admin.pages.galleries.preview_filters') }}
           </button>
           <a href="{{ base_path }}/admin/pages" class="btn-secondary">
             <i class="fas fa-arrow-left mr-2"></i>
-            Indietro
+            {{ trans('admin.pages.back') }}
           </a>
         </div>
-        
+
         <div class="text-sm text-gray-500">
           <i class="fas fa-info-circle mr-1"></i>
-          Modifica i testi della pagina galleries
+          {{ trans('admin.pages.galleries.edit_texts_info') }}
         </div>
       </div>
     </div>
   </div>
 
 <script src="{{ base_path }}/assets/vendor/gsap/gsap.min.js"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
+// Translation strings for JavaScript
+const jsTranslations = {
+  settingsSaved: '{{ trans('admin.pages.galleries.settings_saved') }}',
+  errorSaving: '{{ trans('admin.pages.galleries.error_saving') }}',
+  connectionError: '{{ trans('admin.pages.galleries.connection_error') }}',
+  loadingPreview: '{{ trans('admin.pages.galleries.loading_preview') }}',
+  errorLoadingPreview: '{{ trans('admin.pages.galleries.error_loading_preview') }}',
+  activeFilters: '{{ trans('admin.pages.galleries.active_filters') }}',
+  layoutPreview: '{{ trans('admin.pages.galleries.layout_preview') }}',
+  albumExample: '{{ trans('admin.pages.galleries.album_example') }}',
+  magazineWarning: '{{ trans('admin.pages.galleries.magazine_warning')|e('html_attr') }}'
+};
 
 // Filter settings management with GSAP animations
 class GalleriesFilterManager {
@@ -555,16 +568,16 @@ class GalleriesFilterManager {
       
       if (result.success) {
         if (!silent) {
-          this.showNotification('Impostazioni salvate con successo', 'success');
+          this.showNotification(jsTranslations.settingsSaved, 'success');
         }
         this.updateInfoPanel();
       } else {
-        this.showNotification('Errore nel salvataggio delle impostazioni', 'error');
+        this.showNotification(jsTranslations.errorSaving, 'error');
       }
     } catch (error) {
       console.error('Save error:', error);
       if (!silent) {
-        this.showNotification('Errore di connessione', 'error');
+        this.showNotification(jsTranslations.connectionError, 'error');
       }
     }
   }
@@ -596,7 +609,7 @@ class GalleriesFilterManager {
     previewContent.innerHTML = `
       <div class="flex items-center justify-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span class="ml-3 text-gray-600">Caricamento anteprima...</span>
+        <span class="ml-3 text-gray-600">${jsTranslations.loadingPreview}</span>
       </div>
     `;
     
@@ -625,7 +638,7 @@ class GalleriesFilterManager {
       
       previewContent.innerHTML = `
         <div class="space-y-4">
-          <h4 class="font-medium text-gray-900">Filtri Attivi</h4>
+          <h4 class="font-medium text-gray-900">${jsTranslations.activeFilters}</h4>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
             ${activeFilters.map(filter => `
               <div class="px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm">
@@ -633,22 +646,22 @@ class GalleriesFilterManager {
               </div>
             `).join('')}
           </div>
-          
+
           <div class="border-t pt-4">
-            <h4 class="font-medium text-gray-900 mb-2">Anteprima Layout</h4>
+            <h4 class="font-medium text-gray-900 mb-2">${jsTranslations.layoutPreview}</h4>
             <div class="bg-gray-100 rounded-lg p-4">
               <div class="grid grid-cols-3 gap-4">
                 <div class="bg-white rounded-lg p-3 shadow-sm">
                   <div class="h-32 bg-gradient-to-br from-blue-200 to-blue-300 rounded mb-2"></div>
-                  <div class="text-sm font-medium">Album Example 1</div>
+                  <div class="text-sm font-medium">${jsTranslations.albumExample} 1</div>
                 </div>
                 <div class="bg-white rounded-lg p-3 shadow-sm">
                   <div class="h-32 bg-gradient-to-br from-green-200 to-green-300 rounded mb-2"></div>
-                  <div class="text-sm font-medium">Album Example 2</div>
+                  <div class="text-sm font-medium">${jsTranslations.albumExample} 2</div>
                 </div>
                 <div class="bg-white rounded-lg p-3 shadow-sm">
                   <div class="h-32 bg-gradient-to-br from-purple-200 to-purple-300 rounded mb-2"></div>
-                  <div class="text-sm font-medium">Album Example 3</div>
+                  <div class="text-sm font-medium">${jsTranslations.albumExample} 3</div>
                 </div>
               </div>
             </div>
@@ -667,7 +680,7 @@ class GalleriesFilterManager {
       previewContent.innerHTML = `
         <div class="text-center py-8">
           <i class="fas fa-exclamation-triangle text-red-500 text-2xl mb-2"></i>
-          <p class="text-gray-600">Errore nel caricamento dell'anteprima</p>
+          <p class="text-gray-600">${jsTranslations.errorLoadingPreview}</p>
         </div>
       `;
     }
@@ -764,7 +777,7 @@ function updateDefaultTemplateInfo(selectedValue) {
       if (!msg) {
         msg = document.createElement('div');
         msg.className = 'magazine-warning text-xs text-gray-500 mt-2 p-3 bg-yellow-50 rounded border border-yellow-200';
-        msg.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>Con <strong>Magazine Split</strong> come layout pagina, il template predefinito non è applicabile. Le impostazioni del template vengono gestite separatamente.';
+        msg.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>' + jsTranslations.magazineWarning;
         defaultTemplateInfo.appendChild(msg);
       }
       msg.style.display = 'block';

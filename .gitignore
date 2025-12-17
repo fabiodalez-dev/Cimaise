@@ -54,16 +54,23 @@ phpinfo.php
 
 # Cache
 .cache/
-*.webp
-*.webp
-public/media/3_lg.jpg
-public/media/3_lg.webp
-public/media/3_md.jpg
-public/media/3_md.webp
-public/media/3_sm.jpg
-public/media/3_sm.webp
-public/media/3_xl.jpg
-public/media/3_xl.webp
-public/media/3_xxl.jpg
-public/media/3_xxl.webp
+
+# Claude auto-memory temp files (keep CLAUDE.md tracked for project notes)
+.claude/auto-memory/dirty-files
+.claude/auto-memory/config.json
+
+# Release build artifacts
+releases/
+build-tmp/
+
+# Maintenance mode
+storage/.maintenance
+
+# Documentation (internal only)
+updater.md
+
+# Local database files
+storage/database.sqlite
+database/database.sqlite
+app/database/
 CLAUDE.md

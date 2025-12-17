@@ -1,17 +1,17 @@
 {% extends "admin/_layout.twig" %}
 
-{% block title %}Create Location{% endblock %}
+{% block title %}{{ trans('admin.locations.new') }} — Cimaise{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-3xl font-bold text-black">Create Location</h1>
-      <p class="text-gray-600 mt-1">Add a new shooting location</p>
+      <h1 class="text-3xl font-bold text-black">{{ trans('admin.locations.new') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.locations.new_description') }}</p>
     </div>
     <a href="{{ base_path }}/admin/locations" class="btn-secondary">
       <i class="fas fa-arrow-left mr-2"></i>
-      Back to Locations
+      {{ trans('admin.locations.back_to_list') }}
     </a>
   </div>
 
@@ -20,7 +20,7 @@
     <div class="flex items-start">
       <i class="fas fa-exclamation-circle mr-3 mt-0.5"></i>
       <div>
-        <h3 class="font-medium mb-2">Please fix the following errors:</h3>
+        <h3 class="font-medium mb-2">{{ trans('admin.common.fix_errors') }}</h3>
         <ul class="list-disc pl-5 space-y-1">
           {% for error in errors %}
           <li>{{ error }}</li>
@@ -38,51 +38,51 @@
       <div class="border-b border-gray-200 pb-4">
         <h2 class="text-lg font-semibold text-black flex items-center">
           <i class="fas fa-map-marker-alt mr-3 text-gray-600"></i>
-          Location Details
+          {{ trans('admin.locations.details') }}
         </h2>
-        <p class="text-gray-600 text-sm mt-1">Basic information about this shooting location</p>
+        <p class="text-gray-600 text-sm mt-1">{{ trans('admin.locations.details_hint') }}</p>
       </div>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label for="name" class="block text-sm font-medium text-black mb-2">
-            Location Name *
+            {{ trans('admin.locations.name') }} *
           </label>
-          <input type="text" 
-                 name="name" 
-                 id="name" 
+          <input type="text"
+                 name="name"
+                 id="name"
                  class="form-input border-gray-300 focus:border-black focus:ring-black"
-                 value="{{ old.name|default('') }}" 
+                 value="{{ old.name|default('') }}"
                  required
-                 placeholder="e.g., Central Park, Tokyo Streets">
-          <p class="text-xs text-gray-500 mt-1">Display name for this location</p>
+                 placeholder="{{ trans('admin.locations.name_placeholder') }}">
+          <p class="text-xs text-gray-500 mt-1">{{ trans('admin.locations.name_hint') }}</p>
         </div>
 
         <div>
           <label for="slug" class="block text-sm font-medium text-black mb-2">
-            URL Slug *
+            {{ trans('admin.locations.slug') }} *
           </label>
-          <input type="text" 
-                 name="slug" 
-                 id="slug" 
+          <input type="text"
+                 name="slug"
+                 id="slug"
                  class="form-input border-gray-300 focus:border-black focus:ring-black font-mono text-sm"
-                 value="{{ old.slug|default('') }}" 
+                 value="{{ old.slug|default('') }}"
                  required
-                 placeholder="e.g., central-park, tokyo-streets">
-          <p class="text-xs text-gray-500 mt-1">Unique identifier for URLs (lowercase, no spaces)</p>
+                 placeholder="{{ trans('admin.locations.slug_placeholder') }}">
+          <p class="text-xs text-gray-500 mt-1">{{ trans('admin.locations.slug_hint') }}</p>
         </div>
       </div>
 
       <div>
         <label for="description" class="block text-sm font-medium text-black mb-2">
-          Description
+          {{ trans('admin.common.description') }}
         </label>
-        <textarea name="description" 
-                  id="description" 
-                  rows="4" 
+        <textarea name="description"
+                  id="description"
+                  rows="4"
                   class="form-input border-gray-300 focus:border-black focus:ring-black"
-                  placeholder="Describe this location, its characteristics, accessibility, or any relevant notes...">{{ old.description|default('') }}</textarea>
-        <p class="text-xs text-gray-500 mt-1">Optional description to help organize and identify this location</p>
+                  placeholder="{{ trans('admin.locations.description_placeholder') }}">{{ old.description|default('') }}</textarea>
+        <p class="text-xs text-gray-500 mt-1">{{ trans('admin.locations.description_hint') }}</p>
       </div>
     </div>
 
@@ -90,10 +90,10 @@
       <div class="flex items-center space-x-4">
         <button type="submit" class="btn-primary">
           <i class="fas fa-plus mr-2"></i>
-          Create Location
+          {{ trans('admin.locations.new') }}
         </button>
         <a href="{{ base_path }}/admin/locations" class="btn-secondary">
-          Cancel
+          {{ trans('admin.common.cancel') }}
         </a>
       </div>
     </div>

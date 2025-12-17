@@ -1,18 +1,18 @@
 {% extends "admin/_layout.twig" %}
 
-{% block title %}Analytics Settings — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.analytics.settings.page_title') }} — Cimaise{% endblock %}
 
 {% block content %}
 <div class="p-6">
   <!-- Header -->
   <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900 mb-2">Analytics Settings</h1>
-      <p class="text-gray-600">Configure privacy, data retention, and tracking options</p>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ trans('admin.analytics.settings.page_title') }}</h1>
+      <p class="text-gray-600">{{ trans('admin.analytics.settings.description') }}</p>
     </div>
     <div class="flex gap-3 mt-4 md:mt-0">
       <a href="{{ base_path }}/admin/analytics" class="btn-secondary" data-spa-link>
-        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        <i class="fas fa-arrow-left mr-2"></i>{{ trans('admin.analytics.settings.back_to_dashboard') }}
       </a>
     </div>
   </div>
@@ -27,8 +27,8 @@
     <!-- Privacy & Data Collection -->
     <div class="card p-6">
       <div class="border-b border-gray-200 pb-4 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900">Privacy & Data Collection</h2>
-        <p class="text-sm text-gray-600 mt-1">Configure how visitor data is collected and processed</p>
+        <h2 class="text-lg font-semibold text-gray-900">{{ trans('admin.analytics.settings.privacy_section') }}</h2>
+        <p class="text-sm text-gray-600 mt-1">{{ trans('admin.analytics.settings.privacy_section_desc') }}</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -36,12 +36,12 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div class="flex-1">
-              <label for="analytics_enabled" class="text-sm font-medium text-gray-900">Enable Analytics</label>
-              <p class="text-xs text-gray-600 mt-1">Turn analytics tracking on or off globally</p>
+              <label for="analytics_enabled" class="text-sm font-medium text-gray-900">{{ trans('admin.analytics.settings.enable_analytics') }}</label>
+              <p class="text-xs text-gray-600 mt-1">{{ trans('admin.analytics.settings.enable_analytics_desc') }}</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="hidden" name="analytics_enabled" value="false">
-              <input type="checkbox" name="analytics_enabled" id="analytics_enabled" value="true" 
+              <input type="checkbox" name="analytics_enabled" id="analytics_enabled" value="true"
                      class="sr-only peer" {% if settings.analytics_enabled == 'true' %}checked{% endif %}>
               <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
             </label>
@@ -50,12 +50,12 @@
           <!-- IP Anonymization -->
           <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div class="flex-1">
-              <label for="ip_anonymization" class="text-sm font-medium text-gray-900">IP Anonymization</label>
-              <p class="text-xs text-gray-600 mt-1">Anonymize visitor IP addresses for privacy compliance</p>
+              <label for="ip_anonymization" class="text-sm font-medium text-gray-900">{{ trans('admin.analytics.settings.ip_anonymization') }}</label>
+              <p class="text-xs text-gray-600 mt-1">{{ trans('admin.analytics.settings.ip_anonymization_desc') }}</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="hidden" name="ip_anonymization" value="false">
-              <input type="checkbox" name="ip_anonymization" id="ip_anonymization" value="true" 
+              <input type="checkbox" name="ip_anonymization" id="ip_anonymization" value="true"
                      class="sr-only peer" {% if settings.ip_anonymization == 'true' %}checked{% endif %}>
               <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
             </label>
@@ -64,12 +64,12 @@
           <!-- Bot Detection -->
           <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div class="flex-1">
-              <label for="bot_detection_enabled" class="text-sm font-medium text-gray-900">Bot Detection</label>
-              <p class="text-xs text-gray-600 mt-1">Filter out bot traffic from analytics data</p>
+              <label for="bot_detection_enabled" class="text-sm font-medium text-gray-900">{{ trans('admin.analytics.settings.bot_detection') }}</label>
+              <p class="text-xs text-gray-600 mt-1">{{ trans('admin.analytics.settings.bot_detection_desc') }}</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="hidden" name="bot_detection_enabled" value="false">
-              <input type="checkbox" name="bot_detection_enabled" id="bot_detection_enabled" value="true" 
+              <input type="checkbox" name="bot_detection_enabled" id="bot_detection_enabled" value="true"
                      class="sr-only peer" {% if settings.bot_detection_enabled == 'true' %}checked{% endif %}>
               <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
             </label>
@@ -80,12 +80,12 @@
           <!-- Geolocation -->
           <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div class="flex-1">
-              <label for="geolocation_enabled" class="text-sm font-medium text-gray-900">Geographic Data</label>
-              <p class="text-xs text-gray-600 mt-1">Collect country and region information from IP addresses</p>
+              <label for="geolocation_enabled" class="text-sm font-medium text-gray-900">{{ trans('admin.analytics.settings.geo_data') }}</label>
+              <p class="text-xs text-gray-600 mt-1">{{ trans('admin.analytics.settings.geo_data_desc') }}</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="hidden" name="geolocation_enabled" value="false">
-              <input type="checkbox" name="geolocation_enabled" id="geolocation_enabled" value="true" 
+              <input type="checkbox" name="geolocation_enabled" id="geolocation_enabled" value="true"
                      class="sr-only peer" {% if settings.geolocation_enabled == 'true' %}checked{% endif %}>
               <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
             </label>
@@ -94,12 +94,12 @@
           <!-- Real-time Tracking -->
           <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div class="flex-1">
-              <label for="real_time_enabled" class="text-sm font-medium text-gray-900">Real-time Tracking</label>
-              <p class="text-xs text-gray-600 mt-1">Enable live visitor monitoring and real-time updates</p>
+              <label for="real_time_enabled" class="text-sm font-medium text-gray-900">{{ trans('admin.analytics.settings.realtime_tracking') }}</label>
+              <p class="text-xs text-gray-600 mt-1">{{ trans('admin.analytics.settings.realtime_tracking_desc') }}</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="hidden" name="real_time_enabled" value="false">
-              <input type="checkbox" name="real_time_enabled" id="real_time_enabled" value="true" 
+              <input type="checkbox" name="real_time_enabled" id="real_time_enabled" value="true"
                      class="sr-only peer" {% if settings.real_time_enabled == 'true' %}checked{% endif %}>
               <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
             </label>
@@ -108,12 +108,12 @@
           <!-- Data Export -->
           <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div class="flex-1">
-              <label for="export_enabled" class="text-sm font-medium text-gray-900">Data Export</label>
-              <p class="text-xs text-gray-600 mt-1">Allow exporting analytics data to CSV/JSON formats</p>
+              <label for="export_enabled" class="text-sm font-medium text-gray-900">{{ trans('admin.analytics.settings.data_export') }}</label>
+              <p class="text-xs text-gray-600 mt-1">{{ trans('admin.analytics.settings.data_export_desc') }}</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="hidden" name="export_enabled" value="false">
-              <input type="checkbox" name="export_enabled" id="export_enabled" value="true" 
+              <input type="checkbox" name="export_enabled" id="export_enabled" value="true"
                      class="sr-only peer" {% if settings.export_enabled == 'true' %}checked{% endif %}>
               <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
             </label>
@@ -125,37 +125,37 @@
     <!-- Data Retention -->
     <div class="card p-6">
       <div class="border-b border-gray-200 pb-4 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900">Data Retention</h2>
-        <p class="text-sm text-gray-600 mt-1">Configure how long analytics data is stored</p>
+        <h2 class="text-lg font-semibold text-gray-900">{{ trans('admin.analytics.settings.retention_section') }}</h2>
+        <p class="text-sm text-gray-600 mt-1">{{ trans('admin.analytics.settings.retention_section_desc') }}</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Data Retention Days -->
         <div>
-          <label for="data_retention_days" class="block text-sm font-medium text-gray-700 mb-2">Data Retention Period</label>
+          <label for="data_retention_days" class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.analytics.settings.retention_period') }}</label>
           <select name="data_retention_days" id="data_retention_days" class="form-input">
             {% set retention = settings.data_retention_days|default('365') %}
-            <option value="30" {% if retention == '30' %}selected{% endif %}>30 days</option>
-            <option value="90" {% if retention == '90' %}selected{% endif %}>90 days</option>
-            <option value="180" {% if retention == '180' %}selected{% endif %}>6 months</option>
-            <option value="365" {% if retention == '365' %}selected{% endif %}>1 year</option>
-            <option value="730" {% if retention == '730' %}selected{% endif %}>2 years</option>
-            <option value="0" {% if retention == '0' %}selected{% endif %}>Never delete</option>
+            <option value="30" {% if retention == '30' %}selected{% endif %}>{{ trans('admin.analytics.settings.30_days') }}</option>
+            <option value="90" {% if retention == '90' %}selected{% endif %}>{{ trans('admin.analytics.settings.90_days') }}</option>
+            <option value="180" {% if retention == '180' %}selected{% endif %}>{{ trans('admin.analytics.settings.6_months') }}</option>
+            <option value="365" {% if retention == '365' %}selected{% endif %}>{{ trans('admin.analytics.settings.1_year') }}</option>
+            <option value="730" {% if retention == '730' %}selected{% endif %}>{{ trans('admin.analytics.settings.2_years') }}</option>
+            <option value="0" {% if retention == '0' %}selected{% endif %}>{{ trans('admin.analytics.settings.never_delete') }}</option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">Older data will be automatically deleted</p>
+          <p class="text-xs text-gray-500 mt-1">{{ trans('admin.analytics.settings.retention_hint') }}</p>
         </div>
 
         <!-- Session Timeout -->
         <div>
-          <label for="session_timeout_minutes" class="block text-sm font-medium text-gray-700 mb-2">Session Timeout</label>
+          <label for="session_timeout_minutes" class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.analytics.settings.session_timeout') }}</label>
           <select name="session_timeout_minutes" id="session_timeout_minutes" class="form-input">
             {% set timeout = settings.session_timeout_minutes|default('30') %}
-            <option value="15" {% if timeout == '15' %}selected{% endif %}>15 minutes</option>
-            <option value="30" {% if timeout == '30' %}selected{% endif %}>30 minutes</option>
-            <option value="60" {% if timeout == '60' %}selected{% endif %}>1 hour</option>
-            <option value="120" {% if timeout == '120' %}selected{% endif %}>2 hours</option>
+            <option value="15" {% if timeout == '15' %}selected{% endif %}>{{ trans('admin.analytics.settings.15_minutes') }}</option>
+            <option value="30" {% if timeout == '30' %}selected{% endif %}>{{ trans('admin.analytics.settings.30_minutes') }}</option>
+            <option value="60" {% if timeout == '60' %}selected{% endif %}>{{ trans('admin.analytics.settings.1_hour') }}</option>
+            <option value="120" {% if timeout == '120' %}selected{% endif %}>{{ trans('admin.analytics.settings.2_hours') }}</option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">Time before a session is considered ended</p>
+          <p class="text-xs text-gray-500 mt-1">{{ trans('admin.analytics.settings.session_timeout_hint') }}</p>
         </div>
       </div>
     </div>
@@ -165,18 +165,17 @@
       <div class="flex items-start">
         <i class="fas fa-info-circle text-blue-600 mt-1 mr-3"></i>
         <div>
-          <h3 class="text-sm font-medium text-blue-800 mb-2">Privacy & GDPR Compliance</h3>
+          <h3 class="text-sm font-medium text-blue-800 mb-2">{{ trans('admin.analytics.settings.gdpr_title') }}</h3>
           <ul class="text-sm text-blue-700 space-y-1">
-            <li>• No cookies are used for analytics tracking - data is stored in sessionStorage</li>
-            <li>• IP addresses are hashed and can be anonymized for privacy compliance</li>
-            <li>• Geographic data is collected from IP addresses but can be disabled</li>
-            <li>• Bot traffic is automatically filtered when enabled</li>
-            <li>• All data collection respects your configured retention policies</li>
+            <li>• {{ trans('admin.analytics.settings.gdpr_1') }}</li>
+            <li>• {{ trans('admin.analytics.settings.gdpr_2') }}</li>
+            <li>• {{ trans('admin.analytics.settings.gdpr_3') }}</li>
+            <li>• {{ trans('admin.analytics.settings.gdpr_4') }}</li>
+            <li>• {{ trans('admin.analytics.settings.gdpr_5') }}</li>
           </ul>
           <div class="mt-4 pt-4 border-t border-blue-200">
             <p class="text-xs text-blue-600">
-              <strong>Note:</strong> This analytics system is designed to be cookieless and privacy-first. 
-              However, you should still review your local privacy laws and update your privacy policy accordingly.
+              {{ trans('admin.analytics.settings.gdpr_note') }}
             </p>
           </div>
         </div>
@@ -186,37 +185,37 @@
     <!-- Data Management -->
     <div class="card p-6">
       <div class="border-b border-gray-200 pb-4 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900">Data Management</h2>
-        <p class="text-sm text-gray-600 mt-1">Tools for managing your analytics data</p>
+        <h2 class="text-lg font-semibold text-gray-900">{{ trans('admin.analytics.settings.data_management') }}</h2>
+        <p class="text-sm text-gray-600 mt-1">{{ trans('admin.analytics.settings.data_management_desc') }}</p>
       </div>
 
       <div class="flex flex-col sm:flex-row gap-4">
         <a href="{{ base_path }}/admin/analytics/export" class="btn-secondary flex-1 text-center">
-          <i class="fas fa-download mr-2"></i>Export All Data
+          <i class="fas fa-download mr-2"></i>{{ trans('admin.analytics.settings.export_all') }}
         </a>
-        <form method="post" action="{{ base_path }}/admin/analytics/cleanup" class="flex-1" 
-              onsubmit="return confirm('Are you sure you want to clean up old analytics data? This action cannot be undone.')">
+        <form method="post" action="{{ base_path }}/admin/analytics/cleanup" class="flex-1"
+              data-confirm="{{ trans('admin.analytics.settings.cleanup_confirm')|e('html_attr') }}">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button type="submit" class="btn-secondary w-full">
-            <i class="fas fa-trash-alt mr-2"></i>Clean Up Old Data
+            <i class="fas fa-trash-alt mr-2"></i>{{ trans('admin.analytics.settings.cleanup_old') }}
           </button>
         </form>
       </div>
       <p class="text-xs text-gray-500 mt-2 text-center">
-        Cleanup removes data older than your retention period. Export includes all available data.
+        {{ trans('admin.analytics.settings.cleanup_hint') }}
       </p>
     </div>
 
     <!-- Save Button -->
     <div class="flex justify-end">
       <button type="submit" class="btn-primary">
-        <i class="fas fa-save mr-2"></i>Save Settings
+        <i class="fas fa-save mr-2"></i>{{ trans('admin.analytics.settings.save') }}
       </button>
     </div>
   </form>
 </div>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
 /* Custom toggle switch styles */
 .peer:checked + div {
   background-color: #000;
@@ -249,7 +248,7 @@
 }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Add interactivity for settings
 document.addEventListener('DOMContentLoaded', function() {
   // Analytics enabled toggle - show/hide dependent options

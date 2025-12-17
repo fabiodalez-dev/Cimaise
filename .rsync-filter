@@ -1,0 +1,239 @@
+# ========================================
+# Cimaise - rsync Filter Rules
+# Used by build-release.sh to create distribution packages
+# CRITICAL: In rsync, INCLUDES must come BEFORE EXCLUDES
+# Format: + (include), - (exclude), processed in order
+# ========================================
+
+# ========================================
+# EXPLICIT INCLUDES (must come first!)
+# ========================================
+
+# Keep .env.example
++ .env.example
+
+# Keep README and LICENSE
++ README.md
++ LICENSE
+
+# Keep version.json (required for updates)
++ version.json
+
+# Keep database schema files
++ database/
++ database/schema.sqlite.sql
++ database/schema.mysql.sql
++ database/migrations/
++ database/migrations/*.sql
+
+# Keep storage directory structure and htaccess files
++ storage/
++ storage/.htaccess
++ storage/logs/
++ storage/logs/.gitkeep
++ storage/cache/
++ storage/cache/.gitkeep
++ storage/originals/
++ storage/originals/.gitkeep
++ storage/originals/.htaccess
++ storage/tmp/
++ storage/tmp/.gitkeep
++ storage/translations/
++ storage/translations/.gitkeep
++ storage/translations/en.json
++ storage/translations/it.json
++ storage/translations/en_admin.json
++ storage/translations/it_admin.json
+
+# Keep public directory structure
++ public/
++ public/.htaccess
++ public/index.php
++ public/installer.php
++ public/simple-install.php
++ public/robots.txt
++ public/favicon.ico
++ public/assets/
++ public/assets/**
++ public/media/
++ public/media/.gitkeep
+
+# Keep plugins directory structure
++ plugins/
++ plugins/.gitkeep
++ plugins/**
+
+# Keep resources directory
++ resources/
++ resources/**
+
+# Keep app directory (all application code)
++ app/
++ app/**
+
+# Keep vendor directory (Composer dependencies)
++ vendor/
++ vendor/**
+
+# Keep bin directory (but only specific files)
++ bin/
++ bin/.gitkeep
+
+# ========================================
+# EXCLUDES (come after includes)
+# ========================================
+
+# Version control
+- .git/
+- .gitignore
+- .gitattributes
+- .gitmodules
+
+# IDE and AI assistant folders
+- .gemini/
+- .qoder/
+- .claude/
+- .vscode/
+- .idea/
+- .cursor/
+- CLAUDE.md
+- claude.md
+- AGENTS.md
+- .project
+- .buildpath
+- .settings/
+- *.sublime-*
+- *.swp
+- *.swo
+- *~
+
+# Development scripts (exclude from package)
+- bin/build-release.sh
+- bin/dev/
+- scripts/
+
+# Development dependencies
+- node_modules/
+- .phpunit.result.cache
+- .phpunit.cache/
+- tests/
+- test/
+- coverage/
+- .nyc_output/
+- .coverage
+- htmlcov/
+- .playwright-mcp/
+
+# Development files
+- *.log
+- *.tmp
+- *.temp
+- *.cache
+- .DS_Store
+- .DS_Store?
+- ._*
+- .Spotlight-V100
+- .Trashes
+- ehthumbs.db
+- Thumbs.db
+- desktop.ini
+
+# Environment and configuration
+- .env
+- .env.local
+- .env.production
+- .installed
+- config.local.php
+
+# Documentation (except README already included)
+- docs/
+- CHANGELOG.md
+- HOOKS_REFERENCE.md
+- INSTALL.md
+- INSTALLATION.md
+- PLUGIN_DEVELOPMENT.md
+- PLUGIN_MANAGEMENT_GUIDE.md
+- QUICK_START.md
+- security_anal.md
+- security_report.md
+- todo.md
+- updater.md
+- *.md
+
+# Build configuration files
+- .distignore
+- .rsync-filter
+- package.json
+- package-lock.json
+- postcss.config.js
+- tailwind.config.js
+- vite.config.js
+- php.ini
+
+# Temporary scripts
+- clean-*.sh
+- convert-*.php
+- export-*.php
+- fix-*.php
+- debug_*.php
+- test_*.php
+- migration-*.php
+- reset_app.php
+- repair_install.php
+
+# Reports directory
+- reports/
+
+# Release artifacts
+- /releases/
+- /build/
+- build-tmp/
+
+# CI/CD
+- .github/
+- .travis.yml
+- .circleci/
+- azure-pipelines.yml
+- .gitlab-ci.yml
+
+# Backup & archive files
+- *.bak
+- *.backup
+- *.old
+- *backup*
+- backup_*.sql
+- old.sql
+- *.zip
+- *.tar
+- *.tar.gz
+- *.rar
+- *.7z
+- Archive.zip
+
+# Security files
+- .htpasswd
+- *.pem
+- *.key
+- *.cert
+- *.crt
+- *.p12
+
+# Storage user data (structure already included above)
+- storage/logs/*
+- storage/cache/*
+- storage/originals/*
+- storage/tmp/*
+- storage/*.log
+- storage/.maintenance
+
+# Public user content (exclude uploaded media)
+- public/media/*
+
+# Root level index.php (duplicate of public/index.php)
+- /index.php
+
+# Error logs
+- error_log
+- npm-debug.log*
+- yarn-debug.log*
+- yarn-error.log*

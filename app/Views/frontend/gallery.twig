@@ -166,13 +166,13 @@
   </div>
   {% endif %}
 
-  {% if current_template_id == 9 %}
+  {% set layout = template_settings.layout|default('grid') %}
+
+  {% if layout == 'magazine' or current_template_id == 3 %}
     <div id="images-gallery" class="mt-6">
       {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
     </div>
   {% endif %}
-
-  {% set layout = template_settings.layout|default('grid') %}
   {% set masonry = template_settings.masonry|default(false) %}
   
   {# Usa direttamente la struttura semplificata #}
@@ -190,14 +190,14 @@
   
 
 
-  {% if current_template_id != 9 %}
+  {% if layout != 'magazine' and current_template_id != 3 %}
   {# 1. MASONRY FIT - Rispetta proporzioni originali #}
   {% if layout == 'masonry_fit' %}
     <div id="images-gallery" class="masonry-fit-container">
       {% for image in images %}
       <div class="masonry-fit-item" style="--aspect-ratio: {{ image.width / image.height }}">
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
-           class="pswp-link image-item block overflow-hidden rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white"
+           class="pswp-link image-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -303,7 +303,7 @@
       {% for image in images %}
       <div class="grid-minimal-item group">
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
-           class="pswp-link image-item block aspect-square bg-neutral-50 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+           class="pswp-link image-item block aspect-square bg-neutral-50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-out"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -331,7 +331,7 @@
               {% if image.sources and image.sources.jpg|length %}
                 <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
               {% endif %}
-              <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async">
+              <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300 ease-out" loading="lazy" decoding="async">
             </picture>
             <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
@@ -347,7 +347,7 @@
       {% set featured = loop.index0 % 6 == 0 or loop.index0 % 6 == 3 %}
       <div class="mosaic-item {{ featured ? 'mosaic-featured' : 'mosaic-normal' }}" data-index="{{ loop.index0 }}">
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-           class="pswp-link image-item block w-full h-full bg-neutral-100 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:z-10 {{ featured ? 'flex items-center justify-center' : '' }}"
+           class="pswp-link image-item block w-full h-full bg-neutral-100 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 ease-out hover:z-10 {{ featured ? 'flex items-center justify-center' : '' }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -377,7 +377,7 @@
           {% for image in images %}
           <div class="swiper-slide !w-auto !h-[80vh] px-2">
             <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-               class="pswp-link image-item block h-full bg-neutral-100 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 relative flex items-center justify-center"
+               class="pswp-link image-item block h-full bg-neutral-100 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-out relative flex items-center justify-center"
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
                data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -410,7 +410,7 @@
       <div class="polaroid-item absolute"
            style="--rotation: {{ rotation }}deg; transform: rotate(var(--rotation)); top: {{ (loop.index0 * 15) % 60 + 10 }}%; left: {{ (loop.index0 * 20) % 80 + 5 }}%;">
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-           class="pswp-link image-item block bg-white p-3 pb-12 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 hover:z-50 relative"
+           class="pswp-link image-item block bg-white p-3 pb-12 shadow-2xl hover:shadow-3xl transition-shadow duration-300 ease-out hover:z-50 relative"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -530,7 +530,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Global base path for API calls
 window.basePath = '{{ base_path }}';
 
@@ -545,7 +545,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeGalleryLayout();
   // If magazine is active on first render, ensure autoscroll
   try {
-    if ({{ current_template_id|default(0) }} == 9 || (window.templateSettings?.layout === 'magazine')) {
+    if ({{ current_template_id|default(0) }} == 3 || (window.templateSettings?.layout === 'magazine')) {
       if (typeof initMagazineAutoscroll === 'function') {
         setTimeout(() => { initMagazineAutoscroll(); }, 100);
       } else {
@@ -843,7 +843,7 @@ document.addEventListener('click', function(event) {
       const newMasonry = !!window.templateSettings?.masonry;
       const idKeep = galleryContainer.id;
       galleryContainer.className = '';
-      if (newLayout === 'magazine' || templateId === '9') {
+      if (newLayout === 'magazine' || templateId === '3') {
         galleryContainer.className = 'mt-6';
       } else if (newLayout === 'slideshow') {
         galleryContainer.className = 'swiper slideshow-pro max-w-6xl mx-auto';
@@ -866,7 +866,7 @@ document.addEventListener('click', function(event) {
         if (typeof initLightbox === 'function') initLightbox();
         if (window.gallerySwiper?.destroy) { window.gallerySwiper.destroy(true, true); window.gallerySwiper = null; }
         if (window.galleryMasonry?.destroy) { window.galleryMasonry.destroy(); window.galleryMasonry = null; }
-        if (newLayout === 'magazine' || templateId === '9') {
+        if (newLayout === 'magazine' || templateId === '3') {
           console.log('Initializing Magazine Split in delegated handler');
           setTimeout(() => { try { initMagazineAutoscroll(); } catch(e){ console.error('Magazine init error in delegated handler:', e); } }, 100);
         } else {

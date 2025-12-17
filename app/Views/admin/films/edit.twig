@@ -1,52 +1,59 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}Modifica pellicola — Cimaise{% endblock %}
+{% block title %}{{ trans('admin.films.edit') }} — Cimaise{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-4"><h1 class="text-2xl font-bold text-gray-900">Modifica pellicola</h1></div>
+  <div class="flex items-center justify-between mb-4"><h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.films.edit') }}</h1></div>
   <form method="post" action="{{ base_path }}/admin/films/{{ item.id }}">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">Brand</label><input class="form-input" type="text" name="brand" value="{{ item.brand }}" required></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">Nome</label><input class="form-input" type="text" name="name" value="{{ item.name }}" required></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">ISO</label><input class="form-input" type="number" name="iso" value="{{ item.iso }}"></div>
-      <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Formato</label>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.brand') }}</label><input class="form-input" type="text" name="brand" value="{{ item.brand }}" required></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.name') }}</label><input class="form-input" type="text" name="name" value="{{ item.name }}" required></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.iso') }}</label><input class="form-input" type="number" name="iso" value="{{ item.iso }}"></div>
+      <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.format') }}</label>
         <select name="format" class="form-input">
-          {% for f in ['35mm','120','4x5','8x10','instant','instant_mini','instant_square','instant_wide','digital','other'] %}<option value="{{ f }}" {% if item.format==f %}selected{% endif %}>{% if f == 'instant_mini' %}Instant Mini{% elseif f == 'instant_square' %}Instant Square{% elseif f == 'instant_wide' %}Instant Wide{% else %}{{ f|title }}{% endif %}</option>{% endfor %}
+          <option value="35mm" {% if item.format=='35mm' %}selected{% endif %}>{{ trans('admin.films.format_35mm') }}</option>
+          <option value="120" {% if item.format=='120' %}selected{% endif %}>{{ trans('admin.films.format_120') }}</option>
+          <option value="4x5" {% if item.format=='4x5' %}selected{% endif %}>{{ trans('admin.films.format_4x5') }}</option>
+          <option value="8x10" {% if item.format=='8x10' %}selected{% endif %}>{{ trans('admin.films.format_8x10') }}</option>
+          <option value="instant" {% if item.format=='instant' %}selected{% endif %}>{{ trans('admin.films.format_instant') }}</option>
+          <option value="instant_mini" {% if item.format=='instant_mini' %}selected{% endif %}>{{ trans('admin.films.format_instant_mini') }}</option>
+          <option value="instant_square" {% if item.format=='instant_square' %}selected{% endif %}>{{ trans('admin.films.format_instant_square') }}</option>
+          <option value="instant_wide" {% if item.format=='instant_wide' %}selected{% endif %}>{{ trans('admin.films.format_instant_wide') }}</option>
+          <option value="digital" {% if item.format=='digital' %}selected{% endif %}>{{ trans('admin.films.format_digital') }}</option>
+          <option value="other" {% if item.format=='other' %}selected{% endif %}>{{ trans('admin.films.format_other') }}</option>
         </select>
       </div>
-      <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+      <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.type') }}</label>
         <select name="type" class="form-input">
-          <optgroup label="B/W">
-            <option value="bw_negative" {% if item.type=='bw_negative' %}selected{% endif %}>B/W Negative (tradizionale)</option>
-            <option value="bw_chromogenic" {% if item.type=='bw_chromogenic' %}selected{% endif %}>B/W Chromogenic (C-41)</option>
-            <option value="bw_reversal" {% if item.type=='bw_reversal' %}selected{% endif %}>B/W Reversal (slide)</option>
-            <option value="bw_infrared" {% if item.type=='bw_infrared' %}selected{% endif %}>B/W Infrared</option>
-            <!-- Legacy compatibility -->
-            <option value="bw" {% if item.type=='bw' %}selected{% endif %}>B/W (legacy)</option>
+          <optgroup label="{{ trans('admin.films.group_bw') }}">
+            <option value="bw_negative" {% if item.type=='bw_negative' %}selected{% endif %}>{{ trans('admin.films.type_bw_traditional') }}</option>
+            <option value="bw_chromogenic" {% if item.type=='bw_chromogenic' %}selected{% endif %}>{{ trans('admin.films.type_bw_chromogenic') }}</option>
+            <option value="bw_reversal" {% if item.type=='bw_reversal' %}selected{% endif %}>{{ trans('admin.films.type_bw_reversal') }}</option>
+            <option value="bw_infrared" {% if item.type=='bw_infrared' %}selected{% endif %}>{{ trans('admin.films.type_bw_infrared') }}</option>
+            <option value="bw" {% if item.type=='bw' %}selected{% endif %}>{{ trans('admin.films.type_bw_legacy') }}</option>
           </optgroup>
-          <optgroup label="Colore">
-            <option value="c41_color_negative" {% if item.type=='c41_color_negative' %}selected{% endif %}>C-41 Color Negative</option>
-            <option value="e6_slide" {% if item.type=='e6_slide' %}selected{% endif %}>E-6 Slide/Diapositiva</option>
-            <option value="ecn2_cinema" {% if item.type=='ecn2_cinema' %}selected{% endif %}>ECN-2 Cinema</option>
-            <!-- Legacy compatibility -->
-            <option value="color_negative" {% if item.type=='color_negative' %}selected{% endif %}>C-41 (legacy)</option>
-            <option value="color_reversal" {% if item.type=='color_reversal' %}selected{% endif %}>E-6 (legacy)</option>
+          <optgroup label="{{ trans('admin.films.group_color') }}">
+            <option value="c41_color_negative" {% if item.type=='c41_color_negative' %}selected{% endif %}>{{ trans('admin.films.type_c41_color_negative') }}</option>
+            <option value="e6_slide" {% if item.type=='e6_slide' %}selected{% endif %}>{{ trans('admin.films.type_e6_slide') }}</option>
+            <option value="ecn2_cinema" {% if item.type=='ecn2_cinema' %}selected{% endif %}>{{ trans('admin.films.type_ecn2_cinema') }}</option>
+            <option value="color_negative" {% if item.type=='color_negative' %}selected{% endif %}>{{ trans('admin.films.type_c41_legacy') }}</option>
+            <option value="color_reversal" {% if item.type=='color_reversal' %}selected{% endif %}>{{ trans('admin.films.type_e6_legacy') }}</option>
           </optgroup>
-          <optgroup label="Instant">
-            <option value="instant_integral" {% if item.type=='instant_integral' %}selected{% endif %}>Instant (Polaroid/Instax)</option>
+          <optgroup label="{{ trans('admin.films.group_instant') }}">
+            <option value="instant_integral" {% if item.type=='instant_integral' %}selected{% endif %}>{{ trans('admin.films.type_instant_integral') }}</option>
           </optgroup>
-          <optgroup label="Digitale">
-            <option value="digital" {% if item.type=='digital' %}selected{% endif %}>Digitale</option>
+          <optgroup label="{{ trans('admin.films.group_digital') }}">
+            <option value="digital" {% if item.type=='digital' %}selected{% endif %}>{{ trans('admin.films.type_digital') }}</option>
           </optgroup>
-          <optgroup label="Altro/Sperimentale">
-            <option value="other" {% if item.type=='other' %}selected{% endif %}>Altro/Sperimentale</option>
+          <optgroup label="{{ trans('admin.films.group_other') }}">
+            <option value="other" {% if item.type=='other' %}selected{% endif %}>{{ trans('admin.films.type_other') }}</option>
           </optgroup>
         </select>
       </div>
     </div>
-    <div class="mt-3 flex gap-3"><button class="btn-primary">Aggiorna</button> <a class="btn-secondary" href="{{ base_path }}/admin/films">Annulla</a></div>
+    <div class="mt-3 flex gap-3"><button class="btn-primary">{{ trans('admin.films.update') }}</button> <a class="btn-secondary" href="{{ base_path }}/admin/films">{{ trans('admin.films.cancel') }}</a></div>
   </form>
-  <form method="post" action="{{ base_path }}/admin/films/{{ item.id }}/delete" class="mt-3" onsubmit="return confirm('Eliminare?');">
+  <form method="post" action="{{ base_path }}/admin/films/{{ item.id }}/delete" class="mt-3" data-confirm="{{ trans('admin.films.delete_confirm')|e('html_attr') }}">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <button class="btn-secondary text-red-700">Elimina</button>
+    <button class="btn-secondary text-red-700">{{ trans('admin.common.delete') }}</button>
   </form>
 {% endblock %}

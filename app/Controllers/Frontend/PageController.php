@@ -172,13 +172,13 @@ class PageController extends BaseController
         $stmt->execute();
         $tags = $stmt->fetchAll();
         
-        // Get all images from published albums for infinite scroll
+        // Get all images from published non-NSFW albums for infinite scroll
         $stmt = $pdo->prepare('
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id
-            FROM images i 
-            JOIN albums a ON a.id = i.album_id 
-            WHERE a.is_published = 1 
-            ORDER BY a.published_at DESC, i.sort_order ASC, i.id ASC 
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            WHERE a.is_published = 1 AND a.is_nsfw = 0
+            ORDER BY a.published_at DESC, i.sort_order ASC, i.id ASC
             LIMIT 150
         ');
         $stmt->execute();
@@ -234,8 +234,11 @@ class PageController extends BaseController
             ]);
         }
 
-        // Password protection with session timeout
-        if (!empty($album['password_hash'])) {
+        // Check if user is admin (admins bypass password/NSFW protection)
+        $isAdmin = $this->isAdmin();
+
+        // Password protection with session timeout - skip for admins
+        if (!empty($album['password_hash']) && !$isAdmin) {
             $allowed = false;
             if (isset($_SESSION['album_access']) && isset($_SESSION['album_access'][$album['id']])) {
                 $accessTime = $_SESSION['album_access'][$album['id']];
@@ -247,7 +250,7 @@ class PageController extends BaseController
                     unset($_SESSION['album_access'][$album['id']]);
                 }
             }
-            
+
             if (!$allowed) {
                 // Categories for header menu
                 $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
@@ -264,6 +267,25 @@ class PageController extends BaseController
                     'csrf' => $_SESSION['csrf'] ?? ''
                 ]);
             }
+        }
+
+        // NSFW server-side enforcement for albums WITHOUT password protection
+        // Albums with password already handle NSFW through the unlock flow
+        $isNsfw = !empty($album['is_nsfw']);
+        $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$album['id']]) && $_SESSION['nsfw_confirmed'][$album['id']] === true;
+
+        if ($isNsfw && !$isAdmin && empty($album['password_hash']) && !$nsfwConfirmed) {
+            // Show NSFW gate page - user must confirm they're 18+ to view
+            $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
+            $navStmt->execute();
+            $navCategories = $navStmt->fetchAll();
+            return $this->view->render($response, 'frontend/nsfw_gate.twig', [
+                'album' => $album,
+                'categories' => $navCategories,
+                'page_title' => $album['title'] . ' — Age Verification Required',
+                'csrf' => $_SESSION['csrf'] ?? '',
+                'robots' => 'noindex,nofollow'
+            ]);
         }
 
         $albumRef = $album['slug'] ?? (string)$album['id'];
@@ -479,6 +501,9 @@ class PageController extends BaseController
         $navStmt->execute();
         $navCategories = $navStmt->fetchAll();
 
+        // Determine if album is protected (requires session access validation)
+        $isProtectedAlbum = !empty($album['password_hash']) || !empty($album['is_nsfw']);
+
         // Enrich images with metadata and build PhotoSwipe-compatible data
         foreach ($images as &$image) {
             // Choose best public variant for both grid and lightbox (largest available)
@@ -486,14 +511,25 @@ class PageController extends BaseController
             $lightboxUrl = $image['original_path'];
             try {
                 // Grid: prefer largest public variant (format priority avif > webp > jpg)
-                $vg = $pdo->prepare("SELECT path, width, height FROM image_variants 
-                    WHERE image_id = :id AND path NOT LIKE '/storage/%' 
+                $vg = $pdo->prepare("SELECT path, width, height, variant, format FROM image_variants
+                    WHERE image_id = :id AND path NOT LIKE '/storage/%'
                     ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
                 $vg->execute([':id' => $image['id']]);
-                if ($vgr = $vg->fetch()) { if (!empty($vgr['path'])) { $bestUrl = $vgr['path']; } }
+                if ($vgr = $vg->fetch()) {
+                    if (!empty($vgr['path'])) {
+                        // For protected albums, use protected media URL instead of direct path
+                        if ($isProtectedAlbum && !$isAdmin) {
+                            $bestUrl = $this->basePath . '/media/protected/' . $image['id'] . '/' . $vgr['variant'] . '.' . $vgr['format'];
+                        } else {
+                            $bestUrl = $vgr['path'];
+                        }
+                    }
+                }
 
-                // Lightbox: keep original path if accessible (not in /storage/)
-                // Only use variants as fallback if original is not publicly accessible
+                // Lightbox: for protected albums, use protected original URL
+                if ($isProtectedAlbum && !$isAdmin) {
+                    $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/original';
+                }
             } catch (\Throwable $e) {
                 Logger::warning('PageController: Error fetching image variants', ['image_id' => $image['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
             }
@@ -534,7 +570,13 @@ class PageController extends BaseController
             foreach (($image['variants'] ?? []) as $v) {
                 if (!isset($sources[$v['format']])) continue;
                 if (!empty($v['path']) && !str_starts_with((string)$v['path'], '/storage/')) {
-                    $sources[$v['format']][] = $v['path'] . ' ' . (int)$v['width'] . 'w';
+                    // For protected albums, use protected media URLs
+                    if ($isProtectedAlbum && !$isAdmin) {
+                        $protectedUrl = $this->basePath . '/media/protected/' . $image['id'] . '/' . $v['variant'] . '.' . $v['format'];
+                        $sources[$v['format']][] = $protectedUrl . ' ' . (int)$v['width'] . 'w';
+                    } else {
+                        $sources[$v['format']][] = $v['path'] . ' ' . (int)$v['width'] . 'w';
+                    }
                 }
             }
 
@@ -553,6 +595,7 @@ class PageController extends BaseController
             'category' => ['name' => $album['category_name'], 'slug' => $album['category_slug']],
             'categories' => $cats,
             'excerpt' => $album['excerpt'] ?? '',
+            'slug' => $album['slug'],
             'body' => $album['body'] ?? '',
             'shoot_date' => $album['shoot_date'] ?? '',
             'show_date' => (int)($album['show_date'] ?? 1),
@@ -588,6 +631,11 @@ class PageController extends BaseController
         $settingsServiceForPage = new \App\Services\SettingsService($this->db);
         $pageTemplate = (string)($settingsServiceForPage->get('gallery.page_template', 'classic') ?? 'classic');
         $pageTemplate = in_array($pageTemplate, ['classic','hero','magazine'], true) ? $pageTemplate : 'classic';
+        // If the selected template is magazine-split, force layout settings to magazine and keep the standard page template
+        if (($template['slug'] ?? '') === 'magazine-split') {
+            $templateSettings['layout'] = 'magazine';
+            $pageTemplate = 'classic';
+        }
         $twigTemplate = match ($pageTemplate) {
             'hero' => 'frontend/gallery_hero.twig',
             'magazine' => 'frontend/gallery_magazine.twig',
@@ -628,6 +676,14 @@ class PageController extends BaseController
         $coverPath = null;
         try { $coverPath = $album['cover']['variants'][0]['path'] ?? null; } catch (\Throwable) {}
         $seoMeta = $this->buildSeo($request, (string)$album['title'], (string)($album['excerpt'] ?? ''), $coverPath);
+
+        // Compute album-specific robots directive from album fields (default both to true if null)
+        // SECURITY: Force noindex for NSFW albums to prevent search engine indexing of adult content
+        $isNsfwAlbum = !empty($album['is_nsfw']);
+        $robotsIndex = $isNsfwAlbum ? 'noindex' : (($album['robots_index'] ?? 1) ? 'index' : 'noindex');
+        $robotsFollow = $isNsfwAlbum ? 'nofollow' : (($album['robots_follow'] ?? 1) ? 'follow' : 'nofollow');
+        $albumRobots = $robotsIndex . ',' . $robotsFollow;
+
         return $this->view->render($response, $twigTemplate, [
             'album' => $galleryMeta,
             'images' => $images,
@@ -636,6 +692,7 @@ class PageController extends BaseController
             'available_templates' => $availableTemplates,
             'current_template_id' => $templateId,
             'album_ref' => $albumRef,
+            'is_admin' => $isAdmin,
             'categories' => $navCategories,
             'parent_categories' => $this->getParentCategoriesForNavigation(),
             'page_title' => $seoMeta['page_title'],
@@ -644,9 +701,11 @@ class PageController extends BaseController
             'current_url' => $seoMeta['current_url'],
             'canonical_url' => $seoMeta['canonical_url'],
             'og_site_name' => $seoMeta['og_site_name'],
-            'robots' => $seoMeta['robots'],
+            'robots' => $albumRobots,
+            'schema' => $seoMeta['schema'],
             'enabled_socials' => $orderedSocials,
-            'available_socials' => $availableSocials
+            'available_socials' => $availableSocials,
+            'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
 
@@ -680,14 +739,67 @@ class PageController extends BaseController
             if (!isset($_SESSION['album_access'])) $_SESSION['album_access'] = [];
             $_SESSION['album_access'][(int)$album['id']] = time(); // Store timestamp for potential timeout
 
-            // Store NSFW confirmation in session for server-side validation
+            // Store NSFW confirmation in session for server-side validation (per-album)
             if ($isNsfw) {
-                $_SESSION['nsfw_confirmed'] = true;
+                if (!isset($_SESSION['nsfw_confirmed'])) {
+                    $_SESSION['nsfw_confirmed'] = [];
+                }
+                $_SESSION['nsfw_confirmed'][(int)$album['id']] = true;
             }
 
             return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
         }
         return $response->withHeader('Location', $this->redirect('/album/' . $slug . '?error=1'))->withStatus(302);
+    }
+
+    /**
+     * Confirm NSFW age verification for albums without password protection.
+     * Stores confirmation in session per-album.
+     */
+    public function confirmNsfw(Request $request, Response $response, array $args): Response
+    {
+        $slug = $args['slug'] ?? '';
+        $pdo = $this->db->pdo();
+
+        // Validate CSRF token
+        if (!$this->validateCsrf($request)) {
+            return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
+        }
+
+        // Get album
+        $stmt = $pdo->prepare('SELECT id, is_nsfw, password_hash FROM albums WHERE slug = :slug AND is_published = 1');
+        $stmt->execute([':slug' => $slug]);
+        $album = $stmt->fetch();
+
+        if (!$album) {
+            return $response->withHeader('Location', $this->redirect('/galleries'))->withStatus(302);
+        }
+
+        // Only allow NSFW confirmation for albums without password
+        // (password-protected albums handle NSFW through unlock flow)
+        if (!empty($album['password_hash'])) {
+            return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
+        }
+
+        // Check if NSFW confirmation checkbox was checked
+        $data = (array)$request->getParsedBody();
+        $nsfwConfirmed = !empty($data['nsfw_confirmed']);
+
+        if (!$nsfwConfirmed) {
+            // Redirect back to album (will show gate again)
+            return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
+        }
+
+        // Regenerate session ID to prevent session fixation attacks
+        session_regenerate_id(true);
+
+        // Store NSFW confirmation in session for server-side validation (per-album)
+        if (!isset($_SESSION['nsfw_confirmed'])) {
+            $_SESSION['nsfw_confirmed'] = [];
+        }
+        $_SESSION['nsfw_confirmed'][(int)$album['id']] = true;
+
+        return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
     }
 
     public function albumTemplate(Request $request, Response $response, array $args): Response
@@ -718,10 +830,24 @@ class PageController extends BaseController
                 $response->getBody()->write('Album not found');
                 return $response->withStatus(404);
             }
-            if (!empty($album['password_hash'])) {
+
+            // Check if user is admin (admins bypass password protection)
+            $isAdmin = $this->isAdmin();
+
+            if (!empty($album['password_hash']) && !$isAdmin) {
                 $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$album['id']]);
                 if (!$allowed) {
                     $response->getBody()->write('Album locked');
+                    return $response->withStatus(403);
+                }
+            }
+
+            // NSFW server-side enforcement: block API access for unconfirmed NSFW albums
+            $isNsfw = !empty($album['is_nsfw']);
+            if ($isNsfw && !$isAdmin) {
+                $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$album['id']]) && $_SESSION['nsfw_confirmed'][$album['id']] === true;
+                if (!$nsfwConfirmed) {
+                    $response->getBody()->write('Age verification required');
                     return $response->withStatus(403);
                 }
             }
@@ -745,20 +871,32 @@ class PageController extends BaseController
             // Enrich images with metadata from related tables
             \App\Services\ImagesService::enrichWithMetadata($pdo, $imagesRows, 'frontend');
 
+            // Determine if album is protected (password or NSFW)
+            $isProtectedAlbum = !empty($album['password_hash']) || $isNsfw;
+
             // Build gallery items for the template
             $images = [];
             foreach ($imagesRows as $img) {
                 $bestUrl = $img['original_path'];
                 $lightboxUrl = $img['original_path'];
-                
+
                 try {
-                    $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
+                    $v = $pdo->prepare("SELECT path, width, height, variant, format FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
                     $v->execute([':id' => $img['id']]);
                     $vr = $v->fetch();
-                    if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
-                    
-                    // Lightbox: keep original_path for best quality
-                    // Only fallback to variants if original is in /storage/ (not public)
+                    if ($vr && !empty($vr['path'])) {
+                        // For protected albums, use protected media URL
+                        if ($isProtectedAlbum && !$isAdmin) {
+                            $bestUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $vr['variant'] . '.' . $vr['format'];
+                        } else {
+                            $bestUrl = $vr['path'];
+                        }
+                    }
+
+                    // Lightbox: for protected albums, use protected original URL
+                    if ($isProtectedAlbum && !$isAdmin) {
+                        $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
+                    }
                 } catch (\Throwable $e) {
                     Logger::warning('PageController: Error fetching image variants', ['image_id' => $img['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
                 }
@@ -767,7 +905,21 @@ class PageController extends BaseController
                     $bestUrl = $img['original_path'];
                 }
                 if (str_starts_with((string)$lightboxUrl, '/storage/')) {
-                    $lightboxUrl = $img['original_path'];
+                    $lightboxUrl = $bestUrl;
+                }
+
+                // Build sources with protected URLs for protected albums
+                $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
+                if ($isProtectedAlbum && !$isAdmin) {
+                    // Get all variants for srcset
+                    try {
+                        $allV = $pdo->prepare("SELECT variant, format, width FROM image_variants WHERE image_id = :id AND format IN ('avif','webp','jpg')");
+                        $allV->execute([':id' => $img['id']]);
+                        while ($av = $allV->fetch()) {
+                            $protectedUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $av['variant'] . '.' . $av['format'];
+                            $sources[$av['format']][] = $protectedUrl . ' ' . (int)$av['width'] . 'w';
+                        }
+                    } catch (\Throwable) {}
                 }
 
                 $images[] = [
@@ -792,7 +944,7 @@ class PageController extends BaseController
                     'shutter_speed' => $img['shutter_speed'] ?? null,
                     'aperture' => isset($img['aperture']) && is_numeric($img['aperture']) ? (float)$img['aperture'] : null,
                     'process' => $img['process'] ?? null,
-                    'sources' => ['avif' => [], 'webp' => [], 'jpg' => []],
+                    'sources' => $sources,
                     'fallback_src' => $lightboxUrl ?: $bestUrl
                 ];
             }
@@ -800,7 +952,7 @@ class PageController extends BaseController
             // Render only the gallery part (not the full page)
             $partial = 'frontend/_gallery_content.twig';
             try {
-                if ((int)($template['id'] ?? 0) === 9 || (($template['slug'] ?? '') === 'magazine-split')) {
+                if (($template['slug'] ?? '') === 'magazine-split') {
                     $partial = 'frontend/_gallery_magazine_content.twig';
                 }
             } catch (\Throwable) {}
@@ -996,6 +1148,11 @@ class PageController extends BaseController
 
     public function aboutContact(Request $request, Response $response): Response
     {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
+        }
+
         $data = (array)($request->getParsedBody() ?? []);
         $name = trim((string)($data['name'] ?? ''));
         $email = trim((string)($data['email'] ?? ''));
@@ -1011,14 +1168,29 @@ class PageController extends BaseController
             $to = (string)(\envv('CONTACT_EMAIL', \envv('MAIL_TO', 'webmaster@localhost')));
         }
         $subjectPrefix = (string)($settings->get('about.contact_subject', 'Portfolio') ?? 'Portfolio');
-        $subject = '[' . $subjectPrefix . '] Nuovo messaggio da ' . $name;
-        // Basic header-safe sanitization
-        $safeName = str_replace(["\r","\n"], ' ', $name);
-        $safeEmail = str_replace(["\r","\n"], ' ', $email);
 
-        $body = "Nome: {$safeName}\nEmail: {$safeEmail}\n\nMessaggio:\n{$message}\n";
-        $headers = 'From: ' . $safeName . ' <' . $safeEmail . '>' . "\r\n" .
-                   'Reply-To: ' . $safeEmail . "\r\n" .
+        // Strict header injection prevention
+        // Remove ALL control characters (including tabs) from name and subject
+        $safeName = preg_replace('/[\x00-\x1F\x7F]/', '', $name);
+        $safeName = mb_substr($safeName, 0, 100); // Limit length
+
+        // Additional email validation - must match the validated email exactly
+        // FILTER_VALIDATE_EMAIL already passed, but double-check for header chars
+        if (preg_match('/[\x00-\x1F\x7F]/', $email)) {
+            return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
+        }
+
+        // Encode subject with =?UTF-8?B? to prevent header injection
+        $subjectText = '[' . $subjectPrefix . '] Nuovo messaggio da ' . $safeName;
+        $subject = '=?UTF-8?B?' . base64_encode($subjectText) . '?=';
+
+        $body = "Nome: {$safeName}\nEmail: {$email}\n\nMessaggio:\n{$message}\n";
+
+        // SECURITY: Use system email as From, user email only in Reply-To
+        // This prevents email spoofing and header injection via From header
+        $systemFrom = (string)(\envv('MAIL_FROM', 'noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost')));
+        $headers = 'From: ' . $systemFrom . "\r\n" .
+                   'Reply-To: ' . $email . "\r\n" .
                    'Content-Type: text/plain; charset=UTF-8';
 
         @mail($to, $subject, $body, $headers);

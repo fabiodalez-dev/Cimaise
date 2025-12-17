@@ -71,6 +71,13 @@ class TemplatesController extends BaseController
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);
+
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/templates/'.$id.'/edit'))->withStatus(302);
+        }
+
         $data = (array)$request->getParsedBody();
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
@@ -112,8 +119,11 @@ class TemplatesController extends BaseController
             ]
         ];
 
-        // Magazine-specific settings for template id 9
-        if ($id === 9) {
+        // Magazine-specific settings for Magazine Split template
+        $slugStmt = $this->db->pdo()->prepare('SELECT slug FROM templates WHERE id = :id');
+        $slugStmt->execute([':id' => $id]);
+        $templateSlug = $slugStmt->fetchColumn();
+        if ($templateSlug === 'magazine-split') {
             $magDur1 = (int)($data['mag_duration_1'] ?? 60);
             $magDur2 = (int)($data['mag_duration_2'] ?? 72);
             $magDur3 = (int)($data['mag_duration_3'] ?? 84);

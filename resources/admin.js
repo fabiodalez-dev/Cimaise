@@ -71,7 +71,7 @@ function initUppyAreaUpload() {
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-black" id="upload-spinner"></div>
-            <span class="text-sm font-medium text-gray-900">Caricamento in corso</span>
+            <span class="text-sm font-medium text-gray-900">Upload in progress</span>
           </div>
           <span class="text-sm text-gray-600" id="upload-counter">0 / 0</span>
         </div>
@@ -79,7 +79,7 @@ function initUppyAreaUpload() {
         <div class="w-full bg-gray-200 rounded-full h-2">
           <div id="upload-bar-total" class="bg-black h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
         </div>
-        <div class="text-xs text-gray-500" id="upload-status">Preparazione...</div>
+        <div class="text-xs text-gray-500" id="upload-status">Preparing...</div>
         <!-- Individual file progress list -->
         <div id="upload-file-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
       </div>
@@ -197,7 +197,7 @@ function initUppyAreaUpload() {
   uppy.on('upload-start', () => {
     progressEl.classList.remove('hidden');
     const statusEl = document.getElementById('upload-status');
-    if (statusEl) statusEl.textContent = 'Avvio caricamento...';
+    if (statusEl) statusEl.textContent = 'Starting upload...';
     updateTotalProgress();
   });
 
@@ -207,11 +207,11 @@ function initUppyAreaUpload() {
     fileProgressMap.set(file.id, percentage);
 
     const statusEl = document.getElementById('upload-status');
-    if (statusEl) statusEl.textContent = `Caricamento ${file.name}...`;
+    if (statusEl) statusEl.textContent = `Uploading ${file.name}...`;
   });
 
   uppy.on('upload-success', (file) => {
-    updateFileEl(file.id, 100, 'Completato ✓', false, true);
+    updateFileEl(file.id, 100, 'Completed ✓', false, true);
     fileProgressMap.set(file.id, 100);
     updateTotalProgress();
   });
@@ -220,7 +220,7 @@ function initUppyAreaUpload() {
     const statusEl = document.getElementById('upload-status');
     const spinnerEl = document.getElementById('upload-spinner');
 
-    if (statusEl) statusEl.textContent = `Completato! ${result.successful?.length || 0} file caricati`;
+    if (statusEl) statusEl.textContent = `Completed! ${result.successful?.length || 0} files uploaded`;
     if (spinnerEl) spinnerEl.className = 'rounded-full h-5 w-5 bg-green-500 flex items-center justify-center text-white text-xs';
     if (spinnerEl) spinnerEl.innerHTML = '<i class="fas fa-check"></i>';
 
@@ -242,7 +242,7 @@ function initUppyAreaUpload() {
 
   // Surface server-side errors (400, etc.) instead of generic network error
   uppy.on('upload-error', (file, error, response) => {
-    let msg = 'Errore di upload';
+    let msg = 'Upload error';
     try {
       if (response && response.body) {
         msg = response.body.error || response.body.message || msg;
@@ -251,11 +251,11 @@ function initUppyAreaUpload() {
         const text = response.responseText || response.response || '';
         try { const j = JSON.parse(text); msg = j.error || j.message || msg; } catch {}
       }
-      if (error && error.message && (!msg || msg === 'Errore di upload')) msg = error.message;
+      if (error && error.message && (!msg || msg === 'Upload error')) msg = error.message;
     } catch {}
 
     // Update individual file progress to show error
-    updateFileEl(file.id, 100, 'Errore ✗', true, false);
+    updateFileEl(file.id, 100, 'Error ✗', true, false);
     updateTotalProgress();
 
     if (window.showToast) window.showToast(msg, 'error');
@@ -264,7 +264,7 @@ function initUppyAreaUpload() {
 
   uppy.on('error', (error) => {
     const statusEl = document.getElementById('upload-status');
-    if (statusEl) statusEl.textContent = `Errore: ${error.message}`;
+    if (statusEl) statusEl.textContent = `Error: ${error.message}`;
 
     setTimeout(() => {
       progressEl.classList.add('hidden');
@@ -374,10 +374,10 @@ function initSortableGrid() {
             }, 
             body: JSON.stringify({ order: ids }) 
           });
-          if (window.showToast) window.showToast('Ordine salvato', 'success');
+          if (window.showToast) window.showToast('Order saved', 'success');
         } catch(error) {
           console.error('Failed to save order:', error);
-          if (window.showToast) window.showToast('Errore salvataggio ordine', 'error');
+          if (window.showToast) window.showToast('Error saving order', 'error');
         }
       }
     });
@@ -430,10 +430,10 @@ function initSortableGrid() {
           }, 
           body: JSON.stringify({ order: ids }) 
         });
-        if (window.showToast) window.showToast('Ordine salvato manualmente', 'success');
+        if (window.showToast) window.showToast('Order saved manually', 'success');
       } catch(error) {
         console.error('Failed to save order manually:', error);
-        if (window.showToast) window.showToast('Errore salvataggio ordine', 'error');
+        if (window.showToast) window.showToast('Error saving order', 'error');
       }
     });
   }
@@ -677,13 +677,13 @@ function initLogoUpload(){
       hidden.value = body.path;
       if (preview) { preview.src = (window.basePath || '') + body.path; preview.classList.remove('hidden'); }
       if (clearBtn) clearBtn.classList.remove('hidden');
-      if (window.showToast) window.showToast('Logo aggiornato', 'success');
+      if (window.showToast) window.showToast('Logo updated', 'success');
     } else {
-      if (window.showToast) window.showToast('Upload logo fallito', 'error');
+      if (window.showToast) window.showToast('Logo upload failed', 'error');
     }
   });
   uppy.on('upload-error', (file, err, resp)=>{
-    const msg = (resp && resp.body && (resp.body.error||resp.body.message)) || (err && err.message) || 'Errore upload logo';
+    const msg = (resp && resp.body && (resp.body.error||resp.body.message)) || (err && err.message) || 'Logo upload error';
     if (window.showToast) window.showToast(msg, 'error');
   });
 
@@ -850,7 +850,7 @@ function initMediaModalOnEdit() {
   }
   async function load(){
     try {
-      body.innerHTML = '<div class="p-8 text-center"><i class="fas fa-spinner fa-spin"></i> Caricamento...</div>';
+      body.innerHTML = '<div class="p-8 text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
       const res = await fetch(`${window.basePath || ''}/admin/media?partial=1`, { 
         headers: { 'Accept':'text/html' }
       });
@@ -860,7 +860,7 @@ function initMediaModalOnEdit() {
     } catch(e) {
       console.error('Failed to load media:', e);
       body.innerHTML = `<div class="text-center text-red-600 p-8">
-        <p>Errore caricamento galleria</p>
+        <p>Error loading gallery</p>
         <p class="text-sm mt-2">${e.message}</p>
       </div>`;
     }
@@ -876,19 +876,19 @@ function initMediaModalOnEdit() {
       const res = await fetch(`${window.basePath || ''}/admin/albums/${albumId}/images/attach`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'}, body: fd.toString() });
       if (res.ok) {
         hide();
-        if (window.showToast) window.showToast('Immagine aggiunta','success');
+        if (window.showToast) window.showToast('Image added','success');
         refreshGalleryArea();
       } else if (res.status === 409) {
         // Duplicate image
         const data = await res.json().catch(() => ({}));
-        if (window.showToast) window.showToast(data.error || 'Immagine già presente nell\'album', 'error');
+        if (window.showToast) window.showToast(data.error || 'Image already in album', 'error');
       } else {
         console.error('Failed to attach image:', res.status, res.statusText);
-        if (window.showToast) window.showToast('Errore aggiunta immagine','error');
+        if (window.showToast) window.showToast('Error adding image','error');
       }
     } catch(error) {
       console.error('Error attaching image:', error);
-      if (window.showToast) window.showToast('Errore aggiunta immagine','error');
+      if (window.showToast) window.showToast('Error adding image','error');
     }
   });
 }
@@ -989,10 +989,10 @@ function bindGridButtons() {
         const res = await fetch(`${window.basePath || ''}/admin/albums/${albumId}/cover/${id}`, { method:'POST', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }});
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         if (window.refreshGalleryArea) await window.refreshGalleryArea();
-        if (window.showToast) window.showToast('Cover impostata', 'success');
+        if (window.showToast) window.showToast('Cover set', 'success');
       } catch (err) {
         console.error('Cover set failed:', err);
-        if (window.showToast) window.showToast('Errore impostazione cover', 'error');
+        if (window.showToast) window.showToast('Error setting cover', 'error');
         // Fallback: full reload
         try { window.location.reload(); } catch(_){ }
       }
@@ -1005,23 +1005,23 @@ function bindGridButtons() {
     btn._boundDelete = true;
     btn.addEventListener('click', async (e) => {
       e.preventDefault(); e.stopPropagation();
-      if(!confirm('Eliminare questa immagine?')) return;
+      if(!confirm('Delete this image?')) return;
       const id = btn.getAttribute('data-delete-id');
       try {
         const res = await fetch(`${window.basePath || ''}/admin/albums/${albumId}/images/${id}/delete`, { method:'POST', headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' }});
         if (res.ok) {
           btn.closest('[data-id]')?.remove();
           if (window.refreshGalleryArea) await window.refreshGalleryArea();
-          if (window.showToast) window.showToast('Immagine eliminata', 'success');
+          if (window.showToast) window.showToast('Image deleted', 'success');
         } else {
           const t = await res.text().catch(()=> '');
           console.error('Delete failed:', res.status, t);
-          if (window.showToast) window.showToast('Errore eliminazione', 'error');
+          if (window.showToast) window.showToast('Error deleting', 'error');
           try { window.location.reload(); } catch(_){ }
         }
       } catch (err) {
         console.error('Delete request error:', err);
-        if (window.showToast) window.showToast('Errore eliminazione', 'error');
+        if (window.showToast) window.showToast('Error deleting', 'error');
         try { window.location.reload(); } catch(_){ }
       }
     });
@@ -1102,4 +1102,16 @@ function rebindImageModalHandlers() {
 // Expose functions globally for use in templates
 window.bindGridButtons = bindGridButtons;
 window.rebindBulkSelection = rebindBulkSelection;
-window.rebindImageModalHandlers = rebindImageModalHandlers;
+
+// Auto-initialize on module load (ES modules are deferred, so DOM is ready)
+// This ensures AdminInit runs even if the inline script's initializePageScripts()
+// executed before this module loaded. Guard prevents double initialization.
+if (!window._adminInitialized) {
+  window._adminInitialized = true;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.AdminInit());
+  } else {
+    // DOM already ready, initialize immediately
+    window.AdminInit();
+  }
+}

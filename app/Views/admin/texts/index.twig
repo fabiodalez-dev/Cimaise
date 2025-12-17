@@ -7,15 +7,31 @@
       <p class="text-gray-600 mt-1">{{ trans('admin.texts.description') }}</p>
     </div>
     <div class="flex gap-2">
-      <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline">
+      <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline" data-confirm="{{ trans('admin.texts.seed_confirm')|e('html_attr') }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button type="submit" class="btn-secondary" onclick="return confirm('{{ trans('admin.texts.seed_confirm')|e('js') }}')">
+        <button type="submit" class="btn-secondary">
           <i class="fas fa-seedling mr-2"></i>{{ trans('admin.texts.seed_defaults') }}
         </button>
       </form>
       <a href="{{ base_path }}/admin/texts/create" class="btn-primary">
         <i class="fas fa-plus mr-2"></i>{{ trans('admin.texts.add_text') }}
       </a>
+    </div>
+  </div>
+
+  {# Scope selector tabs #}
+  <div class="mb-6">
+    <div class="border-b border-gray-200">
+      <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <a href="{{ base_path }}/admin/texts?scope=frontend"
+           class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm {{ current_scope == 'frontend' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+          <i class="fas fa-globe mr-2"></i>{{ trans('admin.texts.scope_frontend') }}
+        </a>
+        <a href="{{ base_path }}/admin/texts?scope=admin"
+           class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm {{ current_scope == 'admin' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+          <i class="fas fa-cog mr-2"></i>{{ trans('admin.texts.scope_admin') }}
+        </a>
+      </nav>
     </div>
   </div>
 
@@ -38,11 +54,17 @@
       {# Import from preset - main section #}
       <form action="{{ base_path }}/admin/texts/import" method="post">
         <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="scope" value="{{ current_scope }}">
         <div class="flex flex-wrap items-end gap-3">
           <div class="flex-1 min-w-[250px]">
             <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.texts.language') }}</label>
             <select name="language" id="language-select" class="input w-full">
               <option value="">{{ trans('admin.texts.select_language') }}</option>
+              {% for lang in languages %}
+                <option value="{{ lang.code }}">{{ lang.name }} ({{ lang.code }}) - v{{ lang.version }}</option>
+              {% else %}
+                <option value="" disabled>{{ trans('admin.texts.no_preset_languages') }}</option>
+              {% endfor %}
             </select>
           </div>
           <div class="w-28">
@@ -99,6 +121,7 @@
   <div class="card mb-6">
     <div class="p-4">
       <form method="get" class="flex flex-wrap gap-4">
+        <input type="hidden" name="scope" value="{{ current_scope }}">
         <div class="flex-1 min-w-[200px]">
           <input type="text" name="search" value="{{ search }}" placeholder="{{ trans('admin.texts.search_placeholder') }}"
                  class="input w-full">
@@ -115,7 +138,7 @@
           <i class="fas fa-search mr-2"></i>{{ trans('filter.search') }}
         </button>
         {% if search or current_context %}
-          <a href="{{ base_path }}/admin/texts" class="btn-secondary">
+          <a href="{{ base_path }}/admin/texts?scope={{ current_scope }}" class="btn-secondary">
             <i class="fas fa-times mr-2"></i>{{ trans('filter.clear') }}
           </a>
         {% endif %}
@@ -169,7 +192,7 @@
                     <a href="{{ base_path }}/admin/texts/{{ text.id }}/edit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200" title="{{ trans('admin.texts.full_edit') }}">
                       <i class="fas fa-edit mr-1"></i>{{ trans('general.edit') }}
                     </a>
-                    <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" onsubmit="return confirm('{{ trans('admin.texts.delete_confirm')|e('js') }}')">
+                    <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" data-confirm="{{ trans('admin.texts.delete_confirm')|e('html_attr') }}">
                       <input type="hidden" name="csrf" value="{{ csrf }}">
                       <input type="hidden" name="_method" value="DELETE">
                       <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200" title="{{ trans('general.delete') }}">
@@ -211,39 +234,8 @@
     </div>
   {% endfor %}
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     document.addEventListener('DOMContentLoaded', function() {
-      // Load available languages for the dropdown
-      async function loadLanguages() {
-        try {
-          const response = await fetch('{{ base_path }}/admin/texts/languages');
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          const data = await response.json();
-          const select = document.getElementById('language-select');
-
-          if (data.languages && data.languages.length > 0) {
-            data.languages.forEach(lang => {
-              const option = document.createElement('option');
-              option.value = lang.code;
-              option.textContent = `${lang.name} (${lang.code}) - v${lang.version}`;
-              select.appendChild(option);
-            });
-          } else {
-            const option = document.createElement('option');
-            option.value = '';
-            option.textContent = '{{ trans('admin.texts.no_preset_languages')|e('js') }}';
-            option.disabled = true;
-            select.appendChild(option);
-          }
-        } catch (error) {
-          console.error('Failed to load languages:', error);
-        }
-      }
-
-      loadLanguages();
-
       // Toggle upload section
       const toggleBtn = document.getElementById('toggle-upload-btn');
       const uploadSection = document.getElementById('upload-section');
@@ -253,9 +245,9 @@
           const icon = this.querySelector('i');
           if (uploadSection.classList.contains('hidden')) {
             icon.className = 'fas fa-upload mr-1';
-            this.innerHTML = '<i class="fas fa-upload mr-1"></i>{{ trans('admin.texts.upload_json')|e('js') }}';
+            this.innerHTML = '<i class="fas fa-upload mr-1"></i>{{ trans('admin.texts.upload_json')|e('html_attr') }}';
           } else {
-            this.innerHTML = '<i class="fas fa-times mr-1"></i>{{ trans('admin.texts.hide_upload')|e('js') }}';
+            this.innerHTML = '<i class="fas fa-times mr-1"></i>{{ trans('admin.texts.hide_upload')|e('html_attr') }}';
           }
         });
       }
@@ -334,11 +326,11 @@
                 textInput.style.display = 'none';
                 editActions.style.display = 'none';
               } else {
-                alert('{{ trans('admin.texts.save_failed')|e('js') }}: ' + (result.error || '{{ trans('admin.texts.unknown_error')|e('js') }}'));
+                alert('{{ trans('admin.texts.save_failed')|e('html_attr') }}: ' + (result.error || '{{ trans('admin.texts.unknown_error')|e('html_attr') }}'));
               }
             })
             .catch(error => {
-              alert('{{ trans('admin.texts.save_failed')|e('js') }}: ' + error.message);
+              alert('{{ trans('admin.texts.save_failed')|e('html_attr') }}: ' + error.message);
             });
           }
         }

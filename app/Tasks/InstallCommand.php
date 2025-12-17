@@ -198,7 +198,7 @@ class InstallCommand extends Command
         $question = new Question('Site description [Professional Photography Portfolio]: ', 'Professional Photography Portfolio');
         $data['site_description'] = $helper->ask($input, $output, $question);
         
-        $question = new Question('Copyright notice [© ' . date('Y') . ' Photography Portfolio]: ', '© ' . date('Y') . ' Photography Portfolio');
+        $question = new Question('Copyright notice [© {year} Photography Portfolio]: ', '© {year} Photography Portfolio');
         $data['site_copyright'] = $helper->ask($input, $output, $question);
         
         $question = new Question('Contact email (optional): ', '');
