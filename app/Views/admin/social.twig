@@ -248,24 +248,12 @@
 // SPA support: re-initialize on dynamic loads
 window.pageInitializers = window.pageInitializers || {};
 window.pageInitializers.social = function(){
-  try {
-    // Re-run the module if needed by cloning the script
-    const script = document.createElement('script');
-    script.textContent = '(' + (function(){
-      // same code as above, but minimal rerun: just rebuild from current DOM
-      const form = document.getElementById('social-form');
-      if (!form) return;
-      const preview = document.getElementById('preview');
-      if (!preview) return;
-      const evt = new Event('change');
-      const cbs = document.querySelectorAll('.social-checkbox');
-      if (cbs.length) {
-        cbs[cbs.length-1].dispatchEvent(evt);
-      }
-    }).toString() + ')();';
-    document.body.appendChild(script);
-    setTimeout(()=>script.remove(),0);
-  } catch(e) {}
+  const form = document.getElementById('social-form');
+  if (!form) return;
+  const cbs = document.querySelectorAll('.social-checkbox');
+  if (cbs.length) {
+    cbs[cbs.length-1].dispatchEvent(new Event('change'));
+  }
 };
 </script>
 

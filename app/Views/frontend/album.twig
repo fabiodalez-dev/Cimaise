@@ -378,6 +378,10 @@ document.addEventListener('click', function(event) {
                 {% include "frontend/_image_item.twig" %}
             {% endfor %}
         </div>
+    {% elseif layout == 'magazine' %}
+        <div id="images-gallery" class="mt-6">
+            {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
+        </div>
     {% elseif masonry %}
         <div id="images-gallery" class="masonry-grid" style="column-count: {{ desktop_cols }};">
             {% for image in images %}
@@ -523,6 +527,44 @@ if (masonry && typeof Masonry !== 'undefined') {
         });
     };
     initMasonry();
+}
+
+// Magazine Split autoscroll initializer
+function initMagazineAutoscroll() {
+    try {
+        var container = document.getElementById('images-gallery') || document;
+        var isMobile = window.matchMedia('(max-width: 767px)').matches;
+        var isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
+        var isDesktop = window.matchMedia('(min-width: 1200px)').matches;
+
+        var mob = container.querySelector('.m-mobile-wrap');
+        var tablet = container.querySelector('.m-tablet-wrap');
+        var desk = container.querySelector('.m-desktop-wrap');
+
+        if (mob) mob.style.display = isMobile ? 'block' : 'none';
+        if (tablet) tablet.style.display = isTablet ? 'flex' : 'none';
+        if (desk) desk.style.display = isDesktop ? 'flex' : 'none';
+
+        container.querySelectorAll('.m-col').forEach(function(col) {
+            var track = col.querySelector('.m-track'); if (!track) return;
+            track.style.animation = 'none';
+            track.offsetHeight;
+            var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
+            var dur = (getComputedStyle(col).getPropertyValue('--m-duration') || '60s').trim() || '60s';
+            var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
+            track.style.animation = anim;
+            track.style.animationPlayState = 'running';
+        });
+    } catch(e) {
+        console.error('initMagazineAutoscroll error:', e);
+    }
+}
+
+// Initialize magazine if active
+if (layout === 'magazine') {
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(initMagazineAutoscroll, 100);
+    });
 }
 
 // Image filtering

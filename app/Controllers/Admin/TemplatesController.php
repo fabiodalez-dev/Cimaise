@@ -119,8 +119,8 @@ class TemplatesController extends BaseController
             ]
         ];
 
-        // Magazine-specific settings for template id 9
-        if ($id === 9) {
+        // Magazine-specific settings for template id 3 (Magazine Split)
+        if ($id === 3) {
             $magDur1 = (int)($data['mag_duration_1'] ?? 60);
             $magDur2 = (int)($data['mag_duration_2'] ?? 72);
             $magDur3 = (int)($data['mag_duration_3'] ?? 84);
