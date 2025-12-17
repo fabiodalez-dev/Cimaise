@@ -248,7 +248,7 @@
   {% set tablet_class = tablet_cols >= 6 ? 'md:grid-cols-6' : (tablet_cols == 5 ? 'md:grid-cols-5' : (tablet_cols == 4 ? 'md:grid-cols-4' : (tablet_cols == 3 ? 'md:grid-cols-3' : (tablet_cols == 2 ? 'md:grid-cols-2' : 'md:grid-cols-1')))) %}
   {% set desktop_class = desktop_cols >= 6 ? 'lg:grid-cols-6' : (desktop_cols == 5 ? 'lg:grid-cols-5' : (desktop_cols == 4 ? 'lg:grid-cols-4' : (desktop_cols == 3 ? 'lg:grid-cols-3' : (desktop_cols == 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1')))) %}
 
-  {% if current_template_id == 9 %}
+  {% if layout == 'magazine' or current_template_id == 3 %}
     <div id="images-gallery" class="mt-10">
       {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
     </div>
@@ -267,7 +267,7 @@
     if (typeof initializeGalleryLayout === 'function') { try { initializeGalleryLayout(); } catch(e){} }
     // If magazine is active on first render, ensure autoscroll
     try {
-      if ({{ current_template_id|default(0) }} == 9 || (window.templateSettings?.layout === 'magazine')) {
+      if ({{ current_template_id|default(0) }} == 3 || (window.templateSettings?.layout === 'magazine')) {
         if (typeof initMagazineAutoscroll === 'function') {
           setTimeout(() => { initMagazineAutoscroll(); }, 100);
         } else {
@@ -451,7 +451,7 @@
         const newMasonry = !!window.templateSettings?.masonry;
         const idKeep = galleryContainer.id;
         galleryContainer.className = '';
-        if (newLayout === 'magazine' || templateId === '9') {
+        if (newLayout === 'magazine' || templateId === '3') {
           galleryContainer.className = 'mt-10';
         } else if (newLayout === 'slideshow') {
           galleryContainer.className = 'swiper slideshow-pro max-w-6xl mx-auto';
@@ -482,7 +482,7 @@
           if (typeof initLightbox === 'function') initLightbox();
           if (window.gallerySwiper?.destroy) { window.gallerySwiper.destroy(true,true); window.gallerySwiper = null; }
           if (window.galleryMasonry?.destroy) { window.galleryMasonry.destroy(); window.galleryMasonry = null; }
-          if (newLayout === 'magazine' || templateId === '9') {
+          if (newLayout === 'magazine' || templateId === '3') {
             console.log('Initializing Magazine Split template');
             setTimeout(() => { try { initMagazineAutoscroll(); } catch(e){ console.error('Magazine init error:', e); } }, 100);
           } else if (typeof initializeGalleryLayout === 'function') initializeGalleryLayout();

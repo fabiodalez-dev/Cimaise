@@ -12,19 +12,17 @@
           {% endfor %}
         {% endif %}
 
-        <picture>
+        <picture class="block absolute inset-0 w-full h-full">
           {# SECURITY: For NSFW albums, only show blur image - never expose real URLs in srcset or data-src #}
           {% if album.is_nsfw and not is_admin and blur_path %}
           <img src="{{ blur_path }}"
                alt="{{ (album.cover.alt_text ?? album.title)|e }}"
-               width="{{ album.cover.width }}"
-               height="{{ album.cover.height }}"
                loading="lazy"
                decoding="async"
-               class="nsfw-card-image w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+               class="nsfw-card-image block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
           {% elseif album.is_nsfw and not is_admin %}
           {# NSFW without blur variant - show placeholder, DO NOT expose real image URL #}
-          <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex items-center justify-center aspect-[3/2]">
+          <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex items-center justify-center">
             <i class="fas fa-eye-slash text-3xl text-neutral-500"></i>
           </div>
           {% else %}
@@ -60,11 +58,9 @@
 
           <img src="{{ original_url }}"
                alt="{{ (album.cover.alt_text ?? album.title)|e }}"
-               width="{{ album.cover.width }}"
-               height="{{ album.cover.height }}"
                loading="lazy"
                decoding="async"
-               class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+               class="block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
           {% endif %}
         </picture>
 

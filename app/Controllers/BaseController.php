@@ -60,4 +60,18 @@ abstract class BaseController
     {
         return !empty($_SESSION['admin_id']);
     }
+
+    /**
+     * Check if the current request is an AJAX/JSON request.
+     */
+    protected function isAjaxRequest(Request $request): bool
+    {
+        try {
+            $hdr = $request->getHeaderLine('X-Requested-With');
+            $acc = $request->getHeaderLine('Accept');
+            return (stripos($hdr, 'XMLHttpRequest') !== false) || (stripos($acc, 'application/json') !== false);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
 }

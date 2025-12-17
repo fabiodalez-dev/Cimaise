@@ -32,3 +32,16 @@ if (typeof window !== 'undefined') {
     }
   }
 }
+
+// Helpers to pause/resume Lenis (used by lightbox)
+export function pauseLenis() {
+  if (window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
+    window.lenisInstance.stop()
+  }
+}
+
+export function resumeLenis() {
+  if (window.lenisInstance && typeof window.lenisInstance.start === 'function') {
+    window.lenisInstance.start()
+  }
+}
