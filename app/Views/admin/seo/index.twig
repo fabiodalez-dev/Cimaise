@@ -448,7 +448,7 @@ function handleSEOFormSubmit(e) {
   
   if (sitemapEnabled && !canonicalUrl) {
     e.preventDefault();
-    alert(window.translations?.admin?.seo?.canonical_required || 'Please set a canonical base URL when sitemap is enabled.');
+    alert('{{ trans('admin.seo.canonical_required')|e('js') }}');
     return false;
   }
 }

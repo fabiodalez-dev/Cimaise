@@ -199,6 +199,14 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         }
         $twig->getEnvironment()->addGlobal('site_language', $siteLanguage);
         $twig->getEnvironment()->addGlobal('admin_language', $adminLanguage);
+        // Expose translation maps for JS bundles (admin/frontend)
+        if ($translationService !== null) {
+            if ($isAdminRoute) {
+                $twig->getEnvironment()->addGlobal('admin_translations', $translationService->all());
+            } else {
+                $twig->getEnvironment()->addGlobal('frontend_translations', $translationService->all());
+            }
+        }
         // Cookie banner settings
         $twig->getEnvironment()->addGlobal('cookie_banner_enabled', $settingsSvc->get('privacy.cookie_banner_enabled', true));
         $twig->getEnvironment()->addGlobal('custom_js_essential', $settingsSvc->get('privacy.custom_js_essential', ''));
@@ -206,6 +214,8 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('custom_js_marketing', $settingsSvc->get('privacy.custom_js_marketing', ''));
         $twig->getEnvironment()->addGlobal('show_analytics', $settingsSvc->get('cookie_banner.show_analytics', false));
         $twig->getEnvironment()->addGlobal('show_marketing', $settingsSvc->get('cookie_banner.show_marketing', false));
+        // Lightbox settings
+        $twig->getEnvironment()->addGlobal('lightbox_show_exif', $settingsSvc->get('lightbox.show_exif', true));
     } catch (\Throwable) {
         $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
         $twig->getEnvironment()->addGlobal('site_title', 'Cimaise');
@@ -221,6 +231,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('custom_js_marketing', '');
         $twig->getEnvironment()->addGlobal('show_analytics', false);
         $twig->getEnvironment()->addGlobal('show_marketing', false);
+        $twig->getEnvironment()->addGlobal('lightbox_show_exif', true);
     }
 } else {
     $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
@@ -237,6 +248,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     $twig->getEnvironment()->addGlobal('custom_js_marketing', '');
     $twig->getEnvironment()->addGlobal('show_analytics', false);
     $twig->getEnvironment()->addGlobal('show_marketing', false);
+    $twig->getEnvironment()->addGlobal('lightbox_show_exif', true);
 }
 
 // Register date format Twig extension

@@ -631,10 +631,9 @@ class PageController extends BaseController
         $settingsServiceForPage = new \App\Services\SettingsService($this->db);
         $pageTemplate = (string)($settingsServiceForPage->get('gallery.page_template', 'classic') ?? 'classic');
         $pageTemplate = in_array($pageTemplate, ['classic','hero','magazine'], true) ? $pageTemplate : 'classic';
-        // If the selected template is magazine-split, force layout settings to magazine and keep the standard page template
+        // If the selected template is magazine-split, force layout settings to magazine.
         if (($template['slug'] ?? '') === 'magazine-split') {
             $templateSettings['layout'] = 'magazine';
-            $pageTemplate = 'classic';
         }
         $twigTemplate = match ($pageTemplate) {
             'hero' => 'frontend/gallery_hero.twig',
@@ -862,6 +861,9 @@ class PageController extends BaseController
             }
             
             $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+            if (($template['slug'] ?? '') === 'magazine-split') {
+                $templateSettings['layout'] = 'magazine';
+            }
 
             // Images with per-photo metadata
             $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
@@ -1114,6 +1116,10 @@ class PageController extends BaseController
         $contactTitle = (string)($settings->get('about.contact_title', 'Contatti') ?? 'Contatti');
         $contactIntro = (string)($settings->get('about.contact_intro', '') ?? '');
 
+        // reCAPTCHA settings
+        $recaptchaEnabled = (bool)($settings->get('recaptcha.enabled', false) ?? false);
+        $recaptchaSiteKey = (string)($settings->get('recaptcha.site_key', '') ?? '');
+
         $q = $request->getQueryParams();
         $contactSent = isset($q['sent']);
         $contactError = isset($q['error']);
@@ -1142,6 +1148,8 @@ class PageController extends BaseController
             'contact_intro' => $contactIntro,
             'contact_sent' => $contactSent,
             'contact_error' => $contactError,
+            'recaptcha_enabled' => $recaptchaEnabled,
+            'recaptcha_site_key' => $recaptchaSiteKey,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -1162,7 +1170,48 @@ class PageController extends BaseController
             return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
         }
 
+        // reCAPTCHA validation
         $settings = new \App\Services\SettingsService($this->db);
+        $recaptchaEnabled = (bool)($settings->get('recaptcha.enabled', false) ?? false);
+        $recaptchaSecretKey = (string)($settings->get('recaptcha.secret_key', '') ?? '');
+
+        if ($recaptchaEnabled && $recaptchaSecretKey !== '') {
+            $recaptchaToken = trim((string)($data['recaptcha_token'] ?? ''));
+
+            if ($recaptchaToken === '') {
+                return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
+            }
+
+            // Verify token with Google reCAPTCHA API
+            try {
+                $recaptcha = new \ReCaptcha\ReCaptcha($recaptchaSecretKey);
+                $resp = $recaptcha->setExpectedAction('contact')
+                    ->setScoreThreshold(0.5)
+                    ->verify($recaptchaToken, $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+
+                if (!$resp->isSuccess()) {
+                    \App\Support\Logger::warning('reCAPTCHA verification failed', [
+                        'errors' => $resp->getErrorCodes(),
+                        'score' => $resp->getScore()
+                    ], 'security');
+                    return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
+                }
+
+                // Check score (v3 returns score 0.0-1.0, higher is more likely human)
+                if ($resp->getScore() < 0.5) {
+                    \App\Support\Logger::warning('reCAPTCHA score too low', [
+                        'score' => $resp->getScore()
+                    ], 'security');
+                    return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
+                }
+            } catch (\Throwable $e) {
+                \App\Support\Logger::error('reCAPTCHA verification error', [
+                    'error' => $e->getMessage()
+                ], 'security');
+                return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
+            }
+        }
+
         $to = (string)($settings->get('about.contact_email', '') ?? '');
         if ($to === '') {
             $to = (string)(\envv('CONTACT_EMAIL', \envv('MAIL_TO', 'webmaster@localhost')));
@@ -1194,7 +1243,6 @@ class PageController extends BaseController
                    'Content-Type: text/plain; charset=UTF-8';
 
         @mail($to, $subject, $body, $headers);
-        $settings = new \App\Services\SettingsService($this->db);
         $slug = (string)($settings->get('about.slug', 'about') ?? 'about');
         if ($slug === '') { $slug = 'about'; }
         return $response->withHeader('Location', $this->redirect('/' . $slug . '?sent=1'))->withStatus(302);
@@ -1812,5 +1860,70 @@ class PageController extends BaseController
                 'url' => 'javascript:navigator.share({title: "{title}", url: "{url}"})'
             ]
         ];
+    }
+
+    /**
+     * Truncate string at word boundary for PWA short_name
+     */
+    private function truncateShortName(string $name, int $maxLength = 12): string
+    {
+        if (mb_strlen($name) <= $maxLength) {
+            return $name;
+        }
+
+        // Find last space within limit
+        $truncated = mb_substr($name, 0, $maxLength);
+        $lastSpace = mb_strrpos($truncated, ' ');
+
+        if ($lastSpace !== false && $lastSpace > 0) {
+            return mb_substr($name, 0, $lastSpace);
+        }
+
+        // No space found, fall back to hard truncation
+        return $truncated;
+    }
+
+    /**
+     * Generate dynamic web manifest for PWA
+     */
+    public function webManifest(Request $request, Response $response): Response
+    {
+        $svc = new \App\Services\SettingsService($this->db);
+
+        $siteName = (string)($svc->get('seo.site_title', 'Photography Portfolio') ?? 'Photography Portfolio');
+        $siteDescription = (string)($svc->get('seo.site_description', '') ?? '');
+        $themeColor = (string)($svc->get('pwa.theme_color', '#ffffff') ?? '#ffffff');
+        $backgroundColor = (string)($svc->get('pwa.background_color', '#ffffff') ?? '#ffffff');
+        $basePath = $this->basePath ?: '';
+
+        $manifest = [
+            'name' => $siteName,
+            'short_name' => $this->truncateShortName($siteName),
+            'description' => $siteDescription,
+            'icons' => [
+                [
+                    'src' => $basePath . '/android-chrome-192x192.png',
+                    'sizes' => '192x192',
+                    'type' => 'image/png',
+                    'purpose' => 'any maskable'
+                ],
+                [
+                    'src' => $basePath . '/android-chrome-512x512.png',
+                    'sizes' => '512x512',
+                    'type' => 'image/png',
+                    'purpose' => 'any maskable'
+                ]
+            ],
+            'start_url' => $basePath . '/',
+            'scope' => $basePath . '/',
+            'display' => 'standalone',
+            'theme_color' => $themeColor,
+            'background_color' => $backgroundColor
+        ];
+
+        $response->getBody()->write(json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        return $response
+            ->withHeader('Content-Type', 'application/manifest+json')
+            ->withHeader('Cache-Control', 'public, max-age=86400');
     }
 }

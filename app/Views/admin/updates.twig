@@ -375,16 +375,18 @@
   </div>
 
 <script nonce="{{ csp_nonce() }}">
-const csrfToken = '{{ csrf|e('html_attr') }}';
-const basePath = '{{ base_path|e('html_attr') }}';
+const csrfToken = '{{ csrf|e('js') }}';
+const basePath = '{{ base_path|e('js') }}';
 const i18n = {
-    confirmUpdate: '{{ trans('admin.updates.confirm_update')|e('html_attr') }}',
-    confirmDeleteBackup: '{{ trans('admin.updates.confirm_delete_backup')|e('html_attr') }}',
-    confirmMaintenance: '{{ trans('admin.updates.confirm_clear_maintenance')|e('html_attr') }}',
-    updateSuccess: '{{ trans('admin.updates.update_success')|e('html_attr') }}',
-    backupSuccess: '{{ trans('admin.updates.backup_created')|e('html_attr') }}',
-    latestVersion: '{{ trans('admin.updates.up_to_date_title')|e('html_attr') }}',
-    errorChecking: '{{ trans('admin.updates.error_checking')|e('html_attr') }}'
+    confirmUpdate: '{{ trans('admin.updates.confirm_update')|e('js') }}',
+    confirmDeleteBackup: '{{ trans('admin.updates.confirm_delete_backup')|e('js') }}',
+    confirmMaintenance: '{{ trans('admin.updates.confirm_clear_maintenance')|e('js') }}',
+    updateSuccess: '{{ trans('admin.updates.update_success')|e('js') }}',
+    backupSuccess: '{{ trans('admin.updates.backup_created')|e('js') }}',
+    latestVersion: '{{ trans('admin.updates.up_to_date_title')|e('js') }}',
+    errorChecking: '{{ trans('admin.updates.error_checking')|e('js') }}',
+    genericError: '{{ trans('admin.common.error')|e('js') }}',
+    updateFailed: '{{ trans('admin.updates.update_failed')|e('js') }}'
 };
 
 function checkForUpdatesManual() {
@@ -452,7 +454,7 @@ function startUpdate(version) {
         }
     })
     .catch(error => {
-        document.getElementById('update-error').textContent = 'Update failed: ' + error.message;
+        document.getElementById('update-error').textContent = i18n.updateFailed.replace('{error}', error.message);
         document.getElementById('update-error').classList.remove('hidden');
     });
 }
@@ -496,13 +498,13 @@ function createBackup() {
             alert(i18n.backupSuccess);
             location.reload();
         } else {
-            alert((i18n.errorChecking || 'Error') + ': ' + data.error);
+            alert(i18n.errorChecking + ': ' + data.error);
         }
     })
     .catch(error => {
         if (headerIcon) headerIcon.className = 'fas fa-plus mr-2';
         if (footerIcon) footerIcon.className = 'fas fa-database mr-2';
-        alert((i18n.errorChecking || 'Error') + ': ' + error.message);
+        alert(i18n.errorChecking + ': ' + error.message);
     });
 }
 
@@ -527,11 +529,11 @@ function deleteBackup(backupName) {
                 row.remove();
             }
         } else {
-            alert((i18n.errorChecking || 'Error') + ': ' + data.error);
+            alert(i18n.errorChecking + ': ' + data.error);
         }
     })
     .catch(error => {
-        alert((i18n.errorChecking || 'Error') + ': ' + error.message);
+        alert(i18n.errorChecking + ': ' + error.message);
     });
 }
 
@@ -552,11 +554,11 @@ function clearMaintenance() {
         if (data.success) {
             alert(data.message);
         } else {
-            alert((i18n.errorChecking || 'Error') + ': ' + data.error);
+            alert(i18n.errorChecking + ': ' + data.error);
         }
     })
     .catch(error => {
-        alert((i18n.errorChecking || 'Error') + ': ' + error.message);
+        alert(i18n.errorChecking + ': ' + error.message);
     });
 }
 

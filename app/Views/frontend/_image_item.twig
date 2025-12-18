@@ -38,26 +38,27 @@
         {% endif %}
       {% endfor %}
       
-      {# Sizes ottimizzate per grid responsive:
-         - Desktop XL (1536px+): 3 colonne = 33vw
-         - Desktop (1280px+): 3 colonne = 40vw
-         - Laptop (1024px+): 2-3 colonne = 48vw
-         - Tablet (768px+): 2 colonne = 50vw
-         - Mobile L (640px+): 1 colonna = 95vw (con padding)
+      {# Sizes ottimizzate per alta qualità:
+         - Desktop XL (1536px+): 50vw per retina display
+         - Desktop (1280px+): 55vw
+         - Laptop (1024px+): 60vw
+         - Tablet (768px+): 70vw
+         - Mobile L (640px+): 95vw
          - Mobile: full width = 100vw #}
       {% if variants_avif %}
-        <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1536px) 30vw, (min-width: 1280px) 35vw, (min-width: 1024px) 45vw, (min-width: 768px) 48vw, (min-width: 640px) 95vw, 100vw">
+        <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1536px) 50vw, (min-width: 1280px) 55vw, (min-width: 1024px) 60vw, (min-width: 768px) 70vw, (min-width: 640px) 95vw, 100vw">
       {% endif %}
       {% if variants_webp %}
-        <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1536px) 30vw, (min-width: 1280px) 35vw, (min-width: 1024px) 45vw, (min-width: 768px) 48vw, (min-width: 640px) 95vw, 100vw">
+        <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1536px) 50vw, (min-width: 1280px) 55vw, (min-width: 1024px) 60vw, (min-width: 768px) 70vw, (min-width: 640px) 95vw, 100vw">
       {% endif %}
       
       <img src="{{ best_jpg_path }}"
            alt="{{ image.alt|default(image.alt_text)|default('')|e }}"
-           width="{{ image.width }}" 
+           width="{{ image.width }}"
            height="{{ image.height }}"
-           loading="lazy" 
+           loading="lazy"
            decoding="async"
+           data-fallback="hide"
            class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
     </picture>
     {% if album.allow_downloads %}

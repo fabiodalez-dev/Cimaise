@@ -27,6 +27,38 @@
   }
 }
 </script>
+
+{% if recaptcha_enabled and recaptcha_site_key %}
+{# Google reCAPTCHA v3 #}
+<script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key|e('url') }}"></script>
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('DOMContentLoaded', function() {
+  const contactForm = document.querySelector('form[action*="/contact"]');
+  if (contactForm) {
+    contactForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      grecaptcha.ready(function() {
+        grecaptcha.execute('{{ recaptcha_site_key|e('js') }}', {action: 'contact'}).then(function(token) {
+          // Add token to form
+          let recaptchaInput = contactForm.querySelector('input[name="recaptcha_token"]');
+          if (!recaptchaInput) {
+            recaptchaInput = document.createElement('input');
+            recaptchaInput.type = 'hidden';
+            recaptchaInput.name = 'recaptcha_token';
+            contactForm.appendChild(recaptchaInput);
+          }
+          recaptchaInput.value = token;
+
+          // Submit form
+          contactForm.submit();
+        });
+      });
+    });
+  }
+});
+</script>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -50,7 +82,7 @@
           {% if about_text %}
             <div class="rich-text-content">{{ about_text|safe_html }}</div>
           {% else %}
-            <p class="text-neutral-600">{{ trans('about.missing_bio', {}, 'Add your bio text from admin → Pages.') }}</p>
+            <p class="text-neutral-600">{{ trans('about.missing_bio') }}</p>
           {% endif %}
         </div>
 
@@ -76,7 +108,7 @@
 
         <div class="mt-12 border border-neutral-200 rounded-lg p-6">
           <h2 class="text-2xl font-semibold">{{ contact_title|default(trans('contact.title'))|e }}</h2>
-          <p class="text-sm text-neutral-600 mt-1">{% if contact_intro %}{{ contact_intro|safe_html }}{% elseif about_footer_text %}{{ about_footer_text|safe_html }}{% else %}{{ trans('contact.intro', {}, 'For collaborations and commissions, contact me via email or social.') }}{% endif %}</p>
+          <p class="text-sm text-neutral-600 mt-1">{% if contact_intro %}{{ contact_intro|safe_html }}{% elseif about_footer_text %}{{ about_footer_text|safe_html }}{% else %}{{ trans('contact.intro') }}{% endif %}</p>
           <form method="post" action="{{ about_url }}/contact" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <div>
@@ -100,9 +132,9 @@
       <div class="lg:col-span-1 order-1 lg:order-2">
         <div class="max-w-md ml-auto bg-neutral-100 overflow-hidden border border-neutral-200">
           {% if about_photo_url %}
-            <img src="{% if about_photo_url starts with '/' %}{{ base_path }}{{ about_photo_url }}{% else %}{{ about_photo_url }}{% endif %}" alt="Portrait" class="w-full h-auto object-cover" loading="eager" fetchpriority="high"/>
+            <img src="{% if about_photo_url starts with '/' %}{{ base_path }}{{ about_photo_url }}{% else %}{{ about_photo_url }}{% endif %}" alt="{{ trans('about.portrait_alt')|e('html_attr') }}" class="w-full h-auto object-cover" loading="eager" fetchpriority="high"/>
           {% else %}
-            <div class="aspect-[3/4] w-full h-full flex items-center justify-center text-neutral-400">Portrait</div>
+            <div class="aspect-[3/4] w-full h-full flex items-center justify-center text-neutral-400">{{ trans('about.portrait_alt') }}</div>
           {% endif %}
         </div>
       </div>

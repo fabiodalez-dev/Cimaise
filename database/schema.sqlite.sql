@@ -580,7 +580,11 @@ INSERT INTO settings (key, value, type) VALUES
 ('seo.image_acquire_license_page', '', 'string'),
 ('seo.preload_critical_images', 'true', 'boolean'),
 ('seo.lazy_load_images', 'true', 'boolean'),
-('seo.structured_data_format', 'json-ld', 'string');
+('seo.structured_data_format', 'json-ld', 'string'),
+('lightbox.show_exif', 'true', 'boolean'),
+('recaptcha.enabled', 'false', 'boolean'),
+('recaptcha.site_key', '', 'string'),
+('recaptcha.secret_key', '', 'string');
 
 -- Default filter settings
 INSERT INTO filter_settings (setting_key, setting_value, description, sort_order) VALUES
