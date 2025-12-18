@@ -626,7 +626,7 @@
       }
       
       updateIndicator(level) {
-        this.indicator.textContent = `{{ trans('admin.categories.level') }} ${level}${level >= this.maxLevel ? ' ({{ trans('admin.categories.max') }})' : ''}`;
+        this.indicator.textContent = `{{ trans('admin.categories.level')|e('js') }} ${level}${level >= this.maxLevel ? ' ({{ trans('admin.categories.max')|e('js') }})' : ''}`;
         this.indicator.classList.add('show');
 
         if (level >= this.maxLevel) {
@@ -677,12 +677,12 @@
           });
           
           if (response.ok) {
-            this.showToast('{{ trans('admin.categories.reorder_success') }}');
+            this.showToast('{{ trans('admin.categories.reorder_success')|e('js') }}');
           } else {
             throw new Error('Failed to save');
           }
         } catch (error) {
-          this.showToast('{{ trans('admin.categories.save_error') }}', 'error');
+          this.showToast('{{ trans('admin.categories.save_error')|e('js') }}', 'error');
           console.error('Save error:', error);
         }
       }
@@ -691,7 +691,7 @@
         if (window.showToast) {
           window.showToast(message, type === 'success' ? '' : 'error');
         } else {
-          alert(`${type.toUpperCase()}: ${message}`);
+          alert(message);
         }
       }
     }
@@ -709,11 +709,11 @@
         const data = await res.json();
         openCategoryModal(data);
       } catch (error) {
-        console.error('Failed to load category data:', error);
-        if (window.showToast) {
-          window.showToast('{{ trans('admin.categories.load_error') }}', 'error');
+          console.error('Failed to load category data:', error);
+          if (window.showToast) {
+          window.showToast('{{ trans('admin.categories.load_error')|e('js') }}', 'error');
         } else {
-          alert('{{ trans('admin.categories.load_error') }}');
+          alert('{{ trans('admin.categories.load_error')|e('js') }}');
         }
       }
     });
@@ -815,12 +815,12 @@
       function handleFileSelection(file) {
         // Validate file
         if (!file.type.startsWith('image/')) {
-          alert('{{ trans('admin.categories.image_required') }}');
+          alert('{{ trans('admin.categories.image_required')|e('js') }}');
           return;
         }
 
         if (file.size > 5 * 1024 * 1024) { // 5MB limit
-          alert('{{ trans('admin.categories.max_size') }}');
+          alert('{{ trans('admin.categories.max_size')|e('js') }}');
           return;
         }
         
@@ -891,14 +891,14 @@
 
         if (!name) {
           e.preventDefault();
-          alert('{{ trans('admin.categories.name_required') }}');
+          alert('{{ trans('admin.categories.name_required')|e('js') }}');
           nameInput.focus();
           return;
         }
 
         if (name.length < 2) {
           e.preventDefault();
-          alert('{{ trans('admin.categories.name_min_length') }}');
+          alert('{{ trans('admin.categories.name_min_length')|e('js') }}');
           nameInput.focus();
           return;
         }
@@ -944,8 +944,8 @@
       }
 
       function handleModalFile(file) {
-        if (!file.type.startsWith('image/')) { alert('{{ trans('admin.categories.image_required') }}'); return; }
-        if (file.size > 5 * 1024 * 1024) { alert('{{ trans('admin.categories.max_size') }}'); return; }
+        if (!file.type.startsWith('image/')) { alert('{{ trans('admin.categories.image_required')|e('js') }}'); return; }
+        if (file.size > 5 * 1024 * 1024) { alert('{{ trans('admin.categories.max_size')|e('js') }}'); return; }
         const reader = new FileReader();
         reader.onload = (ev) => {
           uploadPreviewImg.src = ev.target.result;
@@ -981,11 +981,11 @@
             } else {
               const errorText = await response.text();
               console.error('Update failed:', errorText);
-              alert('{{ trans('admin.categories.update_error') }}');
+              alert('{{ trans('admin.categories.update_error')|e('js') }}');
             }
           } catch (error) {
             console.error('Update error:', error);
-            alert('{{ trans('admin.categories.update_error') }}');
+            alert('{{ trans('admin.categories.update_error')|e('js') }}');
           }
         });
       }

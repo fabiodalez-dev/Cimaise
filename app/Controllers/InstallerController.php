@@ -236,6 +236,19 @@ class InstallerController
             return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
         }
 
+        // Validate required fields
+        $siteTitle = trim((string)($data['site_title'] ?? ''));
+        if ($siteTitle === '') {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Site title is required.'];
+            return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+        }
+
+        $siteEmail = trim((string)($data['site_email'] ?? ''));
+        if ($siteEmail === '' || !filter_var($siteEmail, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'A valid contact email is required.'];
+            return $response->withHeader('Location', $this->basePath . '/install/settings')->withStatus(302);
+        }
+
         // Handle logo upload
         $uploadedFiles = $request->getUploadedFiles();
         $logoPath = null;
@@ -496,7 +509,11 @@ class InstallerController
             $connection = $data['db_connection'] ?? 'sqlite';
             
             if ($connection === 'sqlite') {
-                $dbPath = $data['sqlite_path'] ?? $this->rootPath . '/database/database.sqlite';
+                $dbPath = $data['sqlite_path'] ?? 'database/database.sqlite';
+                // Normalize relative paths against root directory (match Installer::setupDatabase behavior)
+                if (!str_starts_with($dbPath, '/')) {
+                    $dbPath = $this->rootPath . '/' . $dbPath;
+                }
                 $dir = dirname($dbPath);
                 if (!is_dir($dir)) {
                     mkdir($dir, 0755, true);

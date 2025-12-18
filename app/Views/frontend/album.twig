@@ -406,7 +406,7 @@ document.addEventListener('click', function(event) {
     {% if images|length == 0 %}
     <div class="text-center py-20">
         <h2 class="text-2xl font-light text-neutral-600 mb-4">{{ trans('album.empty') }}</h2>
-        <p class="text-neutral-500">{{ trans('album.empty_message', {}, 'Images will appear here once uploaded.') }}</p>
+        <p class="text-neutral-500">{{ trans('album.empty_message') }}</p>
     </div>
     {% endif %}
     
@@ -414,11 +414,11 @@ document.addEventListener('click', function(event) {
     {# processes and cameras are computed in controller for compatibility #}
     {% if processes|length > 1 or cameras|length > 1 %}
     <div class="mt-8 p-4 bg-neutral-50 rounded">
-        <h3 class="text-sm font-medium mb-3">{{ trans('filter.filter_images', {}, 'Filter images:') }}</h3>
+        <h3 class="text-sm font-medium mb-3">{{ trans('filter.filter_images') }}</h3>
         <div class="flex flex-wrap gap-4 text-sm">
             {% if processes|length > 1 %}
             <div class="flex items-center space-x-2">
-                <label for="image-filter-process">{{ trans('filter.process', {}, 'Process') }}:</label>
+                <label for="image-filter-process">{{ trans('filter.process') }}:</label>
                 <select id="image-filter-process" class="border border-neutral-300 rounded px-2 py-1 text-xs">
                     <option value="">{{ trans('filter.all') }}</option>
                     {% for process in processes %}
@@ -441,7 +441,7 @@ document.addEventListener('click', function(event) {
             {% endif %}
             
             <button id="apply-image-filters" class="bg-black text-white px-3 py-1 text-xs rounded hover:bg-neutral-800">
-                {{ trans('filter.apply', {}, 'Apply') }}
+                {{ trans('filter.apply') }}
             </button>
         </div>
     </div>
@@ -459,7 +459,7 @@ document.addEventListener('click', function(event) {
 {% if related_albums|length > 0 %}
 <section class="border-t border-neutral-200 mt-16 pt-16" data-gsap="related-section">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl font-light text-center mb-12" data-gsap="related-title">{{ trans('album.more_from', {category: album.category_name}, 'More from ' ~ album.category_name) }}</h2>
+        <h2 class="text-2xl font-light text-center mb-12" data-gsap="related-title">{{ trans('album.more_from', {category: album.category_name}) }}</h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-gsap="related-grid">
             {% for related in related_albums %}

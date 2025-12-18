@@ -193,6 +193,10 @@
     "error.generic": "An error occurred",
     "error.go_home": "Go to Homepage"
   },
+  "about": {
+    "about.missing_bio": "Add your bio text from admin \u2192 Pages.",
+    "about.portrait_alt": "Portrait"
+  },
   "contact": {
     "contact.title": "Contact",
     "contact.name": "Name",

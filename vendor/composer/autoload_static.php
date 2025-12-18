@@ -45,6 +45,10 @@ class ComposerStaticInit0bf0743c4b1755943be5ac18e86520e6
             'Slim\\Psr7\\' => 10,
             'Slim\\' => 5,
         ),
+        'R' => 
+        array (
+            'ReCaptcha\\' => 10,
+        ),
         'P' => 
         array (
             'Psr\\Log\\' => 8,
@@ -59,6 +63,10 @@ class ComposerStaticInit0bf0743c4b1755943be5ac18e86520e6
             'MaxMind\\WebService\\' => 19,
             'MaxMind\\Exception\\' => 18,
             'MaxMind\\Db\\' => 11,
+        ),
+        'I' => 
+        array (
+            'Icamys\\SitemapGenerator\\' => 24,
         ),
         'G' => 
         array (
@@ -138,6 +146,10 @@ class ComposerStaticInit0bf0743c4b1755943be5ac18e86520e6
         array (
             0 => __DIR__ . '/..' . '/slim/slim/Slim',
         ),
+        'ReCaptcha\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/google/recaptcha/src/ReCaptcha',
+        ),
         'Psr\\Log\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/log/src',
@@ -175,6 +187,10 @@ class ComposerStaticInit0bf0743c4b1755943be5ac18e86520e6
         'MaxMind\\Db\\' => 
         array (
             0 => __DIR__ . '/..' . '/maxmind-db/reader/src/MaxMind/Db',
+        ),
+        'Icamys\\SitemapGenerator\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/icamys/php-sitemap-generator/src',
         ),
         'GrahamCampbell\\ResultType\\' => 
         array (

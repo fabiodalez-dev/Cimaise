@@ -159,7 +159,27 @@ class UploadController extends BaseController
             // Save setting
             $settings = new \App\Services\SettingsService($this->db);
             $settings->set('site.logo', $relUrl);
-            $response->getBody()->write(json_encode(['ok'=>true,'path'=>$relUrl,'width'=>$w,'height'=>$h]));
+
+            // Automatically generate favicons from the uploaded logo
+            $faviconResult = ['generated' => [], 'success' => false];
+            try {
+                $publicPath = dirname(__DIR__, 3) . '/public';
+                $faviconService = new \App\Services\FaviconService($publicPath);
+                $faviconResult = $faviconService->generateFavicons($destPath);
+            } catch (\Throwable $faviconError) {
+                $faviconResult['error'] = $faviconError->getMessage();
+                \App\Support\Logger::error('Favicon generation failed after logo upload', [
+                    'error' => $faviconError->getMessage(),
+                ], 'favicon');
+            }
+
+            $response->getBody()->write(json_encode([
+                'ok' => true,
+                'path' => $relUrl,
+                'width' => $w,
+                'height' => $h,
+                'favicons' => $faviconResult
+            ]));
             return $response->withHeader('Content-Type','application/json');
         } catch (\Throwable $e) {
             $response->getBody()->write(json_encode(['ok'=>false,'error'=>$e->getMessage()]));

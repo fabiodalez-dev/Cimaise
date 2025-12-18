@@ -10,8 +10,11 @@
     {% endif %}
 
     <!-- Favicon & App Icons -->
-    <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favico.ico">
-    <link rel="apple-touch-icon" href="{{ base_path }}/assets/favico.ico">
+    <link rel="icon" type="image/x-icon" href="{{ base_path }}/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ base_path }}/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ base_path }}/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/apple-touch-icon.png">
+    <link rel="manifest" href="{{ base_path }}/site.webmanifest">
     <meta name="theme-color" content="#ffffff">
 
     <!-- Preconnect for External Resources (includes dns-prefetch in modern browsers) -->
@@ -51,7 +54,7 @@
 
     {# Organization/Person JSON-LD from SEO settings (if provided) #}
     {% if schema is defined and (schema.author_name or schema.organization_name) %}
-    <script type="application/ld+json">
+    <script type="application/ld+json" nonce="{{ csp_nonce() }}">
     {
       "@context": "https://schema.org",
       {% if schema.author_name %}
@@ -91,7 +94,7 @@
 
     {# BreadcrumbList Schema #}
     {% if breadcrumbs is defined and breadcrumbs|length > 0 and schema is defined and schema.breadcrumbs_enabled %}
-    <script type="application/ld+json">
+    <script type="application/ld+json" nonce="{{ csp_nonce() }}">
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
@@ -112,7 +115,7 @@
 
     {# LocalBusiness Schema (if enabled) #}
     {% if schema is defined and schema.local_business_enabled %}
-    <script type="application/ld+json">
+    <script type="application/ld+json" nonce="{{ csp_nonce() }}">
     {
       "@context": "https://schema.org",
       "@type": {{ schema.local_business_type|default('ProfessionalService')|json_encode|raw }},
@@ -158,7 +161,7 @@
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
     
     <!-- JS flag class on <html> if needed elsewhere -->
-    <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); })();</script>
+    <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
     
     <!-- Custom styles -->
     <style>
@@ -1718,24 +1721,6 @@
                                     font-size: 14px; line-height: 1.5; text-align: center;
                                     pointer-events: none; opacity: 0; transition: opacity 0.2s ease;
                                 `;
-                                const esc = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                                const piece = (icon, val) => val ? `<span class=\"cc-item\"><i class=\"${icon}\"></i>${esc(val)}</span>` : '';
-                                const updateCaption = () => {
-                                    const a = pswp.currSlide && pswp.currSlide.data && pswp.currSlide.data.element;
-                                    if (!a) { el.style.opacity='0'; return; }
-                                    const title = a.getAttribute('data-title') || '';
-                                    const alt = a.getAttribute('data-alt') || '';
-                                    const camera = a.getAttribute('data-camera') || '';
-                                    const lens = a.getAttribute('data-lens') || '';
-                                    const film = a.getAttribute('data-film') || '';
-                                    const dev = a.getAttribute('data-developer') || '';
-                                    const lab = a.getAttribute('data-lab') || '';
-                                    const loc = a.getAttribute('data-location') || '';
-                                    const iso = a.getAttribute('data-iso') || '';
-                                    const sh = a.getAttribute('data-shutter') || '';
-                                    const ap = a.getAttribute('data-aperture') || '';
-                                // Replace with minimal hidden-caption/alt logic
-                                };
                                 const renderCaption = () => {
                                   const curr = lb.pswp.currSlide && lb.pswp.currSlide.data && lb.pswp.currSlide.data.element;
                                   if (!curr) { el.innerHTML=''; el.style.opacity='0'; return; }
@@ -1743,17 +1728,22 @@
                                   const esc = (s)=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                                   const head = esc(ds.title || ds.alt || '');
                                   const piece = (icon, val) => val ? `<span class="inline-flex items-center"><i class="${icon} mr-1"></i>${esc(val)}</span>` : '';
-                                  const line = [
+                                  // Equipment data (always shown)
+                                  const equipment = [
                                     piece('fas fa-camera', ds.camera),
                                     piece('fas fa-dot-circle', ds.lens),
                                     piece('fas fa-film', ds.film),
                                     piece('fas fa-flask', ds.developer),
                                     piece('fas fa-industry', ds.lab),
-                                    piece('fas fa-map-marker-alt', ds.location),
+                                    piece('fas fa-map-marker-alt', ds.location)
+                                  ].filter(Boolean);
+                                  // EXIF data (only shown if setting enabled)
+                                  const exif = window.__showExifInLightbox ? [
                                     piece('fas fa-signal', ds.iso ? ('ISO ' + ds.iso) : ''),
                                     piece('far fa-clock', ds.shutter),
                                     piece('fas fa-circle-half-stroke', ds.aperture ? ('f/' + ds.aperture) : '')
-                                  ].filter(Boolean).join(' ');
+                                  ].filter(Boolean) : [];
+                                  const line = [...equipment, ...exif].join(' ');
                                   const html = (head ? `<div class="mb-1 text-black">${head}</div>` : '') + (line ? `<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">${line}</div>` : '');
                                   el.innerHTML = html;
                                   el.style.opacity = html.trim() ? '1' : '0';
@@ -2285,6 +2275,18 @@
     {# Essential JavaScript - Always loaded (no consent required) #}
     {% if custom_js_essential %}
     <script id="custom-js-essential" nonce="{{ csp_nonce() }}">{{ custom_js_essential|raw }}</script>
+    {% endif %}
+
+    {# Block right-click on images for non-admin users #}
+    {% if not is_admin %}
+    <script nonce="{{ csp_nonce() }}">
+    document.addEventListener("contextmenu", function(e) {
+      var target = e.target;
+      if (target.tagName === "IMG" || (target.closest && target.closest(".no-rightclick"))) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+    </script>
     {% endif %}
 
     {# Cookie Banner with conditional script loader #}

@@ -17,6 +17,17 @@ class GalleryController extends BaseController
         parent::__construct();
     }
 
+    private function applyTemplateOverrides(array $template, array $templateSettings): array
+    {
+        $templateSettings = $this->normalizeTemplateSettings($templateSettings);
+
+        if (($template['slug'] ?? '') === 'magazine-split') {
+            $templateSettings['layout'] = 'magazine';
+        }
+
+        return $templateSettings;
+    }
+
     public function gallery(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -119,10 +130,10 @@ class GalleryController extends BaseController
                 $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
             } else {
                 $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
-                // Fix deeply nested column structure
-                $templateSettings = $this->normalizeTemplateSettings($templateSettings);
             }
         }
+        // Normalize settings and align Magazine Split behavior with AJAX switcher
+        $templateSettings = $this->applyTemplateOverrides($template, $templateSettings);
 
         // Tags
         $tagsStmt = $pdo->prepare('SELECT t.* FROM tags t JOIN album_tag at ON at.tag_id = t.id WHERE at.album_id = :id ORDER BY t.name ASC');
@@ -503,7 +514,7 @@ class GalleryController extends BaseController
             }
             
             $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
-            $templateSettings = $this->normalizeTemplateSettings($templateSettings);
+            $templateSettings = $this->applyTemplateOverrides($template, $templateSettings);
 
             // Images with per-photo metadata
             $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
