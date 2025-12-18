@@ -435,8 +435,9 @@ class Installer
             $result = $faviconService->generateFavicons($absoluteLogoPath);
 
             if (!$result['success']) {
-                // Log error but don't fail installation
-                error_log('Installer: Failed to generate favicons: ' . ($result['error'] ?? 'Unknown error'));
+                // Log error but don't fail installation (FaviconService returns 'errors' array)
+                $errorMsg = !empty($result['errors']) ? implode(', ', $result['errors']) : 'Unknown error';
+                error_log('Installer: Failed to generate favicons: ' . $errorMsg);
             }
         } catch (\Throwable $e) {
             // Log error but don't fail installation
