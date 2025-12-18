@@ -12,7 +12,26 @@
   <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/admin.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
-  <script nonce="{{ csp_nonce() }}">window.basePath = '{{ base_path }}'; window.cspNonce = '{{ csp_nonce() }}';</script>
+  <script nonce="{{ csp_nonce() }}">
+    window.basePath = '{{ base_path }}';
+    window.cspNonce = '{{ csp_nonce() }}';
+
+    // Minimal admin i18n for static JS bundles (extend as needed)
+    window.adminTranslations = window.adminTranslations || {};
+    window.adminTranslations['admin.settings.logo_updated'] = {{ trans('admin.settings.logo_updated')|json_encode|raw }};
+    window.adminTranslations['admin.settings.logo_upload_failed'] = {{ trans('admin.settings.logo_upload_failed')|json_encode|raw }};
+    window.adminTranslations['admin.settings.logo_upload_error'] = {{ trans('admin.settings.logo_upload_error')|json_encode|raw }};
+    window.adminTranslations['admin.settings.logo_removed_info'] = {{ trans('admin.settings.logo_removed_info')|json_encode|raw }};
+    window.adminTranslations['admin.settings.favicons_generated'] = {{ trans('admin.settings.favicons_generated')|json_encode|raw }};
+    window.adminTranslations['admin.settings.favicon_generation_failed'] = {{ trans('admin.settings.favicon_generation_failed')|json_encode|raw }};
+
+    window.adminT = function(key, fallback) {
+      if (window.adminTranslations && Object.prototype.hasOwnProperty.call(window.adminTranslations, key)) {
+        return window.adminTranslations[key];
+      }
+      return fallback || key;
+    };
+  </script>
   <style nonce="{{ csp_nonce() }}">
     body {
       margin: 0;

@@ -165,6 +165,7 @@ photoCMS/
   - MySQL: `database/schema.mysql.sql` (structure only), `database/complete_mysql_schema.sql` (with seed data)
 - **Default MySQL collation**: `utf8mb4_unicode_ci` (more compatible than `utf8mb4_0900_ai_ci`)
 - **Settings storage**: SettingsService stores values as JSON with type tracking (null, boolean, number, string)
+- **PWA settings**: `pwa.theme_color` and `pwa.background_color` for configurable PWA colors (defaults: `#ffffff`)
 
 ### Frontend
 - **Twig templates**: `{% extends %}` for layouts, `{% include %}` for partials
@@ -319,8 +320,8 @@ $app->get('/path', function(...) { ... })
 - **5-step process**: Welcome (requirements check) → Database → Admin User → Settings → Confirm & Install
 - **Note**: Post-setup step removed (commit 78ff3d2) - settings now collected before installation, not after
 - **Session-based config storage**: Each step stores data in `$_SESSION['install_*_config']` arrays (db_config, admin_config, settings_config)
-- **CSRF protection**: All forms include CSRF token validation with hash_equals comparison, token auto-generated in InstallerController constructor on every request
-- **Session initialization**: InstallerController ensures session started in constructor, generates CSRF token if missing
+- **CSRF protection**: All forms include CSRF token validation with hash_equals comparison
+- **Session initialization**: InstallerController ensures session started in constructor (`session_start()` if `PHP_SESSION_NONE`), generates CSRF token if missing (`bin2hex(random_bytes(32))`)
 - **MySQL auto-detection**: AJAX endpoint `/install/test-mysql` tests connection and auto-detects charset/collation (rate limited: 10 req/5min via FileBasedRateLimitMiddleware)
 - **Separate database fields**: Different input fields for SQLite path vs MySQL database name in database step
 - **Default collation**: Uses `utf8mb4_unicode_ci` (more compatible than `utf8mb4_0900_ai_ci`)
@@ -450,6 +451,18 @@ $app->get('/path', function(...) { ... })
   ```
 - **CSRF protection**: All form submissions validated with timing-safe CSRF tokens
 - **Slug auto-generation**: Uses `App\Support\Str::slug()` for SEO-friendly identifiers
+
+### PWA Manifest Generation
+- **Dynamic web manifest**: `PageController::webManifest()` generates `/manifest.webmanifest` endpoint
+- **Configurable colors**: Uses `pwa.theme_color` and `pwa.background_color` settings (defaults: `#ffffff`)
+- **Short name truncation**: `truncateShortName()` helper truncates site name at word boundary (max 12 chars) for PWA short_name field
+- **Favicon integration**: Reads generated favicons from FaviconService for manifest icons
+- **Base path support**: Handles subdirectory installations with proper icon path resolution
+
+### Settings Validation Patterns
+- **reCAPTCHA validation**: Requires both site key and secret key to enable reCAPTCHA (cannot enable with empty keys)
+- **Conditional key updates**: Secret keys only updated if new value provided (preserves existing keys on empty input)
+- **Fallback handling**: Uses `$_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'` for reCAPTCHA verification to handle missing REMOTE_ADDR
 
 <!-- END AUTO-MANAGED -->
 

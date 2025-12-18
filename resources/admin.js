@@ -677,13 +677,34 @@ function initLogoUpload(){
       hidden.value = body.path;
       if (preview) { preview.src = (window.basePath || '') + body.path; preview.classList.remove('hidden'); }
       if (clearBtn) clearBtn.classList.remove('hidden');
-      if (window.showToast) window.showToast('Logo updated', 'success');
+
+      const t = (key, fallback) => (typeof window.adminT === 'function' ? window.adminT(key, fallback) : (fallback || key));
+      const fmt = (str, params = {}) => {
+        let out = String(str ?? '');
+        Object.keys(params).forEach((k) => {
+          out = out.replaceAll(`{${k}}`, String(params[k]));
+        });
+        return out;
+      };
+
+      // Show favicon generation result
+      if (body.favicons && body.favicons.success) {
+        const count = body.favicons.generated ? body.favicons.generated.length : 0;
+        if (window.showToast) window.showToast(fmt(t('admin.settings.favicons_generated', 'Logo updated + {count} favicons generated'), { count }), 'success');
+      } else if (body.favicons && body.favicons.error) {
+        if (window.showToast) {
+          window.showToast(t('admin.settings.logo_updated', 'Logo updated'), 'success');
+          window.showToast(fmt(t('admin.settings.favicon_generation_failed', 'Favicon generation failed: {error}'), { error: body.favicons.error }), 'warning');
+        }
+      } else {
+        if (window.showToast) window.showToast(t('admin.settings.logo_updated', 'Logo updated'), 'success');
+      }
     } else {
-      if (window.showToast) window.showToast('Logo upload failed', 'error');
+      if (window.showToast) window.showToast((typeof window.adminT === 'function' ? window.adminT('admin.settings.logo_upload_failed', 'Logo upload failed') : 'Logo upload failed'), 'error');
     }
   });
   uppy.on('upload-error', (file, err, resp)=>{
-    const msg = (resp && resp.body && (resp.body.error||resp.body.message)) || (err && err.message) || 'Logo upload error';
+    const msg = (resp && resp.body && (resp.body.error||resp.body.message)) || (err && err.message) || (typeof window.adminT === 'function' ? window.adminT('admin.settings.logo_upload_error', 'Logo upload error') : 'Logo upload error');
     if (window.showToast) window.showToast(msg, 'error');
   });
 
@@ -692,7 +713,7 @@ function initLogoUpload(){
       e.preventDefault();
       hidden.value = '';
       if (preview) preview.classList.add('hidden');
-      if (window.showToast) window.showToast('Logo rimosso (salva per applicare)', 'info');
+      if (window.showToast) window.showToast((typeof window.adminT === 'function' ? window.adminT('admin.settings.logo_removed_info', 'Logo removed (save to apply)') : 'Logo removed (save to apply)'), 'info');
     });
   }
 }
