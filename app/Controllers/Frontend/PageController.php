@@ -1185,7 +1185,7 @@ class PageController extends BaseController
                 $recaptcha = new \ReCaptcha\ReCaptcha($recaptchaSecretKey);
                 $resp = $recaptcha->setExpectedAction('contact')
                     ->setScoreThreshold(0.5)
-                    ->verify($recaptchaToken, $_SERVER['REMOTE_ADDR'] ?? '');
+                    ->verify($recaptchaToken, $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
 
                 if (!$resp->isSuccess()) {
                     \App\Support\Logger::warning('reCAPTCHA verification failed', [
@@ -1210,7 +1210,6 @@ class PageController extends BaseController
             }
         }
 
-        $settings = new \App\Services\SettingsService($this->db);
         $to = (string)($settings->get('about.contact_email', '') ?? '');
         if ($to === '') {
             $to = (string)(\envv('CONTACT_EMAIL', \envv('MAIL_TO', 'webmaster@localhost')));
@@ -1863,6 +1862,27 @@ class PageController extends BaseController
     }
 
     /**
+     * Truncate string at word boundary for PWA short_name
+     */
+    private function truncateShortName(string $name, int $maxLength = 12): string
+    {
+        if (mb_strlen($name) <= $maxLength) {
+            return $name;
+        }
+
+        // Find last space within limit
+        $truncated = mb_substr($name, 0, $maxLength);
+        $lastSpace = mb_strrpos($truncated, ' ');
+
+        if ($lastSpace !== false && $lastSpace > 0) {
+            return mb_substr($name, 0, $lastSpace);
+        }
+
+        // No space found, fall back to hard truncation
+        return $truncated;
+    }
+
+    /**
      * Generate dynamic web manifest for PWA
      */
     public function webManifest(Request $request, Response $response): Response
@@ -1871,13 +1891,13 @@ class PageController extends BaseController
 
         $siteName = (string)($svc->get('seo.site_title', 'Photography Portfolio') ?? 'Photography Portfolio');
         $siteDescription = (string)($svc->get('seo.site_description', '') ?? '');
-        $themeColor = '#ffffff';
-        $backgroundColor = '#ffffff';
+        $themeColor = (string)($svc->get('pwa.theme_color', '#ffffff') ?? '#ffffff');
+        $backgroundColor = (string)($svc->get('pwa.background_color', '#ffffff') ?? '#ffffff');
         $basePath = $this->basePath ?: '';
 
         $manifest = [
             'name' => $siteName,
-            'short_name' => mb_strlen($siteName) > 12 ? mb_substr($siteName, 0, 12) : $siteName,
+            'short_name' => $this->truncateShortName($siteName),
             'description' => $siteDescription,
             'icons' => [
                 [

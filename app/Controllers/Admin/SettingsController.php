@@ -132,19 +132,20 @@ class SettingsController extends BaseController
         $recaptchaEnabled = isset($data['recaptcha_enabled']);
 
         // Get existing keys to check if they're set
-        $existingSiteKey = $svc->get('recaptcha.site_key', null);
-        $existingSecretKey = $svc->get('recaptcha.secret_key', null);
+        $existingSiteKey = (string)($svc->get('recaptcha.site_key', '') ?? '');
+        $existingSecretKey = (string)($svc->get('recaptcha.secret_key', '') ?? '');
+
+        // Determine final keys (new value or existing)
+        $finalSiteKey = $recaptchaSiteKey !== '' ? $recaptchaSiteKey : $existingSiteKey;
+        $finalSecretKey = $recaptchaSecretKey !== '' ? $recaptchaSecretKey : $existingSecretKey;
 
         // Validate: cannot enable reCAPTCHA without both keys
-        $hasSiteKey = $recaptchaSiteKey !== '' || ($existingSiteKey !== null && $existingSiteKey !== '');
-        $hasSecretKey = $recaptchaSecretKey !== '' || ($existingSecretKey !== null && $existingSecretKey !== '');
-
-        if ($recaptchaEnabled && (!$hasSiteKey || !$hasSecretKey)) {
+        if ($recaptchaEnabled && ($finalSiteKey === '' || $finalSecretKey === '')) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Cannot enable reCAPTCHA without both Site Key and Secret Key'];
             $recaptchaEnabled = false;
         }
 
-        $svc->set('recaptcha.site_key', $recaptchaSiteKey !== '' ? $recaptchaSiteKey : $existingSiteKey);
+        $svc->set('recaptcha.site_key', $finalSiteKey);
         // Only update secret key if a new value is provided (never expose existing key to client)
         if ($recaptchaSecretKey !== '') {
             $svc->set('recaptcha.secret_key', $recaptchaSecretKey);

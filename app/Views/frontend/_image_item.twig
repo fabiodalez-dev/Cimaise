@@ -54,10 +54,11 @@
       
       <img src="{{ best_jpg_path }}"
            alt="{{ image.alt|default(image.alt_text)|default('')|e }}"
-           width="{{ image.width }}" 
+           width="{{ image.width }}"
            height="{{ image.height }}"
-           loading="lazy" 
+           loading="lazy"
            decoding="async"
+           data-fallback="hide"
            class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
     </picture>
     {% if album.allow_downloads %}
