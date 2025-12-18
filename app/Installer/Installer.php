@@ -288,9 +288,9 @@ class Installer
             $database = $data['db_database'] ?? 'cimaise';
             $username = $data['db_username'] ?? 'root';
             $password = $data['db_password'] ?? '';
-            // Use consistent charset/collation (match runtime Database class)
+            // Use consistent charset/collation (utf8mb4_unicode_ci for MySQL 5.7+ compatibility)
             $charset = $data['db_charset'] ?? 'utf8mb4';
-            $collation = $data['db_collation'] ?? 'utf8mb4_0900_ai_ci';
+            $collation = $data['db_collation'] ?? 'utf8mb4_unicode_ci';
 
             // First, try to create the database if it doesn't exist
             try {
@@ -570,9 +570,9 @@ class Installer
             $envContent .= "DB_DATABASE=" . ($data['db_database'] ?? 'cimaise') . "\n";
             $envContent .= "DB_USERNAME=" . ($data['db_username'] ?? 'root') . "\n";
             $envContent .= "DB_PASSWORD=" . ($data['db_password'] ?? '') . "\n";
-            // Use consistent charset/collation
+            // Use consistent charset/collation (utf8mb4_unicode_ci for MySQL 5.7+ compatibility)
             $envContent .= "DB_CHARSET=" . ($data['db_charset'] ?? 'utf8mb4') . "\n";
-            $envContent .= "DB_COLLATION=" . ($data['db_collation'] ?? 'utf8mb4_0900_ai_ci') . "\n";
+            $envContent .= "DB_COLLATION=" . ($data['db_collation'] ?? 'utf8mb4_unicode_ci') . "\n";
         }
 
         $sessionSecret = bin2hex(random_bytes(32));

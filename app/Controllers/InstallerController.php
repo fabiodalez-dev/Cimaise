@@ -79,7 +79,7 @@ class InstallerController
             'db_connection' => 'sqlite',
             'db_host' => '127.0.0.1',
             'db_port' => 3306,
-            'sqlite_path' => 'database/database.sqlite',
+            'sqlite_database' => 'database/database.sqlite',
             'mysql_database' => 'cimaise',
             'db_username' => 'root',
             'db_charset' => 'utf8mb4',
@@ -496,7 +496,11 @@ class InstallerController
             $connection = $data['db_connection'] ?? 'sqlite';
             
             if ($connection === 'sqlite') {
-                $dbPath = $data['sqlite_path'] ?? $this->rootPath . '/database/database.sqlite';
+                $dbPath = $data['sqlite_path'] ?? 'database/database.sqlite';
+                // Normalize relative paths against root directory (match Installer::setupDatabase behavior)
+                if (!str_starts_with($dbPath, '/')) {
+                    $dbPath = $this->rootPath . '/' . $dbPath;
+                }
                 $dir = dirname($dbPath);
                 if (!is_dir($dir)) {
                     mkdir($dir, 0755, true);
