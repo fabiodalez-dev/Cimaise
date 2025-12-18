@@ -177,6 +177,10 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $aboutSlug = (string)($settingsSvc->get('about.slug', 'about') ?? 'about');
         $aboutSlug = $aboutSlug !== '' ? $aboutSlug : 'about';
         $twig->getEnvironment()->addGlobal('about_url', $basePath . '/' . $aboutSlug);
+        // Expose galleries URL
+        $galleriesSlug = (string)($settingsSvc->get('galleries.slug', 'galleries') ?? 'galleries');
+        $galleriesSlug = $galleriesSlug !== '' ? $galleriesSlug : 'galleries';
+        $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/' . $galleriesSlug);
         // Expose site title and logo globally for layouts
         $siteTitle = (string)($settingsSvc->get('site.title', 'Cimaise') ?? 'Cimaise');
         $siteLogo = $settingsSvc->get('site.logo', null);
@@ -218,6 +222,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('lightbox_show_exif', $settingsSvc->get('lightbox.show_exif', true));
     } catch (\Throwable) {
         $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
+        $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/galleries');
         $twig->getEnvironment()->addGlobal('site_title', 'Cimaise');
         $twig->getEnvironment()->addGlobal('site_logo', null);
         \App\Support\DateHelper::setDisplayFormat('Y-m-d');
@@ -235,6 +240,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     }
 } else {
     $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
+    $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/galleries');
     $twig->getEnvironment()->addGlobal('site_title', 'Cimaise');
     $twig->getEnvironment()->addGlobal('site_logo', null);
     \App\Support\DateHelper::setDisplayFormat('Y-m-d');

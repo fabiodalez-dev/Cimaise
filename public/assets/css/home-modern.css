@@ -1,0 +1,702 @@
+/* ============================================
+   MODERN HOME TEMPLATE - GRID LAYOUT
+   Layout: Left FIXED filters | Right SCROLLABLE images
+   ============================================ */
+
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
+:root {
+    --modern-black: #000;
+    --modern-white: #fff;
+    --modern-grey: #808080;
+    --modern-dark-grey: #373737;
+}
+
+/* ============================================
+   BASE STYLES (SCOPED TO MODERN HOME)
+   ============================================ */
+
+.page-content {
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* ============================================
+   GLOBAL HEADER
+   ============================================ */
+
+.global-head {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 6;
+    pointer-events: none;
+    padding: 1.25rem;
+}
+
+.global-head_layout {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.head-logo_holder {
+    position: relative;
+    pointer-events: auto;
+}
+
+.head-logo_holder .head-logo_text {
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+.head-logo_holder .head-logo_img {
+    max-height: 2rem;
+    width: auto;
+}
+
+/* ============================================
+   MENU BUTTON (fixed top right)
+   ============================================ */
+
+.menu-btn {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 6;
+    cursor: pointer;
+    mix-blend-mode: difference;
+    pointer-events: auto;
+}
+
+.menu-btn_text {
+    color: var(--modern-white);
+    text-transform: uppercase;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* ============================================
+   MAIN LAYOUT - THE KEY STRUCTURE
+   ============================================ */
+
+.work-layout {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+}
+
+/* ============================================
+   LEFT COLUMN - FIXED (only filters + counter)
+   ============================================ */
+
+.work-col.is-static {
+    width: 50%;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding-left: 15%;
+    gap: 2rem;
+}
+
+.work-toggle_holder {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.toggle-cat_wrap {
+    margin-top: 0;
+}
+
+/* Filter items */
+.toggle-cat_item {
+    display: flex;
+}
+
+.toggle-cat_list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.grid-toggle_item {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    display: block;
+}
+
+.grid-toggle_item.is-active {
+    pointer-events: none;
+}
+
+.grid-toggle {
+    text-transform: uppercase;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    opacity: 0.5;
+    transition: opacity 0.3s cubic-bezier(0.45, 0, 0.55, 1),
+                color 0.3s ease,
+                font-size 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
+                transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+    display: inline-block;
+}
+
+.grid-toggle_item.is-active .grid-toggle {
+    opacity: 1;
+}
+
+.grid-toggle_item:hover .grid-toggle {
+    opacity: 1;
+}
+
+/* Hover shimmer effect */
+@keyframes shimmer {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+
+.toggle-cat_item:hover .grid-toggle {
+    color: var(--modern-black);
+    opacity: 1;
+    font-size: 0.925rem;
+    background: linear-gradient(
+        90deg,
+        var(--modern-black) 0%,
+        var(--modern-black) 40%,
+        #888 50%,
+        var(--modern-black) 60%,
+        var(--modern-black) 100%
+    );
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Body copy for counter */
+.body-copy {
+    text-transform: uppercase;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+/* Image Grid Info Holder - appears on hover */
+.image-grid-info_holder {
+    position: absolute;
+    bottom: 2rem;
+    left: 15%;
+    max-width: 18rem;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+}
+
+.image-grid-info_holder.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.image-grid-info_holder .body-copy {
+    margin-bottom: 0.5rem;
+}
+
+.image-grid-info_holder .paragraph {
+    font-family: inherit;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    opacity: 0.7;
+    text-transform: none;
+    font-weight: 400;
+}
+
+/* ============================================
+   RIGHT COLUMN - SCROLLABLE (images grid)
+   ============================================ */
+
+.work-col.is-work {
+    width: 50%;
+    margin-left: 50%;
+    padding: 20px 0 20px 0;
+}
+
+.inf-work_wrap {
+    padding-right: 10rem;
+    transition: opacity 1.4s;
+}
+
+.inf-work_list {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+}
+
+/* Masonry-like layout with absolute positioning */
+.inf-work_item {
+    width: calc(50% - 5px);
+    position: absolute;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.inf-work_item.is-visible {
+    opacity: 1;
+}
+
+/* Even items offset to right */
+.inf-work_item:nth-child(2n) {
+    left: calc(50% + 5px);
+}
+
+.inf-work_link {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    position: relative;
+    transition: opacity 0.3s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+/* Fadeout effect when hovering other items */
+.inf-work_item.fadeout .inf-work_link {
+    opacity: 0.1;
+}
+
+.inf-work_item.highlight .inf-work_link {
+    opacity: 1;
+}
+
+/* Image holder */
+.work-grid_img-holder {
+    width: 100%;
+    position: relative;
+}
+
+.work-grid_img-height {
+    padding-top: 150%; /* 2:3 aspect ratio */
+    position: relative;
+}
+
+.img-fill {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.6s ease;
+}
+
+.inf-work_item:hover .img-fill {
+    transform: scale(1.03);
+}
+
+/* Image placeholder */
+.img-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+    color: #999;
+    font-size: 3rem;
+    font-weight: 300;
+}
+
+/* NSFW blur effect */
+.nsfw-blur {
+    filter: blur(20px);
+    transition: filter 0.3s ease;
+}
+
+.nsfw-blur:hover {
+    filter: blur(5px);
+}
+
+/* Album badges */
+.album-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    z-index: 2;
+}
+
+.album-badge--protected {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* Page transition overlay */
+.page-transition {
+    position: fixed;
+    inset: 0;
+    background: var(--modern-white);
+    z-index: 100;
+    transform: scaleY(0);
+    transform-origin: bottom;
+    pointer-events: none;
+}
+
+.page-transition.is-active {
+    animation: wipeIn 0.6s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+
+@keyframes wipeIn {
+    0% {
+        transform: scaleY(0);
+        transform-origin: bottom;
+        opacity: 0.3;
+    }
+    30% {
+        opacity: 0.6;
+    }
+    50% {
+        transform: scaleY(1);
+        transform-origin: bottom;
+        opacity: 1;
+    }
+    50.1% {
+        transform-origin: top;
+    }
+    100% {
+        transform: scaleY(1);
+        transform-origin: top;
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   MEGA MENU OVERLAY
+   ============================================ */
+
+.menu-component {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-component.is-open {
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.menu-close {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    cursor: pointer;
+    z-index: 51;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s;
+}
+
+.menu-component.is-open .menu-close {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.menu-close .menu-btn_text {
+    color: var(--modern-black);
+}
+
+.mega-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mega-menu_link {
+    font-family: inherit;
+    font-size: clamp(3rem, 10vw, 8rem);
+    font-weight: 600;
+    color: var(--modern-black);
+    text-decoration: none;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.3s ease, transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+    display: block;
+}
+
+.menu-component.is-open .mega-menu_link {
+    opacity: 0.4;
+    transform: translateY(0);
+}
+
+.menu-component.is-open .mega-menu_link:nth-child(1) { transition-delay: 0.1s; }
+.menu-component.is-open .mega-menu_link:nth-child(2) { transition-delay: 0.15s; }
+.menu-component.is-open .mega-menu_link:nth-child(3) { transition-delay: 0.2s; }
+.menu-component.is-open .mega-menu_link:nth-child(4) { transition-delay: 0.25s; }
+
+.mega-menu_link:hover {
+    opacity: 1 !important;
+    transform: scale(1.02);
+}
+
+.menu-component.is-open .mega-menu_link.is-current {
+    opacity: 1;
+    pointer-events: none;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.modern-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    padding: 2rem;
+}
+
+.modern-empty-state__content {
+    text-align: center;
+    max-width: 400px;
+}
+
+.modern-empty-state__icon {
+    font-size: 4rem;
+    color: #ccc;
+    margin-bottom: 1.5rem;
+}
+
+.modern-empty-state__title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--modern-black);
+    margin-bottom: 0.5rem;
+}
+
+.modern-empty-state__text {
+    font-size: 1rem;
+    color: var(--modern-grey);
+    line-height: 1.5;
+}
+
+/* ============================================
+   LENIS SMOOTH SCROLL
+   ============================================ */
+
+html.lenis {
+    height: auto;
+}
+
+.lenis.lenis-smooth {
+    scroll-behavior: auto;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+    overflow: hidden;
+}
+
+/* Hide scrollbar for modern home */
+.page-content::-webkit-scrollbar {
+    display: none;
+}
+
+.page-content {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media screen and (max-width: 991px) {
+    .work-col.is-static {
+        padding-left: 10%;
+    }
+
+    .image-grid-info_holder {
+        left: 10%;
+    }
+
+    .inf-work_wrap {
+        padding-right: 5rem;
+    }
+}
+
+@media screen and (max-width: 767px) {
+    /* Header mobile */
+    .global-head {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: var(--modern-white);
+        padding: 1rem 0.625rem;
+        z-index: 10;
+    }
+
+    .work-col.is-static {
+        position: fixed;
+        top: 42px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: auto;
+        padding: 0.5rem 0.625rem;
+        background: var(--modern-white);
+        z-index: 9;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 0.25rem 0.75rem;
+        display: flex;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .work-toggle_holder {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.25rem 0.5rem;
+    }
+
+    .toggle-cat_wrap {
+        margin-top: 0;
+    }
+
+    .toggle-cat_list {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.25rem 0.5rem;
+    }
+
+    /* Hide info holder on mobile */
+    .image-grid-info_holder {
+        display: none;
+    }
+
+    /* Hide counter on mobile */
+    .work-col.is-static .work-toggle_holder:last-child {
+        display: none;
+    }
+
+    .work-layout {
+        flex-direction: column;
+        padding: 95px 0.625rem 0;
+    }
+
+    .work-col.is-work {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .inf-work_wrap {
+        padding-right: 0;
+    }
+
+    .inf-work_list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .inf-work_item {
+        width: 100%;
+        position: relative;
+        opacity: 1;
+    }
+
+    .inf-work_item:nth-child(2n) {
+        left: 0;
+    }
+
+    /* Mobile description - hidden by default */
+    .inf-work_item::after {
+        content: attr(work-copy);
+        display: block;
+        padding: 0;
+        max-height: 0;
+        overflow: hidden;
+        font-family: inherit;
+        font-size: 10px;
+        line-height: 1.4;
+        color: var(--modern-grey);
+        transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+
+    .inf-work_item.show-description::after {
+        max-height: 100px;
+        padding-top: 0.25rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .menu-btn {
+        top: 1rem;
+        right: 0.625rem;
+        transform: none;
+    }
+
+    /* Empty state mobile */
+    .modern-empty-state {
+        min-height: 60vh;
+    }
+
+    .modern-empty-state__icon {
+        font-size: 3rem;
+    }
+
+    .modern-empty-state__title {
+        font-size: 1.25rem;
+    }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.paragraph {
+    font-size: 0.875rem;
+    line-height: 1.4;
+}

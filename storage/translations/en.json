@@ -266,5 +266,17 @@
   },
   "image": {
     "image.download": "Download"
+  },
+  "home_modern": {
+    "frontend.home_modern.all_work": "All work",
+    "frontend.home_modern.albums": "Albums",
+    "frontend.home_modern.close": "Close",
+    "frontend.home_modern.empty_title": "No albums yet",
+    "frontend.home_modern.empty_text": "Check back soon for new content."
+  },
+  "menu": {
+    "frontend.menu.home": "Home",
+    "frontend.menu.galleries": "Galleries",
+    "frontend.menu.about": "About"
   }
 }
