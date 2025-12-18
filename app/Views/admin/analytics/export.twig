@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show feedback
     const button = form.querySelector('button[type="submit"]');
     const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>{{ trans('admin.analytics.export.generating') }}';
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>{{ trans('admin.analytics.export.generating')|e('js') }}';
     button.disabled = true;
   });
   
@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Show loading state
       const originalText = this.innerHTML;
-      this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>{{ trans('admin.analytics.export.loading') }}';
+      this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>{{ trans('admin.analytics.export.loading')|e('js') }}';
       const originalClasses = this.className;
       this.className = originalClasses.replace('btn-secondary', 'btn-primary');
       

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "40c5ce83d02e836fe525ee58c7817df9",
+    "content-hash": "f2c562895c1c5bbe4222115fd86de9ee",
     "packages": [
         {
             "name": "composer/ca-bundle",
@@ -193,6 +193,58 @@
             "time": "2025-05-05T21:18:27+00:00"
         },
         {
+            "name": "google/recaptcha",
+            "version": "1.3.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/google/recaptcha.git",
+                "reference": "56522c261d2e8c58ba416c90f81a4cd9f2ed89b9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/google/recaptcha/zipball/56522c261d2e8c58ba416c90f81a4cd9f2ed89b9",
+                "reference": "56522c261d2e8c58ba416c90f81a4cd9f2ed89b9",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.14",
+                "php-coveralls/php-coveralls": "^2.5",
+                "phpunit/phpunit": "^10"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.3.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "ReCaptcha\\": "src/ReCaptcha"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "description": "Client library for reCAPTCHA, a free service that protects websites from spam and abuse.",
+            "homepage": "https://www.google.com/recaptcha/",
+            "keywords": [
+                "Abuse",
+                "captcha",
+                "recaptcha",
+                "spam"
+            ],
+            "support": {
+                "forum": "https://groups.google.com/forum/#!forum/recaptcha",
+                "issues": "https://github.com/google/recaptcha/issues",
+                "source": "https://github.com/google/recaptcha"
+            },
+            "time": "2025-06-26T22:21:57+00:00"
+        },
+        {
             "name": "graham-campbell/result-type",
             "version": "v1.1.3",
             "source": {
@@ -253,6 +305,79 @@
                 }
             ],
             "time": "2024-07-20T21:45:45+00:00"
+        },
+        {
+            "name": "icamys/php-sitemap-generator",
+            "version": "5.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/icamys/php-sitemap-generator.git",
+                "reference": "18bab7bb96fe278486da9c6efea6b865bd6de58b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/icamys/php-sitemap-generator/zipball/18bab7bb96fe278486da9c6efea6b865bd6de58b",
+                "reference": "18bab7bb96fe278486da9c6efea6b865bd6de58b",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-dom": "*",
+                "ext-mbstring": "*",
+                "ext-simplexml": "*",
+                "ext-spl": "*",
+                "ext-xml": "*",
+                "ext-xmlwriter": "*",
+                "ext-zlib": "*",
+                "php": "^8.0"
+            },
+            "require-dev": {
+                "php-mock/php-mock-phpunit": "^2.7",
+                "phpunit/phpunit": "^9.6",
+                "vimeo/psalm": "^5.15"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Icamys\\SitemapGenerator\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Dmitrii Prisacari",
+                    "email": "prisacari.dmitrii@gmail.com",
+                    "homepage": "https://github.com/icamys/"
+                }
+            ],
+            "description": "Simple PHP sitemap generator.",
+            "homepage": "https://github.com/icamys/php-sitemap-generator",
+            "keywords": [
+                "PSR-1",
+                "PSR-2",
+                "PSR-4",
+                "Sitemap",
+                "generator",
+                "php"
+            ],
+            "support": {
+                "issues": "https://github.com/icamys/php-sitemap-generator/issues",
+                "source": "https://github.com/icamys/php-sitemap-generator/tree/5.0.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/icamys",
+                    "type": "github"
+                },
+                {
+                    "url": "https://www.patreon.com/icamys",
+                    "type": "patreon"
+                }
+            ],
+            "time": "2023-10-23T20:29:53+00:00"
         },
         {
             "name": "maxmind-db/reader",

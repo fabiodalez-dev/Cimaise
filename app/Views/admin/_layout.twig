@@ -1,13 +1,43 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ admin_language|default('en')|e('html_attr') }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Admin — Cimaise{% endblock %}</title>
+  <!-- Favicon & App Icons -->
+  <link rel="icon" type="image/x-icon" href="{{ base_path }}/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base_path }}/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base_path }}/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/apple-touch-icon.png">
   <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/admin.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
-  <script nonce="{{ csp_nonce() }}">window.basePath = '{{ base_path }}'; window.cspNonce = '{{ csp_nonce() }}';</script>
+  <script nonce="{{ csp_nonce() }}">
+    window.basePath = '{{ base_path|e('js') }}';
+    window.cspNonce = '{{ csp_nonce()|e('js') }}';
+
+    // Admin i18n for static JS bundles
+    // `admin_translations` is injected server-side in public/index.php when $isAdminRoute is true.
+    window.adminTranslations = {{ (admin_translations|default({}))|json_encode|raw }};
+
+    window.adminT = function(key, fallback) {
+      if (window.adminTranslations && Object.prototype.hasOwnProperty.call(window.adminTranslations, key)) {
+        return window.adminTranslations[key];
+      }
+      return fallback || key;
+    };
+
+    window.adminTf = function(key, params, fallback) {
+      const tpl = window.adminT(key, fallback);
+      let out = String(tpl ?? '');
+      if (params && typeof params === 'object') {
+        Object.keys(params).forEach((k) => {
+          out = out.replaceAll(`{${k}}`, String(params[k]));
+        });
+      }
+      return out;
+    };
+  </script>
   <style nonce="{{ csp_nonce() }}">
     body {
       margin: 0;
@@ -683,7 +713,7 @@
           
           if (newPassword !== confirmPassword) {
             e.preventDefault();
-            showToast('{{ trans('admin.profile.passwords_no_match') }}', 'error');
+            showToast('{{ trans('admin.profile.passwords_no_match')|e('js') }}', 'error');
             return false;
           }
         });
@@ -963,7 +993,7 @@
         } catch (error) {
           console.error('Failed to load page content:', error);
           hideLoading();
-          showToast('{{ trans('admin.common.page_load_error') }}', 'error');
+          showToast('{{ trans('admin.common.page_load_error')|e('js') }}', 'error');
           
           // Fallback to full page load
           setTimeout(() => {
@@ -988,7 +1018,23 @@
         if (window.AdminInit) {
           try { window.AdminInit(); } catch(e) { console.error('Admin init failed', e); }
         } else {
-          console.warn('SPA: AdminInit function not found');
+          // The Vite module script is deferred and might not have executed yet on first load.
+          // Schedule a short retry loop so we reliably init once the bundle attaches window.AdminInit.
+          if (!window._adminInitWaiter) {
+            console.warn('SPA: AdminInit function not found (will retry)');
+            const start = Date.now();
+            window._adminInitWaiter = window.setInterval(() => {
+              if (window.AdminInit) {
+                window.clearInterval(window._adminInitWaiter);
+                window._adminInitWaiter = null;
+                try { window.AdminInit(); } catch(e) { console.error('Admin init failed', e); }
+              } else if (Date.now() - start > 5000) {
+                window.clearInterval(window._adminInitWaiter);
+                window._adminInitWaiter = null;
+                console.warn('SPA: AdminInit still missing after 5s');
+              }
+            }, 50);
+          }
         }
         
         // Initialize any page-specific components
@@ -1161,7 +1207,7 @@
         const id = e.target.getAttribute('data-delete-id');
         const itemName = e.target.getAttribute('data-item-name') || 'item';
         
-        if (confirm('{{ trans('admin.common.confirm_delete') }}')) {
+        if (confirm('{{ trans('admin.common.confirm_delete')|e('js') }}')) {
           // Handle delete action
           console.log(`Deleting ${itemName} with ID: ${id}`);
         }

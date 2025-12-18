@@ -122,6 +122,19 @@
             </div>
           </div>
           <p class="text-xs text-gray-500 mt-2">{{ trans('admin.settings.logo_hint') }}</p>
+
+          <!-- Favicon Generation -->
+          <div class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h4 class="text-sm font-medium text-gray-900 mb-2">{{ trans('admin.settings.generate_favicons') }}</h4>
+            <p class="text-xs text-gray-600 mb-3">{{ trans('admin.settings.generate_favicons_desc') }}</p>
+            <button type="submit" formaction="{{ base_path }}/admin/settings/generate-favicons" formmethod="post" class="btn-secondary text-sm {{ settings['site.logo'] ? '' : 'opacity-50 cursor-not-allowed' }}" {{ settings['site.logo'] ? '' : 'disabled' }}>
+              <i class="fas fa-magic mr-2"></i>{{ trans('admin.settings.generate_favicons_button') }}
+            </button>
+            <p class="text-xs text-gray-500 mt-2"><i class="fas fa-info-circle mr-1"></i>{{ trans('admin.settings.favicons_dont_save_note') }}</p>
+            {% if not settings['site.logo'] %}
+              <p class="text-xs text-amber-600 mt-2"><i class="fas fa-info-circle mr-1"></i>{{ trans('admin.settings.upload_logo_first') }}</p>
+            {% endif %}
+          </div>
         </div>
 
         <!-- Other Site Settings (Grid Layout) -->
@@ -133,12 +146,12 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.site_description') }}</label>
-            <input type="text" name="site_description" value="{{ settings['site.description'] ?? 'Professional Photography Portfolio' }}" class="form-input">
+            <input type="text" name="site_description" value="{{ settings['site.description'] ?? trans('admin.settings.site_description_default') }}" class="form-input">
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.copyright') }}</label>
-            <input type="text" name="site_copyright" value="{{ settings['site.copyright'] ?? '© {year} Photography Portfolio' }}" class="form-input">
+            <input type="text" name="site_copyright" value="{{ settings['site.copyright'] ?? trans('admin.settings.copyright_default') }}" class="form-input">
             <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.copyright_hint') }}</p>
           </div>
 
@@ -150,7 +163,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.date_format') }}</label>
             <select name="date_format" class="form-input">
-              <option value="Y-m-d" {{ settings['date.format']|default('Y-m-d') == 'Y-m-d' ? 'selected' }}>ISO (YYYY-MM-DD)</option>
+              <option value="Y-m-d" {{ settings['date.format']|default('Y-m-d') == 'Y-m-d' ? 'selected' }}>{{ trans('admin.settings.date_format_iso') }}</option>
               <option value="d-m-Y" {{ settings['date.format'] == 'd-m-Y' ? 'selected' }}>{{ trans('admin.settings.european') }} (DD-MM-YYYY)</option>
             </select>
             <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.date_format_hint') }}</p>
@@ -158,8 +171,8 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.frontend_language') }}</label>
             <select name="site_language" class="form-input">
-              <option value="en" {{ settings['site.language']|default('en') == 'en' ? 'selected' }}>English</option>
-              <option value="it" {{ settings['site.language'] == 'it' ? 'selected' }}>Italiano</option>
+              <option value="en" {{ settings['site.language']|default('en') == 'en' ? 'selected' }}>{{ trans('admin.settings.language_en') }}</option>
+              <option value="it" {{ settings['site.language'] == 'it' ? 'selected' }}>{{ trans('admin.settings.language_it') }}</option>
             </select>
             <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.frontend_language_hint') }}</p>
           </div>
@@ -224,8 +237,8 @@
             {% endfor %}
           </select>
           <p class="text-xs text-gray-500 mt-1">
-            Template used when an album has no specific template assigned.
-            {% if disableDefault %}<br>With <strong>Magazine Split</strong> as page layout, this selector is not applicable and is disabled.{% endif %}
+            {{ trans('admin.settings.default_template_help') }}
+            {% if disableDefault %}<br>{{ trans('admin.settings.magazine_disables_default') }}{% endif %}
           </p>
         </div>
       </div>
@@ -245,6 +258,42 @@
             <span class="ml-3">
               <span class="text-sm font-medium text-gray-900 block">{{ trans('admin.settings.show_exif') }}</span>
               <span class="text-xs text-gray-600 block mt-1">{{ trans('admin.settings.show_exif_desc') }}</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- reCAPTCHA Settings -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-shield-alt mr-3 text-gray-600"></i>
+          {{ trans('admin.settings.recaptcha_title') }}
+        </h3>
+
+        <p class="text-sm text-gray-600 mb-6">{{ trans('admin.settings.recaptcha_desc') }} <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener" class="text-blue-600 hover:underline">google.com/recaptcha/admin</a></p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.recaptcha_site_key') }}</label>
+            <input type="text" name="recaptcha_site_key" value="{{ settings['recaptcha.site_key'] ?? '' }}" class="form-input font-mono text-sm" placeholder="6Lc...">
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.recaptcha_site_key_hint') }}</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.recaptcha_secret_key') }}</label>
+            <input type="password" name="recaptcha_secret_key" value="" class="form-input font-mono text-sm" placeholder="{{ settings['recaptcha.secret_key'] ? '••••••••••••••••' : '6Lc...' }}" autocomplete="off">
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.recaptcha_secret_key_hint') }}</p>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <label class="flex items-start">
+            <input type="checkbox" name="recaptcha_enabled" id="recaptcha_enabled" class="rounded border-gray-300 text-black focus:ring-black mt-1" {% if settings['recaptcha.enabled'] %}checked{% endif %}>
+            <span class="ml-3">
+              <span class="text-sm font-medium text-gray-900 block">{{ trans('admin.settings.recaptcha_enabled') }}</span>
+              <span class="text-xs text-gray-600 block mt-1">{{ trans('admin.settings.recaptcha_enabled_hint') }}</span>
             </span>
           </label>
         </div>
@@ -289,20 +338,19 @@
         </h3>
         <p class="text-sm text-gray-600 mb-4">{{ trans('admin.settings.generate_variants_desc') }}</p>
 
-        <form id="generate-images-form" method="post" action="{{ base_path }}/admin/settings/generate-images" class="border-t border-gray-200 pt-4">
-          <input type="hidden" name="csrf" value="{{ csrf }}">
-          <button id="generate-btn" type="submit" class="btn-secondary">
+        <div id="generate-images" class="border-t border-gray-200 pt-4">
+          <button id="generate-btn" type="button" class="btn-secondary" data-endpoint="{{ base_path }}/admin/settings/generate-images">
             <i id="generate-icon" class="fas fa-images mr-2"></i>
             <span id="generate-text">{{ trans('admin.settings.generate_variants') }}</span>
           </button>
           <div id="generate-status" class="mt-2 hidden">
             <div class="text-xs text-blue-600 flex items-center">
               <i class="fas fa-spinner fa-spin mr-2"></i>
-              <span>Generation in progress... This operation may take a few minutes.</span>
+              <span>{{ trans('admin.settings.generation_in_progress') }}</span>
             </div>
           </div>
           <div id="generate-result" class="mt-2 hidden"></div>
-        </form>
+        </div>
       </div>
     </div>
     
@@ -335,12 +383,11 @@
 <script nonce="{{ csp_nonce() }}">
 // Image generation form handler - attached via addEventListener for CSP compliance
 document.addEventListener('DOMContentLoaded', function() {
-  const generateForm = document.getElementById('generate-images-form');
-  if (generateForm) {
-    generateForm.addEventListener('submit', function(event) {
-      event.preventDefault();
+  const btn = document.getElementById('generate-btn');
+  if (btn) {
+    btn.addEventListener('click', function() {
 
-      const confirmMessage = '{{ (trans('admin.settings.confirm_generate') ?? 'Generate image variants? This operation may take a few minutes.')|e('html_attr') }}';
+      const confirmMessage = '{{ trans('admin.settings.confirm_generate')|e('js') }}';
       if (!confirm(confirmMessage)) {
         return;
       }
@@ -354,15 +401,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
       btn.disabled = true;
       icon.className = 'fas fa-spinner fa-spin mr-2';
-      text.textContent = '{{ trans('admin.settings.generating')|default('Generating...')|e('html_attr') }}';
+      text.textContent = '{{ trans('admin.settings.generating')|e('js') }}';
       status.classList.remove('hidden');
       result.classList.add('hidden');
 
-      // Submit form via fetch
-      const formData = new FormData(generateForm);
+      // Submit request via fetch (no nested form; reuse CSRF from settings-form)
+      const csrf = document.querySelector('#settings-form input[name=\"csrf\"]')?.value || '';
+      const endpoint = btn.getAttribute('data-endpoint') || '{{ base_path }}/admin/settings/generate-images';
+      const formData = new FormData();
+      formData.append('csrf', csrf);
 
-      fetch(generateForm.action, {
+      fetch(endpoint, {
         method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
         body: formData
       })
       .then(response => {
@@ -375,16 +429,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset button state
         btn.disabled = false;
         icon.className = 'fas fa-images mr-2';
-        text.textContent = '{{ trans('admin.settings.generate_variants')|e('html_attr') }}';
+        text.textContent = '{{ trans('admin.settings.generate_variants')|e('js') }}';
         status.classList.add('hidden');
 
         // Validate backend response
         if (data.error || data.success === false) {
-          throw new Error(data.message || data.error || 'Generation failed');
+          throw new Error(data.message || data.error || '{{ trans('admin.settings.generation_failed')|e('js') }}');
         }
 
-        const message = data.message || '{{ trans('admin.settings.generate_started')|default('Generation process started! It may take a few minutes.')|e('html_attr') }}';
-        result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span>' + message + '</span></div>';
+        const message = data.message || '{{ trans('admin.settings.generate_started')|e('js') }}';
+        result.innerHTML = '<div class="text-xs text-blue-600 flex items-center"><i class="fas fa-info-circle mr-2"></i><span></span></div>';
+        const msgSpan = result.querySelector('span');
+        if (msgSpan) msgSpan.textContent = message;
         result.classList.remove('hidden');
 
         // Hide result after 10 seconds
@@ -396,11 +452,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset button state
         btn.disabled = false;
         icon.className = 'fas fa-images mr-2';
-        text.textContent = '{{ trans('admin.settings.generate_variants')|e('html_attr') }}';
+        text.textContent = '{{ trans('admin.settings.generate_variants')|e('js') }}';
         status.classList.add('hidden');
 
         // Show error result
-        result.innerHTML = `<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span>{{ trans('admin.settings.generate_error')|default('Error starting generation')|e('html_attr') }}: ${error.message}</span></div>`;
+        result.innerHTML = `<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span></span></div>`;
+        const errSpan = result.querySelector('span');
+        if (errSpan) errSpan.textContent = `{{ trans('admin.settings.generate_error')|e('js') }}: ${error.message}`;
         result.classList.remove('hidden');
       });
     });
@@ -445,7 +503,10 @@ function updateDefaultTemplateSelector(selectedValue) {
       if (!msg) {
         msg = document.createElement('div');
         msg.className = 'template-disabled-message text-xs text-gray-500 mt-2 p-3 bg-gray-50 rounded border border-gray-200';
-        msg.innerHTML = '<i class="fas fa-info-circle mr-1"></i>With <strong>Magazine Split</strong> as page layout, this selector is not applicable and is disabled.';
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-info-circle mr-1';
+        msg.appendChild(icon);
+        msg.appendChild(document.createTextNode('{{ trans('admin.settings.magazine_disables_default')|e('js') }}'));
         defaultTemplateContainer.appendChild(msg);
       }
       msg.style.display = 'block';

@@ -490,7 +490,7 @@
         </div>
         <div class="px-5 py-3 border-t flex items-center justify-end gap-2">
           <button type="button" id="image-cancel" class="btn-secondary">{{ trans('admin.common.cancel') }}</button>
-          <button type="submit" class="btn-primary">Save</button>
+          <button type="submit" class="btn-primary">{{ trans('admin.common.save') }}</button>
         </div>
       </form>
     </div>
@@ -501,20 +501,27 @@
   
   <script nonce="{{ csp_nonce() }}">
     // Album create page initialization - Compatible with SPA
-    function initializeAlbumCreatePage() {
-      // Prevent double initialization
-      if (window.albumCreatePageInitialized) {
-        console.log('Album create page already initialized, skipping...');
-        return;
+    const t = (key) => (typeof window !== 'undefined' && typeof window.adminT === 'function' ? window.adminT(key) : key);
+    const tf = (key, params = {}) => {
+      if (typeof window !== 'undefined' && typeof window.adminTf === 'function') {
+        return window.adminTf(key, params);
       }
-      
+      let out = t(key);
+      try {
+        Object.keys(params || {}).forEach((param) => {
+          out = String(out).replaceAll(`{${param}}`, String(params[param]));
+        });
+      } catch (e) {}
+      return out;
+    };
+
+    function initializeAlbumCreatePage() {
       console.log('Initializing Album create page...');
-      
+
       // Initialize upload functionality
+      // Note: Double-init protection is handled at element level via uploader._uploadInitialized
       initUploadFunctionality();
-      
-      // Mark as initialized
-      window.albumCreatePageInitialized = true;
+
       console.log('Album create page initialization completed');
     }
     
@@ -598,16 +605,18 @@
             <span class="text-sm text-gray-700 truncate flex-1 mr-2" title="${safeName}">
               <i class="fas fa-image text-gray-400 mr-2"></i>${safeName}
             </span>
-            <span class="text-xs text-gray-500 file-status">Waiting...</span>
+            <span class="text-xs text-gray-500 file-status"></span>
           </div>
           <div class="w-full bg-gray-100 rounded-full h-1.5">
             <div class="file-progress-bar bg-gray-400 h-1.5 rounded-full transition-all duration-150" style="width: 0%"></div>
           </div>
         `;
+        const statusEl = div.querySelector('.file-status');
+        if (statusEl) statusEl.textContent = t('admin.upload.queued');
         return div;
       }
 
-      function updateFileProgress(index, percent, status) {
+      function updateFileProgress(index, percent, statusText, statusType = 'default') {
         const div = document.getElementById(`file-progress-${index}`);
         if (!div) return;
 
@@ -616,20 +625,21 @@
 
         if (bar) {
           bar.style.width = `${percent}%`;
-          if (percent > 0 && percent < 100) {
-            bar.className = 'file-progress-bar bg-black h-1.5 rounded-full transition-all duration-150';
-          } else if (percent >= 100) {
+          if (statusType === 'error') {
+            bar.className = 'file-progress-bar bg-red-500 h-1.5 rounded-full transition-all duration-150';
+          } else if (statusType === 'complete') {
             bar.className = 'file-progress-bar bg-green-500 h-1.5 rounded-full transition-all duration-150';
+          } else if (percent > 0 && percent < 100) {
+            bar.className = 'file-progress-bar bg-black h-1.5 rounded-full transition-all duration-150';
           }
         }
 
-        if (statusEl && status) {
-          statusEl.textContent = status;
-          if (status.includes('Completed')) {
+        if (statusEl && statusText) {
+          statusEl.textContent = statusText;
+          if (statusType === 'complete') {
             statusEl.className = 'text-xs text-green-600 file-status';
-          } else if (status.includes('Error')) {
+          } else if (statusType === 'error') {
             statusEl.className = 'text-xs text-red-600 file-status';
-            if (bar) bar.className = 'file-progress-bar bg-red-500 h-1.5 rounded-full transition-all duration-150';
           } else {
             statusEl.className = 'text-xs text-gray-500 file-status';
           }
@@ -648,17 +658,23 @@
 
         // Use the thumbnail from response or create from file
         let imgSrc = '';
-        if (imageData && imageData.thumb) {
+        if (imageData && imageData.image && imageData.image.preview_url) {
+          imgSrc = `{{ base_path }}${imageData.image.preview_url}`;
+        } else if (imageData && imageData.thumb) {
           imgSrc = `{{ base_path }}${imageData.thumb}`;
         } else if (file) {
           imgSrc = URL.createObjectURL(file);
         }
 
         if (imgSrc) {
-          thumb.innerHTML = `
-            <img src="${imgSrc}" alt="" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition"></div>
-          `;
+          const img = document.createElement('img');
+          img.src = imgSrc;
+          img.alt = tf('admin.albums.upload_preview_alt', { name: file?.name || '' });
+          img.className = 'w-full h-full object-cover';
+          thumb.appendChild(img);
+          const overlay = document.createElement('div');
+          overlay.className = 'absolute inset-0 bg-black/0 group-hover:bg-black/20 transition';
+          thumb.appendChild(overlay);
         } else {
           thumb.innerHTML = `
             <div class="w-full h-full flex items-center justify-center">
@@ -694,19 +710,19 @@
         // Update submit button text
         const submitBtn = document.querySelector('button[type="submit"][form="album-form"]');
         if (submitBtn) {
-          submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save Album';
+          submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>{{ trans('admin.albums.save_album')|e('js') }}';
         }
 
         // Update page title
         const pageTitle = document.querySelector('h1.text-3xl');
         if (pageTitle) {
-          pageTitle.textContent = 'Edit Album';
+          pageTitle.textContent = t('admin.albums.edit_album');
         }
 
         // Update uploader text
         const uploaderText = uploader.querySelector('.text-xs.text-blue-600');
         if (uploaderText) {
-          uploaderText.textContent = 'Drop more images to add to album';
+          uploaderText.textContent = t('admin.albums.drop_more_hint');
         }
 
         // Add "Continue to full edit" button in footer
@@ -716,7 +732,7 @@
           continueBtn.id = 'continue-edit-btn';
           continueBtn.href = `{{ base_path }}/admin/albums/${albumId}/edit`;
           continueBtn.className = 'btn-secondary';
-          continueBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Full Edit Page';
+          continueBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>{{ trans('admin.albums.full_edit_page')|e('js') }}';
           footerActions.appendChild(continueBtn);
         }
       }
@@ -740,7 +756,10 @@
         let title = (formData.get('title') || '').toString().trim();
         if (!title) {
           const d = new Date();
-          title = 'Album ' + d.toLocaleDateString('it-IT') + ' ' + d.toLocaleTimeString('it-IT');
+          const lang = (document.documentElement && document.documentElement.lang) ? document.documentElement.lang : 'en';
+          const date = d.toLocaleDateString(lang);
+          const time = d.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
+          title = tf('admin.albums.default_title', { date, time });
           formData.set('title', title);
         }
         // Build payload
@@ -752,12 +771,13 @@
       async function ensureAlbumId(){
         if (createdAlbumId) return createdAlbumId;
         
-        showProgress('Creating album...');
+        showProgress('{{ trans('admin.albums.creating_album')|e('js') }}');
         
         let body;
         try { body = prepareCreatePayload(); } catch(e){
           if (e && e.message === 'missing_category') {
-            if (window.showToast) showToast('Select at least one Category', 'error'); else alert('Select at least one Category');
+            const msg = '{{ trans('admin.albums.select_category')|e('js') }}';
+            if (window.showToast) showToast(msg, 'error'); else alert(msg);
             hideProgress();
             throw e;
           }
@@ -848,25 +868,25 @@
 
           xhr.addEventListener('load', () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-              updateFileProgress(index, 100, 'Completed ✓');
+              updateFileProgress(index, 100, t('admin.upload.completed') + ' ✓', 'complete');
               try {
                 resolve(JSON.parse(xhr.responseText));
               } catch {
                 resolve({});
               }
             } else {
-              updateFileProgress(index, 100, 'Error ✗');
+              updateFileProgress(index, 100, t('admin.common.error') + ' ✗', 'error');
               reject(new Error(`Upload failed: ${xhr.status}`));
             }
           });
 
           xhr.addEventListener('error', () => {
-            updateFileProgress(index, 100, 'Error ✗');
+            updateFileProgress(index, 100, t('admin.common.error') + ' ✗', 'error');
             reject(new Error('Network error'));
           });
 
           xhr.addEventListener('timeout', () => {
-            updateFileProgress(index, 0, 'Timeout ✗');
+            updateFileProgress(index, 0, t('admin.upload.timeout') + ' ✗', 'error');
             reject(new Error('Upload timeout'));
           });
 
@@ -875,7 +895,7 @@
           xhr.setRequestHeader('Accept', 'application/json');
           xhr.send(fd);
 
-          updateFileProgress(index, 0, 'Uploading...');
+          updateFileProgress(index, 0, t('admin.upload.uploading'));
         });
       }
 
@@ -888,7 +908,8 @@
         const cats = fdCheck.getAll('categories[]');
         const hasCat = cats && cats.length > 0;
         if (!hasCat) {
-          if (window.showToast) showToast('Select at least one Category', 'error'); else alert('Select at least one Category');
+          const msg = '{{ trans('admin.albums.select_category')|e('js') }}';
+          if (window.showToast) showToast(msg, 'error'); else alert(msg);
           return;
         }
 
@@ -903,7 +924,7 @@
           });
         }
 
-        showProgress('Preparing upload...');
+        showProgress('{{ trans('admin.albums.preparing_upload')|e('js') }}');
         updateTotalProgress(0, files.length);
 
         try {
@@ -917,7 +938,7 @@
           // Upload files sequentially with visual progress
           for (let i = 0; i < files.length; i++) {
             const f = files[i];
-            showProgress(`Uploading ${i + 1} of ${files.length}...`);
+            showProgress(tf('admin.albums.uploading_progress', { current: i + 1, total: files.length }));
 
             try {
               const result = await uploadFileWithProgress(f, id, i);
@@ -940,7 +961,7 @@
 
           // Set first image as cover (only on first batch)
           if (firstImageId && totalUploadedImages === 0) {
-            showProgress('Setting cover...');
+            showProgress(t('admin.albums.setting_cover'));
             try {
               const coverRes = await fetch(`{{ base_path }}/admin/albums/${id}/cover/${firstImageId}`, {
                 method: 'POST',
@@ -963,11 +984,11 @@
           // Update form to work as edit form after first upload
           updateFormForEdit(id);
 
-          showProgress('Upload complete!');
+          showProgress(t('admin.albums.upload_complete'));
 
           // Show success message if available
           if (window.showToast) {
-            showToast(`${files.length} images uploaded!`, 'success');
+            showToast(tf('admin.albums.images_uploaded', { count: files.length }), 'success');
           }
 
           // Hide progress after a short delay and re-enable uploader
@@ -979,12 +1000,10 @@
 
         } catch (error) {
           console.error('Upload error:', error);
-          const message = error.message || 'Error during upload';
-          if (window.showToast) {
-            showToast(message, 'error');
-          } else {
-            alert(message);
-          }
+          try { console.warn('[Album upload error]', error && error.message ? error.message : error); } catch (e) {}
+          const message = t('admin.albums.upload_error_generic');
+          if (window.showToast) showToast(message, 'error');
+          else alert(message);
 
           hideProgress();
           isUploading = false;
