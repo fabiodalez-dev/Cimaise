@@ -10,12 +10,12 @@
       {% set repeats = 6 %}
       {% for r in 1..repeats %}
         {% for album in albums %}
-          <div class="album-carousel-item flex-shrink-0 w-80 md:w-96 mx-4
+          <div class="album-carousel-item flex-shrink-0 w-80 md:w-96">
             {% include "frontend/_album_card.twig" %}
           </div>
         {% endfor %}
       {% endfor %}
-        <div class="album-carousel-item flex-shrink-0 w-16 md:w-24 mx-12"></div>
+      <div class="album-carousel-item flex-shrink-0 w-16 md:w-24"></div>
     </div>
     <div class="albums-edge-left"></div>
     <div class="albums-edge-right"></div>

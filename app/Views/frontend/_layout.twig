@@ -10,8 +10,11 @@
     {% endif %}
 
     <!-- Favicon & App Icons -->
-    <link rel="icon" type="image/x-icon" href="{{ base_path }}/assets/favico.ico">
-    <link rel="apple-touch-icon" href="{{ base_path }}/assets/favico.ico">
+    <link rel="icon" type="image/x-icon" href="{{ base_path }}/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ base_path }}/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ base_path }}/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/apple-touch-icon.png">
+    <link rel="manifest" href="{{ base_path }}/site.webmanifest">
     <meta name="theme-color" content="#ffffff">
 
     <!-- Preconnect for External Resources (includes dns-prefetch in modern browsers) -->
@@ -158,7 +161,7 @@
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
     
     <!-- JS flag class on <html> if needed elsewhere -->
-    <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); })();</script>
+    <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
     
     <!-- Custom styles -->
     <style>
@@ -1743,17 +1746,22 @@
                                   const esc = (s)=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                                   const head = esc(ds.title || ds.alt || '');
                                   const piece = (icon, val) => val ? `<span class="inline-flex items-center"><i class="${icon} mr-1"></i>${esc(val)}</span>` : '';
-                                  const line = [
+                                  // Equipment data (always shown)
+                                  const equipment = [
                                     piece('fas fa-camera', ds.camera),
                                     piece('fas fa-dot-circle', ds.lens),
                                     piece('fas fa-film', ds.film),
                                     piece('fas fa-flask', ds.developer),
                                     piece('fas fa-industry', ds.lab),
-                                    piece('fas fa-map-marker-alt', ds.location),
+                                    piece('fas fa-map-marker-alt', ds.location)
+                                  ].filter(Boolean);
+                                  // EXIF data (only shown if setting enabled)
+                                  const exif = window.__showExifInLightbox ? [
                                     piece('fas fa-signal', ds.iso ? ('ISO ' + ds.iso) : ''),
                                     piece('far fa-clock', ds.shutter),
                                     piece('fas fa-circle-half-stroke', ds.aperture ? ('f/' + ds.aperture) : '')
-                                  ].filter(Boolean).join(' ');
+                                  ].filter(Boolean) : [];
+                                  const line = [...equipment, ...exif].join(' ');
                                   const html = (head ? `<div class="mb-1 text-black">${head}</div>` : '') + (line ? `<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">${line}</div>` : '');
                                   el.innerHTML = html;
                                   el.style.opacity = html.trim() ? '1' : '0';

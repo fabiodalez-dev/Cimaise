@@ -282,8 +282,8 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.recaptcha_secret_key', {}, 'Secret Key (Private)') }}</label>
-            <input type="password" name="recaptcha_secret_key" value="{{ settings['recaptcha.secret_key'] ?? '' }}" class="form-input font-mono text-sm" placeholder="6Lc..." autocomplete="off">
-            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.recaptcha_secret_key_hint', {}, 'Private key for server-side verification') }}</p>
+            <input type="password" name="recaptcha_secret_key" value="" class="form-input font-mono text-sm" placeholder="{{ settings['recaptcha.secret_key'] ? '••••••••••••••••' : '6Lc...' }}" autocomplete="off">
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.recaptcha_secret_key_hint', {}, 'Private key for server-side verification. Leave empty to keep existing key.') }}</p>
           </div>
         </div>
 

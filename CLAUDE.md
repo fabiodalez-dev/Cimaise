@@ -64,7 +64,7 @@ photoCMS/
 ├── app/
 │   ├── Config/              # Routes and configuration
 │   ├── Controllers/
-│   │   ├── Admin/           # Admin panel controllers (28 controllers)
+│   │   ├── Admin/           # Admin panel controllers (29 controllers)
 │   │   └── Frontend/        # Public-facing controllers
 │   ├── Extensions/          # Twig extensions
 │   ├── Installer/           # Installation logic
@@ -105,6 +105,7 @@ photoCMS/
 - `public/index.php` - Application bootstrap with auto-repair logic and base path detection
 - `public/router.php` - PHP built-in server router (routes /media/* through PHP for access control)
 - `app/Config/routes.php` - All route definitions (120+ routes including protected media)
+- `app/Controllers/BaseController.php` - Base controller with helper methods (validateCsrf, csrfErrorJson, isAjaxRequest, isAdmin, redirect with base path handling)
 - `app/Controllers/Frontend/MediaController.php` - Server-side protected media serving with session validation
 - `app/Controllers/Frontend/GalleriesController.php` - Advanced filtering for galleries (category, tags, cameras, lenses, films, locations, year, search)
 - `app/Controllers/InstallerController.php` - Multi-step installer with session-based config storage
@@ -114,8 +115,10 @@ photoCMS/
 - `app/Services/SettingsService.php` - Settings management with JSON storage, defaults, and type tracking (null/boolean/number/string)
 - `app/Services/TranslationService.php` - i18n with dual-scope support (frontend/admin), JSON storage (storage/translations/), separate language tracking
 - `app/Controllers/Admin/TextsController.php` - Translation management with import/export, search/filter, scope selector, server-side language dropdown via `getAvailableLanguages()`, and preset language support
+- `app/Controllers/Admin/SeoController.php` - SEO settings management with Open Graph, Twitter Cards, Schema.org (Person, Organization, LocalBusiness), analytics integration (Google Tag Manager, GA4), image metadata, and sitemap generation
 - `app/Controllers/Admin/SocialController.php` - Social sharing settings management with network enable/disable, ordering, AJAX/form support
 - `app/Controllers/Admin/TemplatesController.php` - Gallery template management (edit only, creation/deletion disabled) with responsive column configuration, layout settings, PhotoSwipe options, and magazine-specific animations
+- `app/Controllers/Admin/SettingsController.php` - Site settings with image formats/quality/breakpoints, gallery templates, date format, site language, reCAPTCHA configuration (requires both site and secret keys), performance settings, favicon generation
 - `app/Extensions/DateTwigExtension.php` - Twig extension for date formatting (filters: date_format, datetime_format, replace_year; functions: date_format_pattern)
 - `app/Middlewares/RateLimitMiddleware.php` - Brute-force protection and API rate limiting
 - `app/Middlewares/SecurityHeadersMiddleware.php` - Security headers (CSP, HSTS, X-Frame-Options) with per-request nonce generation
@@ -333,6 +336,17 @@ $app->get('/path', function(...) { ... })
 - **Already installed check**: All installer routes check `Installer::isInstalled()` and redirect to admin login if already installed
 
 ### SEO & Schema Markup
+- **Admin management**: `SeoController` provides comprehensive SEO settings dashboard at `/admin/seo`
+- **Settings categories**:
+  - Site-wide SEO: title, description, keywords, author info, organization details
+  - Open Graph & Social: og_site_name, og_type, og_locale, twitter_card, twitter_site, twitter_creator
+  - Schema.org toggles: schema_enabled, breadcrumbs_enabled, local_business_enabled
+  - Professional Photographer Schema: job_title, services, area_served, sameAs (social profiles)
+  - Local Business Schema: name, type (ProfessionalService), address, city, postal_code, country, phone, geo coordinates (lat/lng), opening_hours
+  - Technical SEO: robots_default (index,follow), canonical_base_url, sitemap_enabled
+  - Analytics: Google Analytics 4 (gtag), Google Tag Manager (gtm)
+  - Image SEO: auto alt text, copyright notice, license URL, acquire license page
+  - Performance: preload_critical_images, lazy_load_images, structured_data_format (json-ld)
 - **Meta tags**: Standard SEO meta tags (description, robots, canonical URL)
 - **Open Graph protocol**: Full OG tag support (title, description, image, type, URL, locale, site_name)
   - Image optimization: width/height hints (1200x630), alt text
@@ -345,6 +359,7 @@ $app->get('/path', function(...) { ... })
   - **BreadcrumbList schema**: Automatic breadcrumb structured data with position tracking
   - **LocalBusiness schema**: Local SEO with business type, address, phone, geo coordinates, opening hours, price range
 - **Schema configuration**: All schemas controlled via `schema` variable with enable/disable flags
+- **Sitemap generation**: Manual trigger via `/admin/seo` (POST to `generateSitemap` action) uses SitemapService with database-driven URL generation
 - **Preconnect hints**: DNS prefetch for Google Fonts (fonts.googleapis.com, fonts.gstatic.com)
 - **Favicon support**: Standard favicon and Apple touch icon with theme color
 - **Accessibility**: `lang` attribute on `<html>` tag with i18n support

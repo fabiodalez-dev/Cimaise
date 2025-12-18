@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\BaseUrlService;
+use App\Services\SitemapService;
 use App\Support\Logger;
 use App\Services\SettingsService;
 use App\Support\Database;
@@ -178,17 +179,16 @@ class SeoController extends BaseController
         }
 
         try {
-            // Get base URL from settings or BaseUrlService
+            // Get base URL from settings or auto-detect
             $svc = new SettingsService($this->db);
-            $seoBaseUrl = $svc->get('seo.canonical_base_url', '');
-            $seoBaseUrl = is_string($seoBaseUrl) ? trim($seoBaseUrl) : '';
-            $baseUrl = $seoBaseUrl !== '' ? rtrim($seoBaseUrl, '/') : BaseUrlService::getCurrentBaseUrl();
+            $canonicalUrl = trim((string)$svc->get('seo.canonical_base_url', ''));
+            $baseUrl = $canonicalUrl !== '' ? rtrim($canonicalUrl, '/') : BaseUrlService::getCurrentBaseUrl();
 
             // Get public path
             $publicPath = dirname(__DIR__, 3) . '/public';
 
             // Use SitemapService to generate sitemap
-            $sitemapService = new \App\Services\SitemapService($this->db, $baseUrl, $publicPath);
+            $sitemapService = new SitemapService($this->db, $baseUrl, $publicPath);
             $result = $sitemapService->generate();
 
             if ($result['success']) {
