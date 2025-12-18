@@ -102,7 +102,9 @@ class PageController extends BaseController
 
         // Fetch home page settings
         $svc = new \App\Services\SettingsService($this->db);
+        $homeTemplate = (string)($svc->get('home.template', 'classic') ?? 'classic');
         $homeSettings = [
+            'template' => $homeTemplate,
             'hero_title' => (string)($svc->get('home.hero_title', 'Portfolio') ?? 'Portfolio'),
             'hero_subtitle' => (string)($svc->get('home.hero_subtitle', 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.') ?? 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.'),
             'albums_title' => (string)($svc->get('home.albums_title', 'Latest Albums') ?? 'Latest Albums'),
@@ -190,7 +192,11 @@ class PageController extends BaseController
         }
         
         $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
-        return $this->view->render($response, 'frontend/home.twig', [
+
+        // Select template based on home.template setting
+        $templateFile = $homeTemplate === 'modern' ? 'frontend/home_modern.twig' : 'frontend/home.twig';
+
+        return $this->view->render($response, $templateFile, [
             'albums' => $albums,
             'categories' => $categories,
             'parent_categories' => $parentCategories,

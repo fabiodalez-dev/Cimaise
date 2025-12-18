@@ -1,0 +1,143 @@
+{% extends 'frontend/_layout.twig' %}
+
+{% block content %}
+{# Modern Home Template - Grid-based layout with fixed sidebar #}
+
+<!-- Global Header -->
+<div class="global-head">
+    <div class="global-head_layout">
+        <a href="{{ base_path }}/" class="head-logo_holder">
+            {% if site_logo %}
+                <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|e('html_attr') }}" class="head-logo_img">
+            {% else %}
+                <div class="head-logo_text">{{ site_title }}</div>
+            {% endif %}
+        </a>
+    </div>
+</div>
+
+<!-- Menu Button -->
+<div class="menu-btn">
+    <div class="menu-btn_text">Menu</div>
+</div>
+
+<!-- Main Content -->
+<div class="page-content">
+    <div class="work-layout">
+
+        <!-- LEFT COLUMN - FIXED (filters only) -->
+        <div class="work-col is-static">
+            <div class="work-toggle_holder">
+                <!-- All work (active) -->
+                <div class="toggle-cat_item">
+                    <div class="grid-toggle_item is-active" data-filter="all">
+                        <div class="grid-toggle">{{ trans('frontend.home_modern.all_work')|default('All work') }}</div>
+                    </div>
+                </div>
+                <!-- Category filters -->
+                {% if categories is defined and categories|length > 0 %}
+                <div class="toggle-cat_wrap">
+                    <div class="toggle-cat_list">
+                        {% for category in categories %}
+                        <div class="toggle-cat_item">
+                            <a href="{{ base_path }}/category/{{ category.slug|e('html_attr') }}" class="grid-toggle_item" data-filter="{{ category.slug|e('html_attr') }}">
+                                <div class="grid-toggle">{{ category.name }}</div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <!-- Counter -->
+            <div class="work-toggle_holder">
+                <div class="body-copy">{{ trans('frontend.home_modern.albums')|default('Albums') }}(<span class="case-studies_total">{{ albums|length }}</span>)</div>
+            </div>
+            <!-- Info Holder - shows on image hover -->
+            <div class="image-grid-info_holder">
+                <div image-grid_title class="body-copy"></div>
+                <p image-grid_copy class="paragraph"></p>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN - SCROLLABLE (images grid) -->
+        <div class="work-col is-work">
+            {% if albums is defined and albums|length > 0 %}
+            <div class="inf-work_wrap w-dyn-list">
+                <div class="inf-work_list w-dyn-items">
+                    {% for album in albums %}
+                    {% set albumDescription = album.description|striptags|slice(0, 150) %}
+                    <div inf-item class="inf-work_item{% if album.category_slug %} category-{{ album.category_slug|e('html_attr') }}{% endif %}"
+                         main-title="{{ album.title|e('html_attr') }}"
+                         work-title="{{ album.title|e('html_attr') }}"
+                         work-copy="{{ albumDescription|e('html_attr') }}"
+                         {% if album.is_nsfw %} data-nsfw="true"{% endif %}
+                         {% if album.is_password_protected %} data-protected="true"{% endif %}>
+                        <a href="{{ base_path }}/album/{{ album.slug|e('html_attr') }}" class="inf-work_link">
+                            <div class="work-grid_img-holder">
+                                <div class="work-grid_img-height">
+                                    {% if album.cover_image %}
+                                        <img src="{{ base_path }}/storage/{{ album.cover_image|e('html_attr') }}"
+                                             alt="{{ album.title|e('html_attr') }}"
+                                             class="img-fill{% if album.is_nsfw %} nsfw-blur{% endif %}"
+                                             loading="lazy">
+                                    {% else %}
+                                        <div class="img-fill img-placeholder">
+                                            <span>{{ album.title|slice(0, 1)|upper }}</span>
+                                        </div>
+                                    {% endif %}
+                                    {% if album.is_password_protected %}
+                                    <div class="album-badge album-badge--protected">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="modern-empty-state">
+                <div class="modern-empty-state__content">
+                    <i class="fas fa-images modern-empty-state__icon"></i>
+                    <h2 class="modern-empty-state__title">{{ home_settings.empty_title|default(trans('frontend.home_modern.empty_title'))|default('No albums yet') }}</h2>
+                    <p class="modern-empty-state__text">{{ home_settings.empty_text|default(trans('frontend.home_modern.empty_text'))|default('Check back soon for new content.') }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<!-- Mega Menu Overlay -->
+<div class="menu-component">
+    <div class="menu-close">
+        <div class="menu-btn_text">{{ trans('frontend.home_modern.close')|default('Close') }}</div>
+    </div>
+    <nav class="mega-menu">
+        <a href="{{ base_path }}/" class="mega-menu_link is-current">{{ trans('frontend.menu.home')|default('Home') }}</a>
+        <a href="{{ galleries_url|default(base_path ~ '/galleries') }}" class="mega-menu_link">{{ trans('frontend.menu.galleries')|default('Galleries') }}</a>
+        <a href="{{ about_url }}" class="mega-menu_link">{{ trans('frontend.menu.about')|default('About') }}</a>
+    </nav>
+</div>
+
+<!-- Page Transition Overlay -->
+<div class="page-transition"></div>
+
+{% endblock %}
+
+{% block styles %}
+{{ parent() }}
+<link rel="stylesheet" href="{{ base_path }}/assets/css/home-modern.css">
+{% endblock %}
+
+{% block scripts %}
+{{ parent() }}
+<!-- Lenis Smooth Scroll -->
+<script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js" nonce="{{ csp_nonce() }}"></script>
+<script src="{{ base_path }}/assets/js/home-modern.js" nonce="{{ csp_nonce() }}"></script>
+{% endblock %}

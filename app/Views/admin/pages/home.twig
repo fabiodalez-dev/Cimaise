@@ -15,101 +15,151 @@
       <form method="post" action="{{ base_path }}/admin/pages/home" class="space-y-6">
         <input type="hidden" name="csrf" value="{{ csrf }}">
 
+        <!-- Template Selector -->
         <div class="card">
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <i class="fas fa-star mr-3 text-gray-600"></i>
-              {{ trans('admin.pages.home.hero_section') }}
+              <i class="fas fa-palette mr-3 text-gray-600"></i>
+              {{ trans('admin.pages.home.template_selection') }}
             </h3>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.title') }}</label>
-                <input type="text" name="hero_title" class="form-input" placeholder="{{ trans('admin.pages.home.hero_title_placeholder')|e('html_attr') }}" value="{{ settings['home.hero_title']|default(trans('admin.pages.home.hero_title_default'))|e('html_attr') }}">
-                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.title_hint') }}</p>
-              </div>
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.subtitle') }}</label>
-                <textarea name="hero_subtitle" rows="3" class="form-input" placeholder="{{ trans('admin.pages.home.hero_subtitle_placeholder')|e('html_attr') }}">{{ settings['home.hero_subtitle']|default('') }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.subtitle_hint') }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <i class="fas fa-th mr-3 text-gray-600"></i>
-              {{ trans('admin.pages.home.infinite_gallery') }}
-            </h3>
-            <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.infinite_gallery_desc') }}</p>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm text-gray-700 mb-2">{{ trans('admin.pages.home.scroll_direction') }}</label>
-                <div class="flex gap-4">
-                  <label class="flex items-center cursor-pointer">
-                    <input type="radio" name="gallery_scroll_direction" value="vertical"
-                           {{ settings['home.gallery_scroll_direction']|default('vertical') == 'vertical' ? 'checked' : '' }}
-                           class="w-4 h-4 text-black border-gray-300 focus:ring-black">
-                    <span class="ml-2 text-sm text-gray-700">
-                      <i class="fas fa-arrows-alt-v mr-1"></i>{{ trans('admin.pages.home.vertical') }}
-                    </span>
-                  </label>
-                  <label class="flex items-center cursor-pointer">
-                    <input type="radio" name="gallery_scroll_direction" value="horizontal"
-                           {{ settings['home.gallery_scroll_direction']|default('vertical') == 'horizontal' ? 'checked' : '' }}
-                           class="w-4 h-4 text-black border-gray-300 focus:ring-black">
-                    <span class="ml-2 text-sm text-gray-700">
-                      <i class="fas fa-arrows-alt-h mr-1"></i>{{ trans('admin.pages.home.horizontal') }}
-                    </span>
-                  </label>
+            <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.template_selection_desc') }}</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label class="relative flex flex-col cursor-pointer rounded-lg border-2 p-4 transition-all home-template-option {{ settings['home.template']|default('classic') == 'classic' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300' }}" data-template="classic">
+                <input type="radio" name="home_template" value="classic" class="sr-only" {{ settings['home.template']|default('classic') == 'classic' ? 'checked' : '' }}>
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+                    <i class="fas fa-images text-white text-sm"></i>
+                  </div>
+                  <div>
+                    <span class="font-semibold text-gray-900">{{ trans('admin.pages.home.template_classic') }}</span>
+                    <span class="block text-xs text-gray-500">{{ trans('admin.pages.home.template_classic_subtitle') }}</span>
+                  </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.home.scroll_direction_hint') }}</p>
-              </div>
+                <p class="text-xs text-gray-600">{{ trans('admin.pages.home.template_classic_desc') }}</p>
+                <div class="absolute top-2 right-2 template-check {{ settings['home.template']|default('classic') == 'classic' ? '' : 'hidden' }}">
+                  <i class="fas fa-check-circle text-black"></i>
+                </div>
+              </label>
+              <label class="relative flex flex-col cursor-pointer rounded-lg border-2 p-4 transition-all home-template-option {{ settings['home.template']|default('classic') == 'modern' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300' }}" data-template="modern">
+                <input type="radio" name="home_template" value="modern" class="sr-only" {{ settings['home.template']|default('classic') == 'modern' ? 'checked' : '' }}>
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                    <i class="fas fa-th-large text-white text-sm"></i>
+                  </div>
+                  <div>
+                    <span class="font-semibold text-gray-900">{{ trans('admin.pages.home.template_modern') }}</span>
+                    <span class="block text-xs text-gray-500">{{ trans('admin.pages.home.template_modern_subtitle') }}</span>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-600">{{ trans('admin.pages.home.template_modern_desc') }}</p>
+                <div class="absolute top-2 right-2 template-check {{ settings['home.template']|default('classic') == 'modern' ? '' : 'hidden' }}">
+                  <i class="fas fa-check-circle text-black"></i>
+                </div>
+              </label>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <i class="fas fa-align-left mr-3 text-gray-600"></i>
-              {{ trans('admin.pages.home.gallery_text_section') }}
-            </h3>
-            <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.gallery_text_desc') }}</p>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.title') }}</label>
-                <input type="text" name="gallery_text_title" class="form-input" placeholder="{{ trans('admin.pages.home.gallery_text_title_placeholder')|e('html_attr') }}" value="{{ settings['home.gallery_text_title']|default('')|e('html_attr') }}">
+        <!-- ========== CLASSIC HOME SETTINGS ========== -->
+        <div id="classic-home-settings" class="{{ settings['home.template']|default('classic') == 'modern' ? 'hidden' : '' }}">
+          <div class="card">
+            <div class="p-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-star mr-3 text-gray-600"></i>
+                {{ trans('admin.pages.home.hero_section') }}
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.title') }}</label>
+                  <input type="text" name="hero_title" class="form-input" placeholder="{{ trans('admin.pages.home.hero_title_placeholder')|e('html_attr') }}" value="{{ settings['home.hero_title']|default(trans('admin.pages.home.hero_title_default'))|e('html_attr') }}">
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.title_hint') }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.subtitle') }}</label>
+                  <textarea name="hero_subtitle" rows="3" class="form-input" placeholder="{{ trans('admin.pages.home.hero_subtitle_placeholder')|e('html_attr') }}">{{ settings['home.hero_subtitle']|default('') }}</textarea>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.subtitle_hint') }}</p>
+                </div>
               </div>
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.content') }}</label>
-                <textarea name="gallery_text_content" rows="8" class="form-input richtext" placeholder="{{ trans('admin.pages.home.gallery_text_content_placeholder')|e('html_attr') }}">{{ settings['home.gallery_text_content']|default('') }}</textarea>
-                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.content_hint') }}</p>
+            </div>
+          </div>
+
+          <div class="card mt-6">
+            <div class="p-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-th mr-3 text-gray-600"></i>
+                {{ trans('admin.pages.home.infinite_gallery') }}
+              </h3>
+              <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.infinite_gallery_desc') }}</p>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm text-gray-700 mb-2">{{ trans('admin.pages.home.scroll_direction') }}</label>
+                  <div class="flex gap-4">
+                    <label class="flex items-center cursor-pointer">
+                      <input type="radio" name="gallery_scroll_direction" value="vertical"
+                             {{ settings['home.gallery_scroll_direction']|default('vertical') == 'vertical' ? 'checked' : '' }}
+                             class="w-4 h-4 text-black border-gray-300 focus:ring-black">
+                      <span class="ml-2 text-sm text-gray-700">
+                        <i class="fas fa-arrows-alt-v mr-1"></i>{{ trans('admin.pages.home.vertical') }}
+                      </span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                      <input type="radio" name="gallery_scroll_direction" value="horizontal"
+                             {{ settings['home.gallery_scroll_direction']|default('vertical') == 'horizontal' ? 'checked' : '' }}
+                             class="w-4 h-4 text-black border-gray-300 focus:ring-black">
+                      <span class="ml-2 text-sm text-gray-700">
+                        <i class="fas fa-arrows-alt-h mr-1"></i>{{ trans('admin.pages.home.horizontal') }}
+                      </span>
+                    </label>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.home.scroll_direction_hint') }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-6">
+            <div class="p-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-align-left mr-3 text-gray-600"></i>
+                {{ trans('admin.pages.home.gallery_text_section') }}
+              </h3>
+              <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.gallery_text_desc') }}</p>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.title') }}</label>
+                  <input type="text" name="gallery_text_title" class="form-input" placeholder="{{ trans('admin.pages.home.gallery_text_title_placeholder')|e('html_attr') }}" value="{{ settings['home.gallery_text_title']|default('')|e('html_attr') }}">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.content') }}</label>
+                  <textarea name="gallery_text_content" rows="8" class="form-input richtext" placeholder="{{ trans('admin.pages.home.gallery_text_content_placeholder')|e('html_attr') }}">{{ settings['home.gallery_text_content']|default('') }}</textarea>
+                  <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.content_hint') }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-6">
+            <div class="p-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-images mr-3 text-gray-600"></i>
+                {{ trans('admin.pages.home.albums_carousel_section') }}
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.section_title') }}</label>
+                  <input type="text" name="albums_title" class="form-input" placeholder="{{ trans('admin.pages.home.albums_title_placeholder')|e('html_attr') }}" value="{{ settings['home.albums_title']|default(trans('admin.pages.home.albums_title_default'))|e('html_attr') }}">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.section_subtitle') }}</label>
+                  <textarea name="albums_subtitle" rows="2" class="form-input" placeholder="{{ trans('admin.pages.home.albums_subtitle_placeholder')|e('html_attr') }}">{{ settings['home.albums_subtitle']|default('') }}</textarea>
+                </div>
               </div>
             </div>
           </div>
         </div>
+        <!-- END CLASSIC HOME SETTINGS -->
 
-        <div class="card">
-          <div class="p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <i class="fas fa-images mr-3 text-gray-600"></i>
-              {{ trans('admin.pages.home.albums_carousel_section') }}
-            </h3>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.section_title') }}</label>
-                <input type="text" name="albums_title" class="form-input" placeholder="{{ trans('admin.pages.home.albums_title_placeholder')|e('html_attr') }}" value="{{ settings['home.albums_title']|default(trans('admin.pages.home.albums_title_default'))|e('html_attr') }}">
-              </div>
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.section_subtitle') }}</label>
-                <textarea name="albums_subtitle" rows="2" class="form-input" placeholder="{{ trans('admin.pages.home.albums_subtitle_placeholder')|e('html_attr') }}">{{ settings['home.albums_subtitle']|default('') }}</textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        <!-- ========== SHARED SETTINGS (Empty State) ========== -->
         <div class="card">
           <div class="p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -139,7 +189,8 @@
 
     <!-- Info panel -->
     <div class="lg:col-span-1">
-      <div class="card">
+      <!-- Classic Home Info -->
+      <div id="classic-home-info" class="card {{ settings['home.template']|default('classic') == 'modern' ? 'hidden' : '' }}">
         <div class="p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.pages.home.structure_title') }}</h3>
           <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.structure_desc') }}</p>
@@ -163,11 +214,74 @@
           </ul>
         </div>
       </div>
+
+      <!-- Modern Home Info -->
+      <div id="modern-home-info" class="card {{ settings['home.template']|default('classic') == 'classic' ? 'hidden' : '' }}">
+        <div class="p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.pages.home.modern_structure_title') }}</h3>
+          <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.modern_structure_desc') }}</p>
+          <ul class="text-sm text-gray-600 space-y-2">
+            <li class="flex items-start">
+              <i class="fas fa-bars text-gray-400 mr-2 mt-1"></i>
+              <span><strong>{{ trans('admin.pages.home.modern_sidebar') }}</strong> - {{ trans('admin.pages.home.modern_sidebar_desc') }}</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-th-large text-gray-400 mr-2 mt-1"></i>
+              <span><strong>{{ trans('admin.pages.home.modern_grid') }}</strong> - {{ trans('admin.pages.home.modern_grid_desc') }}</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-mouse-pointer text-gray-400 mr-2 mt-1"></i>
+              <span><strong>{{ trans('admin.pages.home.modern_hover') }}</strong> - {{ trans('admin.pages.home.modern_hover_desc') }}</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-mobile-alt text-gray-400 mr-2 mt-1"></i>
+              <span><strong>{{ trans('admin.pages.home.modern_mobile') }}</strong> - {{ trans('admin.pages.home.modern_mobile_desc') }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
   </div>
+
   <script src="{{ base_path }}/assets/vendor/tinymce/tinymce.min.js"></script>
   <script nonce="{{ csp_nonce() }}">
     document.addEventListener('DOMContentLoaded', function(){
+      // Template selector toggle
+      const templateOptions = document.querySelectorAll('.home-template-option');
+      const classicSettings = document.getElementById('classic-home-settings');
+      const classicInfo = document.getElementById('classic-home-info');
+      const modernInfo = document.getElementById('modern-home-info');
+
+      templateOptions.forEach(option => {
+        option.addEventListener('click', function() {
+          const template = this.dataset.template;
+          const radio = this.querySelector('input[type="radio"]');
+          radio.checked = true;
+
+          // Update visual states
+          templateOptions.forEach(opt => {
+            opt.classList.remove('border-black', 'bg-gray-50');
+            opt.classList.add('border-gray-200');
+            opt.querySelector('.template-check').classList.add('hidden');
+          });
+          this.classList.remove('border-gray-200');
+          this.classList.add('border-black', 'bg-gray-50');
+          this.querySelector('.template-check').classList.remove('hidden');
+
+          // Toggle settings visibility
+          if (template === 'classic') {
+            classicSettings.classList.remove('hidden');
+            classicInfo.classList.remove('hidden');
+            modernInfo.classList.add('hidden');
+          } else {
+            classicSettings.classList.add('hidden');
+            classicInfo.classList.add('hidden');
+            modernInfo.classList.remove('hidden');
+          }
+        });
+      });
+
+      // TinyMCE init
       if (window.tinymce) {
         tinymce.init({
           selector: 'textarea.richtext',
