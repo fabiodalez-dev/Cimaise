@@ -24,12 +24,12 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.title') }}</label>
-                <input type="text" name="hero_title" class="form-input" placeholder="Portfolio" value="{{ settings['home.hero_title']|default('Portfolio')|e('html_attr') }}">
+                <input type="text" name="hero_title" class="form-input" placeholder="{{ trans('admin.pages.home.hero_title_placeholder')|e('html_attr') }}" value="{{ settings['home.hero_title']|default(trans('admin.pages.home.hero_title_default'))|e('html_attr') }}">
                 <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.title_hint') }}</p>
               </div>
               <div>
                 <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.subtitle') }}</label>
-                <textarea name="hero_subtitle" rows="3" class="form-input" placeholder="A collection of analog and digital photography...">{{ settings['home.hero_subtitle']|default('') }}</textarea>
+                <textarea name="hero_subtitle" rows="3" class="form-input" placeholder="{{ trans('admin.pages.home.hero_subtitle_placeholder')|e('html_attr') }}">{{ settings['home.hero_subtitle']|default('') }}</textarea>
                 <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.subtitle_hint') }}</p>
               </div>
             </div>
@@ -80,11 +80,11 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.title') }}</label>
-                <input type="text" name="gallery_text_title" class="form-input" placeholder="About my work..." value="{{ settings['home.gallery_text_title']|default('')|e('html_attr') }}">
+                <input type="text" name="gallery_text_title" class="form-input" placeholder="{{ trans('admin.pages.home.gallery_text_title_placeholder')|e('html_attr') }}" value="{{ settings['home.gallery_text_title']|default('')|e('html_attr') }}">
               </div>
               <div>
                 <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.content') }}</label>
-                <textarea name="gallery_text_content" rows="8" class="form-input richtext" placeholder="Write about your photography, your approach, or anything you want to share...">{{ settings['home.gallery_text_content']|default('') }}</textarea>
+                <textarea name="gallery_text_content" rows="8" class="form-input richtext" placeholder="{{ trans('admin.pages.home.gallery_text_content_placeholder')|e('html_attr') }}">{{ settings['home.gallery_text_content']|default('') }}</textarea>
                 <p class="text-xs text-gray-500 mt-1">{{ trans('admin.pages.home.content_hint') }}</p>
               </div>
             </div>
@@ -100,11 +100,11 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.section_title') }}</label>
-                <input type="text" name="albums_title" class="form-input" placeholder="Latest Albums" value="{{ settings['home.albums_title']|default('Latest Albums')|e('html_attr') }}">
+                <input type="text" name="albums_title" class="form-input" placeholder="{{ trans('admin.pages.home.albums_title_placeholder')|e('html_attr') }}" value="{{ settings['home.albums_title']|default(trans('admin.pages.home.albums_title_default'))|e('html_attr') }}">
               </div>
               <div>
                 <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.section_subtitle') }}</label>
-                <textarea name="albums_subtitle" rows="2" class="form-input" placeholder="Discover my recent photographic work...">{{ settings['home.albums_subtitle']|default('') }}</textarea>
+                <textarea name="albums_subtitle" rows="2" class="form-input" placeholder="{{ trans('admin.pages.home.albums_subtitle_placeholder')|e('html_attr') }}">{{ settings['home.albums_subtitle']|default('') }}</textarea>
               </div>
             </div>
           </div>
@@ -120,11 +120,11 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.empty_state_title') }}</label>
-                <input type="text" name="empty_title" class="form-input" placeholder="No albums yet" value="{{ settings['home.empty_title']|default('No albums yet')|e('html_attr') }}">
+                <input type="text" name="empty_title" class="form-input" placeholder="{{ trans('admin.pages.home.empty_title_placeholder')|e('html_attr') }}" value="{{ settings['home.empty_title']|default(trans('admin.pages.home.empty_title_default'))|e('html_attr') }}">
               </div>
               <div>
                 <label class="block text-sm text-gray-700 mb-1">{{ trans('admin.pages.home.empty_state_message') }}</label>
-                <input type="text" name="empty_text" class="form-input" placeholder="Check back soon for new work." value="{{ settings['home.empty_text']|default('Check back soon for new work.')|e('html_attr') }}">
+                <input type="text" name="empty_text" class="form-input" placeholder="{{ trans('admin.pages.home.empty_text_placeholder')|e('html_attr') }}" value="{{ settings['home.empty_text']|default(trans('admin.pages.home.empty_text_default'))|e('html_attr') }}">
               </div>
             </div>
           </div>

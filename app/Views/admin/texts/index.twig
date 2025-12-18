@@ -1,5 +1,5 @@
 {% extends 'admin/_layout.twig' %}
-{% block title %}{{ trans('admin.texts.title') }} — {{ trans('app.name') }}{% endblock %}
+{% block title %}{{ trans('admin.texts.title') }} — {{ site_title|default('Cimaise')|e }}{% endblock %}
 {% block content %}
   <div class="flex items-center justify-between mb-8">
     <div>
@@ -135,11 +135,11 @@
           </select>
         </div>
         <button type="submit" class="btn-primary">
-          <i class="fas fa-search mr-2"></i>{{ trans('filter.search') }}
+          <i class="fas fa-search mr-2"></i>{{ trans('admin.common.search') }}
         </button>
         {% if search or current_context %}
           <a href="{{ base_path }}/admin/texts?scope={{ current_scope }}" class="btn-secondary">
-            <i class="fas fa-times mr-2"></i>{{ trans('filter.clear') }}
+            <i class="fas fa-times mr-2"></i>{{ trans('admin.common.clear') }}
           </a>
         {% endif %}
       </form>
@@ -178,8 +178,8 @@
                     <span class="text-value text-gray-900">{{ text.text_value }}</span>
                     <input type="text" class="text-input input w-full" value="{{ text.text_value|e('html_attr') }}" style="display: none;">
                     <div class="edit-actions mt-2 flex gap-2" style="display: none;">
-                      <button type="button" class="save-btn btn-sm btn-primary">{{ trans('general.save') }}</button>
-                      <button type="button" class="cancel-btn btn-sm btn-secondary">{{ trans('general.cancel') }}</button>
+                      <button type="button" class="save-btn btn-sm btn-primary">{{ trans('admin.common.save') }}</button>
+                      <button type="button" class="cancel-btn btn-sm btn-secondary">{{ trans('admin.common.cancel') }}</button>
                     </div>
                   </div>
                 </td>
@@ -190,13 +190,13 @@
                       <i class="fas fa-pen-to-square mr-1"></i>{{ trans('admin.texts.quick') }}
                     </button>
                     <a href="{{ base_path }}/admin/texts/{{ text.id }}/edit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200" title="{{ trans('admin.texts.full_edit') }}">
-                      <i class="fas fa-edit mr-1"></i>{{ trans('general.edit') }}
+                      <i class="fas fa-edit mr-1"></i>{{ trans('admin.common.edit') }}
                     </a>
                     <form action="{{ base_path }}/admin/texts/{{ text.id }}" method="post" class="inline" data-confirm="{{ trans('admin.texts.delete_confirm')|e('html_attr') }}">
                       <input type="hidden" name="csrf" value="{{ csrf }}">
                       <input type="hidden" name="_method" value="DELETE">
-                      <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200" title="{{ trans('general.delete') }}">
-                        <i class="fas fa-trash mr-1"></i>{{ trans('general.delete') }}
+                      <button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200" title="{{ trans('admin.common.delete') }}">
+                        <i class="fas fa-trash mr-1"></i>{{ trans('admin.common.delete') }}
                       </button>
                     </form>
                   </div>
@@ -245,9 +245,9 @@
           const icon = this.querySelector('i');
           if (uploadSection.classList.contains('hidden')) {
             icon.className = 'fas fa-upload mr-1';
-            this.innerHTML = '<i class="fas fa-upload mr-1"></i>{{ trans('admin.texts.upload_json')|e('html_attr') }}';
+            this.innerHTML = '<i class="fas fa-upload mr-1"></i>{{ trans('admin.texts.upload_json')|e('js') }}';
           } else {
-            this.innerHTML = '<i class="fas fa-times mr-1"></i>{{ trans('admin.texts.hide_upload')|e('html_attr') }}';
+            this.innerHTML = '<i class="fas fa-times mr-1"></i>{{ trans('admin.texts.hide_upload')|e('js') }}';
           }
         });
       }
@@ -326,11 +326,11 @@
                 textInput.style.display = 'none';
                 editActions.style.display = 'none';
               } else {
-                alert('{{ trans('admin.texts.save_failed')|e('html_attr') }}: ' + (result.error || '{{ trans('admin.texts.unknown_error')|e('html_attr') }}'));
+                alert('{{ trans('admin.texts.save_failed')|e('js') }}: ' + (result.error || '{{ trans('admin.texts.unknown_error')|e('js') }}'));
               }
             })
             .catch(error => {
-              alert('{{ trans('admin.texts.save_failed')|e('html_attr') }}: ' + error.message);
+              alert('{{ trans('admin.texts.save_failed')|e('js') }}: ' + error.message);
             });
           }
         }

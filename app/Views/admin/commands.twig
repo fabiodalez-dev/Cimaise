@@ -227,6 +227,19 @@
 // Commands page - keep functions on window but wire buttons via JS listeners
 // Use var to allow redeclaration during SPA navigation
 var _commandsIsRunning = _commandsIsRunning || false;
+const t = (key) => (typeof window !== 'undefined' && typeof window.adminT === 'function' ? window.adminT(key) : key);
+const tf = (key, params = {}) => {
+  if (typeof window !== 'undefined' && typeof window.adminTf === 'function') {
+    return window.adminTf(key, params);
+  }
+  let out = t(key);
+  try {
+    Object.keys(params || {}).forEach((param) => {
+      out = String(out).replaceAll(`{${param}}`, String(params[param]));
+    });
+  } catch (e) {}
+  return out;
+};
 
 function updateOutput(text, clear) {
   const output = document.getElementById('command-output');
@@ -248,18 +261,18 @@ function updateStatus(command, status, duration) {
   if (!statusDiv || !commandSpan || !durationSpan || !resultSpan) return;
 
   commandSpan.textContent = command;
-  durationSpan.textContent = duration ? `${duration}s` : 'Running...';
+  durationSpan.textContent = duration ? `${duration}s` : `${t('admin.commands.running')}...`;
 
   resultSpan.className = 'px-2 py-1 rounded text-xs font-medium ';
   if (status === 'success') {
     resultSpan.className += 'bg-green-100 text-green-800';
-    resultSpan.textContent = 'Success';
+    resultSpan.textContent = t('admin.commands.success');
   } else if (status === 'error') {
     resultSpan.className += 'bg-red-100 text-red-800';
-    resultSpan.textContent = 'Failed';
+    resultSpan.textContent = t('admin.commands.failed');
   } else {
     resultSpan.className += 'bg-blue-100 text-blue-800';
-    resultSpan.textContent = 'Running...';
+    resultSpan.textContent = `${t('admin.commands.running')}...`;
   }
 
   statusDiv.classList.remove('hidden');
@@ -268,7 +281,7 @@ function updateStatus(command, status, duration) {
 function runCommand(command, args) {
   args = args || {};
   if (_commandsIsRunning) {
-    alert('A command is already running. Please wait.');
+    alert(t('admin.commands.command_already_running'));
     return;
   }
 
@@ -276,10 +289,10 @@ function runCommand(command, args) {
 
   // Immediate visual feedback
   if (window.showToast) {
-    window.showToast('Executing: ' + command + '...', 'info');
+    window.showToast(tf('admin.commands.executing', { command }), 'info');
   }
 
-  updateOutput('> Running: ' + command + '\n', true);
+  updateOutput(tf('admin.commands.output_running', { command }) + '\n', true);
   updateStatus(command, 'running', 0);
 
   const buttons = document.querySelectorAll('button');
@@ -304,20 +317,21 @@ function runCommand(command, args) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
     if (data.success) {
-      updateOutput('✅ Success (' + duration + 's)\n\n' + data.output + '\n\n==================================================\n\n');
+      updateOutput('✅ ' + t('admin.commands.success') + ' (' + duration + 's)\n\n' + data.output + '\n\n==================================================\n\n');
       updateStatus(command, 'success', duration);
-      if (window.showToast) window.showToast('Command completed successfully!', 'success');
+      if (window.showToast) window.showToast(t('admin.commands.command_completed'), 'success');
     } else {
-      updateOutput('❌ Failed (' + duration + 's)\n\n' + data.output + '\n\nError: ' + (data.error || 'Unknown error') + '\n\n==================================================\n\n');
+      const errMsg = data.error || t('admin.common.unknown_error');
+      updateOutput('❌ ' + t('admin.commands.failed') + ' (' + duration + 's)\n\n' + data.output + '\n\n' + t('admin.common.error') + ': ' + errMsg + '\n\n==================================================\n\n');
       updateStatus(command, 'error', duration);
-      if (window.showToast) window.showToast('Command failed: ' + (data.error || 'Unknown error'), 'error');
+      if (window.showToast) window.showToast(tf('admin.commands.command_failed', { error: errMsg }), 'error');
     }
   })
   .catch(function(error) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    updateOutput('❌ Network Error (' + duration + 's)\n\n' + error.message + '\n\n==================================================\n\n');
+    updateOutput('❌ ' + t('admin.commands.network_error') + ' (' + duration + 's)\n\n' + error.message + '\n\n==================================================\n\n');
     updateStatus(command, 'error', duration);
-    if (window.showToast) window.showToast('Network error: ' + error.message, 'error');
+    if (window.showToast) window.showToast(tf('admin.commands.network_error_with_message', { error: error.message }), 'error');
   })
   .finally(function() {
     _commandsIsRunning = false;
@@ -334,13 +348,12 @@ function runSitemapCommand() {
 }
 
 function runAnalyticsCleanup() {
-  const confirmMsg = '{{ trans('admin.commands.analytics_cleanup_confirm')|default("Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.")|e('html_attr') }}';
-  if (!confirm(confirmMsg)) return;
+  if (!confirm(t('admin.commands.confirm_cleanup'))) return;
   runCommand('analytics:cleanup', { 'force': true });
 }
 
 function clearOutput() {
-  document.getElementById('command-output').textContent = 'Ready to execute commands...';
+  document.getElementById('command-output').textContent = t('admin.commands.ready');
   document.getElementById('command-status').classList.add('hidden');
 }
 
