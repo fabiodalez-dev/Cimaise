@@ -105,17 +105,22 @@ photoCMS/
 - `public/index.php` - Application bootstrap with auto-repair logic and base path detection
 - `public/router.php` - PHP built-in server router (routes /media/* through PHP for access control)
 - `app/Config/routes.php` - All route definitions (120+ routes including protected media)
+- `app/Controllers/BaseController.php` - Base controller with helper methods (validateCsrf, csrfErrorJson, isAjaxRequest, isAdmin, redirect with base path handling)
 - `app/Controllers/Frontend/MediaController.php` - Server-side protected media serving with session validation
 - `app/Controllers/Frontend/GalleriesController.php` - Advanced filtering for galleries (category, tags, cameras, lenses, films, locations, year, search)
 - `app/Controllers/InstallerController.php` - Multi-step installer with session-based config storage
 - `app/Installer/Installer.php` - Installation logic with rollback support on failure
 - `app/Tasks/InstallCommand.php` - CLI installer command (interactive prompts)
-- `app/Services/UploadService.php` - Image processing and variant generation (AVIF, WebP, JPEG, blur)
+- `app/Services/UploadService.php` - Image processing and variant generation (AVIF, WebP, JPEG, blur) with magic number validation and NSFW blur generation
+- `app/Services/FaviconService.php` - Favicon generation in multiple sizes (16x16, 32x32, 96x96, 180px Apple touch, 192x192, 512x512) using GD library
+- `app/Controllers/Admin/UploadController.php` - Image upload endpoint with automatic NSFW blur generation (checks album is_nsfw flag), logo upload with automatic favicon generation
 - `app/Services/SettingsService.php` - Settings management with JSON storage, defaults, and type tracking (null/boolean/number/string)
 - `app/Services/TranslationService.php` - i18n with dual-scope support (frontend/admin), JSON storage (storage/translations/), separate language tracking
 - `app/Controllers/Admin/TextsController.php` - Translation management with import/export, search/filter, scope selector, server-side language dropdown via `getAvailableLanguages()`, and preset language support
+- `app/Controllers/Admin/SeoController.php` - SEO settings management with Open Graph, Twitter Cards, Schema.org (Person, Organization, LocalBusiness), analytics integration (Google Tag Manager, GA4), image metadata, and sitemap generation
 - `app/Controllers/Admin/SocialController.php` - Social sharing settings management with network enable/disable, ordering, AJAX/form support
 - `app/Controllers/Admin/TemplatesController.php` - Gallery template management (edit only, creation/deletion disabled) with responsive column configuration, layout settings, PhotoSwipe options, and magazine-specific animations
+- `app/Controllers/Admin/SettingsController.php` - Site settings with image formats/quality/breakpoints, gallery templates, date format, site language, reCAPTCHA configuration (requires both site and secret keys to enable), performance settings, triggers favicon generation after logo upload
 - `app/Extensions/DateTwigExtension.php` - Twig extension for date formatting (filters: date_format, datetime_format, replace_year; functions: date_format_pattern)
 - `app/Middlewares/RateLimitMiddleware.php` - Brute-force protection and API rate limiting
 - `app/Middlewares/SecurityHeadersMiddleware.php` - Security headers (CSP, HSTS, X-Frame-Options) with per-request nonce generation
@@ -162,6 +167,7 @@ photoCMS/
   - MySQL: `database/schema.mysql.sql` (structure only), `database/complete_mysql_schema.sql` (with seed data)
 - **Default MySQL collation**: `utf8mb4_unicode_ci` (more compatible than `utf8mb4_0900_ai_ci`)
 - **Settings storage**: SettingsService stores values as JSON with type tracking (null, boolean, number, string)
+- **PWA settings**: `pwa.theme_color` and `pwa.background_color` for configurable PWA colors (defaults: `#ffffff`)
 
 ### Frontend
 - **Twig templates**: `{% extends %}` for layouts, `{% include %}` for partials
@@ -195,7 +201,13 @@ $app->get('/path', function(...) { ... })
 ### Image Processing
 - Multi-format variants: AVIF → WebP → JPEG fallback
 - Size variants: sm (400w), md (800w), lg (1200w), xl (1600w), xxl (2000w)
-- NSFW blur variants: Server-side Gaussian blur for age-gated content
+- NSFW blur variants: Automatically generated during upload if album is_nsfw flag is true
+  - Generated via `UploadService::generateBlurredVariant()` after successful image ingest
+  - Fails gracefully with warning log if blur generation fails (upload still succeeds)
+- Favicon generation: Automatic multi-size favicon creation on logo upload
+  - Triggered by `UploadController::uploadSiteLogo()` after logo save
+  - Generates 7 sizes: favicon.ico (32px), 16x16, 32x32, 96x96, apple-touch-icon (180px), android-chrome 192x192 and 512x512
+  - Uses GD library with transparency preservation and high-quality resampling
 - Uses Imagick when available, falls back to GD
 
 ### Rate Limiting
@@ -316,14 +328,19 @@ $app->get('/path', function(...) { ... })
 - **5-step process**: Welcome (requirements check) → Database → Admin User → Settings → Confirm & Install
 - **Note**: Post-setup step removed (commit 78ff3d2) - settings now collected before installation, not after
 - **Session-based config storage**: Each step stores data in `$_SESSION['install_*_config']` arrays (db_config, admin_config, settings_config)
-- **CSRF protection**: All forms include CSRF token validation with hash_equals comparison, token auto-generated in InstallerController constructor on every request
-- **Session initialization**: InstallerController ensures session started in constructor, generates CSRF token if missing
+- **CSRF protection**: All forms include CSRF token validation with hash_equals comparison
+- **Session initialization**: InstallerController ensures session started in constructor (`session_start()` if `PHP_SESSION_NONE`), generates CSRF token if missing (`bin2hex(random_bytes(32))`)
 - **MySQL auto-detection**: AJAX endpoint `/install/test-mysql` tests connection and auto-detects charset/collation (rate limited: 10 req/5min via FileBasedRateLimitMiddleware)
 - **Separate database fields**: Different input fields for SQLite path vs MySQL database name in database step
 - **Default collation**: Uses `utf8mb4_unicode_ci` (more compatible than `utf8mb4_0900_ai_ci`)
 - **Database connection testing**: Validates MySQL/SQLite connection before proceeding to next step
+- **MySQL privilege testing**: `testMySQLPrivileges()` verifies CREATE, ALTER, INSERT, UPDATE, DELETE privileges via test table operations before schema installation
 - **Visual step indicator**: Shows progress through installer stages with step numbers
 - **Settings step**: Collects site title, description, copyright (with {year} placeholder), email, language (en/it for both frontend and admin), date format (Y-m-d/d-m-Y), and optional logo upload
+- **Requirement verification**: `collectRequirementErrors()` validates PHP 8.2+, extensions (pdo, gd, mbstring, openssl, json, fileinfo), database drivers (pdo_sqlite or pdo_mysql), writable directories, disk space (100MB minimum)
+- **Directory auto-creation**: Creates missing directories (database, storage, public/media, storage/originals) during installation with proper permissions (0755)
+- **Favicon generation during install**: Installer calls `generateFavicons()` if logo uploaded in settings step, graceful failure logging if generation fails (doesn't block installation)
+- **Multi-language page defaults**: `getPageSettingsForLanguage()` provides translated default content for home/about/galleries pages based on selected installation language (en/it)
 - **Rollback on failure**: Auto-cleanup of .env and SQLite database files if installation fails; drops MySQL tables via `rollback()` method in Installer class
 - **State tracking**: `Installer` class tracks `envWritten`, `dbCreated`, `createdDbPath` for proper rollback logic
 - **Table cleanup**: Rollback drops all tables in defined order (junction tables first, then main tables) to handle foreign key constraints
@@ -333,6 +350,17 @@ $app->get('/path', function(...) { ... })
 - **Already installed check**: All installer routes check `Installer::isInstalled()` and redirect to admin login if already installed
 
 ### SEO & Schema Markup
+- **Admin management**: `SeoController` provides comprehensive SEO settings dashboard at `/admin/seo`
+- **Settings categories**:
+  - Site-wide SEO: title, description, keywords, author info, organization details
+  - Open Graph & Social: og_site_name, og_type, og_locale, twitter_card, twitter_site, twitter_creator
+  - Schema.org toggles: schema_enabled, breadcrumbs_enabled, local_business_enabled
+  - Professional Photographer Schema: job_title, services, area_served, sameAs (social profiles)
+  - Local Business Schema: name, type (ProfessionalService), address, city, postal_code, country, phone, geo coordinates (lat/lng), opening_hours
+  - Technical SEO: robots_default (index,follow), canonical_base_url, sitemap_enabled
+  - Analytics: Google Analytics 4 (gtag), Google Tag Manager (gtm)
+  - Image SEO: auto alt text, copyright notice, license URL, acquire license page
+  - Performance: preload_critical_images, lazy_load_images, structured_data_format (json-ld)
 - **Meta tags**: Standard SEO meta tags (description, robots, canonical URL)
 - **Open Graph protocol**: Full OG tag support (title, description, image, type, URL, locale, site_name)
   - Image optimization: width/height hints (1200x630), alt text
@@ -345,6 +373,7 @@ $app->get('/path', function(...) { ... })
   - **BreadcrumbList schema**: Automatic breadcrumb structured data with position tracking
   - **LocalBusiness schema**: Local SEO with business type, address, phone, geo coordinates, opening hours, price range
 - **Schema configuration**: All schemas controlled via `schema` variable with enable/disable flags
+- **Sitemap generation**: Manual trigger via `/admin/seo` (POST to `generateSitemap` action) uses SitemapService with database-driven URL generation
 - **Preconnect hints**: DNS prefetch for Google Fonts (fonts.googleapis.com, fonts.gstatic.com)
 - **Favicon support**: Standard favicon and Apple touch icon with theme color
 - **Accessibility**: `lang` attribute on `<html>` tag with i18n support
@@ -418,7 +447,11 @@ $app->get('/path', function(...) { ... })
 - **Masonry library**: Auto-included in `libs` array when masonry is enabled
 - **PhotoSwipe configuration**: Boolean toggles (loop, zoom, share, counter, arrowKeys, escKey, allowPanToNext) plus numeric settings (bgOpacity: 0-1, spacing: 0-1)
 - **Magazine-specific settings** (template id 3): Separate duration values for 3 columns (min: 10s, max: 300s) and gap setting (0-80px)
-- **Template normalization**: `normalizeTemplateSettings()` method flattens deeply nested column structures and validates responsive column counts (desktop: 1-6, tablet: 1-4, mobile: 1-2) with fallback defaults
+- **Template normalization**: `PageController::normalizeTemplateSettings()` flattens deeply nested column structures
+  - Handles recursive nested objects: `columns.desktop.desktop.desktop` → `columns.desktop`
+  - Validates column counts: desktop (1-6), tablet (1-4), mobile (1-2)
+  - Fallback defaults on invalid values: desktop=3, tablet=2, mobile=1
+  - Applied to all template settings before rendering gallery pages
 - **Settings structure example**:
   ```php
   {
@@ -435,6 +468,24 @@ $app->get('/path', function(...) { ... })
   ```
 - **CSRF protection**: All form submissions validated with timing-safe CSRF tokens
 - **Slug auto-generation**: Uses `App\Support\Str::slug()` for SEO-friendly identifiers
+
+### PWA Manifest Generation
+- **Dynamic web manifest**: `PageController::webManifest()` generates `/site.webmanifest` endpoint
+- **Configurable colors**: Uses `pwa.theme_color` and `pwa.background_color` settings (defaults: `#ffffff`)
+- **Short name truncation**: `truncateShortName()` helper truncates site name at word boundary (max 12 chars) for PWA short_name field
+- **Favicon integration**: Reads generated favicons from FaviconService for manifest icons
+- **Base path support**: Handles subdirectory installations with proper icon path resolution
+
+### Settings Validation Patterns
+- **reCAPTCHA validation**: `SettingsController::save()` validates both keys before enabling
+  - Requires both site key and secret key to enable reCAPTCHA (cannot enable with empty keys)
+  - Reads existing keys from database if new values not provided (lines 136-141)
+  - Validates final keys before allowing enablement: `if ($recaptchaEnabled && ($finalSiteKey === '' || $finalSecretKey === ''))` (line 144)
+  - Auto-disables reCAPTCHA with flash error if keys missing
+- **Conditional key updates**: Secret keys only updated if new value provided (preserves existing keys on empty input)
+  - Pattern: `if ($recaptchaSecretKey !== '') { $svc->set('recaptcha.secret_key', $recaptchaSecretKey); }` (line 151-153)
+  - Security: Never exposes existing secret key to client (one-way write only)
+- **Fallback handling**: Uses `$_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'` for reCAPTCHA verification to handle missing REMOTE_ADDR
 
 <!-- END AUTO-MANAGED -->
 

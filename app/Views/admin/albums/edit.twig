@@ -970,7 +970,7 @@
 
       modalDeleteBtn?.addEventListener('click', async () => {
         if (!currentId) return;
-        if (!confirm('{{ trans('admin.albums.delete_image_confirm') }}')) return;
+        if (!confirm('{{ trans('admin.albums.delete_image_confirm')|e('js') }}')) return;
         try {
           const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/${currentId}/delete`, { 
             method:'POST', 
@@ -1109,7 +1109,7 @@
       async function handleBulkDelete() {
         const ids = getSelectedIds();
         if (!ids.length) return;
-        if (!confirm('{{ trans('admin.albums.delete_bulk_confirm') }}')) return;
+        if (!confirm('{{ trans('admin.albums.delete_bulk_confirm')|e('js') }}')) return;
         
         const res = await fetch(`{{ base_path }}/admin/albums/{{ item.id }}/images/bulk-delete`, { 
           method:'POST', 
@@ -1168,7 +1168,7 @@
       saveAddBtn?.addEventListener('click', handleSavePassword);
       
       function handleRemovePassword() {
-        if (confirm('{{ trans('admin.albums.remove_password_confirm') }}')) {
+        if (confirm('{{ trans('admin.albums.remove_password_confirm')|e('js') }}')) {
           if (passwordClearInput) passwordClearInput.value = '1';
           document.getElementById('album-form')?.submit();
         }

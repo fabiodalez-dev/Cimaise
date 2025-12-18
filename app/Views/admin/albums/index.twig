@@ -189,10 +189,10 @@
             if (!response.ok) {
               throw new Error('Reorder failed: ' + response.status + ' ' + response.statusText);
             }
-            if (window.showToast) window.showToast('Album order saved', 'success');
+            if (window.showToast) window.showToast('{{ trans('admin.albums.order_saved')|e('js') }}', 'success');
           } catch(error) {
             console.error('Failed to save albums order:', error);
-            if (window.showToast) window.showToast('Error saving order', 'error');
+            if (window.showToast) window.showToast('{{ trans('admin.albums.order_error')|e('js') }}', 'error');
           }
         }
       }

@@ -25,10 +25,12 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
         $nonce = self::$nonce ?? '';
         $csp = "upgrade-insecure-requests; default-src 'self'; "
              . "img-src 'self' data: blob:; "
-             . "script-src 'self' 'nonce-{$nonce}'; "
+             . "script-src 'self' 'nonce-{$nonce}' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; "
              . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
              . "font-src 'self' https://fonts.gstatic.com data:; "
-             . "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+             . "connect-src 'self'; "
+             . "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; "
+             . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
         return $response
             ->withHeader('X-Content-Type-Options','nosniff')

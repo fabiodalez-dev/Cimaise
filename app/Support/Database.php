@@ -19,7 +19,7 @@ class Database
         private ?string $username = null,
         private ?string $password = null,
         private string $charset = 'utf8mb4',
-        private string $collation = 'utf8mb4_0900_ai_ci',
+        private string $collation = 'utf8mb4_unicode_ci',
         bool $isSqlite = false
     ) {
         $this->isSqlite = $isSqlite;

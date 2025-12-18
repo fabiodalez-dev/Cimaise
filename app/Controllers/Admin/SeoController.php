@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\BaseUrlService;
+use App\Services\SitemapService;
 use App\Support\Logger;
 use App\Services\SettingsService;
 use App\Support\Database;
@@ -178,94 +179,29 @@ class SeoController extends BaseController
         }
 
         try {
-            // Get published albums for sitemap
-            $pdo = $this->db->pdo();
-            $stmt = $pdo->query('
-                SELECT a.slug, a.updated_at, a.published_at 
-                FROM albums a 
-                WHERE a.is_published = 1 
-                ORDER BY a.published_at DESC
-            ');
-            $albums = $stmt->fetchAll() ?: [];
-
-            // Get categories for sitemap
-            $stmt = $pdo->query('
-                SELECT c.slug, MAX(a.updated_at) as last_modified 
-                FROM categories c 
-                LEFT JOIN albums a ON a.category_id = c.id AND a.is_published = 1
-                GROUP BY c.id, c.slug
-                ORDER BY c.sort_order, c.name
-            ');
-            $categories = $stmt->fetchAll() ?: [];
-
-            // Generate sitemap XML
+            // Get base URL from settings or auto-detect
             $svc = new SettingsService($this->db);
-            $seoBaseUrl = $svc->get('seo.canonical_base_url', '');
-            $seoBaseUrl = is_string($seoBaseUrl) ? trim($seoBaseUrl) : '';
+            $canonicalUrl = trim((string)$svc->get('seo.canonical_base_url', ''));
+            $baseUrl = $canonicalUrl !== '' ? rtrim($canonicalUrl, '/') : BaseUrlService::getCurrentBaseUrl();
 
-            // Use SEO canonical URL or fallback to BaseUrlService
-            $baseUrl = $seoBaseUrl !== '' ? rtrim($seoBaseUrl, '/') : BaseUrlService::getCurrentBaseUrl();
+            // Get public path
+            $publicPath = dirname(__DIR__, 3) . '/public';
 
-            $sitemap = $this->generateSitemapXml($baseUrl, $albums, $categories);
-            
-            // Save sitemap to public directory
-            $sitemapPath = dirname(__DIR__, 3) . '/public/sitemap.xml';
-            file_put_contents($sitemapPath, $sitemap);
-            
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Sitemap generated successfully'];
-            
+            // Use SitemapService to generate sitemap
+            $sitemapService = new SitemapService($this->db, $baseUrl, $publicPath);
+            $result = $sitemapService->generate();
+
+            if ($result['success']) {
+                $_SESSION['flash'][] = ['type' => 'success', 'message' => $result['message']];
+            } else {
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => $result['error']];
+            }
+
         } catch (\Throwable $e) {
             Logger::error('SeoController::generateSitemap error', ['error' => $e->getMessage()], 'admin');
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error generating sitemap: ' . $e->getMessage()];
         }
-        
-        return $response->withHeader('Location', $this->redirect('/admin/seo'))->withStatus(302);
-    }
 
-    private function generateSitemapXml(string $baseUrl, array $albums, array $categories): string
-    {
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-        
-        // Homepage
-        $xml .= '  <url>' . "\n";
-        $xml .= '    <loc>' . htmlspecialchars($baseUrl . '/') . '</loc>' . "\n";
-        $xml .= '    <priority>1.0</priority>' . "\n";
-        $xml .= '    <changefreq>weekly</changefreq>' . "\n";
-        $xml .= '  </url>' . "\n";
-        
-        // Galleries page
-        $xml .= '  <url>' . "\n";
-        $xml .= '    <loc>' . htmlspecialchars($baseUrl . '/galleries') . '</loc>' . "\n";
-        $xml .= '    <priority>0.9</priority>' . "\n";
-        $xml .= '    <changefreq>weekly</changefreq>' . "\n";
-        $xml .= '  </url>' . "\n";
-        
-        // Categories
-        foreach ($categories as $category) {
-            $xml .= '  <url>' . "\n";
-            $xml .= '    <loc>' . htmlspecialchars($baseUrl . '/category/' . $category['slug']) . '</loc>' . "\n";
-            if ($category['last_modified']) {
-                $xml .= '    <lastmod>' . date('Y-m-d', strtotime($category['last_modified'])) . '</lastmod>' . "\n";
-            }
-            $xml .= '    <priority>0.8</priority>' . "\n";
-            $xml .= '    <changefreq>monthly</changefreq>' . "\n";
-            $xml .= '  </url>' . "\n";
-        }
-        
-        // Albums
-        foreach ($albums as $album) {
-            $xml .= '  <url>' . "\n";
-            $xml .= '    <loc>' . htmlspecialchars($baseUrl . '/album/' . $album['slug']) . '</loc>' . "\n";
-            if ($album['updated_at']) {
-                $xml .= '    <lastmod>' . date('Y-m-d', strtotime($album['updated_at'])) . '</lastmod>' . "\n";
-            }
-            $xml .= '    <priority>0.7</priority>' . "\n";
-            $xml .= '    <changefreq>monthly</changefreq>' . "\n";
-            $xml .= '  </url>' . "\n";
-        }
-        
-        $xml .= '</urlset>';
-        return $xml;
+        return $response->withHeader('Location', $this->redirect('/admin/seo'))->withStatus(302);
     }
 }

@@ -139,7 +139,7 @@
         <div class="filter-group" data-gsap="filter-films">
           <label for="filter-films" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-film mr-1 text-gray-600"></i>
-            {{ trans('filter.film', {}, 'Film') }}
+            {{ trans('filter.film') }}
           </label>
           <select id="filter-films" class="filter-select" multiple data-placeholder="{{ trans('filter.select_films') }}">
             {% for film in filter_options.films %}
@@ -202,15 +202,15 @@
         <div class="filter-group" data-gsap="filter-sort">
           <label for="filter-sort" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-sort mr-1 text-gray-600"></i>
-            {{ trans('filter.sort', {}, 'Sort') }}
+            {{ trans('filter.sort') }}
           </label>
           <select id="filter-sort" class="filter-select">
-            <option value="published_desc" {% if active_filters.sort == 'published_desc' %}selected{% endif %}>{{ trans('filter.sort_latest', {}, 'Latest First') }}</option>
-            <option value="published_asc" {% if active_filters.sort == 'published_asc' %}selected{% endif %}>{{ trans('filter.sort_oldest', {}, 'Oldest First') }}</option>
-            <option value="title_asc" {% if active_filters.sort == 'title_asc' %}selected{% endif %}>{{ trans('filter.sort_title_asc', {}, 'Title A-Z') }}</option>
-            <option value="title_desc" {% if active_filters.sort == 'title_desc' %}selected{% endif %}>{{ trans('filter.sort_title_desc', {}, 'Title Z-A') }}</option>
-            <option value="shoot_date_desc" {% if active_filters.sort == 'shoot_date_desc' %}selected{% endif %}>{{ trans('filter.sort_date_new', {}, 'Shoot Date (New)') }}</option>
-            <option value="shoot_date_asc" {% if active_filters.sort == 'shoot_date_asc' %}selected{% endif %}>{{ trans('filter.sort_date_old', {}, 'Shoot Date (Old)') }}</option>
+            <option value="published_desc" {% if active_filters.sort == 'published_desc' %}selected{% endif %}>{{ trans('filter.sort_latest') }}</option>
+            <option value="published_asc" {% if active_filters.sort == 'published_asc' %}selected{% endif %}>{{ trans('filter.sort_oldest') }}</option>
+            <option value="title_asc" {% if active_filters.sort == 'title_asc' %}selected{% endif %}>{{ trans('filter.sort_title_asc') }}</option>
+            <option value="title_desc" {% if active_filters.sort == 'title_desc' %}selected{% endif %}>{{ trans('filter.sort_title_desc') }}</option>
+            <option value="shoot_date_desc" {% if active_filters.sort == 'shoot_date_desc' %}selected{% endif %}>{{ trans('filter.sort_date_new') }}</option>
+            <option value="shoot_date_asc" {% if active_filters.sort == 'shoot_date_asc' %}selected{% endif %}>{{ trans('filter.sort_date_old') }}</option>
           </select>
         </div>
       </div>

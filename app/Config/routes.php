@@ -83,6 +83,12 @@ $app->get('/', function (Request $request, Response $response) use ($container) 
     return $controller->home($request, $response);
 });
 
+// Dynamic web manifest (PWA)
+$app->get('/site.webmanifest', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+    return $controller->webManifest($request, $response);
+});
+
 // Protected media serving (for password-protected and NSFW albums)
 // Rate limited to prevent scraping/enumeration attacks
 $app->get('/media/protected/{id}/{variant}.{format}', function (Request $request, Response $response, array $args) use ($container) {
@@ -316,6 +322,12 @@ $app->post('/admin/settings/generate-images', function (Request $request, Respon
     $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
     return $controller->generateImages($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/settings/generate-favicons', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
+    return $controller->generateFavicons($request, $response);
+})->add(new RateLimitMiddleware(5, 600))
+  ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // SEO Settings
 $app->get('/admin/seo', function (Request $request, Response $response) use ($container) {

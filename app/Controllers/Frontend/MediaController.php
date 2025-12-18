@@ -15,6 +15,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 class MediaController extends BaseController
 {
     private const ACCESS_WINDOW_SECONDS = 86400; // 24 hours
+    private const BLUR_CACHE_SECONDS = 3600; // 1 hour for blur variants
 
     public function __construct(private Database $db)
     {
@@ -56,6 +57,111 @@ class MediaController extends BaseController
     private function generateEtag(string $realPath, int $filesize): string
     {
         return '"' . md5($realPath . filemtime($realPath) . $filesize) . '"';
+    }
+
+    /**
+     * Resolve the blur variant path for an image.
+     * First checks database, then falls back to conventional path.
+     *
+     * @return string|null Filesystem path to blur file, or null if not found
+     */
+    private function resolveBlurPath(int $imageId): ?string
+    {
+        $root = dirname(__DIR__, 3);
+        $pdo = $this->db->pdo();
+
+        // Try database first
+        $stmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = :id AND variant = :variant AND format = :format');
+        $stmt->execute([':id' => $imageId, ':variant' => 'blur', ':format' => 'jpg']);
+        $row = $stmt->fetch();
+
+        if ($row && !empty($row['path'])) {
+            $relativePath = ltrim($row['path'], '/');
+
+            // Security: no traversal
+            if (str_contains($relativePath, '..') || str_contains($relativePath, '\\')) {
+                return null;
+            }
+
+            // Convert URL path to filesystem path
+            if (str_starts_with($relativePath, 'media/')) {
+                $filePath = "{$root}/public/{$relativePath}";
+            } else {
+                $filePath = "{$root}/{$relativePath}";
+            }
+
+            $realPath = realpath($filePath);
+            if ($realPath && is_file($realPath)) {
+                return $realPath;
+            }
+        }
+
+        // Fallback to conventional path: public/media/{imageId}_blur.jpg
+        $conventionalPath = "{$root}/public/media/{$imageId}_blur.jpg";
+        if (is_file($conventionalPath)) {
+            $realPath = realpath($conventionalPath);
+            if ($realPath) {
+                return $realPath;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Attempt to serve blur variant as fallback for NSFW albums.
+     * Returns Response if blur served successfully, null otherwise.
+     */
+    private function tryServeBlurFallback(
+        Request $request,
+        Response $response,
+        int $imageId,
+        bool $isNsfw,
+        string $currentVariant
+    ): ?Response {
+        // Only for NSFW albums and non-blur requests
+        if (!$isNsfw || $currentVariant === 'blur') {
+            return null;
+        }
+
+        $blurPath = $this->resolveBlurPath($imageId);
+        if ($blurPath === null) {
+            return null;
+        }
+
+        // Validate path is within allowed directories
+        $root = dirname(__DIR__, 3);
+        $storageRoot = realpath("{$root}/storage/");
+        $publicRoot = realpath("{$root}/public/");
+
+        $inStorage = $storageRoot && str_starts_with($blurPath, $storageRoot . DIRECTORY_SEPARATOR);
+        $inPublicMedia = $publicRoot && str_starts_with($blurPath, $publicRoot . DIRECTORY_SEPARATOR . 'media' . DIRECTORY_SEPARATOR);
+
+        if (!$inStorage && !$inPublicMedia) {
+            return null;
+        }
+
+        // Stream the blur file
+        $streamed = $this->streamFile($response, $blurPath, 'image/jpeg');
+        if ($streamed === null) {
+            return null;
+        }
+
+        // Use private cache for NSFW blur content (not public CDN cacheable)
+        $filesize = filesize($blurPath);
+        $etag = $this->generateEtag($blurPath, $filesize);
+        $clientEtag = $request->getHeaderLine('If-None-Match');
+
+        if ($clientEtag !== '' && $clientEtag === $etag) {
+            return $response
+                ->withStatus(304)
+                ->withHeader('ETag', $etag)
+                ->withHeader('Cache-Control', 'private, max-age=' . self::BLUR_CACHE_SECONDS . ', must-revalidate');
+        }
+
+        return $streamed
+            ->withHeader('Cache-Control', 'private, max-age=' . self::BLUR_CACHE_SECONDS . ', must-revalidate')
+            ->withHeader('ETag', $etag);
     }
 
     /**
@@ -103,19 +209,31 @@ class MediaController extends BaseController
         $isNsfw = (bool)$row['is_nsfw'];
 
         if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant)) {
+            // Try blur fallback for NSFW albums
+            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isNsfw, $variant);
+            if ($blurResponse !== null) {
+                return $blurResponse;
+            }
             return $response->withStatus(403);
         }
 
         // Get the variant path from database
-        $variantStmt = $pdo->prepare('
-            SELECT path FROM image_variants
-            WHERE image_id = :id AND variant = :variant AND format = :format
-        ');
+        $variantStmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = :id AND variant = :variant AND format = :format');
         $variantStmt->execute([':id' => $imageId, ':variant' => $variant, ':format' => $format]);
         $variantRow = $variantStmt->fetch();
 
+        // Graceful fallback: if the requested variant is missing (except blur), serve the original file
         if (!$variantRow || empty($variantRow['path'])) {
-            return $response->withStatus(404);
+            if ($variant === 'blur') {
+                return $response->withStatus(404);
+            }
+            $origStmt = $pdo->prepare('SELECT original_path FROM images WHERE id = :id');
+            $origStmt->execute([':id' => $imageId]);
+            $origPath = $origStmt->fetchColumn();
+            if (!$origPath) {
+                return $response->withStatus(404);
+            }
+            $variantRow = ['path' => $origPath];
         }
 
         // Build file path - DB stores URL paths like /media/... which map to public/media/
@@ -140,6 +258,11 @@ class MediaController extends BaseController
         $publicRoot = realpath("{$root}/public/");
 
         if (!$realPath || !is_file($realPath)) {
+            // Last resort: try blur fallback for NSFW albums
+            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isNsfw, $variant);
+            if ($blurResponse !== null) {
+                return $blurResponse;
+            }
             return $response->withStatus(404);
         }
 
@@ -220,12 +343,6 @@ class MediaController extends BaseController
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
         $isAdmin = $this->isAdmin();
-        $allowDownloads = (int)($row['allow_downloads'] ?? 0);
-
-        // Respect album download flag for non-admin users
-        if (!$isAdmin && !$allowDownloads) {
-            return $response->withStatus(403);
-        }
 
         // Check access for protected albums
         if (!$isAdmin) {
@@ -241,8 +358,18 @@ class MediaController extends BaseController
             if ($isNsfw) {
                 $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$albumId]) && $_SESSION['nsfw_confirmed'][$albumId] === true;
                 if (!$nsfwConfirmed) {
+                    // Try blur fallback for NSFW albums
+                    $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, true, 'original');
+                    if ($blurResponse !== null) {
+                        return $blurResponse;
+                    }
                     return $response->withStatus(403);
                 }
+            }
+
+            // Check if downloads are allowed for this album
+            if (!$row['allow_downloads']) {
+                return $response->withStatus(403);
             }
         }
 
@@ -356,7 +483,13 @@ class MediaController extends BaseController
         $albumId = (int)$row['album_id'];
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
+
         if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant)) {
+            // Try blur fallback for NSFW albums
+            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isNsfw, $variant);
+            if ($blurResponse !== null) {
+                return $blurResponse;
+            }
             return $response->withStatus(403);
         }
 
@@ -370,7 +503,12 @@ class MediaController extends BaseController
     private function serveStaticFile(Request $request, Response $response, string $relativePath): Response
     {
         $root = dirname(__DIR__, 3);
-        $filePath = "{$root}/public/media/{$relativePath}";
+        // Accept either "1_blur.jpg" or "media/1_blur.jpg"
+        $cleanRel = ltrim($relativePath, '/');
+        if (str_starts_with($cleanRel, 'media/')) {
+            $cleanRel = substr($cleanRel, strlen('media/'));
+        }
+        $filePath = "{$root}/public/media/{$cleanRel}";
         $realPath = realpath($filePath);
 
         // Validate file exists and is within public/media/

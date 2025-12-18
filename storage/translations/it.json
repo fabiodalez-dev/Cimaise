@@ -193,6 +193,10 @@
     "error.generic": "Si è verificato un errore",
     "error.go_home": "Vai alla Homepage"
   },
+  "about": {
+    "about.missing_bio": "Aggiungi il testo della tua bio da Admin \u2192 Pagine.",
+    "about.portrait_alt": "Ritratto"
+  },
   "contact": {
     "contact.title": "Contatti",
     "contact.name": "Nome",
