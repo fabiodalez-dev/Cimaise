@@ -320,7 +320,8 @@ $app->post('/admin/settings/generate-images', function (Request $request, Respon
 $app->post('/admin/settings/generate-favicons', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
     return $controller->generateFavicons($request, $response);
-})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+})->add(new RateLimitMiddleware(5, 600))
+  ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // SEO Settings
 $app->get('/admin/seo', function (Request $request, Response $response) use ($container) {

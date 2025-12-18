@@ -127,12 +127,9 @@
           <div class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <h4 class="text-sm font-medium text-gray-900 mb-2">{{ trans('admin.settings.generate_favicons', {}, 'Generate Favicons') }}</h4>
             <p class="text-xs text-gray-600 mb-3">{{ trans('admin.settings.generate_favicons_desc', {}, 'Automatically generate all favicon sizes (16x16, 32x32, 180x180, etc.) from your logo') }}</p>
-            <form method="post" action="{{ base_path }}/admin/settings/generate-favicons" class="inline">
-              <input type="hidden" name="csrf" value="{{ csrf }}">
-              <button type="submit" class="btn-secondary text-sm {{ settings['site.logo'] ? '' : 'opacity-50 cursor-not-allowed' }}" {{ settings['site.logo'] ? '' : 'disabled' }}>
-                <i class="fas fa-magic mr-2"></i>{{ trans('admin.settings.generate_favicons_button', {}, 'Generate Favicons') }}
-              </button>
-            </form>
+            <button type="submit" formaction="{{ base_path }}/admin/settings/generate-favicons" formmethod="post" class="btn-secondary text-sm {{ settings['site.logo'] ? '' : 'opacity-50 cursor-not-allowed' }}" {{ settings['site.logo'] ? '' : 'disabled' }}>
+              <i class="fas fa-magic mr-2"></i>{{ trans('admin.settings.generate_favicons_button', {}, 'Generate Favicons') }}
+            </button>
             {% if not settings['site.logo'] %}
               <p class="text-xs text-amber-600 mt-2"><i class="fas fa-info-circle mr-1"></i>{{ trans('admin.settings.upload_logo_first', {}, 'Upload a logo first to generate favicons') }}</p>
             {% endif %}

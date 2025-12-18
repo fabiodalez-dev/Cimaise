@@ -72,19 +72,14 @@ class SitemapService
 
             // Add published albums (exclude NSFW for privacy/SEO)
             $stmt = $pdo->query('
-                SELECT slug, published_at, updated_at, is_nsfw
+                SELECT slug, published_at, updated_at
                 FROM albums
-                WHERE is_published = 1 AND slug IS NOT NULL
+                WHERE is_published = 1 AND slug IS NOT NULL AND (is_nsfw = 0 OR is_nsfw IS NULL)
                 ORDER BY published_at DESC
             ');
             $albums = $stmt->fetchAll() ?: [];
 
             foreach ($albums as $album) {
-                // Skip NSFW albums (should not be indexed)
-                if (!empty($album['is_nsfw'])) {
-                    continue;
-                }
-
                 $updatedAt = !empty($album['updated_at'])
                     ? new \DateTime($album['updated_at'])
                     : (!empty($album['published_at']) ? new \DateTime($album['published_at']) : new \DateTime());
