@@ -64,7 +64,7 @@ photoCMS/
 ├── app/
 │   ├── Config/              # Routes and configuration
 │   ├── Controllers/
-│   │   ├── Admin/           # Admin panel controllers (29 controllers)
+│   │   ├── Admin/           # Admin panel controllers (28 controllers)
 │   │   └── Frontend/        # Public-facing controllers
 │   ├── Extensions/          # Twig extensions
 │   ├── Installer/           # Installation logic
@@ -470,7 +470,7 @@ $app->get('/path', function(...) { ... })
 - **Slug auto-generation**: Uses `App\Support\Str::slug()` for SEO-friendly identifiers
 
 ### PWA Manifest Generation
-- **Dynamic web manifest**: `PageController::webManifest()` generates `/manifest.webmanifest` endpoint
+- **Dynamic web manifest**: `PageController::webManifest()` generates `/site.webmanifest` endpoint
 - **Configurable colors**: Uses `pwa.theme_color` and `pwa.background_color` settings (defaults: `#ffffff`)
 - **Short name truncation**: `truncateShortName()` helper truncates site name at word boundary (max 12 chars) for PWA short_name field
 - **Favicon integration**: Reads generated favicons from FaviconService for manifest icons
