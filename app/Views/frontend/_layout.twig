@@ -2210,6 +2210,8 @@
             endpoint: '{{ base_path }}/api/analytics/track',
             debug: {{ app_debug|default(false) ? 'true' : 'false' }}
         };
+        window.nsfwConsent = {{ nsfw_consent|default(false) ? 'true' : 'false' }};
+        window.isAdmin = {{ is_admin|default(false) ? 'true' : 'false' }};
         
         // Add meta tags for analytics
         {% if current_album %}
@@ -2231,43 +2233,6 @@
             });
         });
     });
-    </script>
-
-    <!-- Global NSFW Image Swap (runs on all pages) -->
-    <script nonce="{{ csp_nonce() }}">
-    (function() {
-        // Check if user has confirmed they are of age
-        var confirmed = localStorage.getItem('nsfw_confirmed') === 'true';
-        if (!confirmed) return;
-
-        // Swap all NSFW card images from blur to original
-        document.querySelectorAll('img.nsfw-card-image[data-src]').forEach(function(img) {
-            var origSrc = img.getAttribute('data-src');
-            if (origSrc) {
-                img.src = origSrc;
-                img.classList.remove('nsfw-card-image', 'nsfw-blur');
-                img.removeAttribute('data-src');
-            }
-        });
-
-        // Also handle galleries.twig style images
-        document.querySelectorAll('img.nsfw-image[data-src]').forEach(function(img) {
-            var origSrc = img.getAttribute('data-src');
-            if (origSrc) {
-                img.src = origSrc;
-                img.classList.remove('nsfw-image', 'nsfw-blur');
-                img.removeAttribute('data-src');
-            }
-        });
-
-        // Hide NSFW overlays on confirmed pages
-        document.querySelectorAll('[data-nsfw="1"]').forEach(function(card) {
-            var overlay = card.querySelector('.backdrop-blur-sm');
-            if (overlay) {
-                overlay.style.display = 'none';
-            }
-        });
-    })();
     </script>
 
     {% block scripts %}{% endblock %}

@@ -426,6 +426,7 @@ CREATE TABLE IF NOT EXISTS analytics_events (
 CREATE INDEX IF NOT EXISTS idx_analytics_events_session_id ON analytics_events(session_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_type ON analytics_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_occurred_at ON analytics_events(occurred_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_album_id ON analytics_events(album_id);
 
 CREATE TABLE IF NOT EXISTS analytics_daily_summary (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

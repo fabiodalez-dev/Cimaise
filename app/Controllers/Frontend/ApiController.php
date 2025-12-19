@@ -67,15 +67,31 @@ class ApiController extends BaseController
         $stmt->execute();
         $albums = $stmt->fetchAll();
 
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
+
         // Enrich albums minimally (cover + tags)
-        foreach ($albums as &$album) {
+        $visibleAlbums = [];
+        foreach ($albums as $album) {
             $this->enrichAlbum($album);
+            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
+                continue;
+            }
+            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
+                unset($album['cover']);
+            }
+            $visibleAlbums[] = $album;
         }
+        $albums = $visibleAlbums;
 
         // Render itemsHtml via Twig partial
         $itemsHtml = '';
         foreach ($albums as $a) {
-            $itemsHtml .= $this->view->fetch('frontend/_album_card.twig', ['album' => $a]);
+            $itemsHtml .= $this->view->fetch('frontend/_album_card.twig', [
+                'album' => $a,
+                'nsfw_consent' => $nsfwConsent,
+                'is_admin' => $isAdmin
+            ]);
         }
 
         $pages = max(1, (int)ceil($total / $perPage));
@@ -101,7 +117,7 @@ class ApiController extends BaseController
         $albumId = (int)($args['id'] ?? 0);
 
         // Security: Check album exists, is published, and password access
-        $stmt = $pdo->prepare('SELECT id, is_published, password_hash FROM albums WHERE id = :id');
+        $stmt = $pdo->prepare('SELECT id, is_published, password_hash, is_nsfw FROM albums WHERE id = :id');
         $stmt->execute([':id' => $albumId]);
         $album = $stmt->fetch();
 
@@ -112,11 +128,15 @@ class ApiController extends BaseController
 
         // Check password protection (use same session key as PageController::unlockAlbum)
         if (!empty($album['password_hash'])) {
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
-            if (empty($_SESSION['album_access'][$albumId])) {
+            if (!$this->hasAlbumPasswordAccess($albumId)) {
                 $response->getBody()->write(json_encode(['error' => 'Album is password protected']));
+                return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+            }
+        }
+        $isAdmin = $this->isAdmin();
+        if ((bool)$album['is_nsfw'] && !$isAdmin) {
+            if (!$this->hasNsfwAlbumConsent($albumId)) {
+                $response->getBody()->write(json_encode(['error' => 'Age verification required']));
                 return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
             }
         }
@@ -239,4 +259,3 @@ class ApiController extends BaseController
         return $display;
     }
 }
-

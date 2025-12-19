@@ -20,6 +20,8 @@ class GalleriesController extends BaseController
     {
         $pdo = $this->db->pdo();
         $params = $request->getQueryParams();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
         
         // Get filter settings from database
         $filterSettings = $this->getFilterSettings();
@@ -47,7 +49,9 @@ class GalleriesController extends BaseController
             'active_filters' => $filters,
             'parent_categories' => $parentCategories,
             'page_title' => $pageTexts['title'],
-            'meta_description' => $pageTexts['description']
+            'meta_description' => $pageTexts['description'],
+            'nsfw_consent' => $nsfwConsent,
+            'is_admin' => $isAdmin
         ]);
     }
 
@@ -66,27 +70,25 @@ class GalleriesController extends BaseController
 
         // Check admin status for NSFW handling
         $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
 
         // Sanitize album data - remove sensitive fields
-        // SECURITY: For NSFW albums, only expose blur_path, never the real preview_path
-        $safeAlbums = array_map(function($album) use ($isAdmin) {
+        // SECURITY: For NSFW albums without consent, do not expose any preview paths
+        $safeAlbums = array_map(function($album) use ($isAdmin, $nsfwConsent) {
             $isNsfw = (bool)($album['is_nsfw'] ?? false);
+            $canShowNsfw = $isAdmin || $nsfwConsent;
 
-            // For NSFW albums (non-admin), only return blur_path
             $coverImage = null;
-            if (isset($album['cover_image'])) {
+            if (isset($album['cover_image']) && (!$isNsfw || $canShowNsfw)) {
                 // Use fallback dimensions to avoid CLS (Cumulative Layout Shift)
                 // Default 4:3 aspect ratio at 400px width if dimensions missing
                 $coverImage = [
                     'id' => $album['cover_image']['id'],
-                    'blur_path' => $album['cover_image']['blur_path'] ?? null,
                     'width' => (int)($album['cover_image']['width'] ?? 400),
                     'height' => (int)($album['cover_image']['height'] ?? 300),
                 ];
-                // Only include preview_path for non-NSFW albums or admins
-                if (!$isNsfw || $isAdmin) {
-                    $coverImage['preview_path'] = $album['cover_image']['preview_path'] ?? null;
-                }
+                $coverImage['preview_path'] = $album['cover_image']['preview_path'] ?? null;
+                $coverImage['blur_path'] = $album['cover_image']['blur_path'] ?? null;
             }
 
             return [
@@ -352,12 +354,23 @@ class GalleriesController extends BaseController
         $stmt->execute($params);
         $albums = $stmt->fetchAll();
         
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
+
         // Enrich albums with cover images and additional data
-        foreach ($albums as &$album) {
+        $visibleAlbums = [];
+        foreach ($albums as $album) {
             $album = $this->enrichAlbum($album);
+            if (!$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
+                continue;
+            }
+            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
+                unset($album['cover_image']);
+            }
+            $visibleAlbums[] = $album;
         }
         
-        return $albums;
+        return $visibleAlbums;
     }
 
     private function getFilterOptions(): array
