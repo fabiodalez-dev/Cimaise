@@ -15,6 +15,7 @@ Core value propositions:
 - **Truly Yours**: Self-hosted, open source (MIT), no vendor lock-in, no monthly fees
 
 Gallery templates: Classic Grid, Masonry, Magazine, Magazine + Cover
+Home templates: Classic (masonry + infinite scroll), Modern (fixed sidebar + grid layout)
 
 Admin features: Drag & drop reordering, bulk upload (100+ images), inline editing, real-time preview, equipment-based browsing, full-text search
 
@@ -34,8 +35,15 @@ php bin/console           # CLI commands (migrations, seeding, etc.)
 ```bash
 npm install               # Install Node dependencies
 npm run dev               # Start Vite dev server
-npm run build             # Build production assets
+npm run build             # Build production assets (outputs to public/assets/)
 ```
+
+**Vite Entry Points** (`vite.config.js`):
+- `resources/js/hero.js` → `public/assets/js/hero.js`
+- `resources/js/home.js` → `public/assets/js/home.js`
+- `resources/js/home-modern.js` → `public/assets/js/home-modern.js` (Lenis smooth scroll + infinite grid)
+- `resources/js/smooth-scroll.js` → `public/assets/js/smooth-scroll.js`
+- `resources/admin.js` → `public/assets/admin.js`
 
 ### CLI Console Commands
 ```bash
@@ -90,9 +98,12 @@ photoCMS/
 │   ├── index.php            # Web entry point
 │   ├── installer.php        # Web installer
 │   ├── assets/              # Compiled CSS/JS
+│   │   ├── css/             # Compiled stylesheets (home-modern.css, etc.)
+│   │   └── js/              # Compiled JavaScript (hero.js, home.js, home-modern.js, smooth-scroll.js)
 │   └── media/               # Uploaded images and variants
 ├── plugins/                 # Plugin directory
 ├── resources/               # Source assets (pre-build)
+│   └── js/                  # Source JavaScript (hero.js, home.js, home-modern.js, smooth-scroll.js)
 ├── storage/
 │   ├── translations/        # i18n JSON files (en.json, it.json, en_admin.json, it_admin.json)
 │   ├── cache/               # Template cache
@@ -120,7 +131,9 @@ photoCMS/
 - `app/Controllers/Admin/SeoController.php` - SEO settings management with Open Graph, Twitter Cards, Schema.org (Person, Organization, LocalBusiness), analytics integration (Google Tag Manager, GA4), image metadata, and sitemap generation
 - `app/Controllers/Admin/SocialController.php` - Social sharing settings management with network enable/disable, ordering, AJAX/form support
 - `app/Controllers/Admin/TemplatesController.php` - Gallery template management (edit only, creation/deletion disabled) with responsive column configuration, layout settings, PhotoSwipe options, and magazine-specific animations
+- `app/Controllers/Admin/PagesController.php` - Pages management (home, about, galleries) with home template selection (classic/modern), hero sections, gallery text content
 - `app/Controllers/Admin/SettingsController.php` - Site settings with image formats/quality/breakpoints, gallery templates, date format, site language, reCAPTCHA configuration (requires both site and secret keys to enable), performance settings, triggers favicon generation after logo upload
+- `app/Controllers/Frontend/PageController.php` - Frontend page rendering with SEO builder, template normalization, home template routing (classic/modern)
 - `app/Extensions/DateTwigExtension.php` - Twig extension for date formatting (filters: date_format, datetime_format, replace_year; functions: date_format_pattern)
 - `app/Middlewares/RateLimitMiddleware.php` - Brute-force protection and API rate limiting
 - `app/Middlewares/SecurityHeadersMiddleware.php` - Security headers (CSP, HSTS, X-Frame-Options) with per-request nonce generation
@@ -129,6 +142,10 @@ photoCMS/
 - `app/Views/admin/texts/index.twig` - Translation management UI with import/export/upload, scope selector, server-side language dropdown, and language preset selection
 - `app/Views/admin/albums/*.twig` - Album CRUD views with full i18n via trans() function
 - `app/Views/frontend/_layout.twig` - Frontend layout with SEO meta tags, Open Graph, Twitter Cards, JSON-LD schemas (Person/Organization, BreadcrumbList, LocalBusiness), CSP nonce support
+- `app/Views/frontend/_layout_modern.twig` - Modern template layout with Lenis smooth scroll, minimal header, mega menu overlay
+- `app/Views/frontend/home.twig` - Classic home template with masonry layout and infinite scroll
+- `app/Views/frontend/home_modern.twig` - Modern home template with fixed sidebar (filters, info) and scrollable grid (two-column infinite scroll)
+- `app/Views/admin/pages/home.twig` - Home page settings with visual template selector (classic/modern), hero sections, gallery text, scroll direction
 - `app/Views/frontend/_album_card.twig` - Album card template with NSFW blur variant logic
 - `app/Views/frontend/_breadcrumbs.twig` - Breadcrumbs with automatic JSON-LD schema generation
 - `app/Views/frontend/_social_sharing.twig` - Social sharing buttons template
@@ -171,13 +188,16 @@ photoCMS/
 
 ### Frontend
 - **Twig templates**: `{% extends %}` for layouts, `{% include %}` for partials
+  - Template inheritance: `_layout.twig` (classic frontend), `_layout_modern.twig` (modern template with Lenis)
+  - Home templates: `home.twig` (classic masonry), `home_modern.twig` (grid with sidebar)
 - **Translation function**: `{{ trans('key.name') }}` for i18n (used in both frontend and admin templates)
 - **Admin panel i18n**: Fully internationalized with `trans('admin.*')` keys and `en_admin.json`/`it_admin.json` files (complete Italian translation added in commit 41acb3b)
 - **Date formatting**: Use `{{ date|date_format }}`, `{{ datetime|datetime_format }}`, `{{ text|replace_year }}` filters
 - **CSP nonce**: Use `{{ csp_nonce() }}` for inline scripts (required by Content Security Policy)
 - **Image error handling**: Use `data-fallback="hide"` attribute for graceful degradation (not inline `onerror` for CSP compliance)
-- **Tailwind CSS**: Utility-first styling
-- **JavaScript**: ES6 modules, localStorage with Safari-safe wrappers
+- **Tailwind CSS**: Utility-first styling (classic templates)
+- **Custom CSS**: Modern template uses custom CSS (`home-modern.css`) with CSS variables (`--modern-*`)
+- **JavaScript**: ES6 modules, localStorage with Safari-safe wrappers, npm package imports (Lenis via Vite)
 
 ### Middleware Pattern
 ```php
@@ -259,16 +279,21 @@ $app->get('/path', function(...) { ... })
 - **Nonce generation**: `base64_encode(random_bytes(16))` stored in static property per request
 - **Request attribute**: Nonce attached to request as `csp_nonce` attribute and accessible via `SecurityHeadersMiddleware::getNonce()`
 - **Twig function**: `{{ csp_nonce() }}` function via SecurityTwigExtension for inline scripts and styles in templates
-- **CSP header**: `script-src 'self' 'nonce-{nonce}'` allows only nonce-tagged inline scripts (no unsafe-inline)
+- **Dual CSP policies**:
+  - **Admin routes** (paths starting with `/admin` or `/cimaise/admin`): Allows `unsafe-inline` and `unsafe-eval` for scripts (required for SPA navigation and TinyMCE)
+  - **Frontend routes**: Strict nonce-based CSP with `script-src 'self' 'nonce-{nonce}'`, no unsafe-inline allowed
+  - Route detection: `str_starts_with($path, '/admin')` in middleware process method
+- **CSP header**: `script-src 'self' 'nonce-{nonce}'` (frontend) or `'self' 'unsafe-inline' 'unsafe-eval'` (admin)
 - **Usage pattern**:
-  - Scripts: `<script nonce="{{ csp_nonce() }}">...</script>` for inline JavaScript
+  - Scripts: `<script nonce="{{ csp_nonce() }}">...</script>` for inline JavaScript (frontend only)
   - Styles: `<style nonce="{{ csp_nonce() }}">...</style>` for inline CSS
-- **Admin layout**: All inline scripts and styles in `_layout.twig` use CSP nonce
+- **Admin layout**: All inline scripts and styles in `_layout.twig` benefit from relaxed CSP policy
   - Window globals: `window.basePath`, `window.cspNonce`
   - Inline styles: Component styling, TinyMCE fixes, sidebar styles
-  - TinyMCE initialization and configuration
+  - TinyMCE initialization and configuration work without nonce requirement
 - **Additional headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, HSTS, Referrer-Policy, Permissions-Policy, Cross-Origin-Opener-Policy, X-Permitted-Cross-Domain-Policies, Expect-CT
 - **CSP directives**: upgrade-insecure-requests, img-src with data: and blob:, style-src with unsafe-inline for third-party CSS, font-src for Google Fonts, object-src none, base-uri self, form-action self, frame-ancestors none
+- **reCAPTCHA whitelist**: Frontend CSP includes `frame-src` and `script-src` for Google reCAPTCHA domains (www.google.com/recaptcha/, www.gstatic.com/recaptcha/)
 
 ### Advanced Filtering (Galleries)
 - Multi-criteria filtering: categories, tags, cameras, lenses, films, locations, year, search
@@ -299,7 +324,22 @@ $app->get('/path', function(...) { ... })
 - **Idempotent initialization**: Guards against double-initialization of upload areas with `_uppyInitialized` flag
 - **Global instance tracking**: `window.uppyInstances` array for proper cleanup and SPA re-initialization
 
-### Home Page CSS Animations
+### Home Page Templates & Animations
+- **Template system**: Configurable via `home.template` setting (classic or modern)
+  - Setting managed in `PagesController::saveHome()` and rendered in `PageController::home()`
+  - Template selection: `$homeTemplate === 'modern' ? 'frontend/home_modern.twig' : 'frontend/home.twig'`
+  - Classic template: `frontend/home.twig` (default)
+  - Modern template: `frontend/home_modern.twig` (grid-based layout)
+- **Admin template selector**: Visual radio button UI in `admin/pages/home.twig`
+  - Two template options with icons and descriptions
+  - Classic: Gradient gray-to-black icon (from-gray-700 to-gray-900, fa-images), "Feature-rich layout" with masonry and carousel
+  - Modern: Gradient indigo-to-purple icon (from-indigo-500 to-purple-600, fa-th-large), "Minimal & clean" with grid and sidebar
+  - Active state: Border black, background gray-50, check icon visible (fas fa-check-circle)
+  - Translation keys: `admin.pages.home.template_*` (selection, classic, modern, descriptions, subtitles)
+  - Template-specific settings visibility: Classic settings hidden when modern selected via conditional `hidden` class
+  - JavaScript-based template switching: Updates radio buttons, visual states, and shows/hides corresponding settings sections
+
+#### Classic Template CSS Animations
 - **Mobile masonry layout**: CSS columns with `column-count: 1` (1 column mobile) / 2 (640px+)
 - **Desktop infinite scroll**: Vertical auto-scroll with `animation-direction` data attribute (up/down)
   - Keyframes: `homeScrollUp` (0% translate -50% → 100% 0%) / `homeScrollDown` (0% 0% → 100% -50%)
@@ -318,6 +358,61 @@ $app->get('/path', function(...) { ... })
 - **Performance optimizations**: `backface-visibility: hidden`, `transform-style: preserve-3d`, `transform: translateZ(0)`, `will-change: transform`, `contain: content`
 - **Entry animations**: Initial state `.entry-init .home-item { opacity: 0; filter: blur(4px); transform: scale(0.985) }` revealing with `.home-item--revealed` class
 - **Gallery text content**: Semantic styling for rich text (h2-h4, blockquote, lists, links with underline)
+
+#### Modern Template (Grid Layout)
+- **Layout structure**: Fixed left sidebar (50% width) + scrollable right grid (50% width)
+  - Left column: Fixed position with vertical centering, contains filters and info
+  - Right column: Scrollable work grid with infinite scroll effect
+  - Template files: `app/Views/frontend/home_modern.twig` extends `_layout_modern.twig`
+  - Assets: `public/assets/css/home-modern.css`, `public/assets/js/home-modern.js`
+  - Source: `resources/js/home-modern.js` (built via Vite)
+- **Layout components**:
+  - Global header: Fixed top-left logo with mix-blend-mode difference
+  - Menu button: Fixed top-right with uppercase text, opens mega menu overlay
+  - Left sidebar: Category filters (data-filter attributes), photo counter, hover info display
+  - Right grid: Two-column image layout with infinite scroll
+  - Mega menu: Full-screen overlay with close button and navigation links
+  - Page transition: Overlay for smooth page changes
+- **Lenis smooth scroll**: Integration via ES module import from npm (`lenis@1.1.18`)
+  - Duration: 2.0s, easing: `(t) => 1 - Math.pow(1 - t, 4)`, direction: vertical
+  - Touch multiplier: 1.5, wheel multiplier: 0.8, smooth touch disabled
+  - RAF loop: `lenis.raf(time)` in `requestAnimationFrame` for continuous updates
+  - Applied to `html.lenis` class for global smooth scrolling
+- **Infinite scroll grid**: JavaScript-based with lerp animation and wrap-around
+  - Two-column system: odd items (left column - `nth-child(2n+1)`), even items (right column - `nth-child(2n+2)`)
+  - Mobile detection: animations disabled below 768px breakpoint via `isMobile()` function
+  - Transform-based positioning with `translate(0px, ${finalY}px)` for GPU acceleration
+  - Lerp smoothing: `lerp(v0, v1, 0.09)` for left column, `0.08` for right (stagger effect)
+  - Wrap-around logic: `((newY % wrapHeight) + wrapHeight) % wrapHeight` for continuous loop
+  - Minimum items: Requires 8+ items for infinite scroll effect (MIN_ITEMS_FOR_INFINITE = 8), automatically clones items if fewer
+  - Item cloning: `cloneItemsForWall()` duplicates original items to reach minimum threshold, marked with `is-clone` class
+  - Clear transforms on mobile: `clearTransforms()` removes all transform styles below 768px breakpoint
+  - Wheel event handling: Updates `scrollY` with delta for manual scroll control
+  - Filtered state: Disables infinite scroll when category filter active, shows simple grid layout
+- **Category filtering**: Client-side filtering with hover effects
+  - Shimmer animation on hover: gradient background-clip with 3s animation
+  - Active state: opacity 1, inactive: opacity 0.5
+  - Data attributes: `data-filter="all"` for all work, `data-filter="{slug}"` for categories
+  - Filtering toggles `.is-active` class and updates visibility of items by category class
+- **Hover info display**: Left sidebar shows image title and description on hover
+  - Attributes: `image-grid_title` and `image-grid_copy` populated from `work-title` and `work-copy` data attributes
+  - Updates on mouseenter event for each `.inf-work_item`
+- **Mega menu overlay**: Full-screen navigation with close button
+  - Menu toggle: `.menu-btn` opens, `.menu-close` closes
+  - Page transition overlay: `.page-transition` for smooth navigation
+  - Navigation links: Home, Galleries, About with `.is-current` class for active page
+- **CSS variables**: `--modern-black`, `--modern-white`, `--modern-grey`, `--modern-dark-grey`
+- **Responsive font sizing**: Root font size set to `1.1111111111vw` (capped at `21.333px` on 1920px+ screens)
+- **Empty state**: Custom empty state with icon, title, text when no images available
+  - Uses `home_settings.empty_title` and `home_settings.empty_text` with translation fallbacks
+- **Translation keys**:
+  - `frontend.home_modern.*`: all_work, albums, photos, close, empty_title, empty_text
+  - `frontend.menu.*`: home, galleries, about (for mega menu navigation)
+- **Performance optimizations**: Dynamic image loading prioritization
+  - Images in initial viewport: `fetchpriority="high"`, `loading` attribute removed
+  - Below-fold images: `loading="lazy"` preserved
+  - Viewport detection: `getBoundingClientRect()` checks if image is in initial viewport on page load
+- **Focus accessibility**: Focus-visible outlines on all interactive elements (menu button, filter items, links)
 
 ### Auto-Repair (Bootstrap)
 - Auto-creates `.env` from template if missing and `database/template.sqlite` exists
@@ -449,9 +544,10 @@ $app->get('/path', function(...) { ... })
 - **Magazine-specific settings** (template id 3): Separate duration values for 3 columns (min: 10s, max: 300s) and gap setting (0-80px)
 - **Template normalization**: `PageController::normalizeTemplateSettings()` flattens deeply nested column structures
   - Handles recursive nested objects: `columns.desktop.desktop.desktop` → `columns.desktop`
-  - Validates column counts: desktop (1-6), tablet (1-4), mobile (1-2)
-  - Fallback defaults on invalid values: desktop=3, tablet=2, mobile=1
-  - Applied to all template settings before rendering gallery pages
+  - Unwrapping logic: `while (is_array($value) && isset($value[$device])) { $value = $value[$device]; }`
+  - Validates column counts: desktop (1-6), tablet (1-4), mobile (1-2), with numeric and range validation
+  - Fallback defaults on invalid values: desktop=3, tablet=2, mobile=1 via match expression
+  - Applied to all template settings before rendering gallery pages in `gallery()` and `album()` methods
 - **Settings structure example**:
   ```php
   {
@@ -479,13 +575,31 @@ $app->get('/path', function(...) { ... })
 ### Settings Validation Patterns
 - **reCAPTCHA validation**: `SettingsController::save()` validates both keys before enabling
   - Requires both site key and secret key to enable reCAPTCHA (cannot enable with empty keys)
-  - Reads existing keys from database if new values not provided (lines 136-141)
-  - Validates final keys before allowing enablement: `if ($recaptchaEnabled && ($finalSiteKey === '' || $finalSecretKey === ''))` (line 144)
+  - Key format validation: Regex pattern `/^[A-Za-z0-9_-]+$/` for alphanumeric, underscore, hyphen only
+  - Rejects invalid keys with flash error: "Invalid reCAPTCHA Site/Secret Key format"
+  - Reads existing keys from database if new values not provided (lines 147-148)
+  - Validates final keys before allowing enablement: `if ($recaptchaEnabled && ($finalSiteKey === '' || $finalSecretKey === ''))` (line 155)
   - Auto-disables reCAPTCHA with flash error if keys missing
 - **Conditional key updates**: Secret keys only updated if new value provided (preserves existing keys on empty input)
-  - Pattern: `if ($recaptchaSecretKey !== '') { $svc->set('recaptcha.secret_key', $recaptchaSecretKey); }` (line 151-153)
+  - Pattern: `if ($recaptchaSecretKey !== '') { $svc->set('recaptcha.secret_key', $recaptchaSecretKey); }` (line 162-164)
   - Security: Never exposes existing secret key to client (one-way write only)
 - **Fallback handling**: Uses `$_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'` for reCAPTCHA verification to handle missing REMOTE_ADDR
+
+### Contact Form Protection (reCAPTCHA v3)
+- **Admin configuration**: SettingsController manages site key, secret key, and enable/disable toggle
+- **Frontend integration**: about.twig conditionally loads reCAPTCHA v3 script when enabled
+  - Script URL: `https://www.google.com/recaptcha/api.js?render={site_key}`
+  - Action name: 'contact' for form submissions
+  - Client-side: `grecaptcha.execute()` on form submit, adds hidden `recaptcha_token` field
+- **Backend verification**: PageController::contact() validates token before processing
+  - Library: ReCaptcha\ReCaptcha from google/recaptcha composer package
+  - Expected action: 'contact' (matches frontend)
+  - Score threshold: 0.5 (v3 returns 0.0-1.0, higher = more human)
+  - Token validation: `setExpectedAction('contact')->setScoreThreshold(0.5)->verify()`
+  - Rejection handling: Logs warning with error codes and score, redirects to `/about?error=1`
+- **Settings storage**: `recaptcha.enabled` (boolean), `recaptcha.site_key` (string), `recaptcha.secret_key` (string)
+- **CSP compatibility**: reCAPTCHA domains whitelisted in SecurityHeadersMiddleware
+- **Graceful degradation**: Form works without JavaScript if reCAPTCHA disabled
 
 <!-- END AUTO-MANAGED -->
 
