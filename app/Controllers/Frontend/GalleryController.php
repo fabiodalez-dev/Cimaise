@@ -222,7 +222,8 @@ class GalleryController extends BaseController
         $images = [];
         foreach ($imagesRows as $img) {
             $bestUrl = $img['original_path'];
-            $lightboxUrl = $img['original_path']; // Default to original for lightbox
+            // Default lightbox URL (overridden below with largest variant if available)
+            $lightboxUrl = $bestUrl;
             
             $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
             try {
@@ -232,8 +233,29 @@ class GalleryController extends BaseController
                 $vr = $v->fetch();
                 if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
                 
-                // Always use original for lightbox for best quality
-                // $lightboxUrl is already set to $img['original_path'] above
+                // Choose the largest available variant for lightbox (prefers AVIF/WebP, xxl->sm)
+                $lb = $pdo->prepare("
+                    SELECT variant, format, path
+                    FROM image_variants
+                    WHERE image_id = :id AND path NOT LIKE '/storage/%'
+                    ORDER BY
+                        CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 WHEN 'sm' THEN 5 ELSE 9 END,
+                        CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END,
+                        width DESC
+                    LIMIT 1
+                ");
+                $lb->execute([':id' => $img['id']]);
+                $lbr = $lb->fetch();
+                if ($lbr && !empty($lbr['path'])) {
+                    if ($isNsfwAlbum || !empty($album['password_hash'])) {
+                        $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $lbr['variant'] . '.' . $lbr['format'];
+                    } else {
+                        $lightboxUrl = $lbr['path'];
+                    }
+                } else {
+                    // Fallback: use protected original for lightbox when no variants are available
+                    $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
+                }
                 
                 // Build responsive sources for <picture>
                 $srcStmt = $pdo->prepare("SELECT format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width ASC");

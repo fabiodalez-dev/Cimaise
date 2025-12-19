@@ -42,6 +42,15 @@ const tf = (key, params = {}) => {
   return out;
 };
 
+// Debug logger (disabled unless window.__ADMIN_DEBUG is true)
+const debugLog = (...args) => {
+  try {
+    if (typeof window !== 'undefined' && window.__ADMIN_DEBUG) {
+      console.log(...args);
+    }
+  } catch (e) {}
+};
+
 /**
  * Initialize the custom image upload area: configures an Uppy instance (XHRUpload with CSRF),
  * builds a hidden file input, enables drag-and-drop, renders a total + per-file progress panel,
@@ -309,20 +318,20 @@ function initUppyAreaUpload() {
 
 // Initialize all TomSelect fields if present
 function initTomSelects() {
-  console.log('Initializing TomSelects...');
+  debugLog('Initializing TomSelects...');
   
   const make = (selector, opts = {}) => {
     const elements = document.querySelectorAll(selector);
     elements.forEach(el => {
       // Skip if already initialized
       if (el.tomselect) {
-        console.log(`TomSelect already initialized for ${selector}`);
+        debugLog(`TomSelect already initialized for ${selector}`);
         return;
       }
       
       try {
         el.tomselect = new TomSelect(el, opts);
-        console.log(`TomSelect initialized for ${selector}`);
+        debugLog(`TomSelect initialized for ${selector}`);
       } catch(e) {
         console.error(`Failed to initialize TomSelect for ${selector}:`, e);
       }
@@ -369,11 +378,11 @@ function initTomSelects() {
 
 // Sortable grid and controls on edit page
 function initSortableGrid() {
-  console.log('Initializing Sortable grid...');
+  debugLog('Initializing Sortable grid...');
   
   const grid = document.getElementById('images-grid');
   if (!grid) {
-    console.log('No images-grid found, skipping Sortable initialization');
+    debugLog('No images-grid found, skipping Sortable initialization');
     return;
   }
   
@@ -381,7 +390,7 @@ function initSortableGrid() {
   if (grid._sortableInstance) {
     try {
       grid._sortableInstance.destroy();
-      console.log('Destroyed existing Sortable instance');
+      debugLog('Destroyed existing Sortable instance');
     } catch(e) {
       console.warn('Failed to destroy existing Sortable instance:', e);
     }
@@ -419,7 +428,7 @@ function initSortableGrid() {
     if (!window.sortableInstances) window.sortableInstances = [];
     window.sortableInstances.push(sortableInstance);
     
-    console.log('Sortable initialized successfully');
+    debugLog('Sortable initialized successfully');
   } catch(e) {
     console.error('Failed to initialize Sortable:', e);
   }
@@ -473,11 +482,11 @@ function initSortableGrid() {
 
 // TinyMCE init on all richtext areas (GPL via npm)
 function initTinyMCE() {
-  console.log('Initializing TinyMCE...');
+  debugLog('Initializing TinyMCE...');
   
   const areas = document.querySelectorAll('textarea.richtext');
   if (!areas.length) {
-    console.log('No richtext areas found, skipping TinyMCE initialization');
+    debugLog('No richtext areas found, skipping TinyMCE initialization');
     return;
   }
   
@@ -485,7 +494,7 @@ function initTinyMCE() {
   try { 
     if (window.tinymce) {
       tinymce.remove(); 
-      console.log('Removed existing TinyMCE instances');
+      debugLog('Removed existing TinyMCE instances');
     }
   } catch(e) {
     console.warn('Failed to remove TinyMCE instances:', e);
@@ -532,7 +541,7 @@ function initTinyMCE() {
     promotion: false,
     setup: function (editor) {
       editor.on('init', function () {
-        console.log('TinyMCE editor initialized:', editor.id);
+        debugLog('TinyMCE editor initialized:', editor.id);
         // Force toolbar visibility
         const container = editor.getContainer();
         const toolbar = container.querySelector('.tox-toolbar');
@@ -542,11 +551,11 @@ function initTinyMCE() {
       });
       
       editor.on('remove', function () {
-        console.log('TinyMCE editor removed:', editor.id);
+        debugLog('TinyMCE editor removed:', editor.id);
       });
     }
   }).then(function(editors) {
-    console.log('TinyMCE initialized successfully for', editors.length, 'editors');
+    debugLog('TinyMCE initialized successfully for', editors.length, 'editors');
   }).catch(function(error) {
     console.error('TinyMCE initialization failed:', error);
   });
@@ -554,7 +563,7 @@ function initTinyMCE() {
 
 // Expose global initializer for SPA content loads
 window.AdminInit = function() {
-  console.log('AdminInit: Initializing admin components...');
+  debugLog('AdminInit: Initializing admin components...');
   
   // Cleanup any existing instances to prevent duplicates
   cleanupExistingInstances();
@@ -571,7 +580,7 @@ window.AdminInit = function() {
   initDropdowns();
   initFormValidation();
   
-  console.log('AdminInit: All components initialized');
+  debugLog('AdminInit: All components initialized');
 };
 
 // Cleanup function to remove existing instances
@@ -662,7 +671,7 @@ function cleanupExistingInstances() {
       delete el._validationInitialized;
     });
     
-    console.log('Cleanup completed successfully');
+    debugLog('Cleanup completed successfully');
     
   } catch(e) {
     console.warn('Cleanup warning:', e);
@@ -944,10 +953,10 @@ function getCsrf(){ const el = document.querySelector('input[name="csrf"]'); ret
 // Refresh only the gallery grid after uploads (smooth, no flicker)
 async function refreshGalleryArea() {
   try {
-    console.log('🔄 refreshGalleryArea called');
+    debugLog('🔄 refreshGalleryArea called');
 
     const existingGrid = document.getElementById('images-grid');
-    console.log('📋 Existing grid found:', !!existingGrid);
+    debugLog('📋 Existing grid found:', !!existingGrid);
 
     if (!existingGrid) {
       console.error('❌ images-grid element not found! The template should always include it now.');
@@ -959,7 +968,7 @@ async function refreshGalleryArea() {
     existingGrid.style.opacity = '0.6';
 
     // Fetch the updated content
-    console.log('🌐 Fetching updated page content...');
+    debugLog('🌐 Fetching updated page content...');
     const res = await fetch(window.location.href, { headers: { 'Accept': 'text/html' }});
     if (!res.ok) throw new Error('Failed to fetch page');
     const html = await res.text();
@@ -967,12 +976,12 @@ async function refreshGalleryArea() {
     const newGrid = doc.querySelector('#images-grid');
     const newBulkActions = doc.querySelector('.flex.items-center.justify-between.mt-6.mb-4');
 
-    console.log('📋 New grid found:', !!newGrid);
-    console.log('🔘 New bulk actions found:', !!newBulkActions);
+    debugLog('📋 New grid found:', !!newGrid);
+    debugLog('🔘 New bulk actions found:', !!newBulkActions);
 
     if (newGrid) {
       // Update grid content
-      console.log('✅ Updating grid content...');
+      debugLog('✅ Updating grid content...');
       existingGrid.innerHTML = newGrid.innerHTML;
       // Update dataset attributes
       Object.assign(existingGrid.dataset, newGrid.dataset);
@@ -985,13 +994,13 @@ async function refreshGalleryArea() {
           const newLabel = newBulkActions.querySelector('label');
           if (currentLabel && newLabel) {
             currentLabel.innerHTML = newLabel.innerHTML;
-            console.log('🔘 Updated bulk actions label');
+            debugLog('🔘 Updated bulk actions label');
           }
         }
       }
 
       // Re-initialize all components that depend on the grid
-      console.log('🔧 Re-initializing components...');
+      debugLog('🔧 Re-initializing components...');
       initSortableGrid();
       bindGridButtons();
       rebindBulkSelection();
@@ -1000,9 +1009,9 @@ async function refreshGalleryArea() {
       // Fade grid back in
       existingGrid.style.opacity = '1';
 
-      console.log('✅ Gallery refresh completed successfully');
+      debugLog('✅ Gallery refresh completed successfully');
     } else {
-      console.log('⚠️ No grid found in new content');
+      debugLog('⚠️ No grid found in new content');
       existingGrid.style.opacity = '1';
     }
 
@@ -1013,7 +1022,7 @@ async function refreshGalleryArea() {
     if (existingGrid) existingGrid.style.opacity = '1';
 
     // Fallback to full page reload if refresh fails
-    console.log('🔄 Falling back to full page reload');
+    debugLog('🔄 Falling back to full page reload');
     window.location.reload();
   }
 }

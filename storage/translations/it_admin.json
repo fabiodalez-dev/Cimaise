@@ -1350,6 +1350,9 @@
     "admin.settings.recaptcha_secret_key_hint": "Chiave privata per la verifica lato server. Lascia vuoto per mantenere la chiave esistente.",
     "admin.settings.recaptcha_enabled": "Abilita reCAPTCHA",
     "admin.settings.recaptcha_enabled_hint": "Attiva la protezione antispam sul modulo di contatto",
+    "admin.settings.debug_title": "Log di debug admin",
+    "admin.settings.debug_enable": "Abilita log verbosi della console nell'admin",
+    "admin.settings.debug_hint": "Usa solo per la risoluzione problemi; disattiva in produzione.",
     "admin.common.dashboard": "Dashboard",
 
     "admin.social.title": "Condivisione Social",

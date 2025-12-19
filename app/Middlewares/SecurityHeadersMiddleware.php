@@ -22,15 +22,33 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
 
         $response = $handler->handle($request);
 
+        // Check if this is an admin route
+        $path = $request->getUri()->getPath();
+        $isAdminRoute = str_starts_with($path, '/admin') || str_starts_with($path, '/cimaise/admin');
+
         $nonce = self::$nonce ?? '';
-        $csp = "upgrade-insecure-requests; default-src 'self'; "
-             . "img-src 'self' data: blob:; "
-             . "script-src 'self' 'nonce-{$nonce}' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; "
-             . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-             . "font-src 'self' https://fonts.gstatic.com data:; "
-             . "connect-src 'self'; "
-             . "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; "
-             . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+
+        // Admin routes: allow unsafe-inline for scripts (needed for SPA navigation)
+        // Frontend routes: strict nonce-based CSP
+        if ($isAdminRoute) {
+            $csp = "upgrade-insecure-requests; default-src 'self'; "
+                 . "img-src 'self' data: blob:; "
+                 . "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+                 . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                 . "font-src 'self' https://fonts.gstatic.com data:; "
+                 . "connect-src 'self'; "
+                 . "frame-src 'self'; "
+                 . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+        } else {
+            $csp = "upgrade-insecure-requests; default-src 'self'; "
+                 . "img-src 'self' data: blob:; "
+                 . "script-src 'self' 'nonce-{$nonce}' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; "
+                 . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                 . "font-src 'self' https://fonts.gstatic.com data:; "
+                 . "connect-src 'self'; "
+                 . "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; "
+                 . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+        }
 
         return $response
             ->withHeader('X-Content-Type-Options','nosniff')
