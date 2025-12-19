@@ -1350,6 +1350,9 @@
     "admin.settings.recaptcha_secret_key_hint": "Private key for server-side verification. Leave empty to keep existing key.",
     "admin.settings.recaptcha_enabled": "Enable reCAPTCHA",
     "admin.settings.recaptcha_enabled_hint": "Activate spam protection on contact form",
+    "admin.settings.debug_title": "Admin Debug Logs",
+    "admin.settings.debug_enable": "Enable verbose console logs in admin",
+    "admin.settings.debug_hint": "Only enable for troubleshooting; leave off in production.",
     "admin.common.dashboard": "Dashboard",
 
     "admin.social.title": "Social Sharing",

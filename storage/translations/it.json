@@ -267,16 +267,19 @@
   "image": {
     "image.download": "Scarica"
   },
-  "home_modern": {
-    "frontend.home_modern.all_work": "Tutti i lavori",
-    "frontend.home_modern.albums": "Album",
-    "frontend.home_modern.close": "Chiudi",
-    "frontend.home_modern.empty_title": "Nessun album ancora",
-    "frontend.home_modern.empty_text": "Torna presto per nuovi contenuti."
-  },
-  "menu": {
-    "frontend.menu.home": "Home",
-    "frontend.menu.galleries": "Gallerie",
-    "frontend.menu.about": "Chi sono"
+  "frontend": {
+    "home_modern": {
+      "all_work": "Tutti i lavori",
+      "albums": "Album",
+      "photos": "Foto",
+      "close": "Chiudi",
+      "empty_title": "Nessun album ancora",
+      "empty_text": "Torna presto per nuovi contenuti."
+    },
+    "menu": {
+      "home": "Home",
+      "galleries": "Gallerie",
+      "about": "Chi sono"
+    }
   }
 }

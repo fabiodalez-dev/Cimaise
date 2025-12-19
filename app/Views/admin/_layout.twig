@@ -15,6 +15,7 @@
   <script nonce="{{ csp_nonce() }}">
     window.basePath = '{{ base_path|e('js') }}';
     window.cspNonce = '{{ csp_nonce()|e('js') }}';
+    window.__ADMIN_DEBUG = {{ admin_debug|default(false) ? 'true' : 'false' }};
 
     // Admin i18n for static JS bundles
     // `admin_translations` is injected server-side in public/index.php when $isAdminRoute is true.

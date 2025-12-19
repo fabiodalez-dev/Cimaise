@@ -329,6 +329,21 @@
       </div>
     </div>
 
+    <!-- Debug / Diagnostics -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center">
+          <i class="fas fa-bug mr-3 text-gray-600"></i>
+          {{ trans('admin.settings.debug_title') }}
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">{{ trans('admin.settings.debug_hint') }}</p>
+        <label class="flex items-center">
+          <input type="checkbox" name="admin_debug_logs" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['admin.debug_logs'] %}checked{% endif %}>
+          <span class="ml-3 text-sm text-gray-700">{{ trans('admin.settings.debug_enable') }}</span>
+        </label>
+      </div>
+    </div>
+
     <!-- Image Generation Form -->
     <div class="card mb-6">
       <div class="p-6">

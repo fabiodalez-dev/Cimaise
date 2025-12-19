@@ -203,6 +203,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         }
         $twig->getEnvironment()->addGlobal('site_language', $siteLanguage);
         $twig->getEnvironment()->addGlobal('admin_language', $adminLanguage);
+        $twig->getEnvironment()->addGlobal('admin_debug', (bool)$settingsSvc->get('admin.debug_logs', false));
         // Expose translation maps for JS bundles (admin/frontend)
         if ($translationService !== null) {
             if ($isAdminRoute) {
@@ -229,6 +230,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
         $twig->getEnvironment()->addGlobal('site_language', 'en');
         $twig->getEnvironment()->addGlobal('admin_language', 'en');
+        $twig->getEnvironment()->addGlobal('admin_debug', false);
         // Cookie banner defaults on error
         $twig->getEnvironment()->addGlobal('cookie_banner_enabled', true);
         $twig->getEnvironment()->addGlobal('custom_js_essential', '');
@@ -247,6 +249,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
     $twig->getEnvironment()->addGlobal('site_language', 'en');
     $twig->getEnvironment()->addGlobal('admin_language', 'en');
+    $twig->getEnvironment()->addGlobal('admin_debug', false);
     // Cookie banner defaults for installer
     $twig->getEnvironment()->addGlobal('cookie_banner_enabled', false);
     $twig->getEnvironment()->addGlobal('custom_js_essential', '');

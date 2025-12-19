@@ -176,9 +176,12 @@ class PageController extends BaseController
         
         // Get all images from published non-NSFW albums for infinite scroll
         $stmt = $pdo->prepare('
-            SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id
+            SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
+                   a.excerpt as album_description,
+                   c.slug as category_slug, c.name as category_name
             FROM images i
             JOIN albums a ON a.id = i.album_id
+            JOIN categories c ON c.id = a.category_id
             WHERE a.is_published = 1 AND a.is_nsfw = 0
             ORDER BY a.published_at DESC, i.sort_order ASC, i.id ASC
             LIMIT 150
@@ -514,7 +517,8 @@ class PageController extends BaseController
         foreach ($images as &$image) {
             // Choose best public variant for both grid and lightbox (largest available)
             $bestUrl = $image['original_path'];
-            $lightboxUrl = $image['original_path'];
+            // Default lightbox URL; replaced below with largest available variant
+            $lightboxUrl = $bestUrl;
             try {
                 // Grid: prefer largest public variant (format priority avif > webp > jpg)
                 $vg = $pdo->prepare("SELECT path, width, height, variant, format FROM image_variants
@@ -533,9 +537,32 @@ class PageController extends BaseController
                 }
 
                 // Lightbox: for protected albums, use protected original URL
-                if ($isProtectedAlbum && !$isAdmin) {
-                    $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/original';
+            // Pick largest available variant for lightbox (prefer AVIF/WebP, xxl->sm)
+            if (!empty($image['variants'])) {
+                $orderVariant = ['xxl'=>1,'xl'=>2,'lg'=>3,'md'=>4,'sm'=>5];
+                $orderFormat = ['avif'=>1,'webp'=>2,'jpg'=>3,'jpeg'=>3,'png'=>4];
+                $chosen = null;
+                foreach ($image['variants'] as $v) {
+                    if (!isset($v['path']) || str_starts_with((string)$v['path'], '/storage/')) {
+                        continue;
+                    }
+                    $vVar = strtolower((string)($v['variant'] ?? ''));
+                    $vFmt = strtolower((string)($v['format'] ?? ''));
+                    $score = ($orderVariant[$vVar] ?? 9) * 10 + ($orderFormat[$vFmt] ?? 9);
+                    $chosen = $chosen === null || $score < $chosen['score'] ? ['score'=>$score,'variant'=>$vVar,'format'=>$vFmt,'path'=>$v['path']] : $chosen;
                 }
+                if ($chosen !== null) {
+                    if ($isProtectedAlbum && !$isAdmin) {
+                        $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/' . $chosen['variant'] . '.' . $chosen['format'];
+                    } else {
+                        $lightboxUrl = $chosen['path'];
+                    }
+                }
+            }
+            // Fallback to protected original if no public variants are available
+            if ($isProtectedAlbum && !$isAdmin && ($lightboxUrl === $bestUrl || str_starts_with((string)$lightboxUrl, '/storage/'))) {
+                $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/original';
+            }
             } catch (\Throwable $e) {
                 Logger::warning('PageController: Error fetching image variants', ['image_id' => $image['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
             }

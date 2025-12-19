@@ -66,6 +66,7 @@ class SettingsService
             'performance.compression' => true,
             'pagination.limit' => 12,
             'cache.ttl' => 24,
+            'admin.debug_logs' => false,
             // Privacy & Cookie Banner
             'privacy.cookie_banner_enabled' => true,
             'privacy.custom_js_essential' => '',
