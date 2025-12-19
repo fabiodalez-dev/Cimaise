@@ -73,7 +73,10 @@ class SitemapService
             $stmt = $this->db->query('
                 SELECT slug, published_at, updated_at
                 FROM albums
-                WHERE is_published = 1 AND slug IS NOT NULL AND (is_nsfw = 0 OR is_nsfw IS NULL)
+                WHERE is_published = 1
+                  AND slug IS NOT NULL
+                  AND (is_nsfw = 0 OR is_nsfw IS NULL)
+                  AND (password_hash IS NULL OR password_hash = "")
                 ORDER BY published_at DESC
             ');
             $albums = $stmt->fetchAll() ?: [];

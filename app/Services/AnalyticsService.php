@@ -886,6 +886,65 @@ class AnalyticsService
     }
 
     /**
+     * Get album access stats (pageviews + unique visitors) for a date range.
+     */
+    public function getAlbumAccessStats(string $startDate, string $endDate, int $limit = 20): array
+    {
+        try {
+            $limitClause = $this->sanitizeLimit((string)$limit, 500);
+            $stmt = $this->db->prepare("
+                SELECT
+                    p.album_id,
+                    a.title as album_title,
+                    a.slug as album_slug,
+                    COUNT(p.id) as pageviews,
+                    COUNT(DISTINCT p.session_id) as unique_visitors
+                FROM analytics_pageviews p
+                LEFT JOIN albums a ON p.album_id = a.id
+                WHERE p.album_id IS NOT NULL
+                AND DATE(p.viewed_at) BETWEEN ? AND ?
+                GROUP BY p.album_id
+                ORDER BY pageviews DESC
+                {$limitClause}
+            ");
+            $stmt->execute([$startDate, $endDate]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\PDOException $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get album password unlock stats for a date range.
+     */
+    public function getAlbumPasswordAccessStats(string $startDate, string $endDate, int $limit = 20): array
+    {
+        try {
+            $limitClause = $this->sanitizeLimit((string)$limit, 500);
+            $stmt = $this->db->prepare("
+                SELECT
+                    e.album_id,
+                    a.title as album_title,
+                    a.slug as album_slug,
+                    COUNT(e.id) as password_unlocks,
+                    COUNT(DISTINCT e.session_id) as unique_visitors
+                FROM analytics_events e
+                LEFT JOIN albums a ON e.album_id = a.id
+                WHERE e.event_type = 'album_password_unlock'
+                AND e.album_id IS NOT NULL
+                AND DATE(e.occurred_at) BETWEEN ? AND ?
+                GROUP BY e.album_id
+                ORDER BY password_unlocks DESC
+                {$limitClause}
+            ");
+            $stmt->execute([$startDate, $endDate]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\PDOException $e) {
+            return [];
+        }
+    }
+
+    /**
      * Get 404 error pages data
      */
     public function get404Stats(string $startDate, string $endDate): array

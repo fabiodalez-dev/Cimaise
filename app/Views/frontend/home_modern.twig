@@ -14,7 +14,7 @@
             {% if site_logo %}
                 <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|e('html_attr') }}" class="head-logo_img">
             {% else %}
-                <div class="head-logo_text">{{ site_title }}</div>
+                <div class="head-logo_text">{{ site_title|e }}</div>
             {% endif %}
         </a>
     </div>
