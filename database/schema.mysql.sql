@@ -432,6 +432,7 @@ CREATE TABLE IF NOT EXISTS `analytics_events` (
   KEY `idx_analytics_events_session_id` (`session_id`),
   KEY `idx_analytics_events_type` (`event_type`),
   KEY `idx_analytics_events_occurred_at` (`occurred_at`),
+  KEY `idx_analytics_events_album_id` (`album_id`),
   CONSTRAINT `fk_analytics_events_session` FOREIGN KEY (`session_id`) REFERENCES `analytics_sessions`(`session_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
+use App\Services\AnalyticsService;
 use App\Services\ImagesService;
 use App\Support\Database;
 use App\Support\Logger;
@@ -99,6 +100,8 @@ class PageController extends BaseController
     public function home(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
 
         // Fetch home page settings
         $svc = new \App\Services\SettingsService($this->db);
@@ -138,9 +141,18 @@ class PageController extends BaseController
         $albums = $stmt->fetchAll();
         
         // Enrich with cover images and tags
-        foreach ($albums as &$album) {
+        $visibleAlbums = [];
+        foreach ($albums as $album) {
             $album = $this->enrichAlbum($album);
+            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
+                continue;
+            }
+            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
+                unset($album['cover']);
+            }
+            $visibleAlbums[] = $album;
         }
+        $albums = $visibleAlbums;
         
         // Calculate pagination info
         $hasMore = $totalAlbums > $perPage;
@@ -174,7 +186,8 @@ class PageController extends BaseController
         $stmt->execute();
         $tags = $stmt->fetchAll();
         
-        // Get all images from published non-NSFW albums for infinite scroll
+        // Get all images from published albums for infinite scroll
+        $nsfwCondition = (!$isAdmin && !$nsfwConsent) ? 'AND a.is_nsfw = 0' : '';
         $stmt = $pdo->prepare('
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description,
@@ -182,7 +195,7 @@ class PageController extends BaseController
             FROM images i
             JOIN albums a ON a.id = i.album_id
             JOIN categories c ON c.id = a.category_id
-            WHERE a.is_published = 1 AND a.is_nsfw = 0
+            WHERE a.is_published = 1 ' . $nsfwCondition . ' AND (a.password_hash IS NULL OR a.password_hash = "")
             ORDER BY a.published_at DESC, i.sort_order ASC, i.id ASC
             LIMIT 150
         ');
@@ -214,7 +227,9 @@ class PageController extends BaseController
             'current_url' => $seo['current_url'],
             'canonical_url' => $seo['canonical_url'],
             'og_site_name' => $seo['og_site_name'],
-            'robots' => $seo['robots']
+            'robots' => $seo['robots'],
+            'nsfw_consent' => $nsfwConsent,
+            'is_admin' => $isAdmin
         ]);
     }
 
@@ -245,20 +260,11 @@ class PageController extends BaseController
 
         // Check if user is admin (admins bypass password/NSFW protection)
         $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
 
         // Password protection with session timeout - skip for admins
         if (!empty($album['password_hash']) && !$isAdmin) {
-            $allowed = false;
-            if (isset($_SESSION['album_access']) && isset($_SESSION['album_access'][$album['id']])) {
-                $accessTime = $_SESSION['album_access'][$album['id']];
-                // Check if access is still valid (24 hour timeout)
-                if (is_int($accessTime) && (time() - $accessTime) < 86400) {
-                    $allowed = true;
-                } else {
-                    // Remove expired access
-                    unset($_SESSION['album_access'][$album['id']]);
-                }
-            }
+            $allowed = $this->hasAlbumPasswordAccess((int)$album['id']);
 
             if (!$allowed) {
                 // Categories for header menu
@@ -281,7 +287,7 @@ class PageController extends BaseController
         // NSFW server-side enforcement for albums WITHOUT password protection
         // Albums with password already handle NSFW through the unlock flow
         $isNsfw = !empty($album['is_nsfw']);
-        $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$album['id']]) && $_SESSION['nsfw_confirmed'][$album['id']] === true;
+        $nsfwConfirmed = $this->hasNsfwAlbumConsent((int)$album['id']);
 
         if ($isNsfw && !$isAdmin && empty($album['password_hash']) && !$nsfwConfirmed) {
             // Show NSFW gate page - user must confirm they're 18+ to view
@@ -495,9 +501,18 @@ class PageController extends BaseController
         $stmt->execute([':category_id' => $album['category_id'], ':album_id' => $album['id']]);
         $relatedAlbums = $stmt->fetchAll();
         
-        foreach ($relatedAlbums as &$related) {
+        $visibleRelated = [];
+        foreach ($relatedAlbums as $related) {
             $related = $this->enrichAlbum($related);
+            if (!$isAdmin && !empty($related['password_hash']) && !$this->hasAlbumPasswordAccess((int)$related['id'])) {
+                continue;
+            }
+            if (!$isAdmin && !empty($related['is_nsfw']) && !$nsfwConsent) {
+                unset($related['cover']);
+            }
+            $visibleRelated[] = $related;
         }
+        $relatedAlbums = $visibleRelated;
         
         // Get template libraries from the resolved template
         $templateLibs = [];
@@ -737,7 +752,9 @@ class PageController extends BaseController
             'schema' => $seoMeta['schema'],
             'enabled_socials' => $orderedSocials,
             'available_socials' => $availableSocials,
-            'csrf' => $_SESSION['csrf'] ?? ''
+            'csrf' => $_SESSION['csrf'] ?? '',
+            'current_album' => ['id' => (int)$album['id']],
+            'nsfw_consent' => $this->hasNsfwConsent()
         ]);
     }
 
@@ -768,15 +785,25 @@ class PageController extends BaseController
             // SECURITY: Regenerate session ID to prevent session fixation
             session_regenerate_id(true);
 
-            if (!isset($_SESSION['album_access'])) $_SESSION['album_access'] = [];
-            $_SESSION['album_access'][(int)$album['id']] = time(); // Store timestamp for potential timeout
+            $this->grantAlbumPasswordAccess((int)$album['id']);
 
-            // Store NSFW confirmation in session for server-side validation (per-album)
+            // Store NSFW confirmation in session + cookie for server-side validation
             if ($isNsfw) {
-                if (!isset($_SESSION['nsfw_confirmed'])) {
-                    $_SESSION['nsfw_confirmed'] = [];
-                }
-                $_SESSION['nsfw_confirmed'][(int)$album['id']] = true;
+                $this->grantNsfwConsent((int)$album['id']);
+            }
+
+            $sessionId = trim((string)($data['analytics_session_id'] ?? ''));
+            if ($sessionId !== '') {
+                $analytics = new AnalyticsService($pdo);
+                $analytics->trackEvent([
+                    'session_id' => $sessionId,
+                    'event_type' => 'album_password_unlock',
+                    'event_category' => 'album',
+                    'event_action' => 'password_unlock',
+                    'event_label' => $slug,
+                    'page_url' => '/album/' . $slug,
+                    'album_id' => (int)$album['id'],
+                ]);
             }
 
             return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
@@ -826,10 +853,7 @@ class PageController extends BaseController
         session_regenerate_id(true);
 
         // Store NSFW confirmation in session for server-side validation (per-album)
-        if (!isset($_SESSION['nsfw_confirmed'])) {
-            $_SESSION['nsfw_confirmed'] = [];
-        }
-        $_SESSION['nsfw_confirmed'][(int)$album['id']] = true;
+        $this->grantNsfwConsent((int)$album['id']);
 
         return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
     }
@@ -867,7 +891,7 @@ class PageController extends BaseController
             $isAdmin = $this->isAdmin();
 
             if (!empty($album['password_hash']) && !$isAdmin) {
-                $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$album['id']]);
+                $allowed = $this->hasAlbumPasswordAccess((int)$album['id']);
                 if (!$allowed) {
                     $response->getBody()->write('Album locked');
                     return $response->withStatus(403);
@@ -877,7 +901,7 @@ class PageController extends BaseController
             // NSFW server-side enforcement: block API access for unconfirmed NSFW albums
             $isNsfw = !empty($album['is_nsfw']);
             if ($isNsfw && !$isAdmin) {
-                $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$album['id']]) && $_SESSION['nsfw_confirmed'][$album['id']] === true;
+                $nsfwConfirmed = $this->hasNsfwAlbumConsent((int)$album['id']);
                 if (!$nsfwConfirmed) {
                     $response->getBody()->write('Age verification required');
                     return $response->withStatus(403);
@@ -1015,6 +1039,8 @@ class PageController extends BaseController
     {
         $slug = $args['slug'] ?? '';
         $pdo = $this->db->pdo();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
         
         // Get category
         $stmt = $pdo->prepare('SELECT * FROM categories WHERE slug = :slug');
@@ -1036,9 +1062,18 @@ class PageController extends BaseController
         $stmt->execute([':slug' => $slug]);
         $albums = $stmt->fetchAll();
         
-        foreach ($albums as &$album) {
+        $visibleAlbums = [];
+        foreach ($albums as $album) {
             $album = $this->enrichAlbum($album);
+            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
+                continue;
+            }
+            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
+                unset($album['cover']);
+            }
+            $visibleAlbums[] = $album;
         }
+        $albums = $visibleAlbums;
         
         // Get all categories for navigation
         $stmt = $pdo->prepare('SELECT * FROM categories ORDER BY sort_order ASC, name ASC');
@@ -1057,7 +1092,9 @@ class PageController extends BaseController
             'current_url' => $seo['current_url'],
             'canonical_url' => $seo['canonical_url'],
             'og_site_name' => $seo['og_site_name'],
-            'robots' => $seo['robots']
+            'robots' => $seo['robots'],
+            'nsfw_consent' => $nsfwConsent,
+            'is_admin' => $isAdmin
         ]);
     }
 
@@ -1065,6 +1102,8 @@ class PageController extends BaseController
     {
         $slug = $args['slug'] ?? '';
         $pdo = $this->db->pdo();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
         
         // Get tag
         $stmt = $pdo->prepare('SELECT * FROM tags WHERE slug = :slug');
@@ -1091,9 +1130,18 @@ class PageController extends BaseController
         $stmt->execute([':slug' => $slug]);
         $albums = $stmt->fetchAll();
         
-        foreach ($albums as &$album) {
+        $visibleAlbums = [];
+        foreach ($albums as $album) {
             $album = $this->enrichAlbum($album);
+            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
+                continue;
+            }
+            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
+                unset($album['cover']);
+            }
+            $visibleAlbums[] = $album;
         }
+        $albums = $visibleAlbums;
         
         // Get popular tags for navigation
         $stmt = $pdo->prepare('
@@ -1126,7 +1174,9 @@ class PageController extends BaseController
             'current_url' => $seo['current_url'],
             'canonical_url' => $seo['canonical_url'],
             'og_site_name' => $seo['og_site_name'],
-            'robots' => $seo['robots']
+            'robots' => $seo['robots'],
+            'nsfw_consent' => $nsfwConsent,
+            'is_admin' => $isAdmin
         ]);
     }
 

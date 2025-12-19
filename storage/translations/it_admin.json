@@ -1082,6 +1082,10 @@
     "admin.analytics.disabled": "Le statistiche sono disabilitate",
     "admin.analytics.disabled_hint": "Abilita le statistiche in Impostazioni per iniziare a tracciare i visitatori.",
     "admin.analytics.no_data": "Nessun dato disponibile per questo periodo",
+    "admin.analytics.album_access_title": "Accessi agli album",
+    "admin.analytics.album_password_access_title": "Accessi con password per album",
+    "admin.analytics.password_access_sorted_by": "Ordinati per sblocchi password ({start} a {end})",
+    "admin.analytics.password_unlocks": "Sblocchi password",
 
     "admin.analytics.albums.page_title": "Analisi Album",
     "admin.analytics.albums.description": "Monitora le prestazioni dei tuoi album fotografici",

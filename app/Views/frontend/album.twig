@@ -33,22 +33,37 @@
 </style>
 
 <script nonce="{{ csp_nonce() }}">
+const csrfToken = '{{ csrf|e('js') }}';
+const albumSlug = '{{ album.slug|e('js') }}';
+const basePath = '{{ base_path|e('js') }}';
+const serverConsent = {{ nsfw_consent ? 'true' : 'false' }};
+
+function setNsfwCookie() {
+  const maxAge = 60 * 60 * 24 * 30;
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `nsfw_consent=1; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}`;
+}
+
 (function() {
-  const hasConfirmed = localStorage.getItem('nsfw_confirmed') === 'true';
+  const localConfirmed = localStorage.getItem('nsfw_confirmed') === 'true';
+  const hasConfirmed = serverConsent || localConfirmed;
   const gate = document.getElementById('nsfw-gate');
   const mainContent = document.getElementById('album-main-content');
-  const csrfToken = '{{ csrf|e('js') }}';
-  const albumSlug = '{{ album.slug|e('js') }}';
-  const basePath = '{{ base_path|e('js') }}';
 
   // If already confirmed in localStorage, ensure server session is updated for media access
-  if (hasConfirmed && albumSlug && csrfToken) {
+  if (localConfirmed && !serverConsent && albumSlug && csrfToken) {
+    setNsfwCookie();
     fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
     }).catch(() => {});
+  }
+
+  if (serverConsent && !localConfirmed) {
+    localStorage.setItem('nsfw_confirmed', 'true');
+    setNsfwCookie();
   }
 
   if (!hasConfirmed && gate) {
@@ -66,6 +81,8 @@
 
 function confirmNsfwAndShow() {
   localStorage.setItem('nsfw_confirmed', 'true');
+  setNsfwCookie();
+  window.nsfwConsent = true;
   // Inform backend to set session flag for NSFW protection
   if (albumSlug && csrfToken) {
     fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
