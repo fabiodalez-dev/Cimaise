@@ -125,7 +125,8 @@
     <nav class="mega-menu">
         <a href="{{ base_path }}/" class="mega-menu_link is-current">{{ trans('frontend.menu.home')|default('Home') }}</a>
         <a href="{{ galleries_url|default(base_path ~ '/galleries') }}" class="mega-menu_link">{{ trans('frontend.menu.galleries')|default('Galleries') }}</a>
-        <a href="{{ about_url }}" class="mega-menu_link">{{ trans('frontend.menu.about')|default('About') }}</a>
+        {% set about_href = about_url|default('/about') %}
+        <a href="{% if about_href starts with '/' %}{{ base_path }}{{ about_href }}{% else %}{{ about_href }}{% endif %}" class="mega-menu_link">{{ trans('frontend.menu.about')|default('About') }}</a>
     </nav>
 </div>
 

@@ -2,44 +2,65 @@
   <a href="{{ base_path }}/album/{{ album.slug }}" class="block">
     <div class="aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm relative">
       {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
-      {% if album.cover and (not album.is_nsfw or can_show_nsfw) %}
-        <picture class="block absolute inset-0 w-full h-full">
-          {% set variants_avif = [] %}
-          {% set variants_webp = [] %}
-          {% set variants_jpg = [] %}
+      {% if album.cover %}
+        {% if album.is_nsfw and not can_show_nsfw %}
+          {% set blur_path = null %}
           {% for variant in album.cover.variants %}
-            {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
-            {% if variant.format == 'avif' %}
-              {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
-            {% elseif variant.format == 'webp' %}
-              {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
-            {% elseif variant.format == 'jpg' %}
-              {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+            {% if variant.variant == 'blur' %}
+              {% set blur_path = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
             {% endif %}
           {% endfor %}
-
-          {# Sizes ottimizzate per alta qualità:
-             - Desktop (1280px+): 45vw per retina display
-             - Laptop (1024px+): 50vw
-             - Tablet (768px+): 60vw
-             - Mobile (640px+): 95vw
-             - Mobile small: full width = 100vw #}
-          {% if variants_avif %}
-            <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1280px) 45vw, (min-width: 1024px) 50vw, (min-width: 768px) 60vw, (min-width: 640px) 95vw, 100vw">
+          {% if blur_path %}
+            <img src="{{ blur_path }}"
+                 alt="{{ (album.cover.alt_text ?? album.title)|e }}"
+                 loading="lazy"
+                 decoding="async"
+                 class="nsfw-blur block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+          {% else %}
+            <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex flex-col items-center justify-center text-neutral-600">
+              <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
+              <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
+            </div>
           {% endif %}
-          {% if variants_webp %}
-            <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1280px) 45vw, (min-width: 1024px) 50vw, (min-width: 768px) 60vw, (min-width: 640px) 95vw, 100vw">
-          {% endif %}
+        {% else %}
+          <picture class="block absolute inset-0 w-full h-full">
+            {% set variants_avif = [] %}
+            {% set variants_webp = [] %}
+            {% set variants_jpg = [] %}
+            {% for variant in album.cover.variants %}
+              {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+              {% if variant.format == 'avif' %}
+                {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+              {% elseif variant.format == 'webp' %}
+                {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+              {% elseif variant.format == 'jpg' %}
+                {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+              {% endif %}
+            {% endfor %}
 
-          {% set card_img_url = album.cover.variants[0].path ?? album.cover.original_path %}
-          {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
+            {# Sizes ottimizzate per alta qualità:
+               - Desktop (1280px+): 45vw per retina display
+               - Laptop (1024px+): 50vw
+               - Tablet (768px+): 60vw
+               - Mobile (640px+): 95vw
+               - Mobile small: full width = 100vw #}
+            {% if variants_avif %}
+              <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1280px) 45vw, (min-width: 1024px) 50vw, (min-width: 768px) 60vw, (min-width: 640px) 95vw, 100vw">
+            {% endif %}
+            {% if variants_webp %}
+              <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1280px) 45vw, (min-width: 1024px) 50vw, (min-width: 768px) 60vw, (min-width: 640px) 95vw, 100vw">
+            {% endif %}
 
-          <img src="{{ original_url }}"
-               alt="{{ (album.cover.alt_text ?? album.title)|e }}"
-               loading="lazy"
-               decoding="async"
-               class="block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
-        </picture>
+            {% set card_img_url = album.cover.variants[0].path ?? album.cover.original_path %}
+            {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
+
+            <img src="{{ original_url }}"
+                 alt="{{ (album.cover.alt_text ?? album.title)|e }}"
+                 loading="lazy"
+                 decoding="async"
+                 class="block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+          </picture>
+        {% endif %}
 
         {# NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through #}
         {% if album.is_nsfw and not can_show_nsfw %}

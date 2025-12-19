@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
+use App\Services\NavigationService;
 use App\Services\SettingsService;
 use App\Support\Database;
 use App\Support\Logger;
@@ -67,9 +68,7 @@ class GalleryController extends BaseController
             $allowed = $this->hasAlbumPasswordAccess((int)$album['id']);
             if (!$allowed) {
                 // Categories for header menu
-                $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
-                $navStmt->execute();
-                $navCategories = $navStmt->fetchAll();
+                $navCategories = (new NavigationService($this->db))->getNavigationCategories();
                 $query = $request->getQueryParams();
                 // Pass error type: '1' for wrong password, 'nsfw' for NSFW confirmation required
                 $error = $query['error'] ?? null;
@@ -85,9 +84,7 @@ class GalleryController extends BaseController
         }
         // NSFW server-side enforcement for albums without password protection
         if ($isNsfwAlbum && !$this->hasNsfwAlbumConsent((int)$album['id'])) {
-            $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
-            $navStmt->execute();
-            $navCategories = $navStmt->fetchAll();
+            $navCategories = (new NavigationService($this->db))->getNavigationCategories();
             return $this->view->render($response, 'frontend/nsfw_gate.twig', [
                 'album' => $album,
                 'categories' => $navCategories,
@@ -401,7 +398,7 @@ class GalleryController extends BaseController
         // Nav categories for header
         $navCats = [];
         try {
-            $navCats = $pdo->query('SELECT id, name, slug FROM categories ORDER BY sort_order, name')->fetchAll() ?: [];
+            $navCats = (new NavigationService($this->db))->getNavigationCategories();
         } catch (\Throwable) {}
 
         // Get cover image for Open Graph

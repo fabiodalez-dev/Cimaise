@@ -77,9 +77,7 @@ class ApiController extends BaseController
             if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
                 continue;
             }
-            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
-                unset($album['cover']);
-            }
+            $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $visibleAlbums[] = $album;
         }
         $albums = $visibleAlbums;
@@ -126,19 +124,19 @@ class ApiController extends BaseController
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         }
 
-        // Check password protection (use same session key as PageController::unlockAlbum)
-        if (!empty($album['password_hash'])) {
-            if (!$this->hasAlbumPasswordAccess($albumId)) {
+        $isPasswordProtected = !empty($album['password_hash']);
+        $isNsfw = (bool)$album['is_nsfw'];
+        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw)) {
+            if ($isPasswordProtected && !$this->hasAlbumPasswordAccess($albumId)) {
                 $response->getBody()->write(json_encode(['error' => 'Album is password protected']));
                 return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
             }
-        }
-        $isAdmin = $this->isAdmin();
-        if ((bool)$album['is_nsfw'] && !$isAdmin) {
-            if (!$this->hasNsfwAlbumConsent($albumId)) {
+            if ($isNsfw && !$this->hasNsfwAlbumConsent($albumId)) {
                 $response->getBody()->write(json_encode(['error' => 'Age verification required']));
                 return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
             }
+            $response->getBody()->write(json_encode(['error' => 'Access denied']));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 
         $q = $request->getQueryParams();

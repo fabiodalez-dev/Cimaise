@@ -249,18 +249,31 @@
 
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
-          {% if album.cover_image and (album.cover_image.preview_path or album.cover_image.original_path) %}
-            {% set cover_path = album.cover_image.preview_path|default(album.cover_image.original_path) %}
+          {% if album.cover_image %}
             {% if is_nsfw_unconfirmed %}
-            {# NSFW without consent - show placeholder, DO NOT expose real image URL #}
-            <div class="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
-              <i class="fas fa-eye-slash text-4xl text-gray-500"></i>
-            </div>
+              {% set blur_path = album.cover_image.blur_path|default(null) %}
+              {% if blur_path %}
+              <img src="{% if blur_path starts with '/' %}{{ base_path }}{{ blur_path }}{% else %}{{ blur_path }}{% endif %}"
+                   alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                   class="nsfw-blur w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                   loading="lazy">
+              {% else %}
+              <div class="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
+                <i class="fas fa-eye-slash text-4xl text-gray-500"></i>
+              </div>
+              {% endif %}
             {% else %}
-            <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
-                 alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
-                 class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-                 loading="lazy">
+              {% if album.cover_image.preview_path or album.cover_image.original_path %}
+                {% set cover_path = album.cover_image.preview_path|default(album.cover_image.original_path) %}
+                <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
+                     alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                     class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                     loading="lazy">
+              {% else %}
+                <div class="w-full h-full flex items-center justify-center text-gray-400">
+                  <i class="fas fa-images text-4xl"></i>
+                </div>
+              {% endif %}
             {% endif %}
           {% else %}
             <div class="w-full h-full flex items-center justify-center text-gray-400">
@@ -730,7 +743,9 @@ function generateGalleryCard(album) {
     const coverImage = album.cover_image || {};
     const tags = Array.isArray(album.tags) ? album.tags : [];
     const imgPath = (coverImage.preview_path || coverImage.original_path || '');
+    const blurPath = coverImage.blur_path || '';
     const safeSrc = imgPath.startsWith('/') && window.basePath ? (window.basePath + imgPath) : imgPath;
+    const safeBlurSrc = blurPath.startsWith('/') && window.basePath ? (window.basePath + blurPath) : blurPath;
     const title = esc(album.title);
     const excerpt = esc(album.excerpt || '');
     const category = esc(album.category_name || '');
@@ -751,7 +766,21 @@ function generateGalleryCard(album) {
 
     const rel = document.createElement('div');
     rel.className = 'relative aspect-[4/3] overflow-hidden bg-gray-100';
-    if (safeSrc && canShowNsfw) {
+    if (isNsfw && !canShowNsfw) {
+        if (safeBlurSrc) {
+            const img = document.createElement('img');
+            img.src = safeBlurSrc;
+            img.alt = alt;
+            img.className = 'nsfw-blur w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
+            img.loading = 'lazy';
+            rel.appendChild(img);
+        } else {
+            const ph = document.createElement('div');
+            ph.className = 'w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center';
+            ph.innerHTML = '<i class="fas fa-eye-slash text-4xl text-gray-500"></i>';
+            rel.appendChild(ph);
+        }
+    } else if (safeSrc) {
         const img = document.createElement('img');
         img.src = safeSrc;
         img.alt = alt;
@@ -760,13 +789,8 @@ function generateGalleryCard(album) {
         rel.appendChild(img);
     } else {
         const ph = document.createElement('div');
-        if (isNsfw && !canShowNsfw) {
-            ph.className = 'w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center';
-            ph.innerHTML = '<i class="fas fa-eye-slash text-4xl text-gray-500"></i>';
-        } else {
-            ph.className = 'w-full h-full flex items-center justify-center text-gray-400';
-            ph.innerHTML = '<i class="fas fa-images text-4xl"></i>';
-        }
+        ph.className = 'w-full h-full flex items-center justify-center text-gray-400';
+        ph.innerHTML = '<i class="fas fa-images text-4xl"></i>';
         rel.appendChild(ph);
     }
     // NSFW Overlay

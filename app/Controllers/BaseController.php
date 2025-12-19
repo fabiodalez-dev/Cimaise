@@ -167,6 +167,69 @@ abstract class BaseController
     }
 
     /**
+     * Centralized access validation for protected albums (password/NSFW).
+     */
+    protected function validateAlbumAccess(
+        int $albumId,
+        bool $isPasswordProtected,
+        bool $isNsfw,
+        ?string $variant = null,
+        bool $log = false
+    ): bool {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($isPasswordProtected && !$this->hasAlbumPasswordAccess($albumId)) {
+            if ($log) {
+                error_log("[MediaAccess] DENY password album={$albumId} variant={$variant} session_access=" . json_encode($_SESSION['album_access'] ?? []));
+            }
+            return false;
+        }
+
+        $variantName = $variant !== null ? strtolower($variant) : null;
+        if ($isNsfw && $variantName === 'blur') {
+            return true;
+        }
+
+        if ($isNsfw && !$this->hasNsfwAlbumConsent($albumId)) {
+            if ($log) {
+                error_log("[MediaAccess] DENY nsfw album={$albumId} variant={$variant} session_nsfw=" . json_encode($_SESSION['nsfw_confirmed'] ?? []));
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function sanitizeAlbumCoverForNsfw(array $album, bool $isAdmin, bool $nsfwConsent): array
+    {
+        if ($isAdmin || empty($album['is_nsfw']) || $nsfwConsent) {
+            return $album;
+        }
+
+        if (empty($album['cover']) || empty($album['cover']['variants']) || !is_array($album['cover']['variants'])) {
+            unset($album['cover']);
+            return $album;
+        }
+
+        $blurVariants = array_values(array_filter(
+            $album['cover']['variants'],
+            fn($variant) => isset($variant['variant']) && $variant['variant'] === 'blur'
+        ));
+
+        if ($blurVariants === []) {
+            unset($album['cover']);
+            return $album;
+        }
+
+        $album['cover']['variants'] = $blurVariants;
+        unset($album['cover']['original_path']);
+
+        return $album;
+    }
+
+    /**
      * Check if the current request is an AJAX/JSON request.
      */
     protected function isAjaxRequest(Request $request): bool
