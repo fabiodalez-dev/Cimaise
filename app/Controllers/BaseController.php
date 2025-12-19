@@ -3,10 +3,12 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Support\CookieHelper;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 abstract class BaseController
 {
+    protected const ALBUM_ACCESS_WINDOW_SECONDS = 86400;
     protected string $basePath;
 
     public function __construct()
@@ -59,6 +61,109 @@ abstract class BaseController
     protected function isAdmin(): bool
     {
         return !empty($_SESSION['admin_id']);
+    }
+
+    /**
+     * Check if user has valid password access for a specific album (24h window).
+     */
+    protected function hasAlbumPasswordAccess(int $albumId): bool
+    {
+        if ($albumId <= 0) {
+            return false;
+        }
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $accessTime = $_SESSION['album_access'][$albumId] ?? null;
+        if (!\is_int($accessTime)) {
+            return false;
+        }
+        if ((time() - $accessTime) >= self::ALBUM_ACCESS_WINDOW_SECONDS) {
+            unset($_SESSION['album_access'][$albumId]);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Grant password access for a specific album (stored in session).
+     */
+    protected function grantAlbumPasswordAccess(int $albumId): void
+    {
+        if ($albumId <= 0) {
+            return;
+        }
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (!isset($_SESSION['album_access'])) {
+            $_SESSION['album_access'] = [];
+        }
+        $_SESSION['album_access'][$albumId] = time();
+    }
+
+    /**
+     * Check if user has global NSFW consent (session or cookie).
+     */
+    protected function hasNsfwConsent(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (!empty($_SESSION['nsfw_confirmed_global'])) {
+            return true;
+        }
+        if (!empty($_COOKIE['nsfw_consent']) && $_COOKIE['nsfw_consent'] === '1') {
+            $_SESSION['nsfw_confirmed_global'] = true;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check NSFW consent for a specific album (global or per-album).
+     */
+    protected function hasNsfwAlbumConsent(int $albumId): bool
+    {
+        if ($this->hasNsfwConsent()) {
+            return true;
+        }
+        if ($albumId <= 0) {
+            return false;
+        }
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        return isset($_SESSION['nsfw_confirmed'][$albumId]) && $_SESSION['nsfw_confirmed'][$albumId] === true;
+    }
+
+    /**
+     * Grant NSFW consent globally (cookie + session) and optionally per-album.
+     */
+    protected function grantNsfwConsent(?int $albumId = null): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $_SESSION['nsfw_confirmed_global'] = true;
+        if ($albumId !== null && $albumId > 0) {
+            if (!isset($_SESSION['nsfw_confirmed'])) {
+                $_SESSION['nsfw_confirmed'] = [];
+            }
+            $_SESSION['nsfw_confirmed'][$albumId] = true;
+        }
+
+        setcookie('nsfw_consent', '1', [
+            'expires' => time() + (30 * 24 * 60 * 60),
+            'path' => '/',
+            'secure' => !CookieHelper::allowInsecureCookies(),
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
     }
 
     /**

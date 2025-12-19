@@ -74,6 +74,8 @@ class AnalyticsController extends BaseController
         $trendsData = $this->analytics->getTrendComparison($startDate, $endDate);
         $engagementData = $this->analytics->getEngagementStats($startDate, $endDate);
         $errorData = $this->analytics->get404Stats($startDate, $endDate);
+        $albumAccessStats = $this->analytics->getAlbumAccessStats($startDate, $endDate, 20);
+        $albumPasswordAccessStats = $this->analytics->getAlbumPasswordAccessStats($startDate, $endDate, 20);
 
         return $this->twig->render($response, 'admin/analytics/index.twig', [
             'stats' => $dashboardStats,
@@ -82,6 +84,8 @@ class AnalyticsController extends BaseController
             'trends' => $trendsData,
             'engagement' => $engagementData,
             'errors_404' => $errorData,
+            'album_access_stats' => $albumAccessStats,
+            'album_password_access_stats' => $albumPasswordAccessStats,
             'start_date' => $startDate,
             'end_date' => $endDate,
             'analytics_enabled' => $this->analytics->isEnabled()

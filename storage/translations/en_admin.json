@@ -1082,6 +1082,10 @@
     "admin.analytics.disabled": "Analytics are disabled",
     "admin.analytics.disabled_hint": "Enable analytics in Settings to start tracking visitors.",
     "admin.analytics.no_data": "No data available for this period",
+    "admin.analytics.album_access_title": "Album Access",
+    "admin.analytics.album_password_access_title": "Password Access by Album",
+    "admin.analytics.password_access_sorted_by": "Sorted by password unlocks ({start} to {end})",
+    "admin.analytics.password_unlocks": "Password Unlocks",
 
     "admin.analytics.albums.page_title": "Album Analytics",
     "admin.analytics.albums.description": "Track performance of your photo albums",

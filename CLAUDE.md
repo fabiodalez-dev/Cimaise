@@ -132,17 +132,17 @@ photoCMS/
 - `app/Controllers/Admin/SocialController.php` - Social sharing settings management with network enable/disable, ordering, AJAX/form support
 - `app/Controllers/Admin/TemplatesController.php` - Gallery template management (edit only, creation/deletion disabled) with responsive column configuration, layout settings, PhotoSwipe options, and magazine-specific animations
 - `app/Controllers/Admin/PagesController.php` - Pages management (home, about, galleries) with home template selection (classic/modern), hero sections, gallery text content
-- `app/Controllers/Admin/SettingsController.php` - Site settings with image formats/quality/breakpoints, gallery templates, date format, site language, reCAPTCHA configuration (requires both site and secret keys to enable), performance settings, triggers favicon generation after logo upload
+- `app/Controllers/Admin/SettingsController.php` - Site settings with image formats/quality/breakpoints, gallery templates, date format, site language, reCAPTCHA configuration (requires both site and secret keys to enable), performance settings, admin debug logs toggle, triggers favicon generation after logo upload
 - `app/Controllers/Frontend/PageController.php` - Frontend page rendering with SEO builder, template normalization, home template routing (classic/modern)
 - `app/Extensions/DateTwigExtension.php` - Twig extension for date formatting (filters: date_format, datetime_format, replace_year; functions: date_format_pattern)
 - `app/Middlewares/RateLimitMiddleware.php` - Brute-force protection and API rate limiting
 - `app/Middlewares/SecurityHeadersMiddleware.php` - Security headers (CSP, HSTS, X-Frame-Options) with per-request nonce generation
-- `app/Views/admin/_layout.twig` - Admin panel layout with CSP nonce, sidebar navigation, TinyMCE toolbar fixes
-- `app/Views/admin/settings.twig` - Settings page with image formats, breakpoints, site config, and gallery templates
+- `app/Views/admin/_layout.twig` - Admin panel layout with CSP nonce, sidebar navigation, TinyMCE toolbar fixes, `window.__ADMIN_DEBUG` injection
+- `app/Views/admin/settings.twig` - Settings page with image formats, breakpoints, site config, gallery templates, and admin debug logs toggle
 - `app/Views/admin/texts/index.twig` - Translation management UI with import/export/upload, scope selector, server-side language dropdown, and language preset selection
 - `app/Views/admin/albums/*.twig` - Album CRUD views with full i18n via trans() function
 - `app/Views/frontend/_layout.twig` - Frontend layout with SEO meta tags, Open Graph, Twitter Cards, JSON-LD schemas (Person/Organization, BreadcrumbList, LocalBusiness), CSP nonce support
-- `app/Views/frontend/_layout_modern.twig` - Modern template layout with Lenis smooth scroll, minimal header, mega menu overlay
+- `app/Views/frontend/_layout_modern.twig` - Modern template layout with Lenis smooth scroll, minimal header, mega menu overlay, JSON-LD schemas (BreadcrumbList, LocalBusiness)
 - `app/Views/frontend/home.twig` - Classic home template with masonry layout and infinite scroll
 - `app/Views/frontend/home_modern.twig` - Modern home template with fixed sidebar (filters, info) and scrollable grid (two-column infinite scroll)
 - `app/Views/admin/pages/home.twig` - Home page settings with visual template selector (classic/modern), hero sections, gallery text, scroll direction
@@ -274,6 +274,15 @@ $app->get('/path', function(...) { ... })
 - Password hashing with `password_hash()`
 - CSRF tokens on all forms
 
+### Admin Debug Logs
+- **Toggle setting**: `admin.debug_logs` (default: false) in `/admin/settings`
+- **Window global**: `window.__ADMIN_DEBUG` injected in admin layout template
+- **Debug helper**: `debugLog()` function in `resources/admin.js` wraps `console.log`
+  - Only outputs when `window.__ADMIN_DEBUG === true`
+  - Silent in production (toggle disabled)
+- **Usage**: All admin JavaScript logging passes through `debugLog()` for conditional output
+- **Scope**: TomSelect, Sortable, TinyMCE, and gallery refresh operations log via debugLog
+
 ### Content Security Policy (CSP)
 - **SecurityHeadersMiddleware**: Generates unique nonce per request for inline scripts and styles
 - **Nonce generation**: `base64_encode(random_bytes(16))` stored in static property per request
@@ -401,18 +410,24 @@ $app->get('/path', function(...) { ... })
   - Menu toggle: `.menu-btn` opens, `.menu-close` closes
   - Page transition overlay: `.page-transition` for smooth navigation
   - Navigation links: Home, Galleries, About with `.is-current` class for active page
+  - Current page link behavior: Clicking `.mega-menu_link.is-current` closes menu instead of navigating
 - **CSS variables**: `--modern-black`, `--modern-white`, `--modern-grey`, `--modern-dark-grey`
 - **Responsive font sizing**: Root font size set to `1.1111111111vw` (capped at `21.333px` on 1920px+ screens)
 - **Empty state**: Custom empty state with icon, title, text when no images available
   - Uses `home_settings.empty_title` and `home_settings.empty_text` with translation fallbacks
 - **Translation keys**:
-  - `frontend.home_modern.*`: all_work, albums, photos, close, empty_title, empty_text
+  - `frontend.home_modern.*`: all_work, albums, photos, close, empty_title, empty_text, menu
   - `frontend.menu.*`: home, galleries, about (for mega menu navigation)
 - **Performance optimizations**: Dynamic image loading prioritization
   - Images in initial viewport: `fetchpriority="high"`, `loading` attribute removed
   - Below-fold images: `loading="lazy"` preserved
   - Viewport detection: `getBoundingClientRect()` checks if image is in initial viewport on page load
 - **Focus accessibility**: Focus-visible outlines on all interactive elements (menu button, filter items, links)
+- **Mobile fade-in animation**: IntersectionObserver-based reveal for work items on mobile
+  - `setupFadeInObserver()` observes `.inf-work_item` elements not already visible
+  - Threshold: 0.15, rootMargin: `0px 0px -50px 0px`
+  - Adds `.is-visible` class on intersection, then unobserves
+  - Skipped for items already visible (desktop infinite scroll handles visibility)
 
 ### Auto-Repair (Bootstrap)
 - Auto-creates `.env` from template if missing and `database/template.sqlite` exists

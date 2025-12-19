@@ -1,31 +1,9 @@
 <article class="album-card group cursor-pointer" data-album-id="{{ album.id }}"{% if album.is_nsfw and not is_admin %} data-nsfw="1"{% endif %}>
   <a href="{{ base_path }}/album/{{ album.slug }}" class="block">
     <div class="aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm relative">
-      {% if album.cover %}
-        {# Find blur variant if album is NSFW #}
-        {% set blur_path = null %}
-        {% if album.is_nsfw and not is_admin %}
-          {% for variant in album.cover.variants %}
-            {% if variant.variant == 'blur' %}
-              {% set blur_path = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
-
+      {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
+      {% if album.cover and (not album.is_nsfw or can_show_nsfw) %}
         <picture class="block absolute inset-0 w-full h-full">
-          {# SECURITY: For NSFW albums, only show blur image - never expose real URLs in srcset or data-src #}
-          {% if album.is_nsfw and not is_admin and blur_path %}
-          <img src="{{ blur_path }}"
-               alt="{{ (album.cover.alt_text ?? album.title)|e }}"
-               loading="lazy"
-               decoding="async"
-               class="nsfw-card-image block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
-          {% elseif album.is_nsfw and not is_admin %}
-          {# NSFW without blur variant - show placeholder, DO NOT expose real image URL #}
-          <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex items-center justify-center">
-            <i class="fas fa-eye-slash text-3xl text-neutral-500"></i>
-          </div>
-          {% else %}
           {% set variants_avif = [] %}
           {% set variants_webp = [] %}
           {% set variants_jpg = [] %}
@@ -61,11 +39,10 @@
                loading="lazy"
                decoding="async"
                class="block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
-          {% endif %}
         </picture>
 
         {# NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through #}
-        {% if album.is_nsfw and not is_admin %}
+        {% if album.is_nsfw and not can_show_nsfw %}
         <div class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10" role="img" aria-label="{{ trans('album.nsfw_warning_short') }}">
           <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
           <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
@@ -95,9 +72,16 @@
         {% endif %}
 
       {% else %}
+        {% if album.is_nsfw and not can_show_nsfw %}
+        <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex flex-col items-center justify-center text-neutral-600">
+          <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
+          <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
+        </div>
+        {% else %}
         <div class="w-full h-full bg-neutral-200 flex items-center justify-center">
           <span class="text-neutral-400 text-sm">{{ trans('general.no_cover') }}</span>
         </div>
+        {% endif %}
       {% endif %}
     </div>
     
