@@ -14,6 +14,45 @@
 }
 
 /* ============================================
+   RESET & BASE STYLES
+   ============================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 1.1111111111111112vw;
+}
+
+@media screen and (min-width: 1920px) {
+    html {
+        font-size: 21.333333333333332px;
+    }
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--modern-black);
+    background-color: var(--modern-white);
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+    display: block;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+/* ============================================
    BASE STYLES (SCOPED TO MODERN HOME)
    ============================================ */
 
@@ -276,11 +315,46 @@
 .inf-work_list {
     display: flex;
     flex-direction: column;
+    flex-wrap: wrap;
     position: relative;
+    width: 100%;
+    min-height: 100vh;
+}
+
+/* Default: simple grid layout (for few items) */
+.inf-work_list.simple-layout {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.inf-work_list.simple-layout .inf-work_item {
+    position: relative;
+    left: 0;
+    opacity: 1;
     width: 100%;
 }
 
-/* Masonry-like layout with absolute positioning */
+/* Filtered layout: CSS grid for category filtering (no white gaps) */
+.inf-work_list.filtered-layout {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.inf-work_list.filtered-layout .inf-work_item {
+    position: relative;
+    left: 0 !important;
+    opacity: 1;
+    width: 100%;
+    transform: none !important;
+}
+
+.inf-work_list.filtered-layout .inf-work_item:nth-child(2n) {
+    left: 0 !important;
+}
+
+/* Masonry-like layout with absolute positioning (for infinite scroll) */
 .inf-work_item {
     width: calc(50% - 5px);
     position: absolute;
@@ -672,6 +746,11 @@ html.lenis {
     .inf-work_item {
         width: 100%;
         position: relative;
+        opacity: 0;
+        transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .inf-work_item.is-visible {
         opacity: 1;
     }
 

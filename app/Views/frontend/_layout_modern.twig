@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="{{ lang|default('it')|e('html_attr') }}" class="lenis">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title|e }}</title>
+
+    {% if meta_description %}
+    <meta name="description" content="{{ meta_description|e('html_attr') }}">
+    {% endif %}
+
+    <!-- Favicon & App Icons -->
+    <link rel="icon" type="image/x-icon" href="{{ base_path }}/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ base_path }}/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ base_path }}/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/apple-touch-icon.png">
+    <link rel="manifest" href="{{ base_path }}/site.webmanifest">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- Preconnect for External Resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="{{ page_title|e('html_attr') }}">
+    {% if meta_description %}
+    <meta property="og:description" content="{{ meta_description|e('html_attr') }}">
+    {% endif %}
+    {% if meta_image %}
+    <meta property="og:image" content="{{ meta_image|e('html_attr') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{{ page_title|e('html_attr') }}">
+    {% endif %}
+    <meta property="og:type" content="{{ og_type|default('website')|e('html_attr') }}">
+    <meta property="og:url" content="{{ canonical_url|default(current_url)|e('html_attr') }}">
+    {% if og_locale %}<meta property="og:locale" content="{{ og_locale|e('html_attr') }}">{% endif %}
+    <meta property="og:site_name" content="{{ og_site_name|default(site_title)|default('Portfolio')|e('html_attr') }}">
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="{{ twitter_card|default('summary_large_image')|e('html_attr') }}">
+    <meta name="twitter:title" content="{{ page_title|e('html_attr') }}">
+    {% if meta_description %}<meta name="twitter:description" content="{{ meta_description|e('html_attr') }}">{% endif %}
+    {% if meta_image %}
+    <meta name="twitter:image" content="{{ meta_image|e('html_attr') }}">
+    <meta name="twitter:image:alt" content="{{ page_title|e('html_attr') }}">
+    {% endif %}
+    {% if twitter_site %}<meta name="twitter:site" content="{{ twitter_site|e('html_attr') }}">{% endif %}
+    {% if twitter_creator %}<meta name="twitter:creator" content="{{ twitter_creator|e('html_attr') }}">{% endif %}
+
+    <!-- Canonical & Robots -->
+    {% if canonical_url %}<link rel="canonical" href="{{ canonical_url|e('html_attr') }}">{% endif %}
+    <meta name="robots" content="{{ robots|default('index,follow')|e('html_attr') }}">
+
+    {# Organization/Person JSON-LD from SEO settings (if provided) #}
+    {% if schema is defined and (schema.author_name or schema.organization_name) %}
+    <script type="application/ld+json" nonce="{{ csp_nonce() }}">
+    {
+      "@context": "https://schema.org",
+      {% if schema.author_name %}
+      "@type": "Person",
+      "name": {{ schema.author_name|json_encode|raw }},
+      {% if schema.author_url %}"url": {{ schema.author_url|json_encode|raw }},{% endif %}
+      {% if meta_image %}"image": {{ meta_image|json_encode|raw }},{% endif %}
+      "jobTitle": {{ (schema.photographer_job_title|default('Photographer'))|json_encode|raw }},
+      "description": {{ (meta_description|default(''))|json_encode|raw }},
+      {% set same_as_raw = schema.photographer_same_as|default('') %}
+      {% set same_as_list = [] %}
+      {% if same_as_raw %}
+        {% for u in same_as_raw|split(',') %}
+          {% set t = u|trim %}
+          {% if t %}
+            {% set same_as_list = same_as_list|merge([t]) %}
+          {% endif %}
+        {% endfor %}
+        {% if same_as_list %}
+        "sameAs": [
+          {% for url in same_as_list %}
+            {{ url|json_encode|raw }}{% if not loop.last %}, {% endif %}
+          {% endfor %}
+        ],
+        {% endif %}
+      {% endif %}
+      {% else %}
+      "@type": "Organization",
+      "name": {{ schema.organization_name|json_encode|raw }},
+      {% if schema.organization_url %}"url": {{ schema.organization_url|json_encode|raw }},{% endif %}
+      {% if meta_image %}"logo": {{ meta_image|json_encode|raw }},{% endif %}
+      {% endif %}
+      "@id": {{ (canonical_url|default(current_url))|json_encode|raw }}
+    }
+    </script>
+    {% endif %}
+
+    {# BreadcrumbList Schema #}
+    {% if breadcrumbs is defined and breadcrumbs|length > 0 and schema is defined and schema.breadcrumbs_enabled %}
+    <script type="application/ld+json" nonce="{{ csp_nonce() }}">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {% for crumb in breadcrumbs %}
+        {% set crumbUrl = crumb.url starts with '/' ? base_path ~ crumb.url : crumb.url %}
+        {
+          "@type": "ListItem",
+          "position": {{ loop.index }},
+          "name": {{ crumb.name|json_encode|raw }},
+          "item": {{ crumbUrl|json_encode|raw }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }
+    </script>
+    {% endif %}
+
+    {# LocalBusiness Schema (if enabled) #}
+    {% if schema is defined and schema.local_business_enabled %}
+    <script type="application/ld+json" nonce="{{ csp_nonce() }}">
+    {
+      "@context": "https://schema.org",
+      "@type": {{ schema.local_business_type|default('ProfessionalService')|json_encode|raw }},
+      "name": {{ schema.local_business_name|json_encode|raw }},
+      {% if schema.local_business_address %}
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": {{ schema.local_business_address|json_encode|raw }}
+        {% if schema.local_business_city %},"addressLocality": {{ schema.local_business_city|json_encode|raw }}{% endif %}
+        {% if schema.local_business_postal_code %},"postalCode": {{ schema.local_business_postal_code|json_encode|raw }}{% endif %}
+        {% if schema.local_business_country %},"addressCountry": {{ schema.local_business_country|json_encode|raw }}{% endif %}
+      },
+      {% endif %}
+      {% if schema.local_business_phone %}"telephone": {{ schema.local_business_phone|json_encode|raw }},{% endif %}
+      {% if schema.local_business_geo_lat and schema.local_business_geo_lng %}
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": {{ schema.local_business_geo_lat|json_encode|raw }},
+        "longitude": {{ schema.local_business_geo_lng|json_encode|raw }}
+      },
+      {% endif %}
+      {% if schema.local_business_opening_hours %}"openingHours": {{ schema.local_business_opening_hours|json_encode|raw }},{% endif %}
+      "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+      {% if meta_image %}"image": {{ meta_image|json_encode|raw }},{% endif %}
+      "priceRange": {{ (schema.local_business_price_range|default('$$'))|json_encode|raw }}
+    }
+    </script>
+    {% endif %}
+
+    <!-- Font Awesome (icons) -->
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
+
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Modern Home Styles -->
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+
+    {# Essential JavaScript - Always loaded (no consent required) #}
+    {% if custom_js_essential %}
+    <script id="custom-js-essential" nonce="{{ csp_nonce() }}">{{ custom_js_essential|raw }}</script>
+    {% endif %}
+
+    {% block scripts %}{% endblock %}
+
+    {# Cookie Banner with conditional script loader #}
+    {% include 'partials/cookie-banner.twig' %}
+</body>
+</html>
