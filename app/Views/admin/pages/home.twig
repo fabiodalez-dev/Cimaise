@@ -1,6 +1,7 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.pages.home.page_title') }}{% endblock %}
 {% block content %}
+  <div class="pb-24">
   <div class="flex items-center justify-between mb-8">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.pages.title') }}</h1>
@@ -12,7 +13,7 @@
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- Editor -->
     <div class="lg:col-span-2">
-      <form method="post" action="{{ base_path }}/admin/pages/home" class="space-y-6">
+      <form method="post" action="{{ base_path }}/admin/pages/home" class="space-y-6" id="home-form">
         <input type="hidden" name="csrf" value="{{ csrf }}">
 
         <!-- Template Selector -->
@@ -180,10 +181,6 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3">
-          <a href="{{ base_path }}/admin/pages" class="btn-secondary">{{ trans('admin.pages.home.cancel') }}</a>
-          <button type="submit" class="btn-primary"><i class="fas fa-save mr-2"></i>{{ trans('admin.pages.home.save') }}</button>
-        </div>
       </form>
     </div>
 
@@ -239,6 +236,29 @@
             </li>
           </ul>
         </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Sticky Footer with Action Buttons -->
+  <div class="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <button type="submit" form="home-form" class="btn-primary">
+            <i class="fas fa-save mr-2"></i>
+            {{ trans('admin.pages.home.save') }}
+          </button>
+          <a href="{{ base_path }}/admin/pages" class="btn-secondary">
+            <i class="fas fa-times mr-2"></i>
+            {{ trans('admin.pages.home.cancel') }}
+          </a>
+        </div>
+        <a href="{{ base_path }}/" class="btn-secondary" target="_blank" rel="noopener noreferrer">
+          <i class="fas fa-external-link-alt mr-2"></i>
+          {{ trans('admin.pages.home.view_page') }}
+        </a>
       </div>
     </div>
   </div>

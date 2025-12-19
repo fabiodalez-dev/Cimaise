@@ -85,6 +85,27 @@
     line-height: 1;
 }
 
+/* Focus states for accessibility */
+.menu-btn:focus-visible {
+    outline: 2px solid var(--modern-white);
+    outline-offset: 2px;
+}
+
+.grid-toggle_item:focus-visible {
+    outline: 2px solid var(--modern-black);
+    outline-offset: 2px;
+}
+
+.mega-menu_link:focus-visible {
+    outline: 2px solid var(--modern-black);
+    outline-offset: 4px;
+}
+
+.inf-work_link:focus-visible {
+    outline: 2px solid var(--modern-black);
+    outline-offset: 2px;
+}
+
 /* ============================================
    MAIN LAYOUT - THE KEY STRUCTURE
    ============================================ */
@@ -337,6 +358,12 @@
 }
 
 .nsfw-blur:hover {
+    filter: blur(5px);
+}
+
+/* NSFW blur focus accessibility for keyboard users */
+.inf-work_link:focus .nsfw-blur,
+.inf-work_link:focus-within .nsfw-blur {
     filter: blur(5px);
 }
 

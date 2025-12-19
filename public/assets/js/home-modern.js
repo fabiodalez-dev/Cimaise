@@ -266,22 +266,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // FADE-IN IMAGES (Intersection Observer)
     // ============================================
 
-    const fadeInObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('is-visible');
-                fadeInObserver.unobserve(entry.target);
-            }
+    if ('IntersectionObserver' in window) {
+        const fadeInObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    fadeInObserver.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.15,
+            rootMargin: '0px 0px -50px 0px'
         });
-    }, {
-        threshold: 0.15,
-        rootMargin: '0px 0px -50px 0px'
-    });
 
-    // Observe all work items
-    $allItems.forEach(item => {
-        fadeInObserver.observe(item);
-    });
+        // Observe all work items
+        $allItems.forEach(item => {
+            fadeInObserver.observe(item);
+        });
+    } else {
+        // Fallback: make all items visible immediately
+        $allItems.forEach(item => item.classList.add('is-visible'));
+    }
 
     // ============================================
     // PAGE TRANSITION
