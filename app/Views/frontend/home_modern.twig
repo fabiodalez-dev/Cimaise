@@ -41,7 +41,7 @@
                         {% for category in categories %}
                         <div class="toggle-cat_item">
                             <a href="{{ base_path }}/category/{{ category.slug|e('html_attr') }}" class="grid-toggle_item" data-filter="{{ category.slug|e('html_attr') }}">
-                                <div class="grid-toggle">{{ category.name }}</div>
+                                <div class="grid-toggle">{{ category.name|e }}</div>
                             </a>
                         </div>
                         {% endfor %}
@@ -82,8 +82,8 @@
                                              class="img-fill{% if album.is_nsfw %} nsfw-blur{% endif %}"
                                              loading="lazy">
                                     {% else %}
-                                        <div class="img-fill img-placeholder">
-                                            <span>{{ album.title|slice(0, 1)|upper }}</span>
+                                        <div class="img-fill img-placeholder" role="img" aria-label="{{ trans('general.no_cover')|default('No cover') }}: {{ album.title|e('html_attr') }}">
+                                            <span aria-hidden="true">{{ album.title|slice(0, 1)|upper }}</span>
                                         </div>
                                     {% endif %}
                                     {% if album.is_password_protected %}
@@ -138,6 +138,6 @@
 {% block scripts %}
 {{ parent() }}
 <!-- Lenis Smooth Scroll -->
-<script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js" nonce="{{ csp_nonce() }}"></script>
+<script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js" integrity="sha384-tKsJDT6PlUI0pSBt9/sBKJluKgA19/a6mBrDsZaXotLB4ZYfMGM6xt6/WgGpYhTm" crossorigin="anonymous"></script>
 <script src="{{ base_path }}/assets/js/home-modern.js" nonce="{{ csp_nonce() }}"></script>
 {% endblock %}
