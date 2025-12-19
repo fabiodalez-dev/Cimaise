@@ -167,6 +167,7 @@ class SettingsController extends BaseController
         $svc->set('performance.compression', $performanceSettings['compression']);
         $svc->set('pagination.limit', $paginationLimit);
         $svc->set('cache.ttl', $cacheTtl);
+        $svc->set('admin.debug_logs', isset($data['admin_debug_logs']));
 
         $_SESSION['flash'][] = ['type'=>'success','message'=>'Settings saved successfully'];
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
