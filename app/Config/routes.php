@@ -943,7 +943,7 @@ $app->get('/api/albums', function (Request $request, Response $response) use ($c
 $app->get('/api/album/{id}/images', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\ApiController($container['db'], Twig::fromRequest($request));
     return $controller->albumImages($request, $response, $args);
-});
+})->add(new RateLimitMiddleware(200, 60)); // 200 requests per minute
 
 // Media Library
 $app->get('/admin/media', function (Request $request, Response $response) use ($container) {

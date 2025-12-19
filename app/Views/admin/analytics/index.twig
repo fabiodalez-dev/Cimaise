@@ -331,7 +331,7 @@
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-gray-900 truncate">{{ item.album_title|default(trans('admin.analytics.unknown_album')) }}</p>
                 <p class="text-xs text-gray-500 mt-0.5">
-                  {% if item.album_slug %}/album/{{ item.album_slug }}{% else %}{{ trans('admin.analytics.albums.no_slug') }}{% endif %}
+                  {% if item.album_slug %}{{ base_path }}/album/{{ item.album_slug }}{% else %}{{ trans('admin.analytics.albums.no_slug') }}{% endif %}
                 </p>
               </div>
               <div class="flex-shrink-0 ml-4 text-right">
@@ -363,7 +363,7 @@
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-gray-900 truncate">{{ item.album_title|default(trans('admin.analytics.unknown_album')) }}</p>
                 <p class="text-xs text-gray-500 mt-0.5">
-                  {% if item.album_slug %}/album/{{ item.album_slug }}{% else %}{{ trans('admin.analytics.albums.no_slug') }}{% endif %}
+                  {% if item.album_slug %}{{ base_path }}/album/{{ item.album_slug }}{% else %}{{ trans('admin.analytics.albums.no_slug') }}{% endif %}
                 </p>
               </div>
               <div class="flex-shrink-0 ml-4 text-right">

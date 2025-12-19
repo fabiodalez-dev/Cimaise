@@ -5,6 +5,7 @@ namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
 use App\Services\AnalyticsService;
 use App\Services\ImagesService;
+use App\Services\NavigationService;
 use App\Support\Database;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -140,19 +141,8 @@ class PageController extends BaseController
         $stmt->execute();
         $albums = $stmt->fetchAll();
         
-        // Enrich with cover images and tags
-        $visibleAlbums = [];
-        foreach ($albums as $album) {
-            $album = $this->enrichAlbum($album);
-            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
-                continue;
-            }
-            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
-                unset($album['cover']);
-            }
-            $visibleAlbums[] = $album;
-        }
-        $albums = $visibleAlbums;
+        // Enrich with cover images and tags + apply access filters
+        $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
         
         // Calculate pagination info
         $hasMore = $totalAlbums > $perPage;
@@ -187,7 +177,7 @@ class PageController extends BaseController
         $tags = $stmt->fetchAll();
         
         // Get all images from published albums for infinite scroll
-        $nsfwCondition = (!$isAdmin && !$nsfwConsent) ? 'AND a.is_nsfw = 0' : '';
+        $includeNsfw = ($isAdmin || $nsfwConsent) ? 1 : 0;
         $stmt = $pdo->prepare('
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description,
@@ -195,10 +185,13 @@ class PageController extends BaseController
             FROM images i
             JOIN albums a ON a.id = i.album_id
             JOIN categories c ON c.id = a.category_id
-            WHERE a.is_published = 1 ' . $nsfwCondition . ' AND (a.password_hash IS NULL OR a.password_hash = "")
+            WHERE a.is_published = 1
+              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
+              AND (a.password_hash IS NULL OR a.password_hash = "")
             ORDER BY a.published_at DESC, i.sort_order ASC, i.id ASC
             LIMIT 150
         ');
+        $stmt->bindValue(':include_nsfw', $includeNsfw, \PDO::PARAM_INT);
         $stmt->execute();
         $allImages = $stmt->fetchAll();
         
@@ -268,9 +261,7 @@ class PageController extends BaseController
 
             if (!$allowed) {
                 // Categories for header menu
-                $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
-                $navStmt->execute();
-                $navCategories = $navStmt->fetchAll();
+                $navCategories = (new NavigationService($this->db))->getNavigationCategories();
                 $query = $request->getQueryParams();
                 // Pass error type: '1' for wrong password, 'nsfw' for NSFW confirmation required
                 $error = $query['error'] ?? null;
@@ -291,9 +282,7 @@ class PageController extends BaseController
 
         if ($isNsfw && !$isAdmin && empty($album['password_hash']) && !$nsfwConfirmed) {
             // Show NSFW gate page - user must confirm they're 18+ to view
-            $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
-            $navStmt->execute();
-            $navCategories = $navStmt->fetchAll();
+            $navCategories = (new NavigationService($this->db))->getNavigationCategories();
             return $this->view->render($response, 'frontend/nsfw_gate.twig', [
                 'album' => $album,
                 'categories' => $navCategories,
@@ -501,18 +490,7 @@ class PageController extends BaseController
         $stmt->execute([':category_id' => $album['category_id'], ':album_id' => $album['id']]);
         $relatedAlbums = $stmt->fetchAll();
         
-        $visibleRelated = [];
-        foreach ($relatedAlbums as $related) {
-            $related = $this->enrichAlbum($related);
-            if (!$isAdmin && !empty($related['password_hash']) && !$this->hasAlbumPasswordAccess((int)$related['id'])) {
-                continue;
-            }
-            if (!$isAdmin && !empty($related['is_nsfw']) && !$nsfwConsent) {
-                unset($related['cover']);
-            }
-            $visibleRelated[] = $related;
-        }
-        $relatedAlbums = $visibleRelated;
+        $relatedAlbums = $this->filterAlbumsByAccess($relatedAlbums, $isAdmin, $nsfwConsent);
         
         // Get template libraries from the resolved template
         $templateLibs = [];
@@ -521,9 +499,7 @@ class PageController extends BaseController
         }
         
         // Categories for header menu
-        $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
-        $navStmt->execute();
-        $navCategories = $navStmt->fetchAll();
+        $navCategories = (new NavigationService($this->db))->getNavigationCategories();
 
         // Determine if album is protected (requires session access validation)
         $isProtectedAlbum = !empty($album['password_hash']) || !empty($album['is_nsfw']);
@@ -552,20 +528,7 @@ class PageController extends BaseController
                 }
 
                 // Lightbox: for protected albums, use protected original URL
-            // Pick largest available variant for lightbox (prefer AVIF/WebP, xxl->sm)
-            if (!empty($image['variants'])) {
-                $orderVariant = ['xxl'=>1,'xl'=>2,'lg'=>3,'md'=>4,'sm'=>5];
-                $orderFormat = ['avif'=>1,'webp'=>2,'jpg'=>3,'jpeg'=>3,'png'=>4];
-                $chosen = null;
-                foreach ($image['variants'] as $v) {
-                    if (!isset($v['path']) || str_starts_with((string)$v['path'], '/storage/')) {
-                        continue;
-                    }
-                    $vVar = strtolower((string)($v['variant'] ?? ''));
-                    $vFmt = strtolower((string)($v['format'] ?? ''));
-                    $score = ($orderVariant[$vVar] ?? 9) * 10 + ($orderFormat[$vFmt] ?? 9);
-                    $chosen = $chosen === null || $score < $chosen['score'] ? ['score'=>$score,'variant'=>$vVar,'format'=>$vFmt,'path'=>$v['path']] : $chosen;
-                }
+                $chosen = $this->selectBestLightboxVariant((array)($image['variants'] ?? []));
                 if ($chosen !== null) {
                     if ($isProtectedAlbum && !$isAdmin) {
                         $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/' . $chosen['variant'] . '.' . $chosen['format'];
@@ -573,11 +536,10 @@ class PageController extends BaseController
                         $lightboxUrl = $chosen['path'];
                     }
                 }
-            }
-            // Fallback to protected original if no public variants are available
-            if ($isProtectedAlbum && !$isAdmin && ($lightboxUrl === $bestUrl || str_starts_with((string)$lightboxUrl, '/storage/'))) {
-                $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/original';
-            }
+                // Fallback to protected original if no public variants are available
+                if ($isProtectedAlbum && !$isAdmin && ($lightboxUrl === $bestUrl || str_starts_with((string)$lightboxUrl, '/storage/'))) {
+                    $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/original';
+                }
             } catch (\Throwable $e) {
                 Logger::warning('PageController: Error fetching image variants', ['image_id' => $image['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
             }
@@ -793,6 +755,12 @@ class PageController extends BaseController
             }
 
             $sessionId = trim((string)($data['analytics_session_id'] ?? ''));
+            if ($sessionId !== '') {
+                $isValidSessionId = preg_match('/^sess_[0-9]{10,20}_[a-z0-9]+$/', $sessionId) === 1;
+                if (!$isValidSessionId || strlen($sessionId) > 128) {
+                    $sessionId = '';
+                }
+            }
             if ($sessionId !== '') {
                 $analytics = new AnalyticsService($pdo);
                 $analytics->trackEvent([
@@ -1062,18 +1030,7 @@ class PageController extends BaseController
         $stmt->execute([':slug' => $slug]);
         $albums = $stmt->fetchAll();
         
-        $visibleAlbums = [];
-        foreach ($albums as $album) {
-            $album = $this->enrichAlbum($album);
-            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
-                continue;
-            }
-            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
-                unset($album['cover']);
-            }
-            $visibleAlbums[] = $album;
-        }
-        $albums = $visibleAlbums;
+        $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
         
         // Get all categories for navigation
         $stmt = $pdo->prepare('SELECT * FROM categories ORDER BY sort_order ASC, name ASC');
@@ -1130,18 +1087,7 @@ class PageController extends BaseController
         $stmt->execute([':slug' => $slug]);
         $albums = $stmt->fetchAll();
         
-        $visibleAlbums = [];
-        foreach ($albums as $album) {
-            $album = $this->enrichAlbum($album);
-            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
-                continue;
-            }
-            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
-                unset($album['cover']);
-            }
-            $visibleAlbums[] = $album;
-        }
-        $albums = $visibleAlbums;
+        $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
         
         // Get popular tags for navigation
         $stmt = $pdo->prepare('
@@ -1157,9 +1103,7 @@ class PageController extends BaseController
         $tags = $stmt->fetchAll();
         
         // Categories for header menu
-        $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
-        $navStmt->execute();
-        $navCategories = $navStmt->fetchAll();
+        $navCategories = (new NavigationService($this->db))->getNavigationCategories();
 
         $seo = $this->buildSeo($request, '#' . $tag['name'], 'Photography albums tagged with: ' . $tag['name']);
         return $this->view->render($response, 'frontend/tag.twig', [
@@ -1184,9 +1128,7 @@ class PageController extends BaseController
     {
         $pdo = $this->db->pdo();
         // categories for header
-        $navStmt = $pdo->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
-        $navStmt->execute();
-        $navCategories = $navStmt->fetchAll();
+        $navCategories = (new NavigationService($this->db))->getNavigationCategories();
 
         // settings
         $settings = new \App\Services\SettingsService($this->db);
@@ -1373,6 +1315,50 @@ class PageController extends BaseController
         $album['images_count'] = (int)$stmt->fetchColumn();
         
         return $album;
+    }
+
+    private function filterAlbumsByAccess(array $albums, bool $isAdmin, bool $nsfwConsent): array
+    {
+        $visibleAlbums = [];
+        foreach ($albums as $album) {
+            $album = $this->enrichAlbum($album);
+            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
+                continue;
+            }
+            $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
+            $visibleAlbums[] = $album;
+        }
+        return $visibleAlbums;
+    }
+
+    private function selectBestLightboxVariant(array $variants): ?array
+    {
+        if ($variants === []) {
+            return null;
+        }
+
+        $orderVariant = ['xxl' => 1, 'xl' => 2, 'lg' => 3, 'md' => 4, 'sm' => 5];
+        $orderFormat = ['avif' => 1, 'webp' => 2, 'jpg' => 3, 'jpeg' => 3, 'png' => 4];
+        $chosen = null;
+
+        foreach ($variants as $variant) {
+            if (!isset($variant['path']) || str_starts_with((string)$variant['path'], '/storage/')) {
+                continue;
+            }
+            $vVar = strtolower((string)($variant['variant'] ?? ''));
+            $vFmt = strtolower((string)($variant['format'] ?? ''));
+            $score = ($orderVariant[$vVar] ?? 9) * 10 + ($orderFormat[$vFmt] ?? 9);
+            if ($chosen === null || $score < $chosen['score']) {
+                $chosen = [
+                    'score' => $score,
+                    'variant' => $vVar,
+                    'format' => $vFmt,
+                    'path' => $variant['path']
+                ];
+            }
+        }
+
+        return $chosen;
     }
 
     private function formatExifForDisplay(array $exif, array $image): array

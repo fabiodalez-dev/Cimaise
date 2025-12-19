@@ -207,7 +207,7 @@ class MediaController extends BaseController
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
 
-        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant)) {
+        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true)) {
             return $response->withStatus(403);
         }
 
@@ -470,7 +470,7 @@ class MediaController extends BaseController
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
 
-        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant)) {
+        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true)) {
             return $response->withStatus(403);
         }
 
@@ -536,32 +536,4 @@ class MediaController extends BaseController
             ->withHeader('ETag', $etag);
     }
 
-    /**
-     * Centralized access validation for protected albums (password/NSFW).
-     * Blur variants are treated like any other variant (no previews without access).
-     */
-    private function validateAlbumAccess(int $albumId, bool $isPasswordProtected, bool $isNsfw, ?string $variant = null): bool
-    {
-        if ($this->isAdmin()) {
-            return true;
-        }
-
-        if ($isPasswordProtected) {
-            $hasAccess = $this->hasAlbumPasswordAccess($albumId);
-            if (!$hasAccess) {
-                error_log("[MediaAccess] DENY password album={$albumId} variant={$variant} session_access=" . json_encode($_SESSION['album_access'] ?? []));
-                return false;
-            }
-        }
-
-        if ($isNsfw) {
-            $nsfwConfirmed = $this->hasNsfwAlbumConsent($albumId);
-            if (!$nsfwConfirmed) {
-                error_log("[MediaAccess] DENY nsfw album={$albumId} variant={$variant} session_nsfw=" . json_encode($_SESSION['nsfw_confirmed'] ?? []));
-                return false;
-            }
-        }
-
-        return true;
-    }
 }
