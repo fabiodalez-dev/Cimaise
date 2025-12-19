@@ -73,13 +73,13 @@ class GalleriesController extends BaseController
         $nsfwConsent = $this->hasNsfwConsent();
 
         // Sanitize album data - remove sensitive fields
-        // SECURITY: For NSFW albums without consent, do not expose any preview paths
+        // SECURITY: For NSFW albums without consent, expose only blur_path (no real previews)
         $safeAlbums = array_map(function($album) use ($isAdmin, $nsfwConsent) {
             $isNsfw = (bool)($album['is_nsfw'] ?? false);
             $canShowNsfw = $isAdmin || $nsfwConsent;
 
             $coverImage = null;
-            if (isset($album['cover_image']) && (!$isNsfw || $canShowNsfw)) {
+            if (isset($album['cover_image'])) {
                 // Use fallback dimensions to avoid CLS (Cumulative Layout Shift)
                 // Default 4:3 aspect ratio at 400px width if dimensions missing
                 $coverImage = [
@@ -87,8 +87,12 @@ class GalleriesController extends BaseController
                     'width' => (int)($album['cover_image']['width'] ?? 400),
                     'height' => (int)($album['cover_image']['height'] ?? 300),
                 ];
-                $coverImage['preview_path'] = $album['cover_image']['preview_path'] ?? null;
-                $coverImage['blur_path'] = $album['cover_image']['blur_path'] ?? null;
+                if ($isNsfw && !$canShowNsfw) {
+                    $coverImage['blur_path'] = $album['cover_image']['blur_path'] ?? null;
+                } else {
+                    $coverImage['preview_path'] = $album['cover_image']['preview_path'] ?? null;
+                    $coverImage['blur_path'] = $album['cover_image']['blur_path'] ?? null;
+                }
             }
 
             return [
@@ -364,8 +368,8 @@ class GalleriesController extends BaseController
             if (!$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
                 continue;
             }
-            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
-                unset($album['cover_image']);
+            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent && !empty($album['cover_image'])) {
+                unset($album['cover_image']['preview_path'], $album['cover_image']['original_path'], $album['cover_image']['path']);
             }
             $visibleAlbums[] = $album;
         }
@@ -523,6 +527,11 @@ class GalleriesController extends BaseController
             $stmt->execute([':id' => $album['cover_image_id']]);
             $cover = $stmt->fetch();
             if ($cover) {
+                if (empty($cover['blur_path'])) {
+                    $blurStmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = :id AND variant = "blur" LIMIT 1');
+                    $blurStmt->execute([':id' => $cover['id']]);
+                    $cover['blur_path'] = $blurStmt->fetchColumn() ?: null;
+                }
                 $album['cover_image'] = $cover;
             }
         }
@@ -543,6 +552,11 @@ class GalleriesController extends BaseController
             $stmt->execute([':album_id' => $album['id']]);
             $cover = $stmt->fetch();
             if ($cover) {
+                if (empty($cover['blur_path'])) {
+                    $blurStmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = :id AND variant = "blur" LIMIT 1');
+                    $blurStmt->execute([':id' => $cover['id']]);
+                    $cover['blur_path'] = $blurStmt->fetchColumn() ?: null;
+                }
                 $album['cover_image'] = $cover;
             }
         }

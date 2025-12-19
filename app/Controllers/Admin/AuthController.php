@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Services\VariantMaintenanceService;
 use App\Support\CookieHelper;
 use App\Support\Database;
 use App\Support\Logger;
@@ -99,6 +100,8 @@ class AuthController extends BaseController
 
         // rotate CSRF after login
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
+
+        $this->scheduleDailyVariantMaintenance();
 
         return $response
             ->withHeader('Location', $this->redirect('/admin'))
@@ -331,5 +334,23 @@ class AuthController extends BaseController
         }
 
         return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+    }
+
+    private function scheduleDailyVariantMaintenance(): void
+    {
+        $db = $this->db;
+        register_shutdown_function(function() use ($db) {
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_write_close();
+            }
+            if (function_exists('fastcgi_finish_request')) {
+                @fastcgi_finish_request();
+            }
+            try {
+                (new VariantMaintenanceService($db))->runDaily();
+            } catch (\Throwable $e) {
+                Logger::warning('Variant maintenance skipped', ['error' => $e->getMessage()], 'maintenance');
+            }
+        });
     }
 }

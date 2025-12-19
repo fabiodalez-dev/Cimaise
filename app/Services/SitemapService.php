@@ -69,7 +69,7 @@ class SitemapService
                 $sitemap->addURL('/tag/' . $tag['slug'], new \DateTime(), 'weekly', 0.6);
             }
 
-            // Add published albums (exclude NSFW for privacy/SEO)
+            // Add published albums (exclude NSFW and password-protected for privacy/SEO)
             $stmt = $this->db->query('
                 SELECT slug, published_at, updated_at
                 FROM albums

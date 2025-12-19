@@ -14,6 +14,7 @@ use PDO;
 
 class AnalyticsController extends BaseController
 {
+    private const TOP_ALBUMS_LIMIT = 20;
     private PDO $db;
     private Twig $twig;
     private AnalyticsService $analytics;
@@ -74,8 +75,8 @@ class AnalyticsController extends BaseController
         $trendsData = $this->analytics->getTrendComparison($startDate, $endDate);
         $engagementData = $this->analytics->getEngagementStats($startDate, $endDate);
         $errorData = $this->analytics->get404Stats($startDate, $endDate);
-        $albumAccessStats = $this->analytics->getAlbumAccessStats($startDate, $endDate, 20);
-        $albumPasswordAccessStats = $this->analytics->getAlbumPasswordAccessStats($startDate, $endDate, 20);
+        $albumAccessStats = $this->analytics->getAlbumAccessStats($startDate, $endDate, self::TOP_ALBUMS_LIMIT);
+        $albumPasswordAccessStats = $this->analytics->getAlbumPasswordAccessStats($startDate, $endDate, self::TOP_ALBUMS_LIMIT);
 
         return $this->twig->render($response, 'admin/analytics/index.twig', [
             'stats' => $dashboardStats,
