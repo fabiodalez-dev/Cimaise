@@ -274,7 +274,8 @@
       "photos": "Foto",
       "close": "Chiudi",
       "empty_title": "Nessun album ancora",
-      "empty_text": "Torna presto per nuovi contenuti."
+      "empty_text": "Torna presto per nuovi contenuti.",
+      "menu": "Menu"
     },
     "menu": {
       "home": "Home",

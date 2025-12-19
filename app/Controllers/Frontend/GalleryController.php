@@ -58,6 +58,7 @@ class GalleryController extends BaseController
         }
         // Check if user is admin (admins bypass password/NSFW protection)
         $isAdmin = $this->isAdmin();
+        $isNsfwAlbum = !empty($album['is_nsfw']) && !$isAdmin;
 
         // Password protection with session timeout (24h) - skip for admins
         if (!empty($album['password_hash']) && !$isAdmin) {
@@ -508,6 +509,7 @@ class GalleryController extends BaseController
 
             // Check if user is admin (admins bypass password protection)
             $isAdmin = $this->isAdmin();
+            $isProtectedAlbum = (!empty($album['password_hash']) && !$isAdmin) || (!empty($album['is_nsfw']) && !$isAdmin);
 
             // Password protection with session timeout (24h) - skip for admins
             if (!empty($album['password_hash']) && !$isAdmin) {
@@ -550,7 +552,9 @@ class GalleryController extends BaseController
             $images = [];
             foreach ($imagesRows as $img) {
                 $bestUrl = $img['original_path'];
-                $lightboxUrl = $img['original_path']; // Keep original for lightbox if accessible
+                $lightboxUrl = $isProtectedAlbum
+                    ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
+                    : $img['original_path']; // Keep original for lightbox if accessible
                 try {
                     // Grid: prefer largest public variant (avif > webp > jpg)
                     $vg = $pdo->prepare("SELECT path, width, height FROM image_variants
@@ -586,7 +590,12 @@ class GalleryController extends BaseController
                     // For lightbox, prefer largest variant (lg > md > sm) for best quality
                     $lbFallback = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END, width DESC LIMIT 1");
                     $lbFallback->execute([':id' => $img['id']]);
-                    $lightboxUrl = $lbFallback->fetchColumn() ?: $bestUrl;
+                    $fallbackPath = $lbFallback->fetchColumn();
+                    if ($isProtectedAlbum) {
+                        $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
+                    } else {
+                        $lightboxUrl = $fallbackPath ?: $bestUrl;
+                    }
                 }
                 
 

@@ -274,7 +274,8 @@
       "photos": "Photos",
       "close": "Close",
       "empty_title": "No albums yet",
-      "empty_text": "Check back soon for new content."
+      "empty_text": "Check back soon for new content.",
+      "menu": "Menu"
     },
     "menu": {
       "home": "Home",
