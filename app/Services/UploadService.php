@@ -195,7 +195,8 @@ class UploadService
             $relFs = str_replace(dirname(__DIR__, 2), '', $preview);
             $relUrl = preg_replace('#^/public#','', $relFs);
             $previewSize = @getimagesize($preview) ?: [$previewW, 0];
-            $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
+            $replaceKeyword = $this->db->replaceKeyword();
+            $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
                 ->execute([$imageId,'sm','jpg',$relUrl,$previewW,(int)($previewSize[1] ?? 0), (int)filesize($preview)]);
             $previewRel = $relUrl;
         } else {
@@ -425,7 +426,16 @@ class UploadService
                 if (is_file($destPath) && !$force) {
                     $key = (string)$variant . '|' . (string)$fmt;
                     if (!isset($existingVariants[$key])) {
-                        $this->registerVariantFromFile($pdo, $imageId, (string)$variant, (string)$fmt, $destRelUrl, $destPath, $targetW);
+                        $this->registerVariantFromFile(
+                            $pdo,
+                            $imageId,
+                            (string)$variant,
+                            (string)$fmt,
+                            $destRelUrl,
+                            $destPath,
+                            $targetW,
+                            $this->db->replaceKeyword()
+                        );
                         $existingVariants[$key] = $destRelUrl;
                         $stats['generated']++;
                     } else {
@@ -455,7 +465,8 @@ class UploadService
                 if ($ok && is_file($destPath)) {
                     $size = (int)filesize($destPath);
                     [$vw, $vh] = getimagesize($destPath) ?: [$targetW, 0];
-                    $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
+                    $replaceKeyword = $this->db->replaceKeyword();
+                    $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
                         ->execute([$imageId, (string)$variant, (string)$fmt, $destRelUrl, (int)$vw, (int)$vh, $size]);
                     $stats['generated']++;
                 } else {
@@ -575,7 +586,8 @@ class UploadService
             $size = (int)filesize($destPath);
 
             // Store as blur variant
-            $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
+            $replaceKeyword = $this->db->replaceKeyword();
+            $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
                 ->execute([$imageId, 'blur', 'jpg', $destRelUrl, $w, $h, $size]);
 
             return $destRelUrl;
