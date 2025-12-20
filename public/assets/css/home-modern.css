@@ -17,19 +17,22 @@
    RESET & BASE STYLES
    ============================================ */
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* Reset only on desktop - mobile uses Tailwind defaults */
+@media (min-width: 768px) {
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-html {
-    font-size: 1.1111111111111112vw;
+    html {
+        font-size: 1.1111111111111112vw;
+    }
 }
 
 @media screen and (min-width: 1920px) {
     html {
-        font-size: 21.333333333333332px;
+        font-size: 21.333333333333332px !important;
     }
 }
 
@@ -667,50 +670,11 @@ html.lenis {
 }
 
 @media screen and (max-width: 767px) {
-    /* Header mobile */
-    .global-head {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: var(--modern-white);
-        padding: 1rem 0.625rem;
-        z-index: 10;
-    }
-
+    /* Header mobile - hide modern elements (classic header is used instead) */
+    .global-head,
+    .menu-btn,
     .work-col.is-static {
-        position: fixed;
-        top: 42px;
-        left: 0;
-        right: 0;
-        width: 100%;
-        height: auto;
-        padding: 0.5rem 0.625rem;
-        background: var(--modern-white);
-        z-index: 9;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: flex-start;
-        align-items: center;
-        gap: 0.25rem 0.75rem;
-        display: flex;
-        border-bottom: 1px solid rgba(0,0,0,0.1);
-    }
-
-    .work-toggle_holder {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 0.25rem 0.5rem;
-    }
-
-    .toggle-cat_wrap {
-        margin-top: 0;
-    }
-
-    .toggle-cat_list {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 0.25rem 0.5rem;
+        display: none !important;
     }
 
     /* Hide info holder on mobile */
@@ -718,14 +682,9 @@ html.lenis {
         display: none;
     }
 
-    /* Hide counter on mobile */
-    .work-col.is-static .work-toggle_holder:last-child {
-        display: none;
-    }
-
     .work-layout {
         flex-direction: column;
-        padding: 95px 0.625rem 0;
+        padding: 0 0.625rem;
     }
 
     .work-col.is-work {
@@ -776,12 +735,6 @@ html.lenis {
         max-height: 100px;
         padding-top: 0.25rem;
         padding-bottom: 0.75rem;
-    }
-
-    .menu-btn {
-        top: 1rem;
-        right: 0.625rem;
-        transform: none;
     }
 
     /* Empty state mobile */
