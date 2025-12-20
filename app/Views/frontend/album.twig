@@ -44,6 +44,11 @@ function setNsfwCookie() {
   document.cookie = `nsfw_consent=1; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}`;
 }
 
+function hasNsfwCookie() {
+  const cookies = document.cookie.split(';');
+  return cookies.some(cookie => cookie.trim().startsWith('nsfw_consent=1'));
+}
+
 (function() {
   const localConfirmed = localStorage.getItem('nsfw_confirmed') === 'true';
   const hasConfirmed = serverConsent || localConfirmed;
@@ -91,6 +96,10 @@ function confirmNsfwAndShow() {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
     }).catch(() => { /* non-blocking */ });
+  }
+  if (hasNsfwCookie()) {
+    window.location.reload();
+    return;
   }
   const gate = document.getElementById('nsfw-gate');
   const mainContent = document.getElementById('album-main-content');

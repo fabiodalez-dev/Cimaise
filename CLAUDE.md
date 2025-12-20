@@ -124,6 +124,8 @@ photoCMS/
 - `app/Tasks/InstallCommand.php` - CLI installer command (interactive prompts)
 - `app/Services/UploadService.php` - Image processing and variant generation (AVIF, WebP, JPEG, blur) with magic number validation and NSFW blur generation
 - `app/Services/FaviconService.php` - Favicon generation in multiple sizes (16x16, 32x32, 96x96, 180px Apple touch, 192x192, 512x512) using GD library
+- `app/Services/NavigationService.php` - Navigation category fetching service for frontend menus (ordered by sort_order/name)
+- `app/Services/VariantMaintenanceService.php` - Daily maintenance service for generating missing image variants and NSFW blur variants with file-based locking
 - `app/Controllers/Admin/UploadController.php` - Image upload endpoint with automatic NSFW blur generation (checks album is_nsfw flag), logo upload with automatic favicon generation
 - `app/Services/SettingsService.php` - Settings management with JSON storage, defaults, and type tracking (null/boolean/number/string)
 - `app/Services/TranslationService.php` - i18n with dual-scope support (frontend/admin), JSON storage (storage/translations/), separate language tracking
@@ -268,6 +270,14 @@ $app->get('/path', function(...) { ... })
 - **Update history tracking**: Records update attempts and outcomes
 - **Rollback support**: Restore previous version on failure
 - **Admin interface**: `/admin/updates` dashboard for monitoring, backups, and maintenance toggles
+- **VariantMaintenanceService**: Daily automated maintenance for image variants
+  - File-based locking (`storage/tmp/variants_daily.lock`) prevents concurrent execution with `LOCK_EX | LOCK_NB`
+  - Date tracking via `maintenance.variants_daily_last_run` setting (UTC Y-m-d format)
+  - Generates missing variants for all enabled formats and breakpoints using UploadService
+  - Generates blur variants for NSFW album images (`album.is_nsfw = 1`) that lack them
+  - Stats tracking: images_checked, variants_generated/skipped/failed, blur_generated/failed
+  - Double-check pattern: Validates last run date before and after acquiring lock to prevent race conditions
+  - Graceful failure: Logs warnings on errors without blocking other operations
 
 ### Authentication
 - Session-based admin auth with `$_SESSION['admin_id']`
