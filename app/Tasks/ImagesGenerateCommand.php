@@ -113,7 +113,16 @@ class ImagesGenerateCommand extends Command
                     if ($missingOnly && is_file($dest)) {
                         $key = (string)$variant . '|' . (string)$fmt;
                         if (!isset($existingVariants[$key])) {
-                            $this->registerVariantFromFile($pdo, $imageId, (string)$variant, (string)$fmt, $destRelUrl, $dest, (int)$width);
+                            $this->registerVariantFromFile(
+                                $pdo,
+                                $imageId,
+                                (string)$variant,
+                                (string)$fmt,
+                                $destRelUrl,
+                                $dest,
+                                (int)$width,
+                                $this->db->replaceKeyword()
+                            );
                             $existingVariants[$key] = $destRelUrl;
                             $totalGenerated++;
                         } else {
@@ -138,7 +147,11 @@ class ImagesGenerateCommand extends Command
                     if ($ok) {
                         $size = (int)filesize($dest);
                         [$w, $h] = getimagesize($dest) ?: [(int)$width, 0];
-                        $stmt = $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)');
+                        $replaceKeyword = $this->db->replaceKeyword();
+                        $stmt = $pdo->prepare(sprintf(
+                            '%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)',
+                            $replaceKeyword
+                        ));
                         $stmt->execute([$imageId, $variant, $fmt, $destRelUrl, $w, $h, $size]);
                         $variantsGenerated++;
                         $totalGenerated++;

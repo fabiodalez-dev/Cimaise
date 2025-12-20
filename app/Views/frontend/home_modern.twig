@@ -127,7 +127,7 @@
                                         {% endif %}
                                         <img src="{{ img_src }}"
                                              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                                             alt="{{ image.alt_text|default(image.album_title)|e('html_attr') }}"
+                                             alt="{{ image.alt_text|default(image.album_title)|default(site_title)|default('Image')|e('html_attr') }}"
                                              title="{{ seo_title|e('html_attr') }}"
                                              class="img-fill"
                                              loading="lazy"
