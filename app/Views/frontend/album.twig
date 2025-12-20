@@ -61,6 +61,13 @@ function safeLocalStorageSet(key, value) {
 
   if (localConfirmed && !serverConsent && albumSlug && csrfToken) {
     if (gate) gate.style.display = 'none';
+    const loader = document.createElement('div');
+    loader.className = 'fixed inset-0 bg-black/60 z-50 flex items-center justify-center';
+    const loaderText = document.createElement('div');
+    loaderText.className = 'text-white text-sm';
+    loaderText.textContent = '{{ trans("album.nsfw_syncing")|default("Verifica in corso...")|e('js') }}';
+    loader.appendChild(loaderText);
+    document.body.appendChild(loader);
     fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
       method: 'POST',
       credentials: 'same-origin',
@@ -73,6 +80,9 @@ function safeLocalStorageSet(key, value) {
       window.location.reload();
     }).catch((err) => {
       console.warn('NSFW consent sync failed:', err);
+      if (loader.parentNode) {
+        loader.parentNode.removeChild(loader);
+      }
       if (gate) gate.style.display = '';
     });
     return;

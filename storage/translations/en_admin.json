@@ -1262,6 +1262,8 @@
     "admin.settings.preview_width_hint": "Width in pixels for thumbnail previews",
     "admin.settings.responsive_breakpoints": "Responsive Breakpoints",
     "admin.settings.breakpoints_hint": "JSON format with breakpoint names and widths in pixels",
+    "admin.settings.variants_async": "Generate variants in background",
+    "admin.settings.variants_async_desc": "Creates all sizes after upload to keep the upload fast.",
     "admin.settings.regenerate_images": "Regenerate All Images",
     "admin.settings.regenerate_confirm": "This will regenerate all image variants. This may take a while. Continue?",
     "admin.settings.site_config": "Site Configuration",

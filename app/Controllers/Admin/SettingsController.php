@@ -64,6 +64,7 @@ class SettingsController extends BaseController
             'width' => max(64, (int)($data['preview_w'] ?? 480)),
             'height' => null,
         ];
+        $variantsAsync = isset($data['variants_async']);
         
         // breakpoints from textarea JSON
         $breakpoints = json_decode((string)($data['breakpoints'] ?? ''), true);
@@ -102,6 +103,7 @@ class SettingsController extends BaseController
         $svc->set('image.quality', $quality);
         $svc->set('image.preview', $preview);
         $svc->set('image.breakpoints', $breakpoints);
+        $svc->set('image.variants_async', $variantsAsync);
         $svc->set('lightbox.show_exif', $showExif);
         
         $galleryPageTemplate = $data['gallery_page_template'] ?? 'classic';
@@ -186,8 +188,8 @@ class SettingsController extends BaseController
 
         try {
             $consolePath = dirname(__DIR__, 3) . '/bin/console';
-            if (!is_executable($consolePath)) {
-                throw new \RuntimeException('Console script not executable');
+            if (!is_file($consolePath)) {
+                throw new \RuntimeException('Console script not found');
             }
 
             // Run the command in the background to prevent timeouts
