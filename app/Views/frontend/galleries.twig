@@ -1174,7 +1174,12 @@ let pendingNsfwUrl = null;
 function hasConfirmedNsfw() {
     if (window.nsfwConsent === true) return true;
     if (localStorage.getItem('nsfw_confirmed') === 'true') return true;
-    return document.cookie.indexOf('nsfw_consent=1') !== -1;
+    return hasNsfwCookie();
+}
+
+function hasNsfwCookie() {
+    const cookies = document.cookie.split(';');
+    return cookies.some(cookie => cookie.trim().startsWith('nsfw_consent=1'));
 }
 
 function setNsfwConfirmed() {
@@ -1226,7 +1231,9 @@ function confirmNsfwAge() {
         window.location.href = pendingNsfwUrl;
         pendingNsfwUrl = null;
     } else {
-        window.location.reload();
+        if (hasNsfwCookie()) {
+            window.location.reload();
+        }
     }
 }
 

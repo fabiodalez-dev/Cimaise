@@ -82,6 +82,13 @@
                         {% set fallback_path = image.fallback_src ?? image.variants[0].path ?? image.original_path %}
                         {% set image_url = fallback_path starts with '/' ? base_path ~ fallback_path : base_path ~ '/' ~ fallback_path %}
                     {% endif %}
+                    {% set srcset_parts = [] %}
+                    {% for variant in image.variants %}
+                        {% if variant.format == 'webp' %}
+                            {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : base_path ~ '/' ~ variant.path %}
+                            {% set srcset_parts = srcset_parts|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                        {% endif %}
+                    {% endfor %}
 
                     <div inf-item class="inf-work_item{% if image.category_slug %} category-{{ image.category_slug|e('html_attr') }}{% endif %}"
                          main-title="{{ image.album_title|e('html_attr') }}"
@@ -92,6 +99,8 @@
                             <div class="work-grid_img-holder">
                                 <div class="work-grid_img-height">
                                     <img src="{{ image_url }}"
+                                         {% if srcset_parts %}srcset="{{ srcset_parts|join(', ') }}"{% endif %}
+                                         sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                                          alt="{{ image.alt_text|default(image.album_title)|e('html_attr') }}"
                                          class="img-fill"
                                          loading="lazy">
