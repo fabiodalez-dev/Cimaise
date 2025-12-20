@@ -94,6 +94,7 @@ class SettingsController extends BaseController
         
         $paginationLimit = max(1, min(100, (int)($data['pagination_limit'] ?? 12)));
         $cacheTtl = max(1, min(168, (int)($data['cache_ttl'] ?? 24)));
+        $disableRightClick = isset($data['disable_right_click']);
 
         // Lightbox settings
         $showExif = isset($data['show_exif_lightbox']);
@@ -170,6 +171,7 @@ class SettingsController extends BaseController
         $svc->set('pagination.limit', $paginationLimit);
         $svc->set('cache.ttl', $cacheTtl);
         $svc->set('admin.debug_logs', isset($data['admin_debug_logs']));
+        $svc->set('frontend.disable_right_click', $disableRightClick);
 
         $_SESSION['flash'][] = ['type'=>'success','message'=>'Settings saved successfully'];
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);

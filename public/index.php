@@ -221,6 +221,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('show_marketing', $settingsSvc->get('cookie_banner.show_marketing', false));
         // Lightbox settings
         $twig->getEnvironment()->addGlobal('lightbox_show_exif', $settingsSvc->get('lightbox.show_exif', true));
+        $twig->getEnvironment()->addGlobal('disable_right_click', (bool)$settingsSvc->get('frontend.disable_right_click', true));
     } catch (\Throwable) {
         $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
         $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/galleries');
@@ -239,6 +240,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('show_analytics', false);
         $twig->getEnvironment()->addGlobal('show_marketing', false);
         $twig->getEnvironment()->addGlobal('lightbox_show_exif', true);
+        $twig->getEnvironment()->addGlobal('disable_right_click', true);
     }
 } else {
     $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
@@ -258,6 +260,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     $twig->getEnvironment()->addGlobal('show_analytics', false);
     $twig->getEnvironment()->addGlobal('show_marketing', false);
     $twig->getEnvironment()->addGlobal('lightbox_show_exif', true);
+    $twig->getEnvironment()->addGlobal('disable_right_click', true);
 }
 
 // Register date format Twig extension
