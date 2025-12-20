@@ -77,7 +77,7 @@
 {% set durs = mag.durations|default([90,110,130]) %} {# Rallentate per mobile, moderate per desktop #}
 {% set gap = mag.gap|default(20) %}
 
-<div class="relative pswp-gallery">
+<div class="relative pswp-gallery" style="touch-action: pan-y;">
   {# Mobile: Una colonna con tutte le immagini #}
   <div class="m-mobile-wrap" style="--m-duration: {{ durs[0]|default(90) }}s">
     <div class="m-mobile">
@@ -170,6 +170,22 @@
 
 <style>
 /* Responsive Magazine Layout */
+.pswp-gallery, .m-mobile-wrap, .m-tablet-wrap, .m-desktop-wrap, .m-col, .m-mobile {
+  touch-action: pan-y pinch-zoom; /* Allow page scrolling through magazine */
+}
+
+/* Explicit heights for Lenis smooth scroll compatibility */
+.pswp-gallery {
+  height: auto;
+  min-height: 100vh;
+}
+@media (min-width: 1200px) {
+  .pswp-gallery { min-height: 140vh; }
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .pswp-gallery { min-height: 130vh; }
+}
+
 .m-mobile-wrap { display: block; }
 .m-tablet-wrap { display: none; }
 .m-desktop-wrap { display: none; }
