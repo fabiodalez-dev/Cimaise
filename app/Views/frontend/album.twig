@@ -27,7 +27,7 @@
   </div>
 </div>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
   .nsfw-hidden { display: none !important; }
   #nsfw-gate.active { display: flex !important; }
 </style>
@@ -60,6 +60,7 @@ function safeLocalStorageSet(key, value) {
   const mainContent = document.getElementById('album-main-content');
 
   if (localConfirmed && !serverConsent && albumSlug && csrfToken) {
+    if (gate) gate.style.display = 'none';
     fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
       method: 'POST',
       credentials: 'same-origin',
@@ -72,7 +73,9 @@ function safeLocalStorageSet(key, value) {
       window.location.reload();
     }).catch((err) => {
       console.warn('NSFW consent sync failed:', err);
+      if (gate) gate.style.display = '';
     });
+    return;
   }
 
   if (serverConsent && !localConfirmed) {
@@ -116,6 +119,11 @@ function confirmNsfwAndShow() {
     console.warn('NSFW confirmation failed:', err);
     if (confirmBtn) {
       confirmBtn.disabled = false;
+      const errorMsg = document.createElement('p');
+      errorMsg.className = 'text-red-500 text-sm mt-2';
+      errorMsg.textContent = '{{ trans("album.nsfw_error")|default("Verification failed. Please try again.")|e('js') }}';
+      confirmBtn.parentNode.appendChild(errorMsg);
+      setTimeout(() => errorMsg.remove(), 5000);
     }
   });
 }
@@ -517,7 +525,7 @@ document.addEventListener('click', function(event) {
 window.basePath = '{{ base_path }}';
 
 // Template settings
-const templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
+const templateSettings = JSON.parse('{{ template_settings ? template_settings|json_encode|e('js') : '{}' }}');
 const layout = templateSettings.layout || 'grid';
 const masonry = templateSettings.masonry || false;
 
@@ -744,5 +752,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
 
 {% endblock %}
