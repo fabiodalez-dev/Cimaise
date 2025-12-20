@@ -903,7 +903,7 @@ class AnalyticsService
                 LEFT JOIN albums a ON p.album_id = a.id
                 WHERE p.album_id IS NOT NULL
                 AND DATE(p.viewed_at) BETWEEN ? AND ?
-                GROUP BY p.album_id
+                GROUP BY p.album_id, a.title, a.slug
                 ORDER BY pageviews DESC
                 {$limitClause}
             ");
@@ -933,7 +933,7 @@ class AnalyticsService
                 WHERE e.event_type = 'album_password_unlock'
                 AND e.album_id IS NOT NULL
                 AND DATE(e.occurred_at) BETWEEN ? AND ?
-                GROUP BY e.album_id
+                GROUP BY e.album_id, a.title, a.slug
                 ORDER BY password_unlocks DESC
                 {$limitClause}
             ");
