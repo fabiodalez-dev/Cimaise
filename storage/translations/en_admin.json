@@ -1330,6 +1330,8 @@
     "admin.settings.items_per_page": "Items Per Page",
     "admin.settings.cache_ttl": "Cache TTL (hours)",
     "admin.settings.enable_compression": "Enable Compression",
+    "admin.settings.disable_right_click": "Disable right-click on images",
+    "admin.settings.disable_right_click_desc": "Prevents the context menu for non-admin visitors on image elements.",
     "admin.settings.lazy_loading": "Lazy Loading",
     "admin.settings.image_cache": "Image Cache (days)",
     "admin.settings.enable_cdn": "Enable CDN",
