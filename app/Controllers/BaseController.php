@@ -4,11 +4,13 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Support\CookieHelper;
+use App\Support\Logger;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 abstract class BaseController
 {
     protected const ALBUM_ACCESS_WINDOW_SECONDS = 86400;
+    protected const NSFW_CONSENT_COOKIE_DURATION_SECONDS = 2592000;
     protected string $basePath;
 
     public function __construct()
@@ -32,6 +34,16 @@ abstract class BaseController
     protected function redirect(string $path): string
     {
         return $this->basePath . $path;
+    }
+
+    /**
+     * Ensure session is started (call once per request).
+     */
+    protected function ensureSession(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
     }
 
     /**
@@ -60,6 +72,7 @@ abstract class BaseController
      */
     protected function isAdmin(): bool
     {
+        $this->ensureSession();
         return !empty($_SESSION['admin_id']);
     }
 
@@ -71,9 +84,7 @@ abstract class BaseController
         if ($albumId <= 0) {
             return false;
         }
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        $this->ensureSession();
 
         $accessTime = $_SESSION['album_access'][$albumId] ?? null;
         if (!\is_int($accessTime)) {
@@ -94,9 +105,7 @@ abstract class BaseController
         if ($albumId <= 0) {
             return;
         }
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        $this->ensureSession();
         if (!isset($_SESSION['album_access'])) {
             $_SESSION['album_access'] = [];
         }
@@ -111,9 +120,7 @@ abstract class BaseController
         if ($this->isAdmin()) {
             return true;
         }
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        $this->ensureSession();
         if (!empty($_SESSION['nsfw_confirmed_global'])) {
             return true;
         }
@@ -135,9 +142,7 @@ abstract class BaseController
         if ($albumId <= 0) {
             return false;
         }
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        $this->ensureSession();
         return isset($_SESSION['nsfw_confirmed'][$albumId]) && $_SESSION['nsfw_confirmed'][$albumId] === true;
     }
 
@@ -146,9 +151,7 @@ abstract class BaseController
      */
     protected function grantNsfwConsent(?int $albumId = null): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        $this->ensureSession();
         $_SESSION['nsfw_confirmed_global'] = true;
         if ($albumId !== null && $albumId > 0) {
             if (!isset($_SESSION['nsfw_confirmed'])) {
@@ -157,13 +160,16 @@ abstract class BaseController
             $_SESSION['nsfw_confirmed'][$albumId] = true;
         }
 
-        setcookie('nsfw_consent', '1', [
-            'expires' => time() + (30 * 24 * 60 * 60),
+        $cookieSet = setcookie('nsfw_consent', '1', [
+            'expires' => time() + self::NSFW_CONSENT_COOKIE_DURATION_SECONDS,
             'path' => '/',
             'secure' => !CookieHelper::allowInsecureCookies(),
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
+        if (!$cookieSet) {
+            Logger::warning('Failed to set NSFW consent cookie', [], 'security');
+        }
     }
 
     /**
@@ -175,16 +181,19 @@ abstract class BaseController
         bool $isNsfw,
         ?string $variant = null,
         bool $log = false
-    ): bool {
+    ): bool|string {
         if ($this->isAdmin()) {
             return true;
         }
 
         if ($isPasswordProtected && !$this->hasAlbumPasswordAccess($albumId)) {
             if ($log) {
-                error_log("[MediaAccess] DENY password album={$albumId} variant={$variant} session_access=" . json_encode($_SESSION['album_access'] ?? []));
+                $accessCount = isset($_SESSION['album_access']) && \is_array($_SESSION['album_access'])
+                    ? count($_SESSION['album_access'])
+                    : 0;
+                error_log("[MediaAccess] DENY password album={$albumId} variant={$variant} access_count={$accessCount}");
             }
-            return false;
+            return 'password';
         }
 
         $variantName = $variant !== null ? strtolower($variant) : null;
@@ -194,9 +203,12 @@ abstract class BaseController
 
         if ($isNsfw && !$this->hasNsfwAlbumConsent($albumId)) {
             if ($log) {
-                error_log("[MediaAccess] DENY nsfw album={$albumId} variant={$variant} session_nsfw=" . json_encode($_SESSION['nsfw_confirmed'] ?? []));
+                $consentCount = isset($_SESSION['nsfw_confirmed']) && \is_array($_SESSION['nsfw_confirmed'])
+                    ? count($_SESSION['nsfw_confirmed'])
+                    : 0;
+                error_log("[MediaAccess] DENY nsfw album={$albumId} variant={$variant} consent_count={$consentCount}");
             }
-            return false;
+            return 'nsfw';
         }
 
         return true;

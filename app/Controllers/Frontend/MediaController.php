@@ -207,7 +207,7 @@ class MediaController extends BaseController
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
 
-        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true)) {
+        if ($this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true) !== true) {
             return $response->withStatus(403);
         }
 
@@ -340,17 +340,8 @@ class MediaController extends BaseController
 
         // Check access for protected albums
         if (!$isAdmin) {
-            // Password-protected album check (session stores timestamp, valid for 24h)
-            if ($isPasswordProtected) {
-                if (!$this->hasAlbumPasswordAccess($albumId)) {
-                    return $response->withStatus(403);
-                }
-            }
-
-            if ($isNsfw) {
-                if (!$this->hasNsfwAlbumConsent($albumId)) {
-                    return $response->withStatus(403);
-                }
+            if ($this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, 'original') !== true) {
+                return $response->withStatus(403);
             }
 
             // Check if downloads are allowed for this album
@@ -470,7 +461,7 @@ class MediaController extends BaseController
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
 
-        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true)) {
+        if ($this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true) !== true) {
             return $response->withStatus(403);
         }
 
