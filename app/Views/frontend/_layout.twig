@@ -346,22 +346,32 @@
             z-index: 30;
         }
 
-        .pswp--zoomed-in .pswp__top-bar,
         .pswp--zoomed-in .pswp__custom-caption,
         .pswp--zoomed-in .pswp__counter,
-        .pswp--zoomed-in .pswp__button,
         .pswp--zoomed-in .pswp__bullets-indicator,
         .pswp--zoomed-in .pswp__meta-panel,
         .pswp--zoomed-in .pswp__zoom-indicator-br,
-        .pswp--zooming .pswp__top-bar,
         .pswp--zooming .pswp__custom-caption,
         .pswp--zooming .pswp__counter,
-        .pswp--zooming .pswp__button,
         .pswp--zooming .pswp__bullets-indicator,
         .pswp--zooming .pswp__meta-panel,
         .pswp--zooming .pswp__zoom-indicator-br {
             z-index: 1;
             pointer-events: none;
+        }
+
+        .pswp--zoomed-in .pswp__top-bar,
+        .pswp--zooming .pswp__top-bar,
+        .pswp--zoomed-in .pswp__button,
+        .pswp--zooming .pswp__button {
+            z-index: 40;
+            pointer-events: auto;
+        }
+
+        .pswp__ui--idle .pswp__top-bar,
+        .pswp__ui--idle .pswp__button {
+            opacity: 1 !important;
+            transform: none !important;
         }
         
         /* Position navigation arrows outside the image */
@@ -370,18 +380,27 @@
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            width: 60px;
-            height: 60px;
+            width: 46px;
+            height: 46px;
             margin: 0;
             padding: 10px;
         }
-        
+
         .pswp__button--arrow--prev {
-            left: 20px;
+            left: calc(env(safe-area-inset-left) + 8px);
         }
-        
+
         .pswp__button--arrow--next {
-            right: 20px;
+            right: calc(env(safe-area-inset-right) + 8px);
+        }
+
+        @media (max-width: 640px) {
+            .pswp__button--arrow--prev,
+            .pswp__button--arrow--next {
+                width: 38px;
+                height: 38px;
+                padding: 8px;
+            }
         }
         
         /* MASONRY FIT - Preserva le proporzioni originali delle immagini */
@@ -751,6 +770,12 @@
         #mobile-search::-webkit-search-results-decoration {
             display: none;
         }
+        @media (min-width: 768px) {
+            #mobile-search-toggle,
+            #mobile-search-panel {
+                display: none !important;
+            }
+        }
         
         /* Hidden caption content */
         .hidden-caption-content {
@@ -936,25 +961,10 @@
                     </a>
                     {% endif %}
 
-                    <!-- Header Search -->
-                    <form id="header-search-form" class="hidden md:flex items-center relative" role="search" action="{{ base_path }}/galleries" method="get">
-                        <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
-                        <div class="relative w-64 lg:w-72">
-                            <input id="header-search" name="search" type="search" autocomplete="off"
-                                   class="w-full px-3 py-2 pl-10 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
-                                   placeholder="{{ trans('filter.search') }}">
-                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
-                            <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                                <button type="button" id="header-search-clear" class="hidden w-6 h-6 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
-                                    <i class="fas fa-times text-[10px]"></i>
-                                </button>
-                                <button type="submit" class="w-7 h-7 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
-                                    <i class="fas fa-arrow-right text-xs"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div id="header-search-suggestions" class="absolute left-0 top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden z-[60] max-h-80 overflow-auto divide-y divide-gray-100"></div>
-                    </form>
+                    <!-- Desktop Search Toggle -->
+                    <button id="header-search-toggle" class="hidden md:flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
+                        <i class="fas fa-search text-sm"></i>
+                    </button>
                     
                     <!-- Mobile Search Toggle -->
                     <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="mobile-search-panel" aria-expanded="false">
@@ -972,6 +982,31 @@
             </div>
         </div>
 
+        <!-- Desktop Search Panel -->
+        <div class="hidden md:block">
+            <div id="header-search-panel" class="border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                    <form id="header-search-form" class="relative" role="search" action="{{ base_path }}/galleries" method="get">
+                        <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
+                        <div class="relative">
+                            <input id="header-search" name="search" type="search" autocomplete="off"
+                                   class="w-full appearance-none px-3 py-3 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
+                                   placeholder="{{ trans('filter.search') }}">
+                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                <button type="button" id="header-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
+                                    <i class="fas fa-times text-[11px]"></i>
+                                </button>
+                                <button type="submit" class="w-8 h-8 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
+                                    <i class="fas fa-arrow-right text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="header-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden z-[60] max-h-80 overflow-auto divide-y divide-gray-100"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Mobile Search Panel -->
         <div id="mobile-search-panel" class="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
             <div class="px-4 py-3">
@@ -979,10 +1014,9 @@
                     <label for="mobile-search" class="sr-only">{{ trans('filter.search') }}</label>
                     <div class="relative">
                         <input id="mobile-search" name="search" type="search" autocomplete="off"
-                               class="w-full px-3 py-3 pl-11 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
+                               class="w-full appearance-none px-3 py-3 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
                                placeholder="{{ trans('filter.search') }}">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
-                        <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                             <button type="button" id="mobile-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
                                 <i class="fas fa-times text-[11px]"></i>
                             </button>
@@ -1354,7 +1388,7 @@
                 };
 
                 const syncToFilters = () => {
-                    const filterInput = document.getElementById('filter-search');
+                    const filterInput = document.getElementById('layout-filter-search');
                     if (!filterInput) return false;
                     filterInput.value = input.value;
                     if (typeof window.applyFiltersDebounced === 'function') {
@@ -1388,10 +1422,10 @@
                     albums.slice(0, 6).forEach((album) => {
                         const btn = document.createElement('button');
                         btn.type = 'button';
-                        btn.className = 'group w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center gap-3';
+                        btn.className = 'group w-full text-left px-4 py-4 text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center gap-4';
                         btn.setAttribute('data-album-slug', album.slug || '');
                         const imgWrap = document.createElement('div');
-                        imgWrap.className = 'w-14 h-14 rounded-lg bg-gray-100 ring-1 ring-gray-200/60 flex items-center justify-center overflow-hidden flex-shrink-0';
+                        imgWrap.className = 'w-20 h-16 rounded-lg bg-gray-100 ring-1 ring-gray-200/60 flex items-center justify-center overflow-hidden flex-shrink-0';
                         const coverUrl = buildCoverUrl(album);
                         if (coverUrl) {
                             const img = document.createElement('img');
@@ -1411,7 +1445,7 @@
                         const details = document.createElement('div');
                         details.className = 'min-w-0 flex-1';
                         const title = document.createElement('div');
-                        title.className = 'font-semibold text-gray-900 truncate';
+                        title.className = 'font-semibold text-gray-900 text-sm sm:text-base truncate';
                         title.textContent = album.title || '';
                         const meta = document.createElement('div');
                         meta.className = 'text-xs text-gray-500 mt-1 truncate';
@@ -1506,7 +1540,7 @@
                     });
                 }
 
-                const filterInput = document.getElementById('filter-search');
+                const filterInput = document.getElementById('layout-filter-search');
                 if (filterInput && filterInput.value) {
                     input.value = filterInput.value;
                 }
@@ -1526,6 +1560,39 @@
                 clearId: 'mobile-search-clear',
                 suggestionId: 'mobile-search-suggestions'
             });
+
+            const headerToggle = document.getElementById('header-search-toggle');
+            const headerPanel = document.getElementById('header-search-panel');
+            const headerInput = document.getElementById('header-search');
+            if (headerToggle && headerPanel) {
+                const closeHeaderPanel = () => {
+                    headerPanel.classList.add('hidden');
+                    headerToggle.setAttribute('aria-expanded', 'false');
+                };
+                headerToggle.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    const isHidden = headerPanel.classList.contains('hidden');
+                    if (isHidden) {
+                        headerPanel.classList.remove('hidden');
+                        headerToggle.setAttribute('aria-expanded', 'true');
+                        setTimeout(() => {
+                            headerInput?.focus();
+                        }, 50);
+                    } else {
+                        closeHeaderPanel();
+                    }
+                });
+                document.addEventListener('click', (ev) => {
+                    if (!headerPanel.contains(ev.target) && !headerToggle.contains(ev.target)) {
+                        closeHeaderPanel();
+                    }
+                });
+                document.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Escape') {
+                        closeHeaderPanel();
+                    }
+                });
+            }
 
             const mobileToggle = document.getElementById('mobile-search-toggle');
             const mobilePanel = document.getElementById('mobile-search-panel');
@@ -1850,7 +1917,7 @@
                         closeOnVerticalDrag: false,
                         
                         // Padding to leave space for top icons and bottom captions
-                        padding: { top: 60, bottom: 100, left: 40, right: 40 },
+                        padding: { top: 60, bottom: 100, left: 72, right: 72 },
                         
                         // Modern smooth animations
                         showHideAnimationType: 'fade',
@@ -1996,6 +2063,30 @@
                     lb.on('open', () => {
                         const pswp = lb.pswp;
                         if (pswp && !pswp._customZoomBound) {
+                            const updateZoomClasses = () => {
+                                const root = pswp.element;
+                                const slide = pswp.currSlide;
+                                if (!root || !slide || !slide.zoomLevels) {
+                                    return;
+                                }
+                                const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+                                const current = slide.currZoomLevel ?? fit;
+                                if (current > fit * 1.05) {
+                                    root.classList.add('pswp--zoomed-in');
+                                } else {
+                                    root.classList.remove('pswp--zoomed-in');
+                                }
+                                root.classList.add('pswp--zooming');
+                                if (root._zoomingTimer) {
+                                    clearTimeout(root._zoomingTimer);
+                                }
+                                root._zoomingTimer = setTimeout(() => {
+                                    root.classList.remove('pswp--zooming');
+                                }, 250);
+                            };
+                            pswp.on('zoomPanUpdate', updateZoomClasses);
+                            pswp.on('change', updateZoomClasses);
+                            updateZoomClasses();
                             // Zoom button handler - use toggleZoom with viewport center
                             const zoomBtn = pswp.element?.querySelector('.pswp__button--zoom');
                             if (zoomBtn) {
@@ -2005,14 +2096,61 @@
                                     toggleZoomCentered(pswp);
                                 }, { capture: true });
                             }
-                            // Click on image navigates left/right
-                            pswp.element?.addEventListener('click', (ev) => {
-                                const target = ev.target;
-                                if (!target || !target.classList.contains('pswp__img')) return;
-                                const rect = target.getBoundingClientRect();
-                                const clickX = ev.clientX - rect.left;
-                                ev.preventDefault();
-                                ev.stopPropagation();
+                            // Tap on image: single tap navigates, double tap zooms (touch)
+                            let lastTapAt = 0;
+                            let lastTapX = 0;
+                            let lastTapY = 0;
+                            let singleTapTimer = null;
+                            const tapDelayMs = 260;
+                            const tapDistancePx = 24;
+                            pswp.element?.addEventListener('pointerup', (ev) => {
+                            const target = ev.target;
+                            const imgEl = target && target.closest ? target.closest('.pswp__img') : null;
+                            const activeEl = imgEl || (pswp.currSlide && pswp.currSlide.content ? pswp.currSlide.content.element : null);
+                            if (!activeEl) return;
+                            const rect = activeEl.getBoundingClientRect();
+                            const clickX = ev.clientX - rect.left;
+                            const clickY = ev.clientY - rect.top;
+                            const isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
+                            const slide = pswp.currSlide;
+                            const fit = slide && slide.zoomLevels ? (slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1) : 1;
+                            const current = slide ? (slide.currZoomLevel ?? fit) : fit;
+                            const isZoomed = current > fit * 1.05;
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            if (isTouch) {
+                                const now = Date.now();
+                                const dist = Math.hypot(clickX - lastTapX, clickY - lastTapY);
+                                    if (now - lastTapAt <= tapDelayMs && dist <= tapDistancePx) {
+                                        if (singleTapTimer) {
+                                            clearTimeout(singleTapTimer);
+                                            singleTapTimer = null;
+                                        }
+                                        lastTapAt = 0;
+                                        toggleZoomCentered(pswp);
+                                        return;
+                                    }
+                                    lastTapAt = now;
+                                    lastTapX = clickX;
+                                    lastTapY = clickY;
+                                    if (singleTapTimer) {
+                                        clearTimeout(singleTapTimer);
+                                    }
+                                    singleTapTimer = setTimeout(() => {
+                                        if (isZoomed) {
+                                            return;
+                                        }
+                                        if (clickX < rect.width / 2) {
+                                            pswp.prev();
+                                        } else {
+                                            pswp.next();
+                                        }
+                                    }, tapDelayMs);
+                                    return;
+                                }
+                                if (isZoomed) {
+                                    return;
+                                }
                                 if (clickX < rect.width / 2) {
                                     pswp.prev();
                                 } else {
@@ -2227,7 +2365,7 @@
                     closeOnVerticalDrag: false,
                     
                     // Minimal padding to show images at full size
-                    padding: { top: 20, bottom: 20, left: 20, right: 20 },
+                    padding: { top: 20, bottom: 20, left: 56, right: 56 },
                     
                     // Modern animations
                     showHideAnimationType: 'fade',
@@ -2274,6 +2412,30 @@
                     const pswp = lb.pswp;
                     // Custom zoom: toggle between fit and zoom using built-in toggleZoom
                     if (pswp && !pswp._customZoomBound) {
+                      const updateZoomClasses = () => {
+                        const root = pswp.element;
+                        const slide = pswp.currSlide;
+                        if (!root || !slide || !slide.zoomLevels) {
+                          return;
+                        }
+                        const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+                        const current = slide.currZoomLevel ?? fit;
+                        if (current > fit * 1.05) {
+                          root.classList.add('pswp--zoomed-in');
+                        } else {
+                          root.classList.remove('pswp--zoomed-in');
+                        }
+                        root.classList.add('pswp--zooming');
+                        if (root._zoomingTimer) {
+                          clearTimeout(root._zoomingTimer);
+                        }
+                        root._zoomingTimer = setTimeout(() => {
+                          root.classList.remove('pswp--zooming');
+                        }, 250);
+                      };
+                      pswp.on('zoomPanUpdate', updateZoomClasses);
+                      pswp.on('change', updateZoomClasses);
+                      updateZoomClasses();
                       const zoomBtn = pswp.element?.querySelector('.pswp__button--zoom');
                       if (zoomBtn) {
                         zoomBtn.addEventListener('click', (ev) => {
@@ -2282,14 +2444,61 @@
                           toggleZoomCentered(pswp);
                         }, { capture: true });
                       }
-                      // Click on image navigates left/right
-                      pswp.element?.addEventListener('click', (ev) => {
+                      // Tap on image: single tap navigates, double tap zooms (touch)
+                      let lastTapAt = 0;
+                      let lastTapX = 0;
+                      let lastTapY = 0;
+                      let singleTapTimer = null;
+                      const tapDelayMs = 260;
+                      const tapDistancePx = 24;
+                      pswp.element?.addEventListener('pointerup', (ev) => {
                         const target = ev.target;
-                        if (!target || !target.classList.contains('pswp__img')) return;
-                        const rect = target.getBoundingClientRect();
+                        const imgEl = target && target.closest ? target.closest('.pswp__img') : null;
+                        const activeEl = imgEl || (pswp.currSlide && pswp.currSlide.content ? pswp.currSlide.content.element : null);
+                        if (!activeEl) return;
+                        const rect = activeEl.getBoundingClientRect();
                         const clickX = ev.clientX - rect.left;
+                        const clickY = ev.clientY - rect.top;
+                        const isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
+                        const slide = pswp.currSlide;
+                        const fit = slide && slide.zoomLevels ? (slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1) : 1;
+                        const current = slide ? (slide.currZoomLevel ?? fit) : fit;
+                        const isZoomed = current > fit * 1.05;
                         ev.preventDefault();
                         ev.stopPropagation();
+                        if (isTouch) {
+                          const now = Date.now();
+                          const dist = Math.hypot(clickX - lastTapX, clickY - lastTapY);
+                          if (now - lastTapAt <= tapDelayMs && dist <= tapDistancePx) {
+                            if (singleTapTimer) {
+                              clearTimeout(singleTapTimer);
+                              singleTapTimer = null;
+                            }
+                            lastTapAt = 0;
+                            toggleZoomCentered(pswp);
+                            return;
+                          }
+                          lastTapAt = now;
+                          lastTapX = clickX;
+                          lastTapY = clickY;
+                          if (singleTapTimer) {
+                            clearTimeout(singleTapTimer);
+                          }
+                          singleTapTimer = setTimeout(() => {
+                            if (isZoomed) {
+                              return;
+                            }
+                            if (clickX < rect.width / 2) {
+                              pswp.prev();
+                            } else {
+                              pswp.next();
+                            }
+                          }, tapDelayMs);
+                          return;
+                        }
+                        if (isZoomed) {
+                          return;
+                        }
                         if (clickX < rect.width / 2) {
                           pswp.prev();
                         } else {

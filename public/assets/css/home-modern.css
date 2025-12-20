@@ -673,7 +673,8 @@ html.lenis {
     /* Header mobile - hide modern elements (classic header is used instead) */
     .global-head,
     .menu-btn,
-    .work-col.is-static {
+    .work-col.is-static,
+    .menu-component {
         display: none !important;
     }
 
@@ -682,14 +683,30 @@ html.lenis {
         display: none;
     }
 
+    /* Disable Lenis smooth scroll on mobile - use native scroll */
+    html.lenis,
+    html.lenis.lenis-smooth {
+        scroll-behavior: auto !important;
+    }
+
+    body {
+        overflow-y: auto !important;
+    }
+
     .work-layout {
         flex-direction: column;
         padding: 0 0.625rem;
     }
 
+    /* Remove min-height on mobile to allow proper scrolling */
+    .page-content {
+        min-height: auto;
+    }
+
     .work-col.is-work {
         width: 100%;
         margin-left: 0;
+        padding-bottom: 0;
     }
 
     .inf-work_wrap {
@@ -700,6 +717,7 @@ html.lenis {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 10px;
+        min-height: auto; /* Remove min-height on mobile */
     }
 
     .inf-work_item {

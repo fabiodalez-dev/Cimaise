@@ -340,8 +340,12 @@ class GalleriesController extends BaseController
         }
         
         if (!empty($filters['search'])) {
-            $conditions[] = "(a.title LIKE ? OR a.excerpt LIKE ? OR a.body LIKE ?)";
+            $conditions[] = "(a.title LIKE ? OR a.excerpt LIKE ? OR a.body LIKE ? OR a.slug LIKE ? OR c.name LIKE ? OR cat.name LIKE ? OR t.name LIKE ?)";
             $searchTerm = '%' . $filters['search'] . '%';
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
             $params[] = $searchTerm;
             $params[] = $searchTerm;
             $params[] = $searchTerm;

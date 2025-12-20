@@ -17,27 +17,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const isMobile = () => window.innerWidth < MOBILE_BREAKPOINT;
 
     // ============================================
-    // LENIS SMOOTH SCROLL
+    // LENIS SMOOTH SCROLL (desktop only)
     // ============================================
 
-    const lenis = new Lenis({
-        duration: 2.0,
-        easing: (t) => 1 - Math.pow(1 - t, 4),
-        direction: 'vertical',
-        gestureDirection: 'vertical',
-        smooth: true,
-        smoothTouch: false,
-        touchMultiplier: 1.5,
-        wheelMultiplier: 0.8
-    });
-
+    let lenis = null;
     let rafId = null;
-    function raf(time) {
-        lenis.raf(time);
+
+    // Only initialize Lenis on desktop for smooth scrolling
+    if (!isMobile()) {
+        lenis = new Lenis({
+            duration: 2.0,
+            easing: (t) => 1 - Math.pow(1 - t, 4),
+            direction: 'vertical',
+            gestureDirection: 'vertical',
+            smooth: true,
+            smoothTouch: false,
+            touchMultiplier: 1.5,
+            wheelMultiplier: 0.8
+        });
+
+        function raf(time) {
+            lenis.raf(time);
+            rafId = requestAnimationFrame(raf);
+        }
+
         rafId = requestAnimationFrame(raf);
     }
-
-    rafId = requestAnimationFrame(raf);
 
     // ============================================
     // INFINITE SCROLL GRID
@@ -346,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (menuOverlay) {
             menuOverlay.classList.add('is-open');
             document.body.style.overflow = 'hidden';
-            lenis.stop();
+            if (lenis) lenis.stop();
         }
     }
 
@@ -354,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (menuOverlay) {
             menuOverlay.classList.remove('is-open');
             document.body.style.overflow = '';
-            lenis.start();
+            if (lenis) lenis.start();
         }
     }
 
