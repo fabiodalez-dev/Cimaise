@@ -387,7 +387,7 @@ class GalleriesController extends BaseController
             LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
             GROUP BY c.id
             HAVING albums_count > 0
-            ORDER BY c.sort_order ASC, c.name ASC
+            ORDER BY COALESCE(c.parent_id, 0) ASC, c.sort_order ASC, c.name ASC
         ');
         $stmt->execute();
         $categories = $stmt->fetchAll();

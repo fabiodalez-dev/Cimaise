@@ -1173,9 +1173,25 @@ let pendingNsfwUrl = null;
 const basePath = window.basePath || '{{ base_path|e('js') }}';
 const csrfToken = '{{ csrf|e('js') }}';
 
+function safeLocalStorageGet(key) {
+    try {
+        return window.localStorage ? window.localStorage.getItem(key) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function safeLocalStorageSet(key, value) {
+    try {
+        if (window.localStorage) {
+            window.localStorage.setItem(key, value);
+        }
+    } catch (e) {}
+}
+
 function hasConfirmedNsfw() {
     if (window.nsfwConsent === true) return true;
-    if (localStorage.getItem('nsfw_confirmed') === 'true') return true;
+    if (safeLocalStorageGet('nsfw_confirmed') === 'true') return true;
     return false;
 }
 
@@ -1224,7 +1240,7 @@ function confirmNsfwAge() {
         if (!resp.ok) {
             throw new Error('NSFW confirm failed');
         }
-        localStorage.setItem('nsfw_confirmed', 'true');
+        safeLocalStorageSet('nsfw_confirmed', 'true');
         window.nsfwConsent = true;
         hideNsfwModal();
 
@@ -1235,7 +1251,9 @@ function confirmNsfwAge() {
         } else {
             applyFilters();
         }
-    }).catch(() => {});
+    }).catch((err) => {
+        console.warn('NSFW confirmation failed:', err);
+    });
 }
 
 function cancelNsfw() {
@@ -1287,7 +1305,7 @@ document.getElementById('nsfw-modal')?.addEventListener('click', function(e) {
 // On page load, if user has confirmed, swap blurred images with real ones
 document.addEventListener('DOMContentLoaded', function() {
     if (hasConfirmedNsfw()) {
-        localStorage.setItem('nsfw_confirmed', 'true');
+        safeLocalStorageSet('nsfw_confirmed', 'true');
     }
 });
 </script>

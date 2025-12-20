@@ -52,6 +52,7 @@ abstract class BaseController
      */
     protected function validateCsrf(Request $request): bool
     {
+        $this->ensureSession();
         $data = (array)$request->getParsedBody();
         $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
         return \is_string($token) && isset($_SESSION['csrf']) && \hash_equals($_SESSION['csrf'], $token);

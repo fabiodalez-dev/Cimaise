@@ -28,13 +28,13 @@ class AlbumsController extends BaseController
         $orderBy = $orderParam === 'date'
             ? ($this->db->orderByNullsLast('a.published_at') . ' DESC, a.sort_order ASC')
             : ('a.sort_order ASC, ' . $this->db->orderByNullsLast('a.published_at') . ' DESC');
-        $stmt = $pdo->prepare('SELECT a.id, a.title, a.slug, a.is_published, a.published_at, c.name AS category,
+        $stmt = $pdo->prepare("SELECT a.id, a.title, a.slug, a.is_published, a.published_at, c.name AS category,
                                COALESCE(iv.path, i.original_path) AS cover_path
                                FROM albums a JOIN categories c ON c.id = a.category_id
                                LEFT JOIN images i ON i.id = a.cover_image_id
-                               LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = \'sm\' AND iv.format = \'jpg\'
-                               ORDER BY ' . $orderBy . '
-                               LIMIT :limit OFFSET :offset');
+                               LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
+                               ORDER BY {$orderBy}
+                               LIMIT :limit OFFSET :offset");
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
@@ -62,7 +62,7 @@ class AlbumsController extends BaseController
     public function create(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
-        $cats = $pdo->query('SELECT id, name FROM categories ORDER BY sort_order, name')->fetchAll();
+        $cats = $pdo->query('SELECT id, name FROM categories ORDER BY COALESCE(parent_id, 0), sort_order, name')->fetchAll();
         $tags = $pdo->query('SELECT id, name FROM tags ORDER BY name')->fetchAll();
         
         // Load templates if table exists
@@ -291,7 +291,7 @@ class AlbumsController extends BaseController
         // Add password flag for template (checks password_hash existence)
         $item['password'] = !empty($item['password_hash']);
 
-        $cats = $pdo->query('SELECT id, name FROM categories ORDER BY sort_order, name')->fetchAll();
+        $cats = $pdo->query('SELECT id, name FROM categories ORDER BY COALESCE(parent_id, 0), sort_order, name')->fetchAll();
         $tags = $pdo->query('SELECT id, name FROM tags ORDER BY name')->fetchAll();
         
         // Load templates if table exists

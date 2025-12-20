@@ -13,7 +13,7 @@ class NavigationService
 
     public function getNavigationCategories(): array
     {
-        $stmt = $this->db->pdo()->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
+        $stmt = $this->db->pdo()->prepare('SELECT id, name, slug FROM categories ORDER BY COALESCE(parent_id, 0) ASC, sort_order ASC, name ASC');
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
     }
