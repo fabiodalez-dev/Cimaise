@@ -26,12 +26,12 @@ class AnalyticsService
     private function nowMinusHoursExpr(int $hours): string
     {
         return $this->isSqlite()
-            ? 'datetime("now", "-' . (int)$hours . ' hours")'
+            ? "datetime('now', '-" . (int)$hours . " hours')"
             : 'DATE_SUB(NOW(), INTERVAL ' . (int)$hours . ' HOUR)';
     }
     private function todayExpr(): string
     {
-        return $this->isSqlite() ? 'DATE("now")' : 'CURDATE()';
+        return $this->isSqlite() ? "DATE('now')" : 'CURDATE()';
     }
 
     /**
@@ -469,14 +469,14 @@ class AnalyticsService
             $deviceData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Top browsers
-            $stmt = $this->db->prepare('
+            $stmt = $this->db->prepare("
                 SELECT browser, COUNT(*) as count
                 FROM analytics_sessions 
-                WHERE DATE(started_at) BETWEEN ? AND ? AND browser != "Unknown"
+                WHERE DATE(started_at) BETWEEN ? AND ? AND browser != 'Unknown'
                 GROUP BY browser 
                 ORDER BY count DESC 
                 LIMIT 6
-            ');
+            ");
             $stmt->execute([$startDate, $endDate]);
             $browserData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -641,7 +641,7 @@ class AnalyticsService
         try {
             $retentionDays = $this->getSetting('data_retention_days', 365);
             $expr = $this->isSqlite()
-                ? 'datetime("now", "-' . (int)$retentionDays . ' days")'
+                ? "datetime('now', '-" . (int)$retentionDays . " days')"
                 : 'DATE_SUB(NOW(), INTERVAL ' . (int)$retentionDays . ' DAY)';
             $stmt = $this->db->prepare('DELETE FROM analytics_sessions WHERE started_at < ' . $expr);
             $stmt->execute();
