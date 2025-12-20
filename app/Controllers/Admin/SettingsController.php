@@ -198,7 +198,7 @@ class SettingsController extends BaseController
             }
 
             // Run the command in the background to prevent timeouts
-            $cmd = "nohup php $consolePath images:generate --missing > /tmp/image_generation.log 2>&1 &";
+            $cmd = 'nohup php ' . escapeshellarg($consolePath) . ' images:generate --missing > /tmp/image_generation.log 2>&1 &';
             exec($cmd);
 
             if ($this->isAjaxRequest($request)) {

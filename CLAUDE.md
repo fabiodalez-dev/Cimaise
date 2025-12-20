@@ -153,11 +153,12 @@ photoCMS/
 - `app/Views/frontend/_layout.twig` - Frontend layout with SEO meta tags, Open Graph, Twitter Cards, JSON-LD schemas (Person/Organization, BreadcrumbList, LocalBusiness), CSP nonce support
 - `app/Views/frontend/_layout_modern.twig` - Modern template layout with Lenis smooth scroll, minimal header, mega menu overlay, JSON-LD schemas (BreadcrumbList, LocalBusiness)
 - `app/Views/frontend/home.twig` - Classic home template with masonry layout and infinite scroll
-- `app/Views/frontend/home_modern.twig` - Modern home template with fixed sidebar (filters, info) and scrollable grid (two-column infinite scroll)
+- `app/Views/frontend/home_modern.twig` - Modern home template with fixed sidebar (filters, info), scrollable grid (two-column infinite scroll), and mobile classic header integration (imports `_seo_macros.twig`)
 - `app/Views/admin/pages/home.twig` - Home page settings with visual template selector (classic/modern), hero sections, gallery text, scroll direction
 - `app/Views/frontend/_album_card.twig` - Album card template with NSFW blur variant logic
-- `app/Views/frontend/_breadcrumbs.twig` - Breadcrumbs with automatic JSON-LD schema generation
+- `app/Views/frontend/_breadcrumbs.twig` - Breadcrumbs with automatic JSON-LD schema generation, responsive spacing (pb-5 md:pb-0), compact gap layout (gap-x-1 gap-y-1)
 - `app/Views/frontend/_social_sharing.twig` - Social sharing buttons template
+- `app/Views/frontend/_seo_macros.twig` - Reusable Twig macros for SEO title generation (seo_title macro combines image alt/caption, album title, and site title)
 - `app/Views/frontend/galleries.twig` - Galleries page with filter UI and album grid
 - `app/Views/installer/database.twig` - Database configuration step with SQLite/MySQL connection options and testing
 - `app/Views/installer/*.twig` - 5-step installer wizard templates (index, database, admin, settings, confirm) - post_setup step removed
@@ -196,9 +197,10 @@ photoCMS/
 - **PWA settings**: `pwa.theme_color` and `pwa.background_color` for configurable PWA colors (defaults: `#ffffff`)
 
 ### Frontend
-- **Twig templates**: `{% extends %}` for layouts, `{% include %}` for partials
+- **Twig templates**: `{% extends %}` for layouts, `{% include %}` for partials, `{% import %}` for macros
   - Template inheritance: `_layout.twig` (classic frontend), `_layout_modern.twig` (modern template with Lenis)
   - Home templates: `home.twig` (classic masonry), `home_modern.twig` (grid with sidebar)
+  - Macro imports: `{% import 'frontend/_seo_macros.twig' as Seo %}` for reusable SEO title generation
 - **Translation function**: `{{ trans('key.name') }}` for i18n (used in both frontend and admin templates)
 - **Admin panel i18n**: Fully internationalized with `trans('admin.*')` keys and `en_admin.json`/`it_admin.json` files (complete Italian translation added in commit 41acb3b)
 - **Date formatting**: Use `{{ date|date_format }}`, `{{ datetime|datetime_format }}`, `{{ text|replace_year }}` filters
@@ -248,13 +250,17 @@ $app->get('/path', function(...) { ... })
   - Used in: PagesController (about photo), CategoriesController (category images)
   - Returns boolean; rejected uploads logged and fail gracefully with user-facing error
 - Uses Imagick when available, falls back to GD
-- **Responsive image srcset**: Modern template dynamically generates srcset attributes
-  - Pattern: `{% for variant in image.variants %}...{% endfor %}` builds srcset array
-  - Filters for WebP format variants only: `{% if variant.format == 'webp' %}`
-  - Width descriptors: `srcset="{{ srcset_parts|join(', ') }}"` with `{url} {width}w` format
+- **Responsive image srcset**: Modern template dynamically generates srcset attributes with full multi-format support
+  - Pattern: `{% for variant in image.variants %}...{% endfor %}` builds separate srcset arrays per format
+  - Multi-format srcsets: Generates `srcset_avif`, `srcset_webp`, `srcset_jpg` arrays for progressive enhancement
+  - Format detection: `{% if variant.format == 'avif' %}` / `'webp'` / `'jpg' or 'jpeg'` for format-specific srcsets
+  - Picture element: `<picture>` with `<source>` tags for each format (AVIF → WebP → JPEG fallback)
+  - Width descriptors: `srcset="{{ srcset_avif|join(', ') }}"` with `{url} {width}w` format
   - Sizes attribute: `sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"`
-  - Fallback: Single `src` uses md WebP variant or first available variant
-  - Applied in: `home_modern.twig` image grid (lines 85-106)
+  - Fallback: Single `src` uses `image.fallback_src` or first available variant or original path
+  - Storage path filtering: Excludes protected paths (`/storage/`) from srcsets for security
+  - SEO optimization: Uses `Seo.seo_title()` macro for semantic title generation combining image alt, album title, and site title
+  - Applied in: `home_modern.twig` image grid (lines 361-407)
 
 ### Rate Limiting
 - **RateLimitMiddleware**: Session-based tracking for authenticated and post-session endpoints
@@ -406,14 +412,15 @@ $app->get('/path', function(...) { ... })
 - **Layout structure**: Fixed left sidebar (50% width) + scrollable right grid (50% width)
   - Left column: Fixed position with vertical centering, contains filters and info
   - Right column: Scrollable work grid with infinite scroll effect
-  - Template files: `app/Views/frontend/home_modern.twig` extends `_layout_modern.twig`
+  - Template files: `app/Views/frontend/home_modern.twig` extends `_layout_modern.twig`, imports `_seo_macros.twig`
   - Assets: `public/assets/css/home-modern.css`, `public/assets/js/home-modern.js`
   - Source: `resources/js/home-modern.js` (built via Vite)
 - **Layout components**:
-  - Global header: Fixed top-left logo with mix-blend-mode difference
-  - Menu button: Fixed top-right with uppercase text, opens mega menu overlay
-  - Left sidebar: Category filters (data-filter attributes), photo counter, hover info display
-  - Right grid: Two-column image layout with infinite scroll
+  - Global header: Fixed top-left logo with mix-blend-mode difference (desktop only)
+  - Menu button: Fixed top-right with uppercase text, opens mega menu overlay (desktop only)
+  - Mobile header: Full classic header (navigation, search, categories mega menu) wrapped in `.modern-mobile-only` div, shown below 768px with `display: block` (hidden on desktop with `!important`)
+  - Left sidebar: Category filters (data-filter attributes), photo counter, hover info display (desktop only)
+  - Right grid: Two-column image layout with infinite scroll (desktop), standard grid (mobile)
   - Mega menu: Full-screen overlay with close button and navigation links
   - Page transition: Overlay for smooth page changes
 - **Lenis smooth scroll**: Integration via ES module import from npm (`lenis@1.1.18`)
@@ -452,7 +459,18 @@ $app->get('/path', function(...) { ... })
   - Navigation links: Home, Galleries, About with `.is-current` class for active page
   - Current page link behavior: Clicking `.mega-menu_link.is-current` closes menu instead of navigating
 - **CSS variables**: `--modern-black`, `--modern-white`, `--modern-grey`, `--modern-dark-grey`
-- **Responsive font sizing**: Root font size set to `1.1111111111vw` (capped at `21.333px` on 1920px+ screens)
+- **CSS scoping for mobile header integration**: Reset rules exclude `.modern-mobile-only` wrapper and descendants
+  - Selector: `*:not(.modern-mobile-only):not(.modern-mobile-only *)` prevents reset conflicts with classic header
+  - Preserves Tailwind styles and classic header behavior on mobile
+- **Responsive font sizing**: Root font size set to `1.1111111111vw` (capped at `21.333px !important` on 1920px+ screens)
+  - VW-based sizing: Only applied on desktop (768px+) via `@media (min-width: 768px)` wrapper
+  - Mobile: Standard browser font-size preserved, no VW scaling applied
+- **Mobile-specific adjustments**: Below 768px breakpoint
+  - Desktop components hidden: `.global-head`, `.menu-btn`, `.menu-component`, `.work-col.is-static` with `display: none !important`
+  - Classic header shown: `.modern-mobile-only` wrapper with sticky positioning, contains full classic header (navigation, search, categories mega menu)
+  - Layout adjustments: Full-width work column, no left margin, reduced padding (10px)
+  - Inline styles: CSP nonce-protected `<style>` tag in template for mobile-specific CSS and webkit search input overrides
+  - Webkit search styling: Removes default search decorations (cancel button, search icons) for consistent cross-browser appearance
 - **Empty state**: Custom empty state with icon, title, text when no images available
   - Uses `home_settings.empty_title` and `home_settings.empty_text` with translation fallbacks
 - **Translation keys**:
@@ -533,6 +551,8 @@ $app->get('/path', function(...) { ... })
 - **JSON-LD schema**: Automatically generates BreadcrumbList structured data for SEO
 - **Subdirectory-safe**: Uses `base_path` for correct URL generation in subdirectory installations
 - **Translation support**: All breadcrumb labels use `trans()` function for i18n
+- **Responsive spacing**: Adaptive bottom padding (`pb-5 md:pb-0`) adjusts spacing based on viewport width
+- **Compact layout**: Minimal horizontal (gap-x-1) and vertical (gap-y-1) gaps between breadcrumb items with leading-normal line-height for tight wrapping
 
 ### Date Formatting & Dynamic Placeholders
 - **Twig filters**: `date_format` (date only), `datetime_format` (date + time), `replace_year` (replaces {year} with current year)
@@ -696,12 +716,20 @@ $app->get('/path', function(...) { ... })
 This section is for manual notes and project-specific information.
 
 ### Recent Completed Work
-- Modern home template with grid layout and Lenis smooth scroll (commits fd30fc8-1348102)
-- Server-side NSFW and protected album enforcement with blur variants
+- Modern home template mobile integration and refinements (commits 9b055df, 93c8152, cccab73, a817551, fc701fe)
+  - Mobile footer visibility and webkit search input styling
+  - CSS reset scoped to desktop only to prevent Tailwind conflicts
+  - Classic header integration for mobile via `.modern-mobile-only` wrapper
+  - Hardened variant registration with alt fallback logic and SEO macro improvements
+  - Breadcrumb responsive spacing and compact layout for mobile
+- Enhanced header search UX with filter sync and mobile responsiveness (commit 1aa2c46)
+- Lightbox click navigation improvements (commit 9172c13)
+- Server-side NSFW and protected album enforcement with blur variants (commit 1348102)
 - Comprehensive security hardening (CSP nonces, reCAPTCHA, image validation)
 - Full admin panel internationalization with Italian translation
 - Translation management system with import/export
 - Advanced gallery filtering and responsive srcset optimization
+- Controller cleanup with improved data attribute patterns (HTML5 compliance, commits afb565c, 1ae17f5)
 
 ### Pending Tasks
 None currently.

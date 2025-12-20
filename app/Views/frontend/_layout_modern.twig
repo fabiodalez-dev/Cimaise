@@ -148,6 +148,9 @@
     <!-- Font Awesome (icons) -->
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
 
+    <!-- Classic frontend styles (mobile only) -->
+    <link rel="stylesheet" href="{{ base_path }}/assets/app.css" media="(max-width: 767px)">
+
     <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -163,6 +166,18 @@
     {% endif %}
 
     {% block scripts %}{% endblock %}
+
+    {# Block right-click on images for non-admin users #}
+    {% if disable_right_click|default(true) and not is_admin %}
+    <script nonce="{{ csp_nonce() }}">
+    document.addEventListener('contextmenu', function(e) {
+      const target = e.target;
+      if (target && target.tagName === 'IMG') {
+        e.preventDefault();
+      }
+    }, { passive: false });
+    </script>
+    {% endif %}
 
     {# Cookie Banner with conditional script loader #}
     {% include 'partials/cookie-banner.twig' %}

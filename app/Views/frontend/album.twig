@@ -202,6 +202,13 @@ document.addEventListener('click', function(event) {
 }
 </script>
 {% endif %}
+<style nonce="{{ csp_nonce() }}">
+/* Pre-hide animated elements to prevent flash before GSAP runs */
+[data-gsap]:not([data-animated]) { opacity: 0; }
+/* Fallback: show elements if reduced motion or no JS */
+@media (prefers-reduced-motion: reduce) { [data-gsap] { opacity: 1 !important; } }
+</style>
+<noscript><style>[data-gsap] { opacity: 1 !important; }</style></noscript>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}
 </div>
@@ -662,7 +669,7 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
 
 // Initialize PhotoSwipe lightbox (handled by main layout)
 
-// GSAP Animations for album header/meta elements
+// GSAP Animations for album header/meta elements - runs ONCE on load
 document.addEventListener('DOMContentLoaded', function() {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion || typeof gsap === 'undefined') return;
@@ -671,38 +678,35 @@ document.addEventListener('DOMContentLoaded', function() {
         gsap.registerPlugin(ScrollTrigger);
     }
 
-    // Hero/Header entrance animations
-    const headerElements = [
-        '[data-gsap="breadcrumb"]',
-        '[data-gsap="category"]',
-        '[data-gsap="hero-title"]',
-        '[data-gsap="title"]'
-    ];
+    // All animatable header elements - animate once with stagger
+    const allHeaderElements = document.querySelectorAll('[data-gsap="breadcrumb"], [data-gsap="category"], [data-gsap="hero-title"], [data-gsap="title"], [data-gsap="hero-excerpt"], [data-gsap="excerpt"], [data-gsap="hero-meta"], [data-gsap="meta"], [data-gsap="hero-tags"], [data-gsap="tags"], [data-gsap="body"]');
 
-    headerElements.forEach((selector, index) => {
-        const el = document.querySelector(selector);
-        if (el) {
-            gsap.from(el, { opacity: 0, y: 20, duration: 0.6, delay: index * 0.1, ease: 'power2.out' });
-        }
+    // Filter to only existing elements
+    const elements = Array.from(allHeaderElements).filter(el => !el.hasAttribute('data-animated'));
+    if (elements.length === 0) return;
+
+    // Set initial state FIRST (ensures elements stay hidden during transition)
+    gsap.set(elements, { opacity: 0, y: 15 });
+    // Mark as animated AFTER gsap.set (CSS hides until this point)
+    elements.forEach(el => el.setAttribute('data-animated', '1'));
+    // Animate TO visible
+    gsap.to(elements, {
+        opacity: 1,
+        y: 0,
+        duration: 0.5,
+        stagger: 0.08,
+        ease: 'power2.out'
     });
 
-    // Excerpt and metadata
-    const metaElements = [
-        '[data-gsap="hero-excerpt"]',
-        '[data-gsap="excerpt"]',
-        '[data-gsap="hero-meta"]',
-        '[data-gsap="meta"]',
-        '[data-gsap="hero-tags"]',
-        '[data-gsap="tags"]',
-        '[data-gsap="body"]'
-    ];
-
-    metaElements.forEach((selector, index) => {
-        const el = document.querySelector(selector);
-        if (el) {
-            gsap.from(el, { opacity: 0, y: 15, duration: 0.5, delay: 0.4 + (index * 0.08), ease: 'power2.out' });
-        }
-    });
+    // Fallback: show elements if animation doesn't complete in 3 seconds
+    setTimeout(() => {
+        elements.forEach(el => {
+            if (getComputedStyle(el).opacity === '0') {
+                el.style.opacity = '1';
+                el.style.transform = 'none';
+            }
+        });
+    }, 3000);
 
     // NOTE: #images-gallery animation is handled by _layout.twig animateGalleryOnce()
 
