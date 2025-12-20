@@ -925,11 +925,19 @@
                     </a>
                     {% endif %}
 
-                    <!-- Filters Toggle -->
-                    <button id="filters-toggle" class="hidden md:flex items-center gap-2 text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2 px-3 rounded-md hover:bg-gray-50">
-                        <i class="fas fa-filter text-xs"></i>
-                        <span>{{ trans('filter.search') }}</span>
-                    </button>
+                    <!-- Header Search -->
+                    <form id="header-search-form" class="hidden md:flex items-center" role="search" action="{{ base_path }}/galleries" method="get">
+                        <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
+                        <div class="relative">
+                            <input id="header-search" name="search" type="search" autocomplete="off"
+                                   class="w-64 lg:w-72 px-3 py-2 pl-9 pr-10 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
+                                   placeholder="{{ trans('filter.search') }}">
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
+                            <button type="submit" class="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black transition-colors duration-150" aria-label="{{ trans('filter.search') }}">
+                                <i class="fas fa-arrow-right text-xs"></i>
+                            </button>
+                        </div>
+                    </form>
                     
                     <!-- Mobile Menu Button - Aligned with Logo -->
                     <button id="mobile-menu-toggle" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
@@ -1255,40 +1263,50 @@
             });
         })();
         
-        // Enhanced Filters toggle with animations
-        document.getElementById('filters-toggle')?.addEventListener('click', function() {
-            const panel = document.getElementById('filters-panel');
-            const icon = this.querySelector('i');
-            
-            if (panel.classList.contains('hidden')) {
-                panel.classList.remove('hidden');
-                // Animate in
-                panel.style.opacity = '0';
-                panel.style.transform = 'translateY(-10px)';
-                panel.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                
-                requestAnimationFrame(() => {
-                    panel.style.opacity = '1';
-                    panel.style.transform = 'translateY(0)';
-                });
-                
-                if (icon) {
-                    icon.style.transform = 'rotate(180deg)';
+        // Header search -> galleries filters (AJAX) or redirect
+        (function() {
+            const form = document.getElementById('header-search-form');
+            const input = document.getElementById('header-search');
+            if (!form || !input) return;
+
+            const basePath = '{{ base_path|e('js') }}';
+            const syncToFilters = () => {
+                const filterInput = document.getElementById('filter-search');
+                if (!filterInput) return false;
+                filterInput.value = input.value;
+                filterInput.dispatchEvent(new Event('input', { bubbles: true }));
+                return true;
+            };
+
+            const debounce = (fn, delay) => {
+                let t;
+                return (...args) => {
+                    clearTimeout(t);
+                    t = setTimeout(() => fn.apply(null, args), delay);
+                };
+            };
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const query = input.value.trim();
+                if (syncToFilters()) return;
+                if (!query) return;
+                window.location.href = `${basePath}/galleries?search=${encodeURIComponent(query)}`;
+            });
+
+            input.addEventListener('input', debounce(() => {
+                if (input.value.trim().length === 0) {
+                    if (syncToFilters()) return;
+                } else if (syncToFilters()) {
+                    return;
                 }
-            } else {
-                // Animate out
-                panel.style.opacity = '0';
-                panel.style.transform = 'translateY(-10px)';
-                
-                setTimeout(() => {
-                    panel.classList.add('hidden');
-                }, 300);
-                
-                if (icon) {
-                    icon.style.transform = 'rotate(0deg)';
-                }
+            }, 80));
+
+            const filterInput = document.getElementById('filter-search');
+            if (filterInput && filterInput.value) {
+                input.value = filterInput.value;
             }
-        });
+        })();
 
         // Enhanced smooth animations with GSAP
         gsap.registerPlugin(ScrollTrigger);
@@ -1742,12 +1760,18 @@
                                     toggleZoomCentered(pswp);
                                 }, { capture: true });
                             }
-                            // Click on image toggles zoom (no navigation)
+                            // Click on image navigates left/right
                             pswp.element?.addEventListener('click', (ev) => {
-                                if (ev.target && ev.target.classList.contains('pswp__img')) {
-                                    ev.preventDefault();
-                                    ev.stopPropagation();
-                                    toggleZoomCentered(pswp);
+                                const target = ev.target;
+                                if (!target || !target.classList.contains('pswp__img')) return;
+                                const rect = target.getBoundingClientRect();
+                                const clickX = ev.clientX - rect.left;
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                if (clickX < rect.width / 2) {
+                                    pswp.prev();
+                                } else {
+                                    pswp.next();
                                 }
                             }, { capture: true });
                             pswp._customZoomBound = true;
@@ -2013,12 +2037,18 @@
                           toggleZoomCentered(pswp);
                         }, { capture: true });
                       }
-                      // Click on image toggles zoom
+                      // Click on image navigates left/right
                       pswp.element?.addEventListener('click', (ev) => {
-                        if (ev.target && ev.target.classList.contains('pswp__img')) {
-                          ev.preventDefault();
-                          ev.stopPropagation();
-                          toggleZoomCentered(pswp);
+                        const target = ev.target;
+                        if (!target || !target.classList.contains('pswp__img')) return;
+                        const rect = target.getBoundingClientRect();
+                        const clickX = ev.clientX - rect.left;
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        if (clickX < rect.width / 2) {
+                          pswp.prev();
+                        } else {
+                          pswp.next();
                         }
                       }, { capture: true });
                       pswp._customZoomBound = true;
@@ -2323,12 +2353,19 @@
     {# Block right-click on images for non-admin users #}
     {% if not is_admin %}
     <script nonce="{{ csp_nonce() }}">
-    document.addEventListener("contextmenu", function(e) {
-      var target = e.target;
-      if (target.tagName === "IMG" || (target.closest && target.closest(".no-rightclick"))) {
-        e.preventDefault();
-      }
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
     }, { passive: false });
+
+    document.addEventListener('keydown', function(event) {
+      const key = event.key || '';
+      const isDevtoolsKey = key === 'F12'
+        || (event.ctrlKey && event.shiftKey && (key === 'I' || key === 'J' || key === 'C'))
+        || (event.ctrlKey && key === 'U');
+      if (isDevtoolsKey) {
+        event.preventDefault();
+      }
+    });
     </script>
     {% endif %}
 
