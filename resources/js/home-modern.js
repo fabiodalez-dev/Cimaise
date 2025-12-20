@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const $menu = document.querySelector('.inf-work_list');
     const $scroller = document.querySelector('.work-layout');
     let $allItems = Array.from(document.querySelectorAll('.inf-work_item'));
+    let cachedItems = [];
+    let cachedItemsOdd = [];
+    let cachedItemsEven = [];
 
     // Track state
     let isFiltered = false;
@@ -57,6 +60,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Minimum items for good infinite scroll effect
     const MIN_ITEMS_FOR_INFINITE = 8;
+
+    const updateCachedItems = () => {
+        cachedItems = Array.from(document.querySelectorAll('.inf-work_item'));
+        $allItems = cachedItems;
+        cachedItemsOdd = cachedItems.filter((_, i) => i % 2 === 0);
+        cachedItemsEven = cachedItems.filter((_, i) => i % 2 === 1);
+    };
+
+    updateCachedItems();
 
     // Clear transforms
     const clearTransforms = (items) => {
@@ -88,11 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Update items list
-        $allItems = Array.from(document.querySelectorAll('.inf-work_item'));
-
-        // Ensure cloned items get interaction handlers
-        setupHoverEffects();
-        setupPageTransition();
+        updateCachedItems();
     };
 
     // Dispose items with wrapping
@@ -109,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize infinite scroll
     const initInfiniteScroll = () => {
+        updateCachedItems();
         if (!$menu || $allItems.length === 0 || isMobile()) {
             if ($menu) {
                 $menu.classList.add('simple-layout');
@@ -121,9 +130,9 @@ document.addEventListener('DOMContentLoaded', function() {
         cloneItemsForWall();
 
         // Get updated items after cloning
-        const allItems = Array.from(document.querySelectorAll('.inf-work_item'));
-        const $items = allItems.filter((_, i) => i % 2 === 0); // odd items (0, 2, 4...)
-        const $items2 = allItems.filter((_, i) => i % 2 === 1); // even items (1, 3, 5...)
+        const allItems = cachedItems;
+        const $items = cachedItemsOdd; // odd items (0, 2, 4...)
+        const $items2 = cachedItemsEven; // even items (1, 3, 5...)
 
         if (allItems.length < 4) {
             $menu.classList.add('simple-layout');
@@ -162,16 +171,16 @@ document.addEventListener('DOMContentLoaded', function() {
             requestAnimationFrame(render);
             if (isMobile() || !useInfiniteScroll || isFiltered) return;
 
-            const allItems = Array.from(document.querySelectorAll('.inf-work_item'));
-            const $items = allItems.filter((_, i) => i % 2 === 0);
-            const $items2 = allItems.filter((_, i) => i % 2 === 1);
+            const allItems = cachedItems;
+            const $items = cachedItemsOdd;
+            const $items2 = cachedItemsEven;
 
             // Update dimensions if changed
-            if (allItems[0]) {
-                const newHeight = allItems[0].clientHeight;
+            if (cachedItems[0]) {
+                const newHeight = cachedItems[0].clientHeight;
                 if (newHeight !== itemHeight && newHeight > 0) {
                     itemHeight = newHeight;
-                    wrapHeight = (allItems.length / 2) * itemHeight;
+                    wrapHeight = (cachedItems.length / 2) * itemHeight;
                 }
             }
 
@@ -206,9 +215,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Reinitialize infinite scroll
         if (!isMobile()) {
-            const allItems = Array.from(document.querySelectorAll('.inf-work_item'));
-            const $items = allItems.filter((_, i) => i % 2 === 0);
-            const $items2 = allItems.filter((_, i) => i % 2 === 1);
+            updateCachedItems();
+            const allItems = cachedItems;
+            const $items = cachedItemsOdd;
+            const $items2 = cachedItemsEven;
 
             if (useInfiniteScroll) {
                 dispose(y, $items);
@@ -284,11 +294,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (isMobile()) return;
 
                 this.classList.add('highlight');
-                infItems.forEach(otherItem => {
-                    if (otherItem !== this) {
-                        otherItem.classList.add('fadeout');
-                    }
-                });
+                if ($menu) {
+                    $menu.classList.add('has-hover');
+                }
 
                 if (infoHolder) infoHolder.classList.add('show');
                 if (infoTitle) infoTitle.textContent = projectTitle;
@@ -299,9 +307,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (isMobile()) return;
 
                 this.classList.remove('highlight');
-                infItems.forEach(otherItem => {
-                    otherItem.classList.remove('fadeout');
-                });
+                if ($menu) {
+                    $menu.classList.remove('has-hover');
+                }
 
                 if (infoHolder) infoHolder.classList.remove('show');
             });
@@ -461,10 +469,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearTransforms($allItems);
                 $menu?.classList.add('simple-layout');
             } else if (!isFiltered) {
-                const allItems = Array.from(document.querySelectorAll('.inf-work_item'));
-                if (allItems[0]) {
-                    itemHeight = allItems[0].clientHeight;
-                    wrapHeight = (allItems.length / 2) * itemHeight;
+                updateCachedItems();
+                if (cachedItems[0]) {
+                    itemHeight = cachedItems[0].clientHeight;
+                    wrapHeight = (cachedItems.length / 2) * itemHeight;
                 }
             }
         }, 100);

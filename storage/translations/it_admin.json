@@ -1262,6 +1262,8 @@
     "admin.settings.preview_width_hint": "Larghezza in pixel per le miniature di anteprima",
     "admin.settings.responsive_breakpoints": "Breakpoint Responsive",
     "admin.settings.breakpoints_hint": "Formato JSON con nomi breakpoint e larghezze in pixel",
+    "admin.settings.variants_async": "Genera varianti in background",
+    "admin.settings.variants_async_desc": "Crea tutte le dimensioni dopo l’upload per mantenere il caricamento veloce.",
     "admin.settings.regenerate_images": "Rigenera Tutte le Immagini",
     "admin.settings.regenerate_confirm": "Verranno rigenerate tutte le varianti delle immagini. Potrebbe richiedere tempo. Continuare?",
     "admin.settings.site_config": "Configurazione Sito",

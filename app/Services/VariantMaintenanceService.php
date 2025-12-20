@@ -22,7 +22,7 @@ class VariantMaintenanceService
         $today = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d');
         $settings = new SettingsService($this->db);
         $lastRun = (string)$settings->get(self::SETTINGS_KEY, '');
-        if ($lastRun === $today) {
+        if (!$this->shouldRun($settings, $today, $lastRun)) {
             return;
         }
 
@@ -33,7 +33,7 @@ class VariantMaintenanceService
 
         try {
             $lastRun = (string)$settings->get(self::SETTINGS_KEY, '');
-            if ($lastRun === $today) {
+            if (!$this->shouldRun($settings, $today, $lastRun)) {
                 return;
             }
 
@@ -80,28 +80,8 @@ class VariantMaintenanceService
     {
         $pdo = $this->db->pdo();
         $uploadService = new UploadService($this->db);
-        $defaults = $settings->defaults();
-
-        $formats = $settings->get('image.formats', $defaults['image.formats']);
-        if (!is_array($formats) || !$formats) {
-            $formats = $defaults['image.formats'];
-        }
-        $breakpoints = $settings->get('image.breakpoints', $defaults['image.breakpoints']);
-        if (!is_array($breakpoints) || !$breakpoints) {
-            $breakpoints = $defaults['image.breakpoints'];
-        }
-
-        $enabledFormats = [];
-        foreach ($formats as $format => $enabled) {
-            if (is_string($enabled)) {
-                $enabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
-            }
-            if ($enabled) {
-                $enabledFormats[] = (string)$format;
-            }
-        }
-
-        if ($enabledFormats === [] || $breakpoints === []) {
+        [$enabledFormats, $variants] = $this->resolveEnabledFormatsAndVariants($settings);
+        if ($enabledFormats === [] || $variants === []) {
             return [
                 'images_checked' => 0,
                 'variants_generated' => 0,
@@ -112,7 +92,6 @@ class VariantMaintenanceService
             ];
         }
 
-        $variants = array_keys($breakpoints);
         $expected = count($enabledFormats) * count($variants);
         $formatPlaceholders = implode(',', array_fill(0, count($enabledFormats), '?'));
         $variantPlaceholders = implode(',', array_fill(0, count($variants), '?'));
@@ -173,5 +152,80 @@ class VariantMaintenanceService
         }
 
         return $stats;
+    }
+
+    private function shouldRun(SettingsService $settings, string $today, string $lastRun): bool
+    {
+        if ($lastRun !== $today) {
+            return true;
+        }
+
+        return $this->hasMissingVariants($settings);
+    }
+
+    private function hasMissingVariants(SettingsService $settings): bool
+    {
+        [$enabledFormats, $variants] = $this->resolveEnabledFormatsAndVariants($settings);
+        if ($enabledFormats === [] || $variants === []) {
+            return false;
+        }
+
+        $pdo = $this->db->pdo();
+        $expected = count($enabledFormats) * count($variants);
+        $formatPlaceholders = implode(',', array_fill(0, count($enabledFormats), '?'));
+        $variantPlaceholders = implode(',', array_fill(0, count($variants), '?'));
+        $sql = "
+            SELECT i.id
+            FROM images i
+            LEFT JOIN image_variants iv
+                ON iv.image_id = i.id
+                AND iv.variant IN ({$variantPlaceholders})
+                AND iv.format IN ({$formatPlaceholders})
+            GROUP BY i.id
+            HAVING COUNT(iv.id) < ?
+            LIMIT 1
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(array_merge($variants, $enabledFormats, [$expected]));
+        if ($stmt->fetchColumn() !== false) {
+            return true;
+        }
+
+        $blurStmt = $pdo->prepare("
+            SELECT i.id
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'blur'
+            WHERE a.is_nsfw = 1 AND iv.id IS NULL
+            LIMIT 1
+        ");
+        $blurStmt->execute();
+        return $blurStmt->fetchColumn() !== false;
+    }
+
+    private function resolveEnabledFormatsAndVariants(SettingsService $settings): array
+    {
+        $defaults = $settings->defaults();
+
+        $formats = $settings->get('image.formats', $defaults['image.formats']);
+        if (!is_array($formats) || !$formats) {
+            $formats = $defaults['image.formats'];
+        }
+        $breakpoints = $settings->get('image.breakpoints', $defaults['image.breakpoints']);
+        if (!is_array($breakpoints) || !$breakpoints) {
+            $breakpoints = $defaults['image.breakpoints'];
+        }
+
+        $enabledFormats = [];
+        foreach ($formats as $format => $enabled) {
+            if (is_string($enabled)) {
+                $enabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
+            }
+            if ($enabled) {
+                $enabledFormats[] = (string)$format;
+            }
+        }
+
+        return [$enabledFormats, array_keys($breakpoints)];
     }
 }

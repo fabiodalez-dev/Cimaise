@@ -199,15 +199,18 @@ class UploadService
             $previewRel = null;
         }
 
-        // PERFORMANCE OPTIMIZATION: Fast Upload Mode
-        // Only preview (sm.jpg) is generated during upload for immediate response
-        // Full variants generated in background via: php bin/console images:generate-variants
-        // This reduces upload time from ~15s to ~1s per image
+        // PERFORMANCE OPTIMIZATION: Async Variant Generation
+        // Only preview (sm.jpg) is generated during upload for immediate response.
+        // Full variants are generated after the response to keep uploads fast.
+        // Set SYNC_VARIANTS_ON_UPLOAD=true to force synchronous generation.
+        $variantsAsyncSetting = $settingsSvc->get('image.variants_async', $defaults['image.variants_async'] ?? true);
+        if (is_string($variantsAsyncSetting)) {
+            $variantsAsyncSetting = filter_var($variantsAsyncSetting, FILTER_VALIDATE_BOOLEAN);
+        }
+        $variantsAsync = (bool)$variantsAsyncSetting;
 
-        // For backward compatibility, legacy mode (all variants sync) is the default
-        // Set FAST_UPLOAD=true in .env to enable fast mode (recommended for large uploads)
-        $fastUploadMode = $this->envFlag('FAST_UPLOAD', false);
-        $syncVariants = $this->envFlag('SYNC_VARIANTS_ON_UPLOAD', true);
+        $fastUploadMode = $this->envFlag('FAST_UPLOAD', $variantsAsync);
+        $syncVariants = $this->envFlag('SYNC_VARIANTS_ON_UPLOAD', !$variantsAsync);
 
         if ($syncVariants || !$fastUploadMode) {
             $this->generateVariantsForImage($imageId, false);
@@ -370,6 +373,14 @@ class UploadService
             throw new RuntimeException("Original file not found. Tried: " . implode(', ', $possiblePaths));
         }
 
+        $existingStmt = $pdo->prepare('SELECT variant, format, path FROM image_variants WHERE image_id = ?');
+        $existingStmt->execute([$imageId]);
+        $existingVariants = [];
+        foreach ($existingStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $key = (string)$row['variant'] . '|' . (string)$row['format'];
+            $existingVariants[$key] = (string)($row['path'] ?? '');
+        }
+
         // Get settings
         $settings = new \App\Services\SettingsService($this->db);
         $defaults = $settings->defaults();
@@ -409,7 +420,14 @@ class UploadService
 
                 // Skip if variant already exists (unless force is enabled)
                 if (is_file($destPath) && !$force) {
-                    $stats['skipped']++;
+                    $key = (string)$variant . '|' . (string)$fmt;
+                    if (!isset($existingVariants[$key])) {
+                        $this->registerVariantFromFile($pdo, $imageId, (string)$variant, (string)$fmt, $destRelUrl, $destPath, $targetW);
+                        $existingVariants[$key] = $destRelUrl;
+                        $stats['generated']++;
+                    } else {
+                        $stats['skipped']++;
+                    }
                     continue;
                 }
 
@@ -449,6 +467,21 @@ class UploadService
         }
 
         return $stats;
+    }
+
+    private function registerVariantFromFile(
+        \PDO $pdo,
+        int $imageId,
+        string $variant,
+        string $format,
+        string $destRelUrl,
+        string $destPath,
+        int $fallbackWidth
+    ): void {
+        $size = is_file($destPath) ? (int)filesize($destPath) : 0;
+        $dims = @getimagesize($destPath) ?: [$fallbackWidth, 0];
+        $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
+            ->execute([$imageId, $variant, $format, $destRelUrl, (int)$dims[0], (int)$dims[1], $size]);
     }
 
     /**
