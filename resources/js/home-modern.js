@@ -263,18 +263,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================
 
     const setupHoverEffects = () => {
-        const infItems = document.querySelectorAll('[inf-item]');
+        const infItems = document.querySelectorAll('[data-inf-item]');
         const infoHolder = document.querySelector('.image-grid-info_holder');
-        const infoTitle = document.querySelector('[image-grid_title]');
-        const infoCopy = document.querySelector('[image-grid_copy]');
+        const infoTitle = document.querySelector('[data-image-grid-title]');
+        const infoCopy = document.querySelector('[data-image-grid-copy]');
 
         infItems.forEach(item => {
             // Skip if already has listeners
             if (item.dataset.hoverSetup) return;
             item.dataset.hoverSetup = 'true';
 
-            const projectTitle = item.getAttribute('work-title') || '';
-            const projectCopy = item.getAttribute('work-copy') || '';
+            const projectTitle = item.getAttribute('data-work-title') || '';
+            const projectCopy = item.getAttribute('data-work-copy') || '';
 
             item.addEventListener('mouseenter', function() {
                 if (isMobile()) return;

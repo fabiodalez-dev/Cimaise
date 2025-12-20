@@ -174,7 +174,7 @@ class Database
     // Helper for portable current timestamp in SQL
     public function nowExpression(): string
     {
-        return $this->isSqlite ? 'datetime("now")' : 'NOW()';
+        return $this->isSqlite ? "datetime('now')" : 'NOW()';
     }
 
     // Helper for portable date/time interval subtraction

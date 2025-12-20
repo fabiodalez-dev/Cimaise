@@ -42,18 +42,12 @@
 
 {% block scripts %}
 <script nonce="{{ csp_nonce() }}">
-// NOTE: localStorage/cookie are only for UX (avoid repeated confirmations).
-// Actual NSFW authorization is verified server-side via session/cookie.
-function setNsfwCookie() {
-    var maxAge = 60 * 60 * 24 * 30;
-    var secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = 'nsfw_consent=1; Max-Age=' + maxAge + '; Path=/; SameSite=Lax' + secure;
-}
+// NOTE: localStorage is only for UX (avoid repeated confirmations).
+// Actual NSFW authorization is verified server-side via session.
 document.getElementById('nsfw-confirm-form')?.addEventListener('submit', function() {
     var checkbox = document.getElementById('nsfw_confirmed');
     if (checkbox && checkbox.checked) {
         localStorage.setItem('nsfw_confirmed', 'true');
-        setNsfwCookie();
     }
 });
 </script>
