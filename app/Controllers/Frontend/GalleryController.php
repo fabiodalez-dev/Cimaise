@@ -387,6 +387,7 @@ class GalleryController extends BaseController
             'show_date' => (int)($album['show_date'] ?? 1),
             'tags' => $tags,
             'equipment' => $equipment,
+            'allow_downloads' => !empty($album['allow_downloads']),
         ];
 
         // Available templates for icon switcher
@@ -409,12 +410,12 @@ class GalleryController extends BaseController
         if (!empty($album['cover_image_id'])) {
             // Use designated cover image
             try {
-                $stmt = $pdo->prepare('
+                $stmt = $pdo->prepare("
                     SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
                     FROM images i
-                    LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "lg" AND iv.format = "jpg"
+                    LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'lg' AND iv.format = 'jpg'
                     WHERE i.id = :id
-                ');
+                ");
                 $stmt->execute([':id' => $album['cover_image_id']]);
                 $cover = $stmt->fetch();
                 if ($cover) {
@@ -492,7 +493,8 @@ class GalleryController extends BaseController
             'available_socials' => $availableSocials,
             'is_admin' => $isAdmin,
             'current_album' => ['id' => (int)$album['id']],
-            'nsfw_consent' => $this->hasNsfwConsent()
+            'nsfw_consent' => $this->hasNsfwConsent(),
+            'allow_downloads' => !empty($album['allow_downloads'])
         ]);
     }
 
@@ -590,7 +592,9 @@ class GalleryController extends BaseController
                     }
                     $vg->execute([':id' => $img['id']]);
                     if ($vgr = $vg->fetch()) { if (!empty($vgr['path'])) { $bestUrl = $vgr['path']; } }
-                    $lightboxUrl = $bestUrl;
+                    if (!($isProtectedAlbum && $allowDownloads)) {
+                        $lightboxUrl = $bestUrl;
+                    }
                     // Lightbox: only use variant if original is not publicly accessible
                     // Original paths like /media/originals/... are public, /storage/... are not
                     // Build responsive sources for <picture>

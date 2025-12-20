@@ -363,16 +363,16 @@ class AlbumsController extends BaseController
             // Equipment tables might not exist yet
         }
         
-        $imgsStmt = $pdo->prepare('SELECT i.id, i.original_path, i.created_at, i.sort_order,
+        $imgsStmt = $pdo->prepare("SELECT i.id, i.original_path, i.created_at, i.sort_order,
                                    i.alt_text, i.caption, i.width, i.height,
                                    i.camera_id, i.lens_id, i.film_id, i.developer_id, i.lab_id, i.location_id,
                                    i.custom_camera, i.custom_lens, i.custom_film,
                                    i.iso, i.shutter_speed, i.aperture,
                                    COALESCE(iv.path, i.original_path) AS preview_path
                                    FROM images i
-                                   LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "sm" AND iv.format = "jpg"
+                                   LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
                                    WHERE i.album_id=:a
-                                   ORDER BY i.sort_order ASC, i.id ASC');
+                                   ORDER BY i.sort_order ASC, i.id ASC");
         $imgsStmt->execute([':a'=>$id]);
         $images = $imgsStmt->fetchAll();
         

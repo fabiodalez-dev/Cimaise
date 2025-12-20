@@ -39,12 +39,12 @@ class MediaController extends BaseController
             // Locations table might not exist
         }
         
-        $sql = 'SELECT i.id, i.album_id, i.original_path, i.created_at, i.width, i.height, i.alt_text, i.caption,
+        $sql = "SELECT i.id, i.album_id, i.original_path, i.created_at, i.width, i.height, i.alt_text, i.caption,
                        i.camera_id, i.lens_id, i.film_id, i.developer_id, i.lab_id, i.location_id,
                        i.iso, i.shutter_speed, i.aperture,
                        COALESCE(iv.path, i.original_path) AS preview_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "sm" AND iv.format = "jpg"';
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'";
         $params = [];
         if ($q !== '') {
             $sql .= ' WHERE i.alt_text LIKE :q OR i.caption LIKE :q OR i.original_path LIKE :q';
