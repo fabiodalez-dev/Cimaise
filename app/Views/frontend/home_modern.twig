@@ -86,7 +86,7 @@
                     {% for variant in image.variants %}
                         {% if variant.format == 'webp' %}
                             {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : base_path ~ '/' ~ variant.path %}
-                            {% set srcset_parts = srcset_parts|merge([(variant_url|e('html_attr')) ~ ' ' ~ variant.width ~ 'w']) %}
+                            {% set srcset_parts = srcset_parts|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
                         {% endif %}
                     {% endfor %}
 
@@ -99,7 +99,7 @@
                             <div class="work-grid_img-holder">
                                 <div class="work-grid_img-height">
                                     <img src="{{ image_url }}"
-                                         {% if srcset_parts %}srcset="{{ srcset_parts|join(', ') }}"{% endif %}
+                                         {% if srcset_parts %}srcset="{{ srcset_parts|join(', ')|e('html_attr') }}"{% endif %}
                                          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                                          alt="{{ image.alt_text|default(image.album_title)|e('html_attr') }}"
                                          class="img-fill"

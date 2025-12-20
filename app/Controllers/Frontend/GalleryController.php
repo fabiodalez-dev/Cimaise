@@ -61,7 +61,6 @@ class GalleryController extends BaseController
         $isAdmin = $this->isAdmin();
         $isNsfwAlbum = !empty($album['is_nsfw']) && !$isAdmin;
         $isProtectedAlbum = $isNsfwAlbum || (!empty($album['password_hash']) && !$isAdmin);
-        $restrictNsfwMedia = $isNsfwAlbum && !$this->hasNsfwAlbumConsent((int)$album['id']);
         $allowDownloads = !empty($album['allow_downloads']);
 
         // Password protection with session timeout (24h) - skip for admins
@@ -233,12 +232,8 @@ class GalleryController extends BaseController
             
             $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
             try {
-                // Get best variant for gallery grid (NSFW without consent -> blur only)
-                if ($restrictNsfwMedia) {
-                    $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND variant='blur' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
-                } else {
-                    $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
-                }
+                // Get best variant for gallery grid
+                $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND format = 'jpg' AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
                 $v->execute([':id' => $img['id']]);
                 $vr = $v->fetch();
                 if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
@@ -270,8 +265,8 @@ class GalleryController extends BaseController
                 }
                 
                 // Build responsive sources for <picture>
-                $srcStmt = $pdo->prepare("SELECT format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' AND (:nsfw = 0 OR variant = 'blur') ORDER BY width ASC");
-                $srcStmt->execute([':id' => $img['id'], ':nsfw' => $restrictNsfwMedia ? 1 : 0]);
+                $srcStmt = $pdo->prepare("SELECT format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width ASC");
+                $srcStmt->execute([':id' => $img['id']]);
                 $rows = $srcStmt->fetchAll() ?: [];
                 foreach ($rows as $r) {
                     $fmt = $r['format'];
@@ -283,18 +278,11 @@ class GalleryController extends BaseController
 
             // Ensure we never leak /storage/originals (not publicly served)
             if (str_starts_with((string)$bestUrl, '/storage/')) {
-                if ($restrictNsfwMedia) {
-                    $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND variant='blur' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
-                    $fallbackStmt->execute([':id' => $img['id']]);
-                    $fallback = $fallbackStmt->fetchColumn();
-                    $bestUrl = $fallback ?: '/media/placeholder.jpg';
-                } else {
-                    // If no public variants available, try to find any jpg variant
-                    $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format='jpg' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
-                    $fallbackStmt->execute([':id' => $img['id']]);
-                    $fallback = $fallbackStmt->fetchColumn();
-                    $bestUrl = $fallback ?: '/media/placeholder.jpg'; // Use placeholder if no variants
-                }
+                // If no public variants available, try to find any jpg variant
+                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format = 'jpg' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
+                $fallbackStmt->execute([':id' => $img['id']]);
+                $fallback = $fallbackStmt->fetchColumn();
+                $bestUrl = $fallback ?: '/media/placeholder.jpg'; // Use placeholder if no variants
             }
             if (str_starts_with((string)$lightboxUrl, '/storage/')) {
                 // For lightbox, prefer largest variant (lg > md > sm) for best quality
@@ -535,7 +523,6 @@ class GalleryController extends BaseController
             // Check if user is admin (admins bypass password/NSFW protection)
             $isAdmin = $this->isAdmin();
             $isNsfwAlbum = !empty($album['is_nsfw']) && !$isAdmin;
-            $restrictNsfwMedia = $isNsfwAlbum && !$this->hasNsfwAlbumConsent((int)$album['id']);
             $isProtectedAlbum = $isNsfwAlbum || (!empty($album['password_hash']) && !$isAdmin);
             $allowDownloads = !empty($album['allow_downloads']);
 
@@ -580,16 +567,10 @@ class GalleryController extends BaseController
                     ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
                     : $bestUrl;
                 try {
-                    // Grid: prefer largest public variant (NSFW without consent -> blur only; otherwise avif > webp > jpg)
-                    if ($restrictNsfwMedia) {
-                        $vg = $pdo->prepare("SELECT path, width, height FROM image_variants
-                            WHERE image_id = :id AND variant='blur' AND path NOT LIKE '/storage/%'
-                            ORDER BY width DESC LIMIT 1");
-                    } else {
-                        $vg = $pdo->prepare("SELECT path, width, height FROM image_variants
-                            WHERE image_id = :id AND path NOT LIKE '/storage/%'
-                            ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
-                    }
+                    // Grid: prefer largest public variant (avif > webp > jpg)
+                    $vg = $pdo->prepare("SELECT path, width, height FROM image_variants
+                        WHERE image_id = :id AND path NOT LIKE '/storage/%'
+                        ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
                     $vg->execute([':id' => $img['id']]);
                     if ($vgr = $vg->fetch()) { if (!empty($vgr['path'])) { $bestUrl = $vgr['path']; } }
                     if (!($isProtectedAlbum && $allowDownloads)) {
@@ -598,8 +579,8 @@ class GalleryController extends BaseController
                     // Lightbox: only use variant if original is not publicly accessible
                     // Original paths like /media/originals/... are public, /storage/... are not
                     // Build responsive sources for <picture>
-                    $srcStmt = $pdo->prepare("SELECT format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' AND (:nsfw = 0 OR variant = 'blur') ORDER BY width ASC");
-                    $srcStmt->execute([':id' => $img['id'], ':nsfw' => $restrictNsfwMedia ? 1 : 0]);
+                    $srcStmt = $pdo->prepare("SELECT format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width ASC");
+                    $srcStmt->execute([':id' => $img['id']]);
                     $rows = $srcStmt->fetchAll() ?: [];
                     $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
                     foreach ($rows as $r) {
@@ -613,18 +594,11 @@ class GalleryController extends BaseController
                 }
                 // Fallbacks - ensure we never serve /storage/ paths
                 if (str_starts_with((string)$bestUrl, '/storage/')) {
-                    if ($restrictNsfwMedia) {
-                        $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND variant='blur' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
-                        $fallbackStmt->execute([':id' => $img['id']]);
-                        $fallback = $fallbackStmt->fetchColumn();
-                        $bestUrl = $fallback ?: '/media/placeholder.jpg';
-                    } else {
-                        // Try to find any public variant
-                        $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format='jpg' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
-                        $fallbackStmt->execute([':id' => $img['id']]);
-                        $fallback = $fallbackStmt->fetchColumn();
-                        $bestUrl = $fallback ?: '/media/placeholder.jpg';
-                    }
+                    // Try to find any public variant
+                    $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format = 'jpg' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
+                    $fallbackStmt->execute([':id' => $img['id']]);
+                    $fallback = $fallbackStmt->fetchColumn();
+                    $bestUrl = $fallback ?: '/media/placeholder.jpg';
                 }
                 if (str_starts_with((string)$lightboxUrl, '/storage/')) {
                     // For lightbox, prefer largest variant (lg > md > sm) for best quality
