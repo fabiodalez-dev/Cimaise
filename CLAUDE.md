@@ -156,7 +156,7 @@ photoCMS/
 - `app/Views/frontend/home_modern.twig` - Modern home template with fixed sidebar (filters, info), scrollable grid (two-column infinite scroll), and mobile classic header integration (imports `_seo_macros.twig`)
 - `app/Views/admin/pages/home.twig` - Home page settings with visual template selector (classic/modern), hero sections, gallery text, scroll direction
 - `app/Views/frontend/_album_card.twig` - Album card template with NSFW blur variant logic
-- `app/Views/frontend/_breadcrumbs.twig` - Breadcrumbs with automatic JSON-LD schema generation, responsive spacing (pb-5 md:pb-0), compact gap layout (gap-x-1 gap-y-1)
+- `app/Views/frontend/_breadcrumbs.twig` - Breadcrumbs with automatic JSON-LD schema generation, responsive spacing (pb-5 md:pb-0), compact gap layout (gap-x-1 gap-y-1), leading-normal line-height for tight wrapping
 - `app/Views/frontend/_social_sharing.twig` - Social sharing buttons template
 - `app/Views/frontend/_seo_macros.twig` - Reusable Twig macros for SEO title generation (seo_title macro combines image alt/caption, album title, and site title)
 - `app/Views/frontend/galleries.twig` - Galleries page with filter UI and album grid
@@ -459,18 +459,16 @@ $app->get('/path', function(...) { ... })
   - Navigation links: Home, Galleries, About with `.is-current` class for active page
   - Current page link behavior: Clicking `.mega-menu_link.is-current` closes menu instead of navigating
 - **CSS variables**: `--modern-black`, `--modern-white`, `--modern-grey`, `--modern-dark-grey`
-- **CSS scoping for mobile header integration**: Reset rules exclude `.modern-mobile-only` wrapper and descendants
-  - Selector: `*:not(.modern-mobile-only):not(.modern-mobile-only *)` prevents reset conflicts with classic header
-  - Preserves Tailwind styles and classic header behavior on mobile
 - **Responsive font sizing**: Root font size set to `1.1111111111vw` (capped at `21.333px !important` on 1920px+ screens)
   - VW-based sizing: Only applied on desktop (768px+) via `@media (min-width: 768px)` wrapper
   - Mobile: Standard browser font-size preserved, no VW scaling applied
 - **Mobile-specific adjustments**: Below 768px breakpoint
   - Desktop components hidden: `.global-head`, `.menu-btn`, `.menu-component`, `.work-col.is-static` with `display: none !important`
-  - Classic header shown: `.modern-mobile-only` wrapper with sticky positioning, contains full classic header (navigation, search, categories mega menu)
+  - Classic header shown: `.modern-mobile-only` wrapper (display: block below 768px, hidden with `!important` on desktop) contains full classic header (navigation, search, categories mega menu)
   - Layout adjustments: Full-width work column, no left margin, reduced padding (10px)
-  - Inline styles: CSP nonce-protected `<style>` tag in template for mobile-specific CSS and webkit search input overrides
+  - Inline styles: CSP nonce-protected `<style nonce="{{ csp_nonce() }}">` tag in template for mobile-specific CSS and webkit search input overrides
   - Webkit search styling: Removes default search decorations (cancel button, search icons) for consistent cross-browser appearance
+  - CSS reset scoping: Global reset rules exclude `.modern-mobile-only` wrapper and descendants via `*:not(.modern-mobile-only):not(.modern-mobile-only *)` selector to prevent Tailwind conflicts
 - **Empty state**: Custom empty state with icon, title, text when no images available
   - Uses `home_settings.empty_title` and `home_settings.empty_text` with translation fallbacks
 - **Translation keys**:
