@@ -60,7 +60,7 @@ Ideal for: Wedding photographers, portrait artists, commercial studios with dive
 
 **The gallery approach.** A minimalist split-screen design with fixed sidebar navigation and a scrolling image grid. Perfect for photographers who want:
 
-- **Fixed Sidebar** — Category filters always visible, never scroll away
+- **Fixed Sidebar** — Category filters are always visible, never scroll away
 - **Two-Column Grid** — Clean, uniform presentation with smooth parallax effect
 - **Hover Reveals** — Album title and description appear on hover
 - **Mega Menu** — Full-screen navigation overlay
@@ -123,7 +123,7 @@ Let visitors explore your entire body of work:
 - **Film Stock** — Portra 400, Tri-X 400, Ektar 100...
 - **Process** — C-41, E-6, Black & White
 
-Visitors can combine filters: "Show me all medium format Portra 400 shots from 2024."
+Visitors can combine filters: "Show me all medium-format Portra 400 shots from 2024."
 
 ### Shareable Searches
 
@@ -137,7 +137,7 @@ Every filter combination creates a unique URL. Share `yoursite.com/galleries?fil
 
 Every photo you upload automatically generates optimized variants:
 
-```
+```text
 Your Upload (8000x5333 RAW/JPEG)
     ↓
 Originals stored safely in storage/originals/

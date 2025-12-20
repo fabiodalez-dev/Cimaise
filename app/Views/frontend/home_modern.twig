@@ -11,6 +11,7 @@
 
 {% block content %}
 {# Modern Home Template - Grid-based layout with fixed sidebar #}
+{% import 'frontend/_seo_macros.twig' as Seo %}
 
 {% set collection_url = canonical_url|default(base_path ~ '/') %}
 <script type="application/ld+json" nonce="{{ csp_nonce() }}">
@@ -105,10 +106,7 @@
                         {% endif %}
                     {% endfor %}
 
-                    {% set seo_title = (site_title|default('Portfolio')) ~ ' — ' ~ (image.album_title|default('')) %}
-                    {% if image.alt_text is defined and image.alt_text and image.alt_text != image.album_title %}
-                        {% set seo_title = seo_title ~ ' — ' ~ image.alt_text %}
-                    {% endif %}
+                    {% set seo_title = Seo.seo_title(image, {'title': image.album_title}, site_title)|trim %}
                     <div data-inf-item class="inf-work_item{% if image.category_slug %} category-{{ image.category_slug|e('html_attr') }}{% endif %}"
                          data-main-title="{{ image.album_title|e('html_attr') }}"
                          data-work-title="{{ image.album_title|e('html_attr') }}"
