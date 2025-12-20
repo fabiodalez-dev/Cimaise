@@ -1,19 +1,7 @@
+  {% import 'frontend/_seo_macros.twig' as Seo %}
   {# Use lightbox_url for best quality, fallback to original_path #}
   {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
-  {% set seo_title_parts = [] %}
-  {% set primary_title = image.alt|default(image.caption)|default(image.alt_text)|default('') %}
-  {% if primary_title %}
-    {% set seo_title_parts = seo_title_parts|merge([primary_title]) %}
-  {% endif %}
-  {% if album is defined and album.title %}
-    {% set seo_title_parts = seo_title_parts|merge([album.title]) %}
-  {% elseif image.album_title is defined and image.album_title %}
-    {% set seo_title_parts = seo_title_parts|merge([image.album_title]) %}
-  {% endif %}
-  {% if site_title is defined and site_title %}
-    {% set seo_title_parts = seo_title_parts|merge([site_title]) %}
-  {% endif %}
-  {% set seo_title = seo_title_parts|join(' — ') %}
+  {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
   <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
      class="pswp-link image-item group block"
      title="{{ seo_title|e('html_attr') }}"

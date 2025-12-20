@@ -5,11 +5,14 @@ namespace App\Services;
 
 use App\Support\Database;
 use App\Support\Logger;
+use App\Traits\RegistersImageVariants;
 use finfo;
 use RuntimeException;
 
 class UploadService
 {
+    use RegistersImageVariants;
+
     private array $allowed = ['image/jpeg'=>'.jpg','image/png'=>'.png', 'image/webp'=>'.webp'];
     
     // Magic number signatures for image validation
@@ -467,21 +470,6 @@ class UploadService
         }
 
         return $stats;
-    }
-
-    private function registerVariantFromFile(
-        \PDO $pdo,
-        int $imageId,
-        string $variant,
-        string $format,
-        string $destRelUrl,
-        string $destPath,
-        int $fallbackWidth
-    ): void {
-        $size = is_file($destPath) ? (int)filesize($destPath) : 0;
-        $dims = @getimagesize($destPath) ?: [$fallbackWidth, 0];
-        $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)')
-            ->execute([$imageId, $variant, $format, $destRelUrl, (int)$dims[0], (int)$dims[1], $size]);
     }
 
     /**

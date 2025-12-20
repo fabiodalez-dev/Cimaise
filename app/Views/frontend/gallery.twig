@@ -1,23 +1,6 @@
 {% extends "frontend/_layout.twig" %}
 
-{% macro seo_title(image, album, site_title) %}
-  {% set parts = [] %}
-  {% set primary_title = image.alt|default(image.caption)|default('') %}
-  {% if primary_title %}
-    {% set parts = parts|merge([primary_title]) %}
-  {% endif %}
-  {% if album is defined and album.title %}
-    {% set parts = parts|merge([album.title]) %}
-  {% elseif image.album_title is defined and image.album_title %}
-    {% set parts = parts|merge([image.album_title]) %}
-  {% endif %}
-  {% if site_title is defined and site_title %}
-    {% set parts = parts|merge([site_title]) %}
-  {% endif %}
-  {{ parts|join(' — ') }}
-{% endmacro %}
-
-{% import _self as Seo %}
+{% import 'frontend/_seo_macros.twig' as Seo %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

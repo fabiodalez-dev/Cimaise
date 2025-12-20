@@ -5,6 +5,7 @@ namespace App\Tasks;
 
 use App\Services\SettingsService;
 use App\Support\Database;
+use App\Traits\RegistersImageVariants;
 use Imagick;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -16,6 +17,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'images:generate', description: 'Generate image variants as per settings')]
 class ImagesGenerateCommand extends Command
 {
+    use RegistersImageVariants;
+
     public function __construct(private Database $db)
     {
         parent::__construct();
@@ -154,21 +157,6 @@ class ImagesGenerateCommand extends Command
         $output->writeln('<info>Generation Complete!</info>');
         $output->writeln(sprintf('Generated: %d, Skipped: %d, Errors: %d', $totalGenerated, $totalSkipped, $totalErrors));
         return Command::SUCCESS;
-    }
-
-    private function registerVariantFromFile(
-        \PDO $pdo,
-        int $imageId,
-        string $variant,
-        string $format,
-        string $destRelUrl,
-        string $destPath,
-        int $fallbackWidth
-    ): void {
-        $size = is_file($destPath) ? (int)filesize($destPath) : 0;
-        $dims = @getimagesize($destPath) ?: [$fallbackWidth, 0];
-        $stmt = $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)');
-        $stmt->execute([$imageId, $variant, $format, $destRelUrl, (int)$dims[0], (int)$dims[1], $size]);
     }
 
     private function resizeWithImagick(string $src, string $dest, int $targetW, string $format, int $quality): bool
