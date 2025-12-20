@@ -103,7 +103,8 @@
                                          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                                          alt="{{ image.alt_text|default(image.album_title)|e('html_attr') }}"
                                          class="img-fill"
-                                         loading="lazy">
+                                         loading="lazy"
+                                         data-fallback="hide">
                                 </div>
                             </div>
                         </a>

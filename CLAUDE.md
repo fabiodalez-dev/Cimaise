@@ -635,7 +635,7 @@ $app->get('/path', function(...) { ... })
   - Action name: 'contact' for form submissions
   - Client-side: `grecaptcha.execute()` on form submit, adds hidden `recaptcha_token` field
 - **Backend verification**: PageController::contact() validates token before processing
-  - Library: ReCaptcha\ReCaptcha from `google/recaptcha` composer package
+  - Library: ReCaptcha\ReCaptcha from the Google reCAPTCHA (`google/recaptcha`) Composer package
   - Expected action: 'contact' (matches frontend)
   - Score threshold: 0.5 (v3 returns 0.0-1.0, higher = more human)
   - Token validation: `setExpectedAction('contact')->setScoreThreshold(0.5)->verify()`
