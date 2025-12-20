@@ -2,17 +2,32 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{{ base_path }}/assets/css/home-modern.css">
+<style nonce="{{ csp_nonce() }}">
+  .inf-work_list.has-hover .inf-work_item:not(.highlight) {
+    opacity: 0.5;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
 {# Modern Home Template - Grid-based layout with fixed sidebar #}
+
+{% set collection_url = canonical_url|default(base_path ~ '/') %}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": site_title,
+  "url": collection_url
+}|json_encode|raw }}
+</script>
 
 <!-- Global Header -->
 <div class="global-head">
     <div class="global-head_layout">
         <a href="{{ base_path }}/" class="head-logo_holder">
             {% if site_logo %}
-                <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|e('html_attr') }}" class="head-logo_img">
+                <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}" alt="{{ site_title|e('html_attr') }}" class="head-logo_img">
             {% else %}
                 <div class="head-logo_text">{{ site_title|e }}</div>
             {% endif %}
@@ -71,40 +86,55 @@
                 <div class="inf-work_list w-dyn-items">
                     {% for image in all_images %}
                     {# Get best image URL (prefer md webp) #}
-                    {% set image_url = null %}
+                    {% set fallback_path = image.fallback_src ?? image.variants[0].path ?? image.original_path %}
+                    {% set img_src = fallback_path starts with '/' ? base_path ~ fallback_path : base_path ~ '/' ~ fallback_path %}
+                    {% set srcset_avif = [] %}
+                    {% set srcset_webp = [] %}
+                    {% set srcset_jpg = [] %}
                     {% for variant in image.variants %}
-                        {% if variant.variant == 'md' and variant.format == 'webp' %}
-                            {% set image_url = variant.path starts with '/' ? base_path ~ variant.path : base_path ~ '/' ~ variant.path %}
-                        {% endif %}
-                    {% endfor %}
-                    {# Fallback to fallback_src or first variant #}
-                    {% if not image_url %}
-                        {% set fallback_path = image.fallback_src ?? image.variants[0].path ?? image.original_path %}
-                        {% set image_url = fallback_path starts with '/' ? base_path ~ fallback_path : base_path ~ '/' ~ fallback_path %}
-                    {% endif %}
-                    {% set srcset_parts = [] %}
-                    {% for variant in image.variants %}
-                        {% if variant.format == 'webp' %}
+                        {% if variant.path and not (variant.path starts with '/storage/') %}
                             {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : base_path ~ '/' ~ variant.path %}
-                            {% set srcset_parts = srcset_parts|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                            {% set srcset_entry = variant_url ~ ' ' ~ variant.width ~ 'w' %}
+                            {% if variant.format == 'avif' %}
+                                {% set srcset_avif = srcset_avif|merge([srcset_entry]) %}
+                            {% elseif variant.format == 'webp' %}
+                                {% set srcset_webp = srcset_webp|merge([srcset_entry]) %}
+                            {% elseif variant.format == 'jpg' or variant.format == 'jpeg' %}
+                                {% set srcset_jpg = srcset_jpg|merge([srcset_entry]) %}
+                            {% endif %}
                         {% endif %}
                     {% endfor %}
 
+                    {% set seo_title = (site_title|default('Portfolio')) ~ ' — ' ~ (image.album_title|default('')) %}
+                    {% if image.alt_text is defined and image.alt_text and image.alt_text != image.album_title %}
+                        {% set seo_title = seo_title ~ ' — ' ~ image.alt_text %}
+                    {% endif %}
                     <div data-inf-item class="inf-work_item{% if image.category_slug %} category-{{ image.category_slug|e('html_attr') }}{% endif %}"
                          data-main-title="{{ image.album_title|e('html_attr') }}"
                          data-work-title="{{ image.album_title|e('html_attr') }}"
                          data-work-copy="{{ image.album_description|striptags|slice(0, 200)|e('html_attr') }}"
                          data-album-id="{{ image.album_id }}">
-                        <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}" class="inf-work_link">
+                        <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}" class="inf-work_link" title="{{ seo_title|e('html_attr') }}">
                             <div class="work-grid_img-holder">
                                 <div class="work-grid_img-height">
-                                    <img src="{{ image_url }}"
-                                         {% if srcset_parts %}srcset="{{ srcset_parts|join(', ')|e('html_attr') }}"{% endif %}
-                                         sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                                         alt="{{ image.alt_text|default(image.album_title)|e('html_attr') }}"
-                                         class="img-fill"
-                                         loading="lazy"
-                                         data-fallback="hide">
+                                    <picture>
+                                        {% if srcset_avif %}
+                                        <source type="image/avif" srcset="{{ srcset_avif|join(', ')|e('html_attr') }}">
+                                        {% endif %}
+                                        {% if srcset_webp %}
+                                        <source type="image/webp" srcset="{{ srcset_webp|join(', ')|e('html_attr') }}">
+                                        {% endif %}
+                                        {% if srcset_jpg %}
+                                        <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}">
+                                        {% endif %}
+                                        <img src="{{ img_src }}"
+                                             sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                                             alt="{{ image.alt_text|default(image.album_title)|e('html_attr') }}"
+                                             title="{{ seo_title|e('html_attr') }}"
+                                             class="img-fill"
+                                             loading="lazy"
+                                             data-fallback="hide">
+                                    </picture>
                                 </div>
                             </div>
                         </a>

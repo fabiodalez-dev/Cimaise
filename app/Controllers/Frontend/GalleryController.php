@@ -238,15 +238,15 @@ class GalleryController extends BaseController
                 $vr = $v->fetch();
                 if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
                 
-                // Choose the largest available variant for lightbox (prefers AVIF/WebP, xxl->sm)
+                // Choose the largest available variant for lightbox (prefer size, then format)
                 $lb = $pdo->prepare("
                     SELECT variant, format, path
                     FROM image_variants
                     WHERE image_id = :id AND path NOT LIKE '/storage/%'
                     ORDER BY
-                        CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 WHEN 'sm' THEN 5 ELSE 9 END,
+                        width DESC,
                         CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END,
-                        width DESC
+                        CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 WHEN 'sm' THEN 5 ELSE 9 END
                     LIMIT 1
                 ");
                 $lb->execute([':id' => $img['id']]);
@@ -285,8 +285,8 @@ class GalleryController extends BaseController
                 $bestUrl = $fallback ?: '/media/placeholder.jpg'; // Use placeholder if no variants
             }
             if (str_starts_with((string)$lightboxUrl, '/storage/')) {
-                // For lightbox, prefer largest variant (lg > md > sm) for best quality
-                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END, width DESC LIMIT 1");
+                // For lightbox, prefer largest variant (size first, then format)
+                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY width DESC, CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END LIMIT 1");
                 $fallbackStmt->execute([':id' => $img['id']]);
                 $fallback = $fallbackStmt->fetchColumn();
                 $lightboxUrl = ($isProtectedAlbum && $allowDownloads)
@@ -573,9 +573,28 @@ class GalleryController extends BaseController
                         ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
                     $vg->execute([':id' => $img['id']]);
                     if ($vgr = $vg->fetch()) { if (!empty($vgr['path'])) { $bestUrl = $vgr['path']; } }
-                    if (!($isProtectedAlbum && $allowDownloads)) {
+                    // Lightbox: choose the largest available variant (size first, then format)
+                    $lb = $pdo->prepare("
+                        SELECT variant, format, path
+                        FROM image_variants
+                        WHERE image_id = :id AND path NOT LIKE '/storage/%'
+                        ORDER BY width DESC,
+                                 CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END,
+                                 CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 WHEN 'sm' THEN 5 ELSE 9 END
+                        LIMIT 1
+                    ");
+                    $lb->execute([':id' => $img['id']]);
+                    $lbr = $lb->fetch();
+                    if ($lbr && !empty($lbr['path'])) {
+                        if ($isProtectedAlbum && $allowDownloads) {
+                            $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $lbr['variant'] . '.' . $lbr['format'];
+                        } else {
+                            $lightboxUrl = $lbr['path'];
+                        }
+                    } elseif (!($isProtectedAlbum && $allowDownloads)) {
                         $lightboxUrl = $bestUrl;
                     }
+
                     // Lightbox: only use variant if original is not publicly accessible
                     // Original paths like /media/originals/... are public, /storage/... are not
                     // Build responsive sources for <picture>
@@ -601,8 +620,8 @@ class GalleryController extends BaseController
                     $bestUrl = $fallback ?: '/media/placeholder.jpg';
                 }
                 if (str_starts_with((string)$lightboxUrl, '/storage/')) {
-                    // For lightbox, prefer largest variant (lg > md > sm) for best quality
-                    $lbFallback = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END, width DESC LIMIT 1");
+                    // For lightbox, prefer largest variant (size first, then format)
+                    $lbFallback = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY width DESC, CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END LIMIT 1");
                     $lbFallback->execute([':id' => $img['id']]);
                     $fallbackPath = $lbFallback->fetchColumn();
                     if ($isProtectedAlbum && $allowDownloads) {
@@ -644,7 +663,8 @@ class GalleryController extends BaseController
             $templateData = [
                 'images' => $images,
                 'template_settings' => $templateSettings,
-                'base_path' => $this->basePath
+                'base_path' => $this->basePath,
+                'album' => $album
             ];
 
             // Use Magazine template for magazine-split slug or layout 'magazine'
