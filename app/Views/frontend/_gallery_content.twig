@@ -37,24 +37,12 @@
 
 {# Render content based on layout type #}
 {% import 'frontend/_caption.twig' as Caption %}
+{% import 'frontend/_seo_macros.twig' as Seo %}
 {% if layout == 'slideshow' %}
   <div class="swiper-wrapper">
     {% for image in images %}
     <div class="swiper-slide">
-    {% set seo_title_parts = [] %}
-    {% set primary_title = image.alt|default(image.caption)|default('') %}
-    {% if primary_title %}
-      {% set seo_title_parts = seo_title_parts|merge([primary_title]) %}
-    {% endif %}
-    {% if album is defined and album.title %}
-      {% set seo_title_parts = seo_title_parts|merge([album.title]) %}
-    {% elseif image.album_title is defined and image.album_title %}
-      {% set seo_title_parts = seo_title_parts|merge([image.album_title]) %}
-    {% endif %}
-    {% if site_title is defined and site_title %}
-      {% set seo_title_parts = seo_title_parts|merge([site_title]) %}
-    {% endif %}
-    {% set seo_title = seo_title_parts|join(' — ') %}
+    {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
     <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" 
        class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
        title="{{ seo_title|e('html_attr') }}"
@@ -96,20 +84,7 @@
 {% elseif layout == 'fullscreen' %}
   {% for image in images %}
   <div class="masonry-item">
-    {% set seo_title_parts = [] %}
-    {% set primary_title = image.alt|default(image.caption)|default('') %}
-    {% if primary_title %}
-      {% set seo_title_parts = seo_title_parts|merge([primary_title]) %}
-    {% endif %}
-    {% if album is defined and album.title %}
-      {% set seo_title_parts = seo_title_parts|merge([album.title]) %}
-    {% elseif image.album_title is defined and image.album_title %}
-      {% set seo_title_parts = seo_title_parts|merge([image.album_title]) %}
-    {% endif %}
-    {% if site_title is defined and site_title %}
-      {% set seo_title_parts = seo_title_parts|merge([site_title]) %}
-    {% endif %}
-    {% set seo_title = seo_title_parts|join(' — ') %}
+    {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
     <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" 
        class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
        title="{{ seo_title|e('html_attr') }}"
@@ -147,20 +122,7 @@
 {% elseif masonry %}
   {% for image in images %}
   <div class="masonry-item">
-    {% set seo_title_parts = [] %}
-    {% set primary_title = image.alt|default(image.caption)|default('') %}
-    {% if primary_title %}
-      {% set seo_title_parts = seo_title_parts|merge([primary_title]) %}
-    {% endif %}
-    {% if album is defined and album.title %}
-      {% set seo_title_parts = seo_title_parts|merge([album.title]) %}
-    {% elseif image.album_title is defined and image.album_title %}
-      {% set seo_title_parts = seo_title_parts|merge([image.album_title]) %}
-    {% endif %}
-    {% if site_title is defined and site_title %}
-      {% set seo_title_parts = seo_title_parts|merge([site_title]) %}
-    {% endif %}
-    {% set seo_title = seo_title_parts|join(' — ') %}
+    {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
     <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" 
        class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
        title="{{ seo_title|e('html_attr') }}"
@@ -199,20 +161,7 @@
   {# Regular grid layout #}
   {% for image in images %}
   <div class="image-item group relative">
-    {% set seo_title_parts = [] %}
-    {% set primary_title = image.alt|default(image.caption)|default('') %}
-    {% if primary_title %}
-      {% set seo_title_parts = seo_title_parts|merge([primary_title]) %}
-    {% endif %}
-    {% if album is defined and album.title %}
-      {% set seo_title_parts = seo_title_parts|merge([album.title]) %}
-    {% elseif image.album_title is defined and image.album_title %}
-      {% set seo_title_parts = seo_title_parts|merge([image.album_title]) %}
-    {% endif %}
-    {% if site_title is defined and site_title %}
-      {% set seo_title_parts = seo_title_parts|merge([site_title]) %}
-    {% endif %}
-    {% set seo_title = seo_title_parts|join(' — ') %}
+    {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
     <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" 
        class="pswp-link aspect-square bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
        title="{{ seo_title|e('html_attr') }}"
@@ -267,5 +216,5 @@
 
 {# Include template settings for JavaScript #}
 <script nonce="{{ csp_nonce() }}">
-window.templateSettings = {{ template_settings|json_encode|raw }};
+window.templateSettings = JSON.parse('{{ template_settings|json_encode|e('js') }}');
 </script>

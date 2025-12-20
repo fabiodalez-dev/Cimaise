@@ -32,6 +32,262 @@ You've spent hours in the darkroom, days on location, years perfecting your craf
 
 ---
 
+## Two Ways to Present Your Work
+
+Choose the homepage layout that matches your style:
+
+### Classic Home
+
+<p align="center">
+  <img src="docs/home-classic.png" alt="Classic Home" width="600">
+</p>
+
+**The editorial approach.** A dramatic hero section welcomes visitors, followed by an infinite scroll masonry grid of your albums. Perfect for photographers who want:
+
+- **Hero Section** — Full-screen welcome with your logo and tagline
+- **Album Carousel** — Smooth horizontal scrolling through featured work
+- **Masonry Grid** — Pinterest-style layout respecting each image's aspect ratio
+- **Infinite Scroll** — Seamless vertical discovery, no pagination
+- **Configurable Animation** — Scroll direction (up/down) and speed
+
+Ideal for: Wedding photographers, portrait artists, commercial studios with diverse portfolios.
+
+### Modern Home
+
+<p align="center">
+  <img src="docs/home-modern.png" alt="Modern Home" width="600">
+</p>
+
+**The gallery approach.** A minimalist split-screen design with fixed sidebar navigation and a scrolling image grid. Perfect for photographers who want:
+
+- **Fixed Sidebar** — Category filters always visible, never scroll away
+- **Two-Column Grid** — Clean, uniform presentation with smooth parallax effect
+- **Hover Reveals** — Album title and description appear on hover
+- **Mega Menu** — Full-screen navigation overlay
+- **Lenis Smooth Scroll** — Buttery 60fps scrolling experience
+
+Ideal for: Fine art photographers, minimalist portfolios, those with well-defined categories.
+
+**Switch anytime** from Admin → Pages → Home Page. No content migration needed.
+
+---
+
+## Protect Your Work
+
+### Password-Protected Galleries
+
+Share private client galleries without making them public:
+
+- **Per-Album Passwords** — Each gallery can have its own access code
+- **Session-Based Access** — Unlock once, browse freely for 24 hours
+- **Clean URLs** — Share `yoursite.com/album/wedding-jones` not ugly token links
+- **No Account Required** — Clients enter the password, that's it
+- **Rate Limited** — Brute-force protection prevents password guessing
+
+Perfect for: Client proofing, private event galleries, pre-release work.
+
+### NSFW / Adult Content Mode
+
+Show mature work responsibly:
+
+- **Blur Previews** — Thumbnails are automatically blurred until age confirmation
+- **Age Gate** — "I am 18+" confirmation before accessing content
+- **Per-Album Setting** — Mark individual galleries as NSFW, keep the rest public
+- **Session Memory** — Visitors confirm once per session, not per image
+- **Server-Side Enforcement** — Blur can't be bypassed by inspecting HTML
+
+Perfect for: Boudoir photographers, figure artists, any work requiring viewer discretion.
+
+---
+
+## Gallery Filters That Work
+
+Let visitors explore your entire body of work:
+
+### Multi-Criteria Filtering
+
+<p align="center">
+  <img src="docs/galleries-filters.png" alt="Gallery Filters" width="600">
+</p>
+
+- **Categories** — Wedding, Portrait, Landscape, etc.
+- **Tags** — Multiple tags per album for cross-cutting themes
+- **Year** — Filter by when the work was created
+- **Location** — Where the shoot happened
+- **Equipment** — Filter by camera, lens, or film stock
+
+### For Analog Photographers
+
+- **Camera** — Hasselblad 500C/M, Leica M6, Mamiya RB67...
+- **Lens** — 50mm f/1.4, 80mm f/2.8, 35mm Summicron...
+- **Film Stock** — Portra 400, Tri-X 400, Ektar 100...
+- **Process** — C-41, E-6, Black & White
+
+Visitors can combine filters: "Show me all medium format Portra 400 shots from 2024."
+
+### Shareable Searches
+
+Every filter combination creates a unique URL. Share `yoursite.com/galleries?film=portra-400&year=2024` and recipients see exactly that filtered view.
+
+---
+
+## Automatic Image Optimization
+
+**Upload once. Cimaise handles everything.**
+
+Every photo you upload automatically generates optimized variants:
+
+```
+Your Upload (8000x5333 RAW/JPEG)
+    ↓
+Originals stored safely in storage/originals/
+    ↓
+Public variants generated:
+    ├── Small (768px)  → AVIF, WebP, JPEG
+    ├── Medium (1200px) → AVIF, WebP, JPEG
+    ├── Large (1920px)  → AVIF, WebP, JPEG
+    ├── XL (2560px)     → AVIF, WebP, JPEG
+    └── XXL (3840px)    → AVIF, WebP, JPEG
+```
+
+### Why This Matters
+
+| Visitor's Device | What They Get | Savings |
+|------------------|---------------|---------|
+| iPhone SE | Small WebP (768px) | 95% smaller |
+| MacBook Pro | Large AVIF (1920px) | 80% smaller |
+| 4K Display | XXL AVIF (3840px) | 70% smaller |
+
+**Result:** Fast loading everywhere. No manual resizing. No Photoshop exports.
+
+### Quality You Control
+
+From Admin → Settings → Image Processing:
+
+| Format | Default | Your Choice |
+|--------|---------|-------------|
+| AVIF | 50% | 40-70% |
+| WebP | 75% | 60-90% |
+| JPEG | 85% | 70-95% |
+
+Tune the balance between quality and file size for your specific work.
+
+---
+
+## Settings That Matter
+
+Cimaise focuses on what photographers actually need:
+
+### Site Identity
+- **Logo & Favicon** — Upload once, automatic generation of all sizes (16px to 512px)
+- **Site Title & Description** — Used in browser tabs, search results, social shares
+- **Copyright Notice** — `© {year}` auto-updates each January
+
+### Gallery Presentation
+- **Template Selection** — Grid, Masonry, Magazine, Magazine+Cover per gallery
+- **Column Configuration** — Desktop (1-6), Tablet (1-4), Mobile (1-2)
+- **Lightbox Options** — Zoom, loop, keyboard navigation, share buttons
+- **Home Page Layout** — Classic or Modern, switchable anytime
+
+### Image Handling
+- **Format Enable/Disable** — Turn off AVIF if your host doesn't support it
+- **Quality Sliders** — Balance quality vs file size per format
+- **Breakpoints** — Customize which sizes get generated
+- **Lazy Loading** — Above-fold images load instantly, below-fold on scroll
+
+### Languages
+- **Site Language** — English, Italian (more coming)
+- **Admin Language** — Can differ from public site
+- **Date Format** — ISO (2024-01-15) or European (15-01-2024)
+
+### Privacy & Compliance
+- **Cookie Banner** — GDPR-compliant consent (Silktide integration)
+- **Built-in Analytics** — No Google required, data stays on your server
+- **reCAPTCHA** — Optional spam protection for contact forms
+
+---
+
+## SEO Built for Photographers
+
+### Automatic Structured Data
+
+Every page outputs JSON-LD that Google understands:
+
+```json
+{
+  "@type": "ImageGallery",
+  "name": "Autumn in Kyoto",
+  "author": { "@type": "Person", "name": "Your Name" },
+  "image": [/* all your gallery images */]
+}
+```
+
+### Rich Results Ready
+
+- **BreadcrumbList** — `Home > Landscape > Autumn in Kyoto` in search results
+- **ImageGallery** — Proper attribution and licensing info
+- **Organization/Person** — Your professional identity
+- **LocalBusiness** — For studio photographers with physical locations
+
+### Social Sharing Optimized
+
+When someone shares your gallery on social media:
+
+- **Open Graph** — Beautiful previews on Facebook, LinkedIn
+- **Twitter Cards** — Large image cards with proper attribution
+- **Pinterest** — Rich pins with your images
+- **WhatsApp** — Preview thumbnails in chat
+
+### Technical SEO
+
+- **Server-Side Rendering** — Every page is real HTML, not JavaScript-generated
+- **Clean URLs** — `/album/autumn-kyoto` not `/album?id=42`
+- **Automatic Sitemap** — XML sitemap updates as you add content
+- **Canonical URLs** — No duplicate content penalties
+- **robots.txt** — Configurable crawler instructions
+
+### Meta Control Per Page
+
+For each album, customize:
+- Page title (default: Album Name — Site Name)
+- Meta description
+- Social share image (defaults to album cover)
+
+---
+
+## Security That Protects
+
+Your portfolio is your livelihood. Cimaise takes security seriously:
+
+### Attack Prevention
+- **SQL Injection** — 100% prepared statements, no exceptions
+- **XSS Attacks** — Automatic output escaping in all templates
+- **CSRF Protection** — Every form has a unique token
+- **Rate Limiting** — Login attempts, API calls, form submissions
+
+### Authentication
+- **Argon2id Hashing** — The most secure password algorithm available
+- **Brute Force Protection** — Lockout after failed attempts
+- **Session Security** — Secure cookies, proper expiration
+
+### Content Security Policy
+
+Modern CSP headers prevent malicious script injection:
+- Inline scripts require unique nonces
+- External scripts whitelisted by domain
+- Frame embedding blocked
+- HTTPS enforced (HSTS)
+
+### Protected Media Serving
+
+All image requests go through PHP validation:
+- Password-protected albums require session authentication
+- NSFW content requires age confirmation
+- Path traversal attacks blocked
+- Only image MIME types served
+
+---
+
 ## See It In Action
 
 ### Gallery Templates
@@ -67,15 +323,6 @@ A dashboard that doesn't insult your intelligence:
 - **Bulk Upload** — Drop 100 images at once, grab coffee, come back to organized variants
 - **Inline Editing** — Click any text to edit it. No page reloads, no modal dialogs
 - **Real-Time Preview** — See exactly how your gallery will look before publishing
-
-### Smart Filtering
-
-Let visitors explore your work:
-
-- Filter by category, tags, year, location
-- Equipment-based browsing (by camera, lens, film stock)
-- Full-text search across titles and descriptions
-- URL-based filters for shareable searches
 
 ---
 
@@ -130,94 +377,6 @@ Interactive prompts guide you through the same setup without a browser.
 
 ---
 
-## Image Processing
-
-Every uploaded image automatically generates:
-
-```text
-Original (stored safely in storage/originals/)
-    └── Variants in public/media/
-        ├── image_sm.avif   (768px)
-        ├── image_sm.webp
-        ├── image_sm.jpg
-        ├── image_md.avif   (1200px)
-        ├── image_md.webp
-        ├── image_md.jpg
-        ├── image_lg.avif   (1920px)
-        └── ... up to 3840px (xxl)
-```
-
-**Smart `<picture>` Elements** — Browsers automatically pick the best format and size:
-
-```html
-<picture>
-  <source type="image/avif" srcset="image_sm.avif 768w, image_md.avif 1200w, ...">
-  <source type="image/webp" srcset="image_sm.webp 768w, image_md.webp 1200w, ...">
-  <img src="image_md.jpg" srcset="..." loading="lazy" decoding="async">
-</picture>
-```
-
-**Quality Settings** — Tune per-format quality from the admin panel:
-
-| Format | Default | Typical Range |
-|--------|---------|---------------|
-| AVIF | 50% | 40-60% |
-| WebP | 75% | 65-85% |
-| JPEG | 85% | 75-90% |
-
----
-
-## Features Deep Dive
-
-### Photography Metadata
-
-Native support for what matters to photographers:
-
-- **Cameras** — Make and model database
-- **Lenses** — Focal length, aperture range
-- **Film Stocks** — Brand, ISO, format (35mm, 120, 4x5), type (C-41, E-6, B&W)
-- **Developers** — Chemical processes
-- **Labs** — Your trusted development houses
-- **Locations** — Where the magic happened
-
-### SEO & Discovery
-
-- JSON-LD structured data (BreadcrumbList, ImageGallery, Organization)
-- Open Graph and Twitter Card meta tags
-- Automatic XML sitemaps
-- Configurable robots.txt
-- Clean, semantic URLs (`/gallery/autumn-in-tokyo` not `/gallery?id=42`)
-
-### Security
-
-- **Authentication**: Argon2id password hashing, rate-limited login
-- **CSRF Protection**: Every form, every POST request
-- **SQL Injection**: 100% prepared statements
-- **XSS Prevention**: Twig auto-escaping
-- **Security Headers**: CSP, HSTS, X-Frame-Options, and more
-- **Protected Albums**: Password protection with session validation
-- **NSFW Handling**: Age-gated content with blur previews
-
-### Multi-Language
-
-- Built-in i18n system with JSON translation files
-- Import/export translations
-- Admin UI for managing text strings
-- Ships with English and Italian
-
-### Analytics (Built-in)
-
-No Google Analytics required:
-
-- Page views and sessions
-- Geographic distribution (privacy-respecting)
-- Device and browser statistics
-- Bot detection and filtering
-- Configurable data retention
-- Export your data anytime
-
----
-
 ## CLI Commands
 
 ```bash
@@ -226,6 +385,7 @@ php bin/console migrate              # Run database migrations
 php bin/console seed                 # Seed default templates and categories
 php bin/console user:create          # Create admin user
 php bin/console images:generate      # Generate all image variants
+php bin/console nsfw:blur:generate   # Generate blur variants for NSFW albums
 php bin/console sitemap:generate     # Build XML sitemap
 php bin/console analytics:cleanup    # Purge old analytics data
 ```
@@ -268,30 +428,6 @@ server {
 ### Subdirectory Installation
 
 Cimaise automatically detects subdirectory installations (e.g., `yoursite.com/portfolio/`) and adjusts all URLs accordingly. No configuration needed.
-
----
-
-## Project Structure
-
-```text
-cimaise/
-├── app/
-│   ├── Controllers/      # Admin (28) and Frontend (6) controllers
-│   ├── Services/         # Business logic (Upload, Analytics, EXIF, etc.)
-│   ├── Views/            # Twig templates
-│   └── ...
-├── database/
-│   ├── schema.sqlite.sql # SQLite schema
-│   └── schema.mysql.sql  # MySQL schema
-├── public/
-│   ├── index.php         # Entry point
-│   └── media/            # Generated image variants
-├── storage/
-│   ├── originals/        # Master images (never served directly)
-│   ├── translations/     # i18n JSON files
-│   └── logs/             # Application logs
-└── ...
-```
 
 ---
 
