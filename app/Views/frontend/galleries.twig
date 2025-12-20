@@ -1170,24 +1170,13 @@ function debounce(func, wait) {
 <script nonce="{{ csp_nonce() }}">
 // NSFW Content Handling
 let pendingNsfwUrl = null;
+const basePath = window.basePath || '{{ base_path|e('js') }}';
+const csrfToken = '{{ csrf|e('js') }}';
 
 function hasConfirmedNsfw() {
     if (window.nsfwConsent === true) return true;
     if (localStorage.getItem('nsfw_confirmed') === 'true') return true;
-    return hasNsfwCookie();
-}
-
-function hasNsfwCookie() {
-    const cookies = document.cookie.split(';');
-    return cookies.some(cookie => cookie.trim().startsWith('nsfw_consent=1'));
-}
-
-function setNsfwConfirmed() {
-    localStorage.setItem('nsfw_confirmed', 'true');
-    const maxAge = 60 * 60 * 24 * 30;
-    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `nsfw_consent=1; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}`;
-    window.nsfwConsent = true;
+    return false;
 }
 
 function handleGalleryCardClick(event, card) {
@@ -1223,18 +1212,30 @@ function hideNsfwModal() {
 }
 
 function confirmNsfwAge() {
-    setNsfwConfirmed();
-    hideNsfwModal();
-
-    // Navigate to the pending URL if any
-    if (pendingNsfwUrl) {
-        window.location.href = pendingNsfwUrl;
-        pendingNsfwUrl = null;
-    } else {
-        if (hasNsfwCookie()) {
-            window.location.reload();
-        }
+    if (!csrfToken) {
+        return;
     }
+    fetch(`${basePath}/nsfw/confirm`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
+    }).then((resp) => {
+        if (!resp.ok) {
+            throw new Error('NSFW confirm failed');
+        }
+        localStorage.setItem('nsfw_confirmed', 'true');
+        window.nsfwConsent = true;
+        hideNsfwModal();
+
+        // Navigate to the pending URL if any
+        if (pendingNsfwUrl) {
+            window.location.href = pendingNsfwUrl;
+            pendingNsfwUrl = null;
+        } else {
+            applyFilters();
+        }
+    }).catch(() => {});
 }
 
 function cancelNsfw() {

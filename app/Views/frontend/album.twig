@@ -38,40 +38,32 @@ const albumSlug = '{{ album.slug|e('js') }}';
 const basePath = '{{ base_path|e('js') }}';
 const serverConsent = {{ nsfw_consent ? 'true' : 'false' }};
 
-function setNsfwCookie() {
-  const maxAge = 60 * 60 * 24 * 30;
-  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `nsfw_consent=1; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}`;
-}
-
-function hasNsfwCookie() {
-  const cookies = document.cookie.split(';');
-  return cookies.some(cookie => cookie.trim().startsWith('nsfw_consent=1'));
-}
-
 (function() {
   const localConfirmed = localStorage.getItem('nsfw_confirmed') === 'true';
-  const hasConfirmed = serverConsent || localConfirmed;
   const gate = document.getElementById('nsfw-gate');
   const mainContent = document.getElementById('album-main-content');
 
-  // If already confirmed in localStorage, ensure server session is updated for media access
   if (localConfirmed && !serverConsent && albumSlug && csrfToken) {
-    setNsfwCookie();
     fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
-    }).catch(() => {});
+    }).then((resp) => {
+      if (!resp.ok) {
+        throw new Error('NSFW confirm failed');
+      }
+      window.location.reload();
+    }).catch((err) => {
+      console.warn('NSFW consent sync failed:', err);
+    });
   }
 
   if (serverConsent && !localConfirmed) {
     localStorage.setItem('nsfw_confirmed', 'true');
-    setNsfwCookie();
   }
 
-  if (!hasConfirmed && gate) {
+  if (!serverConsent && gate) {
     gate.classList.add('active');
     document.body.style.overflow = 'hidden';
     if (mainContent) {
@@ -85,33 +77,31 @@ function hasNsfwCookie() {
 })();
 
 function confirmNsfwAndShow() {
-  localStorage.setItem('nsfw_confirmed', 'true');
-  setNsfwCookie();
-  window.nsfwConsent = true;
-  // Inform backend to set session flag for NSFW protection
-  if (albumSlug && csrfToken) {
-    fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
-    }).catch(() => { /* non-blocking */ });
-  }
-  if (hasNsfwCookie()) {
-    window.location.reload();
+  if (!albumSlug || !csrfToken) {
     return;
   }
-  const gate = document.getElementById('nsfw-gate');
-  const mainContent = document.getElementById('album-main-content');
-  if (gate) {
-    gate.classList.remove('active');
-    gate.style.display = 'none';
+  const confirmBtn = document.getElementById('nsfw-confirm-btn');
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
   }
-  if (mainContent) {
-    mainContent.classList.remove('nsfw-hidden');
-    mainContent.removeAttribute('aria-hidden');
-  }
-  document.body.style.overflow = '';
+  fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
+  }).then((resp) => {
+    if (!resp.ok) {
+      throw new Error('NSFW confirm failed');
+    }
+    localStorage.setItem('nsfw_confirmed', 'true');
+    window.nsfwConsent = true;
+    window.location.reload();
+  }).catch((err) => {
+    console.warn('NSFW confirmation failed:', err);
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+    }
+  });
 }
 
 document.getElementById('nsfw-confirm-btn')?.addEventListener('click', function(event) {
