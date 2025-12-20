@@ -503,6 +503,7 @@ class PageController extends BaseController
 
         // Determine if album is protected (requires session access validation)
         $isProtectedAlbum = !empty($album['password_hash']) || !empty($album['is_nsfw']);
+        $allowDownloads = !empty($album['allow_downloads']);
 
         // Enrich images with metadata and build PhotoSwipe-compatible data
         foreach ($images as &$image) {
@@ -535,10 +536,11 @@ class PageController extends BaseController
                     } else {
                         $lightboxUrl = $chosen['path'];
                     }
-                }
-                // Fallback to protected original if no public variants are available
-                if ($isProtectedAlbum && !$isAdmin && ($lightboxUrl === $bestUrl || str_starts_with((string)$lightboxUrl, '/storage/'))) {
-                    $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/original';
+                } else {
+                    $lightboxUrl = $bestUrl;
+                    if ($isProtectedAlbum && !$isAdmin && $allowDownloads && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
+                        $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/original';
+                    }
                 }
             } catch (\Throwable $e) {
                 Logger::warning('PageController: Error fetching image variants', ['image_id' => $image['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
@@ -900,12 +902,14 @@ class PageController extends BaseController
 
             // Determine if album is protected (password or NSFW)
             $isProtectedAlbum = !empty($album['password_hash']) || $isNsfw;
+            $allowDownloads = !empty($album['allow_downloads']);
 
             // Build gallery items for the template
             $images = [];
             foreach ($imagesRows as $img) {
                 $bestUrl = $img['original_path'];
                 $lightboxUrl = $img['original_path'];
+                $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
 
                 try {
                     $v = $pdo->prepare("SELECT path, width, height, variant, format FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
@@ -920,9 +924,37 @@ class PageController extends BaseController
                         }
                     }
 
-                    // Lightbox: for protected albums, use protected original URL
-                    if ($isProtectedAlbum && !$isAdmin) {
-                        $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
+                    $variantsStmt = $pdo->prepare("SELECT variant, format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%'");
+                    $variantsStmt->execute([':id' => $img['id']]);
+                    $variants = $variantsStmt->fetchAll() ?: [];
+
+                    $chosen = $this->selectBestLightboxVariant($variants);
+                    if ($chosen !== null) {
+                        if ($isProtectedAlbum && !$isAdmin) {
+                            $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $chosen['variant'] . '.' . $chosen['format'];
+                        } else {
+                            $lightboxUrl = $chosen['path'];
+                        }
+                    } else {
+                        $lightboxUrl = $bestUrl;
+                        if ($isProtectedAlbum && !$isAdmin && $allowDownloads && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
+                            $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
+                        }
+                    }
+
+                    foreach ($variants as $variant) {
+                        $fmt = $variant['format'] ?? null;
+                        if (!isset($sources[$fmt])) {
+                            continue;
+                        }
+                        $srcPath = $variant['path'] ?? '';
+                        if ($srcPath === '') {
+                            continue;
+                        }
+                        if ($isProtectedAlbum && !$isAdmin) {
+                            $srcPath = $this->basePath . '/media/protected/' . $img['id'] . '/' . $variant['variant'] . '.' . $variant['format'];
+                        }
+                        $sources[$fmt][] = $srcPath . ' ' . (int)($variant['width'] ?? 0) . 'w';
                     }
                 } catch (\Throwable $e) {
                     Logger::warning('PageController: Error fetching image variants', ['image_id' => $img['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
@@ -933,20 +965,6 @@ class PageController extends BaseController
                 }
                 if (str_starts_with((string)$lightboxUrl, '/storage/')) {
                     $lightboxUrl = $bestUrl;
-                }
-
-                // Build sources with protected URLs for protected albums
-                $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
-                if ($isProtectedAlbum && !$isAdmin) {
-                    // Get all variants for srcset
-                    try {
-                        $allV = $pdo->prepare("SELECT variant, format, width FROM image_variants WHERE image_id = :id AND format IN ('avif','webp','jpg')");
-                        $allV->execute([':id' => $img['id']]);
-                        while ($av = $allV->fetch()) {
-                            $protectedUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $av['variant'] . '.' . $av['format'];
-                            $sources[$av['format']][] = $protectedUrl . ' ' . (int)$av['width'] . 'w';
-                        }
-                    } catch (\Throwable) {}
                 }
 
                 $images[] = [
@@ -1126,7 +1144,6 @@ class PageController extends BaseController
 
     public function about(Request $request, Response $response): Response
     {
-        $pdo = $this->db->pdo();
         // categories for header
         $navCategories = (new NavigationService($this->db))->getNavigationCategories();
 

@@ -18,7 +18,6 @@ class GalleriesController extends BaseController
 
     public function index(Request $request, Response $response): Response
     {
-        $pdo = $this->db->pdo();
         $params = $request->getQueryParams();
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
@@ -33,7 +32,7 @@ class GalleriesController extends BaseController
         $filters = $this->buildFilters($params, $filterSettings);
         
         // Get albums with filters applied
-        $albums = $this->getFilteredAlbums($filters);
+        $albums = $this->getFilteredAlbums($filters, $isAdmin, $nsfwConsent);
         
         // Get filter options for dropdowns
         $filterOptions = $this->getFilterOptions();
@@ -58,6 +57,8 @@ class GalleriesController extends BaseController
     public function filter(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
 
         // Get filter settings
         $filterSettings = $this->getFilterSettings();
@@ -66,11 +67,7 @@ class GalleriesController extends BaseController
         $filters = $this->buildFilters($params, $filterSettings);
 
         // Get filtered albums
-        $albums = $this->getFilteredAlbums($filters);
-
-        // Check admin status for NSFW handling
-        $isAdmin = $this->isAdmin();
-        $nsfwConsent = $this->hasNsfwConsent();
+        $albums = $this->getFilteredAlbums($filters, $isAdmin, $nsfwConsent);
 
         // Sanitize album data - remove sensitive fields
         // SECURITY: For NSFW albums without consent, expose only blur_path (no real previews)
@@ -234,7 +231,7 @@ class GalleriesController extends BaseController
         return $filters;
     }
 
-    private function getFilteredAlbums(array $filters): array
+    private function getFilteredAlbums(array $filters, ?bool $isAdmin = null, ?bool $nsfwConsent = null): array
     {
         $pdo = $this->db->pdo();
         
@@ -358,8 +355,8 @@ class GalleriesController extends BaseController
         $stmt->execute($params);
         $albums = $stmt->fetchAll();
         
-        $isAdmin = $this->isAdmin();
-        $nsfwConsent = $this->hasNsfwConsent();
+        $isAdmin ??= $this->isAdmin();
+        $nsfwConsent ??= $this->hasNsfwConsent();
 
         // Enrich albums with cover images and additional data
         $visibleAlbums = [];
@@ -528,9 +525,7 @@ class GalleriesController extends BaseController
             $cover = $stmt->fetch();
             if ($cover) {
                 if (empty($cover['blur_path'])) {
-                    $blurStmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = :id AND variant = "blur" LIMIT 1');
-                    $blurStmt->execute([':id' => $cover['id']]);
-                    $cover['blur_path'] = $blurStmt->fetchColumn() ?: null;
+                    $cover['blur_path'] = $this->fetchBlurPath($pdo, (int)$cover['id']);
                 }
                 $album['cover_image'] = $cover;
             }
@@ -553,9 +548,7 @@ class GalleriesController extends BaseController
             $cover = $stmt->fetch();
             if ($cover) {
                 if (empty($cover['blur_path'])) {
-                    $blurStmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = :id AND variant = "blur" LIMIT 1');
-                    $blurStmt->execute([':id' => $cover['id']]);
-                    $cover['blur_path'] = $blurStmt->fetchColumn() ?: null;
+                    $cover['blur_path'] = $this->fetchBlurPath($pdo, (int)$cover['id']);
                 }
                 $album['cover_image'] = $cover;
             }
@@ -581,6 +574,19 @@ class GalleriesController extends BaseController
         unset($album['password_hash']);
 
         return $album;
+    }
+
+    private function fetchBlurPath(\PDO $pdo, int $imageId): ?string
+    {
+        if ($imageId <= 0) {
+            return null;
+        }
+
+        $stmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = :id AND variant = "blur" LIMIT 1');
+        $stmt->execute([':id' => $imageId]);
+        $path = $stmt->fetchColumn();
+
+        return $path !== false ? (string)$path : null;
     }
 
     private function getParentCategoriesForNavigation(): array

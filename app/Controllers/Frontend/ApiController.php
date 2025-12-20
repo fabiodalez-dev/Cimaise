@@ -126,16 +126,14 @@ class ApiController extends BaseController
 
         $isPasswordProtected = !empty($album['password_hash']);
         $isNsfw = (bool)$album['is_nsfw'];
-        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw)) {
-            if ($isPasswordProtected && !$this->hasAlbumPasswordAccess($albumId)) {
-                $response->getBody()->write(json_encode(['error' => 'Album is password protected']));
-                return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
-            }
-            if ($isNsfw && !$this->hasNsfwAlbumConsent($albumId)) {
-                $response->getBody()->write(json_encode(['error' => 'Age verification required']));
-                return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
-            }
-            $response->getBody()->write(json_encode(['error' => 'Access denied']));
+        $accessResult = $this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw);
+        if ($accessResult !== true) {
+            $error = match ($accessResult) {
+                'password' => 'Album is password protected',
+                'nsfw' => 'Age verification required',
+                default => 'Access denied',
+            };
+            $response->getBody()->write(json_encode(['error' => $error]));
             return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 

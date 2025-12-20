@@ -62,6 +62,7 @@ class GalleryController extends BaseController
         $isNsfwAlbum = !empty($album['is_nsfw']) && !$isAdmin;
         $isProtectedAlbum = $isNsfwAlbum || (!empty($album['password_hash']) && !$isAdmin);
         $restrictNsfwMedia = $isNsfwAlbum && !$this->hasNsfwAlbumConsent((int)$album['id']);
+        $allowDownloads = !empty($album['allow_downloads']);
 
         // Password protection with session timeout (24h) - skip for admins
         if (!empty($album['password_hash']) && !$isAdmin) {
@@ -226,7 +227,7 @@ class GalleryController extends BaseController
         foreach ($imagesRows as $img) {
             $bestUrl = $img['original_path'];
             // Default lightbox URL (overridden below with largest variant if available)
-            $lightboxUrl = $isProtectedAlbum
+            $lightboxUrl = ($isProtectedAlbum && $allowDownloads)
                 ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
                 : $bestUrl;
             
@@ -256,14 +257,16 @@ class GalleryController extends BaseController
                 $lb->execute([':id' => $img['id']]);
                 $lbr = $lb->fetch();
                 if ($lbr && !empty($lbr['path'])) {
-                    if ($isProtectedAlbum) {
+                    if ($isProtectedAlbum && $allowDownloads) {
                         $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $lbr['variant'] . '.' . $lbr['format'];
                     } else {
                         $lightboxUrl = $lbr['path'];
                     }
                 } else {
-                    // Fallback: use protected original for lightbox when no variants are available
-                    $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
+                    // Fallback: only use protected original when downloads are allowed
+                    $lightboxUrl = ($isProtectedAlbum && $allowDownloads)
+                        ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
+                        : $bestUrl;
                 }
                 
                 // Build responsive sources for <picture>
@@ -298,7 +301,7 @@ class GalleryController extends BaseController
                 $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END, width DESC LIMIT 1");
                 $fallbackStmt->execute([':id' => $img['id']]);
                 $fallback = $fallbackStmt->fetchColumn();
-                $lightboxUrl = $isProtectedAlbum
+                $lightboxUrl = ($isProtectedAlbum && $allowDownloads)
                     ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
                     : ($fallback ?: $bestUrl); // Use bestUrl as fallback
             }
@@ -532,6 +535,7 @@ class GalleryController extends BaseController
             $isNsfwAlbum = !empty($album['is_nsfw']) && !$isAdmin;
             $restrictNsfwMedia = $isNsfwAlbum && !$this->hasNsfwAlbumConsent((int)$album['id']);
             $isProtectedAlbum = $isNsfwAlbum || (!empty($album['password_hash']) && !$isAdmin);
+            $allowDownloads = !empty($album['allow_downloads']);
 
             // Password protection with session timeout (24h) - skip for admins
             if (!empty($album['password_hash']) && !$isAdmin) {
@@ -570,9 +574,9 @@ class GalleryController extends BaseController
             $images = [];
             foreach ($imagesRows as $img) {
                 $bestUrl = $img['original_path'];
-                $lightboxUrl = $isProtectedAlbum
+                $lightboxUrl = ($isProtectedAlbum && $allowDownloads)
                     ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
-                    : $img['original_path']; // Keep original for lightbox if accessible
+                    : $bestUrl;
                 try {
                     // Grid: prefer largest public variant (NSFW without consent -> blur only; otherwise avif > webp > jpg)
                     if ($restrictNsfwMedia) {
@@ -586,6 +590,7 @@ class GalleryController extends BaseController
                     }
                     $vg->execute([':id' => $img['id']]);
                     if ($vgr = $vg->fetch()) { if (!empty($vgr['path'])) { $bestUrl = $vgr['path']; } }
+                    $lightboxUrl = $bestUrl;
                     // Lightbox: only use variant if original is not publicly accessible
                     // Original paths like /media/originals/... are public, /storage/... are not
                     // Build responsive sources for <picture>
@@ -622,7 +627,7 @@ class GalleryController extends BaseController
                     $lbFallback = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END, width DESC LIMIT 1");
                     $lbFallback->execute([':id' => $img['id']]);
                     $fallbackPath = $lbFallback->fetchColumn();
-                    if ($isProtectedAlbum) {
+                    if ($isProtectedAlbum && $allowDownloads) {
                         $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
                     } else {
                         $lightboxUrl = $fallbackPath ?: $bestUrl;

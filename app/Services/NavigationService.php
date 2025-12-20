@@ -15,6 +15,6 @@ class NavigationService
     {
         $stmt = $this->db->pdo()->prepare('SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC');
         $stmt->execute();
-        return $stmt->fetchAll() ?: [];
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
     }
 }
