@@ -181,7 +181,7 @@ class Database
     public function dateSubExpression(string $interval, int $value): string
     {
         if ($this->isSqlite) {
-            return "datetime(\"now\", \"-{$value} {$interval}\")";
+            return "datetime('now', '-{$value} {$interval}')";
         }
         $mysqlInterval = match (strtolower($interval)) {
             'hours', 'hour' => 'HOUR',

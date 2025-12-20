@@ -19,7 +19,7 @@ class CategoriesController extends BaseController
     {
         $pdo = $this->db->pdo();
         try {
-            $stmt = $pdo->query('SELECT id, name, slug, sort_order, image_path, COALESCE(parent_id, 0) AS parent_id FROM categories ORDER BY sort_order ASC, name ASC');
+            $stmt = $pdo->query('SELECT id, name, slug, sort_order, image_path, COALESCE(parent_id, 0) AS parent_id FROM categories ORDER BY COALESCE(parent_id, 0) ASC, sort_order ASC, name ASC');
             $rows = $stmt->fetchAll() ?: [];
         } catch (\Throwable $e) {
             // Fallback for pre-migration DBs (no parent_id column)
@@ -344,19 +344,22 @@ class CategoriesController extends BaseController
         
         try {
             $update = $pdo->prepare('UPDATE categories SET parent_id = :parent_id, sort_order = :sort_order WHERE id = :id');
-            
+            $sortCounters = [];
+
             foreach ($hierarchy as $item) {
                 $id = (int)($item['id'] ?? 0);
-                $parentId = !empty($item['parent_id']) ? (int)$item['parent_id'] : null;
-                $sortOrder = (int)($item['sort_order'] ?? 0);
-                
-                if ($id > 0) {
-                    $update->execute([
-                        ':id' => $id,
-                        ':parent_id' => $parentId,
-                        ':sort_order' => $sortOrder
-                    ]);
+                if ($id <= 0) {
+                    continue;
                 }
+                $parentId = !empty($item['parent_id']) ? (int)$item['parent_id'] : 0;
+                $sortOrder = $sortCounters[$parentId] ?? 0;
+                $sortCounters[$parentId] = $sortOrder + 1;
+
+                $update->execute([
+                    ':id' => $id,
+                    ':parent_id' => $parentId > 0 ? $parentId : null,
+                    ':sort_order' => $sortOrder
+                ]);
             }
             
             $pdo->commit();
@@ -385,6 +388,18 @@ class CategoriesController extends BaseController
             }
             $byParent[$parentId][] = $row;
         }
+
+        foreach ($byParent as &$group) {
+            usort($group, static function(array $a, array $b): int {
+                $orderA = (int)($a['sort_order'] ?? 0);
+                $orderB = (int)($b['sort_order'] ?? 0);
+                if ($orderA !== $orderB) {
+                    return $orderA <=> $orderB;
+                }
+                return strcmp((string)($a['name'] ?? ''), (string)($b['name'] ?? ''));
+            });
+        }
+        unset($group);
         
         // Then flatten it with level information
         $result = [];

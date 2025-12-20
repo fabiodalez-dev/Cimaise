@@ -38,8 +38,24 @@ const albumSlug = '{{ album.slug|e('js') }}';
 const basePath = '{{ base_path|e('js') }}';
 const serverConsent = {{ nsfw_consent ? 'true' : 'false' }};
 
+function safeLocalStorageGet(key) {
+  try {
+    return window.localStorage ? window.localStorage.getItem(key) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function safeLocalStorageSet(key, value) {
+  try {
+    if (window.localStorage) {
+      window.localStorage.setItem(key, value);
+    }
+  } catch (e) {}
+}
+
 (function() {
-  const localConfirmed = localStorage.getItem('nsfw_confirmed') === 'true';
+  const localConfirmed = safeLocalStorageGet('nsfw_confirmed') === 'true';
   const gate = document.getElementById('nsfw-gate');
   const mainContent = document.getElementById('album-main-content');
 
@@ -60,7 +76,7 @@ const serverConsent = {{ nsfw_consent ? 'true' : 'false' }};
   }
 
   if (serverConsent && !localConfirmed) {
-    localStorage.setItem('nsfw_confirmed', 'true');
+    safeLocalStorageSet('nsfw_confirmed', 'true');
   }
 
   if (!serverConsent && gate) {
@@ -93,7 +109,7 @@ function confirmNsfwAndShow() {
     if (!resp.ok) {
       throw new Error('NSFW confirm failed');
     }
-    localStorage.setItem('nsfw_confirmed', 'true');
+    safeLocalStorageSet('nsfw_confirmed', 'true');
     window.nsfwConsent = true;
     window.location.reload();
   }).catch((err) => {

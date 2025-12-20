@@ -727,6 +727,12 @@ class PageController extends BaseController
     public function unlockAlbum(Request $request, Response $response, array $args): Response
     {
         $slug = (string)($args['slug'] ?? '');
+        if (!$this->validateCsrf($request)) {
+            return $response
+                ->withHeader('Location', $this->redirect('/album/' . $slug . '?error=1'))
+                ->withStatus(302);
+        }
+
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare('SELECT id, password_hash, is_nsfw FROM albums WHERE slug = :slug');
         $stmt->execute([':slug' => $slug]);
@@ -1078,7 +1084,7 @@ class PageController extends BaseController
         $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
         
         // Get all categories for navigation
-        $stmt = $pdo->prepare('SELECT * FROM categories ORDER BY sort_order ASC, name ASC');
+        $stmt = $pdo->prepare('SELECT * FROM categories ORDER BY COALESCE(parent_id, 0) ASC, sort_order ASC, name ASC');
         $stmt->execute();
         $categories = $stmt->fetchAll();
         
@@ -1515,6 +1521,18 @@ class PageController extends BaseController
             }
             $byParent[$parentId][] = $cat;
         }
+
+        foreach ($byParent as &$group) {
+            usort($group, static function(array $a, array $b): int {
+                $orderA = (int)($a['sort_order'] ?? 0);
+                $orderB = (int)($b['sort_order'] ?? 0);
+                if ($orderA !== $orderB) {
+                    return $orderA <=> $orderB;
+                }
+                return strcmp((string)($a['name'] ?? ''), (string)($b['name'] ?? ''));
+            });
+        }
+        unset($group);
         
         $parentCategories = $byParent[0] ?? [];
         
@@ -1545,7 +1563,7 @@ class PageController extends BaseController
             FROM categories c 
             LEFT JOIN albums a ON a.category_id = c.id AND a.is_published = 1
             GROUP BY c.id 
-            ORDER BY c.sort_order ASC, c.name ASC
+            ORDER BY COALESCE(c.parent_id, 0) ASC, c.sort_order ASC, c.name ASC
         ');
         $stmt->execute();
         $allCategories = $stmt->fetchAll();

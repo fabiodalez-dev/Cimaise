@@ -197,6 +197,11 @@ photoCMS/
 - **Date formatting**: Use `{{ date|date_format }}`, `{{ datetime|datetime_format }}`, `{{ text|replace_year }}` filters
 - **CSP nonce**: Use `{{ csp_nonce() }}` for inline scripts (required by Content Security Policy)
 - **Image error handling**: Use `data-fallback="hide"` attribute for graceful degradation (not inline `onerror` for CSP compliance)
+- **HTML5 data attributes**: Use `data-*` attributes for JavaScript element targeting and metadata storage
+  - Element markers: `data-inf-item`, `data-filter` for querySelector/querySelectorAll selection
+  - Metadata storage: `data-work-title`, `data-work-copy`, `data-album-id` for getAttribute() access
+  - Target containers: `data-image-grid-title`, `data-image-grid-copy` for dynamic content insertion
+  - Always prefix custom attributes with `data-` for HTML5 compliance and CSP compatibility
 - **Tailwind CSS**: Utility-first styling (classic templates)
 - **Custom CSS**: Modern template uses custom CSS (`home-modern.css`) with CSS variables (`--modern-*`)
 - **JavaScript**: ES6 modules, localStorage with Safari-safe wrappers, npm package imports (Lenis via Vite)
@@ -421,8 +426,14 @@ $app->get('/path', function(...) { ... })
   - Data attributes: `data-filter="all"` for all work, `data-filter="{slug}"` for categories
   - Filtering toggles `.is-active` class and updates visibility of items by category class
 - **Hover info display**: Left sidebar shows image title and description on hover
-  - Attributes: `image-grid_title` and `image-grid_copy` populated from `work-title` and `work-copy` data attributes
-  - Updates on mouseenter event for each `.inf-work_item`
+  - HTML5 data attributes for element targeting and metadata:
+    - `data-inf-item`: Marks grid items for JavaScript selection via `querySelectorAll('[data-inf-item]')`
+    - `data-filter`: Category filter identifiers ("all" or category slug) on `.grid-toggle_item` elements
+    - `data-image-grid-title`, `data-image-grid-copy`: Target containers for hover info display
+    - `data-work-title`, `data-work-copy`: Store image metadata (album title, description) on work items
+    - `data-album-id`: Album identifier for tracking
+  - Updates on mouseenter event: `getAttribute('data-work-title')` and `getAttribute('data-work-copy')`
+  - All data attributes properly prefixed with `data-` for HTML5 compliance
 - **Mega menu overlay**: Full-screen navigation with close button
   - Menu toggle: `.menu-btn` opens, `.menu-close` closes
   - Page transition overlay: `.page-transition` for smooth navigation
@@ -624,7 +635,7 @@ $app->get('/path', function(...) { ... })
   - Action name: 'contact' for form submissions
   - Client-side: `grecaptcha.execute()` on form submit, adds hidden `recaptcha_token` field
 - **Backend verification**: PageController::contact() validates token before processing
-  - Library: ReCaptcha\ReCaptcha from google/recaptcha composer package
+  - Library: ReCaptcha\ReCaptcha from `google/recaptcha` composer package
   - Expected action: 'contact' (matches frontend)
   - Score threshold: 0.5 (v3 returns 0.0-1.0, higher = more human)
   - Token validation: `setExpectedAction('contact')->setScoreThreshold(0.5)->verify()`
