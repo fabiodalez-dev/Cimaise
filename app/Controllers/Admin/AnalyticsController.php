@@ -388,8 +388,8 @@ class AnalyticsController extends BaseController
             $driver = 'mysql';
             try { $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) ?: 'mysql'; } catch (\Throwable) {}
             $isSqlite = ($driver === 'sqlite');
-            $minus5min = $isSqlite ? 'datetime("now", "-5 minutes")' : 'DATE_SUB(NOW(), INTERVAL 5 MINUTE)';
-            $minus1h   = $isSqlite ? 'datetime("now", "-1 hour")'     : 'DATE_SUB(NOW(), INTERVAL 1 HOUR)';
+            $minus5min = $isSqlite ? "datetime('now', '-5 minutes')" : 'DATE_SUB(NOW(), INTERVAL 5 MINUTE)';
+            $minus1h   = $isSqlite ? "datetime('now', '-1 hour')"     : 'DATE_SUB(NOW(), INTERVAL 1 HOUR)';
             // Get current visitors (last 5 minutes)
             $stmt = $this->db->prepare('
                 SELECT

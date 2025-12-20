@@ -1789,17 +1789,32 @@
                             onInit: (el, pswp) => {
                                 el.setAttribute('title', 'Scarica immagine');
                                 el.setAttribute('aria-label', 'Scarica immagine');
-                                el.onclick = () => {
-                                    if (pswp.currSlide && pswp.currSlide.data) {
-                                        const link = document.createElement('a');
-                                        link.href = pswp.currSlide.data.src;
-                                        link.download = `image-${Date.now()}.jpg`;
-                                        link.target = '_blank';
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                    }
+                                const resolveDownloadUrl = () => {
+                                    if (!window.allowDownloads) return null;
+                                    const src = pswp?.currSlide?.data?.src || '';
+                                    const match = src.match(/\/media\/(?:protected\/)?(\d+)(?:_|\/)/);
+                                    if (!match) return null;
+                                    const base = (window.basePath || '').replace(/\/$/, '');
+                                    return `${base}/download/image/${match[1]}`;
                                 };
+                                const updateVisibility = () => {
+                                    const url = resolveDownloadUrl();
+                                    el.style.display = url ? '' : 'none';
+                                };
+                                el.onclick = () => {
+                                    const url = resolveDownloadUrl();
+                                    if (!url) return;
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = '';
+                                    link.target = '_blank';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                };
+                                pswp.on('change', updateVisibility);
+                                pswp.on('openingAnimationEnd', updateVisibility);
+                                updateVisibility();
                             }
                         });
 
@@ -2212,6 +2227,7 @@
         };
         window.nsfwConsent = {{ nsfw_consent|default(false) ? 'true' : 'false' }};
         window.isAdmin = {{ is_admin|default(false) ? 'true' : 'false' }};
+        window.allowDownloads = {{ allow_downloads|default(false) ? 'true' : 'false' }};
         
         // Add meta tags for analytics
         {% if current_album %}

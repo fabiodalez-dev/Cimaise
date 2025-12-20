@@ -231,6 +231,13 @@ $app->get('/path', function(...) { ... })
   - Generates 7 sizes: favicon.ico (32px), 16x16, 32x32, 96x96, apple-touch-icon (180px), android-chrome 192x192 and 512x512
   - Uses GD library with transparency preservation and high-quality resampling
 - Uses Imagick when available, falls back to GD
+- **Responsive image srcset**: Modern template dynamically generates srcset attributes
+  - Pattern: `{% for variant in image.variants %}...{% endfor %}` builds srcset array
+  - Filters for WebP format variants only: `{% if variant.format == 'webp' %}`
+  - Width descriptors: `srcset="{{ srcset_parts|join(', ') }}"` with `{url} {width}w` format
+  - Sizes attribute: `sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"`
+  - Fallback: Single `src` uses md WebP variant or first available variant
+  - Applied in: `home_modern.twig` image grid (lines 85-106)
 
 ### Rate Limiting
 - **RateLimitMiddleware**: Session-based tracking for authenticated and post-session endpoints
@@ -312,7 +319,7 @@ $app->get('/path', function(...) { ... })
   - TinyMCE initialization and configuration work without nonce requirement
 - **Additional headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, HSTS, Referrer-Policy, Permissions-Policy, Cross-Origin-Opener-Policy, X-Permitted-Cross-Domain-Policies, Expect-CT
 - **CSP directives**: upgrade-insecure-requests, img-src with data: and blob:, style-src with unsafe-inline for third-party CSS, font-src for Google Fonts, object-src none, base-uri self, form-action self, frame-ancestors none
-- **reCAPTCHA whitelist**: Frontend CSP includes `frame-src` and `script-src` for Google reCAPTCHA domains (www.google.com/recaptcha/, www.gstatic.com/recaptcha/)
+- **reCAPTCHA whitelist**: Frontend CSP includes `frame-src` and `script-src` for Google reCAPTCHA domains (`www.google.com/recaptcha/`, `www.gstatic.com/recaptcha/`)
 
 ### Advanced Filtering (Galleries)
 - Multi-criteria filtering: categories, tags, cameras, lenses, films, locations, year, search

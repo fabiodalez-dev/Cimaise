@@ -613,6 +613,7 @@ class PageController extends BaseController
             'show_date' => (int)($album['show_date'] ?? 1),
             'tags' => $tags,
             'equipment' => $equipment,
+            'allow_downloads' => !empty($album['allow_downloads']),
             'cover' => $album['cover'] ?? null,
         ];
 
@@ -718,7 +719,8 @@ class PageController extends BaseController
             'available_socials' => $availableSocials,
             'csrf' => $_SESSION['csrf'] ?? '',
             'current_album' => ['id' => (int)$album['id']],
-            'nsfw_consent' => $this->hasNsfwConsent()
+            'nsfw_consent' => $this->hasNsfwConsent(),
+            'allow_downloads' => !empty($album['allow_downloads'])
         ]);
     }
 
@@ -826,6 +828,27 @@ class PageController extends BaseController
         $this->grantNsfwConsent((int)$album['id']);
 
         return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
+    }
+
+    /**
+     * Confirm global NSFW age verification (no album context).
+     */
+    public function confirmNsfwGlobal(Request $request, Response $response): Response
+    {
+        if (!$this->validateCsrf($request)) {
+            return $response->withStatus(403);
+        }
+
+        $data = (array)$request->getParsedBody();
+        $nsfwConfirmed = !empty($data['nsfw_confirmed']);
+        if (!$nsfwConfirmed) {
+            return $response->withStatus(400);
+        }
+
+        session_regenerate_id(true);
+        $this->grantNsfwConsent(null);
+
+        return $response->withStatus(204);
     }
 
     public function albumTemplate(Request $request, Response $response, array $args): Response
@@ -1004,7 +1027,11 @@ class PageController extends BaseController
             return $this->view->render($response, $partial, [
                 'images' => $images,
                 'template_settings' => $templateSettings,
-                'album' => [ 'title' => $album['title'] ?? '', 'excerpt' => $album['excerpt'] ?? '' ],
+                'album' => [
+                    'title' => $album['title'] ?? '',
+                    'excerpt' => $album['excerpt'] ?? '',
+                    'allow_downloads' => !empty($album['allow_downloads'])
+                ],
                 'base_path' => $this->basePath
             ]);
             
