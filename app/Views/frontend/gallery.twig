@@ -124,7 +124,7 @@
   {% if available_templates|length > 0 %}
   <div class="max-w-7xl mx-auto mb-2">
     <div class="flex justify-end">
-      <div id="template-switcher" class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm" style="opacity: 0; transform: translateX(20px);">
+      <div id="template-switcher" class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm max-md:hidden">
         {% for template in available_templates %}
         <button type="button" class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" title="{{ template.name }}" aria-label="{{ template.name }}">
           {% if template.settings.layout == 'masonry_fit' %}
@@ -855,8 +855,9 @@ document.addEventListener('click', function(event) {
     .then(html => {
       galleryContainer.style.opacity = '0';
       galleryContainer.innerHTML = html;
-      const m = html.match(/window\.templateSettings\s*=\s*({[\s\S]*?});/);
-      if (m) { try { window.templateSettings = JSON.parse(m[1]); } catch(e) { console.error(e); } }
+      // Match direct object assignment from _gallery_content.twig
+      const m = html.match(/window\.templateSettings\s*=\s*(\{[\s\S]*?\});/);
+      if (m) { try { window.templateSettings = JSON.parse(m[1]); } catch(e) { console.error('Failed to parse templateSettings:', e); } }
       const newLayout = window.templateSettings?.layout || 'grid';
       const newMasonry = !!window.templateSettings?.masonry;
       const idKeep = galleryContainer.id;

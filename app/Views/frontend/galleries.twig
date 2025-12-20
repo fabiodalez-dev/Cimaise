@@ -83,7 +83,7 @@
                    autocomplete="off">
             <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
           </div>
-          <div id="filter-categories" class="flex flex-wrap gap-2">
+          <div id="filter-categories" class="flex flex-wrap gap-2 max-h-40 overflow-auto pr-1">
             {% for category in filter_options.categories %}
             {% set is_active = category.id in active_filters.category|default([]) %}
             <button type="button"
@@ -571,7 +571,7 @@ function initPageAnimations() {
 }
 
 function initFilters() {
-    const debouncedApply = debounce(applyFilters, 80);
+    const debouncedApply = debounce(applyFilters, 60);
     window.applyFiltersDebounced = debouncedApply;
 
     // Initialize Select2 for multi-select filters (if available)
@@ -611,7 +611,9 @@ function initFilters() {
         } else {
             // Open filters
             filtersGrid.addClass('filters-open');
-            const targetHeight = filtersGrid[0] ? (filtersGrid[0].scrollHeight + 16) : 600;
+            const targetHeight = filtersGrid[0]
+                ? (filtersGrid[0].scrollHeight + 16)
+                : Math.min(window.innerHeight * 0.6, 800);
             gsap.to(filtersGrid, {
                 opacity: 1,
                 maxHeight: targetHeight,
@@ -648,7 +650,7 @@ function initFilters() {
             if (!chip) return;
             chip.classList.toggle('is-active');
             chip.setAttribute('aria-pressed', chip.classList.contains('is-active') ? 'true' : 'false');
-            debouncedApply();
+            applyFilters();
         });
     }
 
@@ -666,7 +668,8 @@ function initFilters() {
     }
     
     // Filter change handlers
-    $('.filter-select, #filter-search, #filter-sort').on('change keyup', debouncedApply);
+    $('#filter-search').on('input', debouncedApply);
+    $('.filter-select, #filter-sort').on('change', applyFilters);
     
     // Clear filters button
     $('#clear-filters').click(clearAllFilters);
@@ -1118,6 +1121,7 @@ function debounce(func, wait) {
 }
 
 .select2-container--default .select2-selection--single {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;

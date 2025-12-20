@@ -214,7 +214,7 @@
   {% endfor %}
 {% endif %}
 
-{# Include template settings for JavaScript #}
+{# Include template settings for JavaScript - output as raw JSON object #}
 <script nonce="{{ csp_nonce() }}">
-window.templateSettings = JSON.parse('{{ template_settings|json_encode|e('js') }}');
+window.templateSettings = {{ template_settings|json_encode|raw }};
 </script>

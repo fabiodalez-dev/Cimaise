@@ -14,7 +14,7 @@ trait RegistersImageVariants
         string $destRelUrl,
         string $destPath,
         int $fallbackWidth,
-        string $replaceKeyword = 'REPLACE',
+        string $replaceKeyword,
         ?\PDOStatement $stmt = null
     ): void {
         $size = 0;
