@@ -1397,14 +1397,47 @@ class PageController extends BaseController
             }
             $vVar = strtolower((string)($variant['variant'] ?? ''));
             $vFmt = strtolower((string)($variant['format'] ?? ''));
-            $score = ($orderVariant[$vVar] ?? 9) * 10 + ($orderFormat[$vFmt] ?? 9);
-            if ($chosen === null || $score < $chosen['score']) {
+            $width = (int)($variant['width'] ?? 0);
+            $formatRank = $orderFormat[$vFmt] ?? 9;
+            $variantRank = $orderVariant[$vVar] ?? 9;
+
+            if ($chosen === null) {
                 $chosen = [
-                    'score' => $score,
+                    'width' => $width,
+                    'format_rank' => $formatRank,
+                    'variant_rank' => $variantRank,
                     'variant' => $vVar,
                     'format' => $vFmt,
                     'path' => $variant['path']
                 ];
+                continue;
+            }
+
+            if ($width > $chosen['width']) {
+                $chosen = [
+                    'width' => $width,
+                    'format_rank' => $formatRank,
+                    'variant_rank' => $variantRank,
+                    'variant' => $vVar,
+                    'format' => $vFmt,
+                    'path' => $variant['path']
+                ];
+                continue;
+            }
+
+            if ($width === $chosen['width']) {
+                if ($formatRank < $chosen['format_rank']
+                    || ($formatRank === $chosen['format_rank'] && $variantRank < $chosen['variant_rank'])
+                ) {
+                    $chosen = [
+                        'width' => $width,
+                        'format_rank' => $formatRank,
+                        'variant_rank' => $variantRank,
+                        'variant' => $vVar,
+                        'format' => $vFmt,
+                        'path' => $variant['path']
+                    ];
+                }
             }
         }
 

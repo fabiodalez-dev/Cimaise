@@ -331,6 +331,38 @@
             font-size: 13px;
             opacity: 0.9;
         }
+
+        /* Keep zoomed image above UI (icons, title, metadata) */
+        .pswp--zoomed-in .pswp__scroll-wrap,
+        .pswp--zoomed-in .pswp__container,
+        .pswp--zoomed-in .pswp__item,
+        .pswp--zoomed-in .pswp__zoom-wrap,
+        .pswp--zoomed-in .pswp__img,
+        .pswp--zooming .pswp__scroll-wrap,
+        .pswp--zooming .pswp__container,
+        .pswp--zooming .pswp__item,
+        .pswp--zooming .pswp__zoom-wrap,
+        .pswp--zooming .pswp__img {
+            z-index: 30;
+        }
+
+        .pswp--zoomed-in .pswp__top-bar,
+        .pswp--zoomed-in .pswp__custom-caption,
+        .pswp--zoomed-in .pswp__counter,
+        .pswp--zoomed-in .pswp__button,
+        .pswp--zoomed-in .pswp__bullets-indicator,
+        .pswp--zoomed-in .pswp__meta-panel,
+        .pswp--zoomed-in .pswp__zoom-indicator-br,
+        .pswp--zooming .pswp__top-bar,
+        .pswp--zooming .pswp__custom-caption,
+        .pswp--zooming .pswp__counter,
+        .pswp--zooming .pswp__button,
+        .pswp--zooming .pswp__bullets-indicator,
+        .pswp--zooming .pswp__meta-panel,
+        .pswp--zooming .pswp__zoom-indicator-br {
+            z-index: 1;
+            pointer-events: none;
+        }
         
         /* Position navigation arrows outside the image */
         .pswp__button--arrow--prev,
@@ -1006,8 +1038,8 @@
                     </div>
                     
                     <div class="flex items-center gap-3">
-                        <label for="filter-sort" class="text-sm font-medium text-gray-700">Sort:</label>
-                        <select id="filter-sort" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
+                        <label for="layout-filter-sort" class="text-sm font-medium text-gray-700">Sort:</label>
+                        <select id="layout-filter-sort" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                             <option value="published_desc">Latest</option>
                             <option value="published_asc">Oldest</option>
                             <option value="title_asc">Title A-Z</option>
@@ -1016,8 +1048,8 @@
                     </div>
                     
                     <div class="flex items-center gap-3">
-                        <label for="filter-search" class="text-sm font-medium text-gray-700 sr-only">Search:</label>
-                        <input type="text" id="filter-search" placeholder="{{ trans('filter.search_equipment') }}"
+                        <label for="layout-filter-search" class="text-sm font-medium text-gray-700 sr-only">Search:</label>
+                        <input type="text" id="layout-filter-search" placeholder="{{ trans('filter.search_equipment') }}"
                                class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                     </div>
                     
@@ -1679,6 +1711,21 @@
                         const target = current <= fit * 1.05
                           ? Math.min(max, Math.max(fit * 1.75, fit * 3))
                           : fit;
+                        const root = pswp.element;
+                        if (root) {
+                            root.classList.add('pswp--zooming');
+                            if (target > fit * 1.05) {
+                                root.classList.add('pswp--zoomed-in');
+                            } else {
+                                root.classList.remove('pswp--zoomed-in');
+                            }
+                            if (root._zoomingTimer) {
+                                clearTimeout(root._zoomingTimer);
+                            }
+                            root._zoomingTimer = setTimeout(() => {
+                                root.classList.remove('pswp--zooming');
+                            }, 450);
+                        }
                         const center = { x: pswp.viewportSize.x / 2, y: pswp.viewportSize.y / 2 };
                         pswp.zoomTo(target, center, 350);
                     };
@@ -1936,6 +1983,21 @@
                     const target = current <= fit * 1.05
                       ? Math.min(max, Math.max(fit * 1.75, fit * 3))
                       : fit;
+                    const root = pswp.element;
+                    if (root) {
+                      root.classList.add('pswp--zooming');
+                      if (target > fit * 1.05) {
+                        root.classList.add('pswp--zoomed-in');
+                      } else {
+                        root.classList.remove('pswp--zoomed-in');
+                      }
+                      if (root._zoomingTimer) {
+                        clearTimeout(root._zoomingTimer);
+                      }
+                      root._zoomingTimer = setTimeout(() => {
+                        root.classList.remove('pswp--zooming');
+                      }, 450);
+                    }
                     const center = { x: pswp.viewportSize.x / 2, y: pswp.viewportSize.y / 2 };
                     pswp.zoomTo(target, center, 350);
                   };

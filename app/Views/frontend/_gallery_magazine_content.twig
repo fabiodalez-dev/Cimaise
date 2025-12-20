@@ -1,5 +1,5 @@
 {# Magazine Split gallery content (partial) - Improved Responsive Version #}
-{% macro pic(image, base_path, album) %}
+{% macro pic(image, base_path, album, seo_title) %}
   <picture class="block w-full h-full">
     {% if image.sources is defined and image.sources.avif is defined and image.sources.avif|length %}
       <source type="image/avif" srcset="{% for s in image.sources.avif %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw">
@@ -11,8 +11,25 @@
       <source type="image/jpeg" srcset="{% for s in image.sources.jpg %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw">
     {% endif %}
     {% set img_src = image.fallback_src|default(image.url) %}
-    <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+    <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
   </picture>
+{% endmacro %}
+
+{% macro seo_title(image, album, site_title) %}
+  {% set parts = [] %}
+  {% set primary_title = image.alt|default(image.caption)|default('') %}
+  {% if primary_title %}
+    {% set parts = parts|merge([primary_title]) %}
+  {% endif %}
+  {% if album is defined and album.title %}
+    {% set parts = parts|merge([album.title]) %}
+  {% elseif image.album_title is defined and image.album_title %}
+    {% set parts = parts|merge([image.album_title]) %}
+  {% endif %}
+  {% if site_title is defined and site_title %}
+    {% set parts = parts|merge([site_title]) %}
+  {% endif %}
+  {{ parts|join(' — ') }}
 {% endmacro %}
 
 {% import _self as G %}
@@ -83,15 +100,17 @@
       <div class="m-mobile-track">
         {% for image in images %}
           <div class="m-cell">
-            <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ loop.index0 }}">
-              {{ G.pic(image, base_path, album) }}
+            {% set seo_title = G.seo_title(image, album, site_title)|trim %}
+            <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ loop.index0 }}">
+              {{ G.pic(image, base_path, album, seo_title) }}
             </a>
           </div>
         {% endfor %}
         {% for image in images %}
           <div class="m-cell">
-            <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ loop.index0 }}">
-              {{ G.pic(image, base_path, album) }}
+            {% set seo_title = G.seo_title(image, album, site_title)|trim %}
+            <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ loop.index0 }}">
+              {{ G.pic(image, base_path, album, seo_title) }}
             </a>
           </div>
         {% endfor %}
@@ -110,15 +129,17 @@
         <div class="m-track">
           {% for image in col %}
             <div class="m-cell">
-              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
-                {{ G.pic(image, base_path, album) }}
+              {% set seo_title = G.seo_title(image, album, site_title)|trim %}
+              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+                {{ G.pic(image, base_path, album, seo_title) }}
               </a>
             </div>
           {% endfor %}
           {% for image in col %}
             <div class="m-cell">
-              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
-                {{ G.pic(image, base_path, album) }}
+              {% set seo_title = G.seo_title(image, album, site_title)|trim %}
+              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+                {{ G.pic(image, base_path, album, seo_title) }}
               </a>
             </div>
           {% endfor %}
@@ -138,16 +159,18 @@
         <div class="m-track">
           {% for image in col %}
             <div class="m-cell">
-              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
-                {{ G.pic(image, base_path, album) }}
+              {% set seo_title = G.seo_title(image, album, site_title)|trim %}
+              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+                {{ G.pic(image, base_path, album, seo_title) }}
                 <div class="hidden-caption-content">{{ G.caption(image) }}</div>
               </a>
             </div>
           {% endfor %}
           {% for image in col %}
             <div class="m-cell">
-              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
-                {{ G.pic(image, base_path, album) }}
+              {% set seo_title = G.seo_title(image, album, site_title)|trim %}
+              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+                {{ G.pic(image, base_path, album, seo_title) }}
               </a>
             </div>
           {% endfor %}

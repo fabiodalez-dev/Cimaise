@@ -41,8 +41,23 @@
   <div class="swiper-wrapper">
     {% for image in images %}
     <div class="swiper-slide">
+    {% set seo_title_parts = [] %}
+    {% set primary_title = image.alt|default(image.caption)|default('') %}
+    {% if primary_title %}
+      {% set seo_title_parts = seo_title_parts|merge([primary_title]) %}
+    {% endif %}
+    {% if album is defined and album.title %}
+      {% set seo_title_parts = seo_title_parts|merge([album.title]) %}
+    {% elseif image.album_title is defined and image.album_title %}
+      {% set seo_title_parts = seo_title_parts|merge([image.album_title]) %}
+    {% endif %}
+    {% if site_title is defined and site_title %}
+      {% set seo_title_parts = seo_title_parts|merge([site_title]) %}
+    {% endif %}
+    {% set seo_title = seo_title_parts|join(' — ') %}
     <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" 
        class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
+       title="{{ seo_title|e('html_attr') }}"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
        data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
@@ -69,7 +84,7 @@
         {% if image.sources.jpg|length %}
           <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
         {% endif %}
-        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
       </picture>
     </a>
     </div>
@@ -81,8 +96,23 @@
 {% elseif layout == 'fullscreen' %}
   {% for image in images %}
   <div class="masonry-item">
+    {% set seo_title_parts = [] %}
+    {% set primary_title = image.alt|default(image.caption)|default('') %}
+    {% if primary_title %}
+      {% set seo_title_parts = seo_title_parts|merge([primary_title]) %}
+    {% endif %}
+    {% if album is defined and album.title %}
+      {% set seo_title_parts = seo_title_parts|merge([album.title]) %}
+    {% elseif image.album_title is defined and image.album_title %}
+      {% set seo_title_parts = seo_title_parts|merge([image.album_title]) %}
+    {% endif %}
+    {% if site_title is defined and site_title %}
+      {% set seo_title_parts = seo_title_parts|merge([site_title]) %}
+    {% endif %}
+    {% set seo_title = seo_title_parts|join(' — ') %}
     <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" 
        class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
+       title="{{ seo_title|e('html_attr') }}"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
        data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
@@ -109,7 +139,7 @@
         {% if image.sources.jpg|length %}
           <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
         {% endif %}
-        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
       </picture>
     </a>
   </div>
@@ -117,8 +147,23 @@
 {% elseif masonry %}
   {% for image in images %}
   <div class="masonry-item">
+    {% set seo_title_parts = [] %}
+    {% set primary_title = image.alt|default(image.caption)|default('') %}
+    {% if primary_title %}
+      {% set seo_title_parts = seo_title_parts|merge([primary_title]) %}
+    {% endif %}
+    {% if album is defined and album.title %}
+      {% set seo_title_parts = seo_title_parts|merge([album.title]) %}
+    {% elseif image.album_title is defined and image.album_title %}
+      {% set seo_title_parts = seo_title_parts|merge([image.album_title]) %}
+    {% endif %}
+    {% if site_title is defined and site_title %}
+      {% set seo_title_parts = seo_title_parts|merge([site_title]) %}
+    {% endif %}
+    {% set seo_title = seo_title_parts|join(' — ') %}
     <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" 
        class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
+       title="{{ seo_title|e('html_attr') }}"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
        data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
@@ -145,7 +190,7 @@
         {% if image.sources.jpg|length %}
           <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
         {% endif %}
-        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover" loading="lazy" decoding="async">
+        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-auto object-cover" loading="lazy" decoding="async">
       </picture>
     </a>
   </div>
@@ -154,8 +199,23 @@
   {# Regular grid layout #}
   {% for image in images %}
   <div class="image-item group relative">
+    {% set seo_title_parts = [] %}
+    {% set primary_title = image.alt|default(image.caption)|default('') %}
+    {% if primary_title %}
+      {% set seo_title_parts = seo_title_parts|merge([primary_title]) %}
+    {% endif %}
+    {% if album is defined and album.title %}
+      {% set seo_title_parts = seo_title_parts|merge([album.title]) %}
+    {% elseif image.album_title is defined and image.album_title %}
+      {% set seo_title_parts = seo_title_parts|merge([image.album_title]) %}
+    {% endif %}
+    {% if site_title is defined and site_title %}
+      {% set seo_title_parts = seo_title_parts|merge([site_title]) %}
+    {% endif %}
+    {% set seo_title = seo_title_parts|join(' — ') %}
     <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" 
        class="pswp-link aspect-square bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer block"
+       title="{{ seo_title|e('html_attr') }}"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
        data-pswp-caption=""
@@ -182,7 +242,7 @@
         {% if image.sources.jpg|length %}
           <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
         {% endif %}
-        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
       </picture>
       <div class="hidden-caption-content">
         {% if image.caption %}<div class="mb-1">{{ image.caption }}</div>{% endif %}

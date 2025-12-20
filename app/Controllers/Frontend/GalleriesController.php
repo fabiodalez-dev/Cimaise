@@ -175,45 +175,66 @@ class GalleriesController extends BaseController
     private function buildFilters(array $params, array $settings): array
     {
         $filters = [];
+        $normalizeList = function ($value): array {
+            if (\is_array($value)) {
+                return array_values(array_filter($value, static function ($item): bool {
+                    return $item !== null && $item !== '';
+                }));
+            }
+            if (\is_string($value)) {
+                $value = trim($value);
+                if ($value === '') {
+                    return [];
+                }
+                if (str_contains($value, ',')) {
+                    $parts = array_map('trim', explode(',', $value));
+                    return array_values(array_filter($parts, static function ($item): bool {
+                        return $item !== '';
+                    }));
+                }
+                return [$value];
+            }
+            return [];
+        };
         
         // Category filter
         if (!empty($params['category']) && $settings['show_categories']) {
-            $filters['category'] = is_array($params['category']) ? $params['category'] : [$params['category']];
+            $filters['category'] = $normalizeList($params['category']);
         }
         
         // Tag filter
         if (!empty($params['tags']) && $settings['show_tags']) {
-            $filters['tags'] = is_array($params['tags']) ? $params['tags'] : [$params['tags']];
+            $filters['tags'] = $normalizeList($params['tags']);
         }
         
         // Camera filter
         if (!empty($params['cameras']) && $settings['show_cameras']) {
-            $filters['cameras'] = is_array($params['cameras']) ? $params['cameras'] : [$params['cameras']];
+            $filters['cameras'] = $normalizeList($params['cameras']);
         }
         
         // Lens filter
         if (!empty($params['lenses']) && $settings['show_lenses']) {
-            $filters['lenses'] = is_array($params['lenses']) ? $params['lenses'] : [$params['lenses']];
+            $filters['lenses'] = $normalizeList($params['lenses']);
         }
         
         // Film filter
         if (!empty($params['films']) && $settings['show_films']) {
-            $filters['films'] = is_array($params['films']) ? $params['films'] : [$params['films']];
+            $filters['films'] = $normalizeList($params['films']);
         }
         
         // Developer filter
         if (!empty($params['developers']) && $settings['show_developers']) {
-            $filters['developers'] = is_array($params['developers']) ? $params['developers'] : [$params['developers']];
+            $filters['developers'] = $normalizeList($params['developers']);
         }
         
         // Lab filter
         if (!empty($params['labs']) && $settings['show_labs']) {
-            $filters['labs'] = is_array($params['labs']) ? $params['labs'] : [$params['labs']];
+            $filters['labs'] = $normalizeList($params['labs']);
         }
         
         // Location filter
         if (!empty($params['locations']) && $settings['show_locations']) {
-            $filters['locations'] = is_array($params['locations']) ? $params['locations'] : [$params['locations']];
+            $filters['locations'] = $normalizeList($params['locations']);
         }
         
         // Year filter

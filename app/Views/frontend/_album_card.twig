@@ -1,5 +1,9 @@
 <article class="album-card group cursor-pointer" data-album-id="{{ album.id }}"{% if album.is_nsfw and not is_admin %} data-nsfw="1"{% endif %}>
-  <a href="{{ base_path }}/album/{{ album.slug }}" class="block">
+  {% set seo_title = (site_title|default('Portfolio')) ~ ' — ' ~ album.title %}
+  {% if album.cover and album.cover.alt_text is defined and album.cover.alt_text %}
+    {% set seo_title = seo_title ~ ' — ' ~ album.cover.alt_text %}
+  {% endif %}
+  <a href="{{ base_path }}/album/{{ album.slug }}" class="block" title="{{ seo_title|e('html_attr') }}">
     <div class="aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm relative">
       {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
       {% if album.cover %}
@@ -13,6 +17,7 @@
           {% if blur_path %}
             <img src="{{ blur_path }}"
                  alt="{{ (album.cover.alt_text ?? album.title)|e }}"
+                 title="{{ seo_title|e('html_attr') }}"
                  loading="lazy"
                  decoding="async"
                  class="nsfw-blur block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
@@ -56,6 +61,7 @@
 
             <img src="{{ original_url }}"
                  alt="{{ (album.cover.alt_text ?? album.title)|e }}"
+                 title="{{ seo_title|e('html_attr') }}"
                  loading="lazy"
                  decoding="async"
                  class="block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">

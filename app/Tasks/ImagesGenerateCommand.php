@@ -91,6 +91,14 @@ class ImagesGenerateCommand extends Command
                 $totalErrors++;
                 continue;
             }
+
+            $existingStmt = $pdo->prepare('SELECT variant, format, path FROM image_variants WHERE image_id = ?');
+            $existingStmt->execute([$imageId]);
+            $existingVariants = [];
+            foreach ($existingStmt->fetchAll() as $row) {
+                $key = (string)$row['variant'] . '|' . (string)$row['format'];
+                $existingVariants[$key] = (string)($row['path'] ?? '');
+            }
             
             $variantsGenerated = 0;
             foreach ($breakpoints as $variant => $width) {
@@ -100,7 +108,14 @@ class ImagesGenerateCommand extends Command
                     $dest = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
                     
                     if ($missingOnly && is_file($dest)) {
-                        $totalSkipped++;
+                        $key = (string)$variant . '|' . (string)$fmt;
+                        if (!isset($existingVariants[$key])) {
+                            $this->registerVariantFromFile($pdo, $imageId, (string)$variant, (string)$fmt, $destRelUrl, $dest, (int)$width);
+                            $existingVariants[$key] = $destRelUrl;
+                            $totalGenerated++;
+                        } else {
+                            $totalSkipped++;
+                        }
                         continue;
                     }
                     
@@ -139,6 +154,21 @@ class ImagesGenerateCommand extends Command
         $output->writeln('<info>Generation Complete!</info>');
         $output->writeln(sprintf('Generated: %d, Skipped: %d, Errors: %d', $totalGenerated, $totalSkipped, $totalErrors));
         return Command::SUCCESS;
+    }
+
+    private function registerVariantFromFile(
+        \PDO $pdo,
+        int $imageId,
+        string $variant,
+        string $format,
+        string $destRelUrl,
+        string $destPath,
+        int $fallbackWidth
+    ): void {
+        $size = is_file($destPath) ? (int)filesize($destPath) : 0;
+        $dims = @getimagesize($destPath) ?: [$fallbackWidth, 0];
+        $stmt = $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)');
+        $stmt->execute([$imageId, $variant, $format, $destRelUrl, (int)$dims[0], (int)$dims[1], $size]);
     }
 
     private function resizeWithImagick(string $src, string $dest, int $targetW, string $format, int $quality): bool
