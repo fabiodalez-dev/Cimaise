@@ -571,7 +571,8 @@ function initPageAnimations() {
 }
 
 function initFilters() {
-    const debouncedApply = debounce(applyFilters, 120);
+    const debouncedApply = debounce(applyFilters, 80);
+    window.applyFiltersDebounced = debouncedApply;
 
     // Initialize Select2 for multi-select filters (if available)
     if ($.fn.select2) {
@@ -723,6 +724,8 @@ function applyFilters() {
         }
     });
 }
+
+window.applyFilters = applyFilters;
 
 function updateGalleries(albums, animate = false) {
     const grid = $('#galleries-grid');

@@ -740,6 +740,17 @@
         .pswp__custom-caption .cc-item i {
             color: #000 !important;
         }
+
+        #header-search::-webkit-search-cancel-button,
+        #header-search::-webkit-search-decoration,
+        #header-search::-webkit-search-results-button,
+        #header-search::-webkit-search-results-decoration,
+        #mobile-search::-webkit-search-cancel-button,
+        #mobile-search::-webkit-search-decoration,
+        #mobile-search::-webkit-search-results-button,
+        #mobile-search::-webkit-search-results-decoration {
+            display: none;
+        }
         
         /* Hidden caption content */
         .hidden-caption-content {
@@ -926,19 +937,30 @@
                     {% endif %}
 
                     <!-- Header Search -->
-                    <form id="header-search-form" class="hidden md:flex items-center" role="search" action="{{ base_path }}/galleries" method="get">
+                    <form id="header-search-form" class="hidden md:flex items-center relative" role="search" action="{{ base_path }}/galleries" method="get">
                         <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
-                        <div class="relative">
+                        <div class="relative w-64 lg:w-72">
                             <input id="header-search" name="search" type="search" autocomplete="off"
-                                   class="w-64 lg:w-72 px-3 py-2 pl-9 pr-10 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
+                                   class="w-full px-3 py-2 pl-10 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
                                    placeholder="{{ trans('filter.search') }}">
-                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
-                            <button type="submit" class="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black transition-colors duration-150" aria-label="{{ trans('filter.search') }}">
-                                <i class="fas fa-arrow-right text-xs"></i>
-                            </button>
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                            <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                <button type="button" id="header-search-clear" class="hidden w-6 h-6 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
+                                    <i class="fas fa-times text-[10px]"></i>
+                                </button>
+                                <button type="submit" class="w-7 h-7 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
+                                    <i class="fas fa-arrow-right text-xs"></i>
+                                </button>
+                            </div>
                         </div>
+                        <div id="header-search-suggestions" class="absolute left-0 top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden z-[60] max-h-80 overflow-auto divide-y divide-gray-100"></div>
                     </form>
                     
+                    <!-- Mobile Search Toggle -->
+                    <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="mobile-search-panel" aria-expanded="false">
+                        <i class="fas fa-search text-sm"></i>
+                    </button>
+
                     <!-- Mobile Menu Button - Aligned with Logo -->
                     <button id="mobile-menu-toggle" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
                         <svg class="w-5 h-5 transition-transform duration-200" id="mobile-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -947,6 +969,30 @@
                         </svg>
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Mobile Search Panel -->
+        <div id="mobile-search-panel" class="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
+            <div class="px-4 py-3">
+                <form id="mobile-search-form" class="relative" role="search" action="{{ base_path }}/galleries" method="get">
+                    <label for="mobile-search" class="sr-only">{{ trans('filter.search') }}</label>
+                    <div class="relative">
+                        <input id="mobile-search" name="search" type="search" autocomplete="off"
+                               class="w-full px-3 py-3 pl-11 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
+                               placeholder="{{ trans('filter.search') }}">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+                        <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                            <button type="button" id="mobile-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
+                                <i class="fas fa-times text-[11px]"></i>
+                            </button>
+                            <button type="submit" class="w-8 h-8 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
+                                <i class="fas fa-arrow-right text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="mobile-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-80 overflow-auto divide-y divide-gray-100"></div>
+                </form>
             </div>
         </div>
         
@@ -1021,13 +1067,6 @@
                     </div>
                 </div>
                 
-                <!-- Mobile Filters -->
-                <div class="pt-4 border-t border-gray-200">
-                    <button id="mobile-filters-toggle" class="w-full flex items-center gap-3 text-sm font-medium text-gray-900 hover:bg-gray-100 p-3 rounded-md transition-colors duration-200">
-                        <i class="fas fa-filter text-xs w-10 text-center"></i>
-                        <span>Show Filters</span>
-                    </button>
-                </div>
             </div>
         </div>
         
@@ -1121,10 +1160,18 @@
             // 1. Menu Toggle
             const menuToggle = document.getElementById('mobile-menu-toggle');
             const menu = document.getElementById('mobile-menu');
+            const mobileSearchPanel = document.getElementById('mobile-search-panel');
+            const mobileSearchToggle = document.getElementById('mobile-search-toggle');
             if (menuToggle && menu) {
                 menuToggle.addEventListener('click', function() {
                     const isOpening = menu.classList.contains('hidden');
                     if (isOpening) {
+                        if (mobileSearchPanel) {
+                            mobileSearchPanel.classList.add('hidden');
+                        }
+                        if (mobileSearchToggle) {
+                            mobileSearchToggle.setAttribute('aria-expanded', 'false');
+                        }
                         menu.classList.remove('hidden');
                         requestAnimationFrame(() => {
                             menu.style.maxHeight = menu.scrollHeight + 'px';
@@ -1265,18 +1312,7 @@
         
         // Header search -> galleries filters (AJAX) or redirect
         (function() {
-            const form = document.getElementById('header-search-form');
-            const input = document.getElementById('header-search');
-            if (!form || !input) return;
-
             const basePath = '{{ base_path|e('js') }}';
-            const syncToFilters = () => {
-                const filterInput = document.getElementById('filter-search');
-                if (!filterInput) return false;
-                filterInput.value = input.value;
-                filterInput.dispatchEvent(new Event('input', { bubbles: true }));
-                return true;
-            };
 
             const debounce = (fn, delay) => {
                 let t;
@@ -1286,25 +1322,234 @@
                 };
             };
 
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const query = input.value.trim();
-                if (syncToFilters()) return;
-                if (!query) return;
-                window.location.href = `${basePath}/galleries?search=${encodeURIComponent(query)}`;
+            const buildCoverUrl = (album) => {
+                const cover = album && album.cover_image ? album.cover_image : null;
+                const path = (cover && (cover.preview_path || cover.blur_path)) ? (cover.preview_path || cover.blur_path) : '';
+                if (!path) return '';
+                return path.startsWith('/') ? `${basePath}${path}` : path;
+            };
+
+            const appendPlaceholderIcon = (container) => {
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-image text-gray-400 text-lg';
+                container.appendChild(icon);
+            };
+
+            const setupSearch = (opts) => {
+                const form = document.getElementById(opts.formId);
+                const input = document.getElementById(opts.inputId);
+                const clearBtn = document.getElementById(opts.clearId);
+                const suggestionBox = document.getElementById(opts.suggestionId);
+                if (!form || !input) return;
+
+                const clearSuggestions = () => {
+                    if (!suggestionBox) return;
+                    suggestionBox.innerHTML = '';
+                    suggestionBox.classList.add('hidden');
+                };
+
+                const updateClearButton = () => {
+                    if (!clearBtn) return;
+                    clearBtn.classList.toggle('hidden', input.value.trim().length === 0);
+                };
+
+                const syncToFilters = () => {
+                    const filterInput = document.getElementById('filter-search');
+                    if (!filterInput) return false;
+                    filterInput.value = input.value;
+                    if (typeof window.applyFiltersDebounced === 'function') {
+                        window.applyFiltersDebounced();
+                    } else if (typeof window.applyFilters === 'function') {
+                        window.applyFilters();
+                    } else {
+                        setTimeout(() => {
+                            if (typeof window.applyFiltersDebounced === 'function') {
+                                window.applyFiltersDebounced();
+                                return;
+                            }
+                            if (typeof window.applyFilters === 'function') {
+                                window.applyFilters();
+                                return;
+                            }
+                            filterInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            filterInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+                        }, 80);
+                    }
+                    return true;
+                };
+
+                const renderSuggestions = (albums) => {
+                    if (!suggestionBox) return;
+                    suggestionBox.innerHTML = '';
+                    if (!albums.length) {
+                        suggestionBox.classList.add('hidden');
+                        return;
+                    }
+                    albums.slice(0, 6).forEach((album) => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'group w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center gap-3';
+                        btn.setAttribute('data-album-slug', album.slug || '');
+                        const imgWrap = document.createElement('div');
+                        imgWrap.className = 'w-14 h-14 rounded-lg bg-gray-100 ring-1 ring-gray-200/60 flex items-center justify-center overflow-hidden flex-shrink-0';
+                        const coverUrl = buildCoverUrl(album);
+                        if (coverUrl) {
+                            const img = document.createElement('img');
+                            img.src = coverUrl;
+                            img.alt = album.title || '';
+                            img.loading = 'lazy';
+                            img.className = 'w-full h-full object-cover';
+                            img.addEventListener('error', () => {
+                                img.remove();
+                                appendPlaceholderIcon(imgWrap);
+                            });
+                            imgWrap.appendChild(img);
+                        } else {
+                            appendPlaceholderIcon(imgWrap);
+                        }
+
+                        const details = document.createElement('div');
+                        details.className = 'min-w-0 flex-1';
+                        const title = document.createElement('div');
+                        title.className = 'font-semibold text-gray-900 truncate';
+                        title.textContent = album.title || '';
+                        const meta = document.createElement('div');
+                        meta.className = 'text-xs text-gray-500 mt-1 truncate';
+                        meta.textContent = album.category_name || '';
+
+                        details.appendChild(title);
+                        if (meta.textContent) {
+                            details.appendChild(meta);
+                        }
+
+                        btn.appendChild(imgWrap);
+                        btn.appendChild(details);
+                        btn.addEventListener('click', () => {
+                            const slug = btn.getAttribute('data-album-slug');
+                            if (slug) {
+                                window.location.href = `${basePath}/album/${encodeURIComponent(slug)}`;
+                                return;
+                            }
+                            input.value = title.textContent || '';
+                            syncToFilters();
+                            clearSuggestions();
+                        });
+                        suggestionBox.appendChild(btn);
+                    });
+                    suggestionBox.classList.remove('hidden');
+                };
+
+                let suggestController = null;
+                const fetchSuggestions = debounce(() => {
+                    const query = input.value.trim();
+                    if (query.length < 1) {
+                        clearSuggestions();
+                        return;
+                    }
+                    if (suggestController) {
+                        suggestController.abort();
+                    }
+                    suggestController = new AbortController();
+                    fetch(`${basePath}/galleries/filter?search=${encodeURIComponent(query)}`, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' },
+                        signal: suggestController.signal
+                    }).then((resp) => {
+                        if (!resp.ok) {
+                            throw new Error('Failed to fetch suggestions');
+                        }
+                        return resp.json();
+                    }).then((data) => {
+                        renderSuggestions(Array.isArray(data?.albums) ? data.albums : []);
+                    }).catch((err) => {
+                        if (err.name !== 'AbortError') {
+                            clearSuggestions();
+                        }
+                    });
+                }, 140);
+
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const query = input.value.trim();
+                    if (syncToFilters()) return;
+                    if (!query) return;
+                    window.location.href = `${basePath}/galleries?search=${encodeURIComponent(query)}`;
+                });
+
+                input.addEventListener('input', debounce(() => {
+                    updateClearButton();
+                    if (input.value.trim().length === 0) {
+                        if (syncToFilters()) return;
+                    } else if (syncToFilters()) {
+                        return;
+                    }
+                }, 80));
+                input.addEventListener('input', fetchSuggestions);
+                input.addEventListener('focus', fetchSuggestions);
+                input.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        clearSuggestions();
+                    }, 150);
+                });
+                document.addEventListener('click', (ev) => {
+                    if (!form.contains(ev.target)) {
+                        clearSuggestions();
+                    }
+                });
+
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', () => {
+                        input.value = '';
+                        updateClearButton();
+                        clearSuggestions();
+                        if (syncToFilters()) return;
+                    });
+                }
+
+                const filterInput = document.getElementById('filter-search');
+                if (filterInput && filterInput.value) {
+                    input.value = filterInput.value;
+                }
+                updateClearButton();
+            };
+
+            setupSearch({
+                formId: 'header-search-form',
+                inputId: 'header-search',
+                clearId: 'header-search-clear',
+                suggestionId: 'header-search-suggestions'
             });
 
-            input.addEventListener('input', debounce(() => {
-                if (input.value.trim().length === 0) {
-                    if (syncToFilters()) return;
-                } else if (syncToFilters()) {
-                    return;
-                }
-            }, 80));
+            setupSearch({
+                formId: 'mobile-search-form',
+                inputId: 'mobile-search',
+                clearId: 'mobile-search-clear',
+                suggestionId: 'mobile-search-suggestions'
+            });
 
-            const filterInput = document.getElementById('filter-search');
-            if (filterInput && filterInput.value) {
-                input.value = filterInput.value;
+            const mobileToggle = document.getElementById('mobile-search-toggle');
+            const mobilePanel = document.getElementById('mobile-search-panel');
+            const mobileInput = document.getElementById('mobile-search');
+            if (mobileToggle && mobilePanel) {
+                mobileToggle.addEventListener('click', () => {
+                    const isHidden = mobilePanel.classList.contains('hidden');
+                    if (isHidden) {
+                        mobilePanel.classList.remove('hidden');
+                        mobileToggle.setAttribute('aria-expanded', 'true');
+                        setTimeout(() => {
+                            mobileInput?.focus();
+                        }, 50);
+                    } else {
+                        mobilePanel.classList.add('hidden');
+                        mobileToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                document.addEventListener('click', (ev) => {
+                    if (!mobilePanel.contains(ev.target) && !mobileToggle.contains(ev.target)) {
+                        mobilePanel.classList.add('hidden');
+                        mobileToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
             }
         })();
 
@@ -2351,21 +2596,14 @@
     {% endif %}
 
     {# Block right-click on images for non-admin users #}
-    {% if not is_admin %}
+    {% if disable_right_click|default(true) and not is_admin %}
     <script nonce="{{ csp_nonce() }}">
     document.addEventListener('contextmenu', function(e) {
-      e.preventDefault();
-    }, { passive: false });
-
-    document.addEventListener('keydown', function(event) {
-      const key = event.key || '';
-      const isDevtoolsKey = key === 'F12'
-        || (event.ctrlKey && event.shiftKey && (key === 'I' || key === 'J' || key === 'C'))
-        || (event.ctrlKey && key === 'U');
-      if (isDevtoolsKey) {
-        event.preventDefault();
+      const target = e.target;
+      if (target && target.tagName === 'IMG') {
+        e.preventDefault();
       }
-    });
+    }, { passive: false });
     </script>
     {% endif %}
 
