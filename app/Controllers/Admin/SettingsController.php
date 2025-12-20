@@ -191,6 +191,9 @@ class SettingsController extends BaseController
             if (!is_file($consolePath)) {
                 throw new \RuntimeException('Console script not found');
             }
+            if (!is_readable($consolePath)) {
+                throw new \RuntimeException('Console script not readable');
+            }
 
             // Run the command in the background to prevent timeouts
             $cmd = "nohup php $consolePath images:generate --missing > /tmp/image_generation.log 2>&1 &";

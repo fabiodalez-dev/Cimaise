@@ -17,7 +17,14 @@ Core value propositions:
 Gallery templates: Classic Grid, Masonry, Magazine, Magazine + Cover
 Home templates: Classic (masonry + infinite scroll), Modern (fixed sidebar + grid layout)
 
-Admin features: Drag & drop reordering, bulk upload (100+ images), inline editing, real-time preview, equipment-based browsing, full-text search
+Key features:
+- **Password-protected galleries**: Per-album passwords with session-based access (24h TTL), clean URLs, rate-limited brute-force protection
+- **NSFW/Adult content mode**: Blur previews, age gate (18+ confirmation), per-album setting, server-side enforcement
+- **Advanced filtering**: Multi-criteria (categories, tags, cameras, lenses, films, locations, year, search), AJAX-based, shareable filter URLs
+- **Automatic image optimization**: Upload once, generates 5 sizes × 3 formats (AVIF/WebP/JPEG), configurable quality settings
+- **Multilingual**: Full i18n support (frontend + admin), translation management UI, preset languages (English, Italian)
+
+Admin features: Drag & drop reordering, bulk upload (100+ images), inline editing, real-time preview, equipment-based browsing, full-text search, visual template selector
 
 <!-- END AUTO-MANAGED -->
 
@@ -235,6 +242,11 @@ $app->get('/path', function(...) { ... })
   - Triggered by `UploadController::uploadSiteLogo()` after logo save
   - Generates 7 sizes: favicon.ico (32px), 16x16, 32x32, 96x96, apple-touch-icon (180px), android-chrome 192x192 and 512x512
   - Uses GD library with transparency preservation and high-quality resampling
+- **Image upload validation**: Controllers use `validateImageUpload()` method for comprehensive security
+  - Magic number validation via `finfo(FILEINFO_MIME_TYPE)` checks actual file content, not just extension
+  - Allowed MIME types: image/jpeg, image/png, image/webp, image/avif
+  - Used in: PagesController (about photo), CategoriesController (category images)
+  - Returns boolean; rejected uploads logged and fail gracefully with user-facing error
 - Uses Imagick when available, falls back to GD
 - **Responsive image srcset**: Modern template dynamically generates srcset attributes
   - Pattern: `{% for variant in image.variants %}...{% endfor %}` builds srcset array
@@ -684,10 +696,12 @@ $app->get('/path', function(...) { ... })
 This section is for manual notes and project-specific information.
 
 ### Recent Completed Work
-- Server-side NSFW and protected album enforcement (commits eb289e5-d1435a2)
-- Comprehensive OWASP security hardening
-- Cookie consent banner with GDPR compliance
-- SEO enhancements (robots.txt, meta tags)
+- Modern home template with grid layout and Lenis smooth scroll (commits fd30fc8-1348102)
+- Server-side NSFW and protected album enforcement with blur variants
+- Comprehensive security hardening (CSP nonces, reCAPTCHA, image validation)
+- Full admin panel internationalization with Italian translation
+- Translation management system with import/export
+- Advanced gallery filtering and responsive srcset optimization
 
 ### Pending Tasks
 None currently.

@@ -31,12 +31,13 @@ document.addEventListener('DOMContentLoaded', function() {
         wheelMultiplier: 0.8
     });
 
+    let rafId = null;
     function raf(time) {
         lenis.raf(time);
-        requestAnimationFrame(raf);
+        rafId = requestAnimationFrame(raf);
     }
 
-    requestAnimationFrame(raf);
+    rafId = requestAnimationFrame(raf);
 
     // ============================================
     // INFINITE SCROLL GRID
@@ -46,8 +47,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const $scroller = document.querySelector('.work-layout');
     let $allItems = Array.from(document.querySelectorAll('.inf-work_item'));
     let cachedItems = [];
-    let cachedItemsOdd = [];
-    let cachedItemsEven = [];
+    let cachedItemsCol1 = [];
+    let cachedItemsCol2 = [];
 
     // Track state
     let isFiltered = false;
@@ -64,8 +65,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const updateCachedItems = () => {
         cachedItems = Array.from(document.querySelectorAll('.inf-work_item'));
         $allItems = cachedItems;
-        cachedItemsOdd = cachedItems.filter((_, i) => i % 2 === 0);
-        cachedItemsEven = cachedItems.filter((_, i) => i % 2 === 1);
+        cachedItemsCol1 = cachedItems.filter((_, i) => i % 2 === 0);
+        cachedItemsCol2 = cachedItems.filter((_, i) => i % 2 === 1);
     };
 
     updateCachedItems();
@@ -131,8 +132,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Get updated items after cloning
         const allItems = cachedItems;
-        const $items = cachedItemsOdd; // odd items (0, 2, 4...)
-        const $items2 = cachedItemsEven; // even items (1, 3, 5...)
+        const $items = cachedItemsCol1; // column 1 (0, 2, 4...)
+        const $items2 = cachedItemsCol2; // column 2 (1, 3, 5...)
 
         if (allItems.length < 4) {
             $menu.classList.add('simple-layout');
@@ -168,12 +169,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Animation loop
         const render = () => {
+            if (isMobile() || !useInfiniteScroll || isFiltered) {
+                setTimeout(() => requestAnimationFrame(render), 500);
+                return;
+            }
             requestAnimationFrame(render);
-            if (isMobile() || !useInfiniteScroll || isFiltered) return;
 
             const allItems = cachedItems;
-            const $items = cachedItemsOdd;
-            const $items2 = cachedItemsEven;
+            const $items = cachedItemsCol1;
+            const $items2 = cachedItemsCol2;
 
             // Update dimensions if changed
             if (cachedItems[0]) {
@@ -217,8 +221,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isMobile()) {
             updateCachedItems();
             const allItems = cachedItems;
-            const $items = cachedItemsOdd;
-            const $items2 = cachedItemsEven;
+            const $items = cachedItemsCol1;
+            const $items2 = cachedItemsCol2;
 
             if (useInfiniteScroll) {
                 dispose(y, $items);
@@ -264,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Update counter
-            const counter = document.querySelector('.case-studies_total');
+            const counter = document.querySelector('.photos_total');
             if (counter) {
                 const visibleItems = document.querySelectorAll('.inf-work_item:not([style*="display: none"])');
                 counter.textContent = visibleItems.length;

@@ -261,7 +261,7 @@
                data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
                data-album-url="{{ base_path }}/album/{{ album.slug }}"
                data-action="open-album"
-               title="{{ seo_title|e('html_attr') }}">
+               aria-label="{{ seo_title|e('html_attr') }}">
         {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
         {% set is_nsfw_unconfirmed = album.is_nsfw and not can_show_nsfw %}
 
@@ -870,7 +870,7 @@ function generateGalleryCard(album) {
     wrapper.setAttribute('data-album-url', albumUrl);
     wrapper.setAttribute('data-action', 'open-album');
     if (seoTitle) {
-        wrapper.setAttribute('title', seoTitle);
+        wrapper.setAttribute('aria-label', seoTitle);
     }
 
     const rel = document.createElement('div');
@@ -1348,6 +1348,9 @@ function debounce(func, wait) {
         {{ trans('album.nsfw_cancel') }}
       </button>
     </div>
+    <p id="nsfw-error" class="text-sm text-red-600 mt-4 hidden">
+      {{ trans('album.nsfw_error')|default('Verification failed. Please try again.') }}
+    </p>
     <p class="text-xs text-gray-400 mt-6">
       {{ trans('album.nsfw_remember') }}
     </p>
@@ -1402,6 +1405,10 @@ function handleGalleryCardClick(event, card) {
 
 function showNsfwModal() {
     const modal = document.getElementById('nsfw-modal');
+    const error = document.getElementById('nsfw-error');
+    if (error) {
+        error.classList.add('hidden');
+    }
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
@@ -1416,6 +1423,10 @@ function hideNsfwModal() {
 
 function confirmNsfwAge() {
     if (!csrfToken) {
+        const error = document.getElementById('nsfw-error');
+        if (error) {
+            error.classList.remove('hidden');
+        }
         return;
     }
     fetch(`${basePath}/nsfw/confirm`, {
@@ -1440,6 +1451,10 @@ function confirmNsfwAge() {
         }
     }).catch((err) => {
         console.warn('NSFW confirmation failed:', err);
+        const error = document.getElementById('nsfw-error');
+        if (error) {
+            error.classList.remove('hidden');
+        }
     });
 }
 
