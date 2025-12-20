@@ -30,6 +30,38 @@ if (typeof window !== 'undefined') {
       }
       requestAnimationFrame(raf)
     }
+
+    // Recalculate scroll height after page load and content changes
+    const recalculate = () => {
+      if (window.lenisInstance && typeof window.lenisInstance.resize === 'function') {
+        window.lenisInstance.resize()
+      }
+    }
+
+    // Recalculate after DOM is ready
+    if (document.readyState === 'complete') {
+      recalculate()
+    } else {
+      window.addEventListener('load', recalculate)
+    }
+
+    // Recalculate on resize
+    let resizeTimeout
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(recalculate, 100)
+    })
+
+    // Recalculate periodically for first few seconds (for lazy-loaded content)
+    let recalcCount = 0
+    const recalcInterval = setInterval(() => {
+      recalculate()
+      recalcCount++
+      if (recalcCount >= 10) clearInterval(recalcInterval) // Stop after 5 seconds
+    }, 500)
+
+    // Expose recalculate function globally
+    window.lenisResize = recalculate
   }
 }
 
