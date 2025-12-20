@@ -660,7 +660,7 @@
           }
           
           const counterKey = parentId || 0;
-          const sortOrder = sortCounters.get(counterKey) || 0;
+          const sortOrder = sortCounters.get(counterKey) ?? 0;
           sortCounters.set(counterKey, sortOrder + 1);
 
           hierarchy.push({

@@ -89,6 +89,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update items list
         $allItems = Array.from(document.querySelectorAll('.inf-work_item'));
+
+        // Ensure cloned items get interaction handlers
+        setupHoverEffects();
+        setupPageTransition();
     };
 
     // Dispose items with wrapping
