@@ -59,8 +59,8 @@
             </div>
             <!-- Info Holder - shows on image hover -->
             <div class="image-grid-info_holder">
-                <div image-grid_title class="body-copy"></div>
-                <p image-grid_copy class="paragraph"></p>
+                <div data-image-grid-title class="body-copy"></div>
+                <p data-image-grid-copy class="paragraph"></p>
             </div>
         </div>
 
@@ -86,14 +86,14 @@
                     {% for variant in image.variants %}
                         {% if variant.format == 'webp' %}
                             {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : base_path ~ '/' ~ variant.path %}
-                            {% set srcset_parts = srcset_parts|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                            {% set srcset_parts = srcset_parts|merge([(variant_url|e('html_attr')) ~ ' ' ~ variant.width ~ 'w']) %}
                         {% endif %}
                     {% endfor %}
 
-                    <div inf-item class="inf-work_item{% if image.category_slug %} category-{{ image.category_slug|e('html_attr') }}{% endif %}"
-                         main-title="{{ image.album_title|e('html_attr') }}"
-                         work-title="{{ image.album_title|e('html_attr') }}"
-                         work-copy="{{ image.album_description|striptags|slice(0, 200)|e('html_attr') }}"
+                    <div data-inf-item class="inf-work_item{% if image.category_slug %} category-{{ image.category_slug|e('html_attr') }}{% endif %}"
+                         data-main-title="{{ image.album_title|e('html_attr') }}"
+                         data-work-title="{{ image.album_title|e('html_attr') }}"
+                         data-work-copy="{{ image.album_description|striptags|slice(0, 200)|e('html_attr') }}"
                          data-album-id="{{ image.album_id }}">
                         <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}" class="inf-work_link">
                             <div class="work-grid_img-holder">

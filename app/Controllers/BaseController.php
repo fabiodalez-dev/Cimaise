@@ -124,7 +124,8 @@ abstract class BaseController
         if (!empty($_SESSION['nsfw_confirmed_global'])) {
             return true;
         }
-        if (!empty($_COOKIE['nsfw_consent']) && $_COOKIE['nsfw_consent'] === '1') {
+        $cookieValue = $_COOKIE['nsfw_consent'] ?? '';
+        if (\is_string($cookieValue) && $cookieValue !== '' && $this->verifyNsfwConsentCookie($cookieValue)) {
             $_SESSION['nsfw_confirmed_global'] = true;
             return true;
         }
@@ -160,16 +161,54 @@ abstract class BaseController
             $_SESSION['nsfw_confirmed'][$albumId] = true;
         }
 
-        $cookieSet = setcookie('nsfw_consent', '1', [
-            'expires' => time() + self::NSFW_CONSENT_COOKIE_DURATION_SECONDS,
-            'path' => '/',
-            'secure' => !CookieHelper::allowInsecureCookies(),
-            'httponly' => true,
-            'samesite' => 'Lax'
-        ]);
-        if (!$cookieSet) {
-            Logger::warning('Failed to set NSFW consent cookie', [], 'security');
+        $cookieValue = $this->buildNsfwConsentCookieValue();
+        if ($cookieValue !== '') {
+            $cookieSet = setcookie('nsfw_consent', $cookieValue, [
+                'expires' => time() + self::NSFW_CONSENT_COOKIE_DURATION_SECONDS,
+                'path' => '/',
+                'secure' => !CookieHelper::allowInsecureCookies(),
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+            if (!$cookieSet) {
+                Logger::warning('Failed to set NSFW consent cookie', [], 'security');
+            }
         }
+    }
+
+    private function buildNsfwConsentCookieValue(): string
+    {
+        $secret = (string)($_ENV['SESSION_SECRET'] ?? '');
+        if ($secret === '') {
+            return '';
+        }
+        $timestamp = time();
+        $payload = '1|' . $timestamp;
+        $signature = hash_hmac('sha256', $payload, $secret);
+        return $payload . '|' . $signature;
+    }
+
+    private function verifyNsfwConsentCookie(string $value): bool
+    {
+        $secret = (string)($_ENV['SESSION_SECRET'] ?? '');
+        if ($secret === '') {
+            return false;
+        }
+        $parts = explode('|', $value);
+        if (count($parts) !== 3) {
+            return false;
+        }
+        [$flag, $timestamp, $signature] = $parts;
+        if ($flag !== '1' || !ctype_digit($timestamp)) {
+            return false;
+        }
+        $age = time() - (int)$timestamp;
+        if ($age < 0 || $age > self::NSFW_CONSENT_COOKIE_DURATION_SECONDS) {
+            return false;
+        }
+        $payload = $flag . '|' . $timestamp;
+        $expected = hash_hmac('sha256', $payload, $secret);
+        return hash_equals($expected, $signature);
     }
 
     /**
