@@ -334,6 +334,16 @@
             </label>
           </div>
         </div>
+
+        <div class="mt-6">
+          <label class="flex items-start">
+            <input type="checkbox" name="disable_right_click" class="rounded border-gray-300 text-black focus:ring-black mt-1" {% if settings['frontend.disable_right_click']|default(true) %}checked{% endif %}>
+            <span class="ml-3">
+              <span class="text-sm font-medium text-gray-900 block">{{ trans('admin.settings.disable_right_click') }}</span>
+              <span class="text-xs text-gray-600 block mt-1">{{ trans('admin.settings.disable_right_click_desc') }}</span>
+            </span>
+          </label>
+        </div>
       </div>
     </div>
 
