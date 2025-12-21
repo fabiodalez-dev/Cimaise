@@ -14,6 +14,7 @@ if (typeof window !== 'undefined') {
       gestureOrientation: 'vertical',
       normalizeWheel: false,
       smoothTouch: false,
+      autoResize: true,
     })
 
     window.lenisInstance = lenis
@@ -30,6 +31,52 @@ if (typeof window !== 'undefined') {
       }
       requestAnimationFrame(raf)
     }
+
+    // Recalculate scroll height after page load and content changes
+    const recalculate = () => {
+      if (window.lenisInstance && typeof window.lenisInstance.resize === 'function') {
+        window.lenisInstance.resize()
+      }
+    }
+
+    // Recalculate after DOM is ready
+    if (document.readyState === 'complete') {
+      recalculate()
+    } else {
+      window.addEventListener('load', recalculate)
+    }
+
+    // Recalculate on resize
+    let resizeTimeout
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(recalculate, 100)
+    })
+
+    // Recalculate periodically for first few seconds (for lazy-loaded content)
+    let recalcCount = 0
+    const recalcInterval = setInterval(() => {
+      recalculate()
+      recalcCount++
+      if (recalcCount >= 20) clearInterval(recalcInterval) // Stop after 10 seconds
+    }, 500)
+
+    // Recalculate when images load
+    document.addEventListener('load', (e) => {
+      if (e.target.tagName === 'IMG') {
+        recalculate()
+      }
+    }, true)
+
+    // MutationObserver for dynamic content changes
+    const observer = new MutationObserver(() => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(recalculate, 100)
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    // Expose recalculate function globally
+    window.lenisResize = recalculate
   }
 }
 

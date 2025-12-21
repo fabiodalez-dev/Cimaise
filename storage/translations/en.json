@@ -13,7 +13,8 @@
     "nav.back": "Back",
     "nav.menu": "Menu",
     "nav.close": "Close",
-    "nav.breadcrumb": "Breadcrumb"
+    "nav.breadcrumb": "Breadcrumb",
+    "nav.admin_dashboard": "Admin Dashboard"
   },
   "filter": {
     "filter.all": "All",
@@ -51,7 +52,17 @@
     "filter.select_films": "Select films...",
     "filter.select_locations": "Select locations...",
     "filter.select_year": "Select year...",
-    "filter.search_equipment": "Search camera, film..."
+    "filter.search_equipment": "Search camera, film...",
+    "filter.search_label": "Search",
+    "filter.analog": "Analog",
+    "filter.digital": "Digital",
+    "filter.hybrid": "Hybrid",
+    "filter.latest": "Latest",
+    "filter.oldest": "Oldest",
+    "filter.title_az": "Title A-Z",
+    "filter.title_za": "Title Z-A",
+    "filter.subcategory": "subcategory",
+    "filter.subcategories": "subcategories"
   },
   "album": {
     "album.photos": "Photos",
@@ -266,5 +277,14 @@
   },
   "image": {
     "image.download": "Download"
+  },
+  "home_modern": {
+    "home_modern.all_work": "All work",
+    "home_modern.albums": "Albums",
+    "home_modern.photos": "Photos",
+    "home_modern.close": "Close",
+    "home_modern.empty_title": "No albums yet",
+    "home_modern.empty_text": "Check back soon for new content.",
+    "home_modern.menu": "Menu"
   }
 }

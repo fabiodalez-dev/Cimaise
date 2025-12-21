@@ -1,6 +1,30 @@
 {% extends "frontend/_layout.twig" %}
 
+{% import 'frontend/_seo_macros.twig' as Seo %}
+
 {% block content %}
+<style nonce="{{ csp_nonce() }}">
+/* Hide GSAP-animated elements initially to prevent flicker */
+[data-gsap="categories"],
+[data-gsap="title"],
+[data-gsap="meta"],
+[data-gsap="excerpt"],
+[data-gsap="body"],
+[data-gsap="equipment"] {
+    opacity: 0;
+    transform: translateY(20px);
+}
+/* Fallback: show elements if GSAP hasn't animated them after 1.5s */
+.gsap-ready [data-gsap="categories"],
+.gsap-ready [data-gsap="title"],
+.gsap-ready [data-gsap="meta"],
+.gsap-ready [data-gsap="excerpt"],
+.gsap-ready [data-gsap="body"],
+.gsap-ready [data-gsap="equipment"] {
+    opacity: 1;
+    transform: translateY(0);
+}
+</style>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   {% include 'frontend/_breadcrumbs.twig' %}
   <div class="max-w-4xl mx-auto text-center pb-12">
@@ -122,7 +146,7 @@
   {% if available_templates|length > 0 %}
   <div class="max-w-7xl mx-auto mb-2">
     <div class="flex justify-end">
-      <div id="template-switcher" class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm" style="opacity: 0; transform: translateX(20px);">
+      <div id="template-switcher" class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm max-md:hidden">
         {% for template in available_templates %}
         <button type="button" class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" title="{{ template.name }}" aria-label="{{ template.name }}">
           {% if template.settings.layout == 'masonry_fit' %}
@@ -191,13 +215,17 @@
 
 
   {% if layout != 'magazine' %}
-  {# 1. MASONRY FIT - Rispetta proporzioni originali #}
-  {% if layout == 'masonry_fit' %}
-    <div id="images-gallery" class="masonry-fit-container">
+  {# 1. MASONRY FIT / MASONRY - Rispetta proporzioni originali con CSS columns #}
+  {% if layout == 'masonry_fit' or layout == 'masonry' %}
+    {% set gap_h = template_settings.gap.horizontal|default(16) %}
+    {% set gap_v = template_settings.gap.vertical|default(16) %}
+    <div id="images-gallery" class="masonry-fit-container pswp-gallery" data-layout="masonry_fit">
       {% for image in images %}
-      <div class="masonry-fit-item" style="--aspect-ratio: {{ image.width / image.height }}">
-        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
-           class="pswp-link image-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white"
+      <div class="masonry-fit-item">
+        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
+           class="pswp-link image-item block overflow-hidden bg-neutral-50 cursor-pointer"
+           title="{{ seo_title|e('html_attr') }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -216,20 +244,37 @@
         >
           <picture>
             {% if image.sources and image.sources.avif|length %}
-              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
+              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
             {% endif %}
             {% if image.sources and image.sources.webp|length %}
-              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
+              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
             {% endif %}
             {% if image.sources and image.sources.jpg|length %}
-              <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
+              <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
             {% endif %}
-            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-auto object-contain" style="aspect-ratio: var(--aspect-ratio)" loading="lazy" decoding="async">
+            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-auto block" loading="lazy" decoding="async">
           </picture>
         </a>
       </div>
       {% endfor %}
     </div>
+    <style nonce="{{ csp_nonce() }}">
+    .masonry-fit-container {
+        column-gap: {{ gap_h }}px;
+    }
+    .masonry-fit-container .masonry-fit-item {
+        margin-bottom: {{ gap_v }}px;
+    }
+    @media (min-width: 1024px) {
+        .masonry-fit-container { column-count: {{ desktop_cols }}; }
+    }
+    @media (min-width: 768px) and (max-width: 1023px) {
+        .masonry-fit-container { column-count: {{ tablet_cols }}; }
+    }
+    @media (max-width: 767px) {
+        .masonry-fit-container { column-count: {{ mobile_cols }}; }
+    }
+    </style>
 
   {# 2. SLIDESHOW PRO - Con controlli avanzati #}
   {% elseif layout == 'slideshow' %}
@@ -238,8 +283,10 @@
         <div class="swiper-wrapper">
           {% for image in images %}
           <div class="swiper-slide relative">
+            {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
             <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
                class="pswp-link image-item block h-[70vh] bg-neutral-100 rounded-xl overflow-hidden flex items-center justify-center"
+               title="{{ seo_title|e('html_attr') }}"
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
                data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -266,7 +313,7 @@
                 {% if image.sources and image.sources.jpg|length %}
                   <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
                 {% endif %}
-                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" class="max-w-full max-h-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};" loading="lazy" decoding="async">
+                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" title="{{ seo_title|e('html_attr') }}" class="max-w-full max-h-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};" loading="lazy" decoding="async">
               </picture>
             </a>
             {% if image.caption %}
@@ -302,8 +349,10 @@
     <div id="images-gallery" class="grid {{ mobile_class|default('grid-cols-1') }} {{ tablet_class|default('md:grid-cols-2') }} {{ desktop_class|default('lg:grid-cols-3') }} gap-8">
       {% for image in images %}
       <div class="grid-minimal-item group">
+        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
            class="pswp-link image-item block aspect-square bg-neutral-50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-out"
+           title="{{ seo_title|e('html_attr') }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -331,7 +380,7 @@
               {% if image.sources and image.sources.jpg|length %}
                 <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
               {% endif %}
-              <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300 ease-out" loading="lazy" decoding="async">
+              <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300 ease-out" loading="lazy" decoding="async">
             </picture>
             <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
@@ -346,8 +395,10 @@
       {% for image in images %}
       {% set featured = loop.index0 % 6 == 0 or loop.index0 % 6 == 3 %}
       <div class="mosaic-item {{ featured ? 'mosaic-featured' : 'mosaic-normal' }}" data-index="{{ loop.index0 }}">
+        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
            class="pswp-link image-item block w-full h-full bg-neutral-100 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 ease-out hover:z-10 {{ featured ? 'flex items-center justify-center' : '' }}"
+           title="{{ seo_title|e('html_attr') }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -363,7 +414,7 @@
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
            data-process="{{ image.process|default('')|e }}">
-          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full {{ featured ? 'object-contain max-w-full max-h-full' : 'object-cover' }}">
+          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full {{ featured ? 'object-contain max-w-full max-h-full' : 'object-cover' }}">
         </a>
       </div>
       {% endfor %}
@@ -376,8 +427,10 @@
         <div class="swiper-wrapper">
           {% for image in images %}
           <div class="swiper-slide !w-auto !h-[80vh] px-2">
+            {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
             <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
                class="pswp-link image-item block h-full bg-neutral-100 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-out relative flex items-center justify-center"
+               title="{{ seo_title|e('html_attr') }}"
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
                data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -393,7 +446,7 @@
                data-shutter="{{ image.shutter_speed|default('')|e }}"
                data-aperture="{{ image.aperture|default('') }}"
                data-process="{{ image.process|default('')|e }}">
-              <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" class="max-h-full max-w-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};">
+              <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="max-h-full max-w-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};">
             </a>
           </div>
           {% endfor %}
@@ -409,8 +462,10 @@
       {% set rotation = rotation_values[loop.index0 % 9] %}
       <div class="polaroid-item absolute"
            style="--rotation: {{ rotation }}deg; transform: rotate(var(--rotation)); top: {{ (loop.index0 * 15) % 60 + 10 }}%; left: {{ (loop.index0 * 20) % 80 + 5 }}%;">
+        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
            class="pswp-link image-item block bg-white p-3 pb-12 shadow-2xl hover:shadow-3xl transition-shadow duration-300 ease-out hover:z-50 relative"
+           title="{{ seo_title|e('html_attr') }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -427,7 +482,7 @@
            data-aperture="{{ image.aperture|default('') }}"
            data-process="{{ image.process|default('')|e }}"
            style="width: 200px; filter: sepia(0.2) contrast(1.1) brightness(1.05);">
-          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" class="w-full aspect-square object-cover">
+          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full aspect-square object-cover">
           {% if image.caption %}
           <div class="absolute bottom-2 left-3 right-3 text-center text-xs font-handwriting text-gray-700">
             {{ image.caption|e|slice(0, 40) }}{% if image.caption|length > 40 %}...{% endif %}
@@ -439,13 +494,15 @@
       {% endfor %}
     </div>
 
-  {# DEFAULT: Standard masonry #}
+  {# DEFAULT: Standard masonry with CSS columns #}
   {% elseif masonry %}
-    <div id="images-gallery" class="masonry-grid" style="--cols-desktop: {{ desktop_cols }}; --cols-tablet: {{ tablet_cols }}; --cols-mobile: {{ mobile_cols }};">
+    <div id="images-gallery" class="masonry-grid pswp-gallery" data-layout="masonry">
       {% for image in images %}
       <div class="masonry-item">
+        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
            class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
+           title="{{ seo_title|e('html_attr') }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -461,11 +518,29 @@
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
            data-process="{{ image.process|default('')|e }}">
-          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-auto object-cover">
+          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-auto object-cover">
         </a>
       </div>
       {% endfor %}
     </div>
+    <style nonce="{{ csp_nonce() }}">
+    .masonry-grid {
+        column-gap: 1rem;
+    }
+    .masonry-grid .masonry-item {
+        break-inside: avoid;
+        margin-bottom: 1rem;
+    }
+    @media (min-width: 1024px) {
+        .masonry-grid { column-count: {{ desktop_cols }}; }
+    }
+    @media (min-width: 768px) and (max-width: 1023px) {
+        .masonry-grid { column-count: {{ tablet_cols }}; }
+    }
+    @media (max-width: 767px) {
+        .masonry-grid { column-count: {{ mobile_cols }}; }
+    }
+    </style>
   {% else %}
     {% if mobile_cols == 1 %}{% set mobile_class = 'grid-cols-1' %}
     {% elseif mobile_cols == 2 %}{% set mobile_class = 'grid-cols-2' %}
@@ -490,8 +565,10 @@
     <div id="images-gallery" class="grid {{ mobile_class }} {{ tablet_class }} {{ desktop_class }} gap-4">
       {% for image in images %}
       <div class="masonry-item">
+        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
            class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
+           title="{{ seo_title|e('html_attr') }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -514,10 +591,10 @@
             {% if image.sources and image.sources.webp|length %}
               <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
             {% endif %}
-                {% if image.sources and image.sources.jpg|length %}
-                  <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
-                {% endif %}
-                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+               {% if image.sources and image.sources.jpg|length %}
+                 <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
+               {% endif %}
+                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
           </picture>
         </a>
       </div>
@@ -837,20 +914,63 @@ document.addEventListener('click', function(event) {
     .then(html => {
       galleryContainer.style.opacity = '0';
       galleryContainer.innerHTML = html;
-      const m = html.match(/window\.templateSettings\s*=\s*({[\s\S]*?});/);
-      if (m) { try { window.templateSettings = JSON.parse(m[1]); } catch(e) { console.error(e); } }
+      // Match direct object assignment from _gallery_content.twig
+      const m = html.match(/window\.templateSettings\s*=\s*(\{[\s\S]*?\});/);
+      if (m) { try { window.templateSettings = JSON.parse(m[1]); } catch(e) { console.error('Failed to parse templateSettings:', e); } }
       const newLayout = window.templateSettings?.layout || 'grid';
       const newMasonry = !!window.templateSettings?.masonry;
       const idKeep = galleryContainer.id;
       galleryContainer.className = '';
+      // Remove any previous dynamic styles
+      const prevMasonryFitStyle = document.getElementById('masonry-fit-dynamic-style');
+      if (prevMasonryFitStyle) prevMasonryFitStyle.remove();
+      const prevMasonryGridStyle = document.getElementById('masonry-grid-dynamic-style');
+      if (prevMasonryGridStyle) prevMasonryGridStyle.remove();
       if (newLayout === 'magazine') {
         galleryContainer.className = 'mt-6';
       } else if (newLayout === 'slideshow') {
         galleryContainer.className = 'swiper slideshow-pro max-w-6xl mx-auto';
       } else if (newLayout === 'fullscreen') {
         galleryContainer.className = 'grid grid-cols-1 lg:grid-cols-2 gap-2';
+      } else if (newLayout === 'masonry_fit' || newLayout === 'masonry') {
+        // Masonry Full layout with CSS columns (full images)
+        galleryContainer.className = 'masonry-fit-container pswp-gallery';
+        galleryContainer.setAttribute('data-layout', newLayout);
+        const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
+        const gap = window.templateSettings?.gap || {horizontal:16, vertical:16};
+        const d = Math.round(cols.desktop || 3), t = Math.round(cols.tablet || 2), mob = Math.round(cols.mobile || 1);
+        const gH = gap.horizontal || 16, gV = gap.vertical || 16;
+        // Inject dynamic CSS for masonry_fit columns
+        const styleEl = document.createElement('style');
+        styleEl.id = 'masonry-fit-dynamic-style';
+        styleEl.textContent = `
+          .masonry-fit-container { column-gap: ${gH}px; }
+          .masonry-fit-container .masonry-fit-item { margin-bottom: ${gV}px; }
+          @media (min-width: 1024px) { .masonry-fit-container { column-count: ${d}; } }
+          @media (min-width: 768px) and (max-width: 1023px) { .masonry-fit-container { column-count: ${t}; } }
+          @media (max-width: 767px) { .masonry-fit-container { column-count: ${mob}; } }
+        `;
+        document.head.appendChild(styleEl);
       } else if (newMasonry) {
-        galleryContainer.className = 'masonry-grid';
+        // Standard masonry with CSS columns
+        galleryContainer.className = 'masonry-grid pswp-gallery';
+        galleryContainer.setAttribute('data-layout', 'masonry');
+        const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
+        const d = Math.round(cols.desktop || 3), t = Math.round(cols.tablet || 2), mob = Math.round(cols.mobile || 1);
+        // Remove previous masonry-grid dynamic style if exists
+        const prevMasonryGridStyle = document.getElementById('masonry-grid-dynamic-style');
+        if (prevMasonryGridStyle) prevMasonryGridStyle.remove();
+        // Inject dynamic CSS for masonry columns
+        const masonryStyleEl = document.createElement('style');
+        masonryStyleEl.id = 'masonry-grid-dynamic-style';
+        masonryStyleEl.textContent = `
+          .masonry-grid { column-gap: 1rem; }
+          .masonry-grid .masonry-item { break-inside: avoid; margin-bottom: 1rem; }
+          @media (min-width: 1024px) { .masonry-grid { column-count: ${d}; } }
+          @media (min-width: 768px) and (max-width: 1023px) { .masonry-grid { column-count: ${t}; } }
+          @media (max-width: 767px) { .masonry-grid { column-count: ${mob}; } }
+        `;
+        document.head.appendChild(masonryStyleEl);
       } else {
         const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
         let d = Math.round(cols.desktop || 3), t = Math.round(cols.tablet || 2), m = Math.round(cols.mobile || 1);
@@ -903,7 +1023,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check for reduced motion preference
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    // Fallback: if no GSAP or reduced motion, show elements immediately
     if (prefersReducedMotion || typeof gsap === 'undefined') {
+        document.body.classList.add('gsap-ready');
         return;
     }
 
@@ -912,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', function() {
         gsap.registerPlugin(ScrollTrigger);
     }
 
-    // Header entrance animations with stagger
+    // Header entrance animations with stagger - animate TO visible
     const headerElements = [
         '[data-gsap="categories"]',
         '[data-gsap="title"]',
@@ -924,9 +1046,9 @@ document.addEventListener('DOMContentLoaded', function() {
     headerElements.forEach((selector, index) => {
         const el = document.querySelector(selector);
         if (el) {
-            gsap.from(el, {
-                opacity: 0,
-                y: 20,
+            gsap.to(el, {
+                opacity: 1,
+                y: 0,
                 duration: 0.6,
                 delay: index * 0.1,
                 ease: 'power2.out'
@@ -937,14 +1059,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Equipment section
     const equipment = document.querySelector('[data-gsap="equipment"]');
     if (equipment) {
-        gsap.from(equipment, {
-            opacity: 0,
-            y: 20,
+        gsap.to(equipment, {
+            opacity: 1,
+            y: 0,
             duration: 0.6,
             delay: 0.5,
             ease: 'power2.out'
         });
     }
+
+    // Fallback timeout: if animations haven't run, show elements
+    setTimeout(() => {
+        document.body.classList.add('gsap-ready');
+    }, 1500);
 
     // Template switcher buttons (hidden initially, animate to visible)
     const templateSwitcher = document.getElementById('template-switcher');

@@ -30,16 +30,16 @@ class DownloadController extends BaseController
 
         // Check album password if present
         if (!empty($row['password_hash'])) {
-            $allowed = isset($_SESSION['album_access']) && !empty($_SESSION['album_access'][$row['album_id']]);
-            if (!$allowed) return $response->withStatus(403);
+            if (!$this->hasAlbumPasswordAccess((int)$row['album_id'])) {
+                return $response->withStatus(403);
+            }
         }
 
         // NSFW server-side enforcement: block downloads for unconfirmed NSFW albums
         // Admins bypass this check
         $isAdmin = $this->isAdmin();
         if ((bool)$row['is_nsfw'] && !$isAdmin) {
-            $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$row['album_id']]) && $_SESSION['nsfw_confirmed'][$row['album_id']] === true;
-            if (!$nsfwConfirmed) {
+            if (!$this->hasNsfwAlbumConsent((int)$row['album_id'])) {
                 return $response->withStatus(403);
             }
         }
@@ -143,4 +143,3 @@ class DownloadController extends BaseController
             ->withHeader('X-Frame-Options', 'DENY');
     }
 }
-
