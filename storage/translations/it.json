@@ -51,7 +51,15 @@
     "filter.select_films": "Seleziona pellicole...",
     "filter.select_locations": "Seleziona luoghi...",
     "filter.select_year": "Seleziona anno...",
-    "filter.search_equipment": "Cerca fotocamera, pellicola..."
+    "filter.search_equipment": "Cerca fotocamera, pellicola...",
+    "filter.search_label": "Cerca",
+    "filter.analog": "Analogico",
+    "filter.digital": "Digitale",
+    "filter.hybrid": "Ibrido",
+    "filter.latest": "Più recenti",
+    "filter.oldest": "Meno recenti",
+    "filter.title_az": "Titolo A-Z",
+    "filter.title_za": "Titolo Z-A"
   },
   "album": {
     "album.photos": "Foto",
