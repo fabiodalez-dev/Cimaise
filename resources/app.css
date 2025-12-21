@@ -45,6 +45,26 @@
   .form-input {
     @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
   }
+
+  /* Date input - ensure native picker is visible */
+  input[type="date"].form-input {
+    position: relative;
+    padding-right: 2.5rem;
+  }
+
+  input[type="date"].form-input::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
   
   .form-select {
     @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
