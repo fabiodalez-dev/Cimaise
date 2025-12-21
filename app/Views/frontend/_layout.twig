@@ -1881,6 +1881,118 @@
                 window.__pswpLightbox = null;
             }
         }
+
+        // Shared PhotoSwipe helper: centered zoom toggle
+        function pswpToggleZoomCentered(pswp) {
+            const slide = pswp?.currSlide;
+            if (!slide || !slide.zoomLevels) return;
+            const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+            const max = slide.zoomLevels.max ?? fit;
+            const current = slide.currZoomLevel ?? fit;
+            const target = current <= fit * 1.05
+              ? Math.min(max, Math.max(fit * 1.75, fit * 3))
+              : fit;
+            const root = pswp.element;
+            if (root) {
+                root.classList.add('pswp--zooming');
+                if (target > fit * 1.05) {
+                    root.classList.add('pswp--zoomed-in');
+                } else {
+                    root.classList.remove('pswp--zoomed-in');
+                }
+            }
+            const vw = window.innerWidth / 2;
+            const vh = window.innerHeight / 2;
+            pswp.zoomTo(target, { x: vw, y: vh }, 280, false);
+        }
+
+        // Shared PhotoSwipe helper: setup tap/zoom handling for lightbox
+        function pswpSetupTapZoom(pswp, toggleZoomFn) {
+            if (pswp._customZoomBound) return;
+
+            // Zoom button click handler
+            const zoomBtn = pswp.element?.querySelector('.pswp__button--zoom');
+            if (zoomBtn) {
+                zoomBtn.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    toggleZoomFn(pswp);
+                }, { capture: true });
+            }
+
+            // Tap on image: single tap navigates, double tap zooms (touch)
+            let lastTapAt = 0;
+            let lastTapX = 0;
+            let lastTapY = 0;
+            let singleTapTimer = null;
+            const tapDelayMs = 260;
+            const tapDistancePx = 24;
+
+            pswp.element?.addEventListener('pointerup', (ev) => {
+                const target = ev.target;
+                // Skip UI controls to prevent blocking button clicks
+                if (target.closest('.pswp__top-bar, .pswp__button')) {
+                    return;
+                }
+                const imgEl = target && target.closest ? target.closest('.pswp__img') : null;
+                if (!imgEl) return;
+
+                const rect = imgEl.getBoundingClientRect();
+                const clickX = ev.clientX - rect.left;
+                const clickY = ev.clientY - rect.top;
+                const isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
+                const slide = pswp.currSlide;
+                const fit = slide && slide.zoomLevels ? (slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1) : 1;
+                const current = slide ? (slide.currZoomLevel ?? fit) : fit;
+                const isZoomed = current > fit * 1.05;
+
+                ev.preventDefault();
+                ev.stopPropagation();
+
+                if (isTouch) {
+                    const now = Date.now();
+                    const dist = Math.hypot(clickX - lastTapX, clickY - lastTapY);
+                    if (now - lastTapAt <= tapDelayMs && dist <= tapDistancePx) {
+                        if (singleTapTimer) {
+                            clearTimeout(singleTapTimer);
+                            singleTapTimer = null;
+                        }
+                        lastTapAt = 0;
+                        toggleZoomFn(pswp);
+                        return;
+                    }
+                    lastTapAt = now;
+                    lastTapX = clickX;
+                    lastTapY = clickY;
+                    if (singleTapTimer) {
+                        clearTimeout(singleTapTimer);
+                    }
+                    singleTapTimer = setTimeout(() => {
+                        if (isZoomed) {
+                            return;
+                        }
+                        if (clickX < rect.width / 2) {
+                            pswp.prev();
+                        } else {
+                            pswp.next();
+                        }
+                    }, tapDelayMs);
+                    return;
+                }
+
+                if (isZoomed) {
+                    return;
+                }
+                if (clickX < rect.width / 2) {
+                    pswp.prev();
+                } else {
+                    pswp.next();
+                }
+            }, { capture: true });
+
+            pswp._customZoomBound = true;
+        }
+
         // Initialize PhotoSwipe Lightbox bound to gallery anchors
         function initLightbox() {
             // Check if there are any pswp-link elements before initializing
@@ -2092,81 +2204,8 @@
                             pswp.on('zoomPanUpdate', updateZoomClasses);
                             pswp.on('change', updateZoomClasses);
                             updateZoomClasses();
-                            // Zoom button handler - use toggleZoom with viewport center
-                            const zoomBtn = pswp.element?.querySelector('.pswp__button--zoom');
-                            if (zoomBtn) {
-                                zoomBtn.addEventListener('click', (ev) => {
-                                    ev.preventDefault();
-                                    ev.stopPropagation();
-                                    toggleZoomCentered(pswp);
-                                }, { capture: true });
-                            }
-                            // Tap on image: single tap navigates, double tap zooms (touch)
-                            let lastTapAt = 0;
-                            let lastTapX = 0;
-                            let lastTapY = 0;
-                            let singleTapTimer = null;
-                            const tapDelayMs = 260;
-                            const tapDistancePx = 24;
-                            pswp.element?.addEventListener('pointerup', (ev) => {
-                            const target = ev.target;
-                            // Skip UI controls to prevent blocking button clicks
-                            if (target.closest('.pswp__top-bar, .pswp__button')) {
-                              return;
-                            }
-                            const imgEl = target && target.closest ? target.closest('.pswp__img') : null;
-                            if (!imgEl) return;
-                            const activeEl = imgEl;
-                            const rect = activeEl.getBoundingClientRect();
-                            const clickX = ev.clientX - rect.left;
-                            const clickY = ev.clientY - rect.top;
-                            const isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
-                            const slide = pswp.currSlide;
-                            const fit = slide && slide.zoomLevels ? (slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1) : 1;
-                            const current = slide ? (slide.currZoomLevel ?? fit) : fit;
-                            const isZoomed = current > fit * 1.05;
-                            ev.preventDefault();
-                            ev.stopPropagation();
-                            if (isTouch) {
-                                const now = Date.now();
-                                const dist = Math.hypot(clickX - lastTapX, clickY - lastTapY);
-                                    if (now - lastTapAt <= tapDelayMs && dist <= tapDistancePx) {
-                                        if (singleTapTimer) {
-                                            clearTimeout(singleTapTimer);
-                                            singleTapTimer = null;
-                                        }
-                                        lastTapAt = 0;
-                                        toggleZoomCentered(pswp);
-                                        return;
-                                    }
-                                    lastTapAt = now;
-                                    lastTapX = clickX;
-                                    lastTapY = clickY;
-                                    if (singleTapTimer) {
-                                        clearTimeout(singleTapTimer);
-                                    }
-                                    singleTapTimer = setTimeout(() => {
-                                        if (isZoomed) {
-                                            return;
-                                        }
-                                        if (clickX < rect.width / 2) {
-                                            pswp.prev();
-                                        } else {
-                                            pswp.next();
-                                        }
-                                    }, tapDelayMs);
-                                    return;
-                                }
-                                if (isZoomed) {
-                                    return;
-                                }
-                                if (clickX < rect.width / 2) {
-                                    pswp.prev();
-                                } else {
-                                    pswp.next();
-                                }
-                            }, { capture: true });
-                            pswp._customZoomBound = true;
+                            // Use shared tap/zoom handler
+                            pswpSetupTapZoom(pswp, toggleZoomCentered);
                         }
                     });
 
@@ -2257,7 +2296,7 @@
                                     const src = pswp?.currSlide?.data?.src || '';
                                     const match = src.match(/\/media\/(?:protected\/)?(\d+)(?:_|\/)/);
                                     if (!match) return null;
-                                    const base = (window.basePath || '').replace(/\/$/, '');
+                                    const base = (window.basePath || '{{ base_path|e("js") }}').replace(/\/$/, '');
                                     return `${base}/download/image/${match[1]}`;
                                 };
                                 const updateVisibility = () => {
@@ -2373,8 +2412,8 @@
                     pinchToClose: true,
                     closeOnVerticalDrag: false,
                     
-                    // Minimal padding to show images at full size
-                    padding: { top: 20, bottom: 20, left: 56, right: 56 },
+                    // Padding consistent with main lightbox for captions
+                    padding: { top: 60, bottom: 100, left: 72, right: 72 },
                     
                     // Modern animations
                     showHideAnimationType: 'fade',
@@ -2445,80 +2484,8 @@
                       pswp.on('zoomPanUpdate', updateZoomClasses);
                       pswp.on('change', updateZoomClasses);
                       updateZoomClasses();
-                      const zoomBtn = pswp.element?.querySelector('.pswp__button--zoom');
-                      if (zoomBtn) {
-                        zoomBtn.addEventListener('click', (ev) => {
-                          ev.preventDefault();
-                          ev.stopPropagation();
-                          toggleZoomCentered(pswp);
-                        }, { capture: true });
-                      }
-                      // Tap on image: single tap navigates, double tap zooms (touch)
-                      let lastTapAt = 0;
-                      let lastTapX = 0;
-                      let lastTapY = 0;
-                      let singleTapTimer = null;
-                      const tapDelayMs = 260;
-                      const tapDistancePx = 24;
-                      pswp.element?.addEventListener('pointerup', (ev) => {
-                        const target = ev.target;
-                        // Skip UI controls to prevent blocking button clicks
-                        if (target.closest('.pswp__top-bar, .pswp__button')) {
-                          return;
-                        }
-                        const imgEl = target && target.closest ? target.closest('.pswp__img') : null;
-                        if (!imgEl) return;
-                        const activeEl = imgEl;
-                        const rect = activeEl.getBoundingClientRect();
-                        const clickX = ev.clientX - rect.left;
-                        const clickY = ev.clientY - rect.top;
-                        const isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
-                        const slide = pswp.currSlide;
-                        const fit = slide && slide.zoomLevels ? (slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1) : 1;
-                        const current = slide ? (slide.currZoomLevel ?? fit) : fit;
-                        const isZoomed = current > fit * 1.05;
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        if (isTouch) {
-                          const now = Date.now();
-                          const dist = Math.hypot(clickX - lastTapX, clickY - lastTapY);
-                          if (now - lastTapAt <= tapDelayMs && dist <= tapDistancePx) {
-                            if (singleTapTimer) {
-                              clearTimeout(singleTapTimer);
-                              singleTapTimer = null;
-                            }
-                            lastTapAt = 0;
-                            toggleZoomCentered(pswp);
-                            return;
-                          }
-                          lastTapAt = now;
-                          lastTapX = clickX;
-                          lastTapY = clickY;
-                          if (singleTapTimer) {
-                            clearTimeout(singleTapTimer);
-                          }
-                          singleTapTimer = setTimeout(() => {
-                            if (isZoomed) {
-                              return;
-                            }
-                            if (clickX < rect.width / 2) {
-                              pswp.prev();
-                            } else {
-                              pswp.next();
-                            }
-                          }, tapDelayMs);
-                          return;
-                        }
-                        if (isZoomed) {
-                          return;
-                        }
-                        if (clickX < rect.width / 2) {
-                          pswp.prev();
-                        } else {
-                          pswp.next();
-                        }
-                      }, { capture: true });
-                      pswp._customZoomBound = true;
+                      // Use shared tap/zoom handler
+                      pswpSetupTapZoom(pswp, toggleZoomCentered);
                     }
                     psCaptionEl = document.createElement('div');
                     psCaptionEl.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
@@ -2822,7 +2789,8 @@
     <script nonce="{{ csp_nonce() }}">
     document.addEventListener('contextmenu', function(e) {
       const target = e.target;
-      if (target && target.tagName === 'IMG') {
+      // Block context menu on images, pictures, and common image containers
+      if (target && (target.tagName === 'IMG' || target.closest('picture, .image-item, .album-card, .gallery-card, .inf-work_item'))) {
         e.preventDefault();
       }
     }, { passive: false });
