@@ -64,7 +64,7 @@
                   <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.categories') }} <span class="text-red-500">*</span></label>
                   <select name="categories[]" id="album-categories" class="form-input" multiple required>
                     {% for c in categories %}
-                      <option value="{{ c.id }}">{{ c.name }}</option>
+                      <option value="{{ c.id }}" {{ c.slug == 'photo' ? 'selected' : '' }}>{{ c.name }}</option>
                     {% endfor %}
                   </select>
                   <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.categories_help') }}</p>
@@ -856,7 +856,6 @@
           const fd = new FormData();
           fd.append('file', file);
 
-          // Set timeout for large file uploads (5 minutes)
           xhr.timeout = 300000;
 
           xhr.upload.addEventListener('progress', (e) => {
@@ -871,7 +870,7 @@
               updateFileProgress(index, 100, t('admin.upload.completed') + ' ✓', 'complete');
               try {
                 resolve(JSON.parse(xhr.responseText));
-              } catch {
+              } catch (e) {
                 resolve({});
               }
             } else {
