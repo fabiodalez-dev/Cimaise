@@ -120,7 +120,7 @@ photoCMS/
 ```
 
 ### Key Files
-- `public/index.php` - Application bootstrap with auto-repair logic and base path detection
+- `public/index.php` - Application bootstrap with auto-repair logic, base path detection, and global Twig variable injection (SEO settings, analytics, site config injected as globals for frontend templates)
 - `public/router.php` - PHP built-in server router (routes /media/* through PHP for access control)
 - `app/Config/routes.php` - All route definitions (120+ routes including protected media)
 - `app/Controllers/BaseController.php` - Base controller with helper methods (validateCsrf, csrfErrorJson, isAjaxRequest, isAdmin, redirect with base path handling)
@@ -206,7 +206,10 @@ photoCMS/
 - **Translation function**: `{{ trans('key.name') }}` for i18n (used in both frontend and admin templates)
 - **Admin panel i18n**: Fully internationalized with `trans('admin.*')` keys and `en_admin.json`/`it_admin.json` files (complete Italian translation added in commit 41acb3b)
 - **Date formatting**: Use `{{ date|date_format }}`, `{{ datetime|datetime_format }}`, `{{ text|replace_year }}` filters
-- **CSP nonce**: Use `{{ csp_nonce() }}` for inline scripts (required by Content Security Policy)
+- **CSP nonce**: Use `{{ csp_nonce() }}` for inline scripts and styles (required by Content Security Policy)
+  - Generated per-request by SecurityHeadersMiddleware via `base64_encode(random_bytes(16))`
+  - Required for all inline `<script>` and `<style>` tags on frontend routes
+  - Admin routes use relaxed CSP policy (allows `unsafe-inline` and `unsafe-eval` for TinyMCE)
 - **Image error handling**: Use `data-fallback="hide"` attribute for graceful degradation (not inline `onerror` for CSP compliance)
 - **HTML5 data attributes**: Use `data-*` attributes for JavaScript element targeting and metadata storage
   - Element markers: `data-inf-item`, `data-filter` for querySelector/querySelectorAll selection
@@ -216,6 +219,13 @@ photoCMS/
 - **Tailwind CSS**: Utility-first styling (classic templates)
 - **Custom CSS**: Modern template uses custom CSS (`home-modern.css`) with CSS variables (`--modern-*`)
 - **JavaScript**: ES6 modules, localStorage with Safari-safe wrappers, npm package imports (Lenis via Vite)
+- **Global Twig variables**: SEO settings and site config injected in `public/index.php` for all frontend templates
+  - Injected only for frontend routes (not admin routes) via `$twig->getEnvironment()->addGlobal()`
+  - SEO globals: `og_site_name`, `og_type`, `og_locale`, `twitter_card`, `twitter_site`, `twitter_creator`, `robots`
+  - Schema globals: `schema` array with `enabled`, `author_name`, `author_url`, `organization_name`, `organization_url`, `image_copyright_notice`, `image_license_url`
+  - Analytics globals: `analytics_gtag`, `analytics_gtm`
+  - Available in all frontend templates without passing through controllers
+  - Fallback defaults provided in catch block if settings service unavailable
 
 ### Middleware Pattern
 ```php
@@ -261,8 +271,12 @@ $app->get('/path', function(...) { ... })
   - Sizes attribute: `sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"`
   - Fallback: Single `src` uses `image.fallback_src` or first available variant or original path
   - Best JPG selection: Tracks largest JPG variant for optimal fallback (`best_jpg_w`, `best_jpg_path`)
-  - Storage path filtering: Excludes protected paths (`/storage/`) from srcsets for security
-  - SEO optimization: Uses `Seo.seo_title()` macro for semantic title generation combining image alt, album title, and site title
+  - **Storage path security**: Always excludes protected paths (`/storage/`) from srcsets for protected albums
+    - Security filter: `{% if ... and not (v.path starts with '/storage/') %}` in variant loops
+    - Applied regardless of `allow_downloads` flag to prevent bypassing server-side access control
+    - Ensures MediaController validates session before serving any protected album images
+    - Templates: `gallery_hero.twig`, `home_modern.twig`, `_image_item_masonry.twig`, `_gallery_magazine_content.twig`
+  - SEO: Uses `Seo.seo_title()` macro for semantic title generation combining image alt, album title, and site title
   - Applied in: `home_modern.twig` image grid, `_image_item_masonry.twig` masonry layout
 
 ### Rate Limiting
@@ -338,7 +352,12 @@ $app->get('/path', function(...) { ... })
 - **CSP header**: `script-src 'self' 'nonce-{nonce}'` (frontend) or `'self' 'unsafe-inline' 'unsafe-eval'` (admin)
 - **Usage pattern**:
   - Scripts: `<script nonce="{{ csp_nonce() }}">...</script>` for inline JavaScript (frontend only)
-  - Styles: `<style nonce="{{ csp_nonce() }}">...</style>` for inline CSS
+  - Styles: `<style nonce="{{ csp_nonce() }}">...</style>` for inline CSS (all frontend templates)
+- **Frontend template compliance**: All inline styles use CSP nonce for security
+  - Layout: `_layout.twig` uses `<style nonce="{{ csp_nonce() }}">` for custom styles (line-clamp, masonry, FOUC prevention)
+  - Galleries: `galleries.twig` inline styles for filter UI and responsive layout
+  - Gallery hero: `gallery_hero.twig` inline overlay and hero image styles
+  - Modern template: `home_modern.twig` uses nonce for webkit search input styling and CSS reset scoping
 - **Admin layout**: All inline scripts and styles in `_layout.twig` benefit from relaxed CSP policy
   - Window globals: `window.basePath`, `window.cspNonce`
   - Inline styles: Component styling, TinyMCE fixes, sidebar styles
@@ -786,6 +805,14 @@ $app->get('/path', function(...) { ... })
 This section is for manual notes and project-specific information.
 
 ### Recent Completed Work
+- Security fix: Protected album storage path enforcement (commit 3999f0c)
+  - Always exclude `/storage/` paths from srcsets for protected albums regardless of `allow_downloads` flag
+  - Prevents bypassing server-side access control via direct URL manipulation
+  - Ensures MediaController validates session before serving any protected album images
+  - Applied to: `gallery_hero.twig`, `home_modern.twig`, `_image_item_masonry.twig`, `_gallery_magazine_content.twig`
+- CSP compliance improvements: Added CSP nonces to all inline styles in frontend templates
+  - `_layout.twig`, `galleries.twig`, `gallery_hero.twig` now use `<style nonce="{{ csp_nonce() }}">`
+  - Fixed block scripts placement outside block content in `_layout.twig`
 - Modern home template mobile integration and refinements (commits 9b055df, 93c8152, cccab73, a817551, fc701fe)
   - Mobile footer visibility and webkit search input styling
   - CSS reset scoped to desktop only to prevent Tailwind conflicts

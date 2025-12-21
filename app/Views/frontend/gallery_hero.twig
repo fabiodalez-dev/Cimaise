@@ -509,10 +509,6 @@
       .finally(() => { delete el.dataset.switchInProgress; });
   });
   </script>
-{% block scripts %}
-  {{ parent() }}
-  <script type="module" src="{{ base_path }}/assets/js/hero.js"></script>
-{% endblock %}
   {# JSON-LD: ImageGallery + Breadcrumbs #}
   <script type="application/ld+json">
   {
@@ -547,4 +543,9 @@
     ]
   }
   </script>
+{% endblock %}
+
+{% block scripts %}
+  {{ parent() }}
+  <script type="module" src="{{ base_path }}/assets/js/hero.js"></script>
 {% endblock %}
