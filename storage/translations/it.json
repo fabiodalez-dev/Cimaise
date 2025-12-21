@@ -276,17 +276,12 @@
     "image.download": "Scarica"
   },
   "home_modern": {
-    "frontend.home_modern.all_work": "Tutti i lavori",
-    "frontend.home_modern.albums": "Album",
-    "frontend.home_modern.photos": "Foto",
-    "frontend.home_modern.close": "Chiudi",
-    "frontend.home_modern.empty_title": "Nessun album ancora",
-    "frontend.home_modern.empty_text": "Torna presto per nuovi contenuti.",
-    "frontend.home_modern.menu": "Menu"
-  },
-  "frontend_menu": {
-    "frontend.menu.home": "Home",
-    "frontend.menu.galleries": "Gallerie",
-    "frontend.menu.about": "Chi sono"
+    "home_modern.all_work": "Tutti i lavori",
+    "home_modern.albums": "Album",
+    "home_modern.photos": "Foto",
+    "home_modern.close": "Chiudi",
+    "home_modern.empty_title": "Nessun album ancora",
+    "home_modern.empty_text": "Torna presto per nuovi contenuti.",
+    "home_modern.menu": "Menu"
   }
 }

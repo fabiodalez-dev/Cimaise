@@ -186,7 +186,7 @@ $app->get('/galleries', function (Request $request, Response $response) use ($co
 $app->get('/galleries/filter', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Frontend\GalleriesController($container['db'], Twig::fromRequest($request));
     return $controller->filter($request, $response);
-});
+})->add(new RateLimitMiddleware(30, 60)); // 30 requests per minute for search
 
 // (public API routes are defined near the bottom of this file)
 

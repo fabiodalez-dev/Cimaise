@@ -65,6 +65,10 @@
   input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
     opacity: 1;
   }
+
+  input[type="date"].form-input:focus::-webkit-calendar-picker-indicator {
+    opacity: 1;
+  }
   
   .form-select {
     @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;

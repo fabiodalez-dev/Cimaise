@@ -310,7 +310,7 @@
 
 <!-- Menu Button -->
 <div class="menu-btn hidden md:flex">
-    <div class="menu-btn_text">{{ trans('frontend.home_modern.menu')|default('Menu') }}</div>
+    <div class="menu-btn_text">{{ trans('home_modern.menu')|default('Menu') }}</div>
 </div>
 
 <!-- Main Content -->
@@ -323,7 +323,7 @@
                 <!-- All work (active) -->
                 <div class="toggle-cat_item">
                     <div class="grid-toggle_item is-active" data-filter="all">
-                        <div class="grid-toggle">{{ trans('frontend.home_modern.all_work')|default('All work') }}</div>
+                        <div class="grid-toggle">{{ trans('home_modern.all_work')|default('All work') }}</div>
                     </div>
                 </div>
                 <!-- Category filters (AJAX filtering) -->
@@ -343,7 +343,7 @@
             </div>
             <!-- Counter -->
             <div class="work-toggle_holder">
-                <div class="body-copy">{{ trans('frontend.home_modern.photos')|default('Photos') }}(<span class="photos_total">{{ all_images|length }}</span>)</div>
+                <div class="body-copy">{{ trans('home_modern.photos')|default('Photos') }}(<span class="photos_total">{{ all_images|length }}</span>)</div>
             </div>
             <!-- Info Holder - shows on image hover -->
             <div class="image-grid-info_holder">
@@ -417,8 +417,8 @@
             <div class="modern-empty-state">
                 <div class="modern-empty-state__content">
                     <i class="fas fa-images modern-empty-state__icon"></i>
-                    <h2 class="modern-empty-state__title">{{ home_settings.empty_title|default(trans('frontend.home_modern.empty_title'))|default('No photos yet') }}</h2>
-                    <p class="modern-empty-state__text">{{ home_settings.empty_text|default(trans('frontend.home_modern.empty_text'))|default('Check back soon for new content.') }}</p>
+                    <h2 class="modern-empty-state__title">{{ home_settings.empty_title|default(trans('home_modern.empty_title'))|default('No photos yet') }}</h2>
+                    <p class="modern-empty-state__text">{{ home_settings.empty_text|default(trans('home_modern.empty_text'))|default('Check back soon for new content.') }}</p>
                 </div>
             </div>
             {% endif %}
@@ -430,13 +430,13 @@
 <!-- Mega Menu Overlay -->
 <div class="menu-component hidden md:block">
     <div class="menu-close">
-        <div class="menu-btn_text">{{ trans('frontend.home_modern.close')|default('Close') }}</div>
+        <div class="menu-btn_text">{{ trans('home_modern.close')|default('Close') }}</div>
     </div>
     <nav class="mega-menu">
-        <a href="{{ base_path }}/" class="mega-menu_link is-current">{{ trans('frontend.menu.home')|default('Home') }}</a>
-        <a href="{{ galleries_url|default(base_path ~ '/galleries') }}" class="mega-menu_link">{{ trans('frontend.menu.galleries')|default('Galleries') }}</a>
+        <a href="{{ base_path }}/" class="mega-menu_link is-current">{{ trans('nav.home')|default('Home') }}</a>
+        <a href="{{ galleries_url|default(base_path ~ '/galleries') }}" class="mega-menu_link">{{ trans('nav.galleries')|default('Galleries') }}</a>
         {% set about_href = about_url|default('/about') %}
-        <a href="{% if about_href starts with '/' %}{{ base_path }}{{ about_href }}{% else %}{{ about_href }}{% endif %}" class="mega-menu_link">{{ trans('frontend.menu.about')|default('About') }}</a>
+        <a href="{% if about_href starts with '/' %}{{ base_path }}{{ about_href }}{% else %}{{ about_href }}{% endif %}" class="mega-menu_link">{{ trans('nav.about')|default('About') }}</a>
     </nav>
 </div>
 
