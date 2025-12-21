@@ -265,44 +265,62 @@
 
   <script src="{{ base_path }}/assets/vendor/tinymce/tinymce.min.js"></script>
   <script nonce="{{ csp_nonce() }}">
-    document.addEventListener('DOMContentLoaded', function(){
+    // Run immediately (works with SPA navigation)
+    (function initHomePageSettings() {
       // Template selector toggle
       const templateOptions = document.querySelectorAll('.home-template-option');
       const classicSettings = document.getElementById('classic-home-settings');
       const classicInfo = document.getElementById('classic-home-info');
       const modernInfo = document.getElementById('modern-home-info');
 
+      if (!templateOptions.length) return; // Guard if elements not found
+
       templateOptions.forEach(option => {
-        option.addEventListener('click', function() {
+        // Remove any existing listeners to avoid duplicates on SPA reload
+        option.replaceWith(option.cloneNode(true));
+      });
+
+      // Re-query after cloning
+      document.querySelectorAll('.home-template-option').forEach(option => {
+        option.addEventListener('click', function(e) {
+          e.preventDefault(); // Prevent default label behavior
           const template = this.dataset.template;
           const radio = this.querySelector('input[type="radio"]');
-          radio.checked = true;
+          if (radio) radio.checked = true;
 
           // Update visual states
-          templateOptions.forEach(opt => {
+          document.querySelectorAll('.home-template-option').forEach(opt => {
             opt.classList.remove('border-black', 'bg-gray-50');
             opt.classList.add('border-gray-200');
-            opt.querySelector('.template-check').classList.add('hidden');
+            const check = opt.querySelector('.template-check');
+            if (check) check.classList.add('hidden');
           });
           this.classList.remove('border-gray-200');
           this.classList.add('border-black', 'bg-gray-50');
-          this.querySelector('.template-check').classList.remove('hidden');
+          const thisCheck = this.querySelector('.template-check');
+          if (thisCheck) thisCheck.classList.remove('hidden');
 
           // Toggle settings visibility
           if (template === 'classic') {
-            classicSettings.classList.remove('hidden');
-            classicInfo.classList.remove('hidden');
-            modernInfo.classList.add('hidden');
+            if (classicSettings) classicSettings.classList.remove('hidden');
+            if (classicInfo) classicInfo.classList.remove('hidden');
+            if (modernInfo) modernInfo.classList.add('hidden');
           } else {
-            classicSettings.classList.add('hidden');
-            classicInfo.classList.add('hidden');
-            modernInfo.classList.remove('hidden');
+            if (classicSettings) classicSettings.classList.add('hidden');
+            if (classicInfo) classicInfo.classList.add('hidden');
+            if (modernInfo) modernInfo.classList.remove('hidden');
           }
         });
       });
 
       // TinyMCE init
       if (window.tinymce) {
+        // Destroy existing instances first (for SPA)
+        document.querySelectorAll('textarea.richtext').forEach(ta => {
+          const existingEditor = tinymce.get(ta.id);
+          if (existingEditor) existingEditor.remove();
+        });
+
         tinymce.init({
           selector: 'textarea.richtext',
           base_url: (window.basePath || '') + '/assets/vendor/tinymce',
@@ -323,6 +341,6 @@
           autoresize_max_height: 600
         });
       }
-    });
+    })();
   </script>
 {% endblock %}

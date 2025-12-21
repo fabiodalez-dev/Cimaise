@@ -435,6 +435,33 @@ document.addEventListener('click', function(event) {
                 {% include "frontend/_image_item.twig" %}
             {% endfor %}
         </div>
+    {% elseif layout == 'masonry_fit' %}
+        {# Modern Masonry layout using CSS columns - full images, no cropping #}
+        {% set gap_h = template_settings.gap.horizontal|default(16) %}
+        {% set gap_v = template_settings.gap.vertical|default(16) %}
+        <div id="images-gallery" class="masonry-fit-grid pswp-gallery" data-layout="masonry_fit">
+            {% for image in images %}
+                {% include "frontend/_image_item_masonry.twig" %}
+            {% endfor %}
+        </div>
+        <style nonce="{{ csp_nonce() }}">
+        .masonry-fit-grid {
+            column-gap: {{ gap_h }}px;
+        }
+        .masonry-fit-grid .masonry-item {
+            break-inside: avoid;
+            margin-bottom: {{ gap_v }}px;
+        }
+        @media (min-width: 1024px) {
+            .masonry-fit-grid { column-count: {{ desktop_cols }}; }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .masonry-fit-grid { column-count: {{ tablet_cols }}; }
+        }
+        @media (max-width: 767px) {
+            .masonry-fit-grid { column-count: {{ mobile_cols }}; }
+        }
+        </style>
     {% elseif layout == 'magazine' %}
         <div id="images-gallery" class="mt-6">
             {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
@@ -571,19 +598,45 @@ if (layout === 'slideshow') {
         });
     }
 }
-// Masonry.js initialization when template enables masonry
-if (masonry && typeof Masonry !== 'undefined') {
+// Masonry.js initialization - only for old masonry layout (masonry_fit uses CSS columns)
+if (masonry && layout !== 'masonry_fit' && typeof Masonry !== 'undefined') {
     const container = document.getElementById('images-gallery');
-    const initMasonry = () => {
+    if (container) {
+        const gap = parseInt(container.dataset.masonryGap) || 16;
+        const masonryOptions = {
+            itemSelector: '.masonry-item',
+            percentPosition: true,
+            gutter: gap,
+            transitionDuration: '0.3s'
+        };
+
+        const initMasonry = () => {
+            if (typeof imagesLoaded !== 'undefined') {
+                imagesLoaded(container, function(){
+                    new Masonry(container, masonryOptions);
+                    if (window.lenisResize) window.lenisResize();
+                });
+            } else {
+                new Masonry(container, masonryOptions);
+                if (window.lenisResize) window.lenisResize();
+            }
+        };
+        if (document.readyState === 'complete') {
+            initMasonry();
+        } else {
+            window.addEventListener('load', initMasonry);
+        }
+    }
+}
+
+// masonry_fit uses CSS columns - just recalculate Lenis after images load
+if (layout === 'masonry_fit') {
+    const container = document.getElementById('images-gallery');
+    if (container && typeof imagesLoaded !== 'undefined') {
         imagesLoaded(container, function(){
-            new Masonry(container, {
-                itemSelector: '.masonry-item',
-                percentPosition: true,
-                transitionDuration: '0.2s'
-            });
+            if (window.lenisResize) window.lenisResize();
         });
-    };
-    initMasonry();
+    }
 }
 
 // Magazine Split autoscroll initializer

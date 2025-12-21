@@ -159,6 +159,8 @@ photoCMS/
 - `app/Views/frontend/_breadcrumbs.twig` - Breadcrumbs with automatic JSON-LD schema generation, responsive spacing (pb-5 md:pb-0), compact gap layout (gap-x-1 gap-y-1), leading-normal line-height for tight wrapping
 - `app/Views/frontend/_social_sharing.twig` - Social sharing buttons template
 - `app/Views/frontend/_seo_macros.twig` - Reusable Twig macros for SEO title generation (seo_title macro combines image alt/caption, album title, and site title)
+- `app/Views/frontend/_caption.twig` - Reusable macro for building image captions with equipment metadata (camera, lens, film, developer, lab, location, EXIF data)
+- `app/Views/frontend/_gallery_magazine_content.twig` - Magazine split gallery template with responsive three-column layout, infinite scroll, and PhotoSwipe integration
 - `app/Views/frontend/galleries.twig` - Galleries page with filter UI and album grid
 - `app/Views/installer/database.twig` - Database configuration step with SQLite/MySQL connection options and testing
 - `app/Views/installer/*.twig` - 5-step installer wizard templates (index, database, admin, settings, confirm) - post_setup step removed
@@ -250,7 +252,7 @@ $app->get('/path', function(...) { ... })
   - Used in: PagesController (about photo), CategoriesController (category images)
   - Returns boolean; rejected uploads logged and fail gracefully with user-facing error
 - Uses Imagick when available, falls back to GD
-- **Responsive image srcset**: Modern template dynamically generates srcset attributes with full multi-format support
+- **Responsive image srcset**: Dynamically generates srcset attributes with full multi-format support
   - Pattern: `{% for variant in image.variants %}...{% endfor %}` builds separate srcset arrays per format
   - Multi-format srcsets: Generates `srcset_avif`, `srcset_webp`, `srcset_jpg` arrays for progressive enhancement
   - Format detection: `{% if variant.format == 'avif' %}` / `'webp'` / `'jpg' or 'jpeg'` for format-specific srcsets
@@ -258,9 +260,10 @@ $app->get('/path', function(...) { ... })
   - Width descriptors: `srcset="{{ srcset_avif|join(', ') }}"` with `{url} {width}w` format
   - Sizes attribute: `sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"`
   - Fallback: Single `src` uses `image.fallback_src` or first available variant or original path
+  - Best JPG selection: Tracks largest JPG variant for optimal fallback (`best_jpg_w`, `best_jpg_path`)
   - Storage path filtering: Excludes protected paths (`/storage/`) from srcsets for security
   - SEO optimization: Uses `Seo.seo_title()` macro for semantic title generation combining image alt, album title, and site title
-  - Applied in: `home_modern.twig` image grid (lines 361-407)
+  - Applied in: `home_modern.twig` image grid, `_image_item_masonry.twig` masonry layout
 
 ### Rate Limiting
 - **RateLimitMiddleware**: Session-based tracking for authenticated and post-session endpoints
@@ -366,7 +369,9 @@ $app->get('/path', function(...) { ... })
   - Drag disabled: `closeOnVerticalDrag: false` prevents accidental closes
   - Padding: `{ top: 28, bottom: 40, left: 28, right: 28 }` for balanced centering
   - Background scroll lock: `html.pswp-open` and `body.pswp-open` with `position: fixed` prevents body scroll
-  - Arrow buttons: 46px floating circles (38px on mobile) positioned at `left: 12px` / `right: 12px`
+  - Arrow buttons: 46px floating circles (38px on mobile) with safe-area-inset support (`left: calc(env(safe-area-inset-left) + 8px)`)
+  - Z-index management: UI elements use z-30, arrows/top bar maintain z-40 when zoomed for accessibility
+  - UI idle state: Top bar and buttons always visible (`opacity: 1 !important`) for better UX
   - Top bar: Positioned at `top: 12px, right: 12px` with flex-end justify, no background
   - Object-fit: `contain` with `center` positioning and `cursor: pointer` for proper image display
   - Click/tap action: `next` (configurable via `psCfg.imageClickAction`)
@@ -424,10 +429,20 @@ $app->get('/path', function(...) { ... })
   - Mega menu: Full-screen overlay with close button and navigation links
   - Page transition: Overlay for smooth page changes
 - **Lenis smooth scroll**: Integration via ES module import from npm (`lenis@1.1.18`)
-  - Duration: 2.0s, easing: `(t) => 1 - Math.pow(1 - t, 4)`, direction: vertical
-  - Touch multiplier: 1.5, wheel multiplier: 0.8, smooth touch disabled
-  - RAF loop: `lenis.raf(time)` in `requestAnimationFrame` for continuous updates
-  - Applied to `html.lenis` class for global smooth scrolling
+  - **Global initialization** (`resources/js/smooth-scroll.js`): Window singleton pattern with `window.lenisInstance`
+    - Configuration: lerp 0.1, wheelMultiplier 1, infinite false, gestureOrientation vertical, smoothTouch false
+    - GSAP integration: Auto-detects `window.gsap.ticker`, falls back to RAF loop if unavailable
+    - Resize recalculation: Multiple strategies (load event, resize with debounce, periodic for lazy-loaded content)
+    - Periodic recalc: 10 iterations at 500ms intervals during first 5 seconds for dynamic content
+    - Exposed globally: `window.lenisResize()` for manual recalculation triggers
+  - **Pause/Resume exports**: `pauseLenis()` and `resumeLenis()` functions for lightbox integration
+    - Used by PhotoSwipe to stop body scroll during lightbox view
+  - **Modern template** (`home-modern.js`): Local instance with different settings
+    - Duration: 2.0s, easing: `(t) => 1 - Math.pow(1 - t, 4)`, direction: vertical
+    - Touch multiplier: 1.5, wheel multiplier: 0.8, smooth touch disabled
+    - Desktop only: Not initialized below 768px breakpoint
+    - RAF loop: `lenis.raf(time)` in `requestAnimationFrame` for continuous updates
+    - Applied to `html.lenis` class for global smooth scrolling
 - **Infinite scroll grid**: JavaScript-based with lerp animation and wrap-around
   - Two-column system: odd items (left column - `nth-child(2n+1)`), even items (right column - `nth-child(2n+2)`)
   - Mobile detection: animations disabled below 768px breakpoint via `isMobile()` function
@@ -610,7 +625,7 @@ $app->get('/path', function(...) { ... })
 ### Gallery Templates Management
 - **TemplatesController**: Admin panel for editing pre-built gallery templates (creation/deletion disabled for safety)
 - **Template data structure**: JSON-encoded `settings` (layout, columns, masonry, photoswipe) and `libs` (required libraries like photoswipe, masonry)
-- **Layout options**: grid, masonry, slideshow, fullscreen
+- **Layout options**: grid, masonry, masonry_fit, slideshow, fullscreen
 - **Responsive columns**: Separate configuration for desktop (1-6 columns), tablet (1-4), and mobile (1-2)
 - **Masonry library**: Auto-included in `libs` array when masonry is enabled
 - **PhotoSwipe configuration**: Boolean toggles (loop, zoom, share, counter, arrowKeys, escKey, allowPanToNext) plus numeric settings (bgOpacity: 0-1, spacing: 0-1)
@@ -621,12 +636,29 @@ $app->get('/path', function(...) { ... })
   - Validates column counts: desktop (1-6), tablet (1-4), mobile (1-2), with numeric and range validation
   - Fallback defaults on invalid values: desktop=3, tablet=2, mobile=1 via match expression
   - Applied to all template settings before rendering gallery pages in `gallery()` and `album()` methods
+- **Masonry Full layout** (masonry_fit): Displays full images without cropping using CSS columns (not Masonry.js)
+  - Pure CSS implementation: Uses `column-count` for responsive column layout (no JavaScript library)
+  - CSS properties: `break-inside: avoid` on items, `column-gap` for spacing, `margin-bottom` for vertical gaps
+  - Gap settings: `gap.horizontal` (column-gap) and `gap.vertical` (margin-bottom) in pixels (0-100px)
+  - Responsive breakpoints: desktop (1024px+), tablet (768-1023px), mobile (<768px) with per-device column counts
+  - CSP-safe inline styles: Gap values injected via `<style nonce="{{ csp_nonce() }}">` in album.twig and gallery.twig
+  - Template: `_image_item_masonry.twig` for uncropped image display with hover effects and responsive srcset
+  - Admin UI: Gap settings visible when layout is masonry_fit or template slug is 'masonry-full'
+  - Admin controller: Processes `masonry_gap_h` and `masonry_gap_v` form fields, validates 0-100px range
+- **Template switcher UI**: Frontend template selector on gallery/album pages
+  - Position: Above gallery content, right-aligned, hidden on mobile (`max-md:hidden`)
+  - Button styling: Inline flex with icon-based template identification, active state uses `bg-black text-white`
+  - Icon mapping: masonry_fit (expand-arrows-alt), slideshow (play-circle/images), grid (th/pause/grip-horizontal), mosaic (puzzle-piece), carousel (arrows-alt-h), polaroid (camera-retro), fullscreen (expand)
+  - Column-based icons: Grid templates show different icons based on desktop column count (2: pause, 3: th, 5+: grip-horizontal)
+  - Template data: Uses `data-template-id` and `data-album-ref` attributes for AJAX switching
+  - Desktop-only: Switcher hidden on mobile to preserve screen space
 - **Settings structure example**:
   ```php
   {
-    "layout": "grid|masonry|slideshow|fullscreen",
+    "layout": "grid|masonry|masonry_fit|slideshow|fullscreen",
     "columns": {"desktop": 3, "tablet": 2, "mobile": 1},
     "masonry": true|false,
+    "gap": {"horizontal": 16, "vertical": 16},  // masonry_fit layout
     "photoswipe": {
       "loop": true, "zoom": true, "share": false,
       "counter": true, "arrowKeys": true, "escKey": true,
@@ -637,6 +669,46 @@ $app->get('/path', function(...) { ... })
   ```
 - **CSRF protection**: All form submissions validated with timing-safe CSRF tokens
 - **Slug auto-generation**: Uses `App\Support\Str::slug()` for SEO-friendly identifiers
+
+### Magazine Gallery Layout (Responsive)
+- **Template file**: `app/Views/frontend/_gallery_magazine_content.twig` for magazine split gallery
+- **Three responsive layouts**: Mobile (1 column), tablet (2 columns), desktop (3 columns)
+  - Mobile: `.m-mobile-wrap` - Single vertical scrolling track with all images
+  - Tablet: `.m-tablet-wrap` - Two columns (768px-1199px), alternating up/down scroll
+  - Desktop: `.m-desktop-wrap` - Three columns (1200px+), center column up, outer columns down
+- **Infinite scroll pattern**: Images duplicated in DOM for seamless loop effect
+  - Each column contains original items + duplicate items marked with `.pswp-is-duplicate`
+  - Duplicate items use same `data-pswp-index` as originals for PhotoSwipe sync
+- **CSS animations**: Column-based vertical scrolling with configurable durations and gaps
+  - Duration variables: `--m-duration` per column (configurable via `template_settings.magazine.durations`)
+  - Gap setting: Configurable spacing between columns (0-80px via `template_settings.magazine.gap`)
+  - Direction attribute: `data-direction="up|down"` controls animation direction per column
+- **Touch compatibility**: `touch-action: pan-y` allows page scrolling through animated columns
+  - Compatible with Lenis smooth scroll on parent page
+  - Explicit height declarations for scroll height calculation: min-height 100vh (mobile), 130vh (tablet), 140vh (desktop)
+- **Image distribution**: Smart column assignment preserving original index
+  - Desktop: Round-robin distribution (i % 3) into col1, col2, col3
+  - Tablet: Alternating distribution (i % 2) into tablet_col1, tablet_col2
+  - Mobile: Sequential display of all images in single column
+  - `original_index` merged into image data: `image|merge({'original_index': i})` for PhotoSwipe navigation
+- **PhotoSwipe integration**: Extensive metadata attributes on each image link
+  - Lightbox URL with base path handling: conditional prepend if path starts with '/'
+  - Dimension attributes: `data-pswp-width`, `data-pswp-height` for aspect ratio calculation
+  - Caption building: Uses `Caption.build(image)` macro for equipment metadata
+  - Equipment data: camera, lens, film, developer, lab, location, ISO, shutter speed, aperture
+  - Index tracking: `data-pswp-index` uses `original_index` for proper navigation across duplicates
+- **SEO macro integration**: Uses `Seo.seo_title()` for semantic title generation
+  - Pattern: `{% import 'frontend/_seo_macros.twig' as Seo %}` at template top
+  - Title composition: Combines image alt/caption, album title, and site title
+  - Applied to: `title` attribute on links and `alt` on images
+- **Responsive images**: `<picture>` element with multi-format support (AVIF, WebP, JPEG)
+  - Macro-based generation: `{% import _self as G %}` and `{{ G.pic(image, base_path, album, seo_title) }}`
+  - Format sources: Separate `<source>` tags for each format with `srcset` and `sizes`
+  - Sizes attribute: `(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw`
+  - Lazy loading: `loading="lazy" decoding="async"` on fallback `<img>` tag
+- **Edge fade effect**: Top and bottom gradient veils for smooth visual boundaries
+  - Positioning: `.masonry-veil-top` (-top-1, h-40), `.masonry-veil-bottom` (-bottom-1, h-40)
+  - Layer order: z-20, pointer-events-none to allow interaction with underlying images
 
 ### PWA Manifest Generation
 - **Dynamic web manifest**: `PageController::webManifest()` generates `/site.webmanifest` endpoint

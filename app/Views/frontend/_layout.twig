@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang|default('it')|e('html_attr') }}" class="h-full">
+<html lang="{{ lang|default('it')|e('html_attr') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -403,38 +403,43 @@
             }
         }
         
-        /* MASONRY FIT - Preserva le proporzioni originali delle immagini */
+        /* MASONRY FIT - Preserva le proporzioni originali delle immagini con CSS columns */
         .masonry-fit-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
-            align-items: start;
+            column-count: 1;
+            column-gap: 16px;
         }
-        
+
         .masonry-fit-item {
+            break-inside: avoid;
+            margin-bottom: 16px;
             width: 100%;
-            height: auto;
             overflow: hidden;
         }
-        
+
         .masonry-fit-item img {
             display: block;
             width: 100%;
             height: auto;
             object-fit: contain;
         }
-        
+
         @media (min-width: 768px) {
             .masonry-fit-container {
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                gap: 20px;
+                column-count: 2;
+                column-gap: 20px;
+            }
+            .masonry-fit-item {
+                margin-bottom: 20px;
             }
         }
-        
+
         @media (min-width: 1024px) {
             .masonry-fit-container {
-                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-                gap: 24px;
+                column-count: 3;
+                column-gap: 24px;
+            }
+            .masonry-fit-item {
+                margin-bottom: 24px;
             }
         }
         
