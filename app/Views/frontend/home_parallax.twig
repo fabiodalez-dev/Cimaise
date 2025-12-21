@@ -2,7 +2,12 @@
 
 {% block styles %}
 <style nonce="{{ csp_nonce() }}">
-* {
+body {
+  overflow-x: hidden;
+}
+
+/* Reset only for parallax gallery */
+.gallery, .gallery * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -15,6 +20,7 @@
   gap: 0.25rem;
   padding: 0.25rem;
   will-change: transform;
+  z-index: 1;
 }
 
 .card {
@@ -68,13 +74,13 @@
   margin: 0;
 }
 
-@media (max-width: 800px) {
+@media (width < 800px) {
   .gallery-track {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 550px) {
+@media (width < 550px) {
   .gallery-track {
     grid-template-columns: repeat(1, 1fr);
   }
@@ -112,10 +118,10 @@
   <div class="gallery-track">
     {% for image in all_images %}
     <div class="card">
-      <a href="{{ base_path }}/gallery/{{ image.album_slug|e('html_attr') }}" class="card-link">
+      <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}" class="card-link">
         <div class="card-image-wrapper">
           <img
-            src="{{ base_path }}{{ image.medium_path|default(image.path)|e('html_attr') }}"
+            src="{{ base_path }}{{ image.fallback_src|default(image.original_path)|e('html_attr') }}"
             alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
             loading="lazy"
           >

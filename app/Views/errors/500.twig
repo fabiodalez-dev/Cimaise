@@ -1,13 +1,18 @@
-{% extends 'admin/_layout.twig' %}
-{% block title %}Errore — 500{% endblock %}
-{% block content %}
-  <div class="text-center py-5">
-    <h1 class="display-6">Errore interno</h1>
-    <p class="lead">Si è verificato un problema. Riprova più tardi.</p>
-    {% if message %}
-      <pre class="text-start bg-light p-3 border rounded small">{{ message }}</pre>
-    {% endif %}
-    <a class="btn btn-dark" href="{{ base_path }}/admin">Torna alla dashboard</a>
-  </div>
-{% endblock %}
+{% extends 'frontend/_layout.twig' %}
 
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center">
+    <div class="text-center px-4">
+        <h1 class="text-9xl font-bold text-gray-200">500</h1>
+        <h2 class="text-2xl font-semibold text-gray-800 mt-4 mb-2">{{ trans('errors.500.title') }}</h2>
+        <p class="text-gray-600 mb-8">{{ trans('errors.500.message') }}</p>
+        {% if message %}
+        <pre class="text-left bg-gray-100 p-4 rounded-lg text-sm text-red-600 overflow-x-auto mb-8 max-w-2xl mx-auto">{{ message }}</pre>
+        {% endif %}
+        <a href="{{ base_path }}/" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors">
+            <i class="fas fa-home"></i>
+            {{ trans('errors.500.back_home') }}
+        </a>
+    </div>
+</div>
+{% endblock %}

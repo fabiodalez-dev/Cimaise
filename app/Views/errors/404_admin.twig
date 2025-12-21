@@ -1,0 +1,15 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}404 — {{ trans('errors.404.title') }}{% endblock %}
+{% block content %}
+<div class="flex items-center justify-center min-h-[60vh]">
+    <div class="text-center">
+        <h1 class="text-8xl font-bold text-gray-200">404</h1>
+        <h2 class="text-xl font-semibold text-gray-800 mt-4 mb-2">{{ trans('errors.404.title') }}</h2>
+        <p class="text-gray-600 mb-6">{{ trans('errors.404.message') }}</p>
+        <a href="{{ base_path }}/admin" class="btn-primary">
+            <i class="fas fa-arrow-left mr-2"></i>
+            {{ trans('errors.404.back_dashboard') }}
+        </a>
+    </div>
+</div>
+{% endblock %}
