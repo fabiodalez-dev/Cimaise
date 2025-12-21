@@ -13,7 +13,8 @@
     "nav.back": "Back",
     "nav.menu": "Menu",
     "nav.close": "Close",
-    "nav.breadcrumb": "Breadcrumb"
+    "nav.breadcrumb": "Breadcrumb",
+    "nav.admin_dashboard": "Admin Dashboard"
   },
   "filter": {
     "filter.all": "All",
@@ -59,7 +60,9 @@
     "filter.latest": "Latest",
     "filter.oldest": "Oldest",
     "filter.title_az": "Title A-Z",
-    "filter.title_za": "Title Z-A"
+    "filter.title_za": "Title Z-A",
+    "filter.subcategory": "subcategory",
+    "filter.subcategories": "subcategories"
   },
   "album": {
     "album.photos": "Photos",
