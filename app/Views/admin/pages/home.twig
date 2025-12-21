@@ -203,7 +203,7 @@
     <!-- Info panel -->
     <div class="lg:col-span-1">
       <!-- Classic Home Info -->
-      <div id="classic-home-info" class="card {{ settings['home.template']|default('classic') == 'modern' ? 'hidden' : '' }}">
+      <div id="classic-home-info" class="card {{ settings['home.template']|default('classic') != 'classic' ? 'hidden' : '' }}">
         <div class="p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.pages.home.structure_title') }}</h3>
           <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.structure_desc') }}</p>
