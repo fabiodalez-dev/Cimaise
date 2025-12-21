@@ -74,3 +74,17 @@ updater.md
 storage/database.sqlite
 database/database.sqlite
 app/database/
+
+# Local documentation files (not tracked)
+AGENTS.md
+CHANGELOG.md
+CLAUDE.md
+HOOKS_REFERENCE.md
+INSTALL.md
+INSTALLATION.md
+PLUGIN_DEVELOPMENT.md
+PLUGIN_MANAGEMENT_GUIDE.md
+QUICK_START.md
+security_anal.md
+security_report.md
+updater.md
