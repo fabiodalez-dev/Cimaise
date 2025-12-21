@@ -62,7 +62,7 @@ class AlbumsController extends BaseController
     public function create(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
-        $cats = $pdo->query('SELECT id, name FROM categories ORDER BY COALESCE(parent_id, 0), sort_order, name')->fetchAll();
+        $cats = $pdo->query('SELECT id, name, slug FROM categories ORDER BY COALESCE(parent_id, 0), sort_order, name')->fetchAll();
         $tags = $pdo->query('SELECT id, name FROM tags ORDER BY name')->fetchAll();
         
         // Load templates if table exists
@@ -165,6 +165,17 @@ class AlbumsController extends BaseController
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
         $published_at = $is_published ? date('Y-m-d H:i:s') : null;
         $pdo = $this->db->pdo();
+
+        // Ensure unique slug by appending numeric suffix if needed
+        $baseSlug = $slug;
+        $counter = 2;
+        $checkStmt = $pdo->prepare('SELECT COUNT(*) FROM albums WHERE slug = :s');
+        $checkStmt->execute([':s' => $slug]);
+        while ((int)$checkStmt->fetchColumn() > 0) {
+            $slug = $baseSlug . '-' . $counter++;
+            $checkStmt->execute([':s' => $slug]);
+        }
+
         // Try with template_id, custom equipment fields, and SEO fields
         try {
             $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, is_nsfw, password_hash, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_path, schema_type, schema_data, canonical_url, robots_index, robots_follow) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:cc,:cl,:cf,:cd,:clab,:dl,:nsfw,:ph,:seo_title,:seo_desc,:seo_kw,:og_title,:og_desc,:og_img,:schema_type,:schema_data,:canonical_url,:robots_index,:robots_follow)');
@@ -531,6 +542,17 @@ class AlbumsController extends BaseController
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
         $published_at = $is_published ? (date('Y-m-d H:i:s')) : null;
         $pdo = $this->db->pdo();
+
+        // Ensure unique slug by appending numeric suffix if needed (exclude current album)
+        $baseSlug = $slug;
+        $counter = 2;
+        $checkStmt = $pdo->prepare('SELECT COUNT(*) FROM albums WHERE slug = :s AND id != :id');
+        $checkStmt->execute([':s' => $slug, ':id' => $id]);
+        while ((int)$checkStmt->fetchColumn() > 0) {
+            $slug = $baseSlug . '-' . $counter++;
+            $checkStmt->execute([':s' => $slug, ':id' => $id]);
+        }
+
         // Try with template_id, custom equipment fields, and SEO fields
         try {
             $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab, seo_title=:seo_title, seo_description=:seo_desc, seo_keywords=:seo_kw, og_title=:og_title, og_description=:og_desc, og_image_path=:og_img, schema_type=:schema_type, schema_data=:schema_data, canonical_url=:canonical_url, robots_index=:robots_index, robots_follow=:robots_follow WHERE id=:id');

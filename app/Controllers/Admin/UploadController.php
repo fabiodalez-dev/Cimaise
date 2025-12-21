@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Services\UploadService;
 use App\Services\ImagesService;
 use App\Support\Database;
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -19,26 +20,29 @@ class UploadController extends BaseController
     public function uploadToAlbum(Request $request, Response $response, array $args): Response
     {
         $albumId = (int)($args['id'] ?? 0);
+        $files = $request->getUploadedFiles();
+        $file = $files['file'] ?? null;
+
         // Validate album exists
         try {
             $check = $this->db->pdo()->prepare('SELECT id FROM albums WHERE id = :id');
             $check->execute([':id'=>$albumId]);
             if (!$check->fetch()) {
+                Logger::warning('UploadController: Album not found', ['album_id' => $albumId], 'upload');
                 $response->getBody()->write(json_encode(['ok'=>false,'error'=>'Album not found']));
                 return $response->withStatus(404)->withHeader('Content-Type','application/json');
             }
-        } catch (\Throwable) {
-            // Ignore DB errors here; proceed and let ingest fail if necessary
+        } catch (\Throwable $e) {
+            Logger::error('UploadController: DB error checking album', ['error' => $e->getMessage()], 'upload');
         }
         // CSRF is enforced by middleware; here we only handle the payload
-        $files = $request->getUploadedFiles();
-        $file = $files['file'] ?? null;
-        
+
         if (!$file) {
+            Logger::warning('UploadController: No file in request', [], 'upload');
             $response->getBody()->write(json_encode(['ok'=>false,'error'=>'No file']));
             return $response->withStatus(400)->withHeader('Content-Type','application/json');
         }
-        
+
         // Check for upload errors
         $uploadError = $file->getError();
         if ($uploadError !== UPLOAD_ERR_OK) {
@@ -52,6 +56,11 @@ class UploadController extends BaseController
                 UPLOAD_ERR_EXTENSION => 'Upload blocked by PHP extension'
             ];
             $errorMsg = $errorMessages[$uploadError] ?? "Unknown upload error: $uploadError";
+            Logger::error('UploadController: PHP upload error', [
+                'error_code' => $uploadError,
+                'error_msg' => $errorMsg,
+                'file_name' => $file->getClientFilename(),
+            ], 'upload');
             $response->getBody()->write(json_encode(['ok'=>false,'error'=>$errorMsg]));
             return $response->withStatus(400)->withHeader('Content-Type','application/json');
         }
