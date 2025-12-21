@@ -24,7 +24,7 @@
               {{ trans('admin.pages.home.template_selection') }}
             </h3>
             <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.template_selection_desc') }}</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <label class="relative flex flex-col cursor-pointer rounded-lg border-2 p-4 transition-all home-template-option {{ settings['home.template']|default('classic') == 'classic' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300' }}" data-template="classic">
                 <input type="radio" name="home_template" value="classic" class="sr-only" {{ settings['home.template']|default('classic') == 'classic' ? 'checked' : '' }}>
                 <div class="flex items-center gap-3 mb-2">
@@ -57,12 +57,28 @@
                   <i class="fas fa-check-circle text-black"></i>
                 </div>
               </label>
+              <label class="relative flex flex-col cursor-pointer rounded-lg border-2 p-4 transition-all home-template-option {{ settings['home.template']|default('classic') == 'parallax' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300' }}" data-template="parallax">
+                <input type="radio" name="home_template" value="parallax" class="sr-only" {{ settings['home.template']|default('classic') == 'parallax' ? 'checked' : '' }}>
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                    <i class="fas fa-layer-group text-white text-sm"></i>
+                  </div>
+                  <div>
+                    <span class="font-semibold text-gray-900">{{ trans('admin.pages.home.template_parallax') }}</span>
+                    <span class="block text-xs text-gray-500">{{ trans('admin.pages.home.template_parallax_subtitle') }}</span>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-600">{{ trans('admin.pages.home.template_parallax_desc') }}</p>
+                <div class="absolute top-2 right-2 template-check {{ settings['home.template']|default('classic') == 'parallax' ? '' : 'hidden' }}">
+                  <i class="fas fa-check-circle text-black"></i>
+                </div>
+              </label>
             </div>
           </div>
         </div>
 
         <!-- ========== CLASSIC HOME SETTINGS ========== -->
-        <div id="classic-home-settings" class="{{ settings['home.template']|default('classic') == 'modern' ? 'hidden' : '' }}">
+        <div id="classic-home-settings" class="{{ settings['home.template']|default('classic') != 'classic' ? 'hidden' : '' }}">
           <div class="card">
             <div class="p-6">
               <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -213,7 +229,7 @@
       </div>
 
       <!-- Modern Home Info -->
-      <div id="modern-home-info" class="card {{ settings['home.template']|default('classic') == 'classic' ? 'hidden' : '' }}">
+      <div id="modern-home-info" class="card {{ settings['home.template']|default('classic') != 'modern' ? 'hidden' : '' }}">
         <div class="p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.pages.home.modern_structure_title') }}</h3>
           <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.modern_structure_desc') }}</p>
@@ -233,6 +249,32 @@
             <li class="flex items-start">
               <i class="fas fa-mobile-alt text-gray-400 mr-2 mt-1"></i>
               <span><strong>{{ trans('admin.pages.home.modern_mobile') }}</strong> - {{ trans('admin.pages.home.modern_mobile_desc') }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Parallax Home Info -->
+      <div id="parallax-home-info" class="card {{ settings['home.template']|default('classic') != 'parallax' ? 'hidden' : '' }}">
+        <div class="p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.pages.home.parallax_structure_title') }}</h3>
+          <p class="text-sm text-gray-600 mb-4">{{ trans('admin.pages.home.parallax_structure_desc') }}</p>
+          <ul class="text-sm text-gray-600 space-y-2">
+            <li class="flex items-start">
+              <i class="fas fa-th text-gray-400 mr-2 mt-1"></i>
+              <span><strong>{{ trans('admin.pages.home.parallax_grid') }}</strong> - {{ trans('admin.pages.home.parallax_grid_desc') }}</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-layer-group text-gray-400 mr-2 mt-1"></i>
+              <span><strong>{{ trans('admin.pages.home.parallax_scroll') }}</strong> - {{ trans('admin.pages.home.parallax_scroll_desc') }}</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-link text-gray-400 mr-2 mt-1"></i>
+              <span><strong>{{ trans('admin.pages.home.parallax_links') }}</strong> - {{ trans('admin.pages.home.parallax_links_desc') }}</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-mouse-pointer text-gray-400 mr-2 mt-1"></i>
+              <span><strong>{{ trans('admin.pages.home.parallax_hover') }}</strong> - {{ trans('admin.pages.home.parallax_hover_desc') }}</span>
             </li>
           </ul>
         </div>
@@ -272,6 +314,7 @@
       const classicSettings = document.getElementById('classic-home-settings');
       const classicInfo = document.getElementById('classic-home-info');
       const modernInfo = document.getElementById('modern-home-info');
+      const parallaxInfo = document.getElementById('parallax-home-info');
 
       if (!templateOptions.length) return; // Guard if elements not found
 
@@ -300,16 +343,11 @@
           const thisCheck = this.querySelector('.template-check');
           if (thisCheck) thisCheck.classList.remove('hidden');
 
-          // Toggle settings visibility
-          if (template === 'classic') {
-            if (classicSettings) classicSettings.classList.remove('hidden');
-            if (classicInfo) classicInfo.classList.remove('hidden');
-            if (modernInfo) modernInfo.classList.add('hidden');
-          } else {
-            if (classicSettings) classicSettings.classList.add('hidden');
-            if (classicInfo) classicInfo.classList.add('hidden');
-            if (modernInfo) modernInfo.classList.remove('hidden');
-          }
+          // Toggle settings and info visibility based on template
+          if (classicSettings) classicSettings.classList.toggle('hidden', template !== 'classic');
+          if (classicInfo) classicInfo.classList.toggle('hidden', template !== 'classic');
+          if (modernInfo) modernInfo.classList.toggle('hidden', template !== 'modern');
+          if (parallaxInfo) parallaxInfo.classList.toggle('hidden', template !== 'parallax');
         });
       });
 
