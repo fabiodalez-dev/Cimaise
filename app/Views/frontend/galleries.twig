@@ -1040,10 +1040,20 @@ function clearAllFilters() {
         chip.classList.remove('is-active');
         chip.setAttribute('aria-pressed', 'false');
     });
+
+    // Reset category search input and show all chips
+    const categorySearch = document.getElementById('filter-categories-search');
+    if (categorySearch) {
+        categorySearch.value = '';
+        document.querySelectorAll('#filter-categories .filter-chip').forEach(chip => {
+            chip.style.display = '';
+        });
+    }
+
     $('.filter-select').val(null).trigger('change');
     $('#filter-search').val('');
     $('#filter-sort').val('published_desc');
-    
+
     // Apply filters (which will be empty now)
     applyFilters();
 }
@@ -1110,7 +1120,7 @@ function debounce(func, wait) {
 }
 </script>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
 /* Custom Select2 styling */
 .select2-container--default .select2-selection--multiple {
     border: 1px solid #d1d5db;

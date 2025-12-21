@@ -502,7 +502,6 @@ class PageController extends BaseController
 
         // Determine if album is protected (requires session access validation)
         $isProtectedAlbum = !empty($album['password_hash']) || !empty($album['is_nsfw']);
-        $allowDownloads = !empty($album['allow_downloads']);
 
         // Enrich images with metadata and build PhotoSwipe-compatible data
         foreach ($images as &$image) {
@@ -537,7 +536,8 @@ class PageController extends BaseController
                     }
                 } else {
                     $lightboxUrl = $bestUrl;
-                    if ($isProtectedAlbum && !$isAdmin && $allowDownloads && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
+                    // Always protect /storage/ paths for protected albums, regardless of allow_downloads
+                    if ($isProtectedAlbum && !$isAdmin && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
                         $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/original';
                     }
                 }
@@ -930,7 +930,6 @@ class PageController extends BaseController
 
             // Determine if album is protected (password or NSFW)
             $isProtectedAlbum = !empty($album['password_hash']) || $isNsfw;
-            $allowDownloads = !empty($album['allow_downloads']);
 
             // Build gallery items for the template
             $images = [];
@@ -965,7 +964,8 @@ class PageController extends BaseController
                         }
                     } else {
                         $lightboxUrl = $bestUrl;
-                        if ($isProtectedAlbum && !$isAdmin && $allowDownloads && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
+                        // Always protect /storage/ paths for protected albums, regardless of allow_downloads
+                        if ($isProtectedAlbum && !$isAdmin && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
                             $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
                         }
                     }
