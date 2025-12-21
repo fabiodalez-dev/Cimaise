@@ -5,6 +5,7 @@ namespace App\Tasks;
 
 use App\Services\SettingsService;
 use App\Support\Database;
+use App\Traits\RegistersImageVariants;
 use Imagick;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -16,6 +17,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'images:generate', description: 'Generate image variants as per settings')]
 class ImagesGenerateCommand extends Command
 {
+    use RegistersImageVariants;
+
     public function __construct(private Database $db)
     {
         parent::__construct();
@@ -91,6 +94,14 @@ class ImagesGenerateCommand extends Command
                 $totalErrors++;
                 continue;
             }
+
+            $existingStmt = $pdo->prepare('SELECT variant, format, path FROM image_variants WHERE image_id = ?');
+            $existingStmt->execute([$imageId]);
+            $existingVariants = [];
+            foreach ($existingStmt->fetchAll() as $row) {
+                $key = (string)$row['variant'] . '|' . (string)$row['format'];
+                $existingVariants[$key] = (string)($row['path'] ?? '');
+            }
             
             $variantsGenerated = 0;
             foreach ($breakpoints as $variant => $width) {
@@ -100,7 +111,23 @@ class ImagesGenerateCommand extends Command
                     $dest = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
                     
                     if ($missingOnly && is_file($dest)) {
-                        $totalSkipped++;
+                        $key = (string)$variant . '|' . (string)$fmt;
+                        if (!isset($existingVariants[$key])) {
+                            $this->registerVariantFromFile(
+                                $pdo,
+                                $imageId,
+                                (string)$variant,
+                                (string)$fmt,
+                                $destRelUrl,
+                                $dest,
+                                (int)$width,
+                                $this->db->replaceKeyword()
+                            );
+                            $existingVariants[$key] = $destRelUrl;
+                            $totalGenerated++;
+                        } else {
+                            $totalSkipped++;
+                        }
                         continue;
                     }
                     
@@ -120,7 +147,11 @@ class ImagesGenerateCommand extends Command
                     if ($ok) {
                         $size = (int)filesize($dest);
                         [$w, $h] = getimagesize($dest) ?: [(int)$width, 0];
-                        $stmt = $pdo->prepare('REPLACE INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)');
+                        $replaceKeyword = $this->db->replaceKeyword();
+                        $stmt = $pdo->prepare(sprintf(
+                            '%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)',
+                            $replaceKeyword
+                        ));
                         $stmt->execute([$imageId, $variant, $fmt, $destRelUrl, $w, $h, $size]);
                         $variantsGenerated++;
                         $totalGenerated++;

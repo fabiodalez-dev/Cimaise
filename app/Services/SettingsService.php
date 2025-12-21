@@ -51,6 +51,7 @@ class SettingsService
             'image.quality' => ['avif' => 50, 'webp' => 75, 'jpg' => 85],
             'image.breakpoints' => ['sm' => 768, 'md' => 1200, 'lg' => 1920, 'xl' => 2560, 'xxl' => 3840],
             'image.preview' => ['width' => 480, 'height' => null],
+            'image.variants_async' => true,
             // TODO: visibility.public is a placeholder - implement server-side enforcement or remove
             'visibility' => ['public' => true],
             'gallery.default_template_id' => null,
@@ -66,6 +67,7 @@ class SettingsService
             'performance.compression' => true,
             'pagination.limit' => 12,
             'cache.ttl' => 24,
+            'admin.debug_logs' => false,
             // Privacy & Cookie Banner
             'privacy.cookie_banner_enabled' => true,
             'privacy.custom_js_essential' => '',
@@ -73,6 +75,7 @@ class SettingsService
             'privacy.custom_js_marketing' => '',
             'cookie_banner.show_analytics' => false,
             'cookie_banner.show_marketing' => false,
+            'frontend.disable_right_click' => true,
         ];
     }
 }

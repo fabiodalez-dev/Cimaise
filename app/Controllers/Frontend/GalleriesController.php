@@ -18,8 +18,9 @@ class GalleriesController extends BaseController
 
     public function index(Request $request, Response $response): Response
     {
-        $pdo = $this->db->pdo();
         $params = $request->getQueryParams();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
         
         // Get filter settings from database
         $filterSettings = $this->getFilterSettings();
@@ -31,7 +32,7 @@ class GalleriesController extends BaseController
         $filters = $this->buildFilters($params, $filterSettings);
         
         // Get albums with filters applied
-        $albums = $this->getFilteredAlbums($filters);
+        $albums = $this->getFilteredAlbums($filters, $isAdmin, $nsfwConsent);
         
         // Get filter options for dropdowns
         $filterOptions = $this->getFilterOptions();
@@ -47,13 +48,18 @@ class GalleriesController extends BaseController
             'active_filters' => $filters,
             'parent_categories' => $parentCategories,
             'page_title' => $pageTexts['title'],
-            'meta_description' => $pageTexts['description']
+            'meta_description' => $pageTexts['description'],
+            'nsfw_consent' => $nsfwConsent,
+            'is_admin' => $isAdmin,
+            'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
 
     public function filter(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
 
         // Get filter settings
         $filterSettings = $this->getFilterSettings();
@@ -62,30 +68,28 @@ class GalleriesController extends BaseController
         $filters = $this->buildFilters($params, $filterSettings);
 
         // Get filtered albums
-        $albums = $this->getFilteredAlbums($filters);
-
-        // Check admin status for NSFW handling
-        $isAdmin = $this->isAdmin();
+        $albums = $this->getFilteredAlbums($filters, $isAdmin, $nsfwConsent);
 
         // Sanitize album data - remove sensitive fields
-        // SECURITY: For NSFW albums, only expose blur_path, never the real preview_path
-        $safeAlbums = array_map(function($album) use ($isAdmin) {
+        // SECURITY: For NSFW albums without consent, expose only blur_path (no real previews)
+        $safeAlbums = array_map(function($album) use ($isAdmin, $nsfwConsent) {
             $isNsfw = (bool)($album['is_nsfw'] ?? false);
+            $canShowNsfw = $isAdmin || $nsfwConsent;
 
-            // For NSFW albums (non-admin), only return blur_path
             $coverImage = null;
             if (isset($album['cover_image'])) {
                 // Use fallback dimensions to avoid CLS (Cumulative Layout Shift)
                 // Default 4:3 aspect ratio at 400px width if dimensions missing
                 $coverImage = [
                     'id' => $album['cover_image']['id'],
-                    'blur_path' => $album['cover_image']['blur_path'] ?? null,
                     'width' => (int)($album['cover_image']['width'] ?? 400),
                     'height' => (int)($album['cover_image']['height'] ?? 300),
                 ];
-                // Only include preview_path for non-NSFW albums or admins
-                if (!$isNsfw || $isAdmin) {
+                if ($isNsfw && !$canShowNsfw) {
+                    $coverImage['blur_path'] = $album['cover_image']['blur_path'] ?? null;
+                } else {
                     $coverImage['preview_path'] = $album['cover_image']['preview_path'] ?? null;
+                    $coverImage['blur_path'] = $album['cover_image']['blur_path'] ?? null;
                 }
             }
 
@@ -171,45 +175,66 @@ class GalleriesController extends BaseController
     private function buildFilters(array $params, array $settings): array
     {
         $filters = [];
+        $normalizeList = function ($value): array {
+            if (\is_array($value)) {
+                return array_values(array_filter($value, static function ($item): bool {
+                    return $item !== null && $item !== '';
+                }));
+            }
+            if (\is_string($value)) {
+                $value = trim($value);
+                if ($value === '') {
+                    return [];
+                }
+                if (str_contains($value, ',')) {
+                    $parts = array_map('trim', explode(',', $value));
+                    return array_values(array_filter($parts, static function ($item): bool {
+                        return $item !== '';
+                    }));
+                }
+                return [$value];
+            }
+            return [];
+        };
         
         // Category filter
         if (!empty($params['category']) && $settings['show_categories']) {
-            $filters['category'] = is_array($params['category']) ? $params['category'] : [$params['category']];
+            $filters['category'] = $normalizeList($params['category']);
         }
         
         // Tag filter
         if (!empty($params['tags']) && $settings['show_tags']) {
-            $filters['tags'] = is_array($params['tags']) ? $params['tags'] : [$params['tags']];
+            $filters['tags'] = $normalizeList($params['tags']);
         }
         
         // Camera filter
         if (!empty($params['cameras']) && $settings['show_cameras']) {
-            $filters['cameras'] = is_array($params['cameras']) ? $params['cameras'] : [$params['cameras']];
+            $filters['cameras'] = $normalizeList($params['cameras']);
         }
         
         // Lens filter
         if (!empty($params['lenses']) && $settings['show_lenses']) {
-            $filters['lenses'] = is_array($params['lenses']) ? $params['lenses'] : [$params['lenses']];
+            $filters['lenses'] = $normalizeList($params['lenses']);
         }
         
         // Film filter
         if (!empty($params['films']) && $settings['show_films']) {
-            $filters['films'] = is_array($params['films']) ? $params['films'] : [$params['films']];
+            $filters['films'] = $normalizeList($params['films']);
         }
         
         // Developer filter
         if (!empty($params['developers']) && $settings['show_developers']) {
-            $filters['developers'] = is_array($params['developers']) ? $params['developers'] : [$params['developers']];
+            $filters['developers'] = $normalizeList($params['developers']);
         }
         
         // Lab filter
         if (!empty($params['labs']) && $settings['show_labs']) {
-            $filters['labs'] = is_array($params['labs']) ? $params['labs'] : [$params['labs']];
+            $filters['labs'] = $normalizeList($params['labs']);
         }
         
         // Location filter
         if (!empty($params['locations']) && $settings['show_locations']) {
-            $filters['locations'] = is_array($params['locations']) ? $params['locations'] : [$params['locations']];
+            $filters['locations'] = $normalizeList($params['locations']);
         }
         
         // Year filter
@@ -228,7 +253,7 @@ class GalleriesController extends BaseController
         return $filters;
     }
 
-    private function getFilteredAlbums(array $filters): array
+    private function getFilteredAlbums(array $filters, ?bool $isAdmin = null, ?bool $nsfwConsent = null): array
     {
         $pdo = $this->db->pdo();
         
@@ -315,8 +340,12 @@ class GalleriesController extends BaseController
         }
         
         if (!empty($filters['search'])) {
-            $conditions[] = "(a.title LIKE ? OR a.excerpt LIKE ? OR a.body LIKE ?)";
+            $conditions[] = "(a.title LIKE ? OR a.excerpt LIKE ? OR a.body LIKE ? OR a.slug LIKE ? OR c.name LIKE ? OR cat.name LIKE ? OR t.name LIKE ?)";
             $searchTerm = '%' . $filters['search'] . '%';
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
             $params[] = $searchTerm;
             $params[] = $searchTerm;
             $params[] = $searchTerm;
@@ -352,12 +381,23 @@ class GalleriesController extends BaseController
         $stmt->execute($params);
         $albums = $stmt->fetchAll();
         
+        $isAdmin ??= $this->isAdmin();
+        $nsfwConsent ??= $this->hasNsfwConsent();
+
         // Enrich albums with cover images and additional data
-        foreach ($albums as &$album) {
+        $visibleAlbums = [];
+        foreach ($albums as $album) {
             $album = $this->enrichAlbum($album);
+            if (!$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
+                continue;
+            }
+            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent && !empty($album['cover_image'])) {
+                unset($album['cover_image']['preview_path'], $album['cover_image']['original_path'], $album['cover_image']['path']);
+            }
+            $visibleAlbums[] = $album;
         }
         
-        return $albums;
+        return $visibleAlbums;
     }
 
     private function getFilterOptions(): array
@@ -372,7 +412,7 @@ class GalleriesController extends BaseController
             LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
             GROUP BY c.id
             HAVING albums_count > 0
-            ORDER BY c.sort_order ASC, c.name ASC
+            ORDER BY COALESCE(c.parent_id, 0) ASC, c.sort_order ASC, c.name ASC
         ');
         $stmt->execute();
         $categories = $stmt->fetchAll();
@@ -498,38 +538,44 @@ class GalleriesController extends BaseController
 
         // Get cover image with blur variant for NSFW albums
         if (!empty($album['cover_image_id'])) {
-            $stmt = $pdo->prepare('
+            $stmt = $pdo->prepare("
                 SELECT i.*,
                        COALESCE(iv.path, i.original_path) AS preview_path,
                        blur.path AS blur_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "sm" AND iv.format = "jpg"
-                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = "blur"
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
+                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
                 WHERE i.id = :id
-            ');
+            ");
             $stmt->execute([':id' => $album['cover_image_id']]);
             $cover = $stmt->fetch();
             if ($cover) {
+                if (empty($cover['blur_path'])) {
+                    $cover['blur_path'] = $this->fetchBlurPath($pdo, (int)$cover['id']);
+                }
                 $album['cover_image'] = $cover;
             }
         }
 
         // If no cover image, get first image
         if (empty($album['cover_image'])) {
-            $stmt = $pdo->prepare('
+            $stmt = $pdo->prepare("
                 SELECT i.*,
                        COALESCE(iv.path, i.original_path) AS preview_path,
                        blur.path AS blur_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = "sm" AND iv.format = "jpg"
-                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = "blur"
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
+                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
                 WHERE i.album_id = :album_id
                 ORDER BY i.sort_order ASC, i.id ASC
                 LIMIT 1
-            ');
+            ");
             $stmt->execute([':album_id' => $album['id']]);
             $cover = $stmt->fetch();
             if ($cover) {
+                if (empty($cover['blur_path'])) {
+                    $cover['blur_path'] = $this->fetchBlurPath($pdo, (int)$cover['id']);
+                }
                 $album['cover_image'] = $cover;
             }
         }
@@ -554,6 +600,19 @@ class GalleriesController extends BaseController
         unset($album['password_hash']);
 
         return $album;
+    }
+
+    private function fetchBlurPath(\PDO $pdo, int $imageId): ?string
+    {
+        if ($imageId <= 0) {
+            return null;
+        }
+
+        $stmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND variant = 'blur' LIMIT 1");
+        $stmt->execute([':id' => $imageId]);
+        $path = $stmt->fetchColumn();
+
+        return $path !== false ? (string)$path : null;
     }
 
     private function getParentCategoriesForNavigation(): array

@@ -317,6 +317,73 @@
       </div>
     </div>
 
+    <!-- Album Access & Password Unlocks -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <!-- Album Access Stats -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.analytics.album_access_title') }}</h3>
+          <span class="text-xs text-gray-500">{{ trans('admin.analytics.albums.sorted_by', {start: start_date, end: end_date}) }}</span>
+        </div>
+        <div class="space-y-3">
+          {% for item in album_access_stats %}
+            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">{{ item.album_title|default(trans('admin.analytics.unknown_album')) }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">
+                  {% if item.album_slug %}{{ base_path }}/album/{{ item.album_slug }}{% else %}{{ trans('admin.analytics.albums.no_slug') }}{% endif %}
+                </p>
+              </div>
+              <div class="flex-shrink-0 ml-4 text-right">
+                <p class="text-sm font-semibold text-gray-900">{{ item.pageviews }}</p>
+                <p class="text-xs text-gray-500">{{ trans('admin.analytics.pageviews') }}</p>
+                <p class="text-xs text-gray-500">{{ item.unique_visitors }} {{ trans('admin.analytics.unique_visitors') }}</p>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-center py-8">
+              <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p class="mt-2 text-sm text-gray-500">{{ trans('admin.analytics.no_data') }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Album Password Access Stats -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">{{ trans('admin.analytics.album_password_access_title') }}</h3>
+          <span class="text-xs text-gray-500">{{ trans('admin.analytics.password_access_sorted_by', {start: start_date, end: end_date}) }}</span>
+        </div>
+        <div class="space-y-3">
+          {% for item in album_password_access_stats %}
+            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">{{ item.album_title|default(trans('admin.analytics.unknown_album')) }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">
+                  {% if item.album_slug %}{{ base_path }}/album/{{ item.album_slug }}{% else %}{{ trans('admin.analytics.albums.no_slug') }}{% endif %}
+                </p>
+              </div>
+              <div class="flex-shrink-0 ml-4 text-right">
+                <p class="text-sm font-semibold text-gray-900">{{ item.password_unlocks }}</p>
+                <p class="text-xs text-gray-500">{{ trans('admin.analytics.password_unlocks') }}</p>
+                <p class="text-xs text-gray-500">{{ item.unique_visitors }} {{ trans('admin.analytics.unique_visitors') }}</p>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-center py-8">
+              <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.657-1.343-3-3-3S6 9.343 6 11v3a2 2 0 002 2h2a2 2 0 002-2v-3zM9 8a3 3 0 016 0v3a4 4 0 01-4 4H9a4 4 0 01-4-4v-3a3 3 0 013-3z" />
+              </svg>
+              <p class="mt-2 text-sm text-gray-500">{{ trans('admin.analytics.no_data') }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
     <!-- Top Content & Countries -->
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
       <!-- Top Pages -->

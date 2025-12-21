@@ -51,6 +51,7 @@ Thumbs.db
 # Debug/test files
 reset_app.php
 phpinfo.php
+tests/
 
 # Cache
 .cache/
@@ -73,4 +74,3 @@ updater.md
 storage/database.sqlite
 database/database.sqlite
 app/database/
-CLAUDE.md

@@ -41,19 +41,45 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-900">
-                  {{ template.settings.layout|default('grid')|title }}
-                  {% if template.settings.masonry %}<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded ml-2">{{ trans('admin.templates.masonry') }}</span>{% endif %}
+                  {% if template.settings.layout == 'masonry_fit' %}
+                    <span class="inline-flex items-center">
+                      <i class="fas fa-th text-indigo-500 mr-1.5"></i>{{ trans('admin.templates.masonry_full') }}
+                    </span>
+                    <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded ml-2">{{ trans('admin.templates.css_columns') }}</span>
+                  {% elseif template.settings.layout == 'magazine' %}
+                    <span class="inline-flex items-center">
+                      <i class="fas fa-newspaper text-purple-500 mr-1.5"></i>{{ trans('admin.templates.magazine') }}
+                    </span>
+                  {% elseif template.settings.layout == 'slideshow' %}
+                    <span class="inline-flex items-center">
+                      <i class="fas fa-play-circle text-green-500 mr-1.5"></i>{{ trans('admin.templates.slideshow') }}
+                    </span>
+                  {% elseif template.settings.layout == 'fullscreen' %}
+                    <span class="inline-flex items-center">
+                      <i class="fas fa-expand text-orange-500 mr-1.5"></i>{{ trans('admin.templates.fullscreen') }}
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center">
+                      <i class="fas fa-grip-horizontal text-blue-500 mr-1.5"></i>{{ template.settings.layout|default('grid')|title }}
+                    </span>
+                  {% endif %}
+                  {% if template.settings.masonry and template.settings.layout != 'masonry_fit' %}<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded ml-2">{{ trans('admin.templates.masonry') }}</span>{% endif %}
                 </div>
                 {% set cols = template.settings.columns is defined ? template.settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
                 {% set desktop_cols = cols.desktop %}
                 {% set tablet_cols = cols.tablet %}
                 {% set mobile_cols = cols.mobile %}
 
-                <div class="text-xs text-gray-500">
-                  <i class="fas fa-desktop mr-1"></i>{{ desktop_cols|default(3) }}
-                  <i class="fas fa-tablet-alt ml-2 mr-1"></i>{{ tablet_cols|default(2) }}
-                  <i class="fas fa-mobile-alt ml-2 mr-1"></i>{{ mobile_cols|default(1) }}
+                <div class="text-xs text-gray-500 mt-1">
+                  <i class="fas fa-desktop mr-1"></i>{{ desktop_cols|default(3) }} col
+                  <i class="fas fa-tablet-alt ml-2 mr-1"></i>{{ tablet_cols|default(2) }} col
+                  <i class="fas fa-mobile-alt ml-2 mr-1"></i>{{ mobile_cols|default(1) }} col
                 </div>
+                {% if template.settings.layout == 'masonry_fit' and template.settings.gap is defined %}
+                <div class="text-xs text-gray-400 mt-1">
+                  Gap: {{ template.settings.gap.horizontal|default(16) }}px × {{ template.settings.gap.vertical|default(16) }}px
+                </div>
+                {% endif %}
               </td>
               <td class="px-6 py-4">
                 {% for lib in template.libs %}

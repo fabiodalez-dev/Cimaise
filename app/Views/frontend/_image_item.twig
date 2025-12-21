@@ -1,7 +1,10 @@
+  {% import 'frontend/_seo_macros.twig' as Seo %}
   {# Use lightbox_url for best quality, fallback to original_path #}
   {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+  {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
   <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
      class="pswp-link image-item group block"
+     title="{{ seo_title|e('html_attr') }}"
      data-image-id="{{ image.id }}"
      data-pswp-width="{{ image.width }}"
      data-pswp-height="{{ image.height }}"
@@ -54,6 +57,7 @@
       
       <img src="{{ best_jpg_path }}"
            alt="{{ image.alt|default(image.alt_text)|default('')|e }}"
+           title="{{ seo_title|e('html_attr') }}"
            width="{{ image.width }}"
            height="{{ image.height }}"
            loading="lazy"

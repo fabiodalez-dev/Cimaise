@@ -1,4 +1,5 @@
 {% extends 'frontend/_layout.twig' %}
+{% import 'frontend/_seo_macros.twig' as Seo %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -64,28 +65,44 @@
       </div>
       
       <!-- Filters Grid with proper spacing -->
-      <div id="filters-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 opacity-0 max-h-0 overflow-hidden transition-[opacity,max-height] duration-200" data-gsap="filters-grid">
+      <div id="filters-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 opacity-0 max-h-0 overflow-hidden" data-gsap="filters-grid">
         
         <!-- Categories Filter -->
         {% if filter_settings.show_categories and filter_options.categories|length > 0 %}
         <div class="filter-group" data-gsap="filter-category">
-          <label for="filter-categories" class="block text-xs font-semibold text-gray-900 mb-2">
+          <label class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-folder-open mr-1 text-gray-600"></i>
             {{ trans('filter.categories') }}
           </label>
-          <select id="filter-categories" class="filter-select" multiple data-placeholder="{{ trans('filter.select_categories') }}">
+          <div class="relative mb-3">
+            <label for="filter-categories-search" class="sr-only">{{ trans('filter.search') }}</label>
+            <input type="search"
+                   id="filter-categories-search"
+                   class="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150 text-sm"
+                   placeholder="{{ trans('filter.search') }}"
+                   autocomplete="off">
+            <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
+          </div>
+          <div id="filter-categories" class="flex flex-wrap gap-2 max-h-40 overflow-auto pr-1">
             {% for category in filter_options.categories %}
-            <option value="{{ category.id }}" {% if category.id in active_filters.category|default([]) %}selected{% endif %}>
-              {{ category.name }} ({{ category.albums_count }})
-            </option>
+            {% set is_active = category.id in active_filters.category|default([]) %}
+            <button type="button"
+                    class="filter-chip{{ is_active ? ' is-active' : '' }}"
+                    data-category-id="{{ category.id }}"
+                    data-category-name="{{ category.name|e('html_attr') }}"
+                    data-category-search="{{ category.name|lower|e('html_attr') }}"
+                    aria-pressed="{{ is_active ? 'true' : 'false' }}">
+              <span class="filter-chip-label">{{ category.name|e }}</span>
+              <span class="filter-chip-count">({{ category.albums_count }})</span>
+            </button>
             {% endfor %}
-          </select>
+          </div>
         </div>
         {% endif %}
         
         <!-- Tags Filter -->
         {% if filter_settings.show_tags and filter_options.tags|length > 0 %}
-        <div class="filter-group" data-gsap="filter-tags">
+        <div class="filter-group hidden md:block" data-gsap="filter-tags">
           <label for="filter-tags" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-tags mr-1 text-gray-600"></i>
             {{ trans('filter.tags') }}
@@ -102,7 +119,7 @@
         
         <!-- Cameras Filter -->
         {% if filter_settings.show_cameras and filter_options.cameras|length > 0 %}
-        <div class="filter-group" data-gsap="filter-cameras">
+        <div class="filter-group hidden md:block" data-gsap="filter-cameras">
           <label for="filter-cameras" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-camera mr-1 text-gray-600"></i>
             {{ trans('album.camera') }}
@@ -119,7 +136,7 @@
         
         <!-- Lenses Filter -->
         {% if filter_settings.show_lenses and filter_options.lenses|length > 0 %}
-        <div class="filter-group" data-gsap="filter-lenses">
+        <div class="filter-group hidden md:block" data-gsap="filter-lenses">
           <label for="filter-lenses" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-eye mr-1 text-gray-600"></i>
             {{ trans('album.lens') }}
@@ -136,7 +153,7 @@
         
         <!-- Films Filter -->
         {% if filter_settings.show_films and filter_options.films|length > 0 %}
-        <div class="filter-group" data-gsap="filter-films">
+        <div class="filter-group hidden md:block" data-gsap="filter-films">
           <label for="filter-films" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-film mr-1 text-gray-600"></i>
             {{ trans('filter.film') }}
@@ -153,7 +170,7 @@
         
         <!-- Locations Filter -->
         {% if filter_settings.show_locations and filter_options.locations|length > 0 %}
-        <div class="filter-group" data-gsap="filter-locations">
+        <div class="filter-group hidden md:block" data-gsap="filter-locations">
           <label for="filter-locations" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-map-marker-alt mr-1 text-gray-600"></i>
             {{ trans('filter.location') }}
@@ -170,7 +187,7 @@
         
         <!-- Year Filter -->
         {% if filter_settings.show_year and filter_options.years|length > 0 %}
-        <div class="filter-group" data-gsap="filter-year">
+        <div class="filter-group hidden md:block" data-gsap="filter-year">
           <label for="filter-year" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-calendar mr-1 text-gray-600"></i>
             {{ trans('filter.year') }}
@@ -237,37 +254,49 @@
          data-gap="{{ filter_settings.grid_gap }}">
       
       {% for album in albums %}
-      <article class="gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out"
+      {% set seo_title = Seo.seo_title({'alt': album.cover_image.alt_text|default('')}, album, site_title)|trim %}
+      <article class="gallery-card group flex flex-col h-full cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out"
                data-gsap="gallery-card"
                data-album-id="{{ album.id }}"
                data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
                data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
                data-album-url="{{ base_path }}/album/{{ album.slug }}"
-               data-action="open-album">
+               data-action="open-album"
+               aria-label="{{ seo_title|e('html_attr') }}">
+        {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
+        {% set is_nsfw_unconfirmed = album.is_nsfw and not can_show_nsfw %}
 
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
-          {% if album.cover_image and (album.cover_image.preview_path or album.cover_image.original_path) %}
-            {% set cover_path = album.cover_image.preview_path|default(album.cover_image.original_path) %}
-            {% set blur_path = album.cover_image.blur_path %}
-            {% set is_nsfw_unconfirmed = album.is_nsfw and not is_admin %}
-            {# For NSFW albums: show blurred image, store real image in data-src for lazy load after confirmation #}
-            {% if is_nsfw_unconfirmed and blur_path %}
-            <img src="{{ base_path }}{{ blur_path }}"
-                 data-src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
-                 alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
-                 class="nsfw-image w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-                 loading="lazy">
-            {% elseif is_nsfw_unconfirmed %}
-            {# NSFW without blur variant - show placeholder, DO NOT expose real image URL #}
-            <div class="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
-              <i class="fas fa-eye-slash text-4xl text-gray-500"></i>
-            </div>
+          {% if album.cover_image %}
+            {% if is_nsfw_unconfirmed %}
+              {% set blur_path = album.cover_image.blur_path|default(null) %}
+              {% if blur_path %}
+              <img src="{% if blur_path starts with '/' %}{{ base_path }}{{ blur_path }}{% else %}{{ blur_path }}{% endif %}"
+                   alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                   title="{{ seo_title|e('html_attr') }}"
+                   class="nsfw-blur w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                   loading="lazy"
+                   data-fallback="hide">
+              {% else %}
+              <div class="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
+                <i class="fas fa-eye-slash text-4xl text-gray-500"></i>
+              </div>
+              {% endif %}
             {% else %}
-            <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
-                 alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
-                 class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-                 loading="lazy">
+              {% if album.cover_image.preview_path or album.cover_image.original_path %}
+                {% set cover_path = album.cover_image.preview_path|default(album.cover_image.original_path) %}
+                <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
+                     alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
+                     title="{{ seo_title|e('html_attr') }}"
+                     class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                     loading="lazy"
+                     data-fallback="hide">
+              {% else %}
+                <div class="w-full h-full flex items-center justify-center text-gray-400">
+                  <i class="fas fa-images text-4xl"></i>
+                </div>
+              {% endif %}
             {% endif %}
           {% else %}
             <div class="w-full h-full flex items-center justify-center text-gray-400">
@@ -276,7 +305,7 @@
           {% endif %}
 
           <!-- NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through -->
-          {% if album.is_nsfw and not is_admin %}
+          {% if is_nsfw_unconfirmed %}
           <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
             <i class="fas fa-eye-slash text-3xl mb-2"></i>
             <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short') }}</span>
@@ -307,7 +336,7 @@
         </div>
         
         <!-- Content -->
-        <div class="p-6">
+        <div class="p-6 flex flex-col flex-1">
           <h3 class="text-xl font-semibold text-black mb-3 group-hover:text-gray-700 transition-colors duration-200 line-clamp-2">
             {{ album.title|e }}
           </h3>
@@ -318,8 +347,24 @@
           </p>
           {% endif %}
           
+          <!-- Tags -->
+          {% if album.tags|length > 0 %}
+          <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+            {% for tag in album.tags|slice(0, 3) %}
+            <span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors">
+              #{{ tag.name }}
+            </span>
+            {% endfor %}
+            {% if album.tags|length > 3 %}
+            <span class="inline-block text-gray-400 text-xs px-2 py-1">
+              {{ trans('general.more_count', {count: album.tags|length - 3}) }}
+            </span>
+            {% endif %}
+          </div>
+          {% endif %}
+
           <!-- Meta Info -->
-          <div class="flex items-center justify-between text-sm text-gray-500">
+          <div class="mt-auto flex items-center justify-between text-sm text-gray-500">
             <div class="flex items-center gap-4">
               {% if album.shoot_date %}
               <span class="flex items-center gap-1">
@@ -345,22 +390,6 @@
               <i class="fas fa-arrow-right text-xs"></i>
             </div>
           </div>
-          
-          <!-- Tags -->
-          {% if album.tags|length > 0 %}
-          <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
-            {% for tag in album.tags|slice(0, 3) %}
-            <span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors">
-              #{{ tag.name }}
-            </span>
-            {% endfor %}
-            {% if album.tags|length > 3 %}
-            <span class="inline-block text-gray-400 text-xs px-2 py-1">
-              {{ trans('general.more_count', {count: album.tags|length - 3}) }}
-            </span>
-            {% endif %}
-          </div>
-          {% endif %}
         </div>
       </article>
       {% endfor %}
@@ -438,8 +467,10 @@ $(document).ready(function() {
         tagsCount: '{{ trans('album.tags_count', {count: '{count}'})|e('js') }}',
         moreCount: '{{ trans('general.more_count', {count: '{count}'})|e('js') }}',
         passwordProtected: '{{ trans('album.password_protected')|e('js') }}',
-        nsfwWarningShort: '{{ trans('album.nsfw_warning_short')|e('js') }}'
+        nsfwWarningShort: '{{ trans('album.nsfw_warning_short')|e('js') }}',
+        categoriesLabel: '{{ trans('filter.categories')|e('js') }}'
     };
+    window.siteTitle = '{{ site_title|default('Portfolio')|e('js') }}';
 
     // Date format from settings
     window.dateFormat = '{{ date_format|default("Y-m-d")|e('js') }}';
@@ -542,15 +573,20 @@ function initPageAnimations() {
 }
 
 function initFilters() {
-    // Initialize Select2 for multi-select filters
-    $('.filter-select').select2({
-        theme: 'default',
-        placeholder: function() {
-            return $(this).data('placeholder');
-        },
-        allowClear: true,
-        width: '100%'
-    });
+    const debouncedApply = debounce(applyFilters, 60);
+    window.applyFiltersDebounced = debouncedApply;
+
+    // Initialize Select2 for multi-select filters (if available)
+    if ($.fn.select2) {
+        $('.filter-select[multiple]').select2({
+            theme: 'default',
+            placeholder: function() {
+                return $(this).data('placeholder');
+            },
+            allowClear: false,
+            width: '100%'
+        });
+    }
     
     // Filter toggle functionality
     $('#toggle-filters').click(function() {
@@ -577,9 +613,12 @@ function initFilters() {
         } else {
             // Open filters
             filtersGrid.addClass('filters-open');
+            const targetHeight = filtersGrid[0]
+                ? (filtersGrid[0].scrollHeight + 16)
+                : Math.min(window.innerHeight * 0.6, 800);
             gsap.to(filtersGrid, {
                 opacity: 1,
-                maxHeight: 600, // Fixed height instead of 'none'
+                maxHeight: targetHeight,
                 duration: {{ filter_settings.animation_duration }},
                 ease: 'power2.inOut'
             });
@@ -605,20 +644,56 @@ function initFilters() {
         }
     });
     
+    // Category chips
+    const categoryContainer = document.getElementById('filter-categories');
+    if (categoryContainer) {
+        categoryContainer.addEventListener('click', function(event) {
+            const chip = event.target.closest('.filter-chip');
+            if (!chip) return;
+            chip.classList.toggle('is-active');
+            chip.setAttribute('aria-pressed', chip.classList.contains('is-active') ? 'true' : 'false');
+            applyFilters();
+        });
+    }
+
+    // Category chips search
+    const categorySearch = document.getElementById('filter-categories-search');
+    if (categorySearch && categoryContainer) {
+        categorySearch.addEventListener('input', function() {
+            const q = this.value.trim().toLowerCase();
+            categoryContainer.querySelectorAll('.filter-chip').forEach((chip) => {
+                const name = chip.dataset.categorySearch || '';
+                const match = q === '' || name.indexOf(q) !== -1;
+                chip.style.display = match ? '' : 'none';
+            });
+        });
+    }
+    
     // Filter change handlers
-    $('.filter-select, #filter-search, #filter-sort').on('change keyup', debounce(applyFilters, 300));
+    $('#filter-search').on('input', debouncedApply);
+    $('.filter-select, #filter-sort').on('change', applyFilters);
     
     // Clear filters button
     $('#clear-filters').click(clearAllFilters);
 }
 
+let activeFilterRequest = null;
+let isUpdatingGalleries = false;
+
+function getSelectedCategoryIds() {
+    const chips = document.querySelectorAll('#filter-categories .filter-chip.is-active');
+    return Array.from(chips).map(chip => chip.dataset.categoryId).filter(Boolean);
+}
+
+function getSelectedCategoryNames() {
+    const chips = document.querySelectorAll('#filter-categories .filter-chip.is-active');
+    return Array.from(chips).map(chip => chip.dataset.categoryName).filter(Boolean);
+}
+
 function applyFilters() {
-    // Show loading
-    showLoading();
-    
     // Collect filter values
     const filters = {
-        category: $('#filter-categories').val() || [],
+        category: getSelectedCategoryIds(),
         tags: $('#filter-tags').val() || [],
         cameras: $('#filter-cameras').val() || [],
         lenses: $('#filter-lenses').val() || [],
@@ -630,25 +705,68 @@ function applyFilters() {
     };
     
     // Make AJAX request
-    $.ajax({
+    if (activeFilterRequest && activeFilterRequest.readyState !== 4) {
+        activeFilterRequest.abort();
+    }
+
+    activeFilterRequest = $.ajax({
         url: window.basePath + '/galleries/filter',
         method: 'GET',
         data: filters,
+        dataType: 'json',
+        cache: false,
         success: function(response) {
-            updateGalleries(response.albums);
+            updateGalleries(response.albums, false);
             updateActiveFilters(filters);
             updateResultsCount(response.total);
             hideLoading();
         },
-        error: function() {
+        error: function(xhr, status) {
             hideLoading();
-            console.error('Failed to apply filters');
+            if (status !== 'abort') {
+                console.error('Failed to apply filters', status);
+            }
         }
     });
 }
 
-function updateGalleries(albums) {
+window.applyFilters = applyFilters;
+
+function updateGalleries(albums, animate = false) {
     const grid = $('#galleries-grid');
+    if (!animate) {
+        if (albums.length === 0) {
+            grid.html(`
+                <div class="col-span-full text-center py-24" id="empty-state">
+                    <div class="max-w-md mx-auto">
+                        <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
+                        <h3 class="text-2xl font-semibold text-gray-900 mb-4">${window.pageTexts.noResultsTitle}</h3>
+                        <p class="text-gray-600 mb-8 leading-relaxed">
+                            ${window.pageTexts.noResultsText}
+                        </p>
+                        <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
+                            <i class="fas fa-times"></i>
+                            ${window.pageTexts.clearFiltersText}
+                        </button>
+                    </div>
+                </div>
+            `);
+        } else {
+            let html = '';
+            albums.forEach(album => {
+                html += generateGalleryCard(album);
+            });
+            grid.html(html);
+        }
+        document.body.classList.remove('gsap-animating');
+        isUpdatingGalleries = false;
+        hideLoading();
+        return;
+    }
+    if (isUpdatingGalleries) {
+        gsap.killTweensOf('#galleries-grid .gallery-card');
+    }
+    isUpdatingGalleries = true;
     
     // Add animation class
     document.body.classList.add('gsap-animating');
@@ -679,6 +797,7 @@ function updateGalleries(albums) {
                     </div>
                 `);
                 document.body.classList.remove('gsap-animating');
+                isUpdatingGalleries = false;
             } else {
                 // Generate new gallery cards HTML
                 let html = '';
@@ -697,6 +816,7 @@ function updateGalleries(albums) {
                     onComplete: function() {
                         document.body.classList.remove('gsap-animating');
                         gsap.set('#galleries-grid .gallery-card', { clearProps: 'all' });
+                        isUpdatingGalleries = false;
                     }
                 });
             }
@@ -747,49 +867,46 @@ function generateGalleryCard(album) {
     const slug = encodeURIComponent(album.slug || '');
     // Skip NSFW restrictions for admins
     const isNsfw = (album.is_nsfw && !window.isAdmin) ? true : false;
+    const canShowNsfw = !isNsfw || hasConfirmedNsfw();
     const albumUrl = window.basePath + '/album/' + slug;
+    const seoTitle = [window.siteTitle || '', album.title || ''].filter(Boolean).join(' — ');
 
     const wrapper = document.createElement('article');
-    wrapper.className = 'gallery-card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out';
-    if (isNsfw && hasConfirmedNsfw()) {
-        wrapper.classList.add('nsfw-confirmed');
-    }
+    wrapper.className = 'gallery-card group flex flex-col h-full cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out';
     wrapper.setAttribute('data-album-id', String(album.id||''));
     wrapper.setAttribute('data-nsfw', isNsfw ? '1' : '0');
     wrapper.setAttribute('data-password-protected', album.is_password_protected ? '1' : '0');
     wrapper.setAttribute('data-album-url', albumUrl);
-    wrapper.addEventListener('click', function(e) { handleGalleryCardClick(e, this); });
+    wrapper.setAttribute('data-action', 'open-album');
+    if (seoTitle) {
+        wrapper.setAttribute('aria-label', seoTitle);
+    }
 
     const rel = document.createElement('div');
     rel.className = 'relative aspect-[4/3] overflow-hidden bg-gray-100';
-    if (safeSrc) {
-        // For NSFW albums: use blurred image, store original in data-src
-        if (isNsfw && !hasConfirmedNsfw()) {
-            if (safeBlurSrc) {
-                // NSFW with blur variant - show blur image
-                const img = document.createElement('img');
-                img.src = safeBlurSrc;
-                img.setAttribute('data-src', safeSrc);
-                img.classList.add('nsfw-image');
-                img.alt = alt;
-                img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
-                img.loading = 'lazy';
-                rel.appendChild(img);
-            } else {
-                // NSFW without blur variant - show placeholder, DO NOT expose real URL
-                const ph = document.createElement('div');
-                ph.className = 'w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center';
-                ph.innerHTML = '<i class="fas fa-eye-slash text-4xl text-gray-500"></i>';
-                rel.appendChild(ph);
-            }
-        } else {
+    if (isNsfw && !canShowNsfw) {
+        if (safeBlurSrc) {
             const img = document.createElement('img');
-            img.src = safeSrc;
+            img.src = safeBlurSrc;
             img.alt = alt;
-            img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
+            if (seoTitle) img.title = seoTitle;
+            img.className = 'nsfw-blur w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
             img.loading = 'lazy';
             rel.appendChild(img);
+        } else {
+            const ph = document.createElement('div');
+            ph.className = 'w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center';
+            ph.innerHTML = '<i class="fas fa-eye-slash text-4xl text-gray-500"></i>';
+            rel.appendChild(ph);
         }
+    } else if (safeSrc) {
+        const img = document.createElement('img');
+        img.src = safeSrc;
+        img.alt = alt;
+        if (seoTitle) img.title = seoTitle;
+        img.className = 'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
+        img.loading = 'lazy';
+        rel.appendChild(img);
     } else {
         const ph = document.createElement('div');
         ph.className = 'w-full h-full flex items-center justify-center text-gray-400';
@@ -797,7 +914,7 @@ function generateGalleryCard(album) {
         rel.appendChild(ph);
     }
     // NSFW Overlay
-    if (isNsfw) {
+    if (isNsfw && !canShowNsfw) {
         const nsfwOverlay = document.createElement('div');
         nsfwOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm';
         nsfwOverlay.innerHTML = '<i class="fas fa-eye-slash text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.nsfwWarningShort || '18+') + '</span>';
@@ -831,7 +948,7 @@ function generateGalleryCard(album) {
     }
 
     const content = document.createElement('div');
-    content.className = 'p-6';
+    content.className = 'p-6 flex flex-col flex-1';
     const h3 = document.createElement('h3');
     h3.className = 'text-xl font-semibold text-black mb-3 group-hover:text-gray-700 transition-colors duration-200 line-clamp-2';
     h3.textContent = title; content.appendChild(h3);
@@ -841,8 +958,15 @@ function generateGalleryCard(album) {
         p.textContent = excerpt; content.appendChild(p);
     }
 
+    if (tags.length){
+        const wrap = document.createElement('div'); wrap.className='flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100';
+        tags.slice(0,3).forEach(t=>{ const s=document.createElement('span'); s.className='inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors'; s.textContent = '#' + (t && t.name ? t.name : ''); wrap.appendChild(s); });
+        if (tags.length>3){ const more=document.createElement('span'); more.className='inline-block text-gray-400 text-xs px-2 py-1'; more.textContent = window.pageTexts.moreCount.replace('{count}', tags.length-3); wrap.appendChild(more); }
+        content.appendChild(wrap);
+    }
+
     const meta = document.createElement('div');
-    meta.className = 'flex items-center justify-between text-sm text-gray-500';
+    meta.className = 'mt-auto flex items-center justify-between text-sm text-gray-500';
     const left = document.createElement('div'); left.className = 'flex items-center gap-4';
     if (album.shoot_date){
         const span = document.createElement('span'); span.className='flex items-center gap-1';
@@ -862,13 +986,6 @@ function generateGalleryCard(album) {
     meta.appendChild(right);
     content.appendChild(meta);
 
-    if (tags.length){
-        const wrap = document.createElement('div'); wrap.className='flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100';
-        tags.slice(0,3).forEach(t=>{ const s=document.createElement('span'); s.className='inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors'; s.textContent = '#' + (t && t.name ? t.name : ''); wrap.appendChild(s); });
-        if (tags.length>3){ const more=document.createElement('span'); more.className='inline-block text-gray-400 text-xs px-2 py-1'; more.textContent = window.pageTexts.moreCount.replace('{count}', tags.length-3); wrap.appendChild(more); }
-        content.appendChild(wrap);
-    }
-
     wrapper.appendChild(rel); wrapper.appendChild(content);
     const div = document.createElement('div');
     div.appendChild(wrapper);
@@ -880,9 +997,22 @@ function updateActiveFilters(filters) {
     const clearButton = $('#clear-filters');
     let activeFiltersHtml = '';
     let hasActiveFilters = false;
+    const escapeHtml = (s)=> String(s==null?'':s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\"/g,'&quot;').replace(/'/g,'&#039;');
+
+    const categoryNames = getSelectedCategoryNames();
+    if (categoryNames.length > 0) {
+        hasActiveFilters = true;
+        const label = window.pageTexts.categoriesLabel || 'Categories';
+        activeFiltersHtml += `<span class="active-filter-badge">${escapeHtml(label)}: ${categoryNames.map(escapeHtml).join(', ')}</span>`;
+    }
     
     // Check each filter type
     Object.keys(filters).forEach(key => {
+        if (key === 'category') {
+            return;
+        }
         if (filters[key] && filters[key].length > 0 && key !== 'sort') {
             hasActiveFilters = true;
             if (Array.isArray(filters[key])) {
@@ -908,10 +1038,24 @@ function updateResultsCount(count) {
 
 function clearAllFilters() {
     // Reset all filter inputs
+    document.querySelectorAll('#filter-categories .filter-chip.is-active').forEach(chip => {
+        chip.classList.remove('is-active');
+        chip.setAttribute('aria-pressed', 'false');
+    });
+
+    // Reset category search input and show all chips
+    const categorySearch = document.getElementById('filter-categories-search');
+    if (categorySearch) {
+        categorySearch.value = '';
+        document.querySelectorAll('#filter-categories .filter-chip').forEach(chip => {
+            chip.style.display = '';
+        });
+    }
+
     $('.filter-select').val(null).trigger('change');
     $('#filter-search').val('');
     $('#filter-sort').val('published_desc');
-    
+
     // Apply filters (which will be empty now)
     applyFilters();
 }
@@ -978,7 +1122,7 @@ function debounce(func, wait) {
 }
 </script>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
 /* Custom Select2 styling */
 .select2-container--default .select2-selection--multiple {
     border: 1px solid #d1d5db;
@@ -989,11 +1133,36 @@ function debounce(func, wait) {
 }
 
 .select2-container--default .select2-selection--single {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     border: 1px solid #d1d5db;
     border-radius: 0.5rem;
     height: 2.5rem;
-    line-height: 2.5rem;
+    line-height: 1.25rem;
     font-size: 0.875rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    flex: 1;
+    padding-left: 0.75rem;
+    padding-right: 2rem;
+    line-height: 1.25rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__clear {
+    align-self: center;
+    margin-right: 0.25rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    position: absolute;
+    right: 0.5rem;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .select2-container--default.select2-container--focus .select2-selection--multiple,
@@ -1016,6 +1185,46 @@ function debounce(func, wait) {
     border-radius: 0.5rem;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     font-size: 0.875rem;
+}
+
+/* Category filter chips */
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 9999px;
+    background-color: #fff;
+    color: #111827;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.filter-chip.is-active {
+    background-color: #111827;
+    color: #fff;
+    border-color: #111827;
+}
+
+.filter-chip:focus-visible {
+    outline: 2px solid #111827;
+    outline-offset: 2px;
+}
+
+.filter-chip-count {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.filter-chip.is-active .filter-chip-count {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+#filter-categories-search::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 /* Active filter badges */
@@ -1052,11 +1261,6 @@ function debounce(func, wait) {
     #galleries-grid[data-desktop-cols="5"] {
         grid-template-columns: repeat(5, 1fr);
     }
-}
-
-/* Filter animations */
-.filters-open {
-    max-height: 500px !important;
 }
 
 /* CSS Protection for Gallery Cards and UI elements */
@@ -1164,6 +1368,9 @@ function debounce(func, wait) {
         {{ trans('album.nsfw_cancel') }}
       </button>
     </div>
+    <p id="nsfw-error" class="text-sm text-red-600 mt-4 hidden">
+      {{ trans('album.nsfw_error')|default('Verification failed. Please try again.') }}
+    </p>
     <p class="text-xs text-gray-400 mt-6">
       {{ trans('album.nsfw_remember') }}
     </p>
@@ -1173,13 +1380,29 @@ function debounce(func, wait) {
 <script nonce="{{ csp_nonce() }}">
 // NSFW Content Handling
 let pendingNsfwUrl = null;
+const basePath = window.basePath || '{{ base_path|e('js') }}';
+const csrfToken = '{{ csrf|e('js') }}';
 
-function hasConfirmedNsfw() {
-    return localStorage.getItem('nsfw_confirmed') === 'true';
+function safeLocalStorageGet(key) {
+    try {
+        return window.localStorage ? window.localStorage.getItem(key) : null;
+    } catch (e) {
+        return null;
+    }
 }
 
-function setNsfwConfirmed() {
-    localStorage.setItem('nsfw_confirmed', 'true');
+function safeLocalStorageSet(key, value) {
+    try {
+        if (window.localStorage) {
+            window.localStorage.setItem(key, value);
+        }
+    } catch (e) {}
+}
+
+function hasConfirmedNsfw() {
+    if (window.nsfwConsent === true) return true;
+    if (safeLocalStorageGet('nsfw_confirmed') === 'true') return true;
+    return false;
 }
 
 function handleGalleryCardClick(event, card) {
@@ -1202,6 +1425,10 @@ function handleGalleryCardClick(event, card) {
 
 function showNsfwModal() {
     const modal = document.getElementById('nsfw-modal');
+    const error = document.getElementById('nsfw-error');
+    if (error) {
+        error.classList.add('hidden');
+    }
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
@@ -1215,33 +1442,40 @@ function hideNsfwModal() {
 }
 
 function confirmNsfwAge() {
-    setNsfwConfirmed();
-    hideNsfwModal();
-
-    // Swap blurred images with real ones and remove overlay
-    document.querySelectorAll('.gallery-card[data-nsfw="1"]').forEach(card => {
-        card.classList.add('nsfw-confirmed');
-
-        // Swap blurred images with real ones
-        const img = card.querySelector('img.nsfw-image[data-src]');
-        if (img && img.dataset.src) {
-            img.src = img.dataset.src;
-            img.classList.remove('nsfw-image');
-            img.removeAttribute('data-src');
+    if (!csrfToken) {
+        const error = document.getElementById('nsfw-error');
+        if (error) {
+            error.classList.remove('hidden');
         }
+        return;
+    }
+    fetch(`${basePath}/nsfw/confirm`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
+    }).then((resp) => {
+        if (!resp.ok) {
+            throw new Error('NSFW confirm failed');
+        }
+        safeLocalStorageSet('nsfw_confirmed', 'true');
+        window.nsfwConsent = true;
+        hideNsfwModal();
 
-        // Remove NSFW overlay
-        const overlay = card.querySelector('.nsfw-overlay');
-        if (overlay) {
-            overlay.remove();
+        // Navigate to the pending URL if any
+        if (pendingNsfwUrl) {
+            window.location.href = pendingNsfwUrl;
+            pendingNsfwUrl = null;
+        } else {
+            applyFilters();
+        }
+    }).catch((err) => {
+        console.warn('NSFW confirmation failed:', err);
+        const error = document.getElementById('nsfw-error');
+        if (error) {
+            error.classList.remove('hidden');
         }
     });
-
-    // Navigate to the pending URL if any
-    if (pendingNsfwUrl) {
-        window.location.href = pendingNsfwUrl;
-        pendingNsfwUrl = null;
-    }
 }
 
 function cancelNsfw() {
@@ -1293,23 +1527,7 @@ document.getElementById('nsfw-modal')?.addEventListener('click', function(e) {
 // On page load, if user has confirmed, swap blurred images with real ones
 document.addEventListener('DOMContentLoaded', function() {
     if (hasConfirmedNsfw()) {
-        document.querySelectorAll('.gallery-card[data-nsfw="1"]').forEach(card => {
-            card.classList.add('nsfw-confirmed');
-
-            // Swap blurred images with real ones
-            const img = card.querySelector('img.nsfw-image[data-src]');
-            if (img && img.dataset.src) {
-                img.src = img.dataset.src;
-                img.classList.remove('nsfw-image');
-                img.removeAttribute('data-src');
-            }
-
-            // Remove NSFW overlay
-            const overlay = card.querySelector('.nsfw-overlay');
-            if (overlay) {
-                overlay.remove();
-            }
-        });
+        safeLocalStorageSet('nsfw_confirmed', 'true');
     }
 });
 </script>
