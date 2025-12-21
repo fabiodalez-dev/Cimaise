@@ -14,7 +14,6 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  */
 class MediaController extends BaseController
 {
-    private const ACCESS_WINDOW_SECONDS = 86400; // 24 hours
     private const BLUR_CACHE_SECONDS = 3600; // 1 hour for blur variants
 
     public function __construct(private Database $db)
@@ -208,12 +207,7 @@ class MediaController extends BaseController
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
 
-        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant)) {
-            // Try blur fallback for NSFW albums
-            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isNsfw, $variant);
-            if ($blurResponse !== null) {
-                return $blurResponse;
-            }
+        if ($this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true) !== true) {
             return $response->withStatus(403);
         }
 
@@ -346,25 +340,8 @@ class MediaController extends BaseController
 
         // Check access for protected albums
         if (!$isAdmin) {
-            // Password-protected album check (session stores timestamp, valid for 24h)
-            if ($isPasswordProtected) {
-                $accessTime = $_SESSION['album_access'][$albumId] ?? null;
-                $hasAccess = $accessTime !== null && time() - (int)$accessTime < self::ACCESS_WINDOW_SECONDS;
-                if (!$hasAccess) {
-                    return $response->withStatus(403);
-                }
-            }
-
-            if ($isNsfw) {
-                $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$albumId]) && $_SESSION['nsfw_confirmed'][$albumId] === true;
-                if (!$nsfwConfirmed) {
-                    // Try blur fallback for NSFW albums
-                    $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, true, 'original');
-                    if ($blurResponse !== null) {
-                        return $blurResponse;
-                    }
-                    return $response->withStatus(403);
-                }
+            if ($this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, 'original') !== true) {
+                return $response->withStatus(403);
             }
 
             // Check if downloads are allowed for this album
@@ -484,12 +461,7 @@ class MediaController extends BaseController
         $isPasswordProtected = !empty($row['password_hash']);
         $isNsfw = (bool)$row['is_nsfw'];
 
-        if (!$this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant)) {
-            // Try blur fallback for NSFW albums
-            $blurResponse = $this->tryServeBlurFallback($request, $response, $imageId, $isNsfw, $variant);
-            if ($blurResponse !== null) {
-                return $blurResponse;
-            }
+        if ($this->validateAlbumAccess($albumId, $isPasswordProtected, $isNsfw, $variant, true) !== true) {
             return $response->withStatus(403);
         }
 
@@ -555,33 +527,4 @@ class MediaController extends BaseController
             ->withHeader('ETag', $etag);
     }
 
-    /**
-     * Centralized access validation for protected albums (password/NSFW).
-     * Blur variants are always allowed for preview.
-     */
-    private function validateAlbumAccess(int $albumId, bool $isPasswordProtected, bool $isNsfw, ?string $variant = null): bool
-    {
-        if ($this->isAdmin()) {
-            return true;
-        }
-
-        if ($isPasswordProtected && $variant !== 'blur') {
-            $accessTime = $_SESSION['album_access'][$albumId] ?? null;
-            $hasAccess = $accessTime !== null && time() - (int)$accessTime < self::ACCESS_WINDOW_SECONDS;
-            if (!$hasAccess) {
-                error_log("[MediaAccess] DENY password album={$albumId} variant={$variant} session_access=" . json_encode($_SESSION['album_access'] ?? []));
-                return false;
-            }
-        }
-
-        if ($isNsfw && $variant !== 'blur') {
-            $nsfwConfirmed = isset($_SESSION['nsfw_confirmed'][$albumId]) && $_SESSION['nsfw_confirmed'][$albumId] === true;
-            if (!$nsfwConfirmed) {
-                error_log("[MediaAccess] DENY nsfw album={$albumId} variant={$variant} session_nsfw=" . json_encode($_SESSION['nsfw_confirmed'] ?? []));
-                return false;
-            }
-        }
-
-        return true;
-    }
 }

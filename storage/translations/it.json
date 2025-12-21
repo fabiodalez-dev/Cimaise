@@ -13,7 +13,8 @@
     "nav.back": "Indietro",
     "nav.menu": "Menu",
     "nav.close": "Chiudi",
-    "nav.breadcrumb": "Percorso"
+    "nav.breadcrumb": "Percorso",
+    "nav.admin_dashboard": "Pannello Admin"
   },
   "filter": {
     "filter.all": "Tutti",
@@ -51,7 +52,17 @@
     "filter.select_films": "Seleziona pellicole...",
     "filter.select_locations": "Seleziona luoghi...",
     "filter.select_year": "Seleziona anno...",
-    "filter.search_equipment": "Cerca fotocamera, pellicola..."
+    "filter.search_equipment": "Cerca fotocamera, pellicola...",
+    "filter.search_label": "Cerca",
+    "filter.analog": "Analogico",
+    "filter.digital": "Digitale",
+    "filter.hybrid": "Ibrido",
+    "filter.latest": "Più recenti",
+    "filter.oldest": "Meno recenti",
+    "filter.title_az": "Titolo A-Z",
+    "filter.title_za": "Titolo Z-A",
+    "filter.subcategory": "sottocategoria",
+    "filter.subcategories": "sottocategorie"
   },
   "album": {
     "album.photos": "Foto",
@@ -266,5 +277,14 @@
   },
   "image": {
     "image.download": "Scarica"
+  },
+  "home_modern": {
+    "home_modern.all_work": "Tutti i lavori",
+    "home_modern.albums": "Album",
+    "home_modern.photos": "Foto",
+    "home_modern.close": "Chiudi",
+    "home_modern.empty_title": "Nessun album ancora",
+    "home_modern.empty_text": "Torna presto per nuovi contenuti.",
+    "home_modern.menu": "Menu"
   }
 }

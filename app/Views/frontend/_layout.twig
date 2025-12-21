@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang|default('it')|e('html_attr') }}" class="h-full">
+<html lang="{{ lang|default('it')|e('html_attr') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -164,7 +164,7 @@
     <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
     
     <!-- Custom styles -->
-    <style>
+    <style nonce="{{ csp_nonce() }}">
         /* Font imports must be at the top */
         @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400&display=swap');
         
@@ -331,6 +331,48 @@
             font-size: 13px;
             opacity: 0.9;
         }
+
+        /* Keep zoomed image above UI (icons, title, metadata) */
+        .pswp--zoomed-in .pswp__scroll-wrap,
+        .pswp--zoomed-in .pswp__container,
+        .pswp--zoomed-in .pswp__item,
+        .pswp--zoomed-in .pswp__zoom-wrap,
+        .pswp--zoomed-in .pswp__img,
+        .pswp--zooming .pswp__scroll-wrap,
+        .pswp--zooming .pswp__container,
+        .pswp--zooming .pswp__item,
+        .pswp--zooming .pswp__zoom-wrap,
+        .pswp--zooming .pswp__img {
+            z-index: 30;
+        }
+
+        .pswp--zoomed-in .pswp__custom-caption,
+        .pswp--zoomed-in .pswp__counter,
+        .pswp--zoomed-in .pswp__bullets-indicator,
+        .pswp--zoomed-in .pswp__meta-panel,
+        .pswp--zoomed-in .pswp__zoom-indicator-br,
+        .pswp--zooming .pswp__custom-caption,
+        .pswp--zooming .pswp__counter,
+        .pswp--zooming .pswp__bullets-indicator,
+        .pswp--zooming .pswp__meta-panel,
+        .pswp--zooming .pswp__zoom-indicator-br {
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .pswp--zoomed-in .pswp__top-bar,
+        .pswp--zooming .pswp__top-bar,
+        .pswp--zoomed-in .pswp__button,
+        .pswp--zooming .pswp__button {
+            z-index: 40;
+            pointer-events: auto;
+        }
+
+        .pswp__ui--idle .pswp__top-bar,
+        .pswp__ui--idle .pswp__button {
+            opacity: 1 !important;
+            transform: none !important;
+        }
         
         /* Position navigation arrows outside the image */
         .pswp__button--arrow--prev,
@@ -338,52 +380,66 @@
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            width: 60px;
-            height: 60px;
+            width: 46px;
+            height: 46px;
             margin: 0;
             padding: 10px;
         }
-        
+
         .pswp__button--arrow--prev {
-            left: 20px;
+            left: calc(env(safe-area-inset-left) + 8px);
         }
-        
+
         .pswp__button--arrow--next {
-            right: 20px;
+            right: calc(env(safe-area-inset-right) + 8px);
+        }
+
+        @media (max-width: 640px) {
+            .pswp__button--arrow--prev,
+            .pswp__button--arrow--next {
+                width: 38px;
+                height: 38px;
+                padding: 8px;
+            }
         }
         
-        /* MASONRY FIT - Preserva le proporzioni originali delle immagini */
+        /* MASONRY FIT - Preserva le proporzioni originali delle immagini con CSS columns */
         .masonry-fit-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
-            align-items: start;
+            column-count: 1;
+            column-gap: 16px;
         }
-        
+
         .masonry-fit-item {
+            break-inside: avoid;
+            margin-bottom: 16px;
             width: 100%;
-            height: auto;
             overflow: hidden;
         }
-        
+
         .masonry-fit-item img {
             display: block;
             width: 100%;
             height: auto;
             object-fit: contain;
         }
-        
+
         @media (min-width: 768px) {
             .masonry-fit-container {
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                gap: 20px;
+                column-count: 2;
+                column-gap: 20px;
+            }
+            .masonry-fit-item {
+                margin-bottom: 20px;
             }
         }
-        
+
         @media (min-width: 1024px) {
             .masonry-fit-container {
-                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-                gap: 24px;
+                column-count: 3;
+                column-gap: 24px;
+            }
+            .masonry-fit-item {
+                margin-bottom: 24px;
             }
         }
         
@@ -708,6 +764,23 @@
         .pswp__custom-caption .cc-item i {
             color: #000 !important;
         }
+
+        #header-search::-webkit-search-cancel-button,
+        #header-search::-webkit-search-decoration,
+        #header-search::-webkit-search-results-button,
+        #header-search::-webkit-search-results-decoration,
+        #mobile-search::-webkit-search-cancel-button,
+        #mobile-search::-webkit-search-decoration,
+        #mobile-search::-webkit-search-results-button,
+        #mobile-search::-webkit-search-results-decoration {
+            display: none;
+        }
+        @media (min-width: 768px) {
+            #mobile-search-toggle,
+            #mobile-search-panel {
+                display: none !important;
+            }
+        }
         
         /* Hidden caption content */
         .hidden-caption-content {
@@ -893,12 +966,16 @@
                     </a>
                     {% endif %}
 
-                    <!-- Filters Toggle -->
-                    <button id="filters-toggle" class="hidden md:flex items-center gap-2 text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2 px-3 rounded-md hover:bg-gray-50">
-                        <i class="fas fa-filter text-xs"></i>
-                        <span>{{ trans('filter.search') }}</span>
+                    <!-- Desktop Search Toggle -->
+                    <button id="header-search-toggle" class="hidden md:flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
+                        <i class="fas fa-search text-sm"></i>
                     </button>
                     
+                    <!-- Mobile Search Toggle -->
+                    <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="mobile-search-panel" aria-expanded="false">
+                        <i class="fas fa-search text-sm"></i>
+                    </button>
+
                     <!-- Mobile Menu Button - Aligned with Logo -->
                     <button id="mobile-menu-toggle" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
                         <svg class="w-5 h-5 transition-transform duration-200" id="mobile-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -907,6 +984,54 @@
                         </svg>
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Desktop Search Panel -->
+        <div class="hidden md:block">
+            <div id="header-search-panel" class="border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                    <form id="header-search-form" class="relative" role="search" action="{{ base_path }}/galleries" method="get">
+                        <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
+                        <div class="relative">
+                            <input id="header-search" name="search" type="search" autocomplete="off"
+                                   class="w-full appearance-none px-3 py-3 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
+                                   placeholder="{{ trans('filter.search') }}">
+                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                <button type="button" id="header-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
+                                    <i class="fas fa-times text-[11px]"></i>
+                                </button>
+                                <button type="submit" class="w-8 h-8 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
+                                    <i class="fas fa-arrow-right text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="header-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden z-[60] max-h-80 overflow-auto divide-y divide-gray-100"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Search Panel -->
+        <div id="mobile-search-panel" class="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
+            <div class="px-4 py-3">
+                <form id="mobile-search-form" class="relative" role="search" action="{{ base_path }}/galleries" method="get">
+                    <label for="mobile-search" class="sr-only">{{ trans('filter.search') }}</label>
+                    <div class="relative">
+                        <input id="mobile-search" name="search" type="search" autocomplete="off"
+                               class="w-full appearance-none px-3 py-3 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
+                               placeholder="{{ trans('filter.search') }}">
+                        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                            <button type="button" id="mobile-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
+                                <i class="fas fa-times text-[11px]"></i>
+                            </button>
+                            <button type="submit" class="w-8 h-8 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
+                                <i class="fas fa-arrow-right text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="mobile-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-80 overflow-auto divide-y divide-gray-100"></div>
+                </form>
             </div>
         </div>
         
@@ -981,13 +1106,6 @@
                     </div>
                 </div>
                 
-                <!-- Mobile Filters -->
-                <div class="pt-4 border-t border-gray-200">
-                    <button id="mobile-filters-toggle" class="w-full flex items-center gap-3 text-sm font-medium text-gray-900 hover:bg-gray-100 p-3 rounded-md transition-colors duration-200">
-                        <i class="fas fa-filter text-xs w-10 text-center"></i>
-                        <span>Show Filters</span>
-                    </button>
-                </div>
             </div>
         </div>
         
@@ -996,28 +1114,28 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
                 <div class="flex flex-wrap gap-4 items-center">
                     <div class="flex items-center gap-3">
-                        <label for="filter-process" class="text-sm font-medium text-gray-700">Process:</label>
+                        <label for="filter-process" class="text-sm font-medium text-gray-700">{{ trans('filter.process') }}:</label>
                         <select id="filter-process" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
-                            <option value="">All</option>
-                            <option value="analog">Analog</option>
-                            <option value="digital">Digital</option>
-                            <option value="hybrid">Hybrid</option>
+                            <option value="">{{ trans('filter.all') }}</option>
+                            <option value="analog">{{ trans('filter.analog') }}</option>
+                            <option value="digital">{{ trans('filter.digital') }}</option>
+                            <option value="hybrid">{{ trans('filter.hybrid') }}</option>
                         </select>
                     </div>
-                    
+
                     <div class="flex items-center gap-3">
-                        <label for="filter-sort" class="text-sm font-medium text-gray-700">Sort:</label>
-                        <select id="filter-sort" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
-                            <option value="published_desc">Latest</option>
-                            <option value="published_asc">Oldest</option>
-                            <option value="title_asc">Title A-Z</option>
-                            <option value="title_desc">Title Z-A</option>
+                        <label for="layout-filter-sort" class="text-sm font-medium text-gray-700">{{ trans('filter.sort') }}:</label>
+                        <select id="layout-filter-sort" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
+                            <option value="published_desc">{{ trans('filter.latest') }}</option>
+                            <option value="published_asc">{{ trans('filter.oldest') }}</option>
+                            <option value="title_asc">{{ trans('filter.title_az') }}</option>
+                            <option value="title_desc">{{ trans('filter.title_za') }}</option>
                         </select>
                     </div>
-                    
+
                     <div class="flex items-center gap-3">
-                        <label for="filter-search" class="text-sm font-medium text-gray-700 sr-only">Search:</label>
-                        <input type="text" id="filter-search" placeholder="{{ trans('filter.search_equipment') }}"
+                        <label for="layout-filter-search" class="text-sm font-medium text-gray-700 sr-only">{{ trans('filter.search_label') }}:</label>
+                        <input type="text" id="layout-filter-search" placeholder="{{ trans('filter.search_equipment') }}"
                                class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                     </div>
                     
@@ -1081,10 +1199,18 @@
             // 1. Menu Toggle
             const menuToggle = document.getElementById('mobile-menu-toggle');
             const menu = document.getElementById('mobile-menu');
+            const mobileSearchPanel = document.getElementById('mobile-search-panel');
+            const mobileSearchToggle = document.getElementById('mobile-search-toggle');
             if (menuToggle && menu) {
                 menuToggle.addEventListener('click', function() {
                     const isOpening = menu.classList.contains('hidden');
                     if (isOpening) {
+                        if (mobileSearchPanel) {
+                            mobileSearchPanel.classList.add('hidden');
+                        }
+                        if (mobileSearchToggle) {
+                            mobileSearchToggle.setAttribute('aria-expanded', 'false');
+                        }
                         menu.classList.remove('hidden');
                         requestAnimationFrame(() => {
                             menu.style.maxHeight = menu.scrollHeight + 'px';
@@ -1223,40 +1349,281 @@
             });
         })();
         
-        // Enhanced Filters toggle with animations
-        document.getElementById('filters-toggle')?.addEventListener('click', function() {
-            const panel = document.getElementById('filters-panel');
-            const icon = this.querySelector('i');
-            
-            if (panel.classList.contains('hidden')) {
-                panel.classList.remove('hidden');
-                // Animate in
-                panel.style.opacity = '0';
-                panel.style.transform = 'translateY(-10px)';
-                panel.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                
-                requestAnimationFrame(() => {
-                    panel.style.opacity = '1';
-                    panel.style.transform = 'translateY(0)';
+        // Header search -> galleries filters (AJAX) or redirect
+        (function() {
+            const basePath = '{{ base_path|e('js') }}';
+
+            const debounce = (fn, delay) => {
+                let t;
+                return (...args) => {
+                    clearTimeout(t);
+                    t = setTimeout(() => fn.apply(null, args), delay);
+                };
+            };
+
+            const buildCoverUrl = (album) => {
+                const cover = album && album.cover_image ? album.cover_image : null;
+                const path = (cover && (cover.preview_path || cover.blur_path)) ? (cover.preview_path || cover.blur_path) : '';
+                if (!path) return '';
+                return path.startsWith('/') ? `${basePath}${path}` : path;
+            };
+
+            const appendPlaceholderIcon = (container) => {
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-image text-gray-400 text-lg';
+                container.appendChild(icon);
+            };
+
+            const setupSearch = (opts) => {
+                const form = document.getElementById(opts.formId);
+                const input = document.getElementById(opts.inputId);
+                const clearBtn = document.getElementById(opts.clearId);
+                const suggestionBox = document.getElementById(opts.suggestionId);
+                if (!form || !input) return;
+
+                const clearSuggestions = () => {
+                    if (!suggestionBox) return;
+                    suggestionBox.innerHTML = '';
+                    suggestionBox.classList.add('hidden');
+                };
+
+                const updateClearButton = () => {
+                    if (!clearBtn) return;
+                    clearBtn.classList.toggle('hidden', input.value.trim().length === 0);
+                };
+
+                const syncToFilters = () => {
+                    const filterInput = document.getElementById('layout-filter-search');
+                    if (!filterInput) return false;
+                    filterInput.value = input.value;
+                    if (typeof window.applyFiltersDebounced === 'function') {
+                        window.applyFiltersDebounced();
+                    } else if (typeof window.applyFilters === 'function') {
+                        window.applyFilters();
+                    } else {
+                        setTimeout(() => {
+                            if (typeof window.applyFiltersDebounced === 'function') {
+                                window.applyFiltersDebounced();
+                                return;
+                            }
+                            if (typeof window.applyFilters === 'function') {
+                                window.applyFilters();
+                                return;
+                            }
+                            filterInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            filterInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+                        }, 80);
+                    }
+                    return true;
+                };
+
+                const renderSuggestions = (albums) => {
+                    if (!suggestionBox) return;
+                    suggestionBox.innerHTML = '';
+                    if (!albums.length) {
+                        suggestionBox.classList.add('hidden');
+                        return;
+                    }
+                    albums.slice(0, 6).forEach((album) => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'group w-full text-left px-4 py-4 text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center gap-4';
+                        btn.setAttribute('data-album-slug', album.slug || '');
+                        const imgWrap = document.createElement('div');
+                        imgWrap.className = 'w-20 h-16 rounded-lg bg-gray-100 ring-1 ring-gray-200/60 flex items-center justify-center overflow-hidden flex-shrink-0';
+                        const coverUrl = buildCoverUrl(album);
+                        if (coverUrl) {
+                            const img = document.createElement('img');
+                            img.src = coverUrl;
+                            img.alt = album.title || '';
+                            img.loading = 'lazy';
+                            img.className = 'w-full h-full object-cover';
+                            img.addEventListener('error', () => {
+                                img.remove();
+                                appendPlaceholderIcon(imgWrap);
+                            });
+                            imgWrap.appendChild(img);
+                        } else {
+                            appendPlaceholderIcon(imgWrap);
+                        }
+
+                        const details = document.createElement('div');
+                        details.className = 'min-w-0 flex-1';
+                        const title = document.createElement('div');
+                        title.className = 'font-semibold text-gray-900 text-sm sm:text-base truncate';
+                        title.textContent = album.title || '';
+                        const meta = document.createElement('div');
+                        meta.className = 'text-xs text-gray-500 mt-1 truncate';
+                        meta.textContent = album.category_name || '';
+
+                        details.appendChild(title);
+                        if (meta.textContent) {
+                            details.appendChild(meta);
+                        }
+
+                        btn.appendChild(imgWrap);
+                        btn.appendChild(details);
+                        btn.addEventListener('click', () => {
+                            const slug = btn.getAttribute('data-album-slug');
+                            if (slug) {
+                                window.location.href = `${basePath}/album/${encodeURIComponent(slug)}`;
+                                return;
+                            }
+                            input.value = title.textContent || '';
+                            syncToFilters();
+                            clearSuggestions();
+                        });
+                        suggestionBox.appendChild(btn);
+                    });
+                    suggestionBox.classList.remove('hidden');
+                };
+
+                let suggestController = null;
+                const fetchSuggestions = debounce(() => {
+                    const query = input.value.trim();
+                    if (query.length < 1) {
+                        clearSuggestions();
+                        return;
+                    }
+                    if (suggestController) {
+                        suggestController.abort();
+                    }
+                    suggestController = new AbortController();
+                    fetch(`${basePath}/galleries/filter?search=${encodeURIComponent(query)}`, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' },
+                        signal: suggestController.signal
+                    }).then((resp) => {
+                        if (!resp.ok) {
+                            throw new Error('Failed to fetch suggestions');
+                        }
+                        return resp.json();
+                    }).then((data) => {
+                        renderSuggestions(Array.isArray(data?.albums) ? data.albums : []);
+                    }).catch((err) => {
+                        if (err.name !== 'AbortError') {
+                            clearSuggestions();
+                        }
+                    });
+                }, 140);
+
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const query = input.value.trim();
+                    if (syncToFilters()) return;
+                    if (!query) return;
+                    window.location.href = `${basePath}/galleries?search=${encodeURIComponent(query)}`;
                 });
-                
-                if (icon) {
-                    icon.style.transform = 'rotate(180deg)';
+
+                input.addEventListener('input', debounce(() => {
+                    updateClearButton();
+                    if (input.value.trim().length === 0) {
+                        if (syncToFilters()) return;
+                    } else if (syncToFilters()) {
+                        return;
+                    }
+                }, 80));
+                input.addEventListener('input', fetchSuggestions);
+                input.addEventListener('focus', fetchSuggestions);
+                input.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        clearSuggestions();
+                    }, 150);
+                });
+                document.addEventListener('click', (ev) => {
+                    if (!form.contains(ev.target)) {
+                        clearSuggestions();
+                    }
+                });
+
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', () => {
+                        input.value = '';
+                        updateClearButton();
+                        clearSuggestions();
+                        if (syncToFilters()) return;
+                    });
                 }
-            } else {
-                // Animate out
-                panel.style.opacity = '0';
-                panel.style.transform = 'translateY(-10px)';
-                
-                setTimeout(() => {
-                    panel.classList.add('hidden');
-                }, 300);
-                
-                if (icon) {
-                    icon.style.transform = 'rotate(0deg)';
+
+                const filterInput = document.getElementById('layout-filter-search');
+                if (filterInput && filterInput.value) {
+                    input.value = filterInput.value;
                 }
+                updateClearButton();
+            };
+
+            setupSearch({
+                formId: 'header-search-form',
+                inputId: 'header-search',
+                clearId: 'header-search-clear',
+                suggestionId: 'header-search-suggestions'
+            });
+
+            setupSearch({
+                formId: 'mobile-search-form',
+                inputId: 'mobile-search',
+                clearId: 'mobile-search-clear',
+                suggestionId: 'mobile-search-suggestions'
+            });
+
+            const headerToggle = document.getElementById('header-search-toggle');
+            const headerPanel = document.getElementById('header-search-panel');
+            const headerInput = document.getElementById('header-search');
+            if (headerToggle && headerPanel) {
+                const closeHeaderPanel = () => {
+                    headerPanel.classList.add('hidden');
+                    headerToggle.setAttribute('aria-expanded', 'false');
+                };
+                headerToggle.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    const isHidden = headerPanel.classList.contains('hidden');
+                    if (isHidden) {
+                        headerPanel.classList.remove('hidden');
+                        headerToggle.setAttribute('aria-expanded', 'true');
+                        setTimeout(() => {
+                            headerInput?.focus();
+                        }, 50);
+                    } else {
+                        closeHeaderPanel();
+                    }
+                });
+                document.addEventListener('click', (ev) => {
+                    if (!headerPanel.contains(ev.target) && !headerToggle.contains(ev.target)) {
+                        closeHeaderPanel();
+                    }
+                });
+                document.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Escape') {
+                        closeHeaderPanel();
+                    }
+                });
             }
-        });
+
+            const mobileToggle = document.getElementById('mobile-search-toggle');
+            const mobilePanel = document.getElementById('mobile-search-panel');
+            const mobileInput = document.getElementById('mobile-search');
+            if (mobileToggle && mobilePanel) {
+                mobileToggle.addEventListener('click', () => {
+                    const isHidden = mobilePanel.classList.contains('hidden');
+                    if (isHidden) {
+                        mobilePanel.classList.remove('hidden');
+                        mobileToggle.setAttribute('aria-expanded', 'true');
+                        setTimeout(() => {
+                            mobileInput?.focus();
+                        }, 50);
+                    } else {
+                        mobilePanel.classList.add('hidden');
+                        mobileToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                document.addEventListener('click', (ev) => {
+                    if (!mobilePanel.contains(ev.target) && !mobileToggle.contains(ev.target)) {
+                        mobilePanel.classList.add('hidden');
+                        mobileToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+        })();
 
         // Enhanced smooth animations with GSAP
         gsap.registerPlugin(ScrollTrigger);
@@ -1514,6 +1881,120 @@
                 window.__pswpLightbox = null;
             }
         }
+
+        // Shared PhotoSwipe helper: centered zoom toggle
+        function pswpToggleZoomCentered(pswp) {
+            const slide = pswp?.currSlide;
+            if (!slide || !slide.zoomLevels) return;
+            const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+            const max = slide.zoomLevels.max ?? fit;
+            const current = slide.currZoomLevel ?? fit;
+            const target = current <= fit * 1.05
+              ? Math.min(max, Math.max(fit * 1.75, fit * 3))
+              : fit;
+            const root = pswp.element;
+            if (root) {
+                root.classList.add('pswp--zooming');
+                if (target > fit * 1.05) {
+                    root.classList.add('pswp--zoomed-in');
+                } else {
+                    root.classList.remove('pswp--zoomed-in');
+                }
+            }
+            const vw = window.innerWidth / 2;
+            const vh = window.innerHeight / 2;
+            if (pswp.currSlide) {
+                pswp.currSlide.zoomTo(target, { x: vw, y: vh }, 280, false);
+            }
+        }
+
+        // Shared PhotoSwipe helper: setup tap/zoom handling for lightbox
+        function pswpSetupTapZoom(pswp, toggleZoomFn) {
+            if (pswp._customZoomBound) return;
+
+            // Zoom button click handler
+            const zoomBtn = pswp.element?.querySelector('.pswp__button--zoom');
+            if (zoomBtn) {
+                zoomBtn.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    toggleZoomFn(pswp);
+                }, { capture: true });
+            }
+
+            // Tap on image: single tap navigates, double tap zooms (touch)
+            let lastTapAt = 0;
+            let lastTapX = 0;
+            let lastTapY = 0;
+            let singleTapTimer = null;
+            const tapDelayMs = 260;
+            const tapDistancePx = 24;
+
+            pswp.element?.addEventListener('pointerup', (ev) => {
+                const target = ev.target;
+                // Skip UI controls to prevent blocking button clicks
+                if (target.closest('.pswp__top-bar, .pswp__button')) {
+                    return;
+                }
+                const imgEl = target && target.closest ? target.closest('.pswp__img') : null;
+                if (!imgEl) return;
+
+                const rect = imgEl.getBoundingClientRect();
+                const clickX = ev.clientX - rect.left;
+                const clickY = ev.clientY - rect.top;
+                const isTouch = ev.pointerType === 'touch' || ev.pointerType === 'pen';
+                const slide = pswp.currSlide;
+                const fit = slide && slide.zoomLevels ? (slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1) : 1;
+                const current = slide ? (slide.currZoomLevel ?? fit) : fit;
+                const isZoomed = current > fit * 1.05;
+
+                ev.preventDefault();
+                ev.stopPropagation();
+
+                if (isTouch) {
+                    const now = Date.now();
+                    const dist = Math.hypot(clickX - lastTapX, clickY - lastTapY);
+                    if (now - lastTapAt <= tapDelayMs && dist <= tapDistancePx) {
+                        if (singleTapTimer) {
+                            clearTimeout(singleTapTimer);
+                            singleTapTimer = null;
+                        }
+                        lastTapAt = 0;
+                        toggleZoomFn(pswp);
+                        return;
+                    }
+                    lastTapAt = now;
+                    lastTapX = clickX;
+                    lastTapY = clickY;
+                    if (singleTapTimer) {
+                        clearTimeout(singleTapTimer);
+                    }
+                    singleTapTimer = setTimeout(() => {
+                        if (isZoomed) {
+                            return;
+                        }
+                        if (clickX < rect.width / 2) {
+                            pswp.prev();
+                        } else {
+                            pswp.next();
+                        }
+                    }, tapDelayMs);
+                    return;
+                }
+
+                if (isZoomed) {
+                    return;
+                }
+                if (clickX < rect.width / 2) {
+                    pswp.prev();
+                } else {
+                    pswp.next();
+                }
+            }, { capture: true });
+
+            pswp._customZoomBound = true;
+        }
+
         // Initialize PhotoSwipe Lightbox bound to gallery anchors
         function initLightbox() {
             // Check if there are any pswp-link elements before initializing
@@ -1555,13 +2036,13 @@
                         closeOnVerticalDrag: false,
                         
                         // Padding to leave space for top icons and bottom captions
-                        padding: { top: 60, bottom: 100, left: 40, right: 40 },
+                        padding: { top: 60, bottom: 100, left: 72, right: 72 },
                         
                         // Modern smooth animations
                         showHideAnimationType: 'fade',
-                        hideAnimationDuration: 400,
-                        showAnimationDuration: 400,
-                        zoomAnimationDuration: 300,
+                        hideAnimationDuration: 200,
+                        showAnimationDuration: 300,
+                        zoomAnimationDuration: 250,
                         easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                         
                         // Click/tap interactions (handled manually for centered zoom)
@@ -1679,31 +2160,56 @@
                         const target = current <= fit * 1.05
                           ? Math.min(max, Math.max(fit * 1.75, fit * 3))
                           : fit;
+                        const root = pswp.element;
+                        if (root) {
+                            root.classList.add('pswp--zooming');
+                            if (target > fit * 1.05) {
+                                root.classList.add('pswp--zoomed-in');
+                            } else {
+                                root.classList.remove('pswp--zoomed-in');
+                            }
+                            if (root._zoomingTimer) {
+                                clearTimeout(root._zoomingTimer);
+                            }
+                            root._zoomingTimer = setTimeout(() => {
+                                root.classList.remove('pswp--zooming');
+                            }, 450);
+                        }
                         const center = { x: pswp.viewportSize.x / 2, y: pswp.viewportSize.y / 2 };
-                        pswp.zoomTo(target, center, 350);
+                        if (pswp.currSlide) {
+                            pswp.currSlide.zoomTo(target, center, 350);
+                        }
                     };
 
                     lb.on('open', () => {
                         const pswp = lb.pswp;
                         if (pswp && !pswp._customZoomBound) {
-                            // Zoom button handler - use toggleZoom with viewport center
-                            const zoomBtn = pswp.element?.querySelector('.pswp__button--zoom');
-                            if (zoomBtn) {
-                                zoomBtn.addEventListener('click', (ev) => {
-                                    ev.preventDefault();
-                                    ev.stopPropagation();
-                                    toggleZoomCentered(pswp);
-                                }, { capture: true });
-                            }
-                            // Click on image toggles zoom (no navigation)
-                            pswp.element?.addEventListener('click', (ev) => {
-                                if (ev.target && ev.target.classList.contains('pswp__img')) {
-                                    ev.preventDefault();
-                                    ev.stopPropagation();
-                                    toggleZoomCentered(pswp);
+                            const updateZoomClasses = () => {
+                                const root = pswp.element;
+                                const slide = pswp.currSlide;
+                                if (!root || !slide || !slide.zoomLevels) {
+                                    return;
                                 }
-                            }, { capture: true });
-                            pswp._customZoomBound = true;
+                                const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+                                const current = slide.currZoomLevel ?? fit;
+                                if (current > fit * 1.05) {
+                                    root.classList.add('pswp--zoomed-in');
+                                } else {
+                                    root.classList.remove('pswp--zoomed-in');
+                                }
+                                root.classList.add('pswp--zooming');
+                                if (root._zoomingTimer) {
+                                    clearTimeout(root._zoomingTimer);
+                                }
+                                root._zoomingTimer = setTimeout(() => {
+                                    root.classList.remove('pswp--zooming');
+                                }, 250);
+                            };
+                            pswp.on('zoomPanUpdate', updateZoomClasses);
+                            pswp.on('change', updateZoomClasses);
+                            updateZoomClasses();
+                            // Use shared tap/zoom handler
+                            pswpSetupTapZoom(pswp, toggleZoomCentered);
                         }
                     });
 
@@ -1789,17 +2295,32 @@
                             onInit: (el, pswp) => {
                                 el.setAttribute('title', 'Scarica immagine');
                                 el.setAttribute('aria-label', 'Scarica immagine');
-                                el.onclick = () => {
-                                    if (pswp.currSlide && pswp.currSlide.data) {
-                                        const link = document.createElement('a');
-                                        link.href = pswp.currSlide.data.src;
-                                        link.download = `image-${Date.now()}.jpg`;
-                                        link.target = '_blank';
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                    }
+                                const resolveDownloadUrl = () => {
+                                    if (!window.allowDownloads) return null;
+                                    const src = pswp?.currSlide?.data?.src || '';
+                                    const match = src.match(/\/media\/(?:protected\/)?(\d+)(?:_|\/)/);
+                                    if (!match) return null;
+                                    const base = (window.basePath || '{{ base_path|e("js") }}').replace(/\/$/, '');
+                                    return `${base}/download/image/${match[1]}`;
                                 };
+                                const updateVisibility = () => {
+                                    const url = resolveDownloadUrl();
+                                    el.style.display = url ? '' : 'none';
+                                };
+                                el.onclick = () => {
+                                    const url = resolveDownloadUrl();
+                                    if (!url) return;
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = '';
+                                    link.target = '_blank';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                };
+                                pswp.on('change', updateVisibility);
+                                pswp.on('openingAnimationEnd', updateVisibility);
+                                updateVisibility();
                             }
                         });
 
@@ -1895,14 +2416,14 @@
                     pinchToClose: true,
                     closeOnVerticalDrag: false,
                     
-                    // Minimal padding to show images at full size
-                    padding: { top: 20, bottom: 20, left: 20, right: 20 },
+                    // Padding consistent with main lightbox for captions
+                    padding: { top: 60, bottom: 100, left: 72, right: 72 },
                     
                     // Modern animations
                     showHideAnimationType: 'fade',
-                    hideAnimationDuration: 400,
-                    showAnimationDuration: 400,
-                    zoomAnimationDuration: 300,
+                    hideAnimationDuration: 200,
+                    showAnimationDuration: 300,
+                    zoomAnimationDuration: 250,
                     easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                     
                         // Custom interactions: zoom handled manually
@@ -1921,30 +2442,56 @@
                     const target = current <= fit * 1.05
                       ? Math.min(max, Math.max(fit * 1.75, fit * 3))
                       : fit;
+                    const root = pswp.element;
+                    if (root) {
+                      root.classList.add('pswp--zooming');
+                      if (target > fit * 1.05) {
+                        root.classList.add('pswp--zoomed-in');
+                      } else {
+                        root.classList.remove('pswp--zoomed-in');
+                      }
+                      if (root._zoomingTimer) {
+                        clearTimeout(root._zoomingTimer);
+                      }
+                      root._zoomingTimer = setTimeout(() => {
+                        root.classList.remove('pswp--zooming');
+                      }, 450);
+                    }
                     const center = { x: pswp.viewportSize.x / 2, y: pswp.viewportSize.y / 2 };
-                    pswp.zoomTo(target, center, 350);
+                    if (pswp.currSlide) {
+                        pswp.currSlide.zoomTo(target, center, 350);
+                    }
                   };
                   lb.on('open', () => {
                     const pswp = lb.pswp;
                     // Custom zoom: toggle between fit and zoom using built-in toggleZoom
                     if (pswp && !pswp._customZoomBound) {
-                      const zoomBtn = pswp.element?.querySelector('.pswp__button--zoom');
-                      if (zoomBtn) {
-                        zoomBtn.addEventListener('click', (ev) => {
-                          ev.preventDefault();
-                          ev.stopPropagation();
-                          toggleZoomCentered(pswp);
-                        }, { capture: true });
-                      }
-                      // Click on image toggles zoom
-                      pswp.element?.addEventListener('click', (ev) => {
-                        if (ev.target && ev.target.classList.contains('pswp__img')) {
-                          ev.preventDefault();
-                          ev.stopPropagation();
-                          toggleZoomCentered(pswp);
+                      const updateZoomClasses = () => {
+                        const root = pswp.element;
+                        const slide = pswp.currSlide;
+                        if (!root || !slide || !slide.zoomLevels) {
+                          return;
                         }
-                      }, { capture: true });
-                      pswp._customZoomBound = true;
+                        const fit = slide.zoomLevels.fit ?? slide.zoomLevels.initial ?? 1;
+                        const current = slide.currZoomLevel ?? fit;
+                        if (current > fit * 1.05) {
+                          root.classList.add('pswp--zoomed-in');
+                        } else {
+                          root.classList.remove('pswp--zoomed-in');
+                        }
+                        root.classList.add('pswp--zooming');
+                        if (root._zoomingTimer) {
+                          clearTimeout(root._zoomingTimer);
+                        }
+                        root._zoomingTimer = setTimeout(() => {
+                          root.classList.remove('pswp--zooming');
+                        }, 250);
+                      };
+                      pswp.on('zoomPanUpdate', updateZoomClasses);
+                      pswp.on('change', updateZoomClasses);
+                      updateZoomClasses();
+                      // Use shared tap/zoom handler
+                      pswpSetupTapZoom(pswp, toggleZoomCentered);
                     }
                     psCaptionEl = document.createElement('div');
                     psCaptionEl.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
@@ -2210,6 +2757,9 @@
             endpoint: '{{ base_path }}/api/analytics/track',
             debug: {{ app_debug|default(false) ? 'true' : 'false' }}
         };
+        window.nsfwConsent = {{ nsfw_consent|default(false) ? 'true' : 'false' }};
+        window.isAdmin = {{ is_admin|default(false) ? 'true' : 'false' }};
+        window.allowDownloads = {{ allow_downloads|default(false) ? 'true' : 'false' }};
         
         // Add meta tags for analytics
         {% if current_album %}
@@ -2233,43 +2783,6 @@
     });
     </script>
 
-    <!-- Global NSFW Image Swap (runs on all pages) -->
-    <script nonce="{{ csp_nonce() }}">
-    (function() {
-        // Check if user has confirmed they are of age
-        var confirmed = localStorage.getItem('nsfw_confirmed') === 'true';
-        if (!confirmed) return;
-
-        // Swap all NSFW card images from blur to original
-        document.querySelectorAll('img.nsfw-card-image[data-src]').forEach(function(img) {
-            var origSrc = img.getAttribute('data-src');
-            if (origSrc) {
-                img.src = origSrc;
-                img.classList.remove('nsfw-card-image', 'nsfw-blur');
-                img.removeAttribute('data-src');
-            }
-        });
-
-        // Also handle galleries.twig style images
-        document.querySelectorAll('img.nsfw-image[data-src]').forEach(function(img) {
-            var origSrc = img.getAttribute('data-src');
-            if (origSrc) {
-                img.src = origSrc;
-                img.classList.remove('nsfw-image', 'nsfw-blur');
-                img.removeAttribute('data-src');
-            }
-        });
-
-        // Hide NSFW overlays on confirmed pages
-        document.querySelectorAll('[data-nsfw="1"]').forEach(function(card) {
-            var overlay = card.querySelector('.backdrop-blur-sm');
-            if (overlay) {
-                overlay.style.display = 'none';
-            }
-        });
-    })();
-    </script>
-
     {% block scripts %}{% endblock %}
 
     {# Essential JavaScript - Always loaded (no consent required) #}
@@ -2278,11 +2791,12 @@
     {% endif %}
 
     {# Block right-click on images for non-admin users #}
-    {% if not is_admin %}
+    {% if disable_right_click|default(true) and not is_admin %}
     <script nonce="{{ csp_nonce() }}">
-    document.addEventListener("contextmenu", function(e) {
-      var target = e.target;
-      if (target.tagName === "IMG" || (target.closest && target.closest(".no-rightclick"))) {
+    document.addEventListener('contextmenu', function(e) {
+      const target = e.target;
+      // Block context menu on images, pictures, and common image containers
+      if (target && (target.tagName === 'IMG' || target.closest('picture, .image-item, .album-card, .gallery-card, .inf-work_item'))) {
         e.preventDefault();
       }
     }, { passive: false });

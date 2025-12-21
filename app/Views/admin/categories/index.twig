@@ -639,6 +639,7 @@
       async saveHierarchy() {
         const items = this.container.querySelectorAll('.category-item');
         const hierarchy = [];
+        const sortCounters = new Map();
         
         items.forEach((item, index) => {
           const id = parseInt(item.dataset.id);
@@ -658,10 +659,14 @@
             }
           }
           
+          const counterKey = parentId || 0;
+          const sortOrder = sortCounters.get(counterKey) ?? 0;
+          sortCounters.set(counterKey, sortOrder + 1);
+
           hierarchy.push({
             id: id,
             parent_id: parentId,
-            sort_order: index,
+            sort_order: sortOrder,
             level: level
           });
         });

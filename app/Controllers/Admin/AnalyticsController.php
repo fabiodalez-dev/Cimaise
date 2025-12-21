@@ -14,6 +14,7 @@ use PDO;
 
 class AnalyticsController extends BaseController
 {
+    private const TOP_ALBUMS_LIMIT = 20;
     private PDO $db;
     private Twig $twig;
     private AnalyticsService $analytics;
@@ -74,6 +75,8 @@ class AnalyticsController extends BaseController
         $trendsData = $this->analytics->getTrendComparison($startDate, $endDate);
         $engagementData = $this->analytics->getEngagementStats($startDate, $endDate);
         $errorData = $this->analytics->get404Stats($startDate, $endDate);
+        $albumAccessStats = $this->analytics->getAlbumAccessStats($startDate, $endDate, self::TOP_ALBUMS_LIMIT);
+        $albumPasswordAccessStats = $this->analytics->getAlbumPasswordAccessStats($startDate, $endDate, self::TOP_ALBUMS_LIMIT);
 
         return $this->twig->render($response, 'admin/analytics/index.twig', [
             'stats' => $dashboardStats,
@@ -82,6 +85,8 @@ class AnalyticsController extends BaseController
             'trends' => $trendsData,
             'engagement' => $engagementData,
             'errors_404' => $errorData,
+            'album_access_stats' => $albumAccessStats,
+            'album_password_access_stats' => $albumPasswordAccessStats,
             'start_date' => $startDate,
             'end_date' => $endDate,
             'analytics_enabled' => $this->analytics->isEnabled()
@@ -383,8 +388,8 @@ class AnalyticsController extends BaseController
             $driver = 'mysql';
             try { $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) ?: 'mysql'; } catch (\Throwable) {}
             $isSqlite = ($driver === 'sqlite');
-            $minus5min = $isSqlite ? 'datetime("now", "-5 minutes")' : 'DATE_SUB(NOW(), INTERVAL 5 MINUTE)';
-            $minus1h   = $isSqlite ? 'datetime("now", "-1 hour")'     : 'DATE_SUB(NOW(), INTERVAL 1 HOUR)';
+            $minus5min = $isSqlite ? "datetime('now', '-5 minutes')" : 'DATE_SUB(NOW(), INTERVAL 5 MINUTE)';
+            $minus1h   = $isSqlite ? "datetime('now', '-1 hour')"     : 'DATE_SUB(NOW(), INTERVAL 1 HOUR)';
             // Get current visitors (last 5 minutes)
             $stmt = $this->db->prepare('
                 SELECT

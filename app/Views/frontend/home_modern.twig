@@ -1,0 +1,752 @@
+{% extends 'frontend/_layout_modern.twig' %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ base_path }}/assets/css/home-modern.css">
+<style nonce="{{ csp_nonce() }}">
+  .inf-work_list.has-hover .inf-work_item:not(.highlight) {
+    opacity: 0.5;
+  }
+  #mobile-search::-webkit-search-cancel-button,
+  #mobile-search::-webkit-search-decoration,
+  #mobile-search::-webkit-search-results-button,
+  #mobile-search::-webkit-search-results-decoration {
+    display: none;
+  }
+  .modern-mobile-only {
+    display: block;
+  }
+  @media (min-width: 768px) {
+    .modern-mobile-only {
+      display: none !important;
+    }
+  }
+  @media (max-width: 767px) {
+    .global-head,
+    .menu-btn,
+    .menu-component,
+    .work-col.is-static {
+      display: none !important;
+    }
+    /* Mobile layout adjustments */
+    .work-layout {
+      padding-top: 0;
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+    .work-col.is-work {
+      width: 100%;
+      margin-left: 0;
+    }
+    .inf-work_wrap {
+      padding-right: 0;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{# Modern Home Template - Grid-based layout with fixed sidebar #}
+{% import 'frontend/_seo_macros.twig' as Seo %}
+
+{% set collection_url = canonical_url|default(base_path ~ '/') %}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": site_title,
+  "url": collection_url
+}|json_encode|raw }}
+</script>
+
+<!-- Mobile: use the classic header (identical to _layout.twig) -->
+<div class="md:hidden modern-mobile-only">
+    <header class="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-md z-50 transition-all duration-300" id="main-header">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-5">
+                <!-- Left: Logo and Desktop Navigation -->
+                <div class="flex items-center gap-8">
+                    <h1 class="text-xl font-semibold">
+                        <a href="{{ base_path }}/" class="hover:text-gray-600 transition-colors duration-200 flex items-center gap-3">
+                            {% if site_logo %}
+                              <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Portfolio')|e }}" class="h-12 w-auto">
+                            {% else %}
+                              {{ site_title|default('Portfolio')|e }}
+                            {% endif %}
+                        </a>
+                    </h1>
+
+                    <!-- Desktop Navigation -->
+                    <nav class="hidden lg:flex items-center gap-6" id="desktop-nav">
+                        <a href="{{ base_path }}/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.home') }}</a>
+                        <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.galleries') }}</a>
+                        <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.about') }}</a>
+
+                        <!-- Categories Mega Menu -->
+                        <div class="relative" id="categories-dropdown">
+                            <button id="categories-toggle" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md">
+                                {{ trans('filter.categories') }}
+                                <i class="fas fa-chevron-down text-xs transition-transform duration-200" id="categories-icon"></i>
+                            </button>
+
+                            <!-- Mega Menu Panel -->
+                            <div id="categories-mega-menu" class="absolute left-0 top-full mt-2 w-[720px] bg-white border border-gray-200 shadow-xl rounded-xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out">
+                                <div class="p-8">
+                                    <!-- Parent Categories Grid -->
+                                    <div class="grid grid-cols-3 gap-6" id="parent-categories-grid">
+                                        {% for category in parent_categories|default([]) if category.albums_count > 0 %}
+                                        <div class="group cursor-pointer category-parent-item relative" data-category-id="{{ category.id }}" data-category-slug="{{ category.slug }}" data-category-name="{{ category.name|e }}">
+                                            <a href="{{ base_path }}/category/{{ category.slug|e('html_attr') }}" class="block hover:no-underline">
+                                                <div class="relative aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-gray-50 transition-all duration-300 group-hover:shadow-lg">
+                                                    {% if category.image_path and category.image_path != '' %}
+                                                        <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}"
+                                                             class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                                                             data-fallback="hide">
+                                                    {% else %}
+                                                        <div class="w-full h-full flex items-center justify-center text-gray-400 group-hover:text-gray-600 transition-colors duration-300">
+                                                            <i class="fas fa-folder-open text-2xl"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <div class="text-center">
+                                                    <h3 class="font-medium text-sm text-gray-900 group-hover:text-black transition-colors duration-200 mb-1">{{ category.name|e }}</h3>
+
+                                                    <!-- Subcategories shown as text on hover -->
+                                                    {% if category.children|length > 0 %}
+                                                        <div class="subcategories-hover-text opacity-0 group-hover:opacity-100 transition-all duration-300 max-h-0 group-hover:max-h-32 overflow-hidden">
+                                                            <div class="text-xs text-gray-600 mt-2 space-y-1">
+                                                                {% for child in category.children|slice(0, 4) %}
+                                                                    <div class="hover:text-black transition-colors duration-150">{{ child.name|e }}</div>
+                                                                {% endfor %}
+                                                                {% if category.children|length > 4 %}
+                                                                    <div class="text-gray-400 text-xs">+{{ category.children|length - 4 }} more</div>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        <p class="text-xs text-gray-500 group-hover:opacity-0 transition-opacity duration-200">
+                                                            {{ category.children|length }} {{ category.children|length == 1 ? trans('filter.subcategory')|default('subcategory') : trans('filter.subcategories')|default('subcategories') }}
+                                                        </p>
+                                                    {% else %}
+                                                        <p class="text-xs text-gray-500 group-hover:text-black transition-colors duration-200">{{ trans('album.view_all') }}</p>
+                                                    {% endif %}
+                                                </div>
+                                            </a>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+                </div>
+
+                <!-- Right Side Actions -->
+                <div class="flex items-center gap-4">
+                    {% if is_admin %}
+                    <!-- Admin Dashboard Button -->
+                    <a href="{{ base_path }}/admin" class="flex items-center gap-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 transition-colors duration-200 py-2 px-4 rounded-md">
+                        <i class="fas fa-cog text-xs"></i>
+                        <span>Admin</span>
+                    </a>
+                    {% endif %}
+
+                    <!-- Desktop Search Toggle -->
+                    <button id="header-search-toggle" class="hidden md:flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
+                        <i class="fas fa-search text-sm"></i>
+                    </button>
+
+                    <!-- Mobile Search Toggle -->
+                    <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="mobile-search-panel" aria-expanded="false">
+                        <i class="fas fa-search text-sm"></i>
+                    </button>
+
+                    <!-- Mobile Menu Button - Aligned with Logo -->
+                    <button id="mobile-menu-toggle" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                        <svg class="w-5 h-5 transition-transform duration-200" id="mobile-menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path class="hamburger-line" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            <path class="close-line hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Search Panel -->
+        <div class="hidden md:block">
+            <div id="header-search-panel" class="border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                    <form id="header-search-form" class="relative" role="search" action="{{ base_path }}/galleries" method="get">
+                        <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
+                        <div class="relative">
+                            <input id="header-search" name="search" type="search" autocomplete="off"
+                                   class="w-full appearance-none px-3 py-3 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
+                                   placeholder="{{ trans('filter.search') }}">
+                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                <button type="button" id="header-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
+                                    <i class="fas fa-times text-[11px]"></i>
+                                </button>
+                                <button type="submit" class="w-8 h-8 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
+                                    <i class="fas fa-arrow-right text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="header-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden z-[60] max-h-80 overflow-auto divide-y divide-gray-100"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Search Panel -->
+        <div id="mobile-search-panel" class="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
+            <div class="px-4 py-3">
+                <form id="mobile-search-form" class="relative" role="search" action="{{ base_path }}/galleries" method="get">
+                    <label for="mobile-search" class="sr-only">{{ trans('filter.search') }}</label>
+                    <div class="relative">
+                        <input id="mobile-search" name="search" type="search" autocomplete="off"
+                               class="w-full appearance-none px-3 py-3 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
+                               placeholder="{{ trans('filter.search') }}">
+                        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                            <button type="button" id="mobile-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
+                                <i class="fas fa-times text-[11px]"></i>
+                            </button>
+                            <button type="submit" class="w-8 h-8 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
+                                <i class="fas fa-arrow-right text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="mobile-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-80 overflow-auto divide-y divide-gray-100 z-50"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Panel -->
+        <div id="mobile-menu" class="lg:hidden border-t border-gray-200 bg-white/98 backdrop-blur-md hidden overflow-y-auto" style="max-height: calc(100vh - 80px);">
+            <div class="px-2 py-4 space-y-4">
+                <!-- Main Navigation -->
+                <div class="px-2 space-y-1">
+                    <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.home') }}</a>
+                    <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.galleries') }}</a>
+                    <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.about') }}</a>
+                    {% if is_admin %}
+                    <a href="{{ base_path }}/admin" class="block text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-md p-3 transition-colors duration-200">
+                        <i class="fas fa-cog mr-2"></i>{{ trans('nav.admin_dashboard')|default('Admin Dashboard') }}
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Mobile Categories -->
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 px-3">{{ trans('filter.categories') }}</div>
+                    <div class="space-y-1">
+                        {% for category in parent_categories|default([]) if category.albums_count > 0 %}
+                        <div class="mobile-category-group rounded-md overflow-hidden">
+                            {% if category.children|length > 0 %}
+                                <div class="flex items-center justify-between w-full text-left font-medium bg-white hover:bg-gray-50 transition-colors duration-200">
+                                    <a href="{{ base_path }}/category/{{ category.slug|e('html_attr') }}" class="flex-grow flex items-center gap-4 p-3 w-full">
+                                        {% if category.image_path and category.image_path != '' %}
+                                            <div class="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                                                <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" data-fallback="hide">
+                                            </div>
+                                        {% else %}
+                                            <div class="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                                <i class="fas fa-folder text-base text-gray-400"></i>
+                                            </div>
+                                        {% endif %}
+                                        <span class="text-sm text-gray-900">{{ category.name|e }}</span>
+                                    </a>
+                                    <button class="mobile-category-toggle flex-shrink-0 w-12 h-12 flex items-center justify-center text-gray-500 hover:text-black" data-category-id="{{ category.id }}">
+                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300"></i>
+                                    </button>
+                                </div>
+
+                                <div class="mobile-subcategories hidden overflow-hidden transition-all duration-300 ease-in-out bg-gray-50/70">
+                                    <div class="pt-2 pb-3 pl-8 pr-2">
+                                        <div class="border-l-2 border-gray-200 pl-6 space-y-1">
+                                            {% for child in category.children %}
+                                                <a href="{{ base_path }}/category/{{ child.slug|e('html_attr') }}" class="flex items-center gap-3 text-sm text-gray-600 hover:text-black p-2 rounded-md hover:bg-gray-200/60 transition-colors duration-200">
+                                                    <i class="fas fa-level-up-alt fa-xs text-gray-400 -rotate-90"></i>
+                                                    <span>{{ child.name|e }}</span>
+                                                </a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <a href="{{ base_path }}/category/{{ category.slug|e('html_attr') }}" class="flex items-center gap-4 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors duration-200 p-3 rounded-md">
+                                    {% if category.image_path and category.image_path != '' %}
+                                        <div class="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                                            <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name|e }}" class="w-full h-full object-cover" data-fallback="hide">
+                                        </div>
+                                    {% else %}
+                                        <div class="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                            <i class="fas fa-folder text-base text-gray-400"></i>
+                                        </div>
+                                    {% endif %}
+                                    <span class="text-gray-900">{{ category.name|e }}</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </header>
+</div>
+
+<!-- Global Header -->
+<div class="global-head hidden md:block">
+    <div class="global-head_layout">
+        <a href="{{ base_path }}/" class="head-logo_holder">
+            {% if site_logo %}
+                <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}" alt="{{ site_title|e('html_attr') }}" class="head-logo_img">
+            {% else %}
+                <div class="head-logo_text">{{ site_title|e }}</div>
+            {% endif %}
+        </a>
+    </div>
+</div>
+
+<!-- Menu Button -->
+<div class="menu-btn hidden md:flex">
+    <div class="menu-btn_text">{{ trans('home_modern.menu')|default('Menu') }}</div>
+</div>
+
+<!-- Main Content -->
+<div class="page-content">
+    <div class="work-layout">
+
+        <!-- LEFT COLUMN - FIXED (filters only) -->
+        <div class="work-col is-static">
+            <div class="work-toggle_holder">
+                <!-- All work (active) -->
+                <div class="toggle-cat_item">
+                    <div class="grid-toggle_item is-active" data-filter="all">
+                        <div class="grid-toggle">{{ trans('home_modern.all_work')|default('All work') }}</div>
+                    </div>
+                </div>
+                <!-- Category filters (AJAX filtering) -->
+                {% if categories is defined and categories|length > 0 %}
+                <div class="toggle-cat_wrap">
+                    <div class="toggle-cat_list">
+                        {% for category in categories %}
+                        <div class="toggle-cat_item">
+                            <div class="grid-toggle_item" data-filter="{{ category.slug|e('html_attr') }}">
+                                <div class="grid-toggle">{{ category.name|e }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <!-- Counter -->
+            <div class="work-toggle_holder">
+                <div class="body-copy">{{ trans('home_modern.photos')|default('Photos') }}(<span class="photos_total">{{ all_images|length }}</span>)</div>
+            </div>
+            <!-- Info Holder - shows on image hover -->
+            <div class="image-grid-info_holder">
+                <div data-image-grid-title class="body-copy"></div>
+                <p data-image-grid-copy class="paragraph"></p>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN - SCROLLABLE (images grid) -->
+        <div class="work-col is-work">
+            {% if all_images is defined and all_images|length > 0 %}
+            <div class="inf-work_wrap w-dyn-list">
+                <div class="inf-work_list w-dyn-items">
+                    {% for image in all_images %}
+                    {# Get best image URL (prefer md webp) #}
+                    {% set fallback_path = image.fallback_src ?? image.variants[0].path ?? image.original_path %}
+                    {% set img_src = fallback_path starts with '/' ? base_path ~ fallback_path : base_path ~ '/' ~ fallback_path %}
+                    {% set srcset_avif = [] %}
+                    {% set srcset_webp = [] %}
+                    {% set srcset_jpg = [] %}
+                    {% for variant in image.variants %}
+                        {% if variant.path and not (variant.path starts with '/storage/') %}
+                            {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : base_path ~ '/' ~ variant.path %}
+                            {% set srcset_entry = variant_url ~ ' ' ~ variant.width ~ 'w' %}
+                            {% if variant.format == 'avif' %}
+                                {% set srcset_avif = srcset_avif|merge([srcset_entry]) %}
+                            {% elseif variant.format == 'webp' %}
+                                {% set srcset_webp = srcset_webp|merge([srcset_entry]) %}
+                            {% elseif variant.format == 'jpg' or variant.format == 'jpeg' %}
+                                {% set srcset_jpg = srcset_jpg|merge([srcset_entry]) %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% set seo_title = Seo.seo_title(image, {'title': image.album_title}, site_title)|trim %}
+                    <div data-inf-item class="inf-work_item{% if image.category_slug %} category-{{ image.category_slug|e('html_attr') }}{% endif %}"
+                         data-main-title="{{ image.album_title|e('html_attr') }}"
+                         data-work-title="{{ image.album_title|e('html_attr') }}"
+                         data-work-copy="{{ image.album_description|striptags|slice(0, 200)|e('html_attr') }}"
+                         data-album-id="{{ image.album_id }}">
+                        <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}" class="inf-work_link" title="{{ seo_title|e('html_attr') }}">
+                            <div class="work-grid_img-holder">
+                                <div class="work-grid_img-height">
+                                    <picture>
+                                        {% if srcset_avif %}
+                                        <source type="image/avif" srcset="{{ srcset_avif|join(', ')|e('html_attr') }}">
+                                        {% endif %}
+                                        {% if srcset_webp %}
+                                        <source type="image/webp" srcset="{{ srcset_webp|join(', ')|e('html_attr') }}">
+                                        {% endif %}
+                                        {% if srcset_jpg %}
+                                        <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}">
+                                        {% endif %}
+                                        <img src="{{ img_src }}"
+                                             sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                                             alt="{{ image.alt_text|default(image.album_title)|default(site_title)|default('Image')|e('html_attr') }}"
+                                             title="{{ seo_title|e('html_attr') }}"
+                                             class="img-fill"
+                                             loading="lazy"
+                                             data-fallback="hide">
+                                    </picture>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="modern-empty-state">
+                <div class="modern-empty-state__content">
+                    <i class="fas fa-images modern-empty-state__icon"></i>
+                    <h2 class="modern-empty-state__title">{{ home_settings.empty_title|default(trans('home_modern.empty_title'))|default('No photos yet') }}</h2>
+                    <p class="modern-empty-state__text">{{ home_settings.empty_text|default(trans('home_modern.empty_text'))|default('Check back soon for new content.') }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<!-- Mega Menu Overlay -->
+<div class="menu-component hidden md:block">
+    <div class="menu-close">
+        <div class="menu-btn_text">{{ trans('home_modern.close')|default('Close') }}</div>
+    </div>
+    <nav class="mega-menu">
+        <a href="{{ base_path }}/" class="mega-menu_link is-current">{{ trans('nav.home')|default('Home') }}</a>
+        <a href="{{ galleries_url|default(base_path ~ '/galleries') }}" class="mega-menu_link">{{ trans('nav.galleries')|default('Galleries') }}</a>
+        {% set about_href = about_url|default('/about') %}
+        <a href="{% if about_href starts with '/' %}{{ base_path }}{{ about_href }}{% else %}{{ about_href }}{% endif %}" class="mega-menu_link">{{ trans('nav.about')|default('About') }}</a>
+    </nav>
+</div>
+
+<!-- Page Transition Overlay -->
+<div class="page-transition"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('DOMContentLoaded', function() {
+  const menuToggle = document.getElementById('mobile-menu-toggle');
+  const menu = document.getElementById('mobile-menu');
+  const mobileSearchPanel = document.getElementById('mobile-search-panel');
+  const mobileSearchToggle = document.getElementById('mobile-search-toggle');
+
+  if (menuToggle && menu) {
+    menuToggle.addEventListener('click', function() {
+      const isOpening = menu.classList.contains('hidden');
+      if (isOpening) {
+        if (mobileSearchPanel) {
+          mobileSearchPanel.classList.add('hidden');
+        }
+        if (mobileSearchToggle) {
+          mobileSearchToggle.setAttribute('aria-expanded', 'false');
+        }
+        menu.classList.remove('hidden');
+        requestAnimationFrame(() => {
+          menu.style.maxHeight = menu.scrollHeight + 'px';
+          menu.style.opacity = '1';
+        });
+      } else {
+        menu.style.maxHeight = '0px';
+        menu.style.opacity = '0';
+        setTimeout(() => menu.classList.add('hidden'), 300);
+      }
+    });
+  }
+
+  document.querySelectorAll('.mobile-category-toggle').forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const group = button.closest('.mobile-category-group');
+      if (!group) return;
+
+      const subcategories = group.querySelector('.mobile-subcategories');
+      const icon = button.querySelector('i');
+
+      if (subcategories) {
+        if (subcategories.classList.contains('hidden')) {
+          subcategories.classList.remove('hidden');
+          requestAnimationFrame(() => {
+            subcategories.style.maxHeight = subcategories.scrollHeight + 'px';
+          });
+          if (icon) icon.style.transform = 'rotate(180deg)';
+        } else {
+          subcategories.style.maxHeight = '0px';
+          if (icon) icon.style.transform = 'rotate(0deg)';
+          setTimeout(() => subcategories.classList.add('hidden'), 300);
+        }
+      }
+    });
+  });
+
+  const currentUrl = window.location.href.split('?')[0].split('#')[0];
+  const mobileMenuLinks = menu ? menu.querySelectorAll('a') : [];
+  mobileMenuLinks.forEach(link => {
+    const linkUrl = link.href.split('?')[0].split('#')[0];
+    if (link.href && linkUrl === currentUrl) {
+      link.classList.add('bg-white', 'text-black');
+      link.setAttribute('aria-current', 'page');
+    }
+  });
+
+  const basePath = '{{ base_path|e('js') }}';
+  const debounce = (fn, delay) => {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(null, args), delay);
+    };
+  };
+
+  const buildCoverUrl = (album) => {
+    const cover = album && album.cover_image ? album.cover_image : null;
+    const path = (cover && (cover.preview_path || cover.blur_path)) ? (cover.preview_path || cover.blur_path) : '';
+    if (!path) return '';
+    return path.startsWith('/') ? `${basePath}${path}` : path;
+  };
+
+  const appendPlaceholderIcon = (container) => {
+    const icon = document.createElement('i');
+    icon.className = 'fas fa-image text-gray-400 text-lg';
+    container.appendChild(icon);
+  };
+
+  const setupSearch = (opts) => {
+    const form = document.getElementById(opts.formId);
+    const input = document.getElementById(opts.inputId);
+    const clearBtn = document.getElementById(opts.clearId);
+    const suggestionBox = document.getElementById(opts.suggestionId);
+    if (!form || !input) return;
+
+    const clearSuggestions = () => {
+      if (!suggestionBox) return;
+      suggestionBox.innerHTML = '';
+      suggestionBox.classList.add('hidden');
+    };
+
+    const updateClearButton = () => {
+      if (!clearBtn) return;
+      clearBtn.classList.toggle('hidden', input.value.trim().length === 0);
+    };
+
+    const syncToFilters = () => {
+      const filterInput = document.getElementById('filter-search');
+      if (!filterInput) return false;
+      filterInput.value = input.value;
+      if (typeof window.applyFiltersDebounced === 'function') {
+        window.applyFiltersDebounced();
+      } else if (typeof window.applyFilters === 'function') {
+        window.applyFilters();
+      } else {
+        setTimeout(() => {
+          if (typeof window.applyFiltersDebounced === 'function') {
+            window.applyFiltersDebounced();
+            return;
+          }
+          if (typeof window.applyFilters === 'function') {
+            window.applyFilters();
+            return;
+          }
+          filterInput.dispatchEvent(new Event('change', { bubbles: true }));
+          filterInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+        }, 80);
+      }
+      return true;
+    };
+
+    const renderSuggestions = (albums) => {
+      if (!suggestionBox) return;
+      suggestionBox.innerHTML = '';
+      if (!albums.length) {
+        suggestionBox.classList.add('hidden');
+        return;
+      }
+      albums.slice(0, 6).forEach((album) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'group w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center gap-3';
+        btn.setAttribute('data-album-slug', album.slug || '');
+        const imgWrap = document.createElement('div');
+        imgWrap.className = 'w-16 h-16 rounded-lg bg-gray-100 ring-1 ring-gray-200/60 flex items-center justify-center overflow-hidden flex-shrink-0';
+        const coverUrl = buildCoverUrl(album);
+        if (coverUrl) {
+          const img = document.createElement('img');
+          img.src = coverUrl;
+          img.alt = album.title || '';
+          img.loading = 'lazy';
+          img.className = 'w-full h-full object-cover';
+          img.addEventListener('error', () => {
+            img.remove();
+            appendPlaceholderIcon(imgWrap);
+          });
+          imgWrap.appendChild(img);
+        } else {
+          appendPlaceholderIcon(imgWrap);
+        }
+
+        const details = document.createElement('div');
+        details.className = 'min-w-0 flex-1';
+        const title = document.createElement('div');
+        title.className = 'font-semibold text-gray-900 text-sm sm:text-base truncate';
+        title.textContent = album.title || '';
+        const meta = document.createElement('div');
+        meta.className = 'text-xs text-gray-500 mt-1 truncate';
+        meta.textContent = album.category_name || '';
+
+        details.appendChild(title);
+        if (meta.textContent) {
+          details.appendChild(meta);
+        }
+
+        btn.appendChild(imgWrap);
+        btn.appendChild(details);
+        btn.addEventListener('click', () => {
+          const slug = btn.getAttribute('data-album-slug');
+          if (slug) {
+            window.location.href = `${basePath}/album/${encodeURIComponent(slug)}`;
+            return;
+          }
+          input.value = title.textContent || '';
+          syncToFilters();
+          clearSuggestions();
+        });
+        suggestionBox.appendChild(btn);
+      });
+      suggestionBox.classList.remove('hidden');
+    };
+
+    let suggestController = null;
+    const fetchSuggestions = debounce(() => {
+      const query = input.value.trim();
+      if (query.length < 1) {
+        clearSuggestions();
+        return;
+      }
+      if (suggestController) {
+        suggestController.abort();
+      }
+      suggestController = new AbortController();
+      fetch(`${basePath}/galleries/filter?search=${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: suggestController.signal
+      }).then((resp) => {
+        if (!resp.ok) {
+          throw new Error('Failed to fetch suggestions');
+        }
+        return resp.json();
+      }).then((data) => {
+        renderSuggestions(Array.isArray(data?.albums) ? data.albums : []);
+      }).catch((err) => {
+        if (err.name !== 'AbortError') {
+          clearSuggestions();
+        }
+      });
+    }, 140);
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const query = input.value.trim();
+      if (syncToFilters()) return;
+      if (!query) return;
+      window.location.href = `${basePath}/galleries?search=${encodeURIComponent(query)}`;
+    });
+
+    input.addEventListener('input', debounce(() => {
+      updateClearButton();
+      if (input.value.trim().length === 0) {
+        if (syncToFilters()) return;
+      } else if (syncToFilters()) {
+        return;
+      }
+    }, 80));
+    input.addEventListener('input', fetchSuggestions);
+    input.addEventListener('focus', fetchSuggestions);
+    input.addEventListener('blur', () => {
+      setTimeout(() => {
+        clearSuggestions();
+      }, 150);
+    });
+    document.addEventListener('click', (ev) => {
+      if (!form.contains(ev.target)) {
+        clearSuggestions();
+      }
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        updateClearButton();
+        clearSuggestions();
+        if (syncToFilters()) return;
+      });
+    }
+
+    const filterInput = document.getElementById('filter-search');
+    if (filterInput && filterInput.value) {
+      input.value = filterInput.value;
+    }
+    updateClearButton();
+  };
+
+  setupSearch({
+    formId: 'header-search-form',
+    inputId: 'header-search',
+    clearId: 'header-search-clear',
+    suggestionId: 'header-search-suggestions'
+  });
+
+  setupSearch({
+    formId: 'mobile-search-form',
+    inputId: 'mobile-search',
+    clearId: 'mobile-search-clear',
+    suggestionId: 'mobile-search-suggestions'
+  });
+
+  if (mobileSearchToggle && mobileSearchPanel) {
+    mobileSearchToggle.addEventListener('click', () => {
+      const isHidden = mobileSearchPanel.classList.contains('hidden');
+      if (isHidden) {
+        mobileSearchPanel.classList.remove('hidden');
+        mobileSearchToggle.setAttribute('aria-expanded', 'true');
+        setTimeout(() => {
+          document.getElementById('mobile-search')?.focus();
+        }, 50);
+      } else {
+        mobileSearchPanel.classList.add('hidden');
+        mobileSearchToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('click', (ev) => {
+      if (!mobileSearchPanel.contains(ev.target) && !mobileSearchToggle.contains(ev.target)) {
+        mobileSearchPanel.classList.add('hidden');
+        mobileSearchToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+});
+</script>
+<script type="module" src="{{ base_path }}/assets/js/home-modern.js"></script>
+{% endblock %}
