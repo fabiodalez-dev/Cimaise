@@ -1,0 +1,18 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}500 — {{ trans('errors.500.title') }}{% endblock %}
+{% block content %}
+<div class="flex items-center justify-center min-h-[60vh]">
+    <div class="text-center max-w-2xl">
+        <h1 class="text-8xl font-bold text-gray-200">500</h1>
+        <h2 class="text-xl font-semibold text-gray-800 mt-4 mb-2">{{ trans('errors.500.title') }}</h2>
+        <p class="text-gray-600 mb-6">{{ trans('errors.500.message') }}</p>
+        {% if message %}
+        <pre class="text-left bg-gray-100 p-4 rounded-lg text-sm text-red-600 overflow-x-auto mb-6">{{ message }}</pre>
+        {% endif %}
+        <a href="{{ base_path }}/admin" class="btn-primary">
+            <i class="fas fa-arrow-left mr-2"></i>
+            {{ trans('errors.500.back_dashboard') }}
+        </a>
+    </div>
+</div>
+{% endblock %}
