@@ -222,6 +222,28 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         // Lightbox settings
         $twig->getEnvironment()->addGlobal('lightbox_show_exif', $settingsSvc->get('lightbox.show_exif', true));
         $twig->getEnvironment()->addGlobal('disable_right_click', (bool)$settingsSvc->get('frontend.disable_right_click', true));
+        // SEO settings for frontend
+        if (!$isAdminRoute) {
+            $twig->getEnvironment()->addGlobal('og_site_name', $settingsSvc->get('seo.og_site_name', $siteTitle));
+            $twig->getEnvironment()->addGlobal('og_type', $settingsSvc->get('seo.og_type', 'website'));
+            $twig->getEnvironment()->addGlobal('og_locale', $settingsSvc->get('seo.og_locale', 'en_US'));
+            $twig->getEnvironment()->addGlobal('twitter_card', $settingsSvc->get('seo.twitter_card', 'summary_large_image'));
+            $twig->getEnvironment()->addGlobal('twitter_site', $settingsSvc->get('seo.twitter_site', ''));
+            $twig->getEnvironment()->addGlobal('twitter_creator', $settingsSvc->get('seo.twitter_creator', ''));
+            $twig->getEnvironment()->addGlobal('robots', $settingsSvc->get('seo.robots_default', 'index,follow'));
+            // Schema/structured data settings
+            $twig->getEnvironment()->addGlobal('schema', [
+                'enabled' => (bool)$settingsSvc->get('seo.schema_enabled', true),
+                'author_name' => $settingsSvc->get('seo.author_name', ''),
+                'author_url' => $settingsSvc->get('seo.author_url', ''),
+                'organization_name' => $settingsSvc->get('seo.organization_name', ''),
+                'organization_url' => $settingsSvc->get('seo.organization_url', ''),
+                'image_copyright_notice' => $settingsSvc->get('seo.image_copyright_notice', ''),
+                'image_license_url' => $settingsSvc->get('seo.image_license_url', ''),
+            ]);
+            $twig->getEnvironment()->addGlobal('analytics_gtag', $settingsSvc->get('seo.analytics_gtag', ''));
+            $twig->getEnvironment()->addGlobal('analytics_gtm', $settingsSvc->get('seo.analytics_gtm', ''));
+        }
     } catch (\Throwable) {
         $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
         $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/galleries');
@@ -241,6 +263,19 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('show_marketing', false);
         $twig->getEnvironment()->addGlobal('lightbox_show_exif', true);
         $twig->getEnvironment()->addGlobal('disable_right_click', true);
+        // SEO defaults on error
+        if (!$isAdminRoute) {
+            $twig->getEnvironment()->addGlobal('og_site_name', 'Cimaise');
+            $twig->getEnvironment()->addGlobal('og_type', 'website');
+            $twig->getEnvironment()->addGlobal('og_locale', 'en_US');
+            $twig->getEnvironment()->addGlobal('twitter_card', 'summary_large_image');
+            $twig->getEnvironment()->addGlobal('twitter_site', '');
+            $twig->getEnvironment()->addGlobal('twitter_creator', '');
+            $twig->getEnvironment()->addGlobal('robots', 'index,follow');
+            $twig->getEnvironment()->addGlobal('schema', ['enabled' => true, 'author_name' => '', 'author_url' => '', 'organization_name' => '', 'organization_url' => '', 'image_copyright_notice' => '', 'image_license_url' => '']);
+            $twig->getEnvironment()->addGlobal('analytics_gtag', '');
+            $twig->getEnvironment()->addGlobal('analytics_gtm', '');
+        }
     }
 } else {
     $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');

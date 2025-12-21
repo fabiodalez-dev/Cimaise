@@ -1,0 +1,81 @@
+{% import 'frontend/_seo_macros.twig' as Seo %}
+{# Masonry image item - shows full image without cropping #}
+{% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+{% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+
+<div class="masonry-item">
+  <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+     class="pswp-link image-item group block"
+     title="{{ seo_title|e('html_attr') }}"
+     data-image-id="{{ image.id }}"
+     data-pswp-width="{{ image.width }}"
+     data-pswp-height="{{ image.height }}"
+     data-title="{{ image.caption|default('')|e }}"
+     data-alt="{{ image.alt|default(image.alt_text)|default('')|e }}"
+     data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+     data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+     data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+     data-developer="{{ image.developer_name|default('')|e }}"
+     data-lab="{{ image.lab_name|default('')|e }}"
+     data-location="{{ image.location_name|default('')|e }}"
+     data-iso="{{ image.iso|default('') }}"
+     data-shutter="{{ image.shutter_speed|default('')|e }}"
+     data-aperture="{{ image.aperture|default('') }}">
+    <div class="relative overflow-hidden bg-neutral-50 cursor-pointer">
+      <picture>
+        {% set variants_avif = [] %}
+        {% set variants_webp = [] %}
+        {% set variants_jpg = [] %}
+        {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+        {% set best_jpg_w = 0 %}
+        {% for variant in image.variants %}
+          {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+          {% if variant.format == 'avif' %}
+            {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+          {% elseif variant.format == 'webp' %}
+            {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+          {% elseif variant.format == 'jpg' %}
+            {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+            {% if variant.width > best_jpg_w %}
+              {% set best_jpg_path = variant_url %}
+              {% set best_jpg_w = variant.width %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+
+        {% if variants_avif %}
+          <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+        {% endif %}
+        {% if variants_webp %}
+          <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+        {% endif %}
+
+        <img src="{{ best_jpg_path }}"
+             alt="{{ image.alt|default(image.alt_text)|default('')|e }}"
+             title="{{ seo_title|e('html_attr') }}"
+             width="{{ image.width }}"
+             height="{{ image.height }}"
+             loading="lazy"
+             decoding="async"
+             data-fallback="hide"
+             class="w-full h-auto block transition-transform duration-300 ease-out group-hover:scale-[1.02]">
+      </picture>
+
+      {% if album.allow_downloads %}
+        <button type="button"
+                class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer"
+                title="{{ trans('image.download') }}"
+                data-action="download-image"
+                data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+          <i class="fa-solid fa-arrow-down text-sm"></i>
+        </button>
+      {% endif %}
+
+      {% if image.caption %}
+        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm p-4 pt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          {{ image.caption|e }}
+        </div>
+      {% endif %}
+    </div>
+  </a>
+</div>
