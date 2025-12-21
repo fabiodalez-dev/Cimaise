@@ -51,7 +51,15 @@
     "filter.select_films": "Select films...",
     "filter.select_locations": "Select locations...",
     "filter.select_year": "Select year...",
-    "filter.search_equipment": "Search camera, film..."
+    "filter.search_equipment": "Search camera, film...",
+    "filter.search_label": "Search",
+    "filter.analog": "Analog",
+    "filter.digital": "Digital",
+    "filter.hybrid": "Hybrid",
+    "filter.latest": "Latest",
+    "filter.oldest": "Oldest",
+    "filter.title_az": "Title A-Z",
+    "filter.title_za": "Title Z-A"
   },
   "album": {
     "album.photos": "Photos",
