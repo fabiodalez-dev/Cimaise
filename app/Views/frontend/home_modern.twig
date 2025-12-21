@@ -93,7 +93,8 @@
                                 <div class="p-8">
                                     <!-- Parent Categories Grid -->
                                     <div class="grid grid-cols-3 gap-6" id="parent-categories-grid">
-                                        {% for category in parent_categories|default([]) if category.albums_count > 0 %}
+                                        {% for category in parent_categories|default([]) %}
+                                        {% if category.albums_count > 0 %}
                                         <div class="group cursor-pointer category-parent-item relative" data-category-id="{{ category.id }}" data-category-slug="{{ category.slug }}" data-category-name="{{ category.name|e }}">
                                             <a href="{{ base_path }}/category/{{ category.slug|e('html_attr') }}" class="block hover:no-underline">
                                                 <div class="relative aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-gray-50 transition-all duration-300 group-hover:shadow-lg">
@@ -132,6 +133,7 @@
                                                 </div>
                                             </a>
                                         </div>
+                                        {% endif %}
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -238,7 +240,8 @@
                 <div class="border-t border-gray-200 pt-4">
                     <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 px-3">{{ trans('filter.categories') }}</div>
                     <div class="space-y-1">
-                        {% for category in parent_categories|default([]) if category.albums_count > 0 %}
+                        {% for category in parent_categories|default([]) %}
+                        {% if category.albums_count > 0 %}
                         <div class="mobile-category-group rounded-md overflow-hidden">
                             {% if category.children|length > 0 %}
                                 <div class="flex items-center justify-between w-full text-left font-medium bg-white hover:bg-gray-50 transition-colors duration-200">
@@ -286,6 +289,7 @@
                                 </a>
                             {% endif %}
                         </div>
+                        {% endif %}
                         {% endfor %}
                     </div>
                 </div>
