@@ -14,6 +14,7 @@ if (typeof window !== 'undefined') {
       gestureOrientation: 'vertical',
       normalizeWheel: false,
       smoothTouch: false,
+      autoResize: true,
     })
 
     window.lenisInstance = lenis
@@ -57,8 +58,22 @@ if (typeof window !== 'undefined') {
     const recalcInterval = setInterval(() => {
       recalculate()
       recalcCount++
-      if (recalcCount >= 10) clearInterval(recalcInterval) // Stop after 5 seconds
+      if (recalcCount >= 20) clearInterval(recalcInterval) // Stop after 10 seconds
     }, 500)
+
+    // Recalculate when images load
+    document.addEventListener('load', (e) => {
+      if (e.target.tagName === 'IMG') {
+        recalculate()
+      }
+    }, true)
+
+    // MutationObserver for dynamic content changes
+    const observer = new MutationObserver(() => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(recalculate, 100)
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
 
     // Expose recalculate function globally
     window.lenisResize = recalculate
