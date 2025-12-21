@@ -61,7 +61,6 @@ class GalleryController extends BaseController
         $isAdmin = $this->isAdmin();
         $isNsfwAlbum = !empty($album['is_nsfw']) && !$isAdmin;
         $isProtectedAlbum = $isNsfwAlbum || (!empty($album['password_hash']) && !$isAdmin);
-        $allowDownloads = !empty($album['allow_downloads']);
 
         // Password protection with session timeout (24h) - skip for admins
         if (!empty($album['password_hash']) && !$isAdmin) {
@@ -226,7 +225,8 @@ class GalleryController extends BaseController
         foreach ($imagesRows as $img) {
             $bestUrl = $img['original_path'];
             // Default lightbox URL (overridden below with largest variant if available)
-            $lightboxUrl = ($isProtectedAlbum && $allowDownloads)
+            // Always use protected endpoint for protected albums, regardless of allow_downloads
+            $lightboxUrl = $isProtectedAlbum
                 ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
                 : $bestUrl;
             
@@ -252,14 +252,15 @@ class GalleryController extends BaseController
                 $lb->execute([':id' => $img['id']]);
                 $lbr = $lb->fetch();
                 if ($lbr && !empty($lbr['path'])) {
-                    if ($isProtectedAlbum && $allowDownloads) {
+                    // Always protect paths for protected albums, regardless of allow_downloads
+                    if ($isProtectedAlbum) {
                         $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $lbr['variant'] . '.' . $lbr['format'];
                     } else {
                         $lightboxUrl = $lbr['path'];
                     }
                 } else {
-                    // Fallback: only use protected original when downloads are allowed
-                    $lightboxUrl = ($isProtectedAlbum && $allowDownloads)
+                    // Fallback: always use protected endpoint for protected albums
+                    $lightboxUrl = $isProtectedAlbum
                         ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
                         : $bestUrl;
                 }
@@ -289,7 +290,8 @@ class GalleryController extends BaseController
                 $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY width DESC, CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END LIMIT 1");
                 $fallbackStmt->execute([':id' => $img['id']]);
                 $fallback = $fallbackStmt->fetchColumn();
-                $lightboxUrl = ($isProtectedAlbum && $allowDownloads)
+                // Always use protected endpoint for protected albums
+                $lightboxUrl = $isProtectedAlbum
                     ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
                     : ($fallback ?: $bestUrl); // Use bestUrl as fallback
             }
@@ -524,7 +526,6 @@ class GalleryController extends BaseController
             $isAdmin = $this->isAdmin();
             $isNsfwAlbum = !empty($album['is_nsfw']) && !$isAdmin;
             $isProtectedAlbum = $isNsfwAlbum || (!empty($album['password_hash']) && !$isAdmin);
-            $allowDownloads = !empty($album['allow_downloads']);
 
             // Password protection with session timeout (24h) - skip for admins
             if (!empty($album['password_hash']) && !$isAdmin) {
@@ -563,7 +564,8 @@ class GalleryController extends BaseController
             $images = [];
             foreach ($imagesRows as $img) {
                 $bestUrl = $img['original_path'];
-                $lightboxUrl = ($isProtectedAlbum && $allowDownloads)
+                // Always use protected endpoint for protected albums
+                $lightboxUrl = $isProtectedAlbum
                     ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
                     : $bestUrl;
                 try {
@@ -586,12 +588,13 @@ class GalleryController extends BaseController
                     $lb->execute([':id' => $img['id']]);
                     $lbr = $lb->fetch();
                     if ($lbr && !empty($lbr['path'])) {
-                        if ($isProtectedAlbum && $allowDownloads) {
+                        // Always protect paths for protected albums
+                        if ($isProtectedAlbum) {
                             $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $lbr['variant'] . '.' . $lbr['format'];
                         } else {
                             $lightboxUrl = $lbr['path'];
                         }
-                    } elseif (!($isProtectedAlbum && $allowDownloads)) {
+                    } elseif (!$isProtectedAlbum) {
                         $lightboxUrl = $bestUrl;
                     }
 
@@ -624,7 +627,8 @@ class GalleryController extends BaseController
                     $lbFallback = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY width DESC, CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END LIMIT 1");
                     $lbFallback->execute([':id' => $img['id']]);
                     $fallbackPath = $lbFallback->fetchColumn();
-                    if ($isProtectedAlbum && $allowDownloads) {
+                    // Always use protected endpoint for protected albums
+                    if ($isProtectedAlbum) {
                         $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
                     } else {
                         $lightboxUrl = $fallbackPath ?: $bestUrl;

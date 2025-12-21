@@ -11,7 +11,7 @@
       <source type="image/jpeg" srcset="{% for s in image.sources.jpg %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw">
     {% endif %}
     {% set img_src = image.fallback_src|default(image.url) %}
-    <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+    <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover" loading="lazy" decoding="async" data-fallback="hide">
   </picture>
 {% endmacro %}
 
@@ -175,15 +175,16 @@
 }
 
 /* Explicit heights for Lenis smooth scroll compatibility */
+/* Use dvh (dynamic viewport height) for mobile compatibility with dynamic address bar */
 .pswp-gallery {
   height: auto;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 @media (min-width: 1200px) {
-  .pswp-gallery { min-height: 140vh; }
+  .pswp-gallery { min-height: 140dvh; }
 }
 @media (min-width: 768px) and (max-width: 1199px) {
-  .pswp-gallery { min-height: 130vh; }
+  .pswp-gallery { min-height: 130dvh; }
 }
 
 .m-mobile-wrap { display: block; }

@@ -48,15 +48,15 @@
                     <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded ml-2">{{ trans('admin.templates.css_columns') }}</span>
                   {% elseif template.settings.layout == 'magazine' %}
                     <span class="inline-flex items-center">
-                      <i class="fas fa-newspaper text-purple-500 mr-1.5"></i>Magazine
+                      <i class="fas fa-newspaper text-purple-500 mr-1.5"></i>{{ trans('admin.templates.magazine') }}
                     </span>
                   {% elseif template.settings.layout == 'slideshow' %}
                     <span class="inline-flex items-center">
-                      <i class="fas fa-play-circle text-green-500 mr-1.5"></i>Slideshow
+                      <i class="fas fa-play-circle text-green-500 mr-1.5"></i>{{ trans('admin.templates.slideshow') }}
                     </span>
                   {% elseif template.settings.layout == 'fullscreen' %}
                     <span class="inline-flex items-center">
-                      <i class="fas fa-expand text-orange-500 mr-1.5"></i>Fullscreen
+                      <i class="fas fa-expand text-orange-500 mr-1.5"></i>{{ trans('admin.templates.fullscreen') }}
                     </span>
                   {% else %}
                     <span class="inline-flex items-center">
