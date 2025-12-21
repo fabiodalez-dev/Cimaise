@@ -1543,90 +1543,42 @@ class PageController extends BaseController
         return $image;
     }
     
-    private function buildCategoryHierarchy(array $allCategories): array
-    {
-        $byParent = [];
-        foreach ($allCategories as $cat) {
-            $parentId = (int)($cat['parent_id'] ?? 0);
-            if (!isset($byParent[$parentId])) {
-                $byParent[$parentId] = [];
-            }
-            $byParent[$parentId][] = $cat;
-        }
-
-        foreach ($byParent as &$group) {
-            usort($group, static function(array $a, array $b): int {
-                $orderA = (int)($a['sort_order'] ?? 0);
-                $orderB = (int)($b['sort_order'] ?? 0);
-                if ($orderA !== $orderB) {
-                    return $orderA <=> $orderB;
-                }
-                return strcmp((string)($a['name'] ?? ''), (string)($b['name'] ?? ''));
-            });
-        }
-        unset($group);
-        
-        $parentCategories = $byParent[0] ?? [];
-        
-        // Add children to parent categories
-        foreach ($parentCategories as &$parent) {
-            $parent['children'] = $byParent[$parent['id']] ?? [];
-            // Ensure children have the albums_count for filtering
-            foreach ($parent['children'] as &$child) {
-                if (!isset($child['albums_count'])) {
-                    $child['albums_count'] = 0;
-                }
-            }
-        }
-        
-        return $parentCategories;
-    }
-    
     /**
      * Get parent categories with album counts for navigation
      */
     private function getParentCategoriesForNavigation(): array
     {
         $pdo = $this->db->pdo();
-        
-        // Get categories for navigation with hierarchy (simplified query for better reliability)
+
+        // Get parent categories with album counts (using album_category junction table)
         $stmt = $pdo->prepare('
-            SELECT c.*, COUNT(a.id) as albums_count
-            FROM categories c 
-            LEFT JOIN albums a ON a.category_id = c.id AND a.is_published = 1
-            GROUP BY c.id 
-            ORDER BY COALESCE(c.parent_id, 0) ASC, c.sort_order ASC, c.name ASC
+            SELECT c.*, COUNT(DISTINCT a.id) as albums_count
+            FROM categories c
+            LEFT JOIN album_category ac ON ac.category_id = c.id
+            LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
+            WHERE c.parent_id IS NULL
+            GROUP BY c.id
+            ORDER BY c.sort_order ASC, c.name ASC
         ');
         $stmt->execute();
-        $allCategories = $stmt->fetchAll();
-        
-        // Build hierarchy
-        $parentCategories = $this->buildCategoryHierarchy($allCategories);
-        
-        // Filter out completely empty categories (no albums and no children with albums)
-        $filteredParentCategories = [];
-        foreach ($parentCategories as $parent) {
-            // Count albums in children
-            $childrenWithAlbums = 0;
-            foreach ($parent['children'] as $child) {
-                if ($child['albums_count'] > 0) {
-                    $childrenWithAlbums++;
-                }
-            }
-            
-            // Keep parent if it has albums OR has children with albums
-            if ($parent['albums_count'] > 0 || $childrenWithAlbums > 0) {
-                // Filter children to only those with albums (if parent has no albums)
-                if ($parent['albums_count'] == 0) {
-                    $parent['children'] = array_filter($parent['children'], function($child) {
-                        return $child['albums_count'] > 0;
-                    });
-                }
-                $filteredParentCategories[] = $parent;
-            }
+        $parents = $stmt->fetchAll();
+
+        // Get children for each parent
+        foreach ($parents as &$parent) {
+            $childStmt = $pdo->prepare('
+                SELECT c.*, COUNT(DISTINCT a.id) as albums_count
+                FROM categories c
+                LEFT JOIN album_category ac ON ac.category_id = c.id
+                LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
+                WHERE c.parent_id = :parent_id
+                GROUP BY c.id
+                ORDER BY c.sort_order ASC, c.name ASC
+            ');
+            $childStmt->execute([':parent_id' => $parent['id']]);
+            $parent['children'] = $childStmt->fetchAll();
         }
-        
-        return $filteredParentCategories;
+
+        return $parents;
     }
     
     private function getAvailableSocials(): array
