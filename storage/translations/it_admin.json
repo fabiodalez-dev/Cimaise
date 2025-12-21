@@ -995,6 +995,7 @@
     "admin.templates.masonry": "Masonry",
     "admin.templates.slideshow": "Slideshow",
     "admin.templates.fullscreen": "Fullscreen",
+    "admin.templates.magazine": "Magazine",
     "admin.templates.enable_masonry": "Abilita layout Masonry",
     "admin.templates.columns_per_device": "Colonne per Dispositivo",
     "admin.templates.column": "colonna",

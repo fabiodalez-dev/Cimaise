@@ -164,7 +164,7 @@
     <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
     
     <!-- Custom styles -->
-    <style>
+    <style nonce="{{ csp_nonce() }}">
         /* Font imports must be at the top */
         @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400&display=swap');
         
@@ -1926,9 +1926,9 @@
                         
                         // Modern smooth animations
                         showHideAnimationType: 'fade',
-                        hideAnimationDuration: 400,
-                        showAnimationDuration: 400,
-                        zoomAnimationDuration: 300,
+                        hideAnimationDuration: 200,
+                        showAnimationDuration: 300,
+                        zoomAnimationDuration: 250,
                         easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                         
                         // Click/tap interactions (handled manually for centered zoom)
@@ -2110,9 +2110,13 @@
                             const tapDistancePx = 24;
                             pswp.element?.addEventListener('pointerup', (ev) => {
                             const target = ev.target;
+                            // Skip UI controls to prevent blocking button clicks
+                            if (target.closest('.pswp__top-bar, .pswp__button')) {
+                              return;
+                            }
                             const imgEl = target && target.closest ? target.closest('.pswp__img') : null;
-                            const activeEl = imgEl || (pswp.currSlide && pswp.currSlide.content ? pswp.currSlide.content.element : null);
-                            if (!activeEl) return;
+                            if (!imgEl) return;
+                            const activeEl = imgEl;
                             const rect = activeEl.getBoundingClientRect();
                             const clickX = ev.clientX - rect.left;
                             const clickY = ev.clientY - rect.top;
@@ -2374,9 +2378,9 @@
                     
                     // Modern animations
                     showHideAnimationType: 'fade',
-                    hideAnimationDuration: 400,
-                    showAnimationDuration: 400,
-                    zoomAnimationDuration: 300,
+                    hideAnimationDuration: 200,
+                    showAnimationDuration: 300,
+                    zoomAnimationDuration: 250,
                     easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                     
                         // Custom interactions: zoom handled manually
@@ -2458,9 +2462,13 @@
                       const tapDistancePx = 24;
                       pswp.element?.addEventListener('pointerup', (ev) => {
                         const target = ev.target;
+                        // Skip UI controls to prevent blocking button clicks
+                        if (target.closest('.pswp__top-bar, .pswp__button')) {
+                          return;
+                        }
                         const imgEl = target && target.closest ? target.closest('.pswp__img') : null;
-                        const activeEl = imgEl || (pswp.currSlide && pswp.currSlide.content ? pswp.currSlide.content.element : null);
-                        if (!activeEl) return;
+                        if (!imgEl) return;
+                        const activeEl = imgEl;
                         const rect = activeEl.getBoundingClientRect();
                         const clickX = ev.clientX - rect.left;
                         const clickY = ev.clientY - rect.top;

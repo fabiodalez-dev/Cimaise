@@ -42,7 +42,7 @@
               <select class="form-input" name="layout" id="layout-select">
                 <option value="grid"{% if item.settings.layout == 'grid' %} selected{% endif %}>{{ trans('admin.templates.grid') }}</option>
                 <option value="masonry"{% if item.settings.layout == 'masonry' %} selected{% endif %}>{{ trans('admin.templates.masonry') }}</option>
-                <option value="masonry_fit"{% if item.settings.layout == 'masonry_fit' %} selected{% endif %}>Masonry Full (foto intere)</option>
+                <option value="masonry_fit"{% if item.settings.layout == 'masonry_fit' %} selected{% endif %}>{{ trans('admin.templates.masonry_full') }}</option>
                 <option value="slideshow"{% if item.settings.layout == 'slideshow' %} selected{% endif %}>{{ trans('admin.templates.slideshow') }}</option>
                 <option value="fullscreen"{% if item.settings.layout == 'fullscreen' %} selected{% endif %}>{{ trans('admin.templates.fullscreen') }}</option>
               </select>
