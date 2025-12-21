@@ -33,8 +33,8 @@
   {% set items = items|merge([{ label: page_title, url: canonical_url|default(current_url)|default('') }]) %}
 {% endif %}
 
-<nav aria-label="{{ trans('nav.breadcrumb') }}" class="text-sm text-neutral-600">
-  <ol class="flex flex-wrap items-center gap-2">
+<nav aria-label="{{ trans('nav.breadcrumb') }}" class="text-sm text-neutral-600 pb-5 md:pb-0 leading-normal">
+  <ol class="flex flex-wrap items-center gap-x-1 gap-y-1">
     {% for it in items %}
       <li class="flex items-center">
         {% if loop.first == false %}<span class="mx-2 text-neutral-400">›</span>{% endif %}
@@ -71,4 +71,3 @@
 }
 </script>
 {% endif %}
-

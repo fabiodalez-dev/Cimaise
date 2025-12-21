@@ -39,9 +39,10 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.layout_type') }}</label>
-              <select class="form-input" name="layout">
+              <select class="form-input" name="layout" id="layout-select">
                 <option value="grid"{% if item.settings.layout == 'grid' %} selected{% endif %}>{{ trans('admin.templates.grid') }}</option>
                 <option value="masonry"{% if item.settings.layout == 'masonry' %} selected{% endif %}>{{ trans('admin.templates.masonry') }}</option>
+                <option value="masonry_fit"{% if item.settings.layout == 'masonry_fit' %} selected{% endif %}>{{ trans('admin.templates.masonry_full') }}</option>
                 <option value="slideshow"{% if item.settings.layout == 'slideshow' %} selected{% endif %}>{{ trans('admin.templates.slideshow') }}</option>
                 <option value="fullscreen"{% if item.settings.layout == 'fullscreen' %} selected{% endif %}>{{ trans('admin.templates.fullscreen') }}</option>
               </select>
@@ -125,6 +126,38 @@
           </div>
         </div>
         {% endif %}
+
+        <div class="card p-6" id="masonry-gap-settings" style="{% if item.settings.layout != 'masonry_fit' %}display: none;{% endif %}">
+          <h2 class="text-lg font-medium text-gray-900 mb-4">
+            <i class="fas fa-th text-indigo-500 mr-2"></i>{{ trans('admin.templates.masonry_full_settings') }}
+          </h2>
+          <p class="text-sm text-gray-600 mb-4">
+            {{ trans('admin.templates.masonry_full_description') }}
+          </p>
+          {% set gap = item.settings.gap|default({}) %}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                <i class="fas fa-arrows-alt-h text-gray-400 mr-1"></i>{{ trans('admin.templates.gap_horizontal') }}
+              </label>
+              <input class="form-input" type="number" name="masonry_gap_h" min="0" max="100" step="1" value="{{ gap.horizontal|default(16) }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.gap_horizontal_hint') }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                <i class="fas fa-arrows-alt-v text-gray-400 mr-1"></i>{{ trans('admin.templates.gap_vertical') }}
+              </label>
+              <input class="form-input" type="number" name="masonry_gap_v" min="0" max="100" step="1" value="{{ gap.vertical|default(16) }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.gap_vertical_hint') }}</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 bg-indigo-50 rounded-lg">
+            <p class="text-xs text-indigo-700">
+              <i class="fas fa-info-circle mr-1"></i>
+              {{ trans('admin.templates.masonry_full_info') }}
+            </p>
+          </div>
+        </div>
 
         <div class="card p-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.photoswipe_settings') }}</h2>
@@ -210,6 +243,7 @@
     const tabletSelect = document.querySelector('select[name="columns_tablet"]');
     const mobileSelect = document.querySelector('select[name="columns_mobile"]');
     const masonryCheck = document.querySelector('input[name="masonry"]');
+    const gapSettings = document.getElementById('masonry-gap-settings');
 
     function updatePreview() {
       document.getElementById('preview-layout').textContent = layoutSelect.options[layoutSelect.selectedIndex].text;
@@ -219,7 +253,20 @@
       document.getElementById('preview-masonry').textContent = masonryCheck.checked ? '{{ trans('admin.templates.yes')|e('js') }}' : '{{ trans('admin.templates.no')|e('js') }}';
     }
 
-    layoutSelect.addEventListener('change', updatePreview);
+    function updateLayoutDependentFields() {
+      const layout = layoutSelect.value;
+      // Show/hide masonry gap settings based on layout
+      if (gapSettings) {
+        gapSettings.style.display = (layout === 'masonry_fit') ? 'block' : 'none';
+      }
+      // Auto-check masonry checkbox for masonry layouts
+      if (layout === 'masonry_fit' || layout === 'masonry') {
+        masonryCheck.checked = true;
+      }
+      updatePreview();
+    }
+
+    layoutSelect.addEventListener('change', updateLayoutDependentFields);
     desktopSelect.addEventListener('change', updatePreview);
     tabletSelect.addEventListener('change', updatePreview);
     mobileSelect.addEventListener('change', updatePreview);

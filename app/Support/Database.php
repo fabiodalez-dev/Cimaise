@@ -174,14 +174,14 @@ class Database
     // Helper for portable current timestamp in SQL
     public function nowExpression(): string
     {
-        return $this->isSqlite ? 'datetime("now")' : 'NOW()';
+        return $this->isSqlite ? "datetime('now')" : 'NOW()';
     }
 
     // Helper for portable date/time interval subtraction
     public function dateSubExpression(string $interval, int $value): string
     {
         if ($this->isSqlite) {
-            return "datetime(\"now\", \"-{$value} {$interval}\")";
+            return "datetime('now', '-{$value} {$interval}')";
         }
         $mysqlInterval = match (strtolower($interval)) {
             'hours', 'hour' => 'HOUR',

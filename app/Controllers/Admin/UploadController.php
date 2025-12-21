@@ -87,7 +87,7 @@ class UploadController extends BaseController
             $svc = new UploadService($this->db);
             $meta = $svc->ingestAlbumUpload($albumId, $fArr);
 
-            // Generate blurred variant if album is NSFW
+            // Generate blurred variant if album is NSFW (quick preview)
             if ($isNsfw && !empty($meta['id'])) {
                 try {
                     $svc->generateBlurredVariant((int)$meta['id']);
@@ -106,8 +106,31 @@ class UploadController extends BaseController
                 'id' => $meta['id'] ?? null,
                 'image' => $meta,
             ];
-            $response->getBody()->write(json_encode($payload));
-            return $response->withHeader('Content-Type','application/json');
+            $json = json_encode($payload);
+            $response->getBody()->write($json);
+            $response = $response->withHeader('Content-Type','application/json');
+
+            // Flush response to client to keep upload snappy
+            if (function_exists('fastcgi_finish_request')) {
+                fastcgi_finish_request();
+            } else {
+                @ob_end_flush();
+                @flush();
+            }
+
+            // Generate full variants in background (non-blocking for client)
+            if (!empty($meta['id'])) {
+                try {
+                    $svc->generateVariantsForImage((int)$meta['id'], false);
+                } catch (\Throwable $variantError) {
+                    \App\Support\Logger::warning('Failed to generate variants in background', [
+                        'image_id' => $meta['id'],
+                        'error' => $variantError->getMessage()
+                    ], 'upload');
+                }
+            }
+
+            return $response;
         } catch (\Throwable $e) {
             $response->getBody()->write(json_encode(['ok'=>false,'error'=>$e->getMessage()]));
             return $response->withStatus(400)->withHeader('Content-Type','application/json');

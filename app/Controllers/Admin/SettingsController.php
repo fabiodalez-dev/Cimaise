@@ -64,6 +64,7 @@ class SettingsController extends BaseController
             'width' => max(64, (int)($data['preview_w'] ?? 480)),
             'height' => null,
         ];
+        $variantsAsync = isset($data['variants_async']);
         
         // breakpoints from textarea JSON
         $breakpoints = json_decode((string)($data['breakpoints'] ?? ''), true);
@@ -93,6 +94,7 @@ class SettingsController extends BaseController
         
         $paginationLimit = max(1, min(100, (int)($data['pagination_limit'] ?? 12)));
         $cacheTtl = max(1, min(168, (int)($data['cache_ttl'] ?? 24)));
+        $disableRightClick = isset($data['disable_right_click']);
 
         // Lightbox settings
         $showExif = isset($data['show_exif_lightbox']);
@@ -102,6 +104,7 @@ class SettingsController extends BaseController
         $svc->set('image.quality', $quality);
         $svc->set('image.preview', $preview);
         $svc->set('image.breakpoints', $breakpoints);
+        $svc->set('image.variants_async', $variantsAsync);
         $svc->set('lightbox.show_exif', $showExif);
         
         $galleryPageTemplate = $data['gallery_page_template'] ?? 'classic';
@@ -167,6 +170,8 @@ class SettingsController extends BaseController
         $svc->set('performance.compression', $performanceSettings['compression']);
         $svc->set('pagination.limit', $paginationLimit);
         $svc->set('cache.ttl', $cacheTtl);
+        $svc->set('admin.debug_logs', isset($data['admin_debug_logs']));
+        $svc->set('frontend.disable_right_click', $disableRightClick);
 
         $_SESSION['flash'][] = ['type'=>'success','message'=>'Settings saved successfully'];
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
@@ -185,12 +190,15 @@ class SettingsController extends BaseController
 
         try {
             $consolePath = dirname(__DIR__, 3) . '/bin/console';
-            if (!is_executable($consolePath)) {
-                throw new \RuntimeException('Console script not executable');
+            if (!is_file($consolePath)) {
+                throw new \RuntimeException('Console script not found');
+            }
+            if (!is_readable($consolePath)) {
+                throw new \RuntimeException('Console script not readable');
             }
 
             // Run the command in the background to prevent timeouts
-            $cmd = "nohup php $consolePath images:generate --missing > /tmp/image_generation.log 2>&1 &";
+            $cmd = 'nohup php ' . escapeshellarg($consolePath) . ' images:generate --missing > /tmp/image_generation.log 2>&1 &';
             exec($cmd);
 
             if ($this->isAjaxRequest($request)) {

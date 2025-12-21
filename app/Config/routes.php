@@ -12,7 +12,7 @@ use App\Middlewares\RateLimitMiddleware;
 function isAppInstalled($db): bool {
     if (!$db) return false;
     try {
-        $stmt = $db->query('SELECT COUNT(*) as count FROM users WHERE role = "admin"');
+        $stmt = $db->query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
         $result = $stmt->fetch();
         return $result && $result['count'] > 0;
     } catch (\Throwable $e) {
@@ -124,6 +124,12 @@ $app->post('/album/{slug}/nsfw-confirm', function (Request $request, Response $r
     return $controller->confirmNsfw($request, $response, $args);
 })->add(new RateLimitMiddleware(10, 300));
 
+// Global NSFW age verification confirmation (no album context)
+$app->post('/nsfw/confirm', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+    return $controller->confirmNsfwGlobal($request, $response);
+})->add(new RateLimitMiddleware(10, 300));
+
 // Album template switcher API
 $app->get('/api/album/{slug}/template', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
@@ -180,7 +186,7 @@ $app->get('/galleries', function (Request $request, Response $response) use ($co
 $app->get('/galleries/filter', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Frontend\GalleriesController($container['db'], Twig::fromRequest($request));
     return $controller->filter($request, $response);
-});
+})->add(new RateLimitMiddleware(30, 60)); // 30 requests per minute for search
 
 // (public API routes are defined near the bottom of this file)
 
@@ -943,7 +949,7 @@ $app->get('/api/albums', function (Request $request, Response $response) use ($c
 $app->get('/api/album/{id}/images', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\ApiController($container['db'], Twig::fromRequest($request));
     return $controller->albumImages($request, $response, $args);
-});
+})->add(new RateLimitMiddleware(200, 60)); // 200 requests per minute
 
 // Media Library
 $app->get('/admin/media', function (Request $request, Response $response) use ($container) {

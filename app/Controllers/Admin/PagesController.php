@@ -58,6 +58,7 @@ class PagesController extends BaseController
     {
         $svc = new SettingsService($this->db);
         $settings = [
+            'home.template' => (string)($svc->get('home.template', 'classic') ?? 'classic'),
             'home.hero_title' => (string)($svc->get('home.hero_title', 'Portfolio') ?? 'Portfolio'),
             'home.hero_subtitle' => (string)($svc->get('home.hero_subtitle', 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.') ?? 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.'),
             'home.albums_title' => (string)($svc->get('home.albums_title', 'Latest Albums') ?? 'Latest Albums'),
@@ -85,6 +86,13 @@ class PagesController extends BaseController
         }
 
         $svc = new SettingsService($this->db);
+
+        // Home template selection (classic or modern)
+        $homeTemplate = (string)($data['home_template'] ?? 'classic');
+        if (!in_array($homeTemplate, ['classic', 'modern'], true)) {
+            $homeTemplate = 'classic';
+        }
+        $svc->set('home.template', $homeTemplate);
 
         // Hero section
         $svc->set('home.hero_title', trim((string)($data['hero_title'] ?? 'Portfolio')) ?: 'Portfolio');

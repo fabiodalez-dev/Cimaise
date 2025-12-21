@@ -27,31 +27,81 @@
   </div>
 </div>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
   .nsfw-hidden { display: none !important; }
   #nsfw-gate.active { display: flex !important; }
 </style>
 
 <script nonce="{{ csp_nonce() }}">
+const csrfToken = '{{ csrf|e('js') }}';
+const albumSlug = '{{ album.slug|e('js') }}';
+const basePath = '{{ base_path|e('js') }}';
+const serverConsent = {{ nsfw_consent ? 'true' : 'false' }};
+
+function safeLocalStorageGet(key) {
+  try {
+    return window.localStorage ? window.localStorage.getItem(key) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function safeLocalStorageSet(key, value) {
+  try {
+    if (window.localStorage) {
+      window.localStorage.setItem(key, value);
+    }
+  } catch (e) {}
+}
+
 (function() {
-  const hasConfirmed = localStorage.getItem('nsfw_confirmed') === 'true';
+  const localConfirmed = safeLocalStorageGet('nsfw_confirmed') === 'true';
   const gate = document.getElementById('nsfw-gate');
   const mainContent = document.getElementById('album-main-content');
-  const csrfToken = '{{ csrf|e('js') }}';
-  const albumSlug = '{{ album.slug|e('js') }}';
-  const basePath = '{{ base_path|e('js') }}';
 
-  // If already confirmed in localStorage, ensure server session is updated for media access
-  if (hasConfirmed && albumSlug && csrfToken) {
+  if (localConfirmed && !serverConsent && albumSlug && csrfToken) {
+    if (gate) gate.style.display = 'none';
+    const loader = document.createElement('div');
+    loader.className = 'fixed inset-0 bg-black/60 z-50 flex items-center justify-center';
+    const loaderText = document.createElement('div');
+    loaderText.className = 'text-white text-sm';
+    loaderText.textContent = '{{ trans("album.nsfw_syncing")|default("Verifica in corso...")|e('js') }}';
+    loader.appendChild(loaderText);
+    document.body.appendChild(loader);
     fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
-    }).catch(() => {});
+    }).then((resp) => {
+      if (!resp.ok) {
+        throw new Error('NSFW confirm failed');
+      }
+      window.location.reload();
+    }).catch((err) => {
+      console.warn('NSFW consent sync failed:', err);
+      if (loader.parentNode) {
+        loader.parentNode.removeChild(loader);
+      }
+      // Fully restore gate state on error
+      if (gate) {
+        gate.style.display = '';
+        gate.classList.add('active');
+      }
+      document.body.style.overflow = 'hidden';
+      if (mainContent) {
+        mainContent.classList.add('nsfw-hidden');
+        mainContent.setAttribute('aria-hidden', 'true');
+      }
+    });
+    return;
   }
 
-  if (!hasConfirmed && gate) {
+  if (serverConsent && !localConfirmed) {
+    safeLocalStorageSet('nsfw_confirmed', 'true');
+  }
+
+  if (!serverConsent && gate) {
     gate.classList.add('active');
     document.body.style.overflow = 'hidden';
     if (mainContent) {
@@ -65,27 +115,36 @@
 })();
 
 function confirmNsfwAndShow() {
-  localStorage.setItem('nsfw_confirmed', 'true');
-  // Inform backend to set session flag for NSFW protection
-  if (albumSlug && csrfToken) {
-    fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
-    }).catch(() => { /* non-blocking */ });
+  if (!albumSlug || !csrfToken) {
+    return;
   }
-  const gate = document.getElementById('nsfw-gate');
-  const mainContent = document.getElementById('album-main-content');
-  if (gate) {
-    gate.classList.remove('active');
-    gate.style.display = 'none';
+  const confirmBtn = document.getElementById('nsfw-confirm-btn');
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
   }
-  if (mainContent) {
-    mainContent.classList.remove('nsfw-hidden');
-    mainContent.removeAttribute('aria-hidden');
-  }
-  document.body.style.overflow = '';
+  fetch(`${basePath}/album/${albumSlug}/nsfw-confirm`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `csrf=${encodeURIComponent(csrfToken)}&nsfw_confirmed=1`
+  }).then((resp) => {
+    if (!resp.ok) {
+      throw new Error('NSFW confirm failed');
+    }
+    safeLocalStorageSet('nsfw_confirmed', 'true');
+    window.nsfwConsent = true;
+    window.location.reload();
+  }).catch((err) => {
+    console.warn('NSFW confirmation failed:', err);
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      const errorMsg = document.createElement('p');
+      errorMsg.className = 'text-red-500 text-sm mt-2';
+      errorMsg.textContent = '{{ trans("album.nsfw_error")|default("Verification failed. Please try again.")|e('js') }}';
+      confirmBtn.parentNode.appendChild(errorMsg);
+      setTimeout(() => errorMsg.remove(), 5000);
+    }
+  });
 }
 
 document.getElementById('nsfw-confirm-btn')?.addEventListener('click', function(event) {
@@ -152,6 +211,13 @@ document.addEventListener('click', function(event) {
 }
 </script>
 {% endif %}
+<style nonce="{{ csp_nonce() }}">
+/* Pre-hide animated elements to prevent flash before GSAP runs */
+[data-gsap]:not([data-animated]) { opacity: 0; }
+/* Fallback: show elements if reduced motion or no JS */
+@media (prefers-reduced-motion: reduce) { [data-gsap] { opacity: 1 !important; } }
+</style>
+<noscript><style>[data-gsap] { opacity: 1 !important; }</style></noscript>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}
 </div>
@@ -378,6 +444,33 @@ document.addEventListener('click', function(event) {
                 {% include "frontend/_image_item.twig" %}
             {% endfor %}
         </div>
+    {% elseif layout == 'masonry_fit' %}
+        {# Modern Masonry layout using CSS columns - full images, no cropping #}
+        {% set gap_h = template_settings.gap.horizontal|default(16) %}
+        {% set gap_v = template_settings.gap.vertical|default(16) %}
+        <div id="images-gallery" class="masonry-fit-grid pswp-gallery" data-layout="masonry_fit">
+            {% for image in images %}
+                {% include "frontend/_image_item_masonry.twig" %}
+            {% endfor %}
+        </div>
+        <style nonce="{{ csp_nonce() }}">
+        .masonry-fit-grid {
+            column-gap: {{ gap_h }}px;
+        }
+        .masonry-fit-grid .masonry-item {
+            break-inside: avoid;
+            margin-bottom: {{ gap_v }}px;
+        }
+        @media (min-width: 1024px) {
+            .masonry-fit-grid { column-count: {{ desktop_cols }}; }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .masonry-fit-grid { column-count: {{ tablet_cols }}; }
+        }
+        @media (max-width: 767px) {
+            .masonry-fit-grid { column-count: {{ mobile_cols }}; }
+        }
+        </style>
     {% elseif layout == 'magazine' %}
         <div id="images-gallery" class="mt-6">
             {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
@@ -485,7 +578,7 @@ document.addEventListener('click', function(event) {
 window.basePath = '{{ base_path }}';
 
 // Template settings
-const templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
+const templateSettings = JSON.parse('{{ template_settings ? template_settings|json_encode|e('js') : '{}' }}');
 const layout = templateSettings.layout || 'grid';
 const masonry = templateSettings.masonry || false;
 
@@ -514,19 +607,45 @@ if (layout === 'slideshow') {
         });
     }
 }
-// Masonry.js initialization when template enables masonry
-if (masonry && typeof Masonry !== 'undefined') {
+// Masonry.js initialization - only for old masonry layout (masonry_fit uses CSS columns)
+if (masonry && layout !== 'masonry_fit' && typeof Masonry !== 'undefined') {
     const container = document.getElementById('images-gallery');
-    const initMasonry = () => {
+    if (container) {
+        const gap = parseInt(container.dataset.masonryGap) || 16;
+        const masonryOptions = {
+            itemSelector: '.masonry-item',
+            percentPosition: true,
+            gutter: gap,
+            transitionDuration: '0.3s'
+        };
+
+        const initMasonry = () => {
+            if (typeof imagesLoaded !== 'undefined') {
+                imagesLoaded(container, function(){
+                    new Masonry(container, masonryOptions);
+                    if (window.lenisResize) window.lenisResize();
+                });
+            } else {
+                new Masonry(container, masonryOptions);
+                if (window.lenisResize) window.lenisResize();
+            }
+        };
+        if (document.readyState === 'complete') {
+            initMasonry();
+        } else {
+            window.addEventListener('load', initMasonry);
+        }
+    }
+}
+
+// masonry_fit uses CSS columns - just recalculate Lenis after images load
+if (layout === 'masonry_fit') {
+    const container = document.getElementById('images-gallery');
+    if (container && typeof imagesLoaded !== 'undefined') {
         imagesLoaded(container, function(){
-            new Masonry(container, {
-                itemSelector: '.masonry-item',
-                percentPosition: true,
-                transitionDuration: '0.2s'
-            });
+            if (window.lenisResize) window.lenisResize();
         });
-    };
-    initMasonry();
+    }
 }
 
 // Magazine Split autoscroll initializer
@@ -612,7 +731,7 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
 
 // Initialize PhotoSwipe lightbox (handled by main layout)
 
-// GSAP Animations for album header/meta elements
+// GSAP Animations for album header/meta elements - runs ONCE on load
 document.addEventListener('DOMContentLoaded', function() {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion || typeof gsap === 'undefined') return;
@@ -621,38 +740,35 @@ document.addEventListener('DOMContentLoaded', function() {
         gsap.registerPlugin(ScrollTrigger);
     }
 
-    // Hero/Header entrance animations
-    const headerElements = [
-        '[data-gsap="breadcrumb"]',
-        '[data-gsap="category"]',
-        '[data-gsap="hero-title"]',
-        '[data-gsap="title"]'
-    ];
+    // All animatable header elements - animate once with stagger
+    const allHeaderElements = document.querySelectorAll('[data-gsap="breadcrumb"], [data-gsap="category"], [data-gsap="hero-title"], [data-gsap="title"], [data-gsap="hero-excerpt"], [data-gsap="excerpt"], [data-gsap="hero-meta"], [data-gsap="meta"], [data-gsap="hero-tags"], [data-gsap="tags"], [data-gsap="body"]');
 
-    headerElements.forEach((selector, index) => {
-        const el = document.querySelector(selector);
-        if (el) {
-            gsap.from(el, { opacity: 0, y: 20, duration: 0.6, delay: index * 0.1, ease: 'power2.out' });
-        }
+    // Filter to only existing elements
+    const elements = Array.from(allHeaderElements).filter(el => !el.hasAttribute('data-animated'));
+    if (elements.length === 0) return;
+
+    // Set initial state FIRST (ensures elements stay hidden during transition)
+    gsap.set(elements, { opacity: 0, y: 15 });
+    // Mark as animated AFTER gsap.set (CSS hides until this point)
+    elements.forEach(el => el.setAttribute('data-animated', '1'));
+    // Animate TO visible
+    gsap.to(elements, {
+        opacity: 1,
+        y: 0,
+        duration: 0.5,
+        stagger: 0.08,
+        ease: 'power2.out'
     });
 
-    // Excerpt and metadata
-    const metaElements = [
-        '[data-gsap="hero-excerpt"]',
-        '[data-gsap="excerpt"]',
-        '[data-gsap="hero-meta"]',
-        '[data-gsap="meta"]',
-        '[data-gsap="hero-tags"]',
-        '[data-gsap="tags"]',
-        '[data-gsap="body"]'
-    ];
-
-    metaElements.forEach((selector, index) => {
-        const el = document.querySelector(selector);
-        if (el) {
-            gsap.from(el, { opacity: 0, y: 15, duration: 0.5, delay: 0.4 + (index * 0.08), ease: 'power2.out' });
-        }
-    });
+    // Fallback: show elements if animation doesn't complete in 3 seconds
+    setTimeout(() => {
+        elements.forEach(el => {
+            if (getComputedStyle(el).opacity === '0') {
+                el.style.opacity = '1';
+                el.style.transform = 'none';
+            }
+        });
+    }, 3000);
 
     // NOTE: #images-gallery animation is handled by _layout.twig animateGalleryOnce()
 
@@ -712,5 +828,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
 
 {% endblock %}

@@ -26,6 +26,7 @@ if ($isInstallCommand) {
     $cli->add(new App\Tasks\UserCreateCommand($container['db']));
     $cli->add(new App\Tasks\UserUpdateCommand($container['db']));
     $cli->add(new App\Tasks\ImagesGenerateCommand($container['db']));
+    $cli->add(new App\Tasks\ImagesGenerateVariantsCommand($container['db']));
     $cli->add(new App\Tasks\DiagnosticsCommand($container['db']));
     $cli->add(new App\Tasks\SitemapCommand($container['db']));
     $cli->add(new App\Tasks\InitCommand($container['db']));
