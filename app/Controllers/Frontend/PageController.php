@@ -519,7 +519,7 @@ class PageController extends BaseController
                     if (!empty($vgr['path'])) {
                         // For protected albums, use protected media URL instead of direct path
                         if ($isProtectedAlbum && !$isAdmin) {
-                            $bestUrl = $this->basePath . '/media/protected/' . $image['id'] . '/' . $vgr['variant'] . '.' . $vgr['format'];
+                            $bestUrl = '/media/protected/' . $image['id'] . '/' . $vgr['variant'] . '.' . $vgr['format'];
                         } else {
                             $bestUrl = $vgr['path'];
                         }
@@ -530,7 +530,7 @@ class PageController extends BaseController
                 $chosen = $this->selectBestLightboxVariant((array)($image['variants'] ?? []));
                 if ($chosen !== null) {
                     if ($isProtectedAlbum && !$isAdmin) {
-                        $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/' . $chosen['variant'] . '.' . $chosen['format'];
+                        $lightboxUrl = '/media/protected/' . $image['id'] . '/' . $chosen['variant'] . '.' . $chosen['format'];
                     } else {
                         $lightboxUrl = $chosen['path'];
                     }
@@ -538,7 +538,7 @@ class PageController extends BaseController
                     $lightboxUrl = $bestUrl;
                     // Always protect /storage/ paths for protected albums, regardless of allow_downloads
                     if ($isProtectedAlbum && !$isAdmin && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
-                        $lightboxUrl = $this->basePath . '/media/protected/' . $image['id'] . '/original';
+                        $lightboxUrl = '/media/protected/' . $image['id'] . '/original';
                     }
                 }
             } catch (\Throwable $e) {
@@ -583,7 +583,7 @@ class PageController extends BaseController
                 if (!empty($v['path']) && !str_starts_with((string)$v['path'], '/storage/')) {
                     // For protected albums, use protected media URLs
                     if ($isProtectedAlbum && !$isAdmin) {
-                        $protectedUrl = $this->basePath . '/media/protected/' . $image['id'] . '/' . $v['variant'] . '.' . $v['format'];
+                        $protectedUrl = '/media/protected/' . $image['id'] . '/' . $v['variant'] . '.' . $v['format'];
                         $sources[$v['format']][] = $protectedUrl . ' ' . (int)$v['width'] . 'w';
                     } else {
                         $sources[$v['format']][] = $v['path'] . ' ' . (int)$v['width'] . 'w';
@@ -945,7 +945,7 @@ class PageController extends BaseController
                     if ($vr && !empty($vr['path'])) {
                         // For protected albums, use protected media URL
                         if ($isProtectedAlbum && !$isAdmin) {
-                            $bestUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $vr['variant'] . '.' . $vr['format'];
+                            $bestUrl = '/media/protected/' . $img['id'] . '/' . $vr['variant'] . '.' . $vr['format'];
                         } else {
                             $bestUrl = $vr['path'];
                         }
@@ -958,7 +958,7 @@ class PageController extends BaseController
                     $chosen = $this->selectBestLightboxVariant($variants);
                     if ($chosen !== null) {
                         if ($isProtectedAlbum && !$isAdmin) {
-                            $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $chosen['variant'] . '.' . $chosen['format'];
+                            $lightboxUrl = '/media/protected/' . $img['id'] . '/' . $chosen['variant'] . '.' . $chosen['format'];
                         } else {
                             $lightboxUrl = $chosen['path'];
                         }
@@ -966,7 +966,7 @@ class PageController extends BaseController
                         $lightboxUrl = $bestUrl;
                         // Always protect /storage/ paths for protected albums, regardless of allow_downloads
                         if ($isProtectedAlbum && !$isAdmin && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
-                            $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
+                            $lightboxUrl = '/media/protected/' . $img['id'] . '/original';
                         }
                     }
 
@@ -980,7 +980,7 @@ class PageController extends BaseController
                             continue;
                         }
                         if ($isProtectedAlbum && !$isAdmin) {
-                            $srcPath = $this->basePath . '/media/protected/' . $img['id'] . '/' . $variant['variant'] . '.' . $variant['format'];
+                            $srcPath = '/media/protected/' . $img['id'] . '/' . $variant['variant'] . '.' . $variant['format'];
                         }
                         $sources[$fmt][] = $srcPath . ' ' . (int)($variant['width'] ?? 0) . 'w';
                     }
@@ -1178,6 +1178,8 @@ class PageController extends BaseController
     {
         // categories for header
         $navCategories = (new NavigationService($this->db))->getNavigationCategories();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
 
         // settings
         $settings = new \App\Services\SettingsService($this->db);
@@ -1224,7 +1226,9 @@ class PageController extends BaseController
             'contact_error' => $contactError,
             'recaptcha_enabled' => $recaptchaEnabled,
             'recaptcha_site_key' => $recaptchaSiteKey,
-            'csrf' => $_SESSION['csrf'] ?? ''
+            'csrf' => $_SESSION['csrf'] ?? '',
+            'is_admin' => $isAdmin,
+            'nsfw_consent' => $nsfwConsent
         ]);
     }
 

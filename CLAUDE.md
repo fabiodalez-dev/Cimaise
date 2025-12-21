@@ -140,6 +140,7 @@ photoCMS/
 - `app/Controllers/Admin/SeoController.php` - SEO settings management with Open Graph, Twitter Cards, Schema.org (Person, Organization, LocalBusiness), analytics integration (Google Tag Manager, GA4), image metadata, and sitemap generation
 - `app/Controllers/Admin/SocialController.php` - Social sharing settings management with network enable/disable, ordering, AJAX/form support
 - `app/Controllers/Admin/TemplatesController.php` - Gallery template management (edit only, creation/deletion disabled) with responsive column configuration, layout settings, PhotoSwipe options, and magazine-specific animations
+- `app/Views/admin/templates/edit.twig` - Template editor with i18n-compliant layout options (masonry_full uses trans() function)
 - `app/Controllers/Admin/PagesController.php` - Pages management (home, about, galleries) with home template selection (classic/modern), hero sections, gallery text content
 - `app/Controllers/Admin/SettingsController.php` - Site settings with image formats/quality/breakpoints, gallery templates, date format, site language, reCAPTCHA configuration (requires both site and secret keys to enable), performance settings, admin debug logs toggle, triggers favicon generation after logo upload
 - `app/Controllers/Frontend/PageController.php` - Frontend page rendering with SEO builder, template normalization, home template routing (classic/modern)
@@ -156,6 +157,7 @@ photoCMS/
 - `app/Views/frontend/home_modern.twig` - Modern home template with fixed sidebar (filters, info), scrollable grid (two-column infinite scroll), and mobile classic header integration (imports `_seo_macros.twig`)
 - `app/Views/admin/pages/home.twig` - Home page settings with visual template selector (classic/modern), hero sections, gallery text, scroll direction
 - `app/Views/frontend/_album_card.twig` - Album card template with NSFW blur variant logic
+- `app/Views/frontend/album.twig` - Album detail view with NSFW age gate, error handling restores full gate state on consent sync failure
 - `app/Views/frontend/_breadcrumbs.twig` - Breadcrumbs with automatic JSON-LD schema generation, responsive spacing (pb-5 md:pb-0), compact gap layout (gap-x-1 gap-y-1), leading-normal line-height for tight wrapping
 - `app/Views/frontend/_social_sharing.twig` - Social sharing buttons template
 - `app/Views/frontend/_seo_macros.twig` - Reusable Twig macros for SEO title generation (seo_title macro combines image alt/caption, album title, and site title)
@@ -303,6 +305,13 @@ $app->get('/path', function(...) { ... })
   - Blur variants always allowed (for preview purposes without session validation)
   - Admin users bypass all access restrictions via `$_SESSION['admin_id']` check
 - **Access validation**: `validateAlbumAccess()` method checks session state before streaming (password + NSFW + admin checks, logic cleaned in commit 63a9f77)
+- **Simplified protection logic**: Controllers always use protected endpoint for password/NSFW albums
+  - Pattern: `$lightboxUrl = $isProtectedAlbum ? '/media/protected/{id}/...' : $publicPath`
+  - URL construction: Uses relative paths `/media/protected/...` without base path prefix for consistency
+  - Storage path protection: Always routes `/storage/` paths through protected endpoint for protected albums
+  - Applied across: GalleryController, PageController album rendering
+  - Templates exclude `/storage/` paths from srcsets for protected albums regardless of settings
+  - Note: `allow_downloads` flag still used client-side for download button visibility
 - **Template security**: NSFW album cards only show blur variants, never expose real image URLs in srcset or data-src
 - **Path traversal protection**: Validates realpath against allowed directories (storage/ or public/media/), rejects paths with `..` or backslashes
 - **MIME type validation**: Only serves image/* types (jpeg, webp, avif, png) via finfo_file()
@@ -508,6 +517,7 @@ $app->get('/path', function(...) { ... })
 - **Translation keys**:
   - `frontend.home_modern.*`: all_work, albums, photos, close, empty_title, empty_text, menu
   - `frontend.menu.*`: home, galleries, about (for mega menu navigation)
+  - `filter.subcategory`, `filter.subcategories`: Used in categories mega menu for subcategory count display
 - **Performance optimizations**: Dynamic image loading prioritization
   - Images in initial viewport: `fetchpriority="high"`, `loading` attribute removed
   - Below-fold images: `loading="lazy"` preserved
@@ -581,9 +591,11 @@ $app->get('/path', function(...) { ... })
 ### Breadcrumbs & Schema
 - **Auto-generated breadcrumbs**: Dynamically builds breadcrumb trail based on page context (home, category, tag, album, about)
 - **JSON-LD schema**: Automatically generates BreadcrumbList structured data for SEO
+  - No CSP nonce required: JSON-LD uses `type="application/ld+json"` which is data, not executable script
+  - BreadcrumbList only rendered when `items|length > 1` to avoid single-item schemas
 - **Subdirectory-safe**: Uses `base_path` for correct URL generation in subdirectory installations
 - **Translation support**: All breadcrumb labels use `trans()` function for i18n
-- **Responsive spacing**: Adaptive bottom padding (`pb-5 md:pb-0`) adjusts spacing based on viewport width
+- **Responsive spacing**: Bottom padding (`pb-5 md:pb-0`) adapts to viewport - 1.25rem on mobile, 0 on desktop for compact integration
 - **Compact layout**: Minimal horizontal (gap-x-1) and vertical (gap-y-1) gaps between breadcrumb items with leading-normal line-height for tight wrapping
 
 ### Date Formatting & Dynamic Placeholders
@@ -704,7 +716,8 @@ $app->get('/path', function(...) { ... })
   - Direction attribute: `data-direction="up|down"` controls animation direction per column
 - **Touch compatibility**: `touch-action: pan-y` allows page scrolling through animated columns
   - Compatible with Lenis smooth scroll on parent page
-  - Explicit height declarations for scroll height calculation: min-height 100vh (mobile), 130vh (tablet), 140vh (desktop)
+  - Explicit height declarations: Uses `dvh` (dynamic viewport height) for mobile compatibility with dynamic address bar
+  - min-height values: 100dvh (mobile), 130dvh (tablet), 140dvh (desktop)
 - **Image distribution**: Smart column assignment preserving original index
   - Desktop: Round-robin distribution (i % 3) into col1, col2, col3
   - Tablet: Alternating distribution (i % 2) into tablet_col1, tablet_col2
@@ -805,6 +818,21 @@ $app->get('/path', function(...) { ... })
 This section is for manual notes and project-specific information.
 
 ### Recent Completed Work
+- Code review refinements and album category migration (commit defefaf)
+  - Album-category junction table for multi-category support
+  - Simplified protected media logic: removed `allow_downloads` conditionals, always use protected endpoint for password/NSFW albums
+  - Date input picker visibility improvements
+  - CSP compliance for filter labels and i18n
+  - Template switcher and lightbox animation enhancements
+  - Magazine gallery mobile compatibility: switched from `vh` to `dvh` (dynamic viewport height) for better mobile address bar handling
+  - Image error handling: added `data-fallback="hide"` attribute for CSP-compliant graceful degradation
+- README documentation overhaul with comprehensive feature showcase
+  - Two-template system (Classic vs Modern home layouts) with visual comparisons
+  - Password-protected galleries and NSFW/adult content mode documentation
+  - Multi-criteria filtering (categories, tags, equipment, location, year)
+  - Automatic image optimization workflow (5 sizes × 3 formats)
+  - Settings management overview (site identity, gallery presentation, image handling)
+- Breadcrumb schema clarification: JSON-LD doesn't require CSP nonce (type="application/ld+json")
 - Security fix: Protected album storage path enforcement (commit 3999f0c)
   - Always exclude `/storage/` paths from srcsets for protected albums regardless of `allow_downloads` flag
   - Prevents bypassing server-side access control via direct URL manipulation

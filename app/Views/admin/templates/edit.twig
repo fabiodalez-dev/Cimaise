@@ -127,7 +127,7 @@
         </div>
         {% endif %}
 
-        <div class="card p-6" id="masonry-gap-settings" style="{% if item.settings.layout != 'masonry_fit' and item.slug != 'masonry-full' %}display: none;{% endif %}">
+        <div class="card p-6" id="masonry-gap-settings" style="{% if item.settings.layout != 'masonry_fit' %}display: none;{% endif %}">
           <h2 class="text-lg font-medium text-gray-900 mb-4">
             <i class="fas fa-th text-indigo-500 mr-2"></i>{{ trans('admin.templates.masonry_full_settings') }}
           </h2>
