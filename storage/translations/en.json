@@ -286,5 +286,15 @@
     "home_modern.empty_title": "No albums yet",
     "home_modern.empty_text": "Check back soon for new content.",
     "home_modern.menu": "Menu"
+  },
+  "errors": {
+    "errors.404.title": "Page not found",
+    "errors.404.message": "Sorry, the page you're looking for doesn't exist or has been moved.",
+    "errors.404.back_home": "Back to Home",
+    "errors.404.back_dashboard": "Back to Dashboard",
+    "errors.500.title": "Server Error",
+    "errors.500.message": "Sorry, something went wrong on our end. Please try again later.",
+    "errors.500.back_home": "Back to Home",
+    "errors.500.back_dashboard": "Back to Dashboard"
   }
 }
