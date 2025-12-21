@@ -1114,27 +1114,27 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
                 <div class="flex flex-wrap gap-4 items-center">
                     <div class="flex items-center gap-3">
-                        <label for="filter-process" class="text-sm font-medium text-gray-700">Process:</label>
+                        <label for="filter-process" class="text-sm font-medium text-gray-700">{{ trans('filter.process') }}:</label>
                         <select id="filter-process" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
-                            <option value="">All</option>
-                            <option value="analog">Analog</option>
-                            <option value="digital">Digital</option>
-                            <option value="hybrid">Hybrid</option>
+                            <option value="">{{ trans('filter.all') }}</option>
+                            <option value="analog">{{ trans('filter.analog') }}</option>
+                            <option value="digital">{{ trans('filter.digital') }}</option>
+                            <option value="hybrid">{{ trans('filter.hybrid') }}</option>
                         </select>
                     </div>
-                    
+
                     <div class="flex items-center gap-3">
-                        <label for="layout-filter-sort" class="text-sm font-medium text-gray-700">Sort:</label>
+                        <label for="layout-filter-sort" class="text-sm font-medium text-gray-700">{{ trans('filter.sort') }}:</label>
                         <select id="layout-filter-sort" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
-                            <option value="published_desc">Latest</option>
-                            <option value="published_asc">Oldest</option>
-                            <option value="title_asc">Title A-Z</option>
-                            <option value="title_desc">Title Z-A</option>
+                            <option value="published_desc">{{ trans('filter.latest') }}</option>
+                            <option value="published_asc">{{ trans('filter.oldest') }}</option>
+                            <option value="title_asc">{{ trans('filter.title_az') }}</option>
+                            <option value="title_desc">{{ trans('filter.title_za') }}</option>
                         </select>
                     </div>
-                    
+
                     <div class="flex items-center gap-3">
-                        <label for="layout-filter-search" class="text-sm font-medium text-gray-700 sr-only">Search:</label>
+                        <label for="layout-filter-search" class="text-sm font-medium text-gray-700 sr-only">{{ trans('filter.search_label') }}:</label>
                         <input type="text" id="layout-filter-search" placeholder="{{ trans('filter.search_equipment') }}"
                                class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 bg-white shadow-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-colors">
                     </div>
