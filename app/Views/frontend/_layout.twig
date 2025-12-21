@@ -1903,7 +1903,9 @@
             }
             const vw = window.innerWidth / 2;
             const vh = window.innerHeight / 2;
-            pswp.zoomTo(target, { x: vw, y: vh }, 280, false);
+            if (pswp.currSlide) {
+                pswp.currSlide.zoomTo(target, { x: vw, y: vh }, 280, false);
+            }
         }
 
         // Shared PhotoSwipe helper: setup tap/zoom handling for lightbox
@@ -2174,7 +2176,9 @@
                             }, 450);
                         }
                         const center = { x: pswp.viewportSize.x / 2, y: pswp.viewportSize.y / 2 };
-                        pswp.zoomTo(target, center, 350);
+                        if (pswp.currSlide) {
+                            pswp.currSlide.zoomTo(target, center, 350);
+                        }
                     };
 
                     lb.on('open', () => {
@@ -2454,7 +2458,9 @@
                       }, 450);
                     }
                     const center = { x: pswp.viewportSize.x / 2, y: pswp.viewportSize.y / 2 };
-                    pswp.zoomTo(target, center, 350);
+                    if (pswp.currSlide) {
+                        pswp.currSlide.zoomTo(target, center, 350);
+                    }
                   };
                   lb.on('open', () => {
                     const pswp = lb.pswp;

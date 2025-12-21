@@ -83,7 +83,16 @@ function safeLocalStorageSet(key, value) {
       if (loader.parentNode) {
         loader.parentNode.removeChild(loader);
       }
-      if (gate) gate.style.display = '';
+      // Fully restore gate state on error
+      if (gate) {
+        gate.style.display = '';
+        gate.classList.add('active');
+      }
+      document.body.style.overflow = 'hidden';
+      if (mainContent) {
+        mainContent.classList.add('nsfw-hidden');
+        mainContent.setAttribute('aria-hidden', 'true');
+      }
     });
     return;
   }
