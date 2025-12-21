@@ -202,7 +202,11 @@ class PageController extends BaseController
         $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
 
         // Select template based on home.template setting
-        $templateFile = $homeTemplate === 'modern' ? 'frontend/home_modern.twig' : 'frontend/home.twig';
+        $templateMap = [
+            'modern' => 'frontend/home_modern.twig',
+            'parallax' => 'frontend/home_parallax.twig',
+        ];
+        $templateFile = $templateMap[$homeTemplate] ?? 'frontend/home.twig';
 
         return $this->view->render($response, $templateFile, [
             'albums' => $albums,
@@ -1514,24 +1518,49 @@ class PageController extends BaseController
             $variantsStmt->execute([':id' => $image['id']]);
             $variants = $variantsStmt->fetchAll();
             
-            // Build responsive sources
+            // Build responsive sources (verify files exist, fallback to webp if jpg missing)
+            // Go up 3 levels: Controllers/Frontend -> Controllers -> app -> project root
+            $publicDir = dirname(__DIR__, 3) . '/public';
             $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
             foreach ($variants as $variant) {
                 $format = $variant['format'] ?? 'jpg';
-                if (isset($sources[$format]) && !empty($variant['path']) && !str_starts_with($variant['path'], '/storage/')) {
-                    $sources[$format][] = $variant['path'] . ' ' . (int)$variant['width'] . 'w';
+                $path = $variant['path'] ?? '';
+                if (isset($sources[$format]) && !empty($path) && !str_starts_with($path, '/storage/')) {
+                    // Check if file exists
+                    if (is_file($publicDir . $path)) {
+                        $sources[$format][] = $path . ' ' . (int)$variant['width'] . 'w';
+                    } elseif ($format === 'jpg') {
+                        // Try webp alternative if jpg doesn't exist
+                        $webpPath = preg_replace('/\.jpg$/i', '.webp', $path);
+                        if (is_file($publicDir . $webpPath)) {
+                            $sources['webp'][] = $webpPath . ' ' . (int)$variant['width'] . 'w';
+                        }
+                    }
                 }
             }
             
             $image['sources'] = $sources;
             $image['variants'] = $variants;
-            
-            // Set fallback URL (best available variant)
+
+            // Set fallback URL (best available variant that exists on disk)
             $fallbackUrl = $image['original_path'];
+
+            // First try to find an existing variant
             foreach ($variants as $variant) {
                 if (!empty($variant['path']) && !str_starts_with($variant['path'], '/storage/')) {
-                    $fallbackUrl = $variant['path'];
-                    break;
+                    $fullPath = $publicDir . $variant['path'];
+                    if (is_file($fullPath)) {
+                        $fallbackUrl = $variant['path'];
+                        break;
+                    }
+                    // Try webp alternative if jpg doesn't exist
+                    if (($variant['format'] ?? '') === 'jpg') {
+                        $webpPath = preg_replace('/\.jpg$/i', '.webp', $variant['path']);
+                        if (is_file($publicDir . $webpPath)) {
+                            $fallbackUrl = $webpPath;
+                            break;
+                        }
+                    }
                 }
             }
             $image['fallback_src'] = $fallbackUrl;
