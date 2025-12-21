@@ -136,6 +136,17 @@ class TemplatesController extends BaseController
             ];
         }
 
+        // Masonry Full (masonry_fit) gap settings
+        if (($settings['layout'] ?? '') === 'masonry_fit') {
+            $gapH = (int)($data['masonry_gap_h'] ?? 16);
+            $gapV = (int)($data['masonry_gap_v'] ?? 16);
+            $settings['masonry'] = true;
+            $settings['gap'] = [
+                'horizontal' => max(0, min(100, $gapH)),
+                'vertical' => max(0, min(100, $gapV)),
+            ];
+        }
+
         $libs = ['photoswipe'];
         if ($settings['masonry']) {
             $libs[] = 'masonry';
