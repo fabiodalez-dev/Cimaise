@@ -310,7 +310,18 @@ class CategoriesController extends BaseController
         }
 
         $id = (int)($args['id'] ?? 0);
-        $stmt = $this->db->pdo()->prepare('DELETE FROM categories WHERE id = :id');
+        $pdo = $this->db->pdo();
+
+        // Prevent deletion of the default "Photo" category
+        $checkStmt = $pdo->prepare('SELECT slug FROM categories WHERE id = :id');
+        $checkStmt->execute([':id' => $id]);
+        $slug = $checkStmt->fetchColumn();
+        if ($slug === 'photo') {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Cannot delete the default category'];
+            return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
+        }
+
+        $stmt = $pdo->prepare('DELETE FROM categories WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Category deleted'];

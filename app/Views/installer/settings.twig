@@ -27,13 +27,13 @@
 {% block content %}
 <h3 class="mb-4"><i class="fas fa-cog me-2"></i>Site Settings</h3>
 
-<p class="text-muted">Configure your site's basic information</p>
+<p class="text-muted">Configure your site's basic information. <span class="text-danger">*</span> indicates required fields.</p>
 
 <form method="post" action="{{ base_path }}/install/settings" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     
     <div class="mb-3">
-        <label for="site-title" class="form-label">Site Title</label>
+        <label for="site-title" class="form-label">Site Title <span class="text-danger">*</span></label>
         <input type="text" id="site-title" class="form-control" name="site_title" autocomplete="organization" value="{{ site_title }}" required>
         <div class="form-text">The name of your photography website</div>
     </div>
@@ -60,7 +60,7 @@
         </div>
         <div class="col-md-6">
             <div class="mb-3">
-                <label for="site-email" class="form-label">Contact Email</label>
+                <label for="site-email" class="form-label">Contact Email <span class="text-danger">*</span></label>
                 <input type="email" id="site-email" class="form-control" name="site_email" autocomplete="email" value="{{ site_email }}" required>
                 <div class="form-text">For contact form submissions</div>
             </div>

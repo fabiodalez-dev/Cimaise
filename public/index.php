@@ -311,13 +311,31 @@ if (is_callable($routes)) {
 }
 
 $errorMiddleware = $app->addErrorMiddleware((bool)($_ENV['APP_DEBUG'] ?? false), true, true);
-$errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig) {
+$errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService) {
     $response = new \Slim\Psr7\Response(404);
-    return $twig->render($response, 'errors/404.twig');
+    $path = $request->getUri()->getPath();
+    $isAdmin = str_contains($path, '/admin');
+
+    // Set translation scope
+    if ($translationService !== null) {
+        $translationService->setScope($isAdmin ? 'admin' : 'frontend');
+    }
+
+    $template = $isAdmin ? 'errors/404_admin.twig' : 'errors/404.twig';
+    return $twig->render($response, $template);
 });
-$errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($twig) {
+$errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($twig, $translationService) {
     $response = new \Slim\Psr7\Response(500);
-    return $twig->render($response, 'errors/500.twig', [
+    $path = $request->getUri()->getPath();
+    $isAdmin = str_contains($path, '/admin');
+
+    // Set translation scope
+    if ($translationService !== null) {
+        $translationService->setScope($isAdmin ? 'admin' : 'frontend');
+    }
+
+    $template = $isAdmin ? 'errors/500_admin.twig' : 'errors/500.twig';
+    return $twig->render($response, $template, [
         'message' => $displayErrorDetails ? (string)$exception : ''
     ]);
 });
