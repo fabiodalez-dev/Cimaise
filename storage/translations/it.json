@@ -286,5 +286,15 @@
     "home_modern.empty_title": "Nessun album ancora",
     "home_modern.empty_text": "Torna presto per nuovi contenuti.",
     "home_modern.menu": "Menu"
+  },
+  "errors": {
+    "errors.404.title": "Pagina non trovata",
+    "errors.404.message": "Spiacenti, la pagina che stai cercando non esiste o è stata spostata.",
+    "errors.404.back_home": "Torna alla Home",
+    "errors.404.back_dashboard": "Torna alla Dashboard",
+    "errors.500.title": "Errore del Server",
+    "errors.500.message": "Spiacenti, si è verificato un errore. Riprova più tardi.",
+    "errors.500.back_home": "Torna alla Home",
+    "errors.500.back_dashboard": "Torna alla Dashboard"
   }
 }
