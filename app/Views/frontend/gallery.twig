@@ -648,30 +648,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   } catch(e){}
   
-  // Ensure images are visible without animation to prevent flickering
-  setTimeout(() => {
-    const galleryContainer = document.getElementById('images-gallery');
-    if (galleryContainer) {
-      // Show content directly without fade-in animation
-      galleryContainer.style.opacity = '1';
-      galleryContainer.style.transition = 'none';
-      
-      // Ensure all images are visible
-      const images = galleryContainer.querySelectorAll('img');
-      images.forEach(img => {
-        img.style.opacity = '1';
-        img.style.transition = 'none';
-      });
-      
-      // Ensure all image items are visible
-      const imageItems = galleryContainer.querySelectorAll('.image-item');
-      imageItems.forEach(item => {
-        item.style.opacity = '1';
-        item.style.transform = 'scale(1)';
-        item.style.transition = 'none';
-      });
-    }
-  }, 100);
+  // Gallery animation handled by animateGalleryOnce in _layout.twig
+  // DO NOT manually set opacity here to avoid double animation
 });
 
 function initializeGalleryLayout() {
@@ -765,45 +743,16 @@ function initializeGalleryLayout() {
   else if (masonry && (layout === 'masonry' || window.templateSettings?.masonry_js === true) && typeof Masonry !== 'undefined') {
     const container = document.getElementById('images-gallery');
     if (container) {
-      imagesLoaded(container, function(){ 
-        window.galleryMasonry = new Masonry(container, { 
-          itemSelector: '.masonry-item', 
-          percentPosition: true 
-        }); 
-        
-        // Ensure images are visible after masonry initialization
-        setTimeout(() => {
-          const images = container.querySelectorAll('img');
-          images.forEach(img => {
-            img.style.opacity = '1';
-            img.style.transition = 'none';
-          });
-          
-          // Ensure image items are also visible
-          const imageItems = container.querySelectorAll('.image-item');
-          imageItems.forEach(item => {
-            item.style.opacity = '1';
-            item.style.transform = 'scale(1)';
-            item.style.transition = 'none';
-          });
-        }, 50);
+      imagesLoaded(container, function(){
+        window.galleryMasonry = new Masonry(container, {
+          itemSelector: '.masonry-item',
+          percentPosition: true
+        });
+        // Animation handled by animateGalleryOnce in _layout.twig
       });
     }
   }
-  
-  // Ensure images are visible after layout initialization
-  setTimeout(() => {
-    const galleryContainer = document.getElementById('images-gallery');
-    if (galleryContainer) {
-      const imageItems = galleryContainer.querySelectorAll('.image-item');
-      imageItems.forEach(item => {
-        // Ensure images are visible without animation
-        item.style.opacity = '1';
-        item.style.transform = 'scale(1)';
-        item.style.transition = 'none';
-      });
-    }
-  }, 100);
+  // Animation handled by animateGalleryOnce in _layout.twig - DO NOT set opacity here
 }
 
 // Magazine Split autoscroll initializer - Enhanced responsive version
