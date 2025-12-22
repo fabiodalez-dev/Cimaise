@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Album Gallery</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      background: #ffffff;
+      overflow: hidden;
+      height: 100%;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    /* === HEADER === */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 3rem;
+      border-bottom: 1px solid #eee;
+      z-index: 200;
+    }
+
+    .logo {
+      color: #000;
+      font-size: 1.2rem;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    nav {
+      display: flex;
+      gap: 2rem;
+    }
+
+    nav a {
+      color: #666;
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      transition: color 0.3s;
+    }
+
+    nav a:hover {
+      color: #000;
+    }
+
+    /* Menu hamburger (nascosto su desktop) */
+    .menu-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 5px;
+    }
+
+    .menu-toggle span {
+      width: 24px;
+      height: 2px;
+      background: #000;
+      transition: 0.3s;
+    }
+
+    /* === CONTAINER DESKTOP === */
+    .container {
+      position: fixed;
+      top: 80px;
+      left: 0;
+      width: 100%;
+      height: calc(100vh - 80px);
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* === COLONNA SINISTRA === */
+    .left-column {
+      width: 45%;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .left-track {
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .album-info {
+      height: calc(100vh - 80px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 4rem 6rem;
+      color: #000;
+    }
+
+    .album-info h1 {
+      font-size: clamp(2rem, 5vw, 4.5rem);
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      color: #000;
+    }
+
+    .album-info .year {
+      font-size: 0.9rem;
+      color: #999;
+      letter-spacing: 0.2em;
+      margin-bottom: 2rem;
+    }
+
+    .album-info p {
+      font-size: 1rem;
+      line-height: 1.8;
+      color: #666;
+      max-width: 400px;
+    }
+
+    .album-info .tracklist {
+      margin-top: 2.5rem;
+      font-size: 0.85rem;
+      color: #aaa;
+      letter-spacing: 0.1em;
+    }
+
+    /* === COLONNA DESTRA === */
+    .right-column {
+      width: 55%;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .right-track {
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .cover {
+      width: 100%;
+      height: calc(100vh - 80px);
+      flex-shrink: 0;
+    }
+
+    .cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+
+    /* Linea divisoria */
+    .divider {
+      position: fixed;
+      left: 45%;
+      top: 80px;
+      bottom: 0;
+      width: 1px;
+      background: #eee;
+    }
+
+    /* Indicatori */
+    .indicators {
+      position: fixed;
+      right: 2rem;
+      top: calc(50% + 40px);
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      z-index: 100;
+    }
+
+    .indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ddd;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.3s;
+    }
+
+    .indicator.active {
+      background: #000;
+      transform: scale(1.3);
+    }
+
+    .indicator:hover {
+      background: #999;
+    }
+
+    /* === MOBILE VIEW (nascosta su desktop) === */
+    .mobile-container {
+      display: none;
+    }
+
+    /* ============================================
+       TABLET: max-width 1024px
+       ============================================ */
+    @media (max-width: 1024px) {
+      header {
+        padding: 0 2rem;
+      }
+
+      .left-column {
+        width: 50%;
+      }
+
+      .right-column {
+        width: 50%;
+      }
+
+      .divider {
+        left: 50%;
+      }
+
+      .album-info {
+        padding: 3rem 3rem;
+      }
+
+      .album-info p {
+        font-size: 0.95rem;
+      }
+    }
+
+    /* ============================================
+       MOBILE: max-width 768px
+       Layout completamente diverso
+       ============================================ */
+    @media (max-width: 768px) {
+      header {
+        height: 60px;
+        padding: 0 1.5rem;
+      }
+
+      .logo {
+        font-size: 1rem;
+      }
+
+      nav {
+        display: none;
+      }
+
+      .menu-toggle {
+        display: flex;
+      }
+
+      /* Nascondi layout desktop */
+      .container {
+        display: none;
+      }
+
+      .divider {
+        display: none;
+      }
+
+      /* Mostra layout mobile */
+      .mobile-container {
+        display: block;
+        position: fixed;
+        top: 60px;
+        left: 0;
+        width: 100%;
+        height: calc(100vh - 60px);
+        overflow: hidden;
+      }
+
+      .mobile-track {
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .mobile-slide {
+        width: 100%;
+        height: calc(100vh - 60px);
+        flex-shrink: 0;
+        position: relative;
+      }
+
+      .mobile-slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      /* Overlay gradiente per testo */
+      .mobile-slide::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60%;
+        background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+        pointer-events: none;
+      }
+
+      .mobile-info {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 2rem 1.5rem;
+        color: white;
+        z-index: 10;
+      }
+
+      .mobile-info .year {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.6);
+        letter-spacing: 0.2em;
+        margin-bottom: 0.8rem;
+      }
+
+      .mobile-info h2 {
+        font-size: 2rem;
+        font-weight: 300;
+        letter-spacing: 0.05em;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+      }
+
+      .mobile-info p {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: rgba(255,255,255,0.8);
+        margin-bottom: 1rem;
+      }
+
+      .mobile-info .tracklist {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.5);
+        letter-spacing: 0.1em;
+      }
+
+      /* Indicatori mobile */
+      .indicators {
+        right: 1rem;
+        top: auto;
+        bottom: 2rem;
+        transform: none;
+        flex-direction: row;
+        gap: 0.6rem;
+      }
+
+      .indicator {
+        width: 6px;
+        height: 6px;
+        background: rgba(255,255,255,0.4);
+      }
+
+      .indicator.active {
+        background: white;
+      }
+    }
+
+    /* ============================================
+       SMALL MOBILE: max-width 480px
+       ============================================ */
+    @media (max-width: 480px) {
+      .mobile-info {
+        padding: 1.5rem 1.2rem;
+      }
+
+      .mobile-info h2 {
+        font-size: 1.6rem;
+      }
+
+      .mobile-info p {
+        font-size: 0.85rem;
+        /* Limita a 3 righe */
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              RESPONSIVE DESIGN                               ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  DESKTOP (> 1024px):                                                         ║
+║  - Due colonne affiancate (45% / 55%)                                        ║
+║  - Testo a sinistra, immagini a destra                                       ║
+║  - Scroll in direzioni opposte                                               ║
+║                                                                              ║
+║  TABLET (768px - 1024px):                                                    ║
+║  - Due colonne 50% / 50%                                                     ║
+║  - Padding ridotto                                                           ║
+║  - Stessa logica desktop                                                     ║
+║                                                                              ║
+║  MOBILE (< 768px):                                                           ║
+║  - Layout completamente diverso                                              ║
+║  - Immagine full screen                                                      ║
+║  - Testo sovrapposto con gradiente                                           ║
+║  - Indicatori in basso orizzontali                                           ║
+║  - Menu hamburger                                                            ║
+║                                                                              ║
+║  Il JavaScript rileva il breakpoint e usa il track appropriato               ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+  <header>
+    <div class="logo">Studio</div>
+    <nav>
+      <a href="#">Work</a>
+      <a href="#">About</a>
+      <a href="#">Contact</a>
+    </nav>
+    <div class="menu-toggle">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </header>
+
+  <!-- DESKTOP/TABLET LAYOUT -->
+  <div class="container">
+    <div class="left-column">
+      <div class="left-track" id="leftTrack">
+        
+        <div class="album-info">
+          <span class="year">2022</span>
+          <h1>Renaissance</h1>
+          <p>Un viaggio attraverso la storia della dance music, dal disco al house, celebrando la cultura black e queer che ha dato vita a questi generi.</p>
+          <span class="tracklist">16 tracce · 62 min</span>
+        </div>
+
+        <div class="album-info">
+          <span class="year">2016</span>
+          <h1>Lemonade</h1>
+          <p>Un album visivo che esplora temi di infedeltà, storia afroamericana, femminismo e resilienza attraverso una narrazione intima e potente.</p>
+          <span class="tracklist">12 tracce · 45 min</span>
+        </div>
+
+        <div class="album-info">
+          <span class="year">2013</span>
+          <h1>Beyoncé</h1>
+          <p>L'album omonimo rilasciato a sorpresa che ha rivoluzionato l'industria musicale. Ogni traccia accompagnata da un video musicale.</p>
+          <span class="tracklist">14 tracce · 52 min</span>
+        </div>
+
+        <div class="album-info">
+          <span class="year">2011</span>
+          <h1>4</h1>
+          <p>Un ritorno alle radici soul e R&B, con ballate potenti e produzioni elaborate che mostrano la maturità artistica.</p>
+          <span class="tracklist">12 tracce · 49 min</span>
+        </div>
+
+        <div class="album-info">
+          <span class="year">2008</span>
+          <h1>I Am... Sasha Fierce</h1>
+          <p>Un doppio album che esplora la dualità tra la persona privata e l'alter ego sul palco. Include Single Ladies e Halo.</p>
+          <span class="tracklist">23 tracce · 78 min</span>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="right-column">
+      <div class="right-track" id="rightTrack">
+        
+        <div class="cover">
+          <img src="https://picsum.photos/seed/album5/1200/1600" alt="I Am... Sasha Fierce">
+        </div>
+
+        <div class="cover">
+          <img src="https://picsum.photos/seed/album4/1200/1600" alt="4">
+        </div>
+
+        <div class="cover">
+          <img src="https://picsum.photos/seed/album3/1200/1600" alt="Beyoncé">
+        </div>
+
+        <div class="cover">
+          <img src="https://picsum.photos/seed/album2/1200/1600" alt="Lemonade">
+        </div>
+
+        <div class="cover">
+          <img src="https://picsum.photos/seed/album1/1200/1600" alt="Renaissance">
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE LAYOUT -->
+  <div class="mobile-container">
+    <div class="mobile-track" id="mobileTrack">
+      
+      <div class="mobile-slide">
+        <img src="https://picsum.photos/seed/album1/800/1200" alt="Renaissance">
+        <div class="mobile-info">
+          <span class="year">2022</span>
+          <h2>Renaissance</h2>
+          <p>Un viaggio attraverso la storia della dance music, dal disco al house, celebrando la cultura black e queer.</p>
+          <span class="tracklist">16 tracce · 62 min</span>
+        </div>
+      </div>
+
+      <div class="mobile-slide">
+        <img src="https://picsum.photos/seed/album2/800/1200" alt="Lemonade">
+        <div class="mobile-info">
+          <span class="year">2016</span>
+          <h2>Lemonade</h2>
+          <p>Un album visivo che esplora temi di infedeltà, storia afroamericana, femminismo e resilienza.</p>
+          <span class="tracklist">12 tracce · 45 min</span>
+        </div>
+      </div>
+
+      <div class="mobile-slide">
+        <img src="https://picsum.photos/seed/album3/800/1200" alt="Beyoncé">
+        <div class="mobile-info">
+          <span class="year">2013</span>
+          <h2>Beyoncé</h2>
+          <p>L'album omonimo rilasciato a sorpresa che ha rivoluzionato l'industria musicale.</p>
+          <span class="tracklist">14 tracce · 52 min</span>
+        </div>
+      </div>
+
+      <div class="mobile-slide">
+        <img src="https://picsum.photos/seed/album4/800/1200" alt="4">
+        <div class="mobile-info">
+          <span class="year">2011</span>
+          <h2>4</h2>
+          <p>Un ritorno alle radici soul e R&B, con ballate potenti e produzioni elaborate.</p>
+          <span class="tracklist">12 tracce · 49 min</span>
+        </div>
+      </div>
+
+      <div class="mobile-slide">
+        <img src="https://picsum.photos/seed/album5/800/1200" alt="I Am... Sasha Fierce">
+        <div class="mobile-info">
+          <span class="year">2008</span>
+          <h2>I Am... Sasha Fierce</h2>
+          <p>Un doppio album che esplora la dualità tra la persona privata e l'alter ego sul palco.</p>
+          <span class="tracklist">23 tracce · 78 min</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="indicators" id="indicators"></div>
+
+  <script>
+    const leftTrack = document.getElementById('leftTrack');
+    const rightTrack = document.getElementById('rightTrack');
+    const mobileTrack = document.getElementById('mobileTrack');
+    const indicatorsContainer = document.getElementById('indicators');
+    
+    const albumCount = document.querySelectorAll('.album-info').length;
+    
+    let currentIndex = 0;
+    let canScroll = true;
+    let isMobile = window.innerWidth <= 768;
+
+    // Calcola altezze
+    function getHeights() {
+      const headerHeight = isMobile ? 60 : 80;
+      return window.innerHeight - headerHeight;
+    }
+
+    // Crea indicatori
+    for (let i = 0; i < albumCount; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'indicator' + (i === 0 ? ' active' : '');
+      dot.addEventListener('click', () => goToAlbum(i));
+      indicatorsContainer.appendChild(dot);
+    }
+    const indicators = document.querySelectorAll('.indicator');
+
+    // Vai a un album specifico
+    function goToAlbum(index) {
+      if (index === currentIndex) return;
+      if (index < 0 || index >= albumCount) return;
+
+      indicators[currentIndex].classList.remove('active');
+      indicators[index].classList.add('active');
+
+      currentIndex = index;
+      const vh = getHeights();
+
+      if (isMobile) {
+        // Mobile: scroll singolo track verso l'alto
+        const mobileY = -currentIndex * vh;
+        mobileTrack.style.transform = `translateY(${mobileY}px)`;
+      } else {
+        // Desktop: due colonne opposte
+        const leftY = -currentIndex * vh;
+        const rightY = -(albumCount - 1 - currentIndex) * vh;
+        leftTrack.style.transform = `translateY(${leftY}px)`;
+        rightTrack.style.transform = `translateY(${rightY}px)`;
+      }
+    }
+
+    function nextAlbum() {
+      if (!canScroll) return;
+      if (currentIndex >= albumCount - 1) return;
+      
+      canScroll = false;
+      goToAlbum(currentIndex + 1);
+      
+      setTimeout(() => {
+        canScroll = true;
+      }, 1000);
+    }
+
+    function prevAlbum() {
+      if (!canScroll) return;
+      if (currentIndex <= 0) return;
+      
+      canScroll = false;
+      goToAlbum(currentIndex - 1);
+      
+      setTimeout(() => {
+        canScroll = true;
+      }, 1000);
+    }
+
+    // Mouse wheel
+    let wheelAccumulator = 0;
+    const wheelThreshold = 50;
+
+    window.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      
+      if (!canScroll) return;
+
+      wheelAccumulator += e.deltaY;
+
+      if (Math.abs(wheelAccumulator) >= wheelThreshold) {
+        if (wheelAccumulator > 0) {
+          nextAlbum();
+        } else {
+          prevAlbum();
+        }
+        wheelAccumulator = 0;
+      }
+    }, { passive: false });
+
+    // Tastiera
+    window.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'ArrowDown':
+        case 'PageDown':
+        case ' ':
+          e.preventDefault();
+          nextAlbum();
+          break;
+        case 'ArrowUp':
+        case 'PageUp':
+          e.preventDefault();
+          prevAlbum();
+          break;
+        case 'Home':
+          e.preventDefault();
+          if (canScroll) {
+            canScroll = false;
+            goToAlbum(0);
+            setTimeout(() => canScroll = true, 1000);
+          }
+          break;
+        case 'End':
+          e.preventDefault();
+          if (canScroll) {
+            canScroll = false;
+            goToAlbum(albumCount - 1);
+            setTimeout(() => canScroll = true, 1000);
+          }
+          break;
+      }
+    });
+
+    // Touch swipe
+    let touchStartY = 0;
+
+    window.addEventListener('touchstart', (e) => {
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      const touchEndY = e.changedTouches[0].screenY;
+      const diff = touchStartY - touchEndY;
+
+      if (Math.abs(diff) > 50) {
+        if (diff > 0) {
+          nextAlbum();
+        } else {
+          prevAlbum();
+        }
+      }
+    }, { passive: true });
+
+    // Inizializza posizioni
+    function initPositions() {
+      const vh = getHeights();
+      if (!isMobile) {
+        rightTrack.style.transform = `translateY(-${(albumCount - 1) * vh}px)`;
+      }
+    }
+
+    // Gestisci resize
+    window.addEventListener('resize', () => {
+      const wasMobile = isMobile;
+      isMobile = window.innerWidth <= 768;
+      
+      // Se cambia breakpoint, reset
+      if (wasMobile !== isMobile) {
+        currentIndex = 0;
+        indicators.forEach((ind, i) => {
+          ind.classList.toggle('active', i === 0);
+        });
+        
+        leftTrack.style.transform = 'translateY(0)';
+        mobileTrack.style.transform = 'translateY(0)';
+        initPositions();
+      }
+    });
+
+    initPositions();
+  </script>
+
+</body>
+</html>

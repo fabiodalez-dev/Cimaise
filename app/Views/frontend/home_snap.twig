@@ -608,22 +608,35 @@ footer {
     }
   }
 
-  // Handle resize
+  // Handle resize - recalculate positions to maintain snap alignment
+  let resizeTimeout;
   window.addEventListener('resize', function() {
-    const wasMobile = isMobile;
-    isMobile = window.innerWidth <= 768;
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(function() {
+      const wasMobile = isMobile;
+      isMobile = window.innerWidth <= 768;
 
-    // If breakpoint changed, reset
-    if (wasMobile !== isMobile) {
-      currentIndex = 0;
-      indicators.forEach(function(ind, i) {
-        ind.classList.toggle('active', i === 0);
-      });
+      // If breakpoint changed, reset to first album
+      if (wasMobile !== isMobile) {
+        currentIndex = 0;
+        indicators.forEach(function(ind, i) {
+          ind.classList.toggle('active', i === 0);
+        });
+      }
 
-      leftTrack.style.transform = 'translateY(0)';
-      if (mobileTrack) mobileTrack.style.transform = 'translateY(0)';
-      initPositions();
-    }
+      // Always recalculate positions based on new viewport height
+      const vh = getHeights();
+
+      if (isMobile) {
+        const mobileY = -currentIndex * vh;
+        if (mobileTrack) mobileTrack.style.transform = 'translateY(' + mobileY + 'px)';
+      } else {
+        const leftY = -currentIndex * vh;
+        const rightY = -(albumCount - 1 - currentIndex) * vh;
+        leftTrack.style.transform = 'translateY(' + leftY + 'px)';
+        rightTrack.style.transform = 'translateY(' + rightY + 'px)';
+      }
+    }, 100); // Debounce 100ms
   });
 
   initPositions();
