@@ -572,6 +572,73 @@ document.addEventListener('click', function(event) {
 // Global base path for API calls
 window.basePath = '{{ base_path }}';
 
+// Reusable masonry_fit initialization helper
+window.initAlbumMasonryFit = function(container, options) {
+    if (!container || typeof Masonry === 'undefined') return null;
+
+    const gap = options.gap || 16;
+    const colsDesktop = options.colsDesktop || 5;
+    const colsTablet = options.colsTablet || 3;
+    const colsMobile = options.colsMobile || 2;
+
+    function getColumnWidth() {
+        const width = window.innerWidth;
+        let cols = colsMobile;
+        if (width >= 1024) cols = colsDesktop;
+        else if (width >= 768) cols = colsTablet;
+        const containerWidth = container.offsetWidth;
+        return Math.floor((containerWidth - gap * (cols - 1)) / cols);
+    }
+
+    function updateItemWidths() {
+        const columnWidth = getColumnWidth();
+        container.querySelectorAll('.masonry-item').forEach(item => {
+            item.style.width = columnWidth + 'px';
+        });
+    }
+
+    // Setup IntersectionObserver for viewport visibility
+    const preloadedItems = new WeakSet();
+    let viewportObserver = null;
+
+    if ('IntersectionObserver' in window) {
+        viewportObserver = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-viewport');
+                    const img = entry.target.querySelector('img');
+                    if (img && !preloadedItems.has(entry.target)) {
+                        preloadedItems.add(entry.target);
+                        img.loading = 'eager';
+                    }
+                } else {
+                    entry.target.classList.remove('in-viewport');
+                }
+            });
+        }, { rootMargin: '200% 0px 200% 0px', threshold: 0 });
+    }
+
+    updateItemWidths();
+
+    // Observe all items
+    if (viewportObserver) {
+        container.querySelectorAll('.masonry-item').forEach(function(item) {
+            viewportObserver.observe(item);
+        });
+    }
+
+    const msnry = new Masonry(container, {
+        itemSelector: '.masonry-item',
+        columnWidth: '.masonry-item',
+        gutter: gap,
+        fitWidth: false,
+        horizontalOrder: true
+    });
+
+    // Return object with masonry instance and update function
+    return { msnry, updateItemWidths, viewportObserver };
+};
+
 // Template settings
 const templateSettings = JSON.parse('{{ template_settings ? template_settings|json_encode|e('js') : '{}' }}');
 const layout = templateSettings.layout || 'grid';
@@ -637,87 +704,26 @@ if (masonry && layout !== 'masonry_fit' && typeof Masonry !== 'undefined') {
 if (layout === 'masonry_fit') {
     const container = document.getElementById('images-gallery');
     if (container && typeof Masonry !== 'undefined') {
-        const gap = parseInt(container.dataset.gap) || 16;
-        const colsDesktop = parseInt(container.dataset.colsDesktop) || 5;
-        const colsTablet = parseInt(container.dataset.colsTablet) || 3;
-        const colsMobile = parseInt(container.dataset.colsMobile) || 2;
-
-        // Performance: cache preloaded items to avoid re-processing
-        const preloadedItems = new WeakSet();
-        let viewportObserver = null;
-
-        function getColumnWidth() {
-            const width = window.innerWidth;
-            let cols = colsMobile;
-            if (width >= 1024) cols = colsDesktop;
-            else if (width >= 768) cols = colsTablet;
-
-            const containerWidth = container.offsetWidth;
-            return Math.floor((containerWidth - gap * (cols - 1)) / cols);
-        }
-
-        function updateItemWidths() {
-            const columnWidth = getColumnWidth();
-            container.querySelectorAll('.masonry-item').forEach(item => {
-                item.style.width = columnWidth + 'px';
-            });
-        }
-
-        // IntersectionObserver for viewport visibility (content-visibility optimization)
-        function setupViewportObserver() {
-            if (!('IntersectionObserver' in window)) return;
-
-            viewportObserver = new IntersectionObserver(function(entries) {
-                entries.forEach(function(entry) {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('in-viewport');
-                        // Preload image when entering extended viewport
-                        const img = entry.target.querySelector('img');
-                        if (img && !preloadedItems.has(entry.target)) {
-                            preloadedItems.add(entry.target);
-                            img.loading = 'eager';
-                        }
-                    } else {
-                        entry.target.classList.remove('in-viewport');
-                    }
-                });
-            }, {
-                rootMargin: '300% 0px 300% 0px', // 3 viewports above and below for earlier preload
-                threshold: 0
-            });
-        }
+        const options = {
+            gap: parseInt(container.dataset.gap) || 16,
+            colsDesktop: parseInt(container.dataset.colsDesktop) || 5,
+            colsTablet: parseInt(container.dataset.colsTablet) || 3,
+            colsMobile: parseInt(container.dataset.colsMobile) || 2
+        };
 
         const initMasonryFit = () => {
-            updateItemWidths();
-
-            // Setup IntersectionObserver for performance
-            setupViewportObserver();
-
-            // Observe all items
-            if (viewportObserver) {
-                container.querySelectorAll('.masonry-item').forEach(function(item) {
-                    viewportObserver.observe(item);
+            const result = window.initAlbumMasonryFit(container, options);
+            if (result) {
+                // Re-layout on resize
+                let resizeTimer;
+                window.addEventListener('resize', function() {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(function() {
+                        result.updateItemWidths();
+                        result.msnry.layout();
+                    }, 150);
                 });
             }
-
-            const msnry = new Masonry(container, {
-                itemSelector: '.masonry-item',
-                columnWidth: '.masonry-item',
-                gutter: gap,
-                fitWidth: false,
-                horizontalOrder: true
-            });
-
-            // Re-layout on resize
-            let resizeTimer;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(function() {
-                    updateItemWidths();
-                    msnry.layout();
-                }, 150); // Slightly longer debounce for better perf
-            });
-
             if (window.lenisResize) window.lenisResize();
         };
 
@@ -787,88 +793,33 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
         // Re-initialize Masonry for both masonry and masonry_fit layouts
         if ((masonry || layout === 'masonry_fit') && typeof Masonry !== 'undefined') {
             if (layout === 'masonry_fit') {
-                // masonry_fit: use same logic as initial load with horizontalOrder
-                const gap = parseInt(gallery.dataset.gap) || 16;
-                const colsDesktop = parseInt(gallery.dataset.colsDesktop) || 5;
-                const colsTablet = parseInt(gallery.dataset.colsTablet) || 3;
-                const colsMobile = parseInt(gallery.dataset.colsMobile) || 2;
+                // masonry_fit: use reusable helper
+                const options = {
+                    gap: parseInt(gallery.dataset.gap) || 16,
+                    colsDesktop: parseInt(gallery.dataset.colsDesktop) || 5,
+                    colsTablet: parseInt(gallery.dataset.colsTablet) || 3,
+                    colsMobile: parseInt(gallery.dataset.colsMobile) || 2
+                };
 
-                function getColumnWidth() {
-                    const width = window.innerWidth;
-                    let cols = colsMobile;
-                    if (width >= 1024) cols = colsDesktop;
-                    else if (width >= 768) cols = colsTablet;
-                    const containerWidth = gallery.offsetWidth;
-                    return Math.floor((containerWidth - gap * (cols - 1)) / cols);
-                }
-
-                function updateItemWidths() {
-                    const columnWidth = getColumnWidth();
-                    gallery.querySelectorAll('.masonry-item').forEach(item => {
-                        item.style.width = columnWidth + 'px';
-                    });
-                }
-
-                // Setup IntersectionObserver for filtered items
-                const filteredPreloadedItems = new WeakSet();
-                let filteredViewportObserver = null;
-
-                if ('IntersectionObserver' in window) {
-                    filteredViewportObserver = new IntersectionObserver(function(entries) {
-                        entries.forEach(function(entry) {
-                            if (entry.isIntersecting) {
-                                entry.target.classList.add('in-viewport');
-                                const img = entry.target.querySelector('img');
-                                if (img && !filteredPreloadedItems.has(entry.target)) {
-                                    filteredPreloadedItems.add(entry.target);
-                                    img.loading = 'eager';
-                                }
-                            } else {
-                                entry.target.classList.remove('in-viewport');
-                            }
-                        });
-                    }, { rootMargin: '300% 0px 300% 0px', threshold: 0 });
-                }
+                const initFiltered = () => {
+                    window.initAlbumMasonryFit(gallery, options);
+                    if (window.lenisResize) window.lenisResize();
+                };
 
                 if (typeof imagesLoaded !== 'undefined') {
-                    imagesLoaded(gallery, function() {
-                        updateItemWidths();
-                        // Observe new items
-                        if (filteredViewportObserver) {
-                            gallery.querySelectorAll('.masonry-item').forEach(function(item) {
-                                filteredViewportObserver.observe(item);
-                            });
-                        }
-                        new Masonry(gallery, {
-                            itemSelector: '.masonry-item',
-                            columnWidth: '.masonry-item',
-                            gutter: gap,
-                            fitWidth: false,
-                            horizontalOrder: true
-                        });
-                        if (window.lenisResize) window.lenisResize();
-                    });
+                    imagesLoaded(gallery, initFiltered);
                 } else {
-                    updateItemWidths();
-                    // Observe new items
-                    if (filteredViewportObserver) {
-                        gallery.querySelectorAll('.masonry-item').forEach(function(item) {
-                            filteredViewportObserver.observe(item);
-                        });
-                    }
-                    new Masonry(gallery, {
-                        itemSelector: '.masonry-item',
-                        columnWidth: '.masonry-item',
-                        gutter: gap,
-                        fitWidth: false,
-                        horizontalOrder: true
-                    });
+                    initFiltered();
                 }
             } else {
                 // Regular masonry layout
-                imagesLoaded(gallery, function(){
+                if (typeof imagesLoaded !== 'undefined') {
+                    imagesLoaded(gallery, function(){
+                        new Masonry(gallery, { itemSelector: '.masonry-item', percentPosition: true });
+                    });
+                } else {
                     new Masonry(gallery, { itemSelector: '.masonry-item', percentPosition: true });
-                });
+                }
             }
         }
         
