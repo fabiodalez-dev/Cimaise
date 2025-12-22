@@ -93,7 +93,7 @@ return new class {
                 image_id INT NOT NULL,
                 field_type_id INT NOT NULL,
                 field_value_id INT NULL,
-                custom_value VARCHAR(255) NULL,
+                custom_value TEXT NULL,
                 is_override BOOLEAN DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE,
@@ -104,13 +104,16 @@ return new class {
 
         // Create indexes on image_custom_fields
         if ($driver === 'mysql') {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'image_custom_fields' AND index_name = ?");
-            $stmt->execute(['idx_icf_image']);
-            if ($stmt->fetchColumn() == 0) {
+            // Check if indexes exist before creating - use separate statements to avoid cursor issues
+            $stmt1 = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'image_custom_fields' AND index_name = ?");
+            $stmt1->execute(['idx_icf_image']);
+            if ($stmt1->fetchColumn() == 0) {
                 $pdo->exec("CREATE INDEX idx_icf_image ON image_custom_fields(image_id)");
             }
-            $stmt->execute(['idx_icf_type']);
-            if ($stmt->fetchColumn() == 0) {
+
+            $stmt2 = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'image_custom_fields' AND index_name = ?");
+            $stmt2->execute(['idx_icf_type']);
+            if ($stmt2->fetchColumn() == 0) {
                 $pdo->exec("CREATE INDEX idx_icf_type ON image_custom_fields(field_type_id)");
             }
         } else {
@@ -126,7 +129,7 @@ return new class {
                 album_id INT NOT NULL,
                 field_type_id INT NOT NULL,
                 field_value_id INT NULL,
-                custom_value VARCHAR(255) NULL,
+                custom_value TEXT NULL,
                 auto_added BOOLEAN DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
@@ -137,13 +140,16 @@ return new class {
 
         // Create indexes on album_custom_fields
         if ($driver === 'mysql') {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'album_custom_fields' AND index_name = ?");
-            $stmt->execute(['idx_acf_album']);
-            if ($stmt->fetchColumn() == 0) {
+            // Check if indexes exist before creating - use separate statements to avoid cursor issues
+            $stmt3 = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'album_custom_fields' AND index_name = ?");
+            $stmt3->execute(['idx_acf_album']);
+            if ($stmt3->fetchColumn() == 0) {
                 $pdo->exec("CREATE INDEX idx_acf_album ON album_custom_fields(album_id)");
             }
-            $stmt->execute(['idx_acf_type']);
-            if ($stmt->fetchColumn() == 0) {
+
+            $stmt4 = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'album_custom_fields' AND index_name = ?");
+            $stmt4->execute(['idx_acf_type']);
+            if ($stmt4->fetchColumn() == 0) {
                 $pdo->exec("CREATE INDEX idx_acf_type ON album_custom_fields(field_type_id)");
             }
         } else {
