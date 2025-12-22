@@ -123,7 +123,12 @@
       btn.addEventListener('click', function() {
         const icon = this.dataset.icon;
         iconValue.value = icon;
-        iconPreview.innerHTML = '<i class="fas ' + icon + '"></i>';
+
+        // Safer DOM manipulation (icon is server-validated whitelist)
+        iconPreview.textContent = '';
+        const iconEl = document.createElement('i');
+        iconEl.className = 'fas ' + icon;
+        iconPreview.appendChild(iconEl);
 
         // Update selection styling
         document.querySelectorAll('.icon-option').forEach(function(b) {
