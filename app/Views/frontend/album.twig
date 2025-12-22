@@ -457,8 +457,12 @@ document.addEventListener('click', function(event) {
         .masonry-fit-grid {
             width: 100%;
         }
+        .masonry-fit-grid .masonry-column {
+            flex: 1;
+            min-width: 0;
+        }
         .masonry-fit-grid .masonry-item {
-            margin-bottom: {{ gap_v }}px;
+            width: 100%;
         }
         .masonry-fit-grid .masonry-item img {
             display: block;
@@ -572,28 +576,92 @@ document.addEventListener('click', function(event) {
 // Global base path for API calls
 window.basePath = '{{ base_path }}';
 
-// Reusable masonry_fit initialization helper
+// Reusable masonry_fit initialization helper - Balanced Flexbox Columns approach
+// Distributes items across columns to minimize height differences while filling left-to-right
 window.initAlbumMasonryFit = function(container, options) {
-    if (!container || typeof Masonry === 'undefined') return null;
+    if (!container) return null;
 
     const gap = options.gap || 16;
     const colsDesktop = options.colsDesktop || 5;
     const colsTablet = options.colsTablet || 3;
     const colsMobile = options.colsMobile || 2;
 
-    function getColumnWidth() {
+    let columnWrappers = [];
+    const originalItems = Array.from(container.querySelectorAll('.masonry-item'));
+
+    function getColumnCount() {
         const width = window.innerWidth;
-        let cols = colsMobile;
-        if (width >= 1024) cols = colsDesktop;
-        else if (width >= 768) cols = colsTablet;
-        const containerWidth = container.offsetWidth;
-        return Math.floor((containerWidth - gap * (cols - 1)) / cols);
+        if (width >= 1024) return colsDesktop;
+        if (width >= 768) return colsTablet;
+        return colsMobile;
     }
 
-    function updateItemWidths() {
-        const columnWidth = getColumnWidth();
-        container.querySelectorAll('.masonry-item').forEach(item => {
-            item.style.width = columnWidth + 'px';
+    function createColumnStructure(numCols) {
+        // Clear existing column wrappers
+        columnWrappers.forEach(w => w.remove());
+        columnWrappers = [];
+
+        // Create flex container
+        container.style.display = 'flex';
+        container.style.flexWrap = 'nowrap';
+        container.style.gap = gap + 'px';
+        container.style.alignItems = 'flex-start';
+
+        // Create column wrappers
+        for (let i = 0; i < numCols; i++) {
+            const col = document.createElement('div');
+            col.className = 'masonry-column';
+            col.style.flex = '1';
+            col.style.display = 'flex';
+            col.style.flexDirection = 'column';
+            col.style.gap = gap + 'px';
+            col.style.minWidth = '0'; // Allow flex shrink
+            columnWrappers.push(col);
+            container.appendChild(col);
+        }
+    }
+
+    function distributeItems() {
+        const numCols = getColumnCount();
+        createColumnStructure(numCols);
+
+        // Track column heights
+        const columnHeights = new Array(numCols).fill(0);
+
+        // Pre-calculate all item heights for smarter distribution
+        const colWidth = container.offsetWidth / numCols - gap * (numCols - 1) / numCols;
+        const itemHeights = originalItems.map(item => {
+            const img = item.querySelector('img');
+            if (img && img.dataset.aspectRatio) {
+                return colWidth * parseFloat(img.dataset.aspectRatio);
+            }
+            return item.offsetHeight || colWidth * 0.75;
+        });
+
+        // Distribute items using balanced greedy algorithm
+        // Prefers leftmost column among those within threshold of shortest
+        const heightThreshold = colWidth * 0.15; // Allow 15% tolerance
+
+        originalItems.forEach((item, idx) => {
+            // Find shortest column height
+            const shortestHeight = Math.min(...columnHeights);
+
+            // Find leftmost column within threshold of shortest
+            let targetIdx = 0;
+            for (let i = 0; i < numCols; i++) {
+                if (columnHeights[i] <= shortestHeight + heightThreshold) {
+                    targetIdx = i;
+                    break;
+                }
+            }
+
+            // Move item to target column
+            item.style.width = '100%';
+            item.style.marginBottom = '0'; // Gap handled by flex container
+            columnWrappers[targetIdx].appendChild(item);
+
+            // Update column height
+            columnHeights[targetIdx] += itemHeights[idx] + gap;
         });
     }
 
@@ -618,25 +686,34 @@ window.initAlbumMasonryFit = function(container, options) {
         }, { rootMargin: '200% 0px 200% 0px', threshold: 0 });
     }
 
-    updateItemWidths();
+    distributeItems();
 
     // Observe all items
     if (viewportObserver) {
-        container.querySelectorAll('.masonry-item').forEach(function(item) {
+        originalItems.forEach(function(item) {
             viewportObserver.observe(item);
         });
     }
 
-    const msnry = new Masonry(container, {
-        itemSelector: '.masonry-item',
-        columnWidth: '.masonry-item',
-        gutter: gap,
-        fitWidth: false,
-        horizontalOrder: true
-    });
+    // Cleanup function to prevent memory leaks
+    function destroy() {
+        if (viewportObserver) {
+            viewportObserver.disconnect();
+            viewportObserver = null;
+        }
+        columnWrappers.forEach(w => w.remove());
+        columnWrappers = [];
+    }
 
-    // Return object with masonry instance and update function
-    return { msnry, updateItemWidths, viewportObserver };
+    // Return object with update function for resize handling
+    return {
+        distributeItems,
+        viewportObserver,
+        destroy,
+        // Compatibility with existing code expecting msnry
+        msnry: { layout: distributeItems },
+        updateItemWidths: distributeItems
+    };
 };
 
 // Template settings
@@ -711,18 +788,36 @@ if (layout === 'masonry_fit') {
             colsMobile: parseInt(container.dataset.colsMobile) || 2
         };
 
+        // Store instance and handlers for cleanup
+        let masonryFitInstance = null;
+        let resizeHandler = null;
+        let resizeTimer = null;
+
         const initMasonryFit = () => {
-            const result = window.initAlbumMasonryFit(container, options);
-            if (result) {
-                // Re-layout on resize
-                let resizeTimer;
-                window.addEventListener('resize', function() {
+            // Cleanup previous instance and handlers
+            if (masonryFitInstance && masonryFitInstance.destroy) {
+                masonryFitInstance.destroy();
+            }
+            if (resizeHandler) {
+                window.removeEventListener('resize', resizeHandler);
+            }
+            if (resizeTimer) {
+                clearTimeout(resizeTimer);
+            }
+
+            masonryFitInstance = window.initAlbumMasonryFit(container, options);
+            if (masonryFitInstance) {
+                // Re-layout on resize with named handler for cleanup
+                resizeHandler = function() {
                     clearTimeout(resizeTimer);
                     resizeTimer = setTimeout(function() {
-                        result.updateItemWidths();
-                        result.msnry.layout();
+                        if (masonryFitInstance) {
+                            masonryFitInstance.updateItemWidths();
+                            masonryFitInstance.msnry.layout();
+                        }
                     }, 150);
-                });
+                };
+                window.addEventListener('resize', resizeHandler);
             }
             if (window.lenisResize) window.lenisResize();
         };
