@@ -512,6 +512,9 @@
             <a href="{{ base_path }}/admin/locations" class="sidebar-link" data-spa-link>
               <i class="fas fa-location-dot"></i>{{ trans('admin.sidebar.locations') }}
             </a>
+            <a href="{{ base_path }}/admin/custom-field-types" class="sidebar-link" data-spa-link>
+              <i class="fas fa-sliders-h"></i>{{ trans('admin.sidebar.custom_fields') }}
+            </a>
             {# Hook: admin_sidebar_metadata - Add custom metadata menu items #}
             {{ do_action('admin_sidebar_metadata', {base_path: base_path}) }}
           </div>

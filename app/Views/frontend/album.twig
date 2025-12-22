@@ -386,6 +386,22 @@ document.addEventListener('click', function(event) {
         </div>
         {% endif %}
 
+        {# Custom fields display (show_in_gallery=1) #}
+        {% if album_custom_fields is defined and album_custom_fields|length > 0 %}
+        <div class="flex flex-wrap justify-center gap-3 mt-4 text-sm text-neutral-600" data-gsap="custom-fields">
+            {% for typeId, field in album_custom_fields %}
+                {% if field.show_in_gallery and field.values|length > 0 %}
+                    <span class="inline-flex items-center">
+                        <i class="fas {{ field.icon|default('fa-tag') }} mr-1 text-neutral-400"></i>
+                        {% for valueData in field.values %}
+                            {{ valueData.value|e }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </span>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
         {# Hook: frontend_album_header_meta - Add custom metadata to album header (e.g., equipment, film info) #}
         {{ do_action('frontend_album_header_meta', {album: album, base_path: base_path}) }}
     </div>
@@ -581,6 +597,11 @@ window.basePath = '{{ base_path }}';
 window.initAlbumMasonryFit = function(container, options) {
     if (!container) return null;
 
+    // Cleanup existing instance if present
+    if (container._masonryFitInstance && container._masonryFitInstance.destroy) {
+        container._masonryFitInstance.destroy();
+    }
+
     const gap = options.gap || 16;
     const colsDesktop = options.colsDesktop || 5;
     const colsTablet = options.colsTablet || 3;
@@ -706,7 +727,7 @@ window.initAlbumMasonryFit = function(container, options) {
     }
 
     // Return object with update function for resize handling
-    return {
+    const instance = {
         distributeItems,
         viewportObserver,
         destroy,
@@ -714,6 +735,11 @@ window.initAlbumMasonryFit = function(container, options) {
         msnry: { layout: distributeItems },
         updateItemWidths: distributeItems
     };
+
+    // Store reference on container for cleanup
+    container._masonryFitInstance = instance;
+
+    return instance;
 };
 
 // Template settings
@@ -777,10 +803,10 @@ if (masonry && layout !== 'masonry_fit' && typeof Masonry !== 'undefined') {
     }
 }
 
-// masonry_fit uses Masonry.js with horizontalOrder for left-to-right filling
+// masonry_fit uses a custom flexbox column approach for balanced distribution
 if (layout === 'masonry_fit') {
     const container = document.getElementById('images-gallery');
-    if (container && typeof Masonry !== 'undefined') {
+    if (container) {
         const options = {
             gap: parseInt(container.dataset.gap) || 16,
             colsDesktop: parseInt(container.dataset.colsDesktop) || 5,
@@ -907,13 +933,22 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
                     initFiltered();
                 }
             } else {
-                // Regular masonry layout
+                // Regular masonry layout - store instance for cleanup
+                // Destroy existing instance before reinit
+                if (gallery._masonryInstance) {
+                    gallery._masonryInstance.destroy();
+                    gallery._masonryInstance = null;
+                }
+
+                const initMasonry = function() {
+                    const msnry = new Masonry(gallery, { itemSelector: '.masonry-item', percentPosition: true });
+                    gallery._masonryInstance = msnry;
+                };
+
                 if (typeof imagesLoaded !== 'undefined') {
-                    imagesLoaded(gallery, function(){
-                        new Masonry(gallery, { itemSelector: '.masonry-item', percentPosition: true });
-                    });
+                    imagesLoaded(gallery, initMasonry);
                 } else {
-                    new Masonry(gallery, { itemSelector: '.masonry-item', percentPosition: true });
+                    initMasonry();
                 }
             }
         }
@@ -922,14 +957,18 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
         if (typeof gsap !== 'undefined') {
             const newItems = Array.from(gallery.children).filter(n => !n.hasAttribute('data-animated'));
             if (newItems.length > 0) {
-                newItems.forEach(n => n.setAttribute('data-animated', '1'));
-                gsap.to(newItems, {
-                    opacity: 1,
-                    scale: 1,
-                    duration: 0.35,
-                    stagger: { amount: Math.min(0.25, newItems.length * 0.02), from: 'start' },
-                    ease: 'power3.out'
-                });
+                // Use fromTo with explicit values - set data-animated in onComplete
+                gsap.fromTo(newItems,
+                    { opacity: 0, scale: 0.9 },
+                    {
+                        opacity: 1,
+                        scale: 1,
+                        duration: 0.35,
+                        stagger: { amount: Math.min(0.25, newItems.length * 0.02), from: 'start' },
+                        ease: 'power3.out',
+                        onComplete: () => newItems.forEach(n => n.setAttribute('data-animated', '1'))
+                    }
+                );
             }
         }
         
