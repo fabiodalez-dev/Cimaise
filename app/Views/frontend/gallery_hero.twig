@@ -123,7 +123,17 @@
       </div>
       
       {# Equipment pinned to bottom of hero content #}
-      {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 %}
+      {# Count custom fields that should show in gallery #}
+      {% set custom_fields_for_gallery = [] %}
+      {% if album_custom_fields is defined %}
+        {% for typeId, field in album_custom_fields %}
+          {% if field.show_in_gallery and field.values|length > 0 %}
+            {% set custom_fields_for_gallery = custom_fields_for_gallery|merge([field]) %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 or custom_fields_for_gallery|length > 0 %}
       {% set equipment_items = [] %}
       {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
         {% set equipment_items = equipment_items|merge([1]) %}
@@ -140,6 +150,9 @@
       {% if album.equipment.labs is defined and album.equipment.labs|length > 0 %}
         {% set equipment_items = equipment_items|merge([1]) %}
       {% endif %}
+      {% for cf in custom_fields_for_gallery %}
+        {% set equipment_items = equipment_items|merge([1]) %}
+      {% endfor %}
       
       {% set equipment_count = equipment_items|length %}
       
@@ -174,6 +187,13 @@
           <span>{% for lab in album.equipment.labs %}{{ lab }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
         </div>
         {% endif %}
+        {# Custom fields #}
+        {% for field in custom_fields_for_gallery %}
+        <div class="flex items-center gap-2 min-w-[80px]">
+          <i class="fas {{ field.icon|default('fa-tag') }} fa-xs text-neutral-700"></i>
+          <span>{% for valueData in field.values %}{{ valueData.value|e }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
+        </div>
+        {% endfor %}
       </div>
       {% endif %}
     </div>

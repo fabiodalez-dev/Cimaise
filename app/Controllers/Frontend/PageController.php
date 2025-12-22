@@ -479,6 +479,16 @@ class PageController extends BaseController
         // Batch fetch metadata (camera, lens, film, developer, lab, location names)
         ImagesService::enrichWithMetadata($pdo, $images, 'album');
 
+        // Enrich images with custom fields
+        try {
+            $customFieldService = new \App\Services\CustomFieldService($pdo);
+            $images = $customFieldService->enrichImagesWithCustomFields($images, (int)$album['id']);
+            $albumCustomFields = $customFieldService->getAlbumMetadata((int)$album['id']);
+        } catch (\Throwable) {
+            // Custom fields tables may not exist yet
+            $albumCustomFields = [];
+        }
+
         // Compute unique filter options for Twig (avoid unsupported Twig filters like |unique)
         $processes = [];
         $cameras = [];
@@ -582,7 +592,18 @@ class PageController extends BaseController
             if (!empty($image['iso'])) { $equipBits[] = '<i class="fa-solid fa-signal mr-1"></i>ISO ' . (int)$image['iso']; }
             if (!empty($image['shutter_speed'])) { $equipBits[] = '<i class="fa-regular fa-clock mr-1"></i>' . htmlspecialchars((string)$image['shutter_speed'], ENT_QUOTES); }
             if (!empty($image['aperture']) && is_numeric($image['aperture'])) { $equipBits[] = '<i class="fa-solid fa-circle-half-stroke mr-1"></i>f/' . number_format((float)$image['aperture'], 1); }
-            
+
+            // Add custom fields to caption (with show_in_lightbox=1)
+            if (!empty($image['custom_fields'])) {
+                foreach ($image['custom_fields'] as $field) {
+                    if (!empty($field['show_in_lightbox']) && !empty($field['values'])) {
+                        $icon = $field['icon'] ?? 'fa-tag';
+                        $valuesStr = htmlspecialchars(implode(', ', $field['values']), ENT_QUOTES);
+                        $equipBits[] = '<i class="fa-solid ' . $icon . ' mr-1"></i>' . $valuesStr;
+                    }
+                }
+            }
+
             $captionHtml = '';
             if (!empty($image['caption'])) {
                 $captionHtml .= '<div class="mb-2">' . htmlspecialchars((string)$image['caption'], ENT_QUOTES) . '</div>';
@@ -734,7 +755,8 @@ class PageController extends BaseController
             'csrf' => $_SESSION['csrf'] ?? '',
             'current_album' => ['id' => (int)$album['id']],
             'nsfw_consent' => $this->hasNsfwConsent(),
-            'allow_downloads' => !empty($album['allow_downloads'])
+            'allow_downloads' => !empty($album['allow_downloads']),
+            'album_custom_fields' => $albumCustomFields
         ]);
     }
 

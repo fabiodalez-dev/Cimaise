@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Hooks;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -51,7 +52,10 @@ class LabsController extends BaseController
         }
 
         try {
-            $this->db->pdo()->prepare('INSERT INTO labs(name, city, country) VALUES(?,?,?)')->execute([$name, $city, $country]);
+            $pdo = $this->db->pdo();
+            $pdo->prepare('INSERT INTO labs(name, city, country) VALUES(?,?,?)')->execute([$name, $city, $country]);
+            $id = (int)$pdo->lastInsertId();
+            Hooks::doAction('metadata_lab_created', $id, ['name' => $name, 'city' => $city, 'country' => $country]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lab created'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -95,6 +99,7 @@ class LabsController extends BaseController
 
         try {
             $this->db->pdo()->prepare('UPDATE labs SET name=?, city=?, country=? WHERE id=?')->execute([$name, $city, $country, $id]);
+            Hooks::doAction('metadata_lab_updated', $id, ['name' => $name, 'city' => $city, 'country' => $country]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lab updated'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -114,6 +119,7 @@ class LabsController extends BaseController
         $id = (int)($args['id'] ?? 0);
         try {
             $this->db->pdo()->prepare('DELETE FROM labs WHERE id=:id')->execute([':id' => $id]);
+            Hooks::doAction('metadata_lab_deleted', $id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lab deleted'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];

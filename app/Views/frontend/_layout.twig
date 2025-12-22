@@ -1651,25 +1651,27 @@
             gsap.registerPlugin(ScrollTrigger);
         }
 
-        // Animate album cards - use gsap.to() to animate TO visible state
+        // Animate album cards with explicit start/end values
         // CSS hides cards initially (opacity:0, translateY:20px)
         if (typeof gsap !== 'undefined') {
             const albumCards = gsap.utils.toArray('main .album-card:not([data-animated])');
             if (albumCards.length > 0) {
-                // Mark as animated immediately to prevent double-run
-                albumCards.forEach(el => el.setAttribute('data-animated', '1'));
-
-                // Staggered entrance animation
-                gsap.to(albumCards, {
-                    opacity: 1,
-                    y: 0,
-                    duration: 0.5,
-                    stagger: {
-                        amount: Math.min(0.4, albumCards.length * 0.05),
-                        from: 'start'
-                    },
-                    ease: "power2.out"
-                });
+                // Use fromTo with explicit values - set data-animated in onComplete
+                // This ensures GSAP reads the from values before CSS overrides them
+                gsap.fromTo(albumCards,
+                    { opacity: 0, y: 20 },
+                    {
+                        opacity: 1,
+                        y: 0,
+                        duration: 0.5,
+                        stagger: {
+                            amount: Math.min(0.4, albumCards.length * 0.05),
+                            from: 'start'
+                        },
+                        ease: "power2.out",
+                        onComplete: () => albumCards.forEach(el => el.setAttribute('data-animated', '1'))
+                    }
+                );
             }
         } else {
             // GSAP not available - show cards immediately via CSS
@@ -1680,7 +1682,7 @@
 
         // One-time entrance animation for gallery items
         // CSS hides specific item types initially (opacity:0, scale:0.9)
-        // This function animates them TO visible state using gsap.to()
+        // This function animates them with explicit start/end values
         window.animateGalleryOnce = function() {
             if (typeof gsap === 'undefined') return;
 
@@ -1693,20 +1695,22 @@
                 .filter(n => !n.hasAttribute('data-animated'));
             if (!nodes.length) return;
 
-            // Mark as animated to avoid double-run
-            nodes.forEach(n => n.setAttribute('data-animated', '1'));
-
-            // Quick entrance animation (fade + subtle scale)
-            gsap.to(nodes, {
-                opacity: 1,
-                scale: 1,
-                duration: 0.35,
-                stagger: {
-                    amount: Math.min(0.25, nodes.length * 0.02),
-                    from: 'start'
-                },
-                ease: 'power3.out'
-            });
+            // Use fromTo with explicit values - set data-animated in onComplete
+            // This ensures GSAP reads the from values before CSS overrides them
+            gsap.fromTo(nodes,
+                { opacity: 0, scale: 0.9 },
+                {
+                    opacity: 1,
+                    scale: 1,
+                    duration: 0.35,
+                    stagger: {
+                        amount: Math.min(0.25, nodes.length * 0.02),
+                        from: 'start'
+                    },
+                    ease: 'power3.out',
+                    onComplete: () => nodes.forEach(n => n.setAttribute('data-animated', '1'))
+                }
+            );
         };
 
         // Run gallery animation on load

@@ -58,6 +58,7 @@
              loading="lazy"
              decoding="async"
              data-fallback="hide"
+             data-aspect-ratio="{{ image.width > 0 ? (image.height / image.width)|round(4) : 0.75 }}"
              class="w-full h-auto block transition-transform duration-300 ease-out group-hover:scale-[1.02]">
       </picture>
 

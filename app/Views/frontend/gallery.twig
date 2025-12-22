@@ -75,7 +75,17 @@
   {# Social Sharing #}
   {% include 'frontend/_social_sharing.twig' %}
 
-  {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 %}
+  {# Count custom fields that should show in gallery #}
+  {% set custom_fields_for_gallery = [] %}
+  {% if album_custom_fields is defined %}
+    {% for typeId, field in album_custom_fields %}
+      {% if field.show_in_gallery and field.values|length > 0 %}
+        {% set custom_fields_for_gallery = custom_fields_for_gallery|merge([field]) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 or custom_fields_for_gallery|length > 0 %}
   {% set equipment_items = [] %}
   {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
     {% set equipment_items = equipment_items|merge([1]) %}
@@ -92,6 +102,10 @@
   {% if album.equipment.labs is defined and album.equipment.labs|length > 0 %}
     {% set equipment_items = equipment_items|merge([1]) %}
   {% endif %}
+  {# Add custom fields count to equipment items #}
+  {% for cf in custom_fields_for_gallery %}
+    {% set equipment_items = equipment_items|merge([1]) %}
+  {% endfor %}
   
   {% set equipment_count = equipment_items|length %}
   {% set grid_cols = equipment_count <= 3 ? equipment_count : 3 %}
@@ -139,6 +153,15 @@
         </div>
       </div>
       {% endif %}
+      {# Custom fields #}
+      {% for field in custom_fields_for_gallery %}
+      <div class="flex flex-col items-center text-center">
+        <i class="fas {{ field.icon|default('fa-tag') }} mb-1 text-neutral-500"></i>
+        <div class="space-y-1">
+          {% for valueData in field.values %}<div>{{ valueData.value|e }}</div>{% endfor %}
+        </div>
+      </div>
+      {% endfor %}
     </div>
   </div>
   {% endif %}
