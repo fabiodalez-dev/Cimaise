@@ -33,8 +33,25 @@ return new class {
             )
         ");
 
-        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_meta_ext_entity ON metadata_extensions(entity_type, entity_id)");
-        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_meta_ext_plugin ON metadata_extensions(plugin_id)");
+        // Create indexes (MySQL doesn't support IF NOT EXISTS for indexes)
+        if ($driver === 'mysql') {
+            // Check if indexes exist before creating
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'metadata_extensions' AND index_name = ?");
+
+            $stmt->execute(['idx_meta_ext_entity']);
+            if ($stmt->fetchColumn() == 0) {
+                $pdo->exec("CREATE INDEX idx_meta_ext_entity ON metadata_extensions(entity_type, entity_id)");
+            }
+
+            $stmt->execute(['idx_meta_ext_plugin']);
+            if ($stmt->fetchColumn() == 0) {
+                $pdo->exec("CREATE INDEX idx_meta_ext_plugin ON metadata_extensions(plugin_id)");
+            }
+        } else {
+            // SQLite supports IF NOT EXISTS
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_meta_ext_entity ON metadata_extensions(entity_type, entity_id)");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_meta_ext_plugin ON metadata_extensions(plugin_id)");
+        }
     }
 
     public function down(\PDO $pdo): void
