@@ -8,15 +8,15 @@ if (typeof window !== 'undefined') {
   // Only initialize if not already done
   if (!window.lenisInstance) {
     const lenis = new Lenis({
-      lerp: 0.08,
+      lerp: 0.1,
       wheelMultiplier: 1.2,
       infinite: false,
       gestureOrientation: 'vertical',
-      normalizeWheel: true,
+      normalizeWheel: false,
       smoothTouch: false,
       autoResize: true,
-      syncTouch: true,
-      touchMultiplier: 1.5,
+      syncTouch: false,
+      touchMultiplier: 2.0,
     })
 
     window.lenisInstance = lenis

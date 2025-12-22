@@ -609,10 +609,10 @@ document.addEventListener('DOMContentLoaded', function() {
       albums.slice(0, 6).forEach((album) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'group w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center gap-3';
+        btn.className = 'group w-full text-left flex items-center gap-3';
         btn.setAttribute('data-album-slug', album.slug || '');
         const imgWrap = document.createElement('div');
-        imgWrap.className = 'w-16 h-16 rounded-lg bg-gray-100 ring-1 ring-gray-200/60 flex items-center justify-center overflow-hidden flex-shrink-0';
+        imgWrap.className = 'modern-search-suggestions__thumbnail';
         const coverUrl = buildCoverUrl(album);
         if (coverUrl) {
           const img = document.createElement('img');
@@ -630,12 +630,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const details = document.createElement('div');
-        details.className = 'min-w-0 flex-1';
+        details.className = 'modern-search-suggestions__content';
         const title = document.createElement('div');
-        title.className = 'font-semibold text-gray-900 text-sm sm:text-base truncate';
+        title.className = 'modern-search-suggestions__title';
         title.textContent = album.title || '';
         const meta = document.createElement('div');
-        meta.className = 'text-xs text-gray-500 mt-1 truncate';
+        meta.className = 'modern-search-suggestions__subtitle';
         meta.textContent = album.category_name || '';
 
         details.appendChild(title);
