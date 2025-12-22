@@ -1,0 +1,416 @@
+{% extends "frontend/_layout.twig" %}
+
+{% block styles %}
+<style nonce="{{ csp_nonce() }}">
+/* Reset only for gallery wall */
+.gallery-wall, .gallery-wall * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* === SPACER for header === */
+.gallery-header-spacer {
+  height: var(--header-height, 80px);
+}
+
+/* === GALLERY SECTION === */
+.gallery-wall-section {
+  position: relative;
+  /* Height calculated by JS */
+}
+
+.gallery-wall-container {
+  position: sticky;
+  top: var(--header-height, 80px);
+  height: calc(100vh - var(--header-height, 80px));
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.gallery-wall-track {
+  display: flex;
+  gap: 0;
+  will-change: transform;
+}
+
+.gallery-wall-item {
+  flex-shrink: 0;
+  height: calc(100vh - var(--header-height, 80px));
+  position: relative;
+}
+
+.gallery-wall-item.horizontal {
+  width: calc((100vh - var(--header-height, 80px)) * 1.5);
+}
+
+.gallery-wall-item.vertical {
+  width: calc((100vh - var(--header-height, 80px)) * 0.67);
+}
+
+.gallery-wall-item a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gallery-wall-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Thin border between photos */
+.gallery-wall-item::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #fff;
+}
+
+/* Hover overlay */
+.gallery-wall-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.5rem;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gallery-wall-item:hover .gallery-wall-overlay {
+  opacity: 1;
+}
+
+.gallery-wall-overlay h3 {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 0.25rem 0;
+}
+
+.gallery-wall-overlay p {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
+/* === FOOTER === */
+.gallery-wall-footer {
+  height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-top: 1px solid #eee;
+}
+
+.gallery-wall-footer p {
+  color: #999;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+}
+
+/* === MOBILE LAYOUT === */
+.gallery-mobile-grid {
+  display: none;
+}
+
+/* ============================================
+   TABLET: max-width 1024px
+   ============================================ */
+@media (max-width: 1024px) {
+  .gallery-wall-item.horizontal {
+    width: calc((100vh - var(--header-height, 80px)) * 1.3);
+  }
+
+  .gallery-wall-item.vertical {
+    width: calc((100vh - var(--header-height, 80px)) * 0.6);
+  }
+}
+
+/* ============================================
+   MOBILE: max-width 768px
+   Vertical classic gallery
+   ============================================ */
+@media (max-width: 768px) {
+  .gallery-header-spacer {
+    height: var(--header-height-mobile, 60px);
+  }
+
+  /* Hide desktop gallery */
+  .gallery-wall-section {
+    display: none;
+  }
+
+  /* Show mobile gallery */
+  .gallery-mobile-grid {
+    display: block;
+    padding: 1rem;
+  }
+
+  .gallery-mobile-grid-inner {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .gallery-mobile-item {
+    aspect-ratio: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .gallery-mobile-item.wide {
+    grid-column: span 2;
+    aspect-ratio: 16/9;
+  }
+
+  .gallery-mobile-item a {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .gallery-mobile-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .gallery-wall-footer {
+    height: 30vh;
+  }
+
+  .gallery-wall-footer p {
+    font-size: 0.8rem;
+  }
+}
+
+/* ============================================
+   SMALL MOBILE: max-width 480px
+   ============================================ */
+@media (max-width: 480px) {
+  .gallery-mobile-grid {
+    padding: 0.5rem;
+  }
+
+  .gallery-mobile-grid-inner {
+    gap: 0.3rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{# Hook: frontend_home_before - Before all home page content #}
+{{ do_action('frontend_home_before', {base_path: base_path}) }}
+
+{# WebSite JSON-LD for home page #}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": {{ site_title|default('Portfolio')|json_encode|raw }},
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  {% if meta_description %}
+  "description": {{ meta_description|json_encode|raw }},
+  {% endif %}
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "{{ base_path }}/{{ galleries_slug|default('galleries') }}?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+
+{% if all_images|length > 0 %}
+<main class="gallery-wall">
+  <div class="gallery-header-spacer"></div>
+
+  <!-- DESKTOP/TABLET: Horizontal Gallery -->
+  <section class="gallery-wall-section" id="galleryWallSection">
+    <div class="gallery-wall-container">
+      <div class="gallery-wall-track" id="galleryWallTrack">
+        {% for image in all_images %}
+        {% set isHorizontal = (image.width|default(1600) / image.height|default(1000)) > 1 %}
+        <div class="gallery-wall-item {{ isHorizontal ? 'horizontal' : 'vertical' }}">
+          <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
+            {% set imgSrc = image.fallback_src|default(image.original_path) %}
+            <img src="{{ base_path }}{{ imgSrc|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy">
+            <div class="gallery-wall-overlay">
+              <h3>{{ image.album_title|e }}</h3>
+              <p>{{ image.category_name|e }}</p>
+            </div>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- MOBILE: Grid Gallery -->
+  <div class="gallery-mobile-grid">
+    <div class="gallery-mobile-grid-inner">
+      {% for image in all_images|slice(0, 50) %}
+      {% set isHorizontal = (image.width|default(1600) / image.height|default(1000)) > 1.3 %}
+      <div class="gallery-mobile-item {{ isHorizontal and loop.index % 5 == 1 ? 'wide' : '' }}">
+        <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
+          {% set imgSrc = image.fallback_src|default(image.original_path) %}
+          <img src="{{ base_path }}{{ imgSrc|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy">
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <footer class="gallery-wall-footer">
+    <p>{{ site_footer|default('') }}</p>
+  </footer>
+</main>
+{% else %}
+{# Empty state #}
+<div class="min-h-screen flex items-center justify-center">
+  <div class="text-center px-4">
+    <i class="fas fa-images text-6xl text-gray-300 mb-6"></i>
+    <h2 class="text-2xl font-semibold text-gray-800 mb-2">{{ home_settings.empty_title|default(trans('home_gallery.empty_title'))|default('No photos yet')|e }}</h2>
+    <p class="text-gray-600">{{ home_settings.empty_text|default(trans('home_gallery.empty_text'))|default('Check back soon for new content.')|e }}</p>
+  </div>
+</div>
+{% endif %}
+
+{# Hook: frontend_home_after - After all home page content #}
+{{ do_action('frontend_home_after', {base_path: base_path}) }}
+{% endblock %}
+
+{% block scripts %}
+<!-- Lenis for smooth scroll -->
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  'use strict';
+
+  const gallerySection = document.getElementById('galleryWallSection');
+  const track = document.getElementById('galleryWallTrack');
+  const headerHeight = 80;
+
+  if (!gallerySection || !track) return;
+
+  let isMobile = window.innerWidth <= 768;
+  let lenis;
+
+  function initDesktopGallery() {
+    if (isMobile) return;
+
+    const trackWidth = track.scrollWidth;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // Calculate section height to prevent empty background
+    // trackWidth - windowWidth = horizontal scroll distance
+    // + windowHeight = keep sticky active until end
+    const sectionHeight = (trackWidth - windowWidth) + windowHeight;
+    gallerySection.style.height = sectionHeight + 'px';
+
+    const maxScroll = trackWidth - windowWidth;
+
+    // Initialize Lenis
+    if (lenis) lenis.destroy();
+
+    lenis = new Lenis({
+      duration: 1.2,
+      easing: function(t) { return Math.min(1, 1.001 - Math.pow(2, -10 * t)); },
+      smoothWheel: true,
+      smoothTouch: false,
+      touchMultiplier: 2
+    });
+
+    function updateGallery() {
+      const rect = gallerySection.getBoundingClientRect();
+      const sectionScrollHeight = gallerySection.offsetHeight - window.innerHeight;
+
+      // How far we are into the section
+      const scrollInSection = Math.max(0, -rect.top);
+      const progress = Math.min(1, scrollInSection / sectionScrollHeight);
+
+      const translateX = -progress * maxScroll;
+      track.style.transform = 'translateX(' + translateX + 'px)';
+    }
+
+    function raf(time) {
+      lenis.raf(time);
+      updateGallery();
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+  }
+
+  function initMobileGallery() {
+    if (!isMobile) return;
+
+    // On mobile, simple Lenis smooth scroll
+    if (lenis) lenis.destroy();
+
+    lenis = new Lenis({
+      duration: 1,
+      smoothWheel: true,
+      smoothTouch: false
+    });
+
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+  }
+
+  function init() {
+    isMobile = window.innerWidth <= 768;
+
+    if (isMobile) {
+      initMobileGallery();
+    } else {
+      initDesktopGallery();
+    }
+  }
+
+  // Debounce resize
+  let resizeTimeout;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(function() {
+      const wasMobile = isMobile;
+      isMobile = window.innerWidth <= 768;
+
+      if (wasMobile !== isMobile) {
+        init();
+      } else if (!isMobile) {
+        // Recalculate desktop dimensions
+        initDesktopGallery();
+      }
+    }, 200);
+  });
+
+  init();
+
+  // Cleanup on page unload (for SPA)
+  window.addEventListener('beforeunload', function() {
+    if (lenis) lenis.destroy();
+  });
+})();
+</script>
+{% endblock %}

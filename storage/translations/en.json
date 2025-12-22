@@ -287,6 +287,17 @@
     "home_modern.empty_text": "Check back soon for new content.",
     "home_modern.menu": "Menu"
   },
+  "home_snap": {
+    "home_snap.photos": "photos",
+    "home_snap.view_album": "View album",
+    "home_snap.empty_title": "No albums yet",
+    "home_snap.empty_text": "Check back soon for new content."
+  },
+  "home_gallery": {
+    "home_gallery.view_album": "View album",
+    "home_gallery.empty_title": "No photos yet",
+    "home_gallery.empty_text": "Check back soon for new content."
+  },
   "errors": {
     "errors.404.title": "Page not found",
     "errors.404.message": "Sorry, the page you're looking for doesn't exist or has been moved.",
