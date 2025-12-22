@@ -80,12 +80,13 @@ function initUppyAreaUpload() {
     }
   })
     // Compress images client-side before upload (reduces upload time significantly)
+    // Note: PNG to JPEG conversion loses transparency. convertSize set high to reduce unwanted conversions.
     .use(Compressor, {
       quality: 0.85,
       maxWidth: 4000,
       maxHeight: 4000,
       convertTypes: ['image/png'],  // Convert PNG to JPEG for smaller uploads
-      convertSize: 500000  // Only convert PNGs larger than 500KB
+      convertSize: 2000000  // Only convert PNGs larger than 2MB (reduces unwanted transparency loss)
     })
     .use(XHRUpload, {
       endpoint,
