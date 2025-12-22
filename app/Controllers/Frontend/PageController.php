@@ -118,12 +118,12 @@ class PageController extends BaseController
             'gallery_scroll_direction' => (string)($svc->get('home.gallery_scroll_direction', 'vertical') ?? 'vertical'),
             'gallery_text_title' => (string)($svc->get('home.gallery_text_title', '') ?? ''),
             'gallery_text_content' => (string)($svc->get('home.gallery_text_content', '') ?? ''),
-            // Masonry settings
-            'masonry_gap_h' => (int)($svc->get('home.masonry_gap_h', 0) ?? 0),
-            'masonry_gap_v' => (int)($svc->get('home.masonry_gap_v', 0) ?? 0),
-            'masonry_col_desktop' => (int)($svc->get('home.masonry_col_desktop', 5) ?? 5),
-            'masonry_col_tablet' => (int)($svc->get('home.masonry_col_tablet', 3) ?? 3),
-            'masonry_col_mobile' => (int)($svc->get('home.masonry_col_mobile', 2) ?? 2),
+            // Masonry settings (with defensive clamping)
+            'masonry_gap_h' => max(0, min(40, (int)($svc->get('home.masonry_gap_h', 0) ?? 0))),
+            'masonry_gap_v' => max(0, min(40, (int)($svc->get('home.masonry_gap_v', 0) ?? 0))),
+            'masonry_col_desktop' => max(2, min(8, (int)($svc->get('home.masonry_col_desktop', 5) ?? 5))),
+            'masonry_col_tablet' => max(2, min(6, (int)($svc->get('home.masonry_col_tablet', 3) ?? 3))),
+            'masonry_col_mobile' => max(1, min(4, (int)($svc->get('home.masonry_col_mobile', 2) ?? 2))),
         ];
 
         // Pagination parameters
