@@ -238,7 +238,7 @@
         }
       });
     }, {
-      rootMargin: '300% 0px 300% 0px', // 3 viewports above and below for earlier preload
+      rootMargin: '200% 0px 200% 0px', // 2 viewports above and below for preload (balanced performance)
       threshold: 0
     });
   }
@@ -451,18 +451,22 @@
   }
 
   function balanceColumns() {
-    if (!msnry || !msnry.colYs || !msnry.colYs.length) return;
+    if (!msnry || !msnry.colYs || !msnry.colYs.length || isAppending) return;
     var avgHeight = averageItemHeight() || 240;
-    var maxIterations = 12; // Reduced from 16
-    var iter = 0;
-    while (iter < maxIterations) {
-      var heights = msnry.colYs.slice();
-      var min = Math.min.apply(null, heights);
-      var max = Math.max.apply(null, heights);
-      if ((max - min) <= avgHeight * 0.4) break; // Slightly more tolerant
-      appendClones(1, false);
-      iter++;
-    }
+    var heights = msnry.colYs.slice();
+    var min = Math.min.apply(null, heights);
+    var max = Math.max.apply(null, heights);
+    var tolerance = avgHeight * 0.5; // More tolerant threshold
+    if ((max - min) <= tolerance) return;
+
+    // Calculate all needed items upfront and add in single batch
+    var gap = max - min;
+    var itemsNeeded = Math.min(Math.ceil(gap / avgHeight) + getColumnCount(), 12);
+
+    appendClones(itemsNeeded, false, function() {
+      // After clones added, recheck balance (with recursion guard via isAppending)
+      requestAnimationFrame(balanceColumns);
+    });
   }
 
   // Handle window resize with ResizeObserver if available

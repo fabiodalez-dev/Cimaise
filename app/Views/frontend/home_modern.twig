@@ -12,25 +12,20 @@
   input[type="search"]::-webkit-search-results-decoration {
     display: none;
   }
+  /* Mobile/Desktop visibility - simplified (display:none is sufficient) */
   .modern-mobile-only {
-    display: none !important;
+    display: none;
   }
   .modern-desktop-only {
     display: block;
   }
   [data-modern-mobile-header] {
-    display: none !important;
-    visibility: hidden;
-    height: 0;
-    overflow: hidden;
+    display: none;
   }
   @media (min-width: 768px) {
     .modern-mobile-only,
     [data-modern-mobile-header] {
       display: none !important;
-      visibility: hidden !important;
-      height: 0 !important;
-      overflow: hidden !important;
     }
   }
   @media (max-width: 767px) {
@@ -42,9 +37,6 @@
     }
     [data-modern-mobile-header] {
       display: block !important;
-      visibility: visible;
-      height: auto;
-      overflow: visible;
     }
     .global-head,
     .menu-btn,
