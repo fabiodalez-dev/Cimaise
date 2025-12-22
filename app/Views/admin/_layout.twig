@@ -113,7 +113,7 @@
       cursor: not-allowed;
     }
     .admin-sticky-actions {
-      z-index: 50;
+      z-index: 9000; /* Above dropdowns (1000) and TomSelect (99999 is above this, but that's for inputs) */
       transition: left 0.3s ease-in-out;
     }
 
