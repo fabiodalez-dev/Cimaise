@@ -1,6 +1,7 @@
 import Uppy from '@uppy/core'
 // We avoid rendering Uppy UI; we keep our own area
 import XHRUpload from '@uppy/xhr-upload'
+import Compressor from '@uppy/compressor'
 import TomSelect from 'tom-select'
 import 'tom-select/dist/css/tom-select.css'
 import Sortable from 'sortablejs'
@@ -78,9 +79,19 @@ function initUppyAreaUpload() {
       allowedFileTypes: ['image/jpeg', 'image/png', 'image/webp']
     }
   })
+    // Compress images client-side before upload (reduces upload time significantly)
+    .use(Compressor, {
+      quality: 0.85,
+      maxWidth: 4000,
+      maxHeight: 4000,
+      convertTypes: ['image/png'],  // Convert PNG to JPEG for smaller uploads
+      convertSize: 500000  // Only convert PNGs larger than 500KB
+    })
     .use(XHRUpload, {
       endpoint,
       fieldName: 'file',
+      limit: 3,  // Upload 3 files in parallel for faster bulk uploads
+      timeout: 120000,  // 2 minute timeout per file
       headers: {
         'X-CSRF-Token': csrf,
         'X-Requested-With': 'XMLHttpRequest',
@@ -231,6 +242,14 @@ function initUppyAreaUpload() {
     }
     fileProgressMap.set(file.id, 0);
     updateTotalProgress();
+  });
+
+  // Show compression status when compressor is processing
+  uppy.on('preprocess-progress', (file, progress) => {
+    if (progress.mode === 'indeterminate') {
+      const statusEl = document.getElementById('upload-status');
+      if (statusEl) statusEl.textContent = tf('admin.upload.compressing', { name: file.name });
+    }
   });
 
   uppy.on('upload-start', () => {
