@@ -98,7 +98,9 @@ class MetadataExtensionService
     }
 
     /**
-     * Remove all extensions for an entity
+     * Remove all extensions for an entity.
+     * Note: Does not emit individual hooks for performance reasons during bulk operations.
+     * Use removeExtension() if you need hook notifications per key.
      */
     public function removeAllExtensions(string $entityType, int $entityId): void
     {
@@ -106,6 +108,8 @@ class MetadataExtensionService
             'DELETE FROM metadata_extensions WHERE entity_type = ? AND entity_id = ?'
         );
         $stmt->execute([$entityType, $entityId]);
+
+        Hooks::doAction('metadata_extensions_cleared', $entityType, $entityId);
     }
 
     /**
@@ -214,6 +218,7 @@ class MetadataExtensionService
             try {
                 return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
             } catch (\JsonException $e) {
+                error_log("MetadataExtensionService: Failed to encode value - " . $e->getMessage());
                 return '';
             }
         }
@@ -228,7 +233,11 @@ class MetadataExtensionService
         if ($value === null || $value === '') {
             return null;
         }
-        $decoded = json_decode($value, true);
-        return json_last_error() === JSON_ERROR_NONE ? $decoded : $value;
+        try {
+            return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            // Not valid JSON, return as plain string
+            return $value;
+        }
     }
 }
