@@ -32,6 +32,15 @@
   {% if image.aperture %}
     {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-circle-half-stroke mr-1"></i>f/' ~ image.aperture|e ~ '</span>']) %}
   {% endif %}
+  {# Custom fields with show_in_lightbox=1 #}
+  {% if image.custom_fields is defined %}
+    {% for typeId, field in image.custom_fields %}
+      {% if field.show_in_lightbox and field.values|length > 0 %}
+        {% set valuesStr = field.values|join(', ') %}
+        {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas ' ~ field.icon|default('fa-tag') ~ ' mr-1"></i>' ~ valuesStr|e ~ '</span>']) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
   {% set line = bits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">' ~ bits|join(' ') ~ '</div>') : '' %}
   {{ (head ~ line)|raw }}
 {% endmacro %}

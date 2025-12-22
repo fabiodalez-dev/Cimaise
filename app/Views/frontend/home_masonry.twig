@@ -163,8 +163,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
-<script src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+{# Masonry and imagesLoaded are already loaded in _layout.twig #}
 <script nonce="{{ csp_nonce() }}">
 (function() {
   'use strict';
@@ -194,9 +193,6 @@
   var preloadedItems = new WeakSet();
   var viewportObserver = null;
   var infiniteScrollObserver = null;
-
-  // Clone pool for recycling DOM nodes (memory leak prevention)
-  var clonePool = [];
 
   // Get current column count based on viewport
   function getColumnCount() {
@@ -416,16 +412,9 @@
         if (viewportObserver) {
           viewportObserver.unobserve(item);
         }
-        // Remove from Masonry tracking
+        // Remove from Masonry (this also removes from DOM)
         if (msnry) {
           msnry.remove(item);
-        }
-        // Add to pool for recycling (limit pool size)
-        if (clonePool.length < 50) {
-          item.parentNode.removeChild(item);
-          clonePool.push(item);
-        } else {
-          item.parentNode.removeChild(item);
         }
       });
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Hooks;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -51,7 +52,10 @@ class DevelopersController extends BaseController
         }
 
         try {
-            $this->db->pdo()->prepare('INSERT INTO developers(name, process, notes) VALUES(?,?,?)')->execute([$name, $process, $notes]);
+            $pdo = $this->db->pdo();
+            $pdo->prepare('INSERT INTO developers(name, process, notes) VALUES(?,?,?)')->execute([$name, $process, $notes]);
+            $id = (int)$pdo->lastInsertId();
+            Hooks::doAction('metadata_developer_created', $id, ['name' => $name, 'process' => $process]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Developer created'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -95,6 +99,7 @@ class DevelopersController extends BaseController
 
         try {
             $this->db->pdo()->prepare('UPDATE developers SET name=?, process=?, notes=? WHERE id=?')->execute([$name, $process, $notes, $id]);
+            Hooks::doAction('metadata_developer_updated', $id, ['name' => $name, 'process' => $process]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Developer updated'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -114,6 +119,7 @@ class DevelopersController extends BaseController
         $id = (int)($args['id'] ?? 0);
         try {
             $this->db->pdo()->prepare('DELETE FROM developers WHERE id=:id')->execute([':id' => $id]);
+            Hooks::doAction('metadata_developer_deleted', $id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Developer deleted'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];

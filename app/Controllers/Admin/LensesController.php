@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Hooks;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -53,7 +54,10 @@ class LensesController extends BaseController
         }
 
         try {
-            $this->db->pdo()->prepare('INSERT INTO lenses(brand, model, focal_min, focal_max, aperture_min) VALUES(?,?,?,?,?)')->execute([$brand, $model, $fmin, $fmax, $amin]);
+            $pdo = $this->db->pdo();
+            $pdo->prepare('INSERT INTO lenses(brand, model, focal_min, focal_max, aperture_min) VALUES(?,?,?,?,?)')->execute([$brand, $model, $fmin, $fmax, $amin]);
+            $id = (int)$pdo->lastInsertId();
+            Hooks::doAction('metadata_lens_created', $id, ['brand' => $brand, 'model' => $model]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lens created'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -99,6 +103,7 @@ class LensesController extends BaseController
 
         try {
             $this->db->pdo()->prepare('UPDATE lenses SET brand=?, model=?, focal_min=?, focal_max=?, aperture_min=? WHERE id=?')->execute([$brand, $model, $fmin, $fmax, $amin, $id]);
+            Hooks::doAction('metadata_lens_updated', $id, ['brand' => $brand, 'model' => $model]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lens updated'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -118,6 +123,7 @@ class LensesController extends BaseController
         $id = (int)($args['id'] ?? 0);
         try {
             $this->db->pdo()->prepare('DELETE FROM lenses WHERE id=:id')->execute([':id' => $id]);
+            Hooks::doAction('metadata_lens_deleted', $id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lens deleted'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];

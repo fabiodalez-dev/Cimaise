@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Hooks;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -53,7 +54,10 @@ class FilmsController extends BaseController
         }
 
         try {
-            $this->db->pdo()->prepare('INSERT INTO films(brand, name, iso, format, type) VALUES(?,?,?,?,?)')->execute([$brand, $name, $iso, $format, $type]);
+            $pdo = $this->db->pdo();
+            $pdo->prepare('INSERT INTO films(brand, name, iso, format, type) VALUES(?,?,?,?,?)')->execute([$brand, $name, $iso, $format, $type]);
+            $id = (int)$pdo->lastInsertId();
+            Hooks::doAction('metadata_film_created', $id, ['brand' => $brand, 'name' => $name]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Film created'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -99,6 +103,7 @@ class FilmsController extends BaseController
 
         try {
             $this->db->pdo()->prepare('UPDATE films SET brand=?, name=?, iso=?, format=?, type=? WHERE id=?')->execute([$brand, $name, $iso, $format, $type, $id]);
+            Hooks::doAction('metadata_film_updated', $id, ['brand' => $brand, 'name' => $name]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Film updated'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -118,6 +123,7 @@ class FilmsController extends BaseController
         $id = (int)($args['id'] ?? 0);
         try {
             $this->db->pdo()->prepare('DELETE FROM films WHERE id=:id')->execute([':id' => $id]);
+            Hooks::doAction('metadata_film_deleted', $id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Film deleted'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
