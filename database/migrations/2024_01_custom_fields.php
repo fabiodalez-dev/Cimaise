@@ -9,7 +9,6 @@ return new class {
     {
         // Detect database driver
         $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-        $autoIncrement = $driver === 'mysql' ? 'AUTO_INCREMENT' : 'AUTOINCREMENT';
         $intPrimary = $driver === 'mysql'
             ? 'INT AUTO_INCREMENT PRIMARY KEY'
             : 'INTEGER PRIMARY KEY AUTOINCREMENT';
@@ -75,7 +74,16 @@ return new class {
             )
         ");
 
-        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_cfv_type ON custom_field_values(field_type_id)");
+        // Create index on field_type_id
+        if ($driver === 'mysql') {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'custom_field_values' AND index_name = ?");
+            $stmt->execute(['idx_cfv_type']);
+            if ($stmt->fetchColumn() == 0) {
+                $pdo->exec("CREATE INDEX idx_cfv_type ON custom_field_values(field_type_id)");
+            }
+        } else {
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_cfv_type ON custom_field_values(field_type_id)");
+        }
 
         // Table: image_custom_fields
         // Junction table: associates custom fields with images
@@ -94,8 +102,21 @@ return new class {
             )
         ");
 
-        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_icf_image ON image_custom_fields(image_id)");
-        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_icf_type ON image_custom_fields(field_type_id)");
+        // Create indexes on image_custom_fields
+        if ($driver === 'mysql') {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'image_custom_fields' AND index_name = ?");
+            $stmt->execute(['idx_icf_image']);
+            if ($stmt->fetchColumn() == 0) {
+                $pdo->exec("CREATE INDEX idx_icf_image ON image_custom_fields(image_id)");
+            }
+            $stmt->execute(['idx_icf_type']);
+            if ($stmt->fetchColumn() == 0) {
+                $pdo->exec("CREATE INDEX idx_icf_type ON image_custom_fields(field_type_id)");
+            }
+        } else {
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_icf_image ON image_custom_fields(image_id)");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_icf_type ON image_custom_fields(field_type_id)");
+        }
 
         // Table: album_custom_fields
         // Junction table: associates custom fields with albums (multiple values supported)
@@ -114,8 +135,21 @@ return new class {
             )
         ");
 
-        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_acf_album ON album_custom_fields(album_id)");
-        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_acf_type ON album_custom_fields(field_type_id)");
+        // Create indexes on album_custom_fields
+        if ($driver === 'mysql') {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'album_custom_fields' AND index_name = ?");
+            $stmt->execute(['idx_acf_album']);
+            if ($stmt->fetchColumn() == 0) {
+                $pdo->exec("CREATE INDEX idx_acf_album ON album_custom_fields(album_id)");
+            }
+            $stmt->execute(['idx_acf_type']);
+            if ($stmt->fetchColumn() == 0) {
+                $pdo->exec("CREATE INDEX idx_acf_type ON album_custom_fields(field_type_id)");
+            }
+        } else {
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_acf_album ON album_custom_fields(album_id)");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_acf_type ON album_custom_fields(field_type_id)");
+        }
     }
 
     public function down(\PDO $pdo): void

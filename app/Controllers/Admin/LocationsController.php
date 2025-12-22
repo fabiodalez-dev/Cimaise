@@ -51,7 +51,7 @@ class LocationsController extends BaseController
         }
         try {
             $id = $this->locations->create(['name' => $name, 'slug' => $slug, 'description' => $desc]);
-            Hooks::doAction('metadata_location_created', $id, ['name' => $name, 'slug' => $slug]);
+            Hooks::doAction('metadata_location_created', $id, ['name' => $name, 'slug' => $slug, 'description' => $desc]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location created'];
             return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
         } catch (\Throwable $e) {
@@ -91,7 +91,7 @@ class LocationsController extends BaseController
         }
         try {
             $this->locations->update($id, ['name' => $name, 'slug' => $slug, 'description' => $desc]);
-            Hooks::doAction('metadata_location_updated', $id, ['name' => $name, 'slug' => $slug]);
+            Hooks::doAction('metadata_location_updated', $id, ['name' => $name, 'slug' => $slug, 'description' => $desc]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location updated'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];

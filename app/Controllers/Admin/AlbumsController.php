@@ -746,18 +746,18 @@ class AlbumsController extends BaseController
             }
 
             // Sync custom field data
+            // Note: We don't call clearAlbumMetadata() because setAlbumMetadata() already
+            // handles removal of non-auto-added values per field type. This preserves
+            // auto_added values that were propagated from images by plugins.
             if ($this->customFieldService) {
                 try {
-                    // Clear existing custom field associations
-                    $this->customFieldService->clearAlbumMetadata($id);
-                    // Save new custom field data
                     $customFields = (array)($d['custom_fields'] ?? []);
                     foreach ($customFields as $typeId => $values) {
                         // Filter empty values, keep both numeric IDs and string values
                         $values = array_filter((array)$values, fn($v) => $v !== '' && $v !== null);
-                        if (!empty($values)) {
-                            $this->customFieldService->setAlbumMetadata($id, (int)$typeId, array_values($values));
-                        }
+                        // Always call setAlbumMetadata even with empty values to clear manual entries
+                        // while preserving auto_added values from plugins
+                        $this->customFieldService->setAlbumMetadata($id, (int)$typeId, array_values($values));
                     }
                 } catch (\Throwable) {
                     // Custom fields table may not exist yet
