@@ -221,13 +221,23 @@
             opacity: 1;
             transform: scale(1);
         }
+        /* Prevent FOUC: hide album cards initially for entrance animation */
+        main .album-card:not([data-animated]) {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        main .album-card[data-animated] {
+            opacity: 1;
+            transform: translateY(0);
+        }
         /* Reduced motion: show immediately */
         @media (prefers-reduced-motion: reduce) {
             #images-gallery > .masonry-item,
             #images-gallery > .image-item,
             #images-gallery > .grid-minimal-item,
             #images-gallery > .polaroid-item,
-            #images-gallery > .mosaic-item {
+            #images-gallery > .mosaic-item,
+            main .album-card {
                 opacity: 1 !important;
                 transform: none !important;
             }
@@ -1637,26 +1647,36 @@
         })();
 
         // Enhanced smooth animations with GSAP
-        gsap.registerPlugin(ScrollTrigger);
+        if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+            gsap.registerPlugin(ScrollTrigger);
+        }
 
-        // Animate album cards on scroll (NOT image-items - they use animateGalleryOnce)
-        const albumCards = gsap.utils.toArray('main .album-card');
-        albumCards.forEach((el, index) => {
-            gsap.from(el, {
-                opacity: 0,
-                y: 30,
-                duration: 0.8,
-                delay: index * 0.08,
-                ease: "power2.out",
-                scrollTrigger: {
-                    trigger: el,
-                    start: "top 85%",
-                    end: "bottom 15%",
-                    toggleActions: "play none none none",
-                    once: true
-                }
+        // Animate album cards - use gsap.to() to animate TO visible state
+        // CSS hides cards initially (opacity:0, translateY:20px)
+        if (typeof gsap !== 'undefined') {
+            const albumCards = gsap.utils.toArray('main .album-card:not([data-animated])');
+            if (albumCards.length > 0) {
+                // Mark as animated immediately to prevent double-run
+                albumCards.forEach(el => el.setAttribute('data-animated', '1'));
+
+                // Staggered entrance animation
+                gsap.to(albumCards, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.5,
+                    stagger: {
+                        amount: Math.min(0.4, albumCards.length * 0.05),
+                        from: 'start'
+                    },
+                    ease: "power2.out"
+                });
+            }
+        } else {
+            // GSAP not available - show cards immediately via CSS
+            document.querySelectorAll('main .album-card').forEach(card => {
+                card.setAttribute('data-animated', '1');
             });
-        });
+        }
 
         // One-time entrance animation for gallery items
         // CSS hides specific item types initially (opacity:0, scale:0.9)
@@ -1694,6 +1714,7 @@
 
         // Fallback: if GSAP fails, show elements after 2 seconds
         setTimeout(() => {
+            // Gallery items fallback
             const gallery = document.getElementById('images-gallery');
             if (gallery) {
                 const hidden = Array.from(gallery.children).filter(n => !n.hasAttribute('data-animated'));
@@ -1701,6 +1722,10 @@
                     gallery.classList.add('gsap-failed');
                 }
             }
+            // Album cards fallback
+            document.querySelectorAll('main .album-card:not([data-animated])').forEach(card => {
+                card.setAttribute('data-animated', '1');
+            });
         }, 2000);
         
         // Enhanced header scroll behavior with smooth transitions
