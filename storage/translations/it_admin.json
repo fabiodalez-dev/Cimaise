@@ -895,6 +895,7 @@
 
     "admin.upload.in_progress_title": "Caricamento in corso",
     "admin.upload.preparing": "Preparazione...",
+    "admin.upload.compressing": "Compressione {name}...",
     "admin.upload.starting_upload": "Avvio caricamento...",
     "admin.upload.uploading_file": "Caricamento {name}...",
     "admin.upload.uploading": "Caricamento...",

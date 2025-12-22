@@ -895,6 +895,7 @@
 
     "admin.upload.in_progress_title": "Upload in progress",
     "admin.upload.preparing": "Preparing...",
+    "admin.upload.compressing": "Compressing {name}...",
     "admin.upload.starting_upload": "Starting upload...",
     "admin.upload.uploading_file": "Uploading {name}...",
     "admin.upload.uploading": "Uploading...",
