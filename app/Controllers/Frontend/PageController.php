@@ -215,6 +215,9 @@ class PageController extends BaseController
         ];
         $templateFile = $templateMap[$homeTemplate] ?? 'frontend/home.twig';
 
+        // Get galleries slug for JSON-LD SearchAction
+        $galleriesSlug = (string)($svc->get('galleries.slug', 'galleries') ?? 'galleries');
+
         return $this->view->render($response, $templateFile, [
             'albums' => $albums,
             'categories' => $categories,
@@ -224,6 +227,7 @@ class PageController extends BaseController
             'has_more' => $hasMore,
             'total_albums' => $totalAlbums,
             'home_settings' => $homeSettings,
+            'galleries_slug' => $galleriesSlug,
             'page_title' => $seo['page_title'],
             'meta_description' => $seo['meta_description'],
             'meta_image' => $seo['meta_image'],
