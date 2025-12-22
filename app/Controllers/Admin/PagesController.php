@@ -97,8 +97,8 @@ class PagesController extends BaseController
         // Pure Masonry settings
         $masonryGapH = (int)($data['masonry_gap_h'] ?? 0);
         $masonryGapV = (int)($data['masonry_gap_v'] ?? 0);
-        $masonryGapH = max(0, min(100, $masonryGapH)); // 0-100px
-        $masonryGapV = max(0, min(100, $masonryGapV)); // 0-100px
+        $masonryGapH = max(0, min(40, $masonryGapH)); // 0-40px (matches UI slider)
+        $masonryGapV = max(0, min(40, $masonryGapV)); // 0-40px (matches UI slider)
         $svc->set('home.masonry_gap_h', $masonryGapH);
         $svc->set('home.masonry_gap_v', $masonryGapV);
 
@@ -106,8 +106,8 @@ class PagesController extends BaseController
         $masonryColDesktop = (int)($data['masonry_col_desktop'] ?? 5);
         $masonryColTablet = (int)($data['masonry_col_tablet'] ?? 3);
         $masonryColMobile = (int)($data['masonry_col_mobile'] ?? 2);
-        $masonryColDesktop = max(1, min(8, $masonryColDesktop)); // 1-8 columns
-        $masonryColTablet = max(1, min(6, $masonryColTablet)); // 1-6 columns
+        $masonryColDesktop = max(2, min(8, $masonryColDesktop)); // 2-8 columns (matches UI)
+        $masonryColTablet = max(2, min(6, $masonryColTablet)); // 2-6 columns (matches UI)
         $masonryColMobile = max(1, min(4, $masonryColMobile)); // 1-4 columns
         $svc->set('home.masonry_col_desktop', $masonryColDesktop);
         $svc->set('home.masonry_col_tablet', $masonryColTablet);

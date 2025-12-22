@@ -8,7 +8,7 @@
 }
 
 .masonry-item {
-  width: calc(100% / {{ home_settings.masonry_col_mobile|default(2) }} - {{ home_settings.masonry_gap_h|default(0) }}px);
+  width: calc((100% - {{ home_settings.masonry_gap_h|default(0) }}px * {{ home_settings.masonry_col_mobile|default(2) - 1 }}) / {{ home_settings.masonry_col_mobile|default(2) }});
   margin-bottom: {{ home_settings.masonry_gap_v|default(0) }}px;
 }
 
@@ -25,14 +25,14 @@
 /* Tablet */
 @media (min-width: 641px) {
   .masonry-item {
-    width: calc(100% / {{ home_settings.masonry_col_tablet|default(3) }} - {{ home_settings.masonry_gap_h|default(0) }}px);
+    width: calc((100% - {{ home_settings.masonry_gap_h|default(0) }}px * {{ home_settings.masonry_col_tablet|default(3) - 1 }}) / {{ home_settings.masonry_col_tablet|default(3) }});
   }
 }
 
 /* Desktop */
 @media (min-width: 1025px) {
   .masonry-item {
-    width: calc(100% / {{ home_settings.masonry_col_desktop|default(5) }} - {{ home_settings.masonry_gap_h|default(0) }}px);
+    width: calc((100% - {{ home_settings.masonry_gap_h|default(0) }}px * {{ home_settings.masonry_col_desktop|default(5) - 1 }}) / {{ home_settings.masonry_col_desktop|default(5) }});
   }
 }
 </style>
@@ -72,10 +72,10 @@
       {% set jpg_sources = image.sources.jpg|default([]) %}
       <picture>
         {% if webp_sources|length > 0 %}
-        <source type="image/webp" srcset="{{ base_path }}{{ webp_sources|join(', ' ~ base_path) }}">
+        <source type="image/webp" srcset="{% for src in webp_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
         {% endif %}
         {% if jpg_sources|length > 0 %}
-        <source type="image/jpeg" srcset="{{ base_path }}{{ jpg_sources|join(', ' ~ base_path) }}">
+        <source type="image/jpeg" srcset="{% for src in jpg_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
         {% endif %}
         <img
           src="{{ base_path }}{{ image.fallback_src|default(image.original_path)|e('html_attr') }}"
