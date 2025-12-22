@@ -28,7 +28,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   {% include 'frontend/_breadcrumbs.twig' %}
   <div class="max-w-4xl mx-auto text-center pb-12">
-    <div class="mb-4 flex flex-wrap gap-2 justify-center" data-gsap="categories">
+    <div class="mt-4 mb-4 flex flex-wrap gap-2 justify-center" data-gsap="categories">
       {% if album.categories is defined and album.categories|length > 0 %}
         {% for cat in album.categories %}
         <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ cat.name|e }}">

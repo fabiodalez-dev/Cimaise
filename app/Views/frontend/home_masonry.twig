@@ -1,0 +1,161 @@
+{% extends "frontend/_layout.twig" %}
+
+{% block styles %}
+<style nonce="{{ csp_nonce() }}">
+/* Pure Masonry - Wall of Photos */
+.masonry-grid {
+  margin: 0 auto;
+}
+
+.masonry-item {
+  width: calc(100% / {{ home_settings.masonry_col_mobile|default(2) }} - {{ home_settings.masonry_gap_h|default(0) }}px);
+  margin-bottom: {{ home_settings.masonry_gap_v|default(0) }}px;
+}
+
+.masonry-item a {
+  display: block;
+}
+
+.masonry-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Tablet */
+@media (min-width: 641px) {
+  .masonry-item {
+    width: calc(100% / {{ home_settings.masonry_col_tablet|default(3) }} - {{ home_settings.masonry_gap_h|default(0) }}px);
+  }
+}
+
+/* Desktop */
+@media (min-width: 1025px) {
+  .masonry-item {
+    width: calc(100% / {{ home_settings.masonry_col_desktop|default(5) }} - {{ home_settings.masonry_gap_h|default(0) }}px);
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{# Hook: frontend_home_before - Before all home page content #}
+{{ do_action('frontend_home_before', {base_path: base_path}) }}
+
+{# WebSite JSON-LD for home page #}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": {{ site_title|default('Portfolio')|json_encode|raw }},
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  {% if meta_description %}
+  "description": {{ meta_description|json_encode|raw }},
+  {% endif %}
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "{{ base_path }}/galleries?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+
+{% if all_images|length > 0 %}
+<div class="masonry-grid" data-gap="{{ home_settings.masonry_gap_h|default(0) }}" data-cols-mobile="{{ home_settings.masonry_col_mobile|default(2) }}" data-cols-tablet="{{ home_settings.masonry_col_tablet|default(3) }}" data-cols-desktop="{{ home_settings.masonry_col_desktop|default(5) }}">
+  {% for image in all_images %}
+  <div class="masonry-item">
+    <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
+      {% set webp_sources = image.sources.webp|default([]) %}
+      {% set jpg_sources = image.sources.jpg|default([]) %}
+      <picture>
+        {% if webp_sources|length > 0 %}
+        <source type="image/webp" srcset="{{ base_path }}{{ webp_sources|join(', ' ~ base_path) }}">
+        {% endif %}
+        {% if jpg_sources|length > 0 %}
+        <source type="image/jpeg" srcset="{{ base_path }}{{ jpg_sources|join(', ' ~ base_path) }}">
+        {% endif %}
+        <img
+          src="{{ base_path }}{{ image.fallback_src|default(image.original_path)|e('html_attr') }}"
+          alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
+          loading="lazy"
+        >
+      </picture>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+{# Empty state #}
+<div class="min-h-screen flex items-center justify-center">
+  <div class="text-center px-4">
+    <i class="fas fa-images text-6xl text-gray-300 mb-6"></i>
+    <h2 class="text-2xl font-semibold text-gray-800 mb-2">{{ home_settings.empty_title|default(trans('home.empty_title'))|e }}</h2>
+    <p class="text-gray-600">{{ home_settings.empty_text|default(trans('home.empty_text'))|e }}</p>
+  </div>
+</div>
+{% endif %}
+
+{# Hook: frontend_home_after - After all home page content #}
+{{ do_action('frontend_home_after', {base_path: base_path}) }}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
+<script src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  'use strict';
+
+  const grid = document.querySelector('.masonry-grid');
+  if (!grid) return;
+
+  const gap = parseInt(grid.dataset.gap) || 0;
+  const colsMobile = parseInt(grid.dataset.colsMobile) || 2;
+  const colsTablet = parseInt(grid.dataset.colsTablet) || 3;
+  const colsDesktop = parseInt(grid.dataset.colsDesktop) || 5;
+
+  function getColumnWidth() {
+    const width = window.innerWidth;
+    let cols = colsMobile;
+    if (width >= 1025) cols = colsDesktop;
+    else if (width >= 641) cols = colsTablet;
+
+    const containerWidth = grid.offsetWidth;
+    return Math.floor((containerWidth - gap * (cols - 1)) / cols);
+  }
+
+  function updateItemWidths() {
+    const columnWidth = getColumnWidth();
+    document.querySelectorAll('.masonry-item').forEach(item => {
+      item.style.width = columnWidth + 'px';
+    });
+  }
+
+  // Initialize Masonry after images load
+  imagesLoaded(grid, function() {
+    updateItemWidths();
+
+    const msnry = new Masonry(grid, {
+      itemSelector: '.masonry-item',
+      columnWidth: '.masonry-item',
+      gutter: gap,
+      fitWidth: false,
+      horizontalOrder: true
+    });
+
+    // Re-layout on resize
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function() {
+        updateItemWidths();
+        msnry.layout();
+      }, 100);
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -87,12 +87,31 @@ class PagesController extends BaseController
 
         $svc = new SettingsService($this->db);
 
-        // Home template selection (classic, modern, or parallax)
+        // Home template selection (classic, modern, parallax, or masonry)
         $homeTemplate = (string)($data['home_template'] ?? 'classic');
-        if (!in_array($homeTemplate, ['classic', 'modern', 'parallax'], true)) {
+        if (!in_array($homeTemplate, ['classic', 'modern', 'parallax', 'masonry'], true)) {
             $homeTemplate = 'classic';
         }
         $svc->set('home.template', $homeTemplate);
+
+        // Pure Masonry settings
+        $masonryGapH = (int)($data['masonry_gap_h'] ?? 0);
+        $masonryGapV = (int)($data['masonry_gap_v'] ?? 0);
+        $masonryGapH = max(0, min(100, $masonryGapH)); // 0-100px
+        $masonryGapV = max(0, min(100, $masonryGapV)); // 0-100px
+        $svc->set('home.masonry_gap_h', $masonryGapH);
+        $svc->set('home.masonry_gap_v', $masonryGapV);
+
+        // Masonry columns per device
+        $masonryColDesktop = (int)($data['masonry_col_desktop'] ?? 5);
+        $masonryColTablet = (int)($data['masonry_col_tablet'] ?? 3);
+        $masonryColMobile = (int)($data['masonry_col_mobile'] ?? 2);
+        $masonryColDesktop = max(1, min(8, $masonryColDesktop)); // 1-8 columns
+        $masonryColTablet = max(1, min(6, $masonryColTablet)); // 1-6 columns
+        $masonryColMobile = max(1, min(4, $masonryColMobile)); // 1-4 columns
+        $svc->set('home.masonry_col_desktop', $masonryColDesktop);
+        $svc->set('home.masonry_col_tablet', $masonryColTablet);
+        $svc->set('home.masonry_col_mobile', $masonryColMobile);
 
         // Hero section
         $svc->set('home.hero_title', trim((string)($data['hero_title'] ?? 'Portfolio')) ?: 'Portfolio');
