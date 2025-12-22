@@ -1,0 +1,114 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}{{ trans('admin.custom_fields.title') }} — Cimaise{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.custom_fields.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ trans('admin.custom_fields.description') }}</p>
+    </div>
+    <a href="{{ base_path }}/admin/custom-field-types/create" class="btn-primary">
+      <i class="fas fa-plus mr-2"></i>{{ trans('admin.custom_fields.add_type') }}
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="overflow-x-auto">
+      <table class="min-w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.custom_fields.icon') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.custom_fields.name') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.custom_fields.label') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.custom_fields.type') }}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.custom_fields.visibility') }}</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.common.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for type in types %}
+          <tr class="table-row">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <i class="fas {{ type.icon }} text-gray-600 text-lg"></i>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <code class="text-sm bg-gray-100 px-2 py-1 rounded">{{ type.name }}</code>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm font-medium text-gray-900">{{ type.label }}</div>
+              {% if type.description %}
+                <div class="text-xs text-gray-500">{{ type.description|slice(0, 50) }}{% if type.description|length > 50 %}...{% endif %}</div>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              {% if type.field_type == 'text' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                  <i class="fas fa-font mr-1"></i>{{ trans('admin.custom_fields.type_text') }}
+                </span>
+              {% elseif type.field_type == 'select' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  <i class="fas fa-list mr-1"></i>{{ trans('admin.custom_fields.type_select') }}
+                </span>
+              {% elseif type.field_type == 'multi_select' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                  <i class="fas fa-list-check mr-1"></i>{{ trans('admin.custom_fields.type_multi') }}
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center space-x-2">
+                {% if type.show_in_lightbox %}
+                  <span class="inline-flex items-center px-2 py-0.5 text-xs rounded bg-green-100 text-green-700" title="{{ trans('admin.custom_fields.show_in_lightbox') }}">
+                    <i class="fas fa-expand-alt mr-1"></i>LB
+                  </span>
+                {% endif %}
+                {% if type.show_in_gallery %}
+                  <span class="inline-flex items-center px-2 py-0.5 text-xs rounded bg-green-100 text-green-700" title="{{ trans('admin.custom_fields.show_in_gallery') }}">
+                    <i class="fas fa-images mr-1"></i>GAL
+                  </span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <div class="flex items-center justify-end space-x-3">
+                {% if type.field_type != 'text' %}
+                  <a href="{{ base_path }}/admin/custom-field-types/{{ type.id }}/values" class="text-blue-600 hover:text-blue-800 transition-colors" title="{{ trans('admin.custom_fields.manage_values') }}">
+                    <i class="fas fa-list-ol"></i>
+                  </a>
+                {% endif %}
+                <a href="{{ base_path }}/admin/custom-field-types/{{ type.id }}/edit" class="text-gray-600 hover:text-black transition-colors">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <form method="post" action="{{ base_path }}/admin/custom-field-types/{{ type.id }}/delete" class="inline" data-confirm="{{ trans('admin.custom_fields.delete_confirm')|e('html_attr') }}">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if migration_required is defined and migration_required %}
+      <div class="text-center py-12">
+        <i class="fas fa-database text-4xl text-amber-400 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.custom_fields.migration_required') }}</h3>
+        <p class="text-gray-600 mb-4">{{ trans('admin.custom_fields.migration_hint') }}</p>
+        <code class="block bg-gray-100 p-3 rounded text-sm text-left max-w-xl mx-auto mb-4">sqlite3 storage/database.sqlite &lt; database/migrations/migrate_custom_fields_sqlite.sql</code>
+        <p class="text-xs text-gray-500">{{ trans('admin.custom_fields.migration_mysql_hint') }}</p>
+      </div>
+    {% elseif types|length == 0 %}
+      <div class="text-center py-12">
+        <i class="fas fa-tags text-4xl text-gray-300 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ trans('admin.custom_fields.no_types') }}</h3>
+        <p class="text-gray-600 mb-6">{{ trans('admin.custom_fields.no_types_hint') }}</p>
+        <a href="{{ base_path }}/admin/custom-field-types/create" class="btn-primary">
+          <i class="fas fa-plus mr-2"></i>{{ trans('admin.custom_fields.add_type') }}
+        </a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

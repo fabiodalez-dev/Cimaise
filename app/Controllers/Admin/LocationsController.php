@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Repositories\LocationRepository;
+use App\Support\Hooks;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -49,7 +50,8 @@ class LocationsController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin/locations/create'))->withStatus(302);
         }
         try {
-            $this->locations->create(['name' => $name, 'slug' => $slug, 'description' => $desc]);
+            $id = $this->locations->create(['name' => $name, 'slug' => $slug, 'description' => $desc]);
+            Hooks::doAction('metadata_location_created', $id, ['name' => $name, 'slug' => $slug]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location created'];
             return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
         } catch (\Throwable $e) {
@@ -89,6 +91,7 @@ class LocationsController extends BaseController
         }
         try {
             $this->locations->update($id, ['name' => $name, 'slug' => $slug, 'description' => $desc]);
+            Hooks::doAction('metadata_location_updated', $id, ['name' => $name, 'slug' => $slug]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location updated'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
@@ -107,6 +110,7 @@ class LocationsController extends BaseController
         $id = (int)($args['id'] ?? 0);
         try {
             $this->locations->delete($id);
+            Hooks::doAction('metadata_location_deleted', $id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location deleted'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];

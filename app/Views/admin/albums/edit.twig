@@ -539,6 +539,59 @@
           {# Hook: admin_album_sidebar_equipment_after - After equipment card (add custom metadata cards) #}
           {{ do_action('admin_album_sidebar_equipment_after', {album: item, base_path: base_path}) }}
 
+          {% if customFieldTypes is defined and customFieldTypes|length > 0 %}
+          <!-- Custom Fields Card -->
+          <div class="card">
+            <div class="p-6 border-b border-gray-200">
+              <h2 class="text-lg font-semibold text-black flex items-center">
+                <i class="fas fa-tags mr-3 text-gray-600"></i>
+                {{ trans('admin.custom_fields.title') }}
+              </h2>
+              <p class="text-gray-600 text-sm mt-1">{{ trans('admin.custom_fields.album_fields_desc') }}</p>
+            </div>
+            <div class="p-6 space-y-4">
+              {% for fieldType in customFieldTypes %}
+                {% set fieldValues = customFieldValues[fieldType.id]|default([]) %}
+                {% set savedData = albumCustomFields[fieldType.id]|default({}) %}
+                {% set selectedIds = savedData.value_ids|default([]) %}
+                {% set savedValues = savedData.values|default([]) %}
+                <div>
+                  <label class="block text-sm font-medium text-black mb-2">
+                    <i class="fas {{ fieldType.icon|default('fa-tag') }} mr-1 text-gray-500"></i>
+                    {{ fieldType.label }}
+                  </label>
+                  <select class="form-input border-gray-300 focus:border-black focus:ring-black"
+                          name="custom_fields[{{ fieldType.id }}][]"
+                          id="custom-field-{{ fieldType.id }}"
+                          multiple>
+                    {# Predefined values #}
+                    {% for value in fieldValues %}
+                      <option value="{{ value.id }}" {% if value.id in selectedIds %}selected{% endif %}>{{ value.value }}</option>
+                    {% endfor %}
+                    {# Custom values (user-typed, not from predefined list) #}
+                    {% for saved in savedValues %}
+                      {% set isCustom = true %}
+                      {% for fv in fieldValues %}
+                        {% if fv.value == saved.value %}
+                          {% set isCustom = false %}
+                        {% endif %}
+                      {% endfor %}
+                      {% if isCustom and saved.value %}
+                        <option value="{{ saved.value }}" selected>{{ saved.value }}</option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                </div>
+              {% endfor %}
+              <p class="text-xs text-gray-500">
+                <a href="{{ base_path }}/admin/custom-field-types" class="text-blue-600 hover:text-blue-800" data-spa-link>
+                  <i class="fas fa-cog mr-1"></i>{{ trans('admin.custom_fields.manage_fields') }}
+                </a>
+              </p>
+            </div>
+          </div>
+          {% endif %}
+
           <!-- Locations and Security Card -->
           <div class="card">
             <div class="p-6 border-b border-gray-200">
