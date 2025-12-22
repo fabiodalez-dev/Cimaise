@@ -14,6 +14,18 @@ html.snap-active, html.snap-active body {
   height: 100%;
 }
 
+/* Hide footer immediately - full-screen layout doesn't need footer */
+footer {
+  display: none !important;
+}
+
+/* Ensure mobile search toggle hidden on desktop (reinforce Tailwind md:hidden) */
+@media (min-width: 768px) {
+  #mobile-search-toggle {
+    display: none !important;
+  }
+}
+
 /* === CONTAINER DESKTOP === */
 .snap-container {
   position: fixed;
@@ -52,6 +64,7 @@ html.snap-active, html.snap-active body {
   font-size: clamp(2rem, 5vw, 4.5rem);
   font-weight: 300;
   letter-spacing: 0.05em;
+  line-height: 1;
   margin-bottom: 1.5rem;
   text-transform: uppercase;
   color: #000;
