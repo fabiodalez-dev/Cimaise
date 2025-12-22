@@ -38,13 +38,15 @@ return new class {
             // Check if indexes exist before creating - use separate statements to avoid cursor issues
             $stmt1 = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'metadata_extensions' AND index_name = ?");
             $stmt1->execute(['idx_meta_ext_entity']);
-            if ($stmt1->fetchColumn() == 0) {
+            if ($stmt1->fetchColumn() === 0) {
+                $stmt1->closeCursor();
                 $pdo->exec("CREATE INDEX idx_meta_ext_entity ON metadata_extensions(entity_type, entity_id)");
             }
 
             $stmt2 = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'metadata_extensions' AND index_name = ?");
             $stmt2->execute(['idx_meta_ext_plugin']);
-            if ($stmt2->fetchColumn() == 0) {
+            if ($stmt2->fetchColumn() === 0) {
+                $stmt2->closeCursor();
                 $pdo->exec("CREATE INDEX idx_meta_ext_plugin ON metadata_extensions(plugin_id)");
             }
         } else {
