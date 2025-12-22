@@ -1,14 +1,21 @@
 {% macro seo_title(image, album, site_title) %}
   {% set parts = [] %}
   {% set primary_title = image.alt|default(image.caption)|default('') %}
-  {% if primary_title %}
+  {% set album_title = '' %}
+  {% if album is defined and album.title %}
+    {% set album_title = album.title %}
+  {% elseif image.album_title is defined and image.album_title %}
+    {% set album_title = image.album_title %}
+  {% endif %}
+  {# Add primary title only if it differs from album title #}
+  {% if primary_title and primary_title != album_title %}
     {% set parts = parts|merge([primary_title]) %}
   {% endif %}
-  {% if album is defined and album.title %}
-    {% set parts = parts|merge([album.title]) %}
-  {% elseif image.album_title is defined and image.album_title %}
-    {% set parts = parts|merge([image.album_title]) %}
+  {# Add album title #}
+  {% if album_title %}
+    {% set parts = parts|merge([album_title]) %}
   {% endif %}
+  {# Add site title #}
   {% if site_title is defined and site_title %}
     {% set parts = parts|merge([site_title]) %}
   {% endif %}

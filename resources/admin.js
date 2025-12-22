@@ -390,10 +390,18 @@ function initTomSelects() {
   make('#album-developers', common);
   make('#album-labs', common);
   make('#album-locations', common);
-  
-  // Generic selects that might be in any admin page
+
+  // Custom field selects - allow creating new values on the fly
+  make('select[id^="custom-field-"]', {
+    ...common,
+    create: true,
+    createOnBlur: true,
+    persist: true
+  });
+
+  // Generic selects that might be in any admin page (exclude custom fields already initialized)
   make('select.tom-select', common);
-  make('select[multiple]:not(.ts-hidden-accessible)', common);
+  make('select[multiple]:not(.ts-hidden-accessible):not([id^="custom-field-"])', common);
 }
 
 // Sortable grid and controls on edit page

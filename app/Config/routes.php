@@ -758,6 +758,50 @@ $app->post('/admin/labs/{id}/delete', function (Request $request, Response $resp
     return $controller->delete($request, $response, $args);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+// Custom Field Types CRUD
+$app->get('/admin/custom-field-types', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\CustomFieldTypesController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->get('/admin/custom-field-types/create', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\CustomFieldTypesController($container['db'], Twig::fromRequest($request));
+    return $controller->create($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/custom-field-types', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\CustomFieldTypesController($container['db'], Twig::fromRequest($request));
+    return $controller->store($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->get('/admin/custom-field-types/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\CustomFieldTypesController($container['db'], Twig::fromRequest($request));
+    return $controller->edit($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/custom-field-types/{id}', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\CustomFieldTypesController($container['db'], Twig::fromRequest($request));
+    return $controller->update($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/custom-field-types/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\CustomFieldTypesController($container['db'], Twig::fromRequest($request));
+    return $controller->delete($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+// Custom Field Values CRUD
+$app->get('/admin/custom-field-types/{type_id}/values', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\CustomFieldValuesController($container['db'], Twig::fromRequest($request));
+    return $controller->index($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/custom-field-types/{type_id}/values', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\CustomFieldValuesController($container['db'], Twig::fromRequest($request));
+    return $controller->store($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/custom-field-types/{type_id}/values/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\CustomFieldValuesController($container['db'], Twig::fromRequest($request));
+    return $controller->delete($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/custom-field-types/{type_id}/values/reorder', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Admin\CustomFieldValuesController($container['db'], Twig::fromRequest($request));
+    return $controller->updateOrder($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
 // Templates CRUD
 $app->get('/admin/templates', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
