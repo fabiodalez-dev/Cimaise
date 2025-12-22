@@ -78,7 +78,6 @@ app/database/
 # Local documentation files (not tracked)
 AGENTS.md
 CHANGELOG.md
-CLAUDE.md
 HOOKS_REFERENCE.md
 INSTALL.md
 INSTALLATION.md

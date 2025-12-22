@@ -55,6 +55,22 @@ img {
     display: block;
 }
 
+.hidden {
+    display: none !important;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 /* ============================================
    BASE STYLES (SCOPED TO MODERN HOME)
    ============================================ */
@@ -102,6 +118,197 @@ img {
 .head-logo_holder .head-logo_img {
     max-height: 2rem;
     width: auto;
+}
+
+.global-head_actions {
+    pointer-events: auto;
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.modern-search-toggle {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: rgba(255, 255, 255, 0.92);
+    color: #111827;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.modern-search-toggle:hover {
+    background: #111827;
+    color: #ffffff;
+    border-color: #111827;
+}
+
+.modern-search-panel {
+    position: fixed;
+    top: 4.75rem;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.75rem 1.5rem 1rem;
+    pointer-events: auto;
+}
+
+.modern-search-panel__inner {
+    max-width: 56rem;
+    margin: 0 auto;
+}
+
+.modern-search-form {
+    width: 100%;
+}
+
+.modern-search-field {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: #ffffff;
+    position: relative;
+    min-height: 48px;
+    overflow: hidden;
+}
+
+.modern-search-input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    border-radius: 0.65rem;
+    padding: 0.7rem 0.75rem;
+    padding-right: 0.5rem;
+    font-size: 0.95rem;
+    color: #111827;
+    background: transparent;
+    appearance: none;
+}
+
+.modern-search-input:focus {
+    outline: none;
+}
+
+.modern-search-field:focus-within {
+    border-color: #111827;
+    box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.15);
+}
+
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+    display: none;
+}
+
+.modern-search-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-left: auto;
+    margin-right: 0.25rem;
+    flex-shrink: 0;
+}
+
+.modern-search-clear,
+.modern-search-submit {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    border: 0;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.modern-search-clear:hover,
+.modern-search-submit:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.modern-search-suggestions {
+    margin-top: 0.75rem;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.9rem;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.modern-search-suggestions button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease;
+}
+
+.modern-search-suggestions button:hover {
+    background: #f9fafb;
+}
+
+.modern-search-suggestions button > div:first-child {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 0.9rem;
+    background: #f3f4f6;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(17, 24, 39, 0.06);
+}
+
+.modern-search-suggestions button > div:last-child {
+    min-width: 0;
+    flex: 1;
+}
+
+.modern-search-suggestions button > div:last-child > div:first-child {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.modern-search-suggestions button > div:last-child > div:last-child {
+    margin-top: 0.2rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 767px) {
+    .modern-search-panel {
+        top: 4.25rem;
+        padding: 0.75rem 1rem 1rem;
+    }
+
 }
 
 /* ============================================
