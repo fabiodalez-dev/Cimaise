@@ -76,10 +76,10 @@ return new class {
 
         // Create index on field_type_id
         if ($driver === 'mysql') {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'custom_field_values' AND index_name = ?");
-            $stmt->execute(['idx_cfv_type']);
-            if ($stmt->fetchColumn() === 0) {
-                $stmt->closeCursor();
+            $stmtIdx = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'custom_field_values' AND index_name = ?");
+            $stmtIdx->execute(['idx_cfv_type']);
+            if ($stmtIdx->fetchColumn() === 0) {
+                $stmtIdx->closeCursor();
                 $pdo->exec("CREATE INDEX idx_cfv_type ON custom_field_values(field_type_id)");
             }
         } else {
