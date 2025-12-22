@@ -814,37 +814,29 @@ if (layout === 'masonry_fit') {
             colsMobile: parseInt(container.dataset.colsMobile) || 2
         };
 
-        // Store instance and handlers for cleanup
-        let masonryFitInstance = null;
-        let resizeHandler = null;
+        // Single resize handler that always uses container._masonryFitInstance
+        // This ensures it works correctly even after filter re-initialization
         let resizeTimer = null;
+        const resizeHandler = function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                const instance = container._masonryFitInstance;
+                if (instance) {
+                    instance.updateItemWidths();
+                    instance.msnry.layout();
+                }
+            }, 150);
+        };
+
+        // Store handler reference on container for cleanup
+        if (container._masonryFitResizeHandler) {
+            window.removeEventListener('resize', container._masonryFitResizeHandler);
+        }
+        container._masonryFitResizeHandler = resizeHandler;
+        window.addEventListener('resize', resizeHandler);
 
         const initMasonryFit = () => {
-            // Cleanup previous instance and handlers
-            if (masonryFitInstance && masonryFitInstance.destroy) {
-                masonryFitInstance.destroy();
-            }
-            if (resizeHandler) {
-                window.removeEventListener('resize', resizeHandler);
-            }
-            if (resizeTimer) {
-                clearTimeout(resizeTimer);
-            }
-
-            masonryFitInstance = window.initAlbumMasonryFit(container, options);
-            if (masonryFitInstance) {
-                // Re-layout on resize with named handler for cleanup
-                resizeHandler = function() {
-                    clearTimeout(resizeTimer);
-                    resizeTimer = setTimeout(function() {
-                        if (masonryFitInstance) {
-                            masonryFitInstance.updateItemWidths();
-                            masonryFitInstance.msnry.layout();
-                        }
-                    }, 150);
-                };
-                window.addEventListener('resize', resizeHandler);
-            }
+            window.initAlbumMasonryFit(container, options);
             if (window.lenisResize) window.lenisResize();
         };
 
@@ -910,46 +902,44 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
         
         const gallery = document.getElementById('images-gallery');
         gallery.innerHTML = data.itemsHtml;
-        
-        // Re-initialize Masonry for both masonry and masonry_fit layouts
-        if ((masonry || layout === 'masonry_fit') && typeof Masonry !== 'undefined') {
-            if (layout === 'masonry_fit') {
-                // masonry_fit: use reusable helper
-                const options = {
-                    gap: parseInt(gallery.dataset.gap) || 16,
-                    colsDesktop: parseInt(gallery.dataset.colsDesktop) || 5,
-                    colsTablet: parseInt(gallery.dataset.colsTablet) || 3,
-                    colsMobile: parseInt(gallery.dataset.colsMobile) || 2
-                };
 
-                const initFiltered = () => {
-                    window.initAlbumMasonryFit(gallery, options);
-                    if (window.lenisResize) window.lenisResize();
-                };
+        // Re-initialize layout after filter
+        if (layout === 'masonry_fit') {
+            // masonry_fit: use reusable helper (doesn't require Masonry library)
+            const options = {
+                gap: parseInt(gallery.dataset.gap) || 16,
+                colsDesktop: parseInt(gallery.dataset.colsDesktop) || 5,
+                colsTablet: parseInt(gallery.dataset.colsTablet) || 3,
+                colsMobile: parseInt(gallery.dataset.colsMobile) || 2
+            };
 
-                if (typeof imagesLoaded !== 'undefined') {
-                    imagesLoaded(gallery, initFiltered);
-                } else {
-                    initFiltered();
-                }
+            const initFiltered = () => {
+                window.initAlbumMasonryFit(gallery, options);
+                if (window.lenisResize) window.lenisResize();
+            };
+
+            if (typeof imagesLoaded !== 'undefined') {
+                imagesLoaded(gallery, initFiltered);
             } else {
-                // Regular masonry layout - store instance for cleanup
-                // Destroy existing instance before reinit
-                if (gallery._masonryInstance) {
-                    gallery._masonryInstance.destroy();
-                    gallery._masonryInstance = null;
-                }
+                initFiltered();
+            }
+        } else if (masonry && typeof Masonry !== 'undefined') {
+            // Regular masonry layout - requires Masonry library
+            // Destroy existing instance before reinit
+            if (gallery._masonryInstance) {
+                gallery._masonryInstance.destroy();
+                gallery._masonryInstance = null;
+            }
 
-                const initMasonry = function() {
-                    const msnry = new Masonry(gallery, { itemSelector: '.masonry-item', percentPosition: true });
-                    gallery._masonryInstance = msnry;
-                };
+            const initMasonry = function() {
+                const msnry = new Masonry(gallery, { itemSelector: '.masonry-item', percentPosition: true });
+                gallery._masonryInstance = msnry;
+            };
 
-                if (typeof imagesLoaded !== 'undefined') {
-                    imagesLoaded(gallery, initMasonry);
-                } else {
-                    initMasonry();
-                }
+            if (typeof imagesLoaded !== 'undefined') {
+                imagesLoaded(gallery, initMasonry);
+            } else {
+                initMasonry();
             }
         }
         
