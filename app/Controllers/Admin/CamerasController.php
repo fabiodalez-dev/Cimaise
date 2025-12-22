@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Hooks;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -48,7 +49,10 @@ class CamerasController extends BaseController
         }
 
         try {
-            $this->db->pdo()->prepare('INSERT INTO cameras(make, model) VALUES(:a,:b)')->execute([':a'=>$make, ':b'=>$model]);
+            $pdo = $this->db->pdo();
+            $pdo->prepare('INSERT INTO cameras(make, model) VALUES(:a,:b)')->execute([':a'=>$make, ':b'=>$model]);
+            $id = (int)$pdo->lastInsertId();
+            Hooks::doAction('metadata_camera_created', $id, ['make' => $make, 'model' => $model]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Camera created'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -91,6 +95,7 @@ class CamerasController extends BaseController
 
         try {
             $this->db->pdo()->prepare('UPDATE cameras SET make=:a, model=:b WHERE id=:id')->execute([':a'=>$make, ':b'=>$model, ':id'=>$id]);
+            Hooks::doAction('metadata_camera_updated', $id, ['make' => $make, 'model' => $model]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Camera updated'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -110,6 +115,7 @@ class CamerasController extends BaseController
         $id = (int)($args['id'] ?? 0);
         try {
             $this->db->pdo()->prepare('DELETE FROM cameras WHERE id=:id')->execute([':id' => $id]);
+            Hooks::doAction('metadata_camera_deleted', $id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Camera deleted'];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];

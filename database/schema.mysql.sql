@@ -502,6 +502,92 @@ CREATE TABLE IF NOT EXISTS `logs` (
   KEY `idx_logs_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ============================================
+-- CUSTOM FIELDS SYSTEM
+-- ============================================
+
+-- Custom field types (both built-in references and user-defined)
+CREATE TABLE IF NOT EXISTS `custom_field_types` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(100) NOT NULL,
+  `label` VARCHAR(160) NOT NULL,
+  `icon` VARCHAR(50) DEFAULT 'fa-tag',
+  `description` TEXT NULL,
+  `field_type` ENUM('text', 'select', 'multi_select') DEFAULT 'select',
+  `is_system` TINYINT(1) DEFAULT 0,
+  `show_in_lightbox` TINYINT(1) DEFAULT 1,
+  `show_in_gallery` TINYINT(1) DEFAULT 1,
+  `sort_order` INT DEFAULT 0,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_cft_name` (`name`),
+  KEY `idx_cft_system` (`is_system`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Custom field values (for select/multi_select types)
+CREATE TABLE IF NOT EXISTS `custom_field_values` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `field_type_id` INT UNSIGNED NOT NULL,
+  `value` VARCHAR(255) NOT NULL,
+  `extra_data` TEXT NULL,
+  `sort_order` INT DEFAULT 0,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_cfv_type_value` (`field_type_id`, `value`),
+  KEY `idx_cfv_type` (`field_type_id`),
+  CONSTRAINT `fk_cfv_type` FOREIGN KEY (`field_type_id`) REFERENCES `custom_field_types`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Image custom fields (junction table)
+CREATE TABLE IF NOT EXISTS `image_custom_fields` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `image_id` INT UNSIGNED NOT NULL,
+  `field_type_id` INT UNSIGNED NOT NULL,
+  `field_value_id` INT UNSIGNED NULL,
+  `custom_value` TEXT NULL,
+  `is_override` TINYINT(1) DEFAULT 0,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_icf_image` (`image_id`),
+  KEY `idx_icf_type` (`field_type_id`),
+  CONSTRAINT `fk_icf_image` FOREIGN KEY (`image_id`) REFERENCES `images`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_icf_type` FOREIGN KEY (`field_type_id`) REFERENCES `custom_field_types`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_icf_value` FOREIGN KEY (`field_value_id`) REFERENCES `custom_field_values`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Album custom fields (junction table, supports multiple values)
+CREATE TABLE IF NOT EXISTS `album_custom_fields` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `album_id` INT UNSIGNED NOT NULL,
+  `field_type_id` INT UNSIGNED NOT NULL,
+  `field_value_id` INT UNSIGNED NULL,
+  `custom_value` TEXT NULL,
+  `auto_added` TINYINT(1) DEFAULT 0,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_acf_album` (`album_id`),
+  KEY `idx_acf_type` (`field_type_id`),
+  CONSTRAINT `fk_acf_album` FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_acf_type` FOREIGN KEY (`field_type_id`) REFERENCES `custom_field_types`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_acf_value` FOREIGN KEY (`field_value_id`) REFERENCES `custom_field_values`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Metadata extensions (plugin data for built-in metadata)
+CREATE TABLE IF NOT EXISTS `metadata_extensions` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `entity_type` VARCHAR(50) NOT NULL,
+  `entity_id` INT UNSIGNED NOT NULL,
+  `extension_key` VARCHAR(100) NOT NULL,
+  `extension_value` TEXT NULL,
+  `plugin_id` VARCHAR(100) NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_meta_ext_unique` (`entity_type`, `entity_id`, `extension_key`),
+  KEY `idx_meta_ext_entity` (`entity_type`, `entity_id`),
+  KEY `idx_meta_ext_plugin` (`plugin_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================

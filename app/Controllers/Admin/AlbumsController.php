@@ -4,15 +4,23 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Services\CustomFieldService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
 class AlbumsController extends BaseController
 {
+    private ?CustomFieldService $customFieldService = null;
+
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
+        try {
+            $this->customFieldService = new CustomFieldService($this->db->pdo());
+        } catch (\Throwable) {
+            // Service unavailable, continue without custom fields
+        }
     }
 
     public function index(Request $request, Response $response): Response
@@ -83,10 +91,24 @@ class AlbumsController extends BaseController
         // Load locations (optional table)
         try {
             $locations = $pdo->query('SELECT id, name FROM locations ORDER BY name')->fetchAll();
-        } catch (\Throwable) { 
-            $locations = []; 
+        } catch (\Throwable) {
+            $locations = [];
         }
-        
+
+        // Load custom field types and values
+        $customFieldTypes = [];
+        $customFieldValues = [];
+        if ($this->customFieldService) {
+            try {
+                $customFieldTypes = $this->customFieldService->getFieldTypes(includeSystem: false);
+                foreach ($customFieldTypes as $type) {
+                    $customFieldValues[$type['id']] = $this->customFieldService->getFieldValues((int)$type['id']);
+                }
+            } catch (\Throwable) {
+                // Custom fields table may not exist yet
+            }
+        }
+
         return $this->view->render($response, 'admin/albums/create.twig', [
             'categories' => $cats,
             'tags' => $tags,
@@ -97,6 +119,8 @@ class AlbumsController extends BaseController
             'developers' => $developers,
             'labs' => $labs,
             'locations' => $locations,
+            'customFieldTypes' => $customFieldTypes,
+            'customFieldValues' => $customFieldValues,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -268,6 +292,23 @@ class AlbumsController extends BaseController
             } catch (\Throwable $e) {
                 // Equipment tables might not exist yet, continue without error
             }
+
+            // Save custom field data
+            if ($this->customFieldService) {
+                try {
+                    $customFields = (array)($d['custom_fields'] ?? []);
+                    foreach ($customFields as $typeId => $values) {
+                        // Filter empty values, keep both numeric IDs and string values
+                        $values = array_filter((array)$values, fn($v) => $v !== '' && $v !== null);
+                        if (!empty($values)) {
+                            $this->customFieldService->setAlbumMetadata($albumId, (int)$typeId, array_values($values));
+                        }
+                    }
+                } catch (\Throwable) {
+                    // Custom fields table may not exist yet
+                }
+            }
+
             // If client expects JSON, return album id for AJAX flows (e.g., upload on create)
             $accept = $request->getHeaderLine('Accept');
             if (str_contains($accept, 'application/json')) {
@@ -373,7 +414,24 @@ class AlbumsController extends BaseController
         } catch (\Throwable $e) {
             // Equipment tables might not exist yet
         }
-        
+
+        // Load custom field types and values
+        $customFieldTypes = [];
+        $customFieldValues = [];
+        $albumCustomFields = [];
+        if ($this->customFieldService) {
+            try {
+                $customFieldTypes = $this->customFieldService->getFieldTypes(includeSystem: false);
+                foreach ($customFieldTypes as $type) {
+                    $customFieldValues[$type['id']] = $this->customFieldService->getFieldValues((int)$type['id']);
+                }
+                // Load current album's custom field data
+                $albumCustomFields = $this->customFieldService->getAlbumMetadata($id);
+            } catch (\Throwable) {
+                // Custom fields table may not exist yet
+            }
+        }
+
         $imgsStmt = $pdo->prepare("SELECT i.id, i.original_path, i.created_at, i.sort_order,
                                    i.alt_text, i.caption, i.width, i.height,
                                    i.camera_id, i.lens_id, i.film_id, i.developer_id, i.lab_id, i.location_id,
@@ -416,6 +474,9 @@ class AlbumsController extends BaseController
             'labIds' => $labIds,
             'locationIds' => $locationIds,
             'images' => $images,
+            'customFieldTypes' => $customFieldTypes,
+            'customFieldValues' => $customFieldValues,
+            'albumCustomFields' => $albumCustomFields,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -682,6 +743,25 @@ class AlbumsController extends BaseController
                 }
             } catch (\Throwable $e) {
                 // Equipment tables might not exist yet, continue without error
+            }
+
+            // Sync custom field data
+            if ($this->customFieldService) {
+                try {
+                    // Clear existing custom field associations
+                    $this->customFieldService->clearAlbumMetadata($id);
+                    // Save new custom field data
+                    $customFields = (array)($d['custom_fields'] ?? []);
+                    foreach ($customFields as $typeId => $values) {
+                        // Filter empty values, keep both numeric IDs and string values
+                        $values = array_filter((array)$values, fn($v) => $v !== '' && $v !== null);
+                        if (!empty($values)) {
+                            $this->customFieldService->setAlbumMetadata($id, (int)$typeId, array_values($values));
+                        }
+                    }
+                } catch (\Throwable) {
+                    // Custom fields table may not exist yet
+                }
             }
 
             // Handle NSFW blur generation when flag changes

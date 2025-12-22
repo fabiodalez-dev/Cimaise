@@ -1,0 +1,140 @@
+{% extends 'admin/_layout.twig' %}
+{% block title %}{{ trans('admin.custom_fields.edit_type') }} — Cimaise{% endblock %}
+{% block content %}
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.custom_fields.edit_type') }}</h1>
+  </div>
+
+  <div class="card p-6">
+    <form method="post" action="{{ base_path }}/admin/custom-field-types/{{ type.id }}" class="space-y-6">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.custom_fields.name') }}</label>
+          <input class="form-input bg-gray-100" type="text" value="{{ type.name }}" disabled>
+          <p class="mt-1 text-xs text-gray-500">{{ trans('admin.custom_fields.name_readonly') }}</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            {{ trans('admin.custom_fields.label') }} <span class="text-red-500">*</span>
+          </label>
+          <input class="form-input" type="text" name="label" value="{{ type.label }}" required>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.custom_fields.type') }}</label>
+        <select name="field_type" id="field_type" class="form-input w-full md:w-1/2" data-original="{{ type.field_type }}">
+          <option value="select" {{ type.field_type == 'select' ? 'selected' : '' }}>{{ trans('admin.custom_fields.type_select') }}</option>
+          <option value="multi_select" {{ type.field_type == 'multi_select' ? 'selected' : '' }}>{{ trans('admin.custom_fields.type_multi') }}</option>
+          <option value="text" {{ type.field_type == 'text' ? 'selected' : '' }}>{{ trans('admin.custom_fields.type_text') }}</option>
+        </select>
+        <p id="type-warning" class="hidden mt-1 text-xs text-amber-600">
+          <i class="fas fa-exclamation-triangle mr-1"></i>{{ trans('admin.custom_fields.type_change_warning')|default('Changing to text will make existing predefined values unused.') }}
+        </p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.custom_fields.icon') }}</label>
+        <div class="flex items-center gap-3 mb-2">
+          <div id="icon-preview" class="w-10 h-10 flex items-center justify-center bg-gray-100 border rounded text-lg">
+            <i class="fas {{ type.icon|default('fa-tag') }}"></i>
+          </div>
+          <button type="button" id="toggle-icon-picker" class="btn-secondary text-sm">
+            <i class="fas fa-icons mr-1"></i>{{ trans('admin.custom_fields.choose_icon') }}
+          </button>
+        </div>
+        <input type="hidden" name="icon" id="icon-value" value="{{ type.icon|default('fa-tag') }}">
+        <div id="icon-picker" class="hidden border rounded-lg p-3 bg-gray-50 max-h-72 overflow-y-auto">
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            {% for iconClass, iconLabel in icons %}
+              <button type="button" class="icon-option" data-icon="{{ iconClass }}" title="{{ iconLabel }}" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; background: {{ iconClass == type.icon|default('fa-tag') ? '#000' : '#fff' }}; color: {{ iconClass == type.icon|default('fa-tag') ? '#fff' : '#000' }}; border: 1px solid #e5e7eb; cursor: pointer;">
+                <i class="fas {{ iconClass }}"></i>
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.custom_fields.description') }}</label>
+        <textarea class="form-input" name="description" rows="2">{{ type.description }}</textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.custom_fields.sort_order') }}</label>
+        <input class="form-input w-24" type="number" name="sort_order" value="{{ type.sort_order }}" min="0">
+      </div>
+
+      <div class="border-t pt-4">
+        <h3 class="text-sm font-medium text-gray-900 mb-3">{{ trans('admin.custom_fields.visibility') }}</h3>
+        <div class="space-y-2">
+          <label class="flex items-center">
+            <input type="checkbox" name="show_in_lightbox" value="1" {{ type.show_in_lightbox ? 'checked' : '' }} class="rounded border-gray-300 text-black focus:ring-black">
+            <span class="ml-2 text-sm text-gray-700">{{ trans('admin.custom_fields.show_in_lightbox') }}</span>
+          </label>
+          <label class="flex items-center">
+            <input type="checkbox" name="show_in_gallery" value="1" {{ type.show_in_gallery ? 'checked' : '' }} class="rounded border-gray-300 text-black focus:ring-black">
+            <span class="ml-2 text-sm text-gray-700">{{ trans('admin.custom_fields.show_in_gallery') }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button class="btn-primary" type="submit">{{ trans('admin.common.save') }}</button>
+        <a class="btn-secondary" href="{{ base_path }}/admin/custom-field-types">{{ trans('admin.common.cancel') }}</a>
+        {% if type.field_type != 'text' %}
+          <a class="btn-secondary" href="{{ base_path }}/admin/custom-field-types/{{ type.id }}/values">
+            <i class="fas fa-list-ol mr-2"></i>{{ trans('admin.custom_fields.manage_values') }}
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <script nonce="{{ csp_nonce() }}">
+    // Field type change warning
+    const fieldTypeSelect = document.getElementById('field_type');
+    const typeWarning = document.getElementById('type-warning');
+    const originalType = fieldTypeSelect.dataset.original;
+
+    fieldTypeSelect.addEventListener('change', function() {
+      // Show warning when changing from select/multi_select to text
+      if ((originalType === 'select' || originalType === 'multi_select') && this.value === 'text') {
+        typeWarning.classList.remove('hidden');
+      } else {
+        typeWarning.classList.add('hidden');
+      }
+    });
+
+    // Icon picker
+    const toggleBtn = document.getElementById('toggle-icon-picker');
+    const iconPicker = document.getElementById('icon-picker');
+    const iconPreview = document.getElementById('icon-preview');
+    const iconValue = document.getElementById('icon-value');
+
+    toggleBtn.addEventListener('click', function() {
+      iconPicker.classList.toggle('hidden');
+    });
+
+    document.querySelectorAll('.icon-option').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const icon = this.dataset.icon;
+        iconValue.value = icon;
+        iconPreview.innerHTML = '<i class="fas ' + icon + '"></i>';
+
+        // Update selection styling
+        document.querySelectorAll('.icon-option').forEach(function(b) {
+          b.style.background = '#fff';
+          b.style.color = '#000';
+        });
+        this.style.background = '#000';
+        this.style.color = '#fff';
+
+        iconPicker.classList.add('hidden');
+      });
+    });
+  </script>
+{% endblock %}
