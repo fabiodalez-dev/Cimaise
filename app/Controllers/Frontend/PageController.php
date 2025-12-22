@@ -212,6 +212,8 @@ class PageController extends BaseController
             'modern' => 'frontend/home_modern.twig',
             'parallax' => 'frontend/home_parallax.twig',
             'masonry' => 'frontend/home_masonry.twig',
+            'snap' => 'frontend/home_snap.twig',
+            'gallery' => 'frontend/home_gallery.twig',
         ];
         $templateFile = $templateMap[$homeTemplate] ?? 'frontend/home.twig';
 

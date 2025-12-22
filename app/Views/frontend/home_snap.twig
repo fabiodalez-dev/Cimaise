@@ -1,0 +1,624 @@
+{% extends "frontend/_layout.twig" %}
+
+{% block styles %}
+<style nonce="{{ csp_nonce() }}">
+/* Reset only for snap gallery */
+.snap-gallery, .snap-gallery * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html.snap-active, html.snap-active body {
+  overflow: hidden;
+  height: 100%;
+}
+
+/* === CONTAINER DESKTOP === */
+.snap-container {
+  position: fixed;
+  top: var(--header-height, 80px);
+  left: 0;
+  width: 100%;
+  height: calc(100vh - var(--header-height, 80px));
+  display: flex;
+  overflow: hidden;
+}
+
+/* === LEFT COLUMN === */
+.snap-left-column {
+  width: 45%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.snap-left-track {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.snap-album-info {
+  height: calc(100vh - var(--header-height, 80px));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4rem 6rem;
+  color: #000;
+}
+
+.snap-album-info h1 {
+  font-size: clamp(2rem, 5vw, 4.5rem);
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  color: #000;
+}
+
+.snap-album-info .snap-year {
+  font-size: 0.9rem;
+  color: #999;
+  letter-spacing: 0.2em;
+  margin-bottom: 2rem;
+}
+
+.snap-album-info p {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #666;
+  max-width: 400px;
+}
+
+.snap-album-info .snap-photo-count {
+  margin-top: 2.5rem;
+  font-size: 0.85rem;
+  color: #aaa;
+  letter-spacing: 0.1em;
+}
+
+/* === RIGHT COLUMN === */
+.snap-right-column {
+  width: 55%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.snap-right-track {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.snap-cover {
+  width: 100%;
+  height: calc(100vh - var(--header-height, 80px));
+  flex-shrink: 0;
+  display: block;
+}
+
+.snap-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+/* Divider line */
+.snap-divider {
+  position: fixed;
+  left: 45%;
+  top: var(--header-height, 80px);
+  bottom: 0;
+  width: 1px;
+  background: #eee;
+  z-index: 10;
+}
+
+/* Indicators */
+.snap-indicators {
+  position: fixed;
+  right: 2rem;
+  top: calc(50% + 40px);
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  z-index: 100;
+}
+
+.snap-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ddd;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.3s;
+  border: none;
+  padding: 0;
+}
+
+.snap-indicator.active {
+  background: #000;
+  transform: scale(1.3);
+}
+
+.snap-indicator:hover {
+  background: #999;
+}
+
+/* === MOBILE VIEW === */
+.snap-mobile-container {
+  display: none;
+}
+
+/* ============================================
+   TABLET: max-width 1024px
+   ============================================ */
+@media (max-width: 1024px) {
+  .snap-left-column {
+    width: 50%;
+  }
+
+  .snap-right-column {
+    width: 50%;
+  }
+
+  .snap-divider {
+    left: 50%;
+  }
+
+  .snap-album-info {
+    padding: 3rem 3rem;
+  }
+
+  .snap-album-info p {
+    font-size: 0.95rem;
+  }
+}
+
+/* ============================================
+   MOBILE: max-width 768px
+   ============================================ */
+@media (max-width: 768px) {
+  /* Hide desktop layout */
+  .snap-container {
+    display: none;
+  }
+
+  .snap-divider {
+    display: none;
+  }
+
+  /* Show mobile layout */
+  .snap-mobile-container {
+    display: block;
+    position: fixed;
+    top: var(--header-height-mobile, 60px);
+    left: 0;
+    width: 100%;
+    height: calc(100vh - var(--header-height-mobile, 60px));
+    overflow: hidden;
+  }
+
+  .snap-mobile-track {
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .snap-mobile-slide {
+    width: 100%;
+    height: calc(100vh - var(--header-height-mobile, 60px));
+    flex-shrink: 0;
+    position: relative;
+    display: block;
+  }
+
+  .snap-mobile-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Gradient overlay for text */
+  .snap-mobile-slide::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+    pointer-events: none;
+  }
+
+  .snap-mobile-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 2rem 1.5rem;
+    color: white;
+    z-index: 10;
+  }
+
+  .snap-mobile-info .snap-year {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.2em;
+    margin-bottom: 0.8rem;
+  }
+
+  .snap-mobile-info h2 {
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+  }
+
+  .snap-mobile-info p {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 1rem;
+  }
+
+  .snap-mobile-info .snap-photo-count {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.1em;
+  }
+
+  /* Mobile indicators */
+  .snap-indicators {
+    right: 1rem;
+    top: auto;
+    bottom: 2rem;
+    transform: none;
+    flex-direction: row;
+    gap: 0.6rem;
+  }
+
+  .snap-indicator {
+    width: 6px;
+    height: 6px;
+    background: rgba(255,255,255,0.4);
+  }
+
+  .snap-indicator.active {
+    background: white;
+  }
+}
+
+/* ============================================
+   SMALL MOBILE: max-width 480px
+   ============================================ */
+@media (max-width: 480px) {
+  .snap-mobile-info {
+    padding: 1.5rem 1.2rem;
+  }
+
+  .snap-mobile-info h2 {
+    font-size: 1.6rem;
+  }
+
+  .snap-mobile-info p {
+    font-size: 0.85rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{# Hook: frontend_home_before - Before all home page content #}
+{{ do_action('frontend_home_before', {base_path: base_path}) }}
+
+{# WebSite JSON-LD for home page #}
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": {{ site_title|default('Portfolio')|json_encode|raw }},
+  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
+  {% if meta_description %}
+  "description": {{ meta_description|json_encode|raw }},
+  {% endif %}
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "{{ base_path }}/{{ galleries_slug|default('galleries') }}?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+
+{% if albums|length > 0 %}
+<main class="snap-gallery">
+  <!-- DESKTOP/TABLET LAYOUT -->
+  <div class="snap-container">
+    <div class="snap-left-column">
+      <div class="snap-left-track" id="snapLeftTrack">
+        {% for album in albums %}
+        <div class="snap-album-info">
+          <span class="snap-year">{{ album.shoot_date ? album.shoot_date|date('Y') : album.published_at|date('Y') }}</span>
+          <h1>{{ album.title|e }}</h1>
+          {% if album.excerpt %}
+          <p>{{ album.excerpt|e }}</p>
+          {% endif %}
+          <span class="snap-photo-count">{{ album.images_count|default(0) }} {{ trans('home_snap.photos') }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="snap-divider"></div>
+
+    <div class="snap-right-column">
+      <div class="snap-right-track" id="snapRightTrack">
+        {# Reverse order for opposite scroll direction #}
+        {% for album in albums|reverse %}
+        <a href="{{ base_path }}/album/{{ album.slug|e('html_attr') }}" class="snap-cover">
+          {% if album.cover and album.cover.variants|length > 0 %}
+            {% set coverSrc = base_path ~ (album.cover.variants|first).path|default(album.cover.original_path) %}
+          {% elseif album.cover %}
+            {% set coverSrc = base_path ~ album.cover.original_path %}
+          {% else %}
+            {% set coverSrc = base_path ~ '/assets/img/placeholder.jpg' %}
+          {% endif %}
+          <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="lazy">
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE LAYOUT -->
+  <div class="snap-mobile-container">
+    <div class="snap-mobile-track" id="snapMobileTrack">
+      {% for album in albums %}
+      <a href="{{ base_path }}/album/{{ album.slug|e('html_attr') }}" class="snap-mobile-slide">
+        {% if album.cover and album.cover.variants|length > 0 %}
+          {% set coverSrc = base_path ~ (album.cover.variants|first).path|default(album.cover.original_path) %}
+        {% elseif album.cover %}
+          {% set coverSrc = base_path ~ album.cover.original_path %}
+        {% else %}
+          {% set coverSrc = base_path ~ '/assets/img/placeholder.jpg' %}
+        {% endif %}
+        <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="lazy">
+        <div class="snap-mobile-info">
+          <span class="snap-year">{{ album.shoot_date ? album.shoot_date|date('Y') : album.published_at|date('Y') }}</span>
+          <h2>{{ album.title|e }}</h2>
+          {% if album.excerpt %}
+          <p>{{ album.excerpt|e }}</p>
+          {% endif %}
+          <span class="snap-photo-count">{{ album.images_count|default(0) }} {{ trans('home_snap.photos') }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="snap-indicators" id="snapIndicators"></div>
+</main>
+{% else %}
+{# Empty state #}
+<div class="min-h-screen flex items-center justify-center">
+  <div class="text-center px-4">
+    <i class="fas fa-images text-6xl text-gray-300 mb-6"></i>
+    <h2 class="text-2xl font-semibold text-gray-800 mb-2">{{ home_settings.empty_title|default(trans('home_snap.empty_title'))|default('No albums yet')|e }}</h2>
+    <p class="text-gray-600">{{ home_settings.empty_text|default(trans('home_snap.empty_text'))|default('Check back soon for new content.')|e }}</p>
+  </div>
+</div>
+{% endif %}
+
+{# Hook: frontend_home_after - After all home page content #}
+{{ do_action('frontend_home_after', {base_path: base_path}) }}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  'use strict';
+
+  const leftTrack = document.getElementById('snapLeftTrack');
+  const rightTrack = document.getElementById('snapRightTrack');
+  const mobileTrack = document.getElementById('snapMobileTrack');
+  const indicatorsContainer = document.getElementById('snapIndicators');
+
+  if (!leftTrack || !rightTrack || !indicatorsContainer) return;
+
+  const albumCount = leftTrack.querySelectorAll('.snap-album-info').length;
+  if (albumCount === 0) return;
+
+  let currentIndex = 0;
+  let canScroll = true;
+  let isMobile = window.innerWidth <= 768;
+
+  // Add class to html for overflow control
+  document.documentElement.classList.add('snap-active');
+
+  // Calculate heights based on header
+  function getHeights() {
+    const headerHeight = isMobile ? 60 : 80;
+    return window.innerHeight - headerHeight;
+  }
+
+  // Create indicators
+  for (let i = 0; i < albumCount; i++) {
+    const dot = document.createElement('button');
+    dot.className = 'snap-indicator' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', 'Go to album ' + (i + 1));
+    dot.addEventListener('click', () => goToAlbum(i));
+    indicatorsContainer.appendChild(dot);
+  }
+  const indicators = indicatorsContainer.querySelectorAll('.snap-indicator');
+
+  // Navigate to specific album
+  function goToAlbum(index) {
+    if (index === currentIndex) return;
+    if (index < 0 || index >= albumCount) return;
+
+    indicators[currentIndex].classList.remove('active');
+    indicators[index].classList.add('active');
+
+    currentIndex = index;
+    const vh = getHeights();
+
+    if (isMobile) {
+      // Mobile: single track scrolls up
+      const mobileY = -currentIndex * vh;
+      mobileTrack.style.transform = 'translateY(' + mobileY + 'px)';
+    } else {
+      // Desktop: two columns scroll in opposite directions
+      const leftY = -currentIndex * vh;
+      const rightY = -(albumCount - 1 - currentIndex) * vh;
+      leftTrack.style.transform = 'translateY(' + leftY + 'px)';
+      rightTrack.style.transform = 'translateY(' + rightY + 'px)';
+    }
+  }
+
+  function nextAlbum() {
+    if (!canScroll) return;
+    if (currentIndex >= albumCount - 1) return;
+
+    canScroll = false;
+    goToAlbum(currentIndex + 1);
+
+    setTimeout(function() {
+      canScroll = true;
+    }, 1000);
+  }
+
+  function prevAlbum() {
+    if (!canScroll) return;
+    if (currentIndex <= 0) return;
+
+    canScroll = false;
+    goToAlbum(currentIndex - 1);
+
+    setTimeout(function() {
+      canScroll = true;
+    }, 1000);
+  }
+
+  // Mouse wheel
+  let wheelAccumulator = 0;
+  const wheelThreshold = 50;
+
+  window.addEventListener('wheel', function(e) {
+    e.preventDefault();
+
+    if (!canScroll) return;
+
+    wheelAccumulator += e.deltaY;
+
+    if (Math.abs(wheelAccumulator) >= wheelThreshold) {
+      if (wheelAccumulator > 0) {
+        nextAlbum();
+      } else {
+        prevAlbum();
+      }
+      wheelAccumulator = 0;
+    }
+  }, { passive: false });
+
+  // Keyboard navigation
+  window.addEventListener('keydown', function(e) {
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'PageDown':
+      case ' ':
+        e.preventDefault();
+        nextAlbum();
+        break;
+      case 'ArrowUp':
+      case 'PageUp':
+        e.preventDefault();
+        prevAlbum();
+        break;
+      case 'Home':
+        e.preventDefault();
+        if (canScroll) {
+          canScroll = false;
+          goToAlbum(0);
+          setTimeout(function() { canScroll = true; }, 1000);
+        }
+        break;
+      case 'End':
+        e.preventDefault();
+        if (canScroll) {
+          canScroll = false;
+          goToAlbum(albumCount - 1);
+          setTimeout(function() { canScroll = true; }, 1000);
+        }
+        break;
+    }
+  });
+
+  // Touch swipe
+  let touchStartY = 0;
+
+  window.addEventListener('touchstart', function(e) {
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+
+  window.addEventListener('touchend', function(e) {
+    const touchEndY = e.changedTouches[0].screenY;
+    const diff = touchStartY - touchEndY;
+
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        nextAlbum();
+      } else {
+        prevAlbum();
+      }
+    }
+  }, { passive: true });
+
+  // Initialize positions
+  function initPositions() {
+    const vh = getHeights();
+    if (!isMobile) {
+      rightTrack.style.transform = 'translateY(-' + ((albumCount - 1) * vh) + 'px)';
+    }
+  }
+
+  // Handle resize
+  window.addEventListener('resize', function() {
+    const wasMobile = isMobile;
+    isMobile = window.innerWidth <= 768;
+
+    // If breakpoint changed, reset
+    if (wasMobile !== isMobile) {
+      currentIndex = 0;
+      indicators.forEach(function(ind, i) {
+        ind.classList.toggle('active', i === 0);
+      });
+
+      leftTrack.style.transform = 'translateY(0)';
+      if (mobileTrack) mobileTrack.style.transform = 'translateY(0)';
+      initPositions();
+    }
+  });
+
+  initPositions();
+
+  // Cleanup on page unload (for SPA)
+  window.addEventListener('beforeunload', function() {
+    document.documentElement.classList.remove('snap-active');
+  });
+})();
+</script>
+{% endblock %}
