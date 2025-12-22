@@ -113,9 +113,27 @@
       cursor: not-allowed;
     }
     .admin-sticky-actions {
-      z-index: 200000;
+      z-index: 50;
+      transition: left 0.3s ease-in-out;
     }
-    
+
+    /* Desktop: always start after sidebar */
+    @media (min-width: 1024px) {
+      .admin-sticky-actions {
+        left: 16rem !important;
+      }
+    }
+
+    /* Mobile: full width by default, shift when sidebar opens */
+    @media (max-width: 1023px) {
+      .admin-sticky-actions {
+        left: 0 !important;
+      }
+      body.sidebar-open .admin-sticky-actions {
+        left: 16rem !important;
+      }
+    }
+
     /* TinyMCE Toolbar Fix */
     .tox:not(.tox-tinymce-inline) .tox-editor-header {
       display: block !important;
@@ -900,12 +918,14 @@
         sidebar.classList.remove('-translate-x-full');
         sidebarOverlay.classList.remove('hidden');
         document.body.classList.add('overflow-hidden'); // Prevent background scrolling
+        document.body.classList.add('sidebar-open'); // Shift fixed bottom bars
       }
-      
+
       function closeSidebar() {
         sidebar.classList.add('-translate-x-full');
         sidebarOverlay.classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
+        document.body.classList.remove('sidebar-open');
       }
       
       // Mobile sidebar toggle events
