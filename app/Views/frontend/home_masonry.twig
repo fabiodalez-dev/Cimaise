@@ -2,7 +2,7 @@
 
 {% block styles %}
 <style nonce="{{ csp_nonce() }}">
-/* Pure Masonry - Wall of Photos */
+/* Pure Masonry - Wall of Photos - Performance Optimized */
 
 /* Base: CSS Grid layout (works without JS, enhanced by Masonry.js) */
 .masonry-grid {
@@ -36,6 +36,7 @@
   opacity: 1;
 }
 
+/* Masonry item base styles */
 .masonry-item {
   overflow: hidden;
 }
@@ -57,17 +58,17 @@
 
 /* Fade-in animation for items */
 .masonry-item.fade-in {
-  animation: masonryFadeIn 0.4s ease-out forwards;
+  animation: masonryFadeIn 0.35s ease-out forwards;
 }
 
 @keyframes masonryFadeIn {
   from {
     opacity: 0;
-    transform: translateY(15px);
+    transform: translate3d(0, 12px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -176,7 +177,8 @@
     gapV: parseInt(grid.dataset.gapV, 10) || 0,
     colsMobile: parseInt(grid.dataset.colsMobile, 10) || 2,
     colsTablet: parseInt(grid.dataset.colsTablet, 10) || 3,
-    colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5
+    colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5,
+    preloadBuffer: 3 // Reduced from 4.6x to 3x viewport for better performance
   };
 
   var msnry = null;
@@ -185,6 +187,11 @@
   var cloneIndex = 0;
   var isAppending = false;
   var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Performance: cache preloaded items to avoid re-processing
+  var preloadedItems = new WeakSet();
+  var viewportObserver = null;
+  var infiniteScrollObserver = null;
 
   // Get current column count based on viewport
   function getColumnCount() {
@@ -212,6 +219,51 @@
     }
   }
 
+  // IntersectionObserver for viewport visibility (content-visibility optimization)
+  function setupViewportObserver() {
+    if (!('IntersectionObserver' in window)) return;
+
+    viewportObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-viewport');
+          // Preload image when entering extended viewport
+          var img = entry.target.querySelector('img');
+          if (img && !preloadedItems.has(entry.target)) {
+            preloadedItems.add(entry.target);
+            img.loading = 'eager';
+          }
+        } else {
+          entry.target.classList.remove('in-viewport');
+        }
+      });
+    }, {
+      rootMargin: '300% 0px 300% 0px', // 3 viewports above and below for earlier preload
+      threshold: 0
+    });
+  }
+
+  // IntersectionObserver for infinite scroll trigger
+  function setupInfiniteScrollObserver() {
+    if (!('IntersectionObserver' in window)) return;
+
+    var sentinel = document.createElement('div');
+    sentinel.id = 'masonry-sentinel';
+    sentinel.style.cssText = 'height:1px;width:100%;pointer-events:none;';
+    grid.parentNode.insertBefore(sentinel, grid.nextSibling);
+
+    infiniteScrollObserver = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting && msnry && !isAppending) {
+        appendClones(Math.max(getColumnCount() * 2, 4), true, balanceColumns);
+      }
+    }, {
+      rootMargin: (window.innerHeight * config.preloadBuffer) + 'px 0px',
+      threshold: 0
+    });
+
+    infiniteScrollObserver.observe(sentinel);
+  }
+
   // Initialize Masonry
   function initMasonry() {
     if (isInitialized) return;
@@ -224,6 +276,17 @@
     sourceItems = Array.prototype.slice.call(grid.querySelectorAll('.masonry-item'));
     // Set item widths before Masonry calculates
     setItemWidths();
+
+    // Setup IntersectionObservers for performance
+    setupViewportObserver();
+    setupInfiniteScrollObserver();
+
+    // Observe all initial items
+    if (viewportObserver) {
+      sourceItems.forEach(function(item) {
+        viewportObserver.observe(item);
+      });
+    }
 
     // Create Masonry instance
     msnry = new Masonry(grid, {
@@ -258,9 +321,10 @@
       var items = grid.querySelectorAll('.masonry-item');
       for (var i = 0; i < items.length; i++) {
         items[i].classList.add('fade-in');
+        items[i].classList.add('in-viewport');
       }
     } else {
-      // Staggered fade-in
+      // Staggered fade-in (optimized - no getBoundingClientRect during animation)
       animateItems();
     }
 
@@ -270,25 +334,30 @@
     }
   }
 
-  // Animate items in visual order
+  // Animate items - optimized to batch read/write and avoid layout thrashing
   function animateItems() {
     var items = Array.prototype.slice.call(grid.querySelectorAll('.masonry-item'));
 
-    // Sort by visual position (top-left to bottom-right)
-    items.sort(function(a, b) {
-      var rectA = a.getBoundingClientRect();
-      var rectB = b.getBoundingClientRect();
-      var rowA = Math.round(rectA.top / 50);
-      var rowB = Math.round(rectB.top / 50);
-      if (rowA !== rowB) return rowA - rowB;
-      return rectA.left - rectB.left;
+    // Batch read: collect all positions first
+    var positions = items.map(function(item) {
+      var rect = item.getBoundingClientRect();
+      return { item: item, top: rect.top, left: rect.left };
     });
 
-    // Staggered animation
-    items.forEach(function(item, index) {
+    // Sort by visual position (top-left to bottom-right)
+    positions.sort(function(a, b) {
+      var rowA = Math.round(a.top / 50);
+      var rowB = Math.round(b.top / 50);
+      if (rowA !== rowB) return rowA - rowB;
+      return a.left - b.left;
+    });
+
+    // Batch write: staggered animation using sorted order
+    positions.forEach(function(pos, index) {
       setTimeout(function() {
-        item.classList.add('fade-in');
-      }, index * 40);
+        pos.item.classList.add('fade-in');
+        pos.item.classList.add('in-viewport');
+      }, index * 35); // Slightly faster stagger
     });
   }
 
@@ -300,6 +369,7 @@
       dupes[i].removeAttribute('id');
     }
     clone.classList.remove('fade-in');
+    clone.classList.remove('in-viewport');
     return clone;
   }
 
@@ -321,15 +391,31 @@
       isAppending = false;
       return;
     }
+
+    // Batch DOM writes
+    var fragment = document.createDocumentFragment();
     for (var j = 0; j < newItems.length; j++) {
-      grid.appendChild(newItems[j]);
+      fragment.appendChild(newItems[j]);
     }
+    grid.appendChild(fragment);
+
     setItemWidths(newItems);
-    preloadNearViewport(newItems);
+
+    // Observe new items with IntersectionObserver
+    if (viewportObserver) {
+      newItems.forEach(function(item) {
+        viewportObserver.observe(item);
+      });
+    }
+
     imagesLoaded(newItems, function() {
       msnry.appended(newItems);
       msnry.layout();
       isAppending = false;
+      // Notify Lenis that content height changed
+      if (window.lenisResize) {
+        window.lenisResize();
+      }
       if (typeof onDone === 'function') {
         onDone();
       }
@@ -342,35 +428,22 @@
     var sample = Math.min(items.length, 12);
     var total = 0;
     for (var i = 0; i < sample; i++) {
-      total += items[i].getBoundingClientRect().height;
+      total += items[i].offsetHeight; // Use offsetHeight instead of getBoundingClientRect
     }
     return total / sample;
   }
 
-  function preloadNearViewport(items) {
-    var list = items || grid.querySelectorAll('.masonry-item');
-    if (!list || !list.length) return;
-    var limit = window.scrollY + window.innerHeight * 4.6;
-    for (var i = 0; i < list.length; i++) {
-      var img = list[i].querySelector('img');
-      if (!img) continue;
-      var rect = list[i].getBoundingClientRect();
-      var top = rect.top + window.scrollY;
-      if (top <= limit) {
-        img.loading = 'eager';
-        img.fetchPriority = 'high';
-      }
-    }
-  }
-
   function ensureViewportFilled() {
     if (!msnry || isAppending) return;
-    var targetHeight = window.innerHeight * 4.6;
+    var targetHeight = window.innerHeight * config.preloadBuffer;
     if (grid.scrollHeight >= targetHeight) return;
     var count = Math.max(getColumnCount() * 4, 10);
     appendClones(count, false, function() {
       balanceColumns();
-      preloadNearViewport();
+      // Notify Lenis of height change
+      if (window.lenisResize) {
+        window.lenisResize();
+      }
       if (grid.scrollHeight < targetHeight) {
         setTimeout(ensureViewportFilled, 60);
       }
@@ -380,19 +453,19 @@
   function balanceColumns() {
     if (!msnry || !msnry.colYs || !msnry.colYs.length) return;
     var avgHeight = averageItemHeight() || 240;
-    var maxIterations = 16;
+    var maxIterations = 12; // Reduced from 16
     var iter = 0;
     while (iter < maxIterations) {
       var heights = msnry.colYs.slice();
       var min = Math.min.apply(null, heights);
       var max = Math.max.apply(null, heights);
-      if ((max - min) <= avgHeight * 0.35) break;
+      if ((max - min) <= avgHeight * 0.4) break; // Slightly more tolerant
       appendClones(1, false);
       iter++;
     }
   }
 
-  // Handle window resize
+  // Handle window resize with ResizeObserver if available
   var resizeTimeout;
   function handleResize() {
     clearTimeout(resizeTimeout);
@@ -421,7 +494,7 @@
         console.warn('Masonry: imagesLoaded timeout, forcing init');
         initMasonry();
       }
-    }, 5000);
+    }, 4000); // Reduced from 5000
   }
 
   // Start initialization
@@ -432,24 +505,30 @@
   }
 
   // Bind resize handler
-  window.addEventListener('resize', handleResize);
+  window.addEventListener('resize', handleResize, { passive: true });
 
-  // Infinite scroll: append clones near bottom
-  var scrollTicking = false;
-  window.addEventListener('scroll', function() {
-    if (!msnry || scrollTicking) return;
-    scrollTicking = true;
-    requestAnimationFrame(function() {
-      scrollTicking = false;
-      preloadNearViewport();
-      var scrollBottom = window.scrollY + window.innerHeight;
-      var buffer = window.innerHeight * 4.6;
-      var threshold = document.body.scrollHeight - buffer;
-      if (scrollBottom >= threshold) {
+  // Fallback scroll listener for infinite scroll (backup for IntersectionObserver with Lenis)
+  var scrollThrottle = null;
+  function handleScroll() {
+    if (scrollThrottle) return;
+    scrollThrottle = setTimeout(function() {
+      scrollThrottle = null;
+      if (!msnry || isAppending) return;
+      var scrollY = window.scrollY || window.pageYOffset;
+      var windowHeight = window.innerHeight;
+      var docHeight = document.documentElement.scrollHeight;
+      // Trigger when within 2 viewports of bottom
+      if (scrollY + windowHeight >= docHeight - (windowHeight * 2)) {
         appendClones(Math.max(getColumnCount() * 2, 4), true, balanceColumns);
       }
-    });
-  }, { passive: true });
+    }, 100);
+  }
+  window.addEventListener('scroll', handleScroll, { passive: true });
+
+  // Also listen to Lenis scroll events if available
+  if (window.lenisInstance && window.lenisInstance.on) {
+    window.lenisInstance.on('scroll', handleScroll);
+  }
 
 })();
 </script>
