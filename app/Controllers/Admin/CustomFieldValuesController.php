@@ -82,13 +82,15 @@ class CustomFieldValuesController extends BaseController
             );
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.custom_fields.value_added')];
-        } catch (\Throwable $e) {
-            // Check for duplicate
-            if (str_contains($e->getMessage(), 'UNIQUE') || str_contains($e->getMessage(), 'Duplicate')) {
+        } catch (\PDOException $e) {
+            // SQLSTATE 23000: Integrity constraint violation (includes unique constraint)
+            if ($e->getCode() === '23000') {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.value_exists')];
             } else {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
             }
+        } catch (\Throwable $e) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
         }
 
         return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/' . $typeId . '/values')->withStatus(302);
