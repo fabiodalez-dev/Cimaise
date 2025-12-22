@@ -181,6 +181,22 @@
             overflow: hidden;
         }
         
+        /* GPU acceleration for smooth scrolling */
+        .masonry-item,
+        .masonry-fit-grid .masonry-item,
+        .image-item,
+        .album-card,
+        #images-gallery {
+            will-change: transform;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+
+        /* Reduce paint complexity during scroll */
+        img {
+            content-visibility: auto;
+        }
+
         /* Template-specific styles */
         .masonry-grid {
             column-gap: var(--grid-gap, 1rem);
@@ -765,21 +781,62 @@
             color: #000 !important;
         }
 
-        #header-search::-webkit-search-cancel-button,
-        #header-search::-webkit-search-decoration,
-        #header-search::-webkit-search-results-button,
-        #header-search::-webkit-search-results-decoration,
-        #mobile-search::-webkit-search-cancel-button,
-        #mobile-search::-webkit-search-decoration,
-        #mobile-search::-webkit-search-results-button,
-        #mobile-search::-webkit-search-results-decoration {
+        input[type="search"]::-webkit-search-cancel-button,
+        input[type="search"]::-webkit-search-decoration,
+        input[type="search"]::-webkit-search-results-button,
+        input[type="search"]::-webkit-search-results-decoration {
             display: none;
         }
-        @media (min-width: 768px) {
-            #mobile-search-toggle,
-            #mobile-search-panel {
-                display: none !important;
-            }
+
+        .header-search-field {
+            display: flex;
+            align-items: center;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background: #fff;
+            position: relative;
+            min-height: 46px;
+            overflow: hidden;
+        }
+
+        .header-search-input {
+            flex: 1;
+            min-width: 0;
+            border: 0;
+            outline: 0;
+            padding: 0.7rem 0.75rem;
+            padding-right: 0.5rem;
+            font-size: 0.875rem;
+            background: transparent;
+            appearance: none;
+        }
+
+        .header-search-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-left: auto;
+            margin-right: 0.25rem;
+            flex-shrink: 0;
+        }
+
+        .header-search-clear,
+        .header-search-submit {
+            width: 2rem;
+            height: 2rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.375rem;
+            color: #6b7280;
+            transition: color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .header-search-clear:hover,
+        .header-search-submit:hover {
+            color: #111827;
+            background-color: #f3f4f6;
         }
         
         /* Hidden caption content */
@@ -973,7 +1030,7 @@
                     </button>
                     
                     <!-- Mobile Search Toggle -->
-                    <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="mobile-search-panel" aria-expanded="false">
+                    <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
                         <i class="fas fa-search text-sm"></i>
                     </button>
 
@@ -988,50 +1045,25 @@
             </div>
         </div>
 
-        <!-- Desktop Search Panel -->
-        <div class="hidden md:block">
-            <div id="header-search-panel" class="border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                    <form id="header-search-form" class="relative" role="search" action="{{ base_path }}/galleries" method="get">
-                        <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
-                        <div class="relative">
-                            <input id="header-search" name="search" type="search" autocomplete="off"
-                                   class="w-full appearance-none px-3 py-3 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
-                                   placeholder="{{ trans('filter.search') }}">
-                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                                <button type="button" id="header-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
-                                    <i class="fas fa-times text-[11px]"></i>
-                                </button>
-                                <button type="submit" class="w-8 h-8 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
-                                    <i class="fas fa-arrow-right text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div id="header-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden z-[60] max-h-80 overflow-auto divide-y divide-gray-100"></div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mobile Search Panel -->
-        <div id="mobile-search-panel" class="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
-            <div class="px-4 py-3">
-                <form id="mobile-search-form" class="relative" role="search" action="{{ base_path }}/galleries" method="get">
-                    <label for="mobile-search" class="sr-only">{{ trans('filter.search') }}</label>
-                    <div class="relative">
-                        <input id="mobile-search" name="search" type="search" autocomplete="off"
-                               class="w-full appearance-none px-3 py-3 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
+        <!-- Search Panel -->
+        <div id="header-search-panel" class="border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <form id="header-search-form" role="search" action="{{ base_path }}/galleries" method="get">
+                    <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
+                    <div class="header-search-field">
+                        <input id="header-search" name="search" type="search" autocomplete="off"
+                               class="header-search-input"
                                placeholder="{{ trans('filter.search') }}">
-                        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                            <button type="button" id="mobile-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
+                        <div class="header-search-actions">
+                            <button type="button" id="header-search-clear" class="header-search-clear hidden" aria-label="{{ trans('filter.clear_filters') }}">
                                 <i class="fas fa-times text-[11px]"></i>
                             </button>
-                            <button type="submit" class="w-8 h-8 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
+                            <button type="submit" class="header-search-submit" aria-label="{{ trans('filter.search') }}">
                                 <i class="fas fa-arrow-right text-sm"></i>
                             </button>
                         </div>
                     </div>
-                    <div id="mobile-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-80 overflow-auto divide-y divide-gray-100"></div>
+                    <div id="header-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden z-[60] max-h-80 overflow-auto divide-y divide-gray-100"></div>
                 </form>
             </div>
         </div>
@@ -1200,14 +1232,18 @@
             // 1. Menu Toggle
             const menuToggle = document.getElementById('mobile-menu-toggle');
             const menu = document.getElementById('mobile-menu');
-            const mobileSearchPanel = document.getElementById('mobile-search-panel');
+            const headerSearchPanel = document.getElementById('header-search-panel');
+            const headerSearchToggle = document.getElementById('header-search-toggle');
             const mobileSearchToggle = document.getElementById('mobile-search-toggle');
             if (menuToggle && menu) {
                 menuToggle.addEventListener('click', function() {
                     const isOpening = menu.classList.contains('hidden');
                     if (isOpening) {
-                        if (mobileSearchPanel) {
-                            mobileSearchPanel.classList.add('hidden');
+                        if (headerSearchPanel) {
+                            headerSearchPanel.classList.add('hidden');
+                        }
+                        if (headerSearchToggle) {
+                            headerSearchToggle.setAttribute('aria-expanded', 'false');
                         }
                         if (mobileSearchToggle) {
                             mobileSearchToggle.setAttribute('aria-expanded', 'false');
@@ -1394,7 +1430,8 @@
                 };
 
                 const syncToFilters = () => {
-                    const filterInput = document.getElementById('layout-filter-search');
+                    const filterInput = document.getElementById('layout-filter-search')
+                        || document.getElementById('filter-search');
                     if (!filterInput) return false;
                     filterInput.value = input.value;
                     if (typeof window.applyFiltersDebounced === 'function') {
@@ -1546,7 +1583,8 @@
                     });
                 }
 
-                const filterInput = document.getElementById('layout-filter-search');
+                const filterInput = document.getElementById('layout-filter-search')
+                    || document.getElementById('filter-search');
                 if (filterInput && filterInput.value) {
                     input.value = filterInput.value;
                 }
@@ -1560,67 +1598,39 @@
                 suggestionId: 'header-search-suggestions'
             });
 
-            setupSearch({
-                formId: 'mobile-search-form',
-                inputId: 'mobile-search',
-                clearId: 'mobile-search-clear',
-                suggestionId: 'mobile-search-suggestions'
-            });
-
             const headerToggle = document.getElementById('header-search-toggle');
             const headerPanel = document.getElementById('header-search-panel');
             const headerInput = document.getElementById('header-search');
-            if (headerToggle && headerPanel) {
+            const mobileToggle = document.getElementById('mobile-search-toggle');
+            const searchToggles = [headerToggle, mobileToggle].filter(Boolean);
+            if (headerPanel && searchToggles.length) {
                 const closeHeaderPanel = () => {
                     headerPanel.classList.add('hidden');
-                    headerToggle.setAttribute('aria-expanded', 'false');
+                    searchToggles.forEach((toggle) => toggle.setAttribute('aria-expanded', 'false'));
                 };
-                headerToggle.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-                    const isHidden = headerPanel.classList.contains('hidden');
-                    if (isHidden) {
-                        headerPanel.classList.remove('hidden');
-                        headerToggle.setAttribute('aria-expanded', 'true');
-                        setTimeout(() => {
-                            headerInput?.focus();
-                        }, 50);
-                    } else {
-                        closeHeaderPanel();
-                    }
+                searchToggles.forEach((toggle) => {
+                    toggle.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        const isHidden = headerPanel.classList.contains('hidden');
+                        if (isHidden) {
+                            headerPanel.classList.remove('hidden');
+                            searchToggles.forEach((t) => t.setAttribute('aria-expanded', 'true'));
+                            setTimeout(() => {
+                                headerInput?.focus();
+                            }, 50);
+                        } else {
+                            closeHeaderPanel();
+                        }
+                    });
                 });
                 document.addEventListener('click', (ev) => {
-                    if (!headerPanel.contains(ev.target) && !headerToggle.contains(ev.target)) {
+                    if (!headerPanel.contains(ev.target) && !searchToggles.some((toggle) => toggle.contains(ev.target))) {
                         closeHeaderPanel();
                     }
                 });
                 document.addEventListener('keydown', (ev) => {
                     if (ev.key === 'Escape') {
                         closeHeaderPanel();
-                    }
-                });
-            }
-
-            const mobileToggle = document.getElementById('mobile-search-toggle');
-            const mobilePanel = document.getElementById('mobile-search-panel');
-            const mobileInput = document.getElementById('mobile-search');
-            if (mobileToggle && mobilePanel) {
-                mobileToggle.addEventListener('click', () => {
-                    const isHidden = mobilePanel.classList.contains('hidden');
-                    if (isHidden) {
-                        mobilePanel.classList.remove('hidden');
-                        mobileToggle.setAttribute('aria-expanded', 'true');
-                        setTimeout(() => {
-                            mobileInput?.focus();
-                        }, 50);
-                    } else {
-                        mobilePanel.classList.add('hidden');
-                        mobileToggle.setAttribute('aria-expanded', 'false');
-                    }
-                });
-                document.addEventListener('click', (ev) => {
-                    if (!mobilePanel.contains(ev.target) && !mobileToggle.contains(ev.target)) {
-                        mobilePanel.classList.add('hidden');
-                        mobileToggle.setAttribute('aria-expanded', 'false');
                     }
                 });
             }
@@ -1949,9 +1959,6 @@
                 const current = slide ? (slide.currZoomLevel ?? fit) : fit;
                 const isZoomed = current > fit * 1.05;
 
-                ev.preventDefault();
-                ev.stopPropagation();
-
                 if (isTouch) {
                     const now = Date.now();
                     const dist = Math.hypot(clickX - lastTapX, clickY - lastTapY);
@@ -1961,7 +1968,12 @@
                             singleTapTimer = null;
                         }
                         lastTapAt = 0;
+                        ev.preventDefault();
+                        ev.stopPropagation();
                         toggleZoomFn(pswp);
+                        return;
+                    }
+                    if (isZoomed) {
                         return;
                     }
                     lastTapAt = now;
@@ -1974,6 +1986,8 @@
                         if (isZoomed) {
                             return;
                         }
+                        ev.preventDefault();
+                        ev.stopPropagation();
                         if (clickX < rect.width / 2) {
                             pswp.prev();
                         } else {
@@ -1986,6 +2000,8 @@
                 if (isZoomed) {
                     return;
                 }
+                ev.preventDefault();
+                ev.stopPropagation();
                 if (clickX < rect.width / 2) {
                     pswp.prev();
                 } else {

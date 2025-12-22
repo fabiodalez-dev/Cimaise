@@ -3,13 +3,46 @@
 {% block styles %}
 <style nonce="{{ csp_nonce() }}">
 /* Pure Masonry - Wall of Photos */
+
+/* Base: CSS Grid layout (works without JS, enhanced by Masonry.js) */
 .masonry-grid {
-  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat({{ home_settings.masonry_col_mobile|default(2) }}, 1fr);
+  gap: {{ home_settings.masonry_gap_v|default(0) }}px {{ home_settings.masonry_gap_h|default(0) }}px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+@media (min-width: 641px) {
+  .masonry-grid {
+    grid-template-columns: repeat({{ home_settings.masonry_col_tablet|default(3) }}, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .masonry-grid {
+    grid-template-columns: repeat({{ home_settings.masonry_col_desktop|default(5) }}, 1fr);
+  }
+}
+
+/* When Masonry.js takes over */
+.masonry-grid.masonry-active {
+  display: block;
+  position: relative;
+}
+
+/* Show grid when ready */
+.masonry-grid.masonry-ready {
+  opacity: 1;
 }
 
 .masonry-item {
-  width: calc((100% - {{ home_settings.masonry_gap_h|default(0) }}px * {{ home_settings.masonry_col_mobile|default(2) - 1 }}) / {{ home_settings.masonry_col_mobile|default(2) }});
-  margin-bottom: {{ home_settings.masonry_gap_v|default(0) }}px;
+  overflow: hidden;
+}
+
+/* When using Masonry.js, items need absolute positioning support */
+.masonry-active .masonry-item {
+  float: left;
 }
 
 .masonry-item a {
@@ -22,18 +55,37 @@
   height: auto;
 }
 
-/* Tablet */
-@media (min-width: 641px) {
-  .masonry-item {
-    width: calc((100% - {{ home_settings.masonry_gap_h|default(0) }}px * {{ home_settings.masonry_col_tablet|default(3) - 1 }}) / {{ home_settings.masonry_col_tablet|default(3) }});
+/* Fade-in animation for items */
+.masonry-item.fade-in {
+  animation: masonryFadeIn 0.4s ease-out forwards;
+}
+
+@keyframes masonryFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Desktop */
-@media (min-width: 1025px) {
-  .masonry-item {
-    width: calc((100% - {{ home_settings.masonry_gap_h|default(0) }}px * {{ home_settings.masonry_col_desktop|default(5) - 1 }}) / {{ home_settings.masonry_col_desktop|default(5) }});
+/* Reduced motion: no animations */
+@media (prefers-reduced-motion: reduce) {
+  .masonry-grid {
+    opacity: 1 !important;
+    transition: none !important;
   }
+  .masonry-item {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* No-JS fallback: show grid immediately */
+.no-js .masonry-grid {
+  opacity: 1 !important;
 }
 </style>
 {% endblock %}
@@ -64,7 +116,12 @@
 </script>
 
 {% if all_images|length > 0 %}
-<div class="masonry-grid" data-gap="{{ home_settings.masonry_gap_h|default(0) }}" data-cols-mobile="{{ home_settings.masonry_col_mobile|default(2) }}" data-cols-tablet="{{ home_settings.masonry_col_tablet|default(3) }}" data-cols-desktop="{{ home_settings.masonry_col_desktop|default(5) }}">
+<div class="masonry-grid"
+     data-gap-h="{{ home_settings.masonry_gap_h|default(0) }}"
+     data-gap-v="{{ home_settings.masonry_gap_v|default(0) }}"
+     data-cols-mobile="{{ home_settings.masonry_col_mobile|default(2) }}"
+     data-cols-tablet="{{ home_settings.masonry_col_tablet|default(3) }}"
+     data-cols-desktop="{{ home_settings.masonry_col_desktop|default(5) }}">
   {% for image in all_images %}
   <div class="masonry-item">
     <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
@@ -80,7 +137,8 @@
         <img
           src="{{ base_path }}{{ image.fallback_src|default(image.original_path)|e('html_attr') }}"
           alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
-          loading="lazy"
+          width="{{ image.width|default(800) }}"
+          height="{{ image.height|default(600) }}"
         >
       </picture>
     </a>
@@ -109,53 +167,290 @@
 (function() {
   'use strict';
 
-  const grid = document.querySelector('.masonry-grid');
+  var grid = document.querySelector('.masonry-grid');
   if (!grid) return;
 
-  const gap = parseInt(grid.dataset.gap) || 0;
-  const colsMobile = parseInt(grid.dataset.colsMobile) || 2;
-  const colsTablet = parseInt(grid.dataset.colsTablet) || 3;
-  const colsDesktop = parseInt(grid.dataset.colsDesktop) || 5;
+  // Configuration from data attributes
+  var config = {
+    gapH: parseInt(grid.dataset.gapH, 10) || 0,
+    gapV: parseInt(grid.dataset.gapV, 10) || 0,
+    colsMobile: parseInt(grid.dataset.colsMobile, 10) || 2,
+    colsTablet: parseInt(grid.dataset.colsTablet, 10) || 3,
+    colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5
+  };
 
-  function getColumnWidth() {
-    const width = window.innerWidth;
-    let cols = colsMobile;
-    if (width >= 1025) cols = colsDesktop;
-    else if (width >= 641) cols = colsTablet;
+  var msnry = null;
+  var isInitialized = false;
+  var sourceItems = [];
+  var cloneIndex = 0;
+  var isAppending = false;
+  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const containerWidth = grid.offsetWidth;
-    return Math.floor((containerWidth - gap * (cols - 1)) / cols);
+  // Get current column count based on viewport
+  function getColumnCount() {
+    var width = window.innerWidth;
+    if (width >= 1025) return config.colsDesktop;
+    if (width >= 641) return config.colsTablet;
+    return config.colsMobile;
   }
 
-  function updateItemWidths() {
-    const columnWidth = getColumnWidth();
-    document.querySelectorAll('.masonry-item').forEach(item => {
-      item.style.width = columnWidth + 'px';
-    });
+  // Calculate item width
+  function calculateItemWidth() {
+    var cols = getColumnCount();
+    var containerWidth = grid.offsetWidth;
+    var totalGaps = config.gapH * (cols - 1);
+    return Math.floor((containerWidth - totalGaps) / cols);
   }
 
-  // Initialize Masonry after images load
-  imagesLoaded(grid, function() {
-    updateItemWidths();
+  // Apply width to all items
+  function setItemWidths(itemsOverride) {
+    var width = calculateItemWidth();
+    var items = itemsOverride || grid.querySelectorAll('.masonry-item');
+    for (var i = 0; i < items.length; i++) {
+      items[i].style.width = width + 'px';
+      items[i].style.marginBottom = config.gapV + 'px';
+    }
+  }
 
-    const msnry = new Masonry(grid, {
+  // Initialize Masonry
+  function initMasonry() {
+    if (isInitialized) return;
+    isInitialized = true;
+
+    // Switch from CSS Grid to Masonry mode
+    grid.classList.add('masonry-active');
+
+    // Store initial items as clone source
+    sourceItems = Array.prototype.slice.call(grid.querySelectorAll('.masonry-item'));
+    // Set item widths before Masonry calculates
+    setItemWidths();
+
+    // Create Masonry instance
+    msnry = new Masonry(grid, {
       itemSelector: '.masonry-item',
       columnWidth: '.masonry-item',
-      gutter: gap,
-      fitWidth: false,
-      horizontalOrder: true
+      gutter: config.gapH,
+      percentPosition: false,
+      horizontalOrder: true,
+      transitionDuration: 0,
+      initLayout: false,
+      resize: false
     });
 
-    // Re-layout on resize
-    let resizeTimer;
-    window.addEventListener('resize', function() {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function() {
-        updateItemWidths();
-        msnry.layout();
-      }, 100);
+    // Force layout
+    msnry.layout();
+
+    // Double-check layout after a frame
+    requestAnimationFrame(function() {
+      msnry.layout();
+      showGrid();
+      ensureViewportFilled();
+      balanceColumns();
     });
-  });
+  }
+
+  // Show the grid with animation
+  function showGrid() {
+    grid.classList.add('masonry-ready');
+
+    if (prefersReducedMotion) {
+      // Show all items immediately
+      var items = grid.querySelectorAll('.masonry-item');
+      for (var i = 0; i < items.length; i++) {
+        items[i].classList.add('fade-in');
+      }
+    } else {
+      // Staggered fade-in
+      animateItems();
+    }
+
+    // Notify Lenis
+    if (window.lenisResize) {
+      setTimeout(window.lenisResize, 100);
+    }
+  }
+
+  // Animate items in visual order
+  function animateItems() {
+    var items = Array.prototype.slice.call(grid.querySelectorAll('.masonry-item'));
+
+    // Sort by visual position (top-left to bottom-right)
+    items.sort(function(a, b) {
+      var rectA = a.getBoundingClientRect();
+      var rectB = b.getBoundingClientRect();
+      var rowA = Math.round(rectA.top / 50);
+      var rowB = Math.round(rectB.top / 50);
+      if (rowA !== rowB) return rowA - rowB;
+      return rectA.left - rectB.left;
+    });
+
+    // Staggered animation
+    items.forEach(function(item, index) {
+      setTimeout(function() {
+        item.classList.add('fade-in');
+      }, index * 40);
+    });
+  }
+
+  function cloneItem(node) {
+    var clone = node.cloneNode(true);
+    if (clone.id) clone.removeAttribute('id');
+    var dupes = clone.querySelectorAll('[id]');
+    for (var i = 0; i < dupes.length; i++) {
+      dupes[i].removeAttribute('id');
+    }
+    clone.classList.remove('fade-in');
+    return clone;
+  }
+
+  function appendClones(count, animate, onDone) {
+    if (!msnry || !sourceItems.length || isAppending) return;
+    isAppending = true;
+    var newItems = [];
+    for (var i = 0; i < count; i++) {
+      var src = sourceItems[cloneIndex % sourceItems.length];
+      cloneIndex++;
+      if (!src) continue;
+      var clone = cloneItem(src);
+      if (animate) {
+        clone.classList.add('fade-in');
+      }
+      newItems.push(clone);
+    }
+    if (!newItems.length) {
+      isAppending = false;
+      return;
+    }
+    for (var j = 0; j < newItems.length; j++) {
+      grid.appendChild(newItems[j]);
+    }
+    setItemWidths(newItems);
+    preloadNearViewport(newItems);
+    imagesLoaded(newItems, function() {
+      msnry.appended(newItems);
+      msnry.layout();
+      isAppending = false;
+      if (typeof onDone === 'function') {
+        onDone();
+      }
+    });
+  }
+
+  function averageItemHeight() {
+    var items = grid.querySelectorAll('.masonry-item');
+    if (!items.length) return 0;
+    var sample = Math.min(items.length, 12);
+    var total = 0;
+    for (var i = 0; i < sample; i++) {
+      total += items[i].getBoundingClientRect().height;
+    }
+    return total / sample;
+  }
+
+  function preloadNearViewport(items) {
+    var list = items || grid.querySelectorAll('.masonry-item');
+    if (!list || !list.length) return;
+    var limit = window.scrollY + window.innerHeight * 4.6;
+    for (var i = 0; i < list.length; i++) {
+      var img = list[i].querySelector('img');
+      if (!img) continue;
+      var rect = list[i].getBoundingClientRect();
+      var top = rect.top + window.scrollY;
+      if (top <= limit) {
+        img.loading = 'eager';
+        img.fetchPriority = 'high';
+      }
+    }
+  }
+
+  function ensureViewportFilled() {
+    if (!msnry || isAppending) return;
+    var targetHeight = window.innerHeight * 4.6;
+    if (grid.scrollHeight >= targetHeight) return;
+    var count = Math.max(getColumnCount() * 4, 10);
+    appendClones(count, false, function() {
+      balanceColumns();
+      preloadNearViewport();
+      if (grid.scrollHeight < targetHeight) {
+        setTimeout(ensureViewportFilled, 60);
+      }
+    });
+  }
+
+  function balanceColumns() {
+    if (!msnry || !msnry.colYs || !msnry.colYs.length) return;
+    var avgHeight = averageItemHeight() || 240;
+    var maxIterations = 16;
+    var iter = 0;
+    while (iter < maxIterations) {
+      var heights = msnry.colYs.slice();
+      var min = Math.min.apply(null, heights);
+      var max = Math.max.apply(null, heights);
+      if ((max - min) <= avgHeight * 0.35) break;
+      appendClones(1, false);
+      iter++;
+    }
+  }
+
+  // Handle window resize
+  var resizeTimeout;
+  function handleResize() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(function() {
+      if (msnry) {
+        setItemWidths();
+        msnry.layout();
+        ensureViewportFilled();
+        balanceColumns();
+        if (window.lenisResize) window.lenisResize();
+      }
+    }, 150);
+  }
+
+  // Wait for all images to load, then initialize
+  function waitForImages() {
+    var imgLoad = imagesLoaded(grid);
+
+    imgLoad.on('always', function() {
+      initMasonry();
+    });
+
+    // Fallback: if imagesLoaded takes too long, init anyway
+    setTimeout(function() {
+      if (!isInitialized) {
+        console.warn('Masonry: imagesLoaded timeout, forcing init');
+        initMasonry();
+      }
+    }, 5000);
+  }
+
+  // Start initialization
+  if (document.readyState === 'complete') {
+    waitForImages();
+  } else {
+    window.addEventListener('load', waitForImages);
+  }
+
+  // Bind resize handler
+  window.addEventListener('resize', handleResize);
+
+  // Infinite scroll: append clones near bottom
+  var scrollTicking = false;
+  window.addEventListener('scroll', function() {
+    if (!msnry || scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(function() {
+      scrollTicking = false;
+      preloadNearViewport();
+      var scrollBottom = window.scrollY + window.innerHeight;
+      var buffer = window.innerHeight * 4.6;
+      var threshold = document.body.scrollHeight - buffer;
+      if (scrollBottom >= threshold) {
+        appendClones(Math.max(getColumnCount() * 2, 4), true, balanceColumns);
+      }
+    });
+  }, { passive: true });
+
 })();
 </script>
 {% endblock %}
