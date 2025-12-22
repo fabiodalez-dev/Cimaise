@@ -287,6 +287,17 @@
     "home_modern.empty_text": "Torna presto per nuovi contenuti.",
     "home_modern.menu": "Menu"
   },
+  "home_snap": {
+    "home_snap.photos": "foto",
+    "home_snap.view_album": "Vedi album",
+    "home_snap.empty_title": "Nessun album ancora",
+    "home_snap.empty_text": "Torna presto per nuovi contenuti."
+  },
+  "home_gallery": {
+    "home_gallery.view_album": "Vedi album",
+    "home_gallery.empty_title": "Nessuna foto ancora",
+    "home_gallery.empty_text": "Torna presto per nuovi contenuti."
+  },
   "errors": {
     "errors.404.title": "Pagina non trovata",
     "errors.404.message": "Spiacenti, la pagina che stai cercando non esiste o è stata spostata.",

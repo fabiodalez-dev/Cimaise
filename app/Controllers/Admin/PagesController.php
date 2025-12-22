@@ -87,9 +87,9 @@ class PagesController extends BaseController
 
         $svc = new SettingsService($this->db);
 
-        // Home template selection (classic, modern, parallax, or masonry)
+        // Home template selection (classic, modern, parallax, masonry, snap, or gallery)
         $homeTemplate = (string)($data['home_template'] ?? 'classic');
-        if (!in_array($homeTemplate, ['classic', 'modern', 'parallax', 'masonry'], true)) {
+        if (!in_array($homeTemplate, ['classic', 'modern', 'parallax', 'masonry', 'snap', 'gallery'], true)) {
             $homeTemplate = 'classic';
         }
         $svc->set('home.template', $homeTemplate);
