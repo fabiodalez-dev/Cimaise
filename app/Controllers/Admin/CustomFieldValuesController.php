@@ -132,10 +132,20 @@ class CustomFieldValuesController extends BaseController
         }
 
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('UPDATE custom_field_values SET sort_order = ? WHERE id = ? AND field_type_id = ?');
+        $pdo->beginTransaction();
 
-        foreach ($order as $position => $valueId) {
-            $stmt->execute([(int)$position, (int)$valueId, $typeId]);
+        try {
+            $stmt = $pdo->prepare('UPDATE custom_field_values SET sort_order = ? WHERE id = ? AND field_type_id = ?');
+
+            foreach ($order as $position => $valueId) {
+                $stmt->execute([(int)$position, (int)$valueId, $typeId]);
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            $response->getBody()->write(json_encode(['error' => 'Failed to update order: ' . $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
 
         $response->getBody()->write(json_encode(['success' => true]));
