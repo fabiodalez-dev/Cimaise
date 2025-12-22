@@ -6,21 +6,46 @@
   .inf-work_list.has-hover .inf-work_item:not(.highlight) {
     opacity: 0.5;
   }
-  #mobile-search::-webkit-search-cancel-button,
-  #mobile-search::-webkit-search-decoration,
-  #mobile-search::-webkit-search-results-button,
-  #mobile-search::-webkit-search-results-decoration {
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration {
     display: none;
   }
   .modern-mobile-only {
+    display: none !important;
+  }
+  .modern-desktop-only {
     display: block;
   }
+  [data-modern-mobile-header] {
+    display: none !important;
+    visibility: hidden;
+    height: 0;
+    overflow: hidden;
+  }
   @media (min-width: 768px) {
-    .modern-mobile-only {
+    .modern-mobile-only,
+    [data-modern-mobile-header] {
       display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      overflow: hidden !important;
     }
   }
   @media (max-width: 767px) {
+    .modern-mobile-only {
+      display: block !important;
+    }
+    .modern-desktop-only {
+      display: none !important;
+    }
+    [data-modern-mobile-header] {
+      display: block !important;
+      visibility: visible;
+      height: auto;
+      overflow: visible;
+    }
     .global-head,
     .menu-btn,
     .menu-component,
@@ -59,7 +84,7 @@
 </script>
 
 <!-- Mobile: use the classic header (identical to _layout.twig) -->
-<div class="md:hidden modern-mobile-only">
+<div class="modern-mobile-only" data-modern-mobile-header style="display: none;">
     <header class="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-md z-50 transition-all duration-300" id="main-header">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-5">
@@ -68,7 +93,7 @@
                     <h1 class="text-xl font-semibold">
                         <a href="{{ base_path }}/" class="hover:text-gray-600 transition-colors duration-200 flex items-center gap-3">
                             {% if site_logo %}
-                              <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Portfolio')|e }}" class="h-12 w-auto">
+                              <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}" alt="{{ site_title|default('Portfolio')|e }}" class="h-12 w-auto">
                             {% else %}
                               {{ site_title|default('Portfolio')|e }}
                             {% endif %}
@@ -152,13 +177,8 @@
                     </a>
                     {% endif %}
 
-                    <!-- Desktop Search Toggle -->
-                    <button id="header-search-toggle" class="hidden md:flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
-                        <i class="fas fa-search text-sm"></i>
-                    </button>
-
                     <!-- Mobile Search Toggle -->
-                    <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="mobile-search-panel" aria-expanded="false">
+                    <button id="mobile-search-toggle" class="flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
                         <i class="fas fa-search text-sm"></i>
                     </button>
 
@@ -170,54 +190,6 @@
                         </svg>
                     </button>
                 </div>
-            </div>
-        </div>
-
-        <!-- Desktop Search Panel -->
-        <div class="hidden md:block">
-            <div id="header-search-panel" class="border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                    <form id="header-search-form" class="relative" role="search" action="{{ base_path }}/galleries" method="get">
-                        <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
-                        <div class="relative">
-                            <input id="header-search" name="search" type="search" autocomplete="off"
-                                   class="w-full appearance-none px-3 py-3 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
-                                   placeholder="{{ trans('filter.search') }}">
-                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                                <button type="button" id="header-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
-                                    <i class="fas fa-times text-[11px]"></i>
-                                </button>
-                                <button type="submit" class="w-8 h-8 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
-                                    <i class="fas fa-arrow-right text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div id="header-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden z-[60] max-h-80 overflow-auto divide-y divide-gray-100"></div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mobile Search Panel -->
-        <div id="mobile-search-panel" class="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-md hidden">
-            <div class="px-4 py-3">
-                <form id="mobile-search-form" class="relative" role="search" action="{{ base_path }}/galleries" method="get">
-                    <label for="mobile-search" class="sr-only">{{ trans('filter.search') }}</label>
-                    <div class="relative">
-                        <input id="mobile-search" name="search" type="search" autocomplete="off"
-                               class="w-full appearance-none px-3 py-3 pr-24 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent transition-colors duration-150"
-                               placeholder="{{ trans('filter.search') }}">
-                        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                            <button type="button" id="mobile-search-clear" class="hidden w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.clear_filters') }}">
-                                <i class="fas fa-times text-[11px]"></i>
-                            </button>
-                            <button type="submit" class="w-8 h-8 rounded-md text-gray-600 hover:text-black hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center" aria-label="{{ trans('filter.search') }}">
-                                <i class="fas fa-arrow-right text-sm"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="mobile-search-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-80 overflow-auto divide-y divide-gray-100 z-50"></div>
-                </form>
             </div>
         </div>
 
@@ -299,8 +271,31 @@
     </header>
 </div>
 
+<!-- Desktop Search Panel -->
+<div id="header-search-panel" class="modern-search-panel hidden">
+    <div class="modern-search-panel__inner">
+        <form id="header-search-form" class="modern-search-form" role="search" action="{{ base_path }}/galleries" method="get">
+            <label for="header-search" class="sr-only">{{ trans('filter.search') }}</label>
+            <div class="modern-search-field">
+                <input id="header-search" name="search" type="search" autocomplete="off"
+                       class="modern-search-input"
+                       placeholder="{{ trans('filter.search') }}">
+                <div class="modern-search-actions">
+                    <button type="button" id="header-search-clear" class="modern-search-clear hidden" aria-label="{{ trans('filter.clear_filters') }}">
+                        <i class="fas fa-times text-[11px]"></i>
+                    </button>
+                    <button type="submit" class="modern-search-submit" aria-label="{{ trans('filter.search') }}">
+                        <i class="fas fa-arrow-right text-sm"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="header-search-suggestions" class="modern-search-suggestions hidden" role="listbox"></div>
+        </form>
+    </div>
+</div>
+
 <!-- Global Header -->
-<div class="global-head hidden md:block">
+<div class="global-head modern-desktop-only">
     <div class="global-head_layout">
         <a href="{{ base_path }}/" class="head-logo_holder">
             {% if site_logo %}
@@ -309,11 +304,16 @@
                 <div class="head-logo_text">{{ site_title|e }}</div>
             {% endif %}
         </a>
+        <div class="global-head_actions modern-desktop-only">
+            <button id="header-search-toggle" class="modern-search-toggle" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
+                <i class="fas fa-search" aria-hidden="true"></i>
+            </button>
+        </div>
     </div>
 </div>
 
 <!-- Menu Button -->
-<div class="menu-btn hidden md:flex">
+<div class="menu-btn modern-desktop-only">
     <div class="menu-btn_text">{{ trans('home_modern.menu')|default('Menu') }}</div>
 </div>
 
@@ -432,7 +432,7 @@
 </div>
 
 <!-- Mega Menu Overlay -->
-<div class="menu-component hidden md:block">
+<div class="menu-component">
     <div class="menu-close">
         <div class="menu-btn_text">{{ trans('home_modern.close')|default('Close') }}</div>
     </div>
@@ -454,19 +454,37 @@
 document.addEventListener('DOMContentLoaded', function() {
   const menuToggle = document.getElementById('mobile-menu-toggle');
   const menu = document.getElementById('mobile-menu');
-  const mobileSearchPanel = document.getElementById('mobile-search-panel');
   const mobileSearchToggle = document.getElementById('mobile-search-toggle');
+  const headerSearchPanel = document.getElementById('header-search-panel');
+  const headerSearchToggle = document.getElementById('header-search-toggle');
+  const headerSearchInput = document.getElementById('header-search');
+  const searchToggles = [headerSearchToggle, mobileSearchToggle].filter(Boolean);
+
+  const closeSearchPanel = () => {
+    if (!headerSearchPanel) return;
+    headerSearchPanel.classList.add('hidden');
+    searchToggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'false'));
+  };
+
+  const openSearchPanel = () => {
+    if (!headerSearchPanel) return;
+    if (menu) {
+      menu.style.maxHeight = '0px';
+      menu.style.opacity = '0';
+      menu.classList.add('hidden');
+    }
+    headerSearchPanel.classList.remove('hidden');
+    searchToggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
+    setTimeout(() => {
+      headerSearchInput?.focus();
+    }, 50);
+  };
 
   if (menuToggle && menu) {
     menuToggle.addEventListener('click', function() {
       const isOpening = menu.classList.contains('hidden');
       if (isOpening) {
-        if (mobileSearchPanel) {
-          mobileSearchPanel.classList.add('hidden');
-        }
-        if (mobileSearchToggle) {
-          mobileSearchToggle.setAttribute('aria-expanded', 'false');
-        }
+        closeSearchPanel();
         menu.classList.remove('hidden');
         requestAnimationFrame(() => {
           menu.style.maxHeight = menu.scrollHeight + 'px';
@@ -556,7 +574,8 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const syncToFilters = () => {
-      const filterInput = document.getElementById('filter-search');
+      const filterInput = document.getElementById('layout-filter-search')
+        || document.getElementById('filter-search');
       if (!filterInput) return false;
       filterInput.value = input.value;
       if (typeof window.applyFiltersDebounced === 'function') {
@@ -708,7 +727,8 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
-    const filterInput = document.getElementById('filter-search');
+    const filterInput = document.getElementById('layout-filter-search')
+      || document.getElementById('filter-search');
     if (filterInput && filterInput.value) {
       input.value = filterInput.value;
     }
@@ -722,31 +742,27 @@ document.addEventListener('DOMContentLoaded', function() {
     suggestionId: 'header-search-suggestions'
   });
 
-  setupSearch({
-    formId: 'mobile-search-form',
-    inputId: 'mobile-search',
-    clearId: 'mobile-search-clear',
-    suggestionId: 'mobile-search-suggestions'
-  });
-
-  if (mobileSearchToggle && mobileSearchPanel) {
-    mobileSearchToggle.addEventListener('click', () => {
-      const isHidden = mobileSearchPanel.classList.contains('hidden');
+  searchToggles.forEach((toggle) => {
+    toggle.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const isHidden = headerSearchPanel?.classList.contains('hidden') ?? true;
       if (isHidden) {
-        mobileSearchPanel.classList.remove('hidden');
-        mobileSearchToggle.setAttribute('aria-expanded', 'true');
-        setTimeout(() => {
-          document.getElementById('mobile-search')?.focus();
-        }, 50);
+        openSearchPanel();
       } else {
-        mobileSearchPanel.classList.add('hidden');
-        mobileSearchToggle.setAttribute('aria-expanded', 'false');
+        closeSearchPanel();
       }
     });
+  });
+
+  if (headerSearchPanel) {
     document.addEventListener('click', (ev) => {
-      if (!mobileSearchPanel.contains(ev.target) && !mobileSearchToggle.contains(ev.target)) {
-        mobileSearchPanel.classList.add('hidden');
-        mobileSearchToggle.setAttribute('aria-expanded', 'false');
+      if (!headerSearchPanel.contains(ev.target) && !searchToggles.some(t => t.contains(ev.target))) {
+        closeSearchPanel();
+      }
+    });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') {
+        closeSearchPanel();
       }
     });
   }

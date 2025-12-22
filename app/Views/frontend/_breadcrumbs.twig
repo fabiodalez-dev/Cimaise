@@ -33,11 +33,11 @@
   {% set items = items|merge([{ label: page_title, url: canonical_url|default(current_url)|default('') }]) %}
 {% endif %}
 
-<nav aria-label="{{ trans('nav.breadcrumb') }}" class="text-sm text-neutral-600 pb-5 md:pb-0 leading-normal">
-  <ol class="flex flex-wrap items-center gap-x-1 gap-y-1">
+<nav aria-label="{{ trans('nav.breadcrumb') }}" class="text-sm text-neutral-600 pb-5 md:pb-0 mb-5 md:mb-0 leading-normal">
+  <ol class="flex flex-wrap items-center gap-x-4 gap-y-2">
     {% for it in items %}
       <li class="flex items-center">
-        {% if loop.first == false %}<span class="mx-2 text-neutral-400">›</span>{% endif %}
+        {% if loop.first == false %}<span class="mx-2 md:mx-3 text-neutral-400">›</span>{% endif %}
         {% if it.url %}
           {% if it.url starts with '/' %}
             <a href="{{ base_path }}{{ it.url }}" class="hover:text-black">{{ it.label|e }}</a>

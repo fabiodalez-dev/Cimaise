@@ -242,7 +242,7 @@ document.addEventListener('click', function(event) {
     <div class="relative z-20 text-center text-white max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Breadcrumbs -->
         <nav class="mb-6" aria-label="Breadcrumb" data-gsap="breadcrumb">
-            <ol class="flex items-center justify-center space-x-2 text-sm opacity-80">
+            <ol class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm opacity-80">
                 <li><a href="{{ base_path }}/" class="hover:text-white transition-colors">{{ trans('nav.home') }}</a></li>
                 <li><span class="mx-2">/</span></li>
                 <li><a href="{{ base_path }}/category/{{ album.category_slug }}" class="hover:text-white transition-colors">{{ album.category_name|e }}</a></li>
@@ -321,7 +321,7 @@ document.addEventListener('click', function(event) {
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Breadcrumbs -->
     <nav class="mb-6" aria-label="Breadcrumb">
-        <ol class="flex items-center space-x-2 text-sm text-gray-600">
+        <ol class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
             <li><a href="{{ base_path }}/" class="hover:text-black transition-colors">{{ trans('nav.home') }}</a></li>
             <li><span class="mx-2 text-gray-400">/</span></li>
             <li><a href="{{ base_path }}/category/{{ album.category_slug }}" class="hover:text-black transition-colors">{{ album.category_name|e }}</a></li>
@@ -445,30 +445,25 @@ document.addEventListener('click', function(event) {
             {% endfor %}
         </div>
     {% elseif layout == 'masonry_fit' %}
-        {# Modern Masonry layout using CSS columns - full images, no cropping #}
+        {# Modern Masonry layout using Masonry.js - full images, no cropping, left-to-right fill #}
         {% set gap_h = template_settings.gap.horizontal|default(16) %}
         {% set gap_v = template_settings.gap.vertical|default(16) %}
-        <div id="images-gallery" class="masonry-fit-grid pswp-gallery" data-layout="masonry_fit">
+        <div id="images-gallery" class="masonry-fit-grid pswp-gallery" data-layout="masonry_fit" data-gap="{{ gap_h }}" data-gap-v="{{ gap_v }}" data-cols-desktop="{{ desktop_cols }}" data-cols-tablet="{{ tablet_cols }}" data-cols-mobile="{{ mobile_cols }}">
             {% for image in images %}
                 {% include "frontend/_image_item_masonry.twig" %}
             {% endfor %}
         </div>
         <style nonce="{{ csp_nonce() }}">
         .masonry-fit-grid {
-            column-gap: {{ gap_h }}px;
+            width: 100%;
         }
         .masonry-fit-grid .masonry-item {
-            break-inside: avoid;
             margin-bottom: {{ gap_v }}px;
         }
-        @media (min-width: 1024px) {
-            .masonry-fit-grid { column-count: {{ desktop_cols }}; }
-        }
-        @media (min-width: 768px) and (max-width: 1023px) {
-            .masonry-fit-grid { column-count: {{ tablet_cols }}; }
-        }
-        @media (max-width: 767px) {
-            .masonry-fit-grid { column-count: {{ mobile_cols }}; }
+        .masonry-fit-grid .masonry-item img {
+            display: block;
+            width: 100%;
+            height: auto;
         }
         </style>
     {% elseif layout == 'magazine' %}
@@ -638,13 +633,61 @@ if (masonry && layout !== 'masonry_fit' && typeof Masonry !== 'undefined') {
     }
 }
 
-// masonry_fit uses CSS columns - just recalculate Lenis after images load
+// masonry_fit uses Masonry.js with horizontalOrder for left-to-right filling
 if (layout === 'masonry_fit') {
     const container = document.getElementById('images-gallery');
-    if (container && typeof imagesLoaded !== 'undefined') {
-        imagesLoaded(container, function(){
+    if (container && typeof Masonry !== 'undefined') {
+        const gap = parseInt(container.dataset.gap) || 16;
+        const colsDesktop = parseInt(container.dataset.colsDesktop) || 5;
+        const colsTablet = parseInt(container.dataset.colsTablet) || 3;
+        const colsMobile = parseInt(container.dataset.colsMobile) || 2;
+
+        function getColumnWidth() {
+            const width = window.innerWidth;
+            let cols = colsMobile;
+            if (width >= 1024) cols = colsDesktop;
+            else if (width >= 768) cols = colsTablet;
+
+            const containerWidth = container.offsetWidth;
+            return Math.floor((containerWidth - gap * (cols - 1)) / cols);
+        }
+
+        function updateItemWidths() {
+            const columnWidth = getColumnWidth();
+            container.querySelectorAll('.masonry-item').forEach(item => {
+                item.style.width = columnWidth + 'px';
+            });
+        }
+
+        const initMasonryFit = () => {
+            updateItemWidths();
+
+            const msnry = new Masonry(container, {
+                itemSelector: '.masonry-item',
+                columnWidth: '.masonry-item',
+                gutter: gap,
+                fitWidth: false,
+                horizontalOrder: true
+            });
+
+            // Re-layout on resize
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function() {
+                    updateItemWidths();
+                    msnry.layout();
+                }, 100);
+            });
+
             if (window.lenisResize) window.lenisResize();
-        });
+        };
+
+        if (typeof imagesLoaded !== 'undefined') {
+            imagesLoaded(container, initMasonryFit);
+        } else {
+            initMasonryFit();
+        }
     }
 }
 
