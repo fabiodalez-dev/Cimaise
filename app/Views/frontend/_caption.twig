@@ -37,7 +37,7 @@
     {% for typeId, field in image.custom_fields %}
       {% if field.show_in_lightbox and field.values|length > 0 %}
         {% set valuesStr = field.values|join(', ') %}
-        {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas ' ~ field.icon|default('fa-tag') ~ ' mr-1"></i>' ~ valuesStr|e ~ '</span>']) %}
+        {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas ' ~ field.icon|default('fa-tag')|e ~ ' mr-1"></i>' ~ valuesStr|e ~ '</span>']) %}
       {% endif %}
     {% endfor %}
   {% endif %}
