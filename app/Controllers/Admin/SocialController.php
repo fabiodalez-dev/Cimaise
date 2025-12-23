@@ -619,8 +619,8 @@ class SocialController extends BaseController
                 $network = $profile['network'] ?? '';
                 $url = trim($profile['url'] ?? '');
 
-                // Validate network and URL
-                if (in_array($network, $validNetworks, true) && $url !== '' && filter_var($url, FILTER_VALIDATE_URL)) {
+                // Validate network and URL (only http/https protocols allowed)
+                if (in_array($network, $validNetworks, true) && $url !== '' && $this->isValidProfileUrl($url)) {
                     $profiles[] = [
                         'network' => $network,
                         'url' => $url,
@@ -639,5 +639,18 @@ class SocialController extends BaseController
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Social profiles saved successfully'];
         return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
+    }
+
+    /**
+     * Validate profile URL - only http/https protocols allowed
+     */
+    private function isValidProfileUrl(string $url): bool
+    {
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+        return \in_array(strtolower($scheme ?? ''), ['http', 'https'], true);
     }
 }
