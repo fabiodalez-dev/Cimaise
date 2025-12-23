@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS image_custom_fields (
   FOREIGN KEY (field_type_id) REFERENCES custom_field_types(id) ON DELETE CASCADE,
   FOREIGN KEY (field_value_id) REFERENCES custom_field_values(id) ON DELETE SET NULL,
   INDEX idx_icf_image (image_id),
-  INDEX idx_icf_type (field_type_id)
+  INDEX idx_icf_type (field_type_id),
+  INDEX idx_icf_image_type (image_id, field_type_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Album custom fields (junction table, supports multiple values)
