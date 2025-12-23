@@ -186,6 +186,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $siteLogo = $settingsSvc->get('site.logo', null);
         $twig->getEnvironment()->addGlobal('site_title', $siteTitle);
         $twig->getEnvironment()->addGlobal('site_logo', $siteLogo);
+        $twig->getEnvironment()->addGlobal('site_copyright', $settingsSvc->get('site.copyright', ''));
         // Initialize date format from settings
         $dateFormat = $settingsSvc->get('date.format', 'Y-m-d');
         \App\Support\DateHelper::setDisplayFormat($dateFormat);
@@ -249,6 +250,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/galleries');
         $twig->getEnvironment()->addGlobal('site_title', 'Cimaise');
         $twig->getEnvironment()->addGlobal('site_logo', null);
+        $twig->getEnvironment()->addGlobal('site_copyright', '');
         \App\Support\DateHelper::setDisplayFormat('Y-m-d');
         $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
         $twig->getEnvironment()->addGlobal('site_language', 'en');
@@ -282,6 +284,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/galleries');
     $twig->getEnvironment()->addGlobal('site_title', 'Cimaise');
     $twig->getEnvironment()->addGlobal('site_logo', null);
+    $twig->getEnvironment()->addGlobal('site_copyright', '');
     \App\Support\DateHelper::setDisplayFormat('Y-m-d');
     $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
     $twig->getEnvironment()->addGlobal('site_language', 'en');

@@ -33,18 +33,11 @@ return new class {
         ");
 
         // Seed built-in types (for reference, not editable)
-        $stmt = $pdo->prepare("
-            INSERT OR IGNORE INTO custom_field_types (name, label, icon, is_system, sort_order)
-            VALUES (?, ?, ?, 1, ?)
-        ");
-
-        // For MySQL, use INSERT IGNORE
-        if ($driver === 'mysql') {
-            $stmt = $pdo->prepare("
-                INSERT IGNORE INTO custom_field_types (name, label, icon, is_system, sort_order)
-                VALUES (?, ?, ?, 1, ?)
-            ");
-        }
+        // MySQL: INSERT IGNORE, SQLite: INSERT OR IGNORE
+        $insertSql = $driver === 'mysql'
+            ? "INSERT IGNORE INTO custom_field_types (name, label, icon, is_system, sort_order) VALUES (?, ?, ?, 1, ?)"
+            : "INSERT OR IGNORE INTO custom_field_types (name, label, icon, is_system, sort_order) VALUES (?, ?, ?, 1, ?)";
+        $stmt = $pdo->prepare($insertSql);
 
         $builtIn = [
             ['camera', 'Camera', 'fa-camera', 1],
@@ -122,9 +115,18 @@ return new class {
             if (!$idx2Exists) {
                 $pdo->exec("CREATE INDEX idx_icf_type ON image_custom_fields(field_type_id)");
             }
+            // Composite index for lookups by image and field type
+            $stmtComp = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'image_custom_fields' AND index_name = ?");
+            $stmtComp->execute(['idx_icf_image_type']);
+            $compExists = (int)$stmtComp->fetchColumn() !== 0;
+            $stmtComp->closeCursor();
+            if (!$compExists) {
+                $pdo->exec("CREATE INDEX idx_icf_image_type ON image_custom_fields(image_id, field_type_id)");
+            }
         } else {
             $pdo->exec("CREATE INDEX IF NOT EXISTS idx_icf_image ON image_custom_fields(image_id)");
             $pdo->exec("CREATE INDEX IF NOT EXISTS idx_icf_type ON image_custom_fields(field_type_id)");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_icf_image_type ON image_custom_fields(image_id, field_type_id)");
         }
 
         // Table: album_custom_fields

@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS image_custom_fields (
 
 CREATE INDEX IF NOT EXISTS idx_icf_image ON image_custom_fields(image_id);
 CREATE INDEX IF NOT EXISTS idx_icf_type ON image_custom_fields(field_type_id);
+CREATE INDEX IF NOT EXISTS idx_icf_image_type ON image_custom_fields(image_id, field_type_id);
 
 -- Album custom fields (junction table, supports multiple values)
 CREATE TABLE IF NOT EXISTS album_custom_fields (
