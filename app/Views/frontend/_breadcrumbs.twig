@@ -54,7 +54,7 @@
 
 {# JSON-LD BreadcrumbList #}
 {% if items|length > 1 %}
-<script type="application/ld+json">
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
 {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
