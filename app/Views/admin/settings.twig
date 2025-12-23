@@ -272,6 +272,26 @@
       </div>
     </div>
 
+    <!-- Navigation Settings -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-bars mr-3 text-gray-600"></i>
+          {{ trans('admin.settings.navigation_settings') }}
+        </h3>
+
+        <div class="space-y-4">
+          <label class="flex items-start">
+            <input type="checkbox" name="show_tags_in_header" id="show_tags_in_header" class="rounded border-gray-300 text-black focus:ring-black mt-1" {% if settings['navigation.show_tags_in_header'] %}checked{% endif %}>
+            <span class="ml-3">
+              <span class="text-sm font-medium text-gray-900 block">{{ trans('admin.settings.show_tags_in_header') }}</span>
+              <span class="text-xs text-gray-600 block mt-1">{{ trans('admin.settings.show_tags_in_header_desc') }}</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- reCAPTCHA Settings -->
     <div class="card">
       <div class="p-6">
