@@ -78,8 +78,9 @@ return new class {
         if ($driver === 'mysql') {
             $stmtIdx = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'custom_field_values' AND index_name = ?");
             $stmtIdx->execute(['idx_cfv_type']);
-            if ($stmtIdx->fetchColumn() === 0) {
-                $stmtIdx->closeCursor();
+            $indexExists = $stmtIdx->fetchColumn() !== 0;
+            $stmtIdx->closeCursor();
+            if (!$indexExists) {
                 $pdo->exec("CREATE INDEX idx_cfv_type ON custom_field_values(field_type_id)");
             }
         } else {
@@ -108,15 +109,17 @@ return new class {
             // Check if indexes exist before creating - use separate statements to avoid cursor issues
             $stmt1 = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'image_custom_fields' AND index_name = ?");
             $stmt1->execute(['idx_icf_image']);
-            if ($stmt1->fetchColumn() === 0) {
-                $stmt1->closeCursor();
+            $idx1Exists = $stmt1->fetchColumn() !== 0;
+            $stmt1->closeCursor();
+            if (!$idx1Exists) {
                 $pdo->exec("CREATE INDEX idx_icf_image ON image_custom_fields(image_id)");
             }
 
             $stmt2 = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'image_custom_fields' AND index_name = ?");
             $stmt2->execute(['idx_icf_type']);
-            if ($stmt2->fetchColumn() === 0) {
-                $stmt2->closeCursor();
+            $idx2Exists = $stmt2->fetchColumn() !== 0;
+            $stmt2->closeCursor();
+            if (!$idx2Exists) {
                 $pdo->exec("CREATE INDEX idx_icf_type ON image_custom_fields(field_type_id)");
             }
         } else {
@@ -146,15 +149,17 @@ return new class {
             // Check if indexes exist before creating - use separate statements to avoid cursor issues
             $stmt3 = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'album_custom_fields' AND index_name = ?");
             $stmt3->execute(['idx_acf_album']);
-            if ($stmt3->fetchColumn() === 0) {
-                $stmt3->closeCursor();
+            $idx3Exists = $stmt3->fetchColumn() !== 0;
+            $stmt3->closeCursor();
+            if (!$idx3Exists) {
                 $pdo->exec("CREATE INDEX idx_acf_album ON album_custom_fields(album_id)");
             }
 
             $stmt4 = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'album_custom_fields' AND index_name = ?");
             $stmt4->execute(['idx_acf_type']);
-            if ($stmt4->fetchColumn() === 0) {
-                $stmt4->closeCursor();
+            $idx4Exists = $stmt4->fetchColumn() !== 0;
+            $stmt4->closeCursor();
+            if (!$idx4Exists) {
                 $pdo->exec("CREATE INDEX idx_acf_type ON album_custom_fields(field_type_id)");
             }
         } else {
