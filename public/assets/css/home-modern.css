@@ -146,7 +146,7 @@ img {
     border-color: #111827;
 }
 
-.modern-search-toggle:focus {
+.modern-search-toggle:focus:not(:focus-visible) {
     outline: none;
 }
 
