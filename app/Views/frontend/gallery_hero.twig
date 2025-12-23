@@ -257,9 +257,12 @@
   {% endif %}
 
   {# Gallery container. We reuse the same dynamic partial and JS contract #}
-  {% set layout = template_settings.layout|default('grid') %}
+  {# Hero cover defaults to masonry_fit layout for better presentation #}
+  {% set layout = template_settings.layout|default('masonry_fit') %}
   {% set masonry = template_settings.masonry|default(false) %}
   {% set cols = template_settings.columns is defined ? template_settings.columns : {'desktop':3,'tablet':2,'mobile':1} %}
+  {% set gap_h = template_settings.gap.horizontal|default(16) %}
+  {% set gap_v = template_settings.gap.vertical|default(16) %}
   {% set desktop_cols = (cols.desktop|default(3))|round %}
   {% set tablet_cols = (cols.tablet|default(2))|round %}
   {% set mobile_cols = (cols.mobile|default(1))|round %}
@@ -272,6 +275,30 @@
     <div id="images-gallery" class="mt-10">
       {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
     </div>
+  {% elseif layout == 'masonry_fit' %}
+    {# Modern Masonry layout using balanced flexbox columns - full images, no cropping #}
+    <div id="images-gallery" class="masonry-fit-grid pswp-gallery" data-layout="masonry_fit" data-gap="{{ gap_h }}" data-gap-v="{{ gap_v }}" data-cols-desktop="{{ desktop_cols }}" data-cols-tablet="{{ tablet_cols }}" data-cols-mobile="{{ mobile_cols }}">
+      {% for image in images %}
+        {% include "frontend/_image_item_masonry.twig" %}
+      {% endfor %}
+    </div>
+    <style nonce="{{ csp_nonce() }}">
+    .masonry-fit-grid {
+      width: 100%;
+    }
+    .masonry-fit-grid .masonry-column {
+      flex: 1;
+      min-width: 0;
+    }
+    .masonry-fit-grid .masonry-item {
+      width: 100%;
+    }
+    .masonry-fit-grid .masonry-item img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    </style>
   {% else %}
     <div id="images-gallery" class="{{ layout == 'slideshow' ? 'swiper slideshow-pro max-w-6xl mx-auto' : (layout == 'fullscreen' ? 'grid grid-cols-1 lg:grid-cols-2 gap-2' : (masonry ? 'masonry-grid' : 'grid ' ~ mobile_class ~ ' ' ~ tablet_class ~ ' ' ~ desktop_class ~ ' gap-6')) }}"
          {% if masonry %}style="--cols-desktop: {{ desktop_cols }}; --cols-tablet: {{ tablet_cols }}; --cols-mobile: {{ mobile_cols }};"{% endif %}>
@@ -282,9 +309,130 @@
 
 <script nonce="{{ csp_nonce() }}">
   var basePath = '{{ base_path }}';
+
+  // Store template settings for JS access
+  window.templateSettings = JSON.parse('{{ template_settings ? template_settings|json_encode|e('js') : '{}' }}');
+
+  // Reusable masonry_fit initialization helper - Balanced Flexbox Columns approach
+  window.initAlbumMasonryFit = function(container, options) {
+    if (!container) return null;
+    if (container._masonryFitInstance && container._masonryFitInstance.destroy) {
+      container._masonryFitInstance.destroy();
+    }
+    const gap = options.gap || 16;
+    const colsDesktop = options.colsDesktop || 3;
+    const colsTablet = options.colsTablet || 2;
+    const colsMobile = options.colsMobile || 1;
+    let columnWrappers = [];
+    const originalItems = Array.from(container.querySelectorAll('.masonry-item'));
+    function getColumnCount() {
+      const width = window.innerWidth;
+      if (width >= 1024) return colsDesktop;
+      if (width >= 768) return colsTablet;
+      return colsMobile;
+    }
+    function createColumnStructure(numCols) {
+      columnWrappers.forEach(w => w.remove());
+      columnWrappers = [];
+      container.style.display = 'flex';
+      container.style.flexWrap = 'nowrap';
+      container.style.gap = gap + 'px';
+      container.style.alignItems = 'flex-start';
+      for (let i = 0; i < numCols; i++) {
+        const col = document.createElement('div');
+        col.className = 'masonry-column';
+        col.style.flex = '1';
+        col.style.display = 'flex';
+        col.style.flexDirection = 'column';
+        col.style.gap = gap + 'px';
+        col.style.minWidth = '0';
+        columnWrappers.push(col);
+        container.appendChild(col);
+      }
+    }
+    function distributeItems() {
+      const numCols = getColumnCount();
+      createColumnStructure(numCols);
+      const columnHeights = new Array(numCols).fill(0);
+      const colWidth = container.offsetWidth / numCols - gap * (numCols - 1) / numCols;
+      const itemHeights = originalItems.map(item => {
+        const img = item.querySelector('img');
+        if (img && img.dataset.aspectRatio) return colWidth * parseFloat(img.dataset.aspectRatio);
+        return item.offsetHeight || colWidth * 0.75;
+      });
+      const heightThreshold = colWidth * 0.15;
+      originalItems.forEach((item, idx) => {
+        const shortestHeight = Math.min(...columnHeights);
+        let targetIdx = 0;
+        for (let i = 0; i < numCols; i++) {
+          if (columnHeights[i] <= shortestHeight + heightThreshold) { targetIdx = i; break; }
+        }
+        item.style.width = '100%';
+        item.style.marginBottom = '0';
+        columnWrappers[targetIdx].appendChild(item);
+        columnHeights[targetIdx] += itemHeights[idx] + gap;
+      });
+    }
+    let viewportObserver = null;
+    const preloadedItems = new WeakSet();
+    if ('IntersectionObserver' in window) {
+      viewportObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-viewport');
+            const img = entry.target.querySelector('img');
+            if (img && !preloadedItems.has(entry.target)) { preloadedItems.add(entry.target); img.loading = 'eager'; }
+          } else { entry.target.classList.remove('in-viewport'); }
+        });
+      }, { rootMargin: '200% 0px 200% 0px', threshold: 0 });
+    }
+    distributeItems();
+    if (viewportObserver) { originalItems.forEach(function(item) { viewportObserver.observe(item); }); }
+    function destroy() {
+      if (viewportObserver) { viewportObserver.disconnect(); viewportObserver = null; }
+      columnWrappers.forEach(w => w.remove());
+      columnWrappers = [];
+    }
+    const instance = { distributeItems, viewportObserver, destroy, msnry: { layout: distributeItems }, updateItemWidths: distributeItems };
+    container._masonryFitInstance = instance;
+    return instance;
+  };
+
   // Trigger same init used in gallery.twig after load
   window.addEventListener('DOMContentLoaded', function(){
     if (typeof initializeGalleryLayout === 'function') { try { initializeGalleryLayout(); } catch(e){} }
+
+    // Initialize masonry_fit layout
+    const layout = window.templateSettings?.layout || 'masonry_fit';
+    if (layout === 'masonry_fit') {
+      const container = document.getElementById('images-gallery');
+      if (container) {
+        const options = {
+          gap: parseInt(container.dataset.gap) || 16,
+          colsDesktop: parseInt(container.dataset.colsDesktop) || 3,
+          colsTablet: parseInt(container.dataset.colsTablet) || 2,
+          colsMobile: parseInt(container.dataset.colsMobile) || 1
+        };
+        let resizeTimer = null;
+        const resizeHandler = function() {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(function() {
+            const instance = container._masonryFitInstance;
+            if (instance) { instance.updateItemWidths(); instance.msnry.layout(); }
+          }, 150);
+        };
+        if (container._masonryFitResizeHandler) { window.removeEventListener('resize', container._masonryFitResizeHandler); }
+        container._masonryFitResizeHandler = resizeHandler;
+        window.addEventListener('resize', resizeHandler);
+        const initMasonryFit = () => {
+          window.initAlbumMasonryFit(container, options);
+          if (window.lenisResize) window.lenisResize();
+        };
+        if (typeof imagesLoaded !== 'undefined') { imagesLoaded(container, initMasonryFit); }
+        else { initMasonryFit(); }
+      }
+    }
+
     // If magazine is active on first render, ensure autoscroll
     try {
       if (window.templateSettings?.layout === 'magazine') {
@@ -474,6 +622,17 @@
         galleryContainer.className = '';
         if (newLayout === 'magazine') {
           galleryContainer.className = 'mt-10';
+        } else if (newLayout === 'masonry_fit') {
+          galleryContainer.className = 'masonry-fit-grid pswp-gallery';
+          const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
+          const gap = window.templateSettings?.gap?.horizontal || 16;
+          const gapV = window.templateSettings?.gap?.vertical || 16;
+          galleryContainer.dataset.layout = 'masonry_fit';
+          galleryContainer.dataset.gap = gap;
+          galleryContainer.dataset.gapV = gapV;
+          galleryContainer.dataset.colsDesktop = Math.round(cols.desktop || 3);
+          galleryContainer.dataset.colsTablet = Math.round(cols.tablet || 2);
+          galleryContainer.dataset.colsMobile = Math.round(cols.mobile || 1);
         } else if (newLayout === 'slideshow') {
           galleryContainer.className = 'swiper slideshow-pro max-w-6xl mx-auto';
         } else if (newLayout === 'fullscreen') {
@@ -503,9 +662,30 @@
           if (typeof initLightbox === 'function') initLightbox();
           if (window.gallerySwiper?.destroy) { window.gallerySwiper.destroy(true,true); window.gallerySwiper = null; }
           if (window.galleryMasonry?.destroy) { window.galleryMasonry.destroy(); window.galleryMasonry = null; }
+          // Clean up previous masonry_fit instance if exists
+          if (galleryContainer._masonryFitInstance?.destroy) {
+            galleryContainer._masonryFitInstance.destroy();
+            galleryContainer._masonryFitInstance = null;
+          }
           if (newLayout === 'magazine') {
             console.log('Initializing Magazine Split template');
             setTimeout(() => { try { initMagazineAutoscroll(); } catch(e){ console.error('Magazine init error:', e); } }, 100);
+          } else if (newLayout === 'masonry_fit') {
+            console.log('Initializing Masonry Fit template');
+            const options = {
+              gap: parseInt(galleryContainer.dataset.gap) || 16,
+              colsDesktop: parseInt(galleryContainer.dataset.colsDesktop) || 3,
+              colsTablet: parseInt(galleryContainer.dataset.colsTablet) || 2,
+              colsMobile: parseInt(galleryContainer.dataset.colsMobile) || 1
+            };
+            const initMasonryFitSwitch = () => {
+              if (typeof window.initAlbumMasonryFit === 'function') {
+                window.initAlbumMasonryFit(galleryContainer, options);
+                if (window.lenisResize) window.lenisResize();
+              }
+            };
+            if (typeof imagesLoaded !== 'undefined') { imagesLoaded(galleryContainer, initMasonryFitSwitch); }
+            else { initMasonryFitSwitch(); }
           } else if (typeof initializeGalleryLayout === 'function') initializeGalleryLayout();
           // Trigger entrance animation for new gallery items (run before container shows)
           if (typeof window.animateGalleryOnce === 'function') {
