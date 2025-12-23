@@ -32,17 +32,17 @@ You've spent hours in the darkroom, days on location, years perfecting your craf
 
 ---
 
-## Two Ways to Present Your Work
+## 6 Home Page Templates
 
 Choose the homepage layout that matches your style:
 
-### Classic Home
+### 1. Classic
 
 <p align="center">
   <img src="docs/home-classic.png" alt="Classic Home" width="600">
 </p>
 
-**The editorial approach.** A dramatic hero section welcomes visitors, followed by an infinite scroll masonry grid of your albums. Perfect for photographers who want:
+**The editorial approach.** A dramatic hero section welcomes visitors, followed by an infinite scroll masonry grid of your albums.
 
 - **Hero Section** — Full-screen welcome with your logo and tagline
 - **Album Carousel** — Smooth horizontal scrolling through featured work
@@ -50,15 +50,17 @@ Choose the homepage layout that matches your style:
 - **Infinite Scroll** — Seamless vertical discovery, no pagination
 - **Configurable Animation** — Scroll direction (up/down) and speed
 
-Ideal for: Wedding photographers, portrait artists, commercial studios with diverse portfolios.
+*Ideal for: Wedding photographers, portrait artists, commercial studios with diverse portfolios.*
 
-### Modern Home
+---
+
+### 2. Modern
 
 <p align="center">
   <img src="docs/home-modern.png" alt="Modern Home" width="600">
 </p>
 
-**The gallery approach.** A minimalist split-screen design with fixed sidebar navigation and a scrolling image grid. Perfect for photographers who want:
+**The gallery approach.** A minimalist split-screen design with fixed sidebar navigation and a scrolling image grid.
 
 - **Fixed Sidebar** — Category filters are always visible, never scroll away
 - **Two-Column Grid** — Clean, uniform presentation with smooth parallax effect
@@ -66,9 +68,129 @@ Ideal for: Wedding photographers, portrait artists, commercial studios with dive
 - **Mega Menu** — Full-screen navigation overlay
 - **Lenis Smooth Scroll** — Buttery 60fps scrolling experience
 
-Ideal for: Fine art photographers, minimalist portfolios, those with well-defined categories.
+*Ideal for: Fine art photographers, minimalist portfolios, those with well-defined categories.*
 
-**Switch anytime** from Admin → Pages → Home Page. No content migration needed.
+---
+
+### 3. Parallax
+
+<p align="center">
+  <img src="docs/home-parallax.png" alt="Parallax Home" width="600">
+</p>
+
+**The immersive experience.** A three-column grid with smooth scroll parallax effects that brings your images to life.
+
+- **Three-Column Grid** — Responsive layout (3 → 2 → 1 columns)
+- **Parallax Motion** — Images move at different speeds as you scroll
+- **Hover Overlays** — Album info appears on hover
+- **Smooth Scroll** — Custom lerp-based scroll smoothing
+- **Full-Screen Cards** — Each image takes 400px height for dramatic impact
+
+*Ideal for: Landscape photographers, travel photographers, visual storytellers.*
+
+---
+
+### 4. Masonry Wall
+
+<p align="center">
+  <img src="docs/home-masonry.png" alt="Masonry Home" width="600">
+</p>
+
+**The pure gallery.** A CSS column-based masonry layout that fills the screen with your work.
+
+- **Configurable Columns** — Desktop (2-8), Tablet (2-6), Mobile (1-4)
+- **Adjustable Gaps** — Horizontal and vertical spacing (0-40px)
+- **Infinite Scroll** — Automatic cloning creates seamless infinite loop
+- **Fade-In Animation** — Staggered reveal as images load
+- **Responsive Priority** — Above-fold images load first with high priority
+
+*Ideal for: Street photographers, documentary work, high-volume portfolios.*
+
+---
+
+### 5. Snap Albums
+
+<p align="center">
+  <img src="docs/home-snap.png" alt="Snap Albums Home" width="600">
+</p>
+
+**The presentation mode.** Full-screen split layout with synchronized vertical scrolling between album info and cover images.
+
+- **Split Layout** — 45% info panel / 55% cover images (desktop)
+- **Scroll Sync** — Left and right columns scroll together
+- **Album Details** — Title, year, description, and photo count
+- **Dot Indicators** — Visual navigation between albums
+- **Mobile Optimized** — Stacked vertical cards on small screens
+
+*Ideal for: Editorial portfolios, project-based work, photographers who tell stories.*
+
+---
+
+### 6. Gallery Wall
+
+<p align="center">
+  <img src="docs/home-gallery.png" alt="Gallery Wall Home" width="600">
+</p>
+
+**The horizontal experience.** A scroll-linked horizontal gallery that transforms vertical scrolling into horizontal movement.
+
+- **Sticky Container** — Gallery stays in viewport while scrolling
+- **Horizontal Motion** — Scroll down, gallery moves sideways
+- **Aspect-Aware Sizing** — Horizontal and vertical images sized proportionally
+- **Hover Details** — Album info overlay on hover
+- **Smooth Animation** — Lenis-powered buttery smooth movement
+
+*Ideal for: Exhibition-style presentations, photographers who want something different.*
+
+---
+
+**Switch templates anytime** from Admin → Pages → Home Page. No content migration needed.
+
+---
+
+## 6 Gallery Templates
+
+Each album can use a different presentation style:
+
+<table>
+<tr>
+<td width="33%">
+<strong>1. Classic Grid</strong><br>
+Clean, uniform thumbnails in a regular grid. Perfect for consistent series where uniformity matters.
+</td>
+<td width="33%">
+<strong>2. Masonry</strong><br>
+Pinterest-style layout that respects aspect ratios. Images flow naturally without cropping.
+</td>
+<td width="33%">
+<strong>3. Masonry Full</strong><br>
+Full uncropped images in CSS columns. No cropping, no resizing—your images as you intended.
+</td>
+</tr>
+<tr>
+<td width="33%">
+<strong>4. Magazine</strong><br>
+Three-column animated scroll with direction control. Editorial spreads with dramatic presentation.
+</td>
+<td width="33%">
+<strong>5. Magazine + Cover</strong><br>
+Hero cover image with magazine-style scrolling content below. The best of both worlds.
+</td>
+<td width="33%">
+<strong>6. Slideshow</strong><br>
+Full-screen presentation mode. One image at a time, maximum impact.
+</td>
+</tr>
+</table>
+
+### Per-Gallery Configuration
+
+Each template offers fine-grained control:
+
+- **Columns** — Desktop (1-6), Tablet (1-4), Mobile (1-2)
+- **Gaps** — Horizontal and vertical spacing
+- **Animation** — Scroll direction, duration, effects
+- **Lightbox** — Zoom, loop, keyboard nav, share buttons
 
 ---
 
@@ -100,6 +222,43 @@ Perfect for: Boudoir photographers, figure artists, any work requiring viewer di
 
 ---
 
+## Film Photography Ready
+
+Cimaise understands analog workflow:
+
+### Equipment Tracking
+
+- **Cameras** — Hasselblad 500C/M, Leica M6, Mamiya RB67, Canon AE-1...
+- **Lenses** — 50mm f/1.4, 80mm f/2.8, Summicron 35mm...
+- **Film Stocks** — Portra 400, Tri-X 400, Ektar 100, HP5+...
+- **Developers** — Rodinal, HC-110, XTOL, D-76...
+- **Labs** — Your trusted processing partners
+
+### Automatic EXIF Extraction
+
+Upload a digital file and Cimaise extracts:
+- Camera make and model
+- Lens information (including adapted lenses)
+- ISO, shutter speed, aperture
+- GPS coordinates (if embedded)
+
+### Film Metadata Input
+
+For scans, manually add:
+- Film stock and format (35mm, 120, 4x5)
+- Developer and dilution
+- Lab and scanning details
+- Push/pull processing notes
+
+### Custom Fields
+
+Create your own metadata types:
+- **Text fields** — Free-form input
+- **Select fields** — Single choice from predefined values
+- **Multi-select** — Multiple tags from a list
+
+---
+
 ## Gallery Filters That Work
 
 Let visitors explore your entire body of work:
@@ -115,13 +274,6 @@ Let visitors explore your entire body of work:
 - **Year** — Filter by when the work was created
 - **Location** — Where the shoot happened
 - **Equipment** — Filter by camera, lens, or film stock
-
-### For Analog Photographers
-
-- **Camera** — Hasselblad 500C/M, Leica M6, Mamiya RB67...
-- **Lens** — 50mm f/1.4, 80mm f/2.8, 35mm Summicron...
-- **Film Stock** — Portra 400, Tri-X 400, Ektar 100...
-- **Process** — C-41, E-6, Black & White
 
 Visitors can combine filters: "Show me all medium-format Portra 400 shots from 2024."
 
@@ -150,6 +302,13 @@ Public variants generated:
     └── XXL (3840px)    → AVIF, WebP, JPEG
 ```
 
+### Client-Side Compression
+
+Before upload, Cimaise compresses images in your browser:
+- **85% quality**, max 4000×4000px
+- **50-70% smaller** uploads
+- Faster uploads, same visual quality
+
 ### Why This Matters
 
 | Visitor's Device | What They Get | Savings |
@@ -170,8 +329,6 @@ From Admin → Settings → Image Processing:
 | WebP | 75% | 60-90% |
 | JPEG | 85% | 70-95% |
 
-Tune the balance between quality and file size for your specific work.
-
 ---
 
 ## Settings That Matter
@@ -184,10 +341,10 @@ Cimaise focuses on what photographers actually need:
 - **Copyright Notice** — `© {year}` auto-updates each January
 
 ### Gallery Presentation
-- **Template Selection** — Grid, Masonry, Magazine, Magazine+Cover per gallery
+- **Template Selection** — 6 gallery templates per album
 - **Column Configuration** — Desktop (1-6), Tablet (1-4), Mobile (1-2)
 - **Lightbox Options** — Zoom, loop, keyboard navigation, share buttons
-- **Home Page Layout** — Classic or Modern, switchable anytime
+- **Home Page Layout** — 6 templates, switchable anytime
 
 ### Image Handling
 - **Format Enable/Disable** — Turn off AVIF if your host doesn't support it
@@ -246,13 +403,6 @@ When someone shares your gallery on social media:
 - **Canonical URLs** — No duplicate content penalties
 - **robots.txt** — Configurable crawler instructions
 
-### Meta Control Per Page
-
-For each album, customize:
-- Page title (default: Album Name — Site Name)
-- Meta description
-- Social share image (defaults to album cover)
-
 ---
 
 ## Security That Protects
@@ -288,41 +438,16 @@ All image requests go through PHP validation:
 
 ---
 
-## See It In Action
-
-### Gallery Templates
-
-<table>
-<tr>
-<td width="50%">
-<strong>Classic Grid</strong><br>
-Clean, uniform thumbnails. Perfect for consistent series.
-</td>
-<td width="50%">
-<strong>Masonry</strong><br>
-Pinterest-style layout that respects aspect ratios.
-</td>
-</tr>
-<tr>
-<td width="50%">
-<strong>Magazine</strong><br>
-Editorial spreads with dramatic full-width images.
-</td>
-<td width="50%">
-<strong>Magazine + Cover</strong><br>
-Hero image with magazine-style scrolling content.
-</td>
-</tr>
-</table>
-
-### Admin Experience
+## Admin Experience
 
 A dashboard that doesn't insult your intelligence:
 
 - **Drag & Drop Everything** — Reorder albums, images, categories with intuitive dragging
-- **Bulk Upload** — Drop 100 images at once, grab coffee, come back to organized variants
-- **Inline Editing** — Click any text to edit it. No page reloads, no modal dialogs
+- **Bulk Upload** — Drop 100+ images at once with parallel processing
+- **Inline Editing** — Click any text to edit it. No page reloads
 - **Real-Time Preview** — See exactly how your gallery will look before publishing
+- **Visual Template Selector** — Preview home and gallery templates before applying
+- **Equipment Browser** — Browse by camera, lens, film, or location
 
 ---
 
@@ -336,7 +461,8 @@ A dashboard that doesn't insult your intelligence:
 | **Database** | SQLite (default) or MySQL 8+ |
 | **Frontend** | Vite 6, Tailwind CSS 3.4, GSAP |
 | **Lightbox** | PhotoSwipe 5 |
-| **Upload** | Uppy 4 |
+| **Upload** | Uppy 4 with Compressor |
+| **Scroll** | Lenis Smooth Scroll |
 
 ### Requirements
 

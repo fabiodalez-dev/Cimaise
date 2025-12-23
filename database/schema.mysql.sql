@@ -550,6 +550,7 @@ CREATE TABLE IF NOT EXISTS `image_custom_fields` (
   PRIMARY KEY (`id`),
   KEY `idx_icf_image` (`image_id`),
   KEY `idx_icf_type` (`field_type_id`),
+  KEY `idx_icf_image_type` (`image_id`, `field_type_id`),
   CONSTRAINT `fk_icf_image` FOREIGN KEY (`image_id`) REFERENCES `images`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_icf_type` FOREIGN KEY (`field_type_id`) REFERENCES `custom_field_types`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_icf_value` FOREIGN KEY (`field_value_id`) REFERENCES `custom_field_values`(`id`) ON DELETE SET NULL
