@@ -173,7 +173,7 @@ document.addEventListener('click', function(event) {
 
 {# ImageGallery Schema for SEO #}
 {% if images|length > 0 %}
-<script type="application/ld+json">
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
 {
   "@context": "https://schema.org",
   "@type": "ImageGallery",

@@ -14,7 +14,8 @@
     "nav.menu": "Menu",
     "nav.close": "Chiudi",
     "nav.breadcrumb": "Percorso",
-    "nav.admin_dashboard": "Pannello Admin"
+    "nav.admin_dashboard": "Pannello Admin",
+    "nav.tags": "Tag"
   },
   "filter": {
     "filter.all": "Tutti",
