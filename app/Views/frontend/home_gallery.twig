@@ -9,6 +9,13 @@
   box-sizing: border-box;
 }
 
+/* Ensure mobile search toggle hidden on desktop (reinforce Tailwind md:hidden) */
+@media (min-width: 768px) {
+  #mobile-search-toggle {
+    display: none !important;
+  }
+}
+
 /* Override layout footer margin */
 body > footer.border-t {
   margin-top: 0;

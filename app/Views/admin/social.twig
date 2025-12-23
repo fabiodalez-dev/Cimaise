@@ -44,6 +44,59 @@
   </div>
 
   <div class="space-y-8 pb-48">
+    <!-- Section 1: Photographer Social Profiles -->
+    <div class="border-l-4 border-indigo-500 pl-4 mb-2">
+      <h2 class="text-xl font-bold text-gray-900">{{ trans('admin.social.profiles_section') }}</h2>
+      <p class="text-gray-600 mt-1">{{ trans('admin.social.profiles_section_desc') }}</p>
+    </div>
+
+    <div class="card">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-lg font-medium text-gray-900 flex items-center">
+              <i class="fas fa-user-circle mr-3 text-gray-600"></i>{{ trans('admin.social.profiles_title') }}
+            </h3>
+            <p class="text-sm text-gray-500 mt-1">{{ trans('admin.social.profiles_description') }}</p>
+          </div>
+          <button type="button" id="add-profile-btn" class="btn-primary">
+            <i class="fas fa-plus mr-2"></i>{{ trans('admin.social.add_profile') }}
+          </button>
+        </div>
+
+        <div id="profiles-list" class="space-y-3">
+          {% for profile in photographer_profiles %}
+          <div class="profile-row flex items-center gap-3 p-3 bg-gray-50 rounded-lg" data-network="{{ profile.network }}">
+            <i class="fas fa-grip-vertical text-gray-400 cursor-move profile-drag-handle"></i>
+            <select class="profile-network rounded-md border-gray-300 text-sm w-40">
+              {% for key, net in profile_networks %}
+              <option value="{{ key }}" data-icon="{{ net.icon }}" {% if key == profile.network %}selected{% endif %}>{{ net.name }}</option>
+              {% endfor %}
+            </select>
+            <input type="url" class="profile-url flex-1 rounded-md border-gray-300 text-sm" placeholder="https://..." value="{{ profile.url }}">
+            <a href="{{ profile.url }}" target="_blank" rel="noopener noreferrer" class="profile-preview text-gray-500 hover:text-gray-700" title="{{ trans('admin.social.preview') }}">
+              <i class="fas fa-external-link-alt"></i>
+            </a>
+            <button type="button" class="profile-remove text-red-500 hover:text-red-700" title="{{ trans('admin.common.delete') }}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div id="profiles-empty" class="text-center py-8 text-gray-500 {% if photographer_profiles|length > 0 %}hidden{% endif %}">
+          <i class="fas fa-link text-3xl mb-2 text-gray-300"></i>
+          <p>{{ trans('admin.social.no_profiles') }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Social Sharing -->
+    <div class="border-l-4 border-green-500 pl-4 mb-2 mt-12">
+      <h2 class="text-xl font-bold text-gray-900">{{ trans('admin.social.sharing_section') }}</h2>
+      <p class="text-gray-600 mt-1">{{ trans('admin.social.sharing_section_desc') }}</p>
+    </div>
+
     <form id="social-form" action="{{ base_path }}/admin/social" method="post" class="space-y-8">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <input type="hidden" name="social_order" id="social-order-input" value="{{ social_order|json_encode|raw }}">
@@ -101,6 +154,209 @@
   </div>
   <script nonce="{{ csp_nonce() }}">
 (function(){
+  // === PHOTOGRAPHER PROFILES MANAGEMENT ===
+  const PROFILE_NETWORKS = {{ profile_networks|json_encode|raw }};
+  const START_PROFILES = {{ photographer_profiles|json_encode|raw }};
+
+  const profilesList = document.getElementById('profiles-list');
+  const profilesEmpty = document.getElementById('profiles-empty');
+  const addProfileBtn = document.getElementById('add-profile-btn');
+  const csrfToken = document.querySelector('input[name="csrf"]').value;
+
+  let profiles = Array.isArray(START_PROFILES) ? START_PROFILES : [];
+  let profileSaveTimer = null;
+  let profileSortable = null;
+
+  // XSS protection: escape HTML entities
+  function escapeHtml(str) {
+    if (str == null) return '';
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+  }
+
+  // URL validation
+  function isValidUrl(string) {
+    try {
+      const url = new URL(string);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Sanitize URL for href attribute
+  function sanitizeUrl(url) {
+    if (!url || typeof url !== 'string') return '#';
+    url = url.trim();
+    // Only allow http/https protocols
+    if (!/^https?:\/\//i.test(url)) return '#';
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '#';
+      return parsed.href;
+    } catch (_) {
+      return '#';
+    }
+  }
+
+  function renderProfiles() {
+    profilesList.innerHTML = '';
+
+    if (profiles.length === 0) {
+      profilesEmpty.classList.remove('hidden');
+    } else {
+      profilesEmpty.classList.add('hidden');
+      profiles.forEach((profile, index) => {
+        const row = createProfileRow(profile, index);
+        profilesList.appendChild(row);
+      });
+    }
+
+    initProfileSortable();
+  }
+
+  function createProfileRow(profile, index) {
+    const row = document.createElement('div');
+    row.className = 'profile-row flex items-center gap-3 p-3 bg-gray-50 rounded-lg';
+    row.dataset.index = index;
+
+    // Build network options with proper escaping
+    let optionsHtml = '';
+    for (const [key, net] of Object.entries(PROFILE_NETWORKS)) {
+      const selected = key === profile.network ? ' selected' : '';
+      optionsHtml += `<option value="${escapeHtml(key)}" data-icon="${escapeHtml(net.icon)}"${selected}>${escapeHtml(net.name)}</option>`;
+    }
+
+    const safeUrl = sanitizeUrl(profile.url);
+    const displayUrl = escapeHtml(profile.url || '');
+
+    row.innerHTML = `
+      <i class="fas fa-grip-vertical text-gray-400 cursor-move profile-drag-handle"></i>
+      <select class="profile-network rounded-md border-gray-300 text-sm w-40">${optionsHtml}</select>
+      <input type="url" class="profile-url flex-1 rounded-md border-gray-300 text-sm" placeholder="https://..." value="${displayUrl}">
+      <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="profile-preview text-gray-500 hover:text-gray-700 ${safeUrl === '#' ? 'pointer-events-none opacity-30' : ''}" title="{{ trans('admin.social.preview') }}">
+        <i class="fas fa-external-link-alt"></i>
+      </a>
+      <button type="button" class="profile-remove text-red-500 hover:text-red-700" title="{{ trans('admin.common.delete') }}">
+        <i class="fas fa-trash"></i>
+      </button>
+    `;
+
+    // Wire events
+    const select = row.querySelector('.profile-network');
+    const input = row.querySelector('.profile-url');
+    const previewLink = row.querySelector('.profile-preview');
+    const removeBtn = row.querySelector('.profile-remove');
+
+    select.addEventListener('change', () => {
+      profiles[index].network = select.value;
+      saveProfilesDebounced();
+    });
+
+    input.addEventListener('input', () => {
+      const url = input.value.trim();
+      profiles[index].url = url;
+      const safeHref = sanitizeUrl(url);
+      previewLink.href = safeHref;
+      if (safeHref === '#') {
+        previewLink.classList.add('pointer-events-none', 'opacity-30');
+      } else {
+        previewLink.classList.remove('pointer-events-none', 'opacity-30');
+      }
+      saveProfilesDebounced();
+    });
+
+    removeBtn.addEventListener('click', () => {
+      profiles.splice(index, 1);
+      renderProfiles();
+      saveProfilesDebounced();
+    });
+
+    return row;
+  }
+
+  function addNewProfile() {
+    profiles.push({ network: 'instagram', url: '' });
+    renderProfiles();
+    // Focus the new URL input
+    const inputs = profilesList.querySelectorAll('.profile-url');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }
+
+  function initProfileSortable() {
+    if (profileSortable) {
+      profileSortable.destroy();
+      profileSortable = null;
+    }
+
+    function init() {
+      if (typeof Sortable === 'undefined') return false;
+      if (profiles.length < 2) return true; // No need to sort single item
+
+      profileSortable = Sortable.create(profilesList, {
+        animation: 150,
+        handle: '.profile-drag-handle',
+        onEnd: function() {
+          // Rebuild profiles array from DOM order
+          const newProfiles = [];
+          profilesList.querySelectorAll('.profile-row').forEach(row => {
+            const idx = parseInt(row.dataset.index, 10);
+            if (!isNaN(idx) && profiles[idx]) {
+              newProfiles.push(profiles[idx]);
+            }
+          });
+          profiles = newProfiles;
+          // Re-render to update indices
+          renderProfiles();
+          saveProfilesDebounced();
+        }
+      });
+      return true;
+    }
+
+    if (!init()) {
+      // Sortable not loaded yet, it will be loaded by the social sharing code
+      setTimeout(init, 500);
+    }
+  }
+
+  function saveProfilesDebounced() {
+    if (profileSaveTimer) clearTimeout(profileSaveTimer);
+    profileSaveTimer = setTimeout(saveProfilesAjax, 300);
+  }
+
+  function saveProfilesAjax() {
+    // Filter out profiles with empty URLs and validate
+    const validProfiles = profiles
+      .filter(p => p.url && p.url.trim() !== '')
+      .map(p => ({
+        network: String(p.network || 'website'),
+        url: String(p.url || '').trim()
+      }));
+
+    fetch('{{ base_path }}/admin/social/profiles', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({ profiles: validProfiles })
+    }).then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).catch(err => {
+      console.warn('Profile save error', err);
+    });
+  }
+
+  // Initialize profiles
+  addProfileBtn.addEventListener('click', addNewProfile);
+  renderProfiles();
+
+  // === SOCIAL SHARING SETTINGS ===
   // Data dal server
   const AVAILABLE = {{ available_socials|json_encode|raw }};
   const START_ENABLED = Array.isArray({{ enabled_socials|json_encode|raw }}) ? {{ enabled_socials|json_encode|raw }} : [];
