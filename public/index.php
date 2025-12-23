@@ -266,6 +266,29 @@ if (!$isInstallerRoute && $container['db'] !== null) {
             }
             $twig->getEnvironment()->addGlobal('social_profiles', $safeProfiles);
         }
+        // Navigation tags for header (frontend only)
+        $showTagsInHeader = (bool)$settingsSvc->get('navigation.show_tags_in_header', false);
+        $twig->getEnvironment()->addGlobal('show_tags_in_header', $showTagsInHeader);
+        if (!$isAdminRoute && $showTagsInHeader) {
+            $navTags = [];
+            try {
+                $tagsQuery = $container['db']->pdo()->query('
+                    SELECT t.id, t.name, t.slug, COUNT(at.album_id) as albums_count
+                    FROM tags t
+                    JOIN album_tag at ON at.tag_id = t.id
+                    JOIN albums a ON a.id = at.album_id AND a.is_published = 1
+                    GROUP BY t.id, t.name, t.slug
+                    ORDER BY albums_count DESC, t.name ASC
+                    LIMIT 20
+                ');
+                $navTags = $tagsQuery->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Throwable) {
+                // Tags table might not exist
+            }
+            $twig->getEnvironment()->addGlobal('nav_tags', $navTags);
+        } else {
+            $twig->getEnvironment()->addGlobal('nav_tags', []);
+        }
         // SEO settings for frontend
         if (!$isAdminRoute) {
             $twig->getEnvironment()->addGlobal('og_site_name', $settingsSvc->get('seo.og_site_name', $siteTitle));
@@ -312,6 +335,9 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         if (!$isAdminRoute) {
             $twig->getEnvironment()->addGlobal('social_profiles', []);
         }
+        // Navigation tags defaults on error
+        $twig->getEnvironment()->addGlobal('show_tags_in_header', false);
+        $twig->getEnvironment()->addGlobal('nav_tags', []);
         // SEO defaults on error
         if (!$isAdminRoute) {
             $twig->getEnvironment()->addGlobal('og_site_name', 'Cimaise');
