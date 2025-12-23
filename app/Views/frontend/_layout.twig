@@ -1206,7 +1206,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="text-sm text-neutral-600">
-                    {{ trans('footer.copyright', {year: "now"|date("Y")}) }}
+                    {{ site_copyright|replace_year }}
                 </div>
                 
                 {% if tags|default([])|length > 0 %}
