@@ -6,10 +6,6 @@
 ![PHP](https://img.shields.io/badge/PHP-8.2%2B-purple.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
 
-<p align="center">
-  <img src="docs/preview.png" alt="Cimaise Preview" width="800">
-</p>
-
 ---
 
 ## Your Work Deserves Better
@@ -38,10 +34,6 @@ Choose the homepage layout that matches your style:
 
 ### 1. Classic
 
-<p align="center">
-  <img src="docs/home-classic.png" alt="Classic Home" width="600">
-</p>
-
 **The editorial approach.** A dramatic hero section welcomes visitors, followed by an infinite scroll masonry grid of your albums.
 
 - **Hero Section** — Full-screen welcome with your logo and tagline
@@ -55,10 +47,6 @@ Choose the homepage layout that matches your style:
 ---
 
 ### 2. Modern
-
-<p align="center">
-  <img src="docs/home-modern.png" alt="Modern Home" width="600">
-</p>
 
 **The gallery approach.** A minimalist split-screen design with fixed sidebar navigation and a scrolling image grid.
 
@@ -74,10 +62,6 @@ Choose the homepage layout that matches your style:
 
 ### 3. Parallax
 
-<p align="center">
-  <img src="docs/home-parallax.png" alt="Parallax Home" width="600">
-</p>
-
 **The immersive experience.** A three-column grid with smooth scroll parallax effects that brings your images to life.
 
 - **Three-Column Grid** — Responsive layout (3 → 2 → 1 columns)
@@ -91,10 +75,6 @@ Choose the homepage layout that matches your style:
 ---
 
 ### 4. Masonry Wall
-
-<p align="center">
-  <img src="docs/home-masonry.png" alt="Masonry Home" width="600">
-</p>
 
 **The pure gallery.** A CSS column-based masonry layout that fills the screen with your work.
 
@@ -110,10 +90,6 @@ Choose the homepage layout that matches your style:
 
 ### 5. Snap Albums
 
-<p align="center">
-  <img src="docs/home-snap.png" alt="Snap Albums Home" width="600">
-</p>
-
 **The presentation mode.** Full-screen split layout with synchronized vertical scrolling between album info and cover images.
 
 - **Split Layout** — 45% info panel / 55% cover images (desktop)
@@ -127,10 +103,6 @@ Choose the homepage layout that matches your style:
 ---
 
 ### 6. Gallery Wall
-
-<p align="center">
-  <img src="docs/home-gallery.png" alt="Gallery Wall Home" width="600">
-</p>
 
 **The horizontal experience.** A scroll-linked horizontal gallery that transforms vertical scrolling into horizontal movement.
 
@@ -264,10 +236,6 @@ Create your own metadata types:
 Let visitors explore your entire body of work:
 
 ### Multi-Criteria Filtering
-
-<p align="center">
-  <img src="docs/galleries-filters.png" alt="Gallery Filters" width="600">
-</p>
 
 - **Categories** — Wedding, Portrait, Landscape, etc.
 - **Tags** — Multiple tags per album for cross-cutting themes
