@@ -284,16 +284,46 @@
     if (inputs.length) inputs[inputs.length - 1].focus();
   }
 
+  // Shared Sortable ready queue - callbacks to run when Sortable loads
+  const sortableReadyCallbacks = [];
+  let sortableCheckInterval = null;
+
+  function onSortableReady(callback) {
+    if (typeof Sortable !== 'undefined') {
+      callback();
+    } else {
+      sortableReadyCallbacks.push(callback);
+      // Start polling if not already
+      if (!sortableCheckInterval) {
+        sortableCheckInterval = setInterval(() => {
+          if (typeof Sortable !== 'undefined') {
+            clearInterval(sortableCheckInterval);
+            sortableCheckInterval = null;
+            sortableReadyCallbacks.forEach(cb => { try { cb(); } catch(e) {} });
+            sortableReadyCallbacks.length = 0;
+          }
+        }, 100); // Check every 100ms
+        // Stop after 10 seconds to avoid infinite polling
+        setTimeout(() => {
+          if (sortableCheckInterval) {
+            clearInterval(sortableCheckInterval);
+            sortableCheckInterval = null;
+          }
+        }, 10000);
+      }
+    }
+  }
+
   function initProfileSortable() {
     if (profileSortable) {
       profileSortable.destroy();
       profileSortable = null;
     }
 
-    function init() {
-      if (typeof Sortable === 'undefined') return false;
-      if (profiles.length < 2) return true; // No need to sort single item
+    if (profiles.length < 2) return; // No need to sort single item
 
+    onSortableReady(() => {
+      if (profileSortable) return; // Already initialized
       profileSortable = Sortable.create(profilesList, {
         animation: 150,
         handle: '.profile-drag-handle',
@@ -312,13 +342,7 @@
           saveProfilesDebounced();
         }
       });
-      return true;
-    }
-
-    if (!init()) {
-      // Sortable not loaded yet, it will be loaded by the social sharing code
-      setTimeout(init, 500);
-    }
+    });
   }
 
   function saveProfilesDebounced() {
