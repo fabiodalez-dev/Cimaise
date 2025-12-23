@@ -368,6 +368,10 @@ $app->post('/admin/social', function (Request $request, Response $response) use 
     $controller = new \App\Controllers\Admin\SocialController($container['db'], Twig::fromRequest($request));
     return $controller->save($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/social/profiles', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\SocialController($container['db'], Twig::fromRequest($request));
+    return $controller->saveProfiles($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 // Diagnostics
 $app->get('/admin/diagnostics', function (Request $request, Response $response) use ($container) {

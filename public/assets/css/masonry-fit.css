@@ -1,0 +1,24 @@
+/* ============================================
+   MASONRY FIT LAYOUT
+   Balanced flexbox columns - full images, no cropping
+   Used by: gallery_hero.twig, album.twig
+   ============================================ */
+
+.masonry-fit-grid {
+  width: 100%;
+}
+
+.masonry-fit-grid .masonry-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.masonry-fit-grid .masonry-item {
+  width: 100%;
+}
+
+.masonry-fit-grid .masonry-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
