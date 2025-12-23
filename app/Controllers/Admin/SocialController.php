@@ -19,26 +19,37 @@ class SocialController extends BaseController
     public function show(Request $request, Response $response): Response
     {
         $svc = new SettingsService($this->db);
-        
+
         // Get current social settings
         $enabledSocials = $svc->get('social.enabled', []);
         if (!is_array($enabledSocials)) {
             $enabledSocials = $this->getDefaultEnabledSocials();
         }
-        
+
         // Get social order
         $socialOrder = $svc->get('social.order', []);
         if (!is_array($socialOrder)) {
             $socialOrder = $enabledSocials;
         }
-        
+
         // Get all available social networks
         $availableSocials = $this->getAvailableSocials();
-        
+
+        // Get photographer's social profiles
+        $photographerProfiles = $svc->get('social.profiles', []);
+        if (!is_array($photographerProfiles)) {
+            $photographerProfiles = [];
+        }
+
+        // Get available profile networks (subset suitable for profiles)
+        $profileNetworks = $this->getProfileNetworks();
+
         return $this->view->render($response, 'admin/social.twig', [
             'enabled_socials' => $enabledSocials,
             'social_order' => $socialOrder,
             'available_socials' => $availableSocials,
+            'photographer_profiles' => $photographerProfiles,
+            'profile_networks' => $profileNetworks,
             'csrf' => $_SESSION['csrf'] ?? '',
         ]);
     }
@@ -534,4 +545,99 @@ class SocialController extends BaseController
         ];
     }
 
+    /**
+     * Get networks suitable for photographer profile links
+     */
+    private function getProfileNetworks(): array
+    {
+        return [
+            'instagram' => ['name' => 'Instagram', 'icon' => 'fab fa-instagram', 'color' => '#e23367'],
+            'facebook' => ['name' => 'Facebook', 'icon' => 'fab fa-facebook-f', 'color' => '#0866ff'],
+            'x' => ['name' => 'X (Twitter)', 'icon' => 'fab fa-x-twitter', 'color' => '#000'],
+            'threads' => ['name' => 'Threads', 'icon' => 'fab fa-threads', 'color' => '#000'],
+            'bluesky' => ['name' => 'Bluesky', 'icon' => 'fab fa-bluesky', 'color' => '#1083fe'],
+            'tiktok' => ['name' => 'TikTok', 'icon' => 'fab fa-tiktok', 'color' => '#010101'],
+            'youtube' => ['name' => 'YouTube', 'icon' => 'fab fa-youtube', 'color' => '#ff0000'],
+            'vimeo' => ['name' => 'Vimeo', 'icon' => 'fab fa-vimeo', 'color' => '#00ADEF'],
+            'behance' => ['name' => 'Behance', 'icon' => 'fab fa-behance', 'color' => '#1769ff'],
+            'dribbble' => ['name' => 'Dribbble', 'icon' => 'fab fa-dribbble', 'color' => '#ea4c89'],
+            'flickr' => ['name' => 'Flickr', 'icon' => 'fab fa-flickr', 'color' => '#1c9be9'],
+            'deviantart' => ['name' => 'DeviantArt', 'icon' => 'fab fa-deviantart', 'color' => '#475c4d'],
+            'pinterest' => ['name' => 'Pinterest', 'icon' => 'fab fa-pinterest', 'color' => '#CB2027'],
+            'linkedin' => ['name' => 'LinkedIn', 'icon' => 'fab fa-linkedin-in', 'color' => '#0274B3'],
+            'tumblr' => ['name' => 'Tumblr', 'icon' => 'fab fa-tumblr', 'color' => '#314358'],
+            'patreon' => ['name' => 'Patreon', 'icon' => 'fab fa-patreon', 'color' => '#e85b46'],
+            '500px' => ['name' => '500px', 'icon' => 'fab fa-500px', 'color' => '#0099e5'],
+            'website' => ['name' => 'Website', 'icon' => 'fas fa-globe', 'color' => '#333'],
+        ];
+    }
+
+    /**
+     * Save photographer profiles
+     */
+    public function saveProfiles(Request $request, Response $response): Response
+    {
+        $data = (array)($request->getParsedBody() ?? []);
+        $contentType = strtolower($request->getHeaderLine('Content-Type'));
+
+        // For JSON payloads
+        if (str_contains($contentType, 'application/json')) {
+            try {
+                $raw = (string)$request->getBody();
+                if ($raw !== '') {
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) {
+                        $data = $decoded;
+                    }
+                }
+            } catch (\Throwable) {
+                // fall back to parsed body
+            }
+        }
+
+        // CSRF validation
+        $token = $data['csrf'] ?? $request->getHeaderLine('X-CSRF-Token');
+        if (!\is_string($token) || !isset($_SESSION['csrf']) || !\hash_equals($_SESSION['csrf'], $token)) {
+            if ($this->isAjaxRequest($request)) {
+                return $this->csrfErrorJson($response);
+            }
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
+        }
+
+        $svc = new SettingsService($this->db);
+        $profileNetworks = $this->getProfileNetworks();
+        $validNetworks = array_keys($profileNetworks);
+
+        // Process profiles from form
+        $profiles = [];
+        if (isset($data['profiles']) && is_array($data['profiles'])) {
+            foreach ($data['profiles'] as $profile) {
+                if (!is_array($profile)) {
+                    continue;
+                }
+                $network = $profile['network'] ?? '';
+                $url = trim($profile['url'] ?? '');
+
+                // Validate network and URL
+                if (in_array($network, $validNetworks, true) && $url !== '' && filter_var($url, FILTER_VALIDATE_URL)) {
+                    $profiles[] = [
+                        'network' => $network,
+                        'url' => $url,
+                    ];
+                }
+            }
+        }
+
+        $svc->set('social.profiles', $profiles);
+
+        if ($this->isAjaxRequest($request)) {
+            $payload = json_encode(['ok' => true, 'profiles' => $profiles]);
+            $response->getBody()->write($payload);
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Social profiles saved successfully'];
+        return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
+    }
 }

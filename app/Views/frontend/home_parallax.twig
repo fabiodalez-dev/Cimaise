@@ -6,6 +6,13 @@ body {
   overflow-x: hidden;
 }
 
+/* Ensure mobile search toggle hidden on desktop (reinforce Tailwind md:hidden) */
+@media (min-width: 768px) {
+  #mobile-search-toggle {
+    display: none !important;
+  }
+}
+
 /* Reset only for parallax gallery */
 .gallery, .gallery * {
   margin: 0;

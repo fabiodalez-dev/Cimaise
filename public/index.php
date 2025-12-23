@@ -224,6 +224,48 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         // Lightbox settings
         $twig->getEnvironment()->addGlobal('lightbox_show_exif', $settingsSvc->get('lightbox.show_exif', true));
         $twig->getEnvironment()->addGlobal('disable_right_click', (bool)$settingsSvc->get('frontend.disable_right_click', true));
+        // Social profiles for header (frontend only)
+        if (!$isAdminRoute) {
+            $rawProfiles = $settingsSvc->get('social.profiles', []);
+            $socialProfiles = is_array($rawProfiles) ? $rawProfiles : [];
+            // Filter and sanitize profiles for security
+            $safeProfiles = [];
+            $profileNetworks = [
+                'instagram' => ['name' => 'Instagram', 'icon' => 'fab fa-instagram'],
+                'facebook' => ['name' => 'Facebook', 'icon' => 'fab fa-facebook-f'],
+                'x' => ['name' => 'X', 'icon' => 'fab fa-x-twitter'],
+                'threads' => ['name' => 'Threads', 'icon' => 'fab fa-threads'],
+                'bluesky' => ['name' => 'Bluesky', 'icon' => 'fab fa-bluesky'],
+                'tiktok' => ['name' => 'TikTok', 'icon' => 'fab fa-tiktok'],
+                'youtube' => ['name' => 'YouTube', 'icon' => 'fab fa-youtube'],
+                'vimeo' => ['name' => 'Vimeo', 'icon' => 'fab fa-vimeo-v'],
+                'behance' => ['name' => 'Behance', 'icon' => 'fab fa-behance'],
+                'dribbble' => ['name' => 'Dribbble', 'icon' => 'fab fa-dribbble'],
+                'flickr' => ['name' => 'Flickr', 'icon' => 'fab fa-flickr'],
+                'deviantart' => ['name' => 'DeviantArt', 'icon' => 'fab fa-deviantart'],
+                'pinterest' => ['name' => 'Pinterest', 'icon' => 'fab fa-pinterest-p'],
+                'linkedin' => ['name' => 'LinkedIn', 'icon' => 'fab fa-linkedin-in'],
+                'tumblr' => ['name' => 'Tumblr', 'icon' => 'fab fa-tumblr'],
+                'patreon' => ['name' => 'Patreon', 'icon' => 'fab fa-patreon'],
+                '500px' => ['name' => '500px', 'icon' => 'fab fa-500px'],
+                'website' => ['name' => 'Website', 'icon' => 'fas fa-globe'],
+            ];
+            foreach ($socialProfiles as $profile) {
+                if (!isset($profile['network'], $profile['url'])) continue;
+                $url = trim($profile['url']);
+                // Only allow http/https URLs
+                if (!preg_match('#^https?://#i', $url)) continue;
+                $network = $profile['network'];
+                if (!isset($profileNetworks[$network])) continue;
+                $safeProfiles[] = [
+                    'network' => $network,
+                    'url' => htmlspecialchars($url, ENT_QUOTES, 'UTF-8'),
+                    'name' => $profileNetworks[$network]['name'],
+                    'icon' => $profileNetworks[$network]['icon'],
+                ];
+            }
+            $twig->getEnvironment()->addGlobal('social_profiles', $safeProfiles);
+        }
         // SEO settings for frontend
         if (!$isAdminRoute) {
             $twig->getEnvironment()->addGlobal('og_site_name', $settingsSvc->get('seo.og_site_name', $siteTitle));
@@ -266,6 +308,10 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('show_marketing', false);
         $twig->getEnvironment()->addGlobal('lightbox_show_exif', true);
         $twig->getEnvironment()->addGlobal('disable_right_click', true);
+        // Social profiles default on error
+        if (!$isAdminRoute) {
+            $twig->getEnvironment()->addGlobal('social_profiles', []);
+        }
         // SEO defaults on error
         if (!$isAdminRoute) {
             $twig->getEnvironment()->addGlobal('og_site_name', 'Cimaise');

@@ -822,6 +822,13 @@
             appearance: none;
         }
 
+        .header-search-input:focus {
+            outline: none;
+            border-color: transparent;
+            box-shadow: none;
+            --tw-ring-color: transparent;
+        }
+
         .header-search-actions {
             display: flex;
             align-items: center;
@@ -1034,15 +1041,24 @@
                     </a>
                     {% endif %}
 
-                    <!-- Desktop Search Toggle -->
-                    <button id="header-search-toggle" class="hidden md:flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
-                        <i class="fas fa-search text-sm"></i>
-                    </button>
-                    
-                    <!-- Mobile Search Toggle -->
-                    <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
-                        <i class="fas fa-search text-sm"></i>
-                    </button>
+                    <!-- Social Profiles + Search (grouped with tight spacing) -->
+                    <div class="flex items-center">
+                      {% if social_profiles is defined and social_profiles|length > 0 %}
+                      {% for profile in social_profiles %}
+                        <a href="{{ profile.url }}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center w-8 h-8 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors duration-200" title="{{ profile.name }}" aria-label="{{ profile.name }}">
+                          <i class="{{ profile.icon }} text-sm"></i>
+                        </a>
+                      {% endfor %}
+                      {% endif %}
+                      <!-- Desktop Search Toggle -->
+                      <button id="header-search-toggle" class="hidden md:flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
+                          <i class="fas fa-search text-sm"></i>
+                      </button>
+                      <!-- Mobile Search Toggle -->
+                      <button id="mobile-search-toggle" class="md:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
+                          <i class="fas fa-search text-sm"></i>
+                      </button>
+                    </div>
 
                     <!-- Mobile Menu Button - Aligned with Logo -->
                     <button id="mobile-menu-toggle" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
