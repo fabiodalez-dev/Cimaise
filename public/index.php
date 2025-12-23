@@ -272,7 +272,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         if (!$isAdminRoute && $showTagsInHeader) {
             $navTags = [];
             try {
-                $tagsQuery = $container['db']->pdo()->query('
+                $tagsQuery = $container['db']->query('
                     SELECT t.id, t.name, t.slug, COUNT(at.album_id) as albums_count
                     FROM tags t
                     JOIN album_tag at ON at.tag_id = t.id
