@@ -120,7 +120,7 @@
       <div class="flex flex-wrap items-center gap-1 mt-1 text-sm text-neutral-600">
         {% if album.tags %}
           {% for tag in album.tags %}
-            <span class="tag">#{{ tag.name|e }}</span>{% if not loop.last %},{% endif %}
+            <a href="{{ base_path }}/tag/{{ tag.slug }}" class="tag hover:text-black transition-colors">#{{ tag.name|e }}</a>{% if not loop.last %},{% endif %}
           {% endfor %}
         {% endif %}
         {% if album.shoot_date %}

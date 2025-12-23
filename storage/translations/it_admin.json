@@ -1498,6 +1498,9 @@
     "admin.settings.debug_title": "Log di debug admin",
     "admin.settings.debug_enable": "Abilita log verbosi della console nell'admin",
     "admin.settings.debug_hint": "Usa solo per la risoluzione problemi; disattiva in produzione.",
+    "admin.settings.navigation_settings": "Impostazioni Navigazione",
+    "admin.settings.show_tags_in_header": "Mostra Tag nella Navigazione",
+    "admin.settings.show_tags_in_header_desc": "Visualizza un menu dropdown Tag nella navigazione dell'header del sito",
     "admin.common.dashboard": "Dashboard",
 
     "admin.social.title": "Condivisione Social",

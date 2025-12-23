@@ -1027,9 +1027,31 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Tags Dropdown -->
+                        {% if show_tags_in_header and nav_tags|default([])|length > 0 %}
+                        <div class="relative" id="tags-dropdown">
+                            <button id="tags-toggle" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md" aria-expanded="false" aria-controls="tags-menu" aria-haspopup="true">
+                                {{ trans('nav.tags') }}
+                                <i class="fas fa-chevron-down text-xs transition-transform duration-200" id="tags-icon"></i>
+                            </button>
+
+                            <!-- Tags Dropdown Panel -->
+                            <div id="tags-menu" class="absolute left-0 top-full mt-2 w-64 bg-white border border-gray-200 shadow-xl rounded-xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out">
+                                <div class="py-3">
+                                    {% for tag in nav_tags %}
+                                    <a href="{{ base_path }}/tag/{{ tag.slug }}" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors duration-150">
+                                        <span class="font-medium">{{ tag.name|e }}</span>
+                                        <span class="text-xs text-gray-400">{{ tag.albums_count }}</span>
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </nav>
                 </div>
-                
+
                 <!-- Right Side Actions -->
                 <div class="flex items-center gap-4">
                     {% if is_admin %}
@@ -1163,10 +1185,25 @@
                         {% endfor %}
                     </div>
                 </div>
-                
+
+                <!-- Mobile Tags -->
+                {% if show_tags_in_header and nav_tags|default([])|length > 0 %}
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 px-3">{{ trans('nav.tags') }}</div>
+                    <div class="flex flex-wrap gap-2 px-3">
+                        {% for tag in nav_tags %}
+                        <a href="{{ base_path }}/tag/{{ tag.slug }}" class="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-black transition-colors duration-200">
+                            <span>{{ tag.name|e }}</span>
+                            <span class="text-xs text-gray-400">({{ tag.albums_count }})</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
             </div>
         </div>
-        
+
         <!-- Enhanced Filters Panel -->
         <div id="filters-panel" class="border-t border-gray-200 bg-gray-50/80 backdrop-blur-md hidden transition-all duration-300">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
@@ -1410,7 +1447,85 @@
                 }
             });
         })();
-        
+
+        // Tags dropdown menu
+        (function(){
+            const toggle = document.getElementById('tags-toggle');
+            const menu = document.getElementById('tags-menu');
+            const icon = document.getElementById('tags-icon');
+            let isOpen = false;
+            let hoverTimeout;
+
+            if (!toggle || !menu) return;
+
+            function closeMenu() {
+                if (!isOpen) return;
+
+                menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                menu.style.opacity = '0';
+                menu.style.transform = 'translateY(-10px)';
+
+                setTimeout(() => {
+                    menu.classList.add('opacity-0', 'invisible');
+                    menu.classList.remove('opacity-100', 'visible');
+                }, 200);
+
+                if (icon) {
+                    icon.style.transform = 'rotate(0deg)';
+                }
+
+                toggle.setAttribute('aria-expanded', 'false');
+                isOpen = false;
+            }
+
+            function openMenu() {
+                if (isOpen) return;
+
+                menu.classList.remove('opacity-0', 'invisible');
+                menu.classList.add('opacity-100', 'visible');
+
+                requestAnimationFrame(() => {
+                    menu.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    menu.style.opacity = '1';
+                    menu.style.transform = 'translateY(0)';
+                });
+
+                if (icon) {
+                    icon.style.transform = 'rotate(180deg)';
+                }
+
+                toggle.setAttribute('aria-expanded', 'true');
+                isOpen = true;
+            }
+
+            // Mouse enter/leave for smooth dropdown
+            const dropdown = document.getElementById('tags-dropdown');
+            if (dropdown) {
+                dropdown.addEventListener('mouseenter', () => {
+                    clearTimeout(hoverTimeout);
+                    openMenu();
+                });
+
+                dropdown.addEventListener('mouseleave', () => {
+                    hoverTimeout = setTimeout(closeMenu, 150);
+                });
+            }
+
+            // Click toggle for mobile/accessibility
+            toggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                isOpen ? closeMenu() : openMenu();
+            });
+
+            // Close on outside click
+            document.addEventListener('click', (e) => {
+                if (!isOpen) return;
+                if (!dropdown?.contains(e.target)) {
+                    closeMenu();
+                }
+            });
+        })();
+
         // Header search -> galleries filters (AJAX) or redirect
         (function() {
             const basePath = '{{ base_path|e('js') }}';

@@ -23,7 +23,14 @@ class TagsController extends BaseController
         $offset = ($page - 1) * $perPage;
         $pdo = $this->db->pdo();
         $total = (int)$pdo->query('SELECT COUNT(*) FROM tags')->fetchColumn();
-        $stmt = $pdo->prepare('SELECT id, name, slug, created_at FROM tags ORDER BY name ASC LIMIT :limit OFFSET :offset');
+        $stmt = $pdo->prepare('
+            SELECT t.id, t.name, t.slug, t.created_at, COUNT(at.album_id) as usage_count
+            FROM tags t
+            LEFT JOIN album_tag at ON at.tag_id = t.id
+            GROUP BY t.id, t.name, t.slug, t.created_at
+            ORDER BY t.name ASC
+            LIMIT :limit OFFSET :offset
+        ');
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();

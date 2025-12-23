@@ -14,7 +14,8 @@
     "nav.menu": "Menu",
     "nav.close": "Close",
     "nav.breadcrumb": "Breadcrumb",
-    "nav.admin_dashboard": "Admin Dashboard"
+    "nav.admin_dashboard": "Admin Dashboard",
+    "nav.tags": "Tags"
   },
   "filter": {
     "filter.all": "All",
