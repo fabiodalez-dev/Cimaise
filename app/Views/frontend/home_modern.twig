@@ -169,10 +169,20 @@
                     </a>
                     {% endif %}
 
-                    <!-- Mobile Search Toggle -->
-                    <button id="mobile-search-toggle" class="flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
-                        <i class="fas fa-search text-sm"></i>
-                    </button>
+                    <!-- Social Profiles + Search (grouped with tight spacing) -->
+                    <div class="flex items-center">
+                      {% if social_profiles is defined and social_profiles|length > 0 %}
+                      {% for profile in social_profiles %}
+                        <a href="{{ profile.url }}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center w-8 h-8 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors duration-200" title="{{ profile.name }}" aria-label="{{ profile.name }}">
+                          <i class="{{ profile.icon }} text-sm"></i>
+                        </a>
+                      {% endfor %}
+                      {% endif %}
+                      <!-- Mobile Search Toggle -->
+                      <button id="mobile-search-toggle" class="flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 focus:outline-none transition-colors duration-200" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
+                          <i class="fas fa-search text-sm"></i>
+                      </button>
+                    </div>
 
                     <!-- Mobile Menu Button - Aligned with Logo -->
                     <button id="mobile-menu-toggle" class="lg:hidden flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-50 transition-colors duration-200">
@@ -296,7 +306,14 @@
                 <div class="head-logo_text">{{ site_title|e }}</div>
             {% endif %}
         </a>
-        <div class="global-head_actions modern-desktop-only">
+        <div class="global-head_actions modern-desktop-only flex items-center">
+            {% if social_profiles is defined and social_profiles|length > 0 %}
+            {% for profile in social_profiles %}
+              <a href="{{ profile.url }}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-white transition-colors duration-200" title="{{ profile.name }}" aria-label="{{ profile.name }}">
+                <i class="{{ profile.icon }} text-sm"></i>
+              </a>
+            {% endfor %}
+            {% endif %}
             <button id="header-search-toggle" class="modern-search-toggle" aria-label="{{ trans('filter.search') }}" aria-controls="header-search-panel" aria-expanded="false">
                 <i class="fas fa-search" aria-hidden="true"></i>
             </button>

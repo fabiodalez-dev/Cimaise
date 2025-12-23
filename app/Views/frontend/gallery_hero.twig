@@ -190,7 +190,7 @@
         {# Custom fields #}
         {% for field in custom_fields_for_gallery %}
         <div class="flex items-center gap-2 min-w-[80px]">
-          <i class="fas {{ field.icon|default('fa-tag') }} fa-xs text-neutral-700"></i>
+          <i class="fas {{ field.icon|default('fa-tag')|e('html_attr') }} fa-xs text-neutral-700"></i>
           <span>{% for valueData in field.values %}{{ valueData.value|e }}{% if not loop.last %} • {% endif %}{% endfor %}</span>
         </div>
         {% endfor %}
@@ -277,28 +277,12 @@
     </div>
   {% elseif layout == 'masonry_fit' %}
     {# Modern Masonry layout using balanced flexbox columns - full images, no cropping #}
+    <link rel="stylesheet" href="{{ base_path }}/assets/css/masonry-fit.css">
     <div id="images-gallery" class="masonry-fit-grid pswp-gallery" data-layout="masonry_fit" data-gap="{{ gap_h }}" data-gap-v="{{ gap_v }}" data-cols-desktop="{{ desktop_cols }}" data-cols-tablet="{{ tablet_cols }}" data-cols-mobile="{{ mobile_cols }}">
       {% for image in images %}
         {% include "frontend/_image_item_masonry.twig" %}
       {% endfor %}
     </div>
-    <style nonce="{{ csp_nonce() }}">
-    .masonry-fit-grid {
-      width: 100%;
-    }
-    .masonry-fit-grid .masonry-column {
-      flex: 1;
-      min-width: 0;
-    }
-    .masonry-fit-grid .masonry-item {
-      width: 100%;
-    }
-    .masonry-fit-grid .masonry-item img {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-    </style>
   {% else %}
     <div id="images-gallery" class="{{ layout == 'slideshow' ? 'swiper slideshow-pro max-w-6xl mx-auto' : (layout == 'fullscreen' ? 'grid grid-cols-1 lg:grid-cols-2 gap-2' : (masonry ? 'masonry-grid' : 'grid ' ~ mobile_class ~ ' ' ~ tablet_class ~ ' ' ~ desktop_class ~ ' gap-6')) }}"
          {% if masonry %}style="--cols-desktop: {{ desktop_cols }}; --cols-tablet: {{ tablet_cols }}; --cols-mobile: {{ mobile_cols }};"{% endif %}>
@@ -398,6 +382,36 @@
     return instance;
   };
 
+  // Helper to setup masonry_fit layout with options extraction and resize handling
+  window.setupMasonryFitLayout = function(container) {
+    if (!container) return;
+    const options = {
+      gap: parseInt(container.dataset.gap) || 16,
+      colsDesktop: parseInt(container.dataset.colsDesktop) || 3,
+      colsTablet: parseInt(container.dataset.colsTablet) || 2,
+      colsMobile: parseInt(container.dataset.colsMobile) || 1
+    };
+    // Setup resize handler with debounce
+    let resizeTimer = null;
+    const resizeHandler = function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function() {
+        const instance = container._masonryFitInstance;
+        if (instance) { instance.updateItemWidths(); instance.msnry.layout(); }
+      }, 150);
+    };
+    if (container._masonryFitResizeHandler) { window.removeEventListener('resize', container._masonryFitResizeHandler); }
+    container._masonryFitResizeHandler = resizeHandler;
+    window.addEventListener('resize', resizeHandler);
+    // Initialize with imagesLoaded if available
+    const initMasonryFit = () => {
+      window.initAlbumMasonryFit(container, options);
+      if (window.lenisResize) window.lenisResize();
+    };
+    if (typeof imagesLoaded !== 'undefined') { imagesLoaded(container, initMasonryFit); }
+    else { initMasonryFit(); }
+  };
+
   // Trigger same init used in gallery.twig after load
   window.addEventListener('DOMContentLoaded', function(){
     if (typeof initializeGalleryLayout === 'function') { try { initializeGalleryLayout(); } catch(e){} }
@@ -406,31 +420,7 @@
     const layout = window.templateSettings?.layout || 'masonry_fit';
     if (layout === 'masonry_fit') {
       const container = document.getElementById('images-gallery');
-      if (container) {
-        const options = {
-          gap: parseInt(container.dataset.gap) || 16,
-          colsDesktop: parseInt(container.dataset.colsDesktop) || 3,
-          colsTablet: parseInt(container.dataset.colsTablet) || 2,
-          colsMobile: parseInt(container.dataset.colsMobile) || 1
-        };
-        let resizeTimer = null;
-        const resizeHandler = function() {
-          clearTimeout(resizeTimer);
-          resizeTimer = setTimeout(function() {
-            const instance = container._masonryFitInstance;
-            if (instance) { instance.updateItemWidths(); instance.msnry.layout(); }
-          }, 150);
-        };
-        if (container._masonryFitResizeHandler) { window.removeEventListener('resize', container._masonryFitResizeHandler); }
-        container._masonryFitResizeHandler = resizeHandler;
-        window.addEventListener('resize', resizeHandler);
-        const initMasonryFit = () => {
-          window.initAlbumMasonryFit(container, options);
-          if (window.lenisResize) window.lenisResize();
-        };
-        if (typeof imagesLoaded !== 'undefined') { imagesLoaded(container, initMasonryFit); }
-        else { initMasonryFit(); }
-      }
+      if (container) { window.setupMasonryFitLayout(container); }
     }
 
     // If magazine is active on first render, ensure autoscroll
@@ -672,20 +662,9 @@
             setTimeout(() => { try { initMagazineAutoscroll(); } catch(e){ console.error('Magazine init error:', e); } }, 100);
           } else if (newLayout === 'masonry_fit') {
             console.log('Initializing Masonry Fit template');
-            const options = {
-              gap: parseInt(galleryContainer.dataset.gap) || 16,
-              colsDesktop: parseInt(galleryContainer.dataset.colsDesktop) || 3,
-              colsTablet: parseInt(galleryContainer.dataset.colsTablet) || 2,
-              colsMobile: parseInt(galleryContainer.dataset.colsMobile) || 1
-            };
-            const initMasonryFitSwitch = () => {
-              if (typeof window.initAlbumMasonryFit === 'function') {
-                window.initAlbumMasonryFit(galleryContainer, options);
-                if (window.lenisResize) window.lenisResize();
-              }
-            };
-            if (typeof imagesLoaded !== 'undefined') { imagesLoaded(galleryContainer, initMasonryFitSwitch); }
-            else { initMasonryFitSwitch(); }
+            if (typeof window.setupMasonryFitLayout === 'function') {
+              window.setupMasonryFitLayout(galleryContainer);
+            }
           } else if (typeof initializeGalleryLayout === 'function') initializeGalleryLayout();
           // Trigger entrance animation for new gallery items (run before container shows)
           if (typeof window.animateGalleryOnce === 'function') {

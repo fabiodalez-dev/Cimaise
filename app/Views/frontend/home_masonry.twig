@@ -4,6 +4,13 @@
 <style nonce="{{ csp_nonce() }}">
 /* Pure Masonry - Wall of Photos - Performance Optimized */
 
+/* Ensure mobile search toggle hidden on desktop (reinforce Tailwind md:hidden) */
+@media (min-width: 768px) {
+  #mobile-search-toggle {
+    display: none !important;
+  }
+}
+
 /* Base: CSS Grid layout (works without JS, enhanced by Masonry.js) */
 .masonry-grid {
   display: grid;

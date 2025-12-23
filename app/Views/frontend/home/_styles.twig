@@ -1,4 +1,11 @@
 <style>
+/* Ensure mobile search toggle hidden on desktop (reinforce Tailwind md:hidden) */
+@media (min-width: 768px) {
+  #mobile-search-toggle {
+    display: none !important;
+  }
+}
+
 /* Home Infinite Scroll Styles - container always visible */
 .perspective { transform: perspective(1200px) rotateX(1deg); }
 
