@@ -349,11 +349,11 @@
           
           <!-- Tags -->
           {% if album.tags|length > 0 %}
-          <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+          <div class="flex flex-wrap gap-2 mt-4 mb-4 pt-4 border-t border-gray-100">
             {% for tag in album.tags|slice(0, 3) %}
-            <span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors">
-              #{{ tag.name }}
-            </span>
+            <a href="{{ base_path }}/tag/{{ tag.slug }}" class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors" data-action="tag-link">
+              #{{ tag.name|e }}
+            </a>
             {% endfor %}
             {% if album.tags|length > 3 %}
             <span class="inline-block text-gray-400 text-xs px-2 py-1">
@@ -959,8 +959,8 @@ function generateGalleryCard(album) {
     }
 
     if (tags.length){
-        const wrap = document.createElement('div'); wrap.className='flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100';
-        tags.slice(0,3).forEach(t=>{ const s=document.createElement('span'); s.className='inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors'; s.textContent = '#' + (t && t.name ? t.name : ''); wrap.appendChild(s); });
+        const wrap = document.createElement('div'); wrap.className='flex flex-wrap gap-2 mt-4 mb-4 pt-4 border-t border-gray-100';
+        tags.slice(0,3).forEach(t=>{ const a=document.createElement('a'); a.href=window.basePath+'/tag/'+(t && t.slug ? t.slug : ''); a.className='inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full hover:bg-gray-200 transition-colors'; a.dataset.action='tag-link'; a.textContent = '#' + (t && t.name ? t.name : ''); wrap.appendChild(a); });
         if (tags.length>3){ const more=document.createElement('span'); more.className='inline-block text-gray-400 text-xs px-2 py-1'; more.textContent = window.pageTexts.moreCount.replace('{count}', tags.length-3); wrap.appendChild(more); }
         content.appendChild(wrap);
     }
