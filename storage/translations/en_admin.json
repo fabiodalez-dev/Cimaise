@@ -1497,6 +1497,9 @@
     "admin.settings.debug_title": "Admin Debug Logs",
     "admin.settings.debug_enable": "Enable verbose console logs in admin",
     "admin.settings.debug_hint": "Only enable for troubleshooting; leave off in production.",
+    "admin.settings.navigation_settings": "Navigation Settings",
+    "admin.settings.show_tags_in_header": "Show Tags in Navigation",
+    "admin.settings.show_tags_in_header_desc": "Display a Tags dropdown menu in the site header navigation",
     "admin.common.dashboard": "Dashboard",
 
     "admin.social.title": "Social Sharing",

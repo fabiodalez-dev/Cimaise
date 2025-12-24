@@ -266,6 +266,40 @@ if (!$isInstallerRoute && $container['db'] !== null) {
             }
             $twig->getEnvironment()->addGlobal('social_profiles', $safeProfiles);
         }
+        // Navigation tags for header (frontend only, with session cache)
+        // Cache invalidation: see TagsController::store/update/delete
+        $showTagsInHeader = (bool)$settingsSvc->get('navigation.show_tags_in_header', false);
+        $twig->getEnvironment()->addGlobal('show_tags_in_header', $showTagsInHeader);
+        if (!$isAdminRoute && $showTagsInHeader) {
+            $navTags = [];
+            // Check if cached in session and not expired (5 minutes TTL)
+            if (isset($_SESSION['nav_tags_cache']) &&
+                isset($_SESSION['nav_tags_cache_time']) &&
+                (time() - $_SESSION['nav_tags_cache_time']) < 300) {
+                $navTags = $_SESSION['nav_tags_cache'];
+            } else {
+                try {
+                    $tagsQuery = $container['db']->query('
+                        SELECT t.id, t.name, t.slug, COUNT(at.album_id) as albums_count
+                        FROM tags t
+                        JOIN album_tag at ON at.tag_id = t.id
+                        JOIN albums a ON a.id = at.album_id AND a.is_published = 1
+                        GROUP BY t.id, t.name, t.slug
+                        ORDER BY albums_count DESC, t.name ASC
+                        LIMIT 20
+                    ');
+                    $navTags = $tagsQuery->fetchAll(\PDO::FETCH_ASSOC);
+                    // Cache results in session
+                    $_SESSION['nav_tags_cache'] = $navTags;
+                    $_SESSION['nav_tags_cache_time'] = time();
+                } catch (\Throwable) {
+                    // Tags table might not exist
+                }
+            }
+            $twig->getEnvironment()->addGlobal('nav_tags', $navTags);
+        } else {
+            $twig->getEnvironment()->addGlobal('nav_tags', []);
+        }
         // SEO settings for frontend
         if (!$isAdminRoute) {
             $twig->getEnvironment()->addGlobal('og_site_name', $settingsSvc->get('seo.og_site_name', $siteTitle));
@@ -312,6 +346,9 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         if (!$isAdminRoute) {
             $twig->getEnvironment()->addGlobal('social_profiles', []);
         }
+        // Navigation tags defaults on error
+        $twig->getEnvironment()->addGlobal('show_tags_in_header', false);
+        $twig->getEnvironment()->addGlobal('nav_tags', []);
         // SEO defaults on error
         if (!$isAdminRoute) {
             $twig->getEnvironment()->addGlobal('og_site_name', 'Cimaise');
@@ -346,6 +383,9 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     $twig->getEnvironment()->addGlobal('show_marketing', false);
     $twig->getEnvironment()->addGlobal('lightbox_show_exif', true);
     $twig->getEnvironment()->addGlobal('disable_right_click', true);
+    // Navigation tags defaults for installer
+    $twig->getEnvironment()->addGlobal('show_tags_in_header', false);
+    $twig->getEnvironment()->addGlobal('nav_tags', []);
 }
 
 // Register date format Twig extension
