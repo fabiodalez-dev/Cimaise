@@ -372,6 +372,9 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     $twig->getEnvironment()->addGlobal('show_marketing', false);
     $twig->getEnvironment()->addGlobal('lightbox_show_exif', true);
     $twig->getEnvironment()->addGlobal('disable_right_click', true);
+    // Navigation tags defaults for installer
+    $twig->getEnvironment()->addGlobal('show_tags_in_header', false);
+    $twig->getEnvironment()->addGlobal('nav_tags', []);
 }
 
 // Register date format Twig extension
