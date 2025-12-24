@@ -265,6 +265,7 @@ CREATE TABLE `album_tag` (
   `album_id` int(11) NOT NULL,
   `tag_id` int(11) NOT NULL,
   PRIMARY KEY (`album_id`, `tag_id`),
+  KEY `idx_album_tag_tag` (`tag_id`),
   FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -273,6 +274,7 @@ CREATE TABLE `album_category` (
   `album_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL,
   PRIMARY KEY (`album_id`, `category_id`),
+  KEY `idx_album_category_category` (`category_id`),
   FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -281,6 +283,7 @@ CREATE TABLE `album_camera` (
   `album_id` int(11) NOT NULL,
   `camera_id` int(11) NOT NULL,
   PRIMARY KEY (`album_id`, `camera_id`),
+  KEY `idx_album_camera_camera` (`camera_id`),
   FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`camera_id`) REFERENCES `cameras`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -289,6 +292,7 @@ CREATE TABLE `album_lens` (
   `album_id` int(11) NOT NULL,
   `lens_id` int(11) NOT NULL,
   PRIMARY KEY (`album_id`, `lens_id`),
+  KEY `idx_album_lens_lens` (`lens_id`),
   FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`lens_id`) REFERENCES `lenses`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -297,6 +301,7 @@ CREATE TABLE `album_film` (
   `album_id` int(11) NOT NULL,
   `film_id` int(11) NOT NULL,
   PRIMARY KEY (`album_id`, `film_id`),
+  KEY `idx_album_film_film` (`film_id`),
   FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`film_id`) REFERENCES `films`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -305,6 +310,7 @@ CREATE TABLE `album_developer` (
   `album_id` int(11) NOT NULL,
   `developer_id` int(11) NOT NULL,
   PRIMARY KEY (`album_id`, `developer_id`),
+  KEY `idx_album_developer_developer` (`developer_id`),
   FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`developer_id`) REFERENCES `developers`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -313,6 +319,7 @@ CREATE TABLE `album_lab` (
   `album_id` int(11) NOT NULL,
   `lab_id` int(11) NOT NULL,
   PRIMARY KEY (`album_id`, `lab_id`),
+  KEY `idx_album_lab_lab` (`lab_id`),
   FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`lab_id`) REFERENCES `labs`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -321,6 +328,7 @@ CREATE TABLE `album_location` (
   `album_id` int(11) NOT NULL,
   `location_id` int(11) NOT NULL,
   PRIMARY KEY (`album_id`, `location_id`),
+  KEY `idx_album_location_location` (`location_id`),
   FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -329,6 +337,7 @@ CREATE TABLE `image_location` (
   `image_id` int(11) NOT NULL,
   `location_id` int(11) NOT NULL,
   PRIMARY KEY (`image_id`, `location_id`),
+  KEY `idx_image_location_location` (`location_id`),
   FOREIGN KEY (`image_id`) REFERENCES `images`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
