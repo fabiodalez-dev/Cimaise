@@ -138,7 +138,7 @@
       {% endif %}
       {% if album.shoot_date %}
         {% if album.tags %}<span class="text-neutral-400">•</span>{% endif %}
-        <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('Y') }}</time>
+        <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date_format('Y') }}</time>
       {% endif %}
     </div>
 
