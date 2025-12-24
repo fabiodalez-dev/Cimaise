@@ -9,9 +9,12 @@
   <div class="relative">
     {# Image area with link #}
     <a href="{{ album_url }}" class="block aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm" title="{{ seo_title|e('html_attr') }}">
+    {# NSFW album cards ALWAYS show blur variants - never expose real image URLs in card previews
+       Real images are only visible on the full album page after consent #}
     {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
     {% if album.cover %}
-      {% if album.is_nsfw and not can_show_nsfw %}
+      {% if album.is_nsfw %}
+        {# NSFW albums: always show blur variant in cards for security #}
         {% set blur_path = null %}
         {% for variant in album.cover.variants %}
           {% if variant.variant == 'blur' %}
@@ -32,6 +35,7 @@
           </div>
         {% endif %}
       {% else %}
+        {# Non-NSFW albums: show full quality responsive images #}
         <picture class="block absolute inset-0 w-full h-full">
           {% set variants_avif = [] %}
           {% set variants_webp = [] %}
@@ -72,7 +76,7 @@
         </picture>
       {% endif %}
 
-      {# NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through #}
+      {# NSFW Overlay - shown only when user hasn't given consent (not for admins) #}
       {% if album.is_nsfw and not can_show_nsfw %}
       <div class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10" role="img" aria-label="{{ trans('album.nsfw_warning_short') }}">
         <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
@@ -103,7 +107,7 @@
 
   {# Category Badge - positioned absolutely over the image #}
   {% if album.category_name %}
-  <div class="absolute top-2 left-2 z-20" style="pointer-events: auto;">
+  <div class="absolute top-2 left-2 z-20 pointer-events-auto">
     {% if album.category_slug %}
     <a href="{{ base_path }}/category/{{ album.category_slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ album.category_name|e }}">
       <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ album.category_name|e }}
