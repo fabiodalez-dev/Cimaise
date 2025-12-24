@@ -73,6 +73,7 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('INSERT INTO tags(name, slug) VALUES(:n, :s)');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug]);
+            unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag created'];
             return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
         } catch (\Throwable $e) {
@@ -123,6 +124,7 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('UPDATE tags SET name=:n, slug=:s WHERE id=:id');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':id' => $id]);
+            unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag updated'];
         } catch (\Throwable $e) {
             Logger::error('TagsController::update error', ['error' => $e->getMessage()], 'admin');
@@ -143,6 +145,7 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('DELETE FROM tags WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
+            unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag deleted'];
         } catch (\Throwable $e) {
             Logger::error('TagsController::delete error', ['error' => $e->getMessage()], 'admin');

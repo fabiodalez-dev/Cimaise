@@ -11,7 +11,7 @@
     <a href="{{ album_url }}" class="block aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm" title="{{ seo_title|e('html_attr') }}">
     {# NSFW album cards ALWAYS show blur variants - never expose real image URLs in card previews
        Real images are only visible on the full album page after consent #}
-    {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
+    {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
     {% if album.cover %}
       {% if album.is_nsfw %}
         {# NSFW albums: always show blur variant in cards for security #}
@@ -64,7 +64,10 @@
             <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1280px) 45vw, (min-width: 1024px) 50vw, (min-width: 768px) 60vw, (min-width: 640px) 95vw, 100vw">
           {% endif %}
 
-          {% set card_img_url = album.cover.variants[0].path ?? album.cover.original_path %}
+          {% set card_img_url = album.cover.original_path %}
+          {% if album.cover.variants|length > 0 %}
+            {% set card_img_url = album.cover.variants[0].path %}
+          {% endif %}
           {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
 
           <img src="{{ original_url }}"
@@ -77,7 +80,7 @@
       {% endif %}
 
       {# NSFW Overlay - shown only when user hasn't given consent (not for admins) #}
-      {% if album.is_nsfw and not can_show_nsfw %}
+      {% if album.is_nsfw and show_nsfw_overlay %}
       <div class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10" role="img" aria-label="{{ trans('album.nsfw_warning_short') }}">
         <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
         <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
@@ -92,7 +95,7 @@
       {% endif %}
 
     {% else %}
-      {% if album.is_nsfw and not can_show_nsfw %}
+      {% if album.is_nsfw and show_nsfw_overlay %}
       <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex flex-col items-center justify-center text-neutral-600">
         <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
         <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
