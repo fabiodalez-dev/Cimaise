@@ -267,6 +267,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
             $twig->getEnvironment()->addGlobal('social_profiles', $safeProfiles);
         }
         // Navigation tags for header (frontend only, with session cache)
+        // Cache invalidation: see TagsController::store/update/delete
         $showTagsInHeader = (bool)$settingsSvc->get('navigation.show_tags_in_header', false);
         $twig->getEnvironment()->addGlobal('show_tags_in_header', $showTagsInHeader);
         if (!$isAdminRoute && $showTagsInHeader) {
