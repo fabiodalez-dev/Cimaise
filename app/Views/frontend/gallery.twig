@@ -38,9 +38,9 @@
       {% endif %}
       {% if album.tags is defined and album.tags|length > 0 %}
         {% for tag in album.tags %}
-        <span class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700" title="{{ tag.name|e }}">
+        <a href="{{ base_path }}/tag/{{ tag.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors" title="{{ tag.name|e }}">
           <span class="w-1.5 h-1.5 rounded-full bg-blue-700"></span>{{ tag.name|e }}
-        </span>
+        </a>
         {% endfor %}
       {% endif %}
     </div>
@@ -1085,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // JSON-LD will be appended below
 </script>
-<script type="application/ld+json">
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
 {
   "@context": "https://schema.org",
   "@type": "ImageGallery",
@@ -1104,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', function() {
   ]
 }
 </script>
-<script type="application/ld+json">
+<script type="application/ld+json" nonce="{{ csp_nonce() }}">
 {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
