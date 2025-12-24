@@ -23,7 +23,14 @@ class TagsController extends BaseController
         $offset = ($page - 1) * $perPage;
         $pdo = $this->db->pdo();
         $total = (int)$pdo->query('SELECT COUNT(*) FROM tags')->fetchColumn();
-        $stmt = $pdo->prepare('SELECT id, name, slug, created_at FROM tags ORDER BY name ASC LIMIT :limit OFFSET :offset');
+        $stmt = $pdo->prepare('
+            SELECT t.id, t.name, t.slug, t.created_at, COUNT(at.album_id) as usage_count
+            FROM tags t
+            LEFT JOIN album_tag at ON at.tag_id = t.id
+            GROUP BY t.id, t.name, t.slug, t.created_at
+            ORDER BY t.name ASC
+            LIMIT :limit OFFSET :offset
+        ');
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
@@ -66,6 +73,7 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('INSERT INTO tags(name, slug) VALUES(:n, :s)');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug]);
+            unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag created'];
             return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
         } catch (\Throwable $e) {
@@ -116,6 +124,7 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('UPDATE tags SET name=:n, slug=:s WHERE id=:id');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':id' => $id]);
+            unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag updated'];
         } catch (\Throwable $e) {
             Logger::error('TagsController::update error', ['error' => $e->getMessage()], 'admin');
@@ -136,6 +145,7 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('DELETE FROM tags WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
+            unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
             $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag deleted'];
         } catch (\Throwable $e) {
             Logger::error('TagsController::delete error', ['error' => $e->getMessage()], 'admin');

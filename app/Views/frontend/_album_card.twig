@@ -1,139 +1,151 @@
-<article class="album-card group cursor-pointer" data-album-id="{{ album.id }}"{% if album.is_nsfw and not is_admin %} data-nsfw="1"{% endif %}>
+<article class="album-card group" data-album-id="{{ album.id }}"{% if album.is_nsfw and not is_admin %} data-nsfw="1"{% endif %}>
   {% set seo_title = (site_title|default('Portfolio')) ~ ' — ' ~ album.title %}
   {% if album.cover and album.cover.alt_text is defined and album.cover.alt_text %}
     {% set seo_title = seo_title ~ ' — ' ~ album.cover.alt_text %}
   {% endif %}
-  <a href="{{ base_path }}/album/{{ album.slug }}" class="block" title="{{ seo_title|e('html_attr') }}">
-    <div class="aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm relative">
-      {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
-      {% if album.cover %}
-        {% if album.is_nsfw and not can_show_nsfw %}
-          {% set blur_path = null %}
-          {% for variant in album.cover.variants %}
-            {% if variant.variant == 'blur' %}
-              {% set blur_path = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
-            {% endif %}
-          {% endfor %}
-          {% if blur_path %}
-            <img src="{{ blur_path }}"
-                 alt="{{ (album.cover.alt_text ?? album.title)|e }}"
-                 title="{{ seo_title|e('html_attr') }}"
-                 loading="lazy"
-                 decoding="async"
-                 class="nsfw-blur block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
-          {% else %}
-            <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex flex-col items-center justify-center text-neutral-600">
-              <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
-              <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
-            </div>
+  {% set album_url = base_path ~ '/album/' ~ album.slug %}
+
+  {# Image container with relative positioning for badge overlay #}
+  <div class="relative">
+    {# Image area with link #}
+    <a href="{{ album_url }}" class="block aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm" title="{{ seo_title|e('html_attr') }}">
+    {# NSFW album cards ALWAYS show blur variants - never expose real image URLs in card previews
+       Real images are only visible on the full album page after consent #}
+    {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
+    {% if album.cover %}
+      {% if album.is_nsfw %}
+        {# NSFW albums: always show blur variant in cards for security #}
+        {% set blur_path = null %}
+        {% for variant in album.cover.variants %}
+          {% if variant.variant == 'blur' %}
+            {% set blur_path = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
           {% endif %}
+        {% endfor %}
+        {% if blur_path %}
+          <img src="{{ blur_path }}"
+               alt="{{ (album.cover.alt_text ?? album.title)|e }}"
+               title="{{ seo_title|e('html_attr') }}"
+               loading="lazy"
+               decoding="async"
+               class="nsfw-blur block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
         {% else %}
-          <picture class="block absolute inset-0 w-full h-full">
-            {% set variants_avif = [] %}
-            {% set variants_webp = [] %}
-            {% set variants_jpg = [] %}
-            {% for variant in album.cover.variants %}
-              {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
-              {% if variant.format == 'avif' %}
-                {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
-              {% elseif variant.format == 'webp' %}
-                {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
-              {% elseif variant.format == 'jpg' %}
-                {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
-              {% endif %}
-            {% endfor %}
-
-            {# Sizes ottimizzate per alta qualità:
-               - Desktop (1280px+): 45vw per retina display
-               - Laptop (1024px+): 50vw
-               - Tablet (768px+): 60vw
-               - Mobile (640px+): 95vw
-               - Mobile small: full width = 100vw #}
-            {% if variants_avif %}
-              <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1280px) 45vw, (min-width: 1024px) 50vw, (min-width: 768px) 60vw, (min-width: 640px) 95vw, 100vw">
-            {% endif %}
-            {% if variants_webp %}
-              <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1280px) 45vw, (min-width: 1024px) 50vw, (min-width: 768px) 60vw, (min-width: 640px) 95vw, 100vw">
-            {% endif %}
-
-            {% set card_img_url = album.cover.variants[0].path ?? album.cover.original_path %}
-            {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
-
-            <img src="{{ original_url }}"
-                 alt="{{ (album.cover.alt_text ?? album.title)|e }}"
-                 title="{{ seo_title|e('html_attr') }}"
-                 loading="lazy"
-                 decoding="async"
-                 class="block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
-          </picture>
+          <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex flex-col items-center justify-center text-neutral-600">
+            <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
+            <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
+          </div>
         {% endif %}
-
-        {# NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through #}
-        {% if album.is_nsfw and not can_show_nsfw %}
-        <div class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10" role="img" aria-label="{{ trans('album.nsfw_warning_short') }}">
-          <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
-          <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
-        </div>
-        {% endif %}
-
-        {# Password Protected Badge #}
-        {% if album.is_password_protected or album.password_hash %}
-        <div class="absolute top-2 right-2 text-white z-20 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" title="{{ trans('album.password_protected') }}">
-          <i class="fas fa-lock text-lg"></i>
-        </div>
-        {% endif %}
-
-        {# Category Badge - above NSFW overlay #}
-        {% if album.category_name %}
-        <div class="absolute top-2 left-2 z-20">
-          {% if album.category_slug %}
-          <a href="{{ base_path }}/category/{{ album.category_slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ album.category_name|e }}">
-            <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ album.category_name|e }}
-          </a>
-          {% else %}
-          <span class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white text-neutral-700" title="{{ album.category_name|e }}">
-            <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ album.category_name|e }}
-          </span>
-          {% endif %}
-        </div>
-        {% endif %}
-
       {% else %}
-        {% if album.is_nsfw and not can_show_nsfw %}
-        <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex flex-col items-center justify-center text-neutral-600">
-          <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
-          <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
-        </div>
-        {% else %}
-        <div class="w-full h-full bg-neutral-200 flex items-center justify-center">
-          <span class="text-neutral-400 text-sm">{{ trans('general.no_cover') }}</span>
-        </div>
-        {% endif %}
-      {% endif %}
-    </div>
-    
-    <div class="pt-3 pb-2">
-      <h3 class="text-lg font-medium text-black group-hover:text-neutral-700 transition-colors">
-        {{ album.title|e }}
-      </h3>
-      
-      <div class="flex flex-wrap items-center gap-1 mt-1 text-sm text-neutral-600">
-        {% if album.tags %}
-          {% for tag in album.tags %}
-            <span class="tag">#{{ tag.name|e }}</span>{% if not loop.last %},{% endif %}
+        {# Non-NSFW albums: show full quality responsive images #}
+        <picture class="block absolute inset-0 w-full h-full">
+          {% set variants_avif = [] %}
+          {% set variants_webp = [] %}
+          {% set variants_jpg = [] %}
+          {% for variant in album.cover.variants %}
+            {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+            {% if variant.format == 'avif' %}
+              {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+            {% elseif variant.format == 'webp' %}
+              {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+            {% elseif variant.format == 'jpg' %}
+              {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+            {% endif %}
           {% endfor %}
-        {% endif %}
-        {% if album.shoot_date %}
-          {% if album.tags %}<span class="text-neutral-400">•</span>{% endif %}
-          <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date('Y') }}</time>
-        {% endif %}
+
+          {# Sizes ottimizzate per alta qualità:
+             - Desktop (1280px+): 45vw per retina display
+             - Laptop (1024px+): 50vw
+             - Tablet (768px+): 60vw
+             - Mobile (640px+): 95vw
+             - Mobile small: full width = 100vw #}
+          {% if variants_avif %}
+            <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1280px) 45vw, (min-width: 1024px) 50vw, (min-width: 768px) 60vw, (min-width: 640px) 95vw, 100vw">
+          {% endif %}
+          {% if variants_webp %}
+            <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1280px) 45vw, (min-width: 1024px) 50vw, (min-width: 768px) 60vw, (min-width: 640px) 95vw, 100vw">
+          {% endif %}
+
+          {% set card_img_url = album.cover.original_path %}
+          {% if album.cover.variants|length > 0 %}
+            {% set card_img_url = album.cover.variants[0].path %}
+          {% endif %}
+          {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
+
+          <img src="{{ original_url }}"
+               alt="{{ (album.cover.alt_text ?? album.title)|e }}"
+               title="{{ seo_title|e('html_attr') }}"
+               loading="lazy"
+               decoding="async"
+               class="block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+        </picture>
+      {% endif %}
+
+      {# NSFW Overlay - shown only when user hasn't given consent (not for admins) #}
+      {% if album.is_nsfw and show_nsfw_overlay %}
+      <div class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10" role="img" aria-label="{{ trans('album.nsfw_warning_short') }}">
+        <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
+        <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
       </div>
-      
-{% if album.excerpt %}
-        <p class="mt-2 text-sm text-neutral-600 line-clamp-2">
-          {{ album.excerpt|e }}
-        </p>
+      {% endif %}
+
+      {# Password Protected Badge #}
+      {% if album.is_password_protected or album.password_hash %}
+      <div class="absolute top-2 right-2 text-white z-20 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" title="{{ trans('album.password_protected') }}">
+        <i class="fas fa-lock text-lg"></i>
+      </div>
+      {% endif %}
+
+    {% else %}
+      {% if album.is_nsfw and show_nsfw_overlay %}
+      <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex flex-col items-center justify-center text-neutral-600">
+        <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
+        <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
+      </div>
+      {% else %}
+      <div class="w-full h-full bg-neutral-200 flex items-center justify-center">
+        <span class="text-neutral-400 text-sm">{{ trans('general.no_cover') }}</span>
+      </div>
+      {% endif %}
+    {% endif %}
+  </a>
+
+  {# Category Badge - positioned absolutely over the image #}
+  {% if album.category_name %}
+  <div class="absolute top-2 left-2 z-20 pointer-events-auto">
+    {% if album.category_slug %}
+    <a href="{{ base_path }}/category/{{ album.category_slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ album.category_name|e }}">
+      <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ album.category_name|e }}
+    </a>
+    {% else %}
+    <span class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white text-neutral-700" title="{{ album.category_name|e }}">
+      <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ album.category_name|e }}
+    </span>
+    {% endif %}
+  </div>
+  {% endif %}
+  </div>
+
+  {# Text content area #}
+  <div class="pt-3 pb-2">
+    <h3 class="text-lg font-medium text-black group-hover:text-neutral-700 transition-colors">
+      <a href="{{ album_url }}" class="hover:underline" title="{{ seo_title|e('html_attr') }}">{{ album.title|e }}</a>
+    </h3>
+
+    <div class="flex flex-wrap items-center gap-1 mt-1 text-sm text-neutral-600">
+      {% if album.tags %}
+        {% for tag in album.tags %}
+          <a href="{{ base_path }}/tag/{{ tag.slug }}" class="tag hover:text-black transition-colors">#{{ tag.name|e }}</a>{% if not loop.last %},{% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if album.shoot_date %}
+        {% if album.tags %}<span class="text-neutral-400">•</span>{% endif %}
+        <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date_format('Y') }}</time>
       {% endif %}
     </div>
-  </a>
+
+    {% if album.excerpt %}
+    <p class="mt-2 text-sm text-neutral-600 line-clamp-2">
+      {{ album.excerpt|e }}
+    </p>
+    {% endif %}
+  </div>
 </article>

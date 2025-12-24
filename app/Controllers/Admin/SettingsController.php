@@ -172,6 +172,7 @@ class SettingsController extends BaseController
         $svc->set('cache.ttl', $cacheTtl);
         $svc->set('admin.debug_logs', isset($data['admin_debug_logs']));
         $svc->set('frontend.disable_right_click', $disableRightClick);
+        $svc->set('navigation.show_tags_in_header', isset($data['show_tags_in_header']));
 
         $_SESSION['flash'][] = ['type'=>'success','message'=>'Settings saved successfully'];
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
