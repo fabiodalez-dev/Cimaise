@@ -35,13 +35,11 @@
     "admin.sidebar.commands": "Commands",
     "admin.sidebar.diagnostics": "Diagnostics",
     "admin.sidebar.updates": "Updates",
-
     "admin.header.frontend": "Frontend",
     "admin.header.view_frontend": "View Frontend",
     "admin.header.admin_user": "Admin User",
     "admin.header.administrator": "Administrator",
     "admin.header.loading": "Loading...",
-
     "admin.profile.my_profile": "My Profile",
     "admin.profile.edit_personal_info": "Edit personal information",
     "admin.profile.change_password": "Change Password",
@@ -55,7 +53,6 @@
     "admin.profile.new_password": "New Password",
     "admin.profile.confirm_password": "Confirm New Password",
     "admin.profile.passwords_no_match": "Passwords do not match",
-
     "admin.users.title": "User Management",
     "admin.users.manage_all": "Manage all users",
     "admin.users.total_users": "total users",
@@ -108,14 +105,12 @@
     "admin.system.configure": "Configure the application",
     "admin.logout": "Logout",
     "admin.logout.exit": "Exit administration",
-
     "admin.login.title": "Login",
     "admin.login.admin_panel": "Admin Panel",
     "admin.login.email": "Email",
     "admin.login.password": "Password",
     "admin.login.remember_me": "Remember me",
     "admin.login.submit": "Login",
-
     "admin.common.save": "Save",
     "admin.common.cancel": "Cancel",
     "admin.common.delete": "Delete",
@@ -145,7 +140,6 @@
     "admin.common.settings": "Settings",
     "admin.common.description": "Description",
     "admin.common.fix_errors": "Please fix the following errors:",
-
     "admin.custom_fields.title": "Custom Fields",
     "admin.custom_fields.description": "Define custom metadata types for your photos",
     "admin.custom_fields.add_type": "Add Field Type",
@@ -206,7 +200,6 @@
     "admin.custom_fields.migration_required": "Database Migration Required",
     "admin.custom_fields.migration_hint": "Custom fields tables are not installed. Run the migration command below:",
     "admin.custom_fields.migration_mysql_hint": "For MySQL, use the SQL file in database/migrations/migrate_custom_fields_mysql.sql",
-
     "admin.texts.title": "Translations",
     "admin.texts.heading": "Manage Translations",
     "admin.texts.description": "Manage frontend text translations",
@@ -270,7 +263,6 @@
     "admin.texts.cancel": "Cancel",
     "admin.texts.add_button": "Add Text",
     "admin.texts.save_changes": "Save Changes",
-
     "admin.pages.title": "Pages",
     "admin.pages.description": "Manage static site pages",
     "admin.pages.edit": "Edit",
@@ -280,7 +272,6 @@
     "admin.pages.cancel": "Cancel",
     "admin.pages.back": "Back",
     "admin.pages.save_settings": "Save Settings",
-
     "admin.pages.basic_texts": "Basic Texts",
     "admin.pages.page_title": "Page Title",
     "admin.pages.subtitle": "Subtitle",
@@ -288,7 +279,6 @@
     "admin.pages.permalink_help": "Letters, numbers and hyphens only (kebab-case)",
     "admin.pages.seo_description": "SEO Description",
     "admin.pages.seo_description_help": "Used as meta description for SEO",
-
     "admin.pages.about.edit": "Edit <strong>About</strong> page",
     "admin.pages.about.bio_text": "Bio Text",
     "admin.pages.about.bio_placeholder": "Write a brief bio, your approach, awards, contacts...",
@@ -306,7 +296,6 @@
     "admin.pages.about.contact_help": "The About form will send an email to this address using PHP mail()",
     "admin.pages.about.style": "Style",
     "admin.pages.about.style_description": "The About page uses a minimal black and white layout, with large typography and full-height image on desktop.",
-
     "admin.pages.galleries.edit": "Edit <strong>Galleries</strong> page and configure filters",
     "admin.pages.galleries.preview_filters": "Preview filters",
     "admin.pages.galleries.gallery_template": "Gallery Page Template",
@@ -322,7 +311,6 @@
     "admin.pages.galleries.current": "Current",
     "admin.pages.galleries.no_default_template": "No default template",
     "admin.pages.galleries.magazine_warning": "With <strong>Magazine Split</strong> as page layout, the default template is not applicable. Template settings are managed separately.",
-
     "admin.pages.galleries.filter_config": "Filter Configuration",
     "admin.pages.galleries.enable_filters": "Enable Filter System",
     "admin.pages.galleries.enable_filters_help": "Enable or disable all filters on the galleries page",
@@ -345,18 +333,15 @@
     "admin.pages.galleries.mobile": "Mobile",
     "admin.pages.galleries.columns": "columns",
     "admin.pages.galleries.save_filter_settings": "Save Filter Settings",
-
     "admin.pages.galleries.filter_texts": "Filter Texts",
     "admin.pages.galleries.filter_button_text": "Filter Button Text",
     "admin.pages.galleries.clear_filters_text": "Clear Filters Text",
     "admin.pages.galleries.results_count_text": "Results Count Text",
     "admin.pages.galleries.results_count_help": "E.g.: \"25 galleries\" - only the word after the number",
     "admin.pages.galleries.view_button_text": "View Button Text",
-
     "admin.pages.galleries.empty_state": "Empty State Texts",
     "admin.pages.galleries.no_results_title": "No Results Title",
     "admin.pages.galleries.no_results_message": "No Results Message",
-
     "admin.pages.galleries.filter_settings": "Filter Settings",
     "admin.pages.galleries.filters_enabled": "Filters enabled",
     "admin.pages.galleries.animations_label": "Animations",
@@ -377,9 +362,7 @@
     "admin.pages.galleries.album_example": "Album Example",
     "admin.pages.galleries.error_loading_preview": "Error loading preview",
     "admin.pages.galleries.edit_texts_info": "Edit galleries page texts",
-
     "admin.pages.galleries.settings_saved": "Settings saved successfully",
-
     "admin.pages.home.page_title": "Pages — Home",
     "admin.pages.home.edit": "Edit <strong>Home</strong> page texts",
     "admin.pages.home.view_page": "View page",
@@ -517,7 +500,6 @@
     "admin.pages.home.gallery_mobile_desc": "2-column masonry grid on mobile devices",
     "admin.pages.galleries.error_saving": "Error saving settings",
     "admin.pages.galleries.connection_error": "Connection error",
-
     "admin.dashboard.title": "Dashboard",
     "admin.dashboard.welcome": "Welcome",
     "admin.dashboard.new_album": "New Album",
@@ -539,7 +521,6 @@
     "admin.dashboard.labs_desc": "Lab lookup",
     "admin.dashboard.tools": "Tools",
     "admin.dashboard.tools_desc": "Migrations, seeding, sitemap",
-
     "admin.albums.title": "Albums",
     "admin.albums.description": "Manage your photo albums and collections",
     "admin.albums.new_album": "New Album",
@@ -565,7 +546,6 @@
     "admin.albums.next": "Next",
     "admin.albums.order_saved": "Album order saved",
     "admin.albums.order_error": "Error saving order",
-
     "admin.albums.basic_info": "Basic Information",
     "admin.albums.basic_info_desc": "Title, description and album content",
     "admin.albums.title_field": "Title",
@@ -583,7 +563,6 @@
     "admin.albums.full_content": "Full Content",
     "admin.albums.full_content_placeholder": "Full description with formatting...",
     "admin.albums.full_content_help": "Supports rich formatting: bold, italic, lists, links",
-
     "admin.albums.image_upload": "Image Upload",
     "admin.albums.image_upload_desc": "Upload images directly during creation",
     "admin.albums.drag_images": "Drag images here",
@@ -608,7 +587,6 @@
     "admin.albums.full_edit_page": "Full Edit Page",
     "admin.albums.upload_preview_alt": "Uploaded image preview: {name}",
     "admin.albums.upload_error_generic": "Error during upload",
-
     "admin.albums.publishing": "Publishing Settings",
     "admin.albums.publishing_desc": "Date, template and visibility",
     "admin.albums.shoot_date": "Shoot Date",
@@ -620,7 +598,6 @@
     "admin.albums.allow_downloads": "Allow image downloads",
     "admin.albums.nsfw_content": "NSFW Content",
     "admin.albums.nsfw_help": "Mark if album contains adult or sensitive content",
-
     "admin.albums.equipment": "Photo Equipment",
     "admin.albums.equipment_desc": "Equipment used for the album",
     "admin.albums.cameras": "Cameras",
@@ -628,7 +605,6 @@
     "admin.albums.films": "Films",
     "admin.albums.developers": "Developers",
     "admin.albums.labs": "Labs",
-
     "admin.albums.locations_security": "Locations and Security",
     "admin.albums.locations_security_desc": "Positions and album protection",
     "admin.albums.shooting_locations": "Shooting Locations",
@@ -639,9 +615,7 @@
     "admin.albums.album_password": "Album Password",
     "admin.albums.cancel": "Cancel",
     "admin.albums.or_click_select": "or click to select from your computer",
-
     "admin.albums.footer_hint": "Complete the required fields to save",
-
     "admin.albums.edit_image": "Edit image",
     "admin.albums.alt_text": "Alt text",
     "admin.albums.caption": "Title/Caption",
@@ -657,7 +631,6 @@
     "admin.albums.iso": "ISO",
     "admin.albums.shutter": "Shutter",
     "admin.albums.aperture": "Aperture",
-
     "admin.albums.edit_description": "Update information and manage images",
     "admin.albums.view_page": "View page",
     "admin.albums.image_management": "Image Management",
@@ -752,7 +725,6 @@
     "admin.albums.current_cover": "Current cover",
     "admin.albums.set_as_cover": "Set as Cover",
     "admin.albums.image_preview": "Image preview",
-
     "admin.cameras.title": "Cameras",
     "admin.cameras.description": "Manage camera equipment library",
     "admin.cameras.new": "New Camera",
@@ -780,7 +752,6 @@
     "admin.cameras.type_other": "Other",
     "admin.cameras.update": "Update",
     "admin.cameras.cancel": "Cancel",
-
     "admin.lenses.title": "Lenses",
     "admin.lenses.description": "Manage lens equipment library",
     "admin.lenses.new": "New Lens",
@@ -802,7 +773,6 @@
     "admin.lenses.focal_min": "Focal min (mm)",
     "admin.lenses.focal_max": "Focal max (mm)",
     "admin.lenses.aperture_min": "Aperture min (f/)",
-
     "admin.films.title": "Films",
     "admin.films.description": "Manage film stock library",
     "admin.films.new": "New Film",
@@ -853,7 +823,6 @@
     "admin.films.type_other": "Other/Experimental",
     "admin.films.update": "Update",
     "admin.films.cancel": "Cancel",
-
     "admin.developers.title": "Developers",
     "admin.developers.description": "Manage film developers library",
     "admin.developers.new": "New Developer",
@@ -874,7 +843,6 @@
     "admin.developers.update": "Update",
     "admin.developers.cancel": "Cancel",
     "admin.developers.process": "Process",
-
     "admin.labs.title": "Labs",
     "admin.labs.description": "Manage photo labs library",
     "admin.labs.new": "New Lab",
@@ -892,7 +860,6 @@
     "admin.labs.save": "Save Lab",
     "admin.labs.update": "Update",
     "admin.labs.cancel": "Cancel",
-
     "admin.locations.title": "Locations",
     "admin.locations.description": "Manage shooting locations",
     "admin.locations.new": "New Location",
@@ -929,7 +896,6 @@
     "admin.locations.delete_location": "Delete Location",
     "admin.locations.delete_confirm_full": "Are you sure you want to delete this location? This action cannot be undone.",
     "admin.locations.fix_errors": "Please fix the following errors:",
-
     "admin.media.title": "Media Library",
     "admin.media.description": "Manage all uploaded media files",
     "admin.media.search": "Search by filename, alt text...",
@@ -980,7 +946,6 @@
     "admin.media.deletion_error": "Deletion error",
     "admin.media.images_added_to_album": "{count} images added to album",
     "admin.media.images_deleted": "{count} images deleted",
-
     "admin.upload.in_progress_title": "Upload in progress",
     "admin.upload.preparing": "Preparing...",
     "admin.upload.compressing": "Compressing {name}...",
@@ -997,7 +962,6 @@
     "admin.tinymce.subtitle": "Subtitle",
     "admin.tinymce.section_title": "Section title",
     "admin.tinymce.note": "Note",
-
     "admin.categories.title": "Categories",
     "admin.categories.description": "Manage album categories",
     "admin.categories.new": "New Category",
@@ -1065,7 +1029,6 @@
     "admin.categories.name_min_length": "Category name must be at least 2 characters long",
     "admin.categories.preview": "Preview",
     "admin.categories.update_error": "Error updating category",
-
     "admin.tags.title": "Tags",
     "admin.tags.description": "Manage album tags",
     "admin.tags.new": "New Tag",
@@ -1090,7 +1053,6 @@
     "admin.tags.cancel": "Cancel",
     "admin.tags.update": "Update",
     "admin.tags.delete": "Delete",
-
     "admin.templates.title": "Templates",
     "admin.templates.description": "Configure gallery display templates",
     "admin.templates.page_description": "Manage album display templates",
@@ -1160,7 +1122,6 @@
     "admin.templates.gap_vertical_hint": "Space between photos in the same column",
     "admin.templates.masonry_full_info": "This layout uses CSS columns for a native masonry effect. Photos maintain their original proportions.",
     "admin.templates.css_columns": "CSS Columns",
-
     "admin.analytics.title": "Analytics",
     "admin.analytics.description": "View site statistics and visitor insights",
     "admin.analytics.realtime": "Real-time",
@@ -1222,7 +1183,6 @@
     "admin.analytics.album_password_access_title": "Password Access by Album",
     "admin.analytics.password_access_sorted_by": "Sorted by password unlocks ({start} to {end})",
     "admin.analytics.password_unlocks": "Password Unlocks",
-
     "admin.analytics.albums.page_title": "Album Analytics",
     "admin.analytics.albums.description": "Track performance of your photo albums",
     "admin.analytics.albums.back_to_dashboard": "Back to Dashboard",
@@ -1254,7 +1214,6 @@
     "admin.analytics.albums.total_page_views": "Total Page Views:",
     "admin.analytics.albums.total_unique_visitors": "Total Unique Visitors:",
     "admin.analytics.albums.average_time_per_album": "Average Time per Album:",
-
     "admin.analytics.realtime.page_title": "Real-time Analytics",
     "admin.analytics.realtime.description": "Monitor current visitor activity and behavior",
     "admin.analytics.realtime.back_to_dashboard": "Back to Dashboard",
@@ -1280,7 +1239,6 @@
     "admin.analytics.realtime.no_activity": "No current activity",
     "admin.analytics.realtime.no_pages": "No page views in the last hour",
     "admin.analytics.realtime.now": "now",
-
     "admin.analytics.export.page_title": "Export Analytics Data",
     "admin.analytics.export.description": "Download your analytics data in various formats",
     "admin.analytics.export.back_to_dashboard": "Back to Dashboard",
@@ -1323,7 +1281,6 @@
     "admin.analytics.export.formats_note_1": "Files are generated on-demand and not stored",
     "admin.analytics.export.formats_note_2": "Large exports may take a few moments to generate",
     "admin.analytics.export.album_analytics": "Album Analytics",
-
     "admin.analytics.settings.page_title": "Analytics Settings",
     "admin.analytics.settings.description": "Configure privacy, data retention, and tracking options",
     "admin.analytics.settings.back_to_dashboard": "Back to Dashboard",
@@ -1371,7 +1328,6 @@
     "admin.analytics.settings.cleanup_confirm": "Are you sure you want to clean up old analytics data? This action cannot be undone.",
     "admin.analytics.settings.cleanup_hint": "Cleanup removes data older than your retention period. Export includes all available data.",
     "admin.analytics.settings.save": "Save Settings",
-
     "admin.settings.title": "Settings",
     "admin.settings.description": "Configure your Cimaise installation",
     "admin.settings.save_settings": "Save Settings",
@@ -1501,7 +1457,6 @@
     "admin.settings.show_tags_in_header": "Show Tags in Navigation",
     "admin.settings.show_tags_in_header_desc": "Display a Tags dropdown menu in the site header navigation",
     "admin.common.dashboard": "Dashboard",
-
     "admin.social.title": "Social Sharing",
     "admin.social.description": "Select and order social sharing buttons",
     "admin.social.save_settings": "Save Settings",
@@ -1524,7 +1479,6 @@
     "admin.social.preview": "Preview",
     "admin.social.sharing_section": "Social Sharing",
     "admin.social.sharing_section_desc": "Buttons visitors can use to share your photos on social media",
-
     "admin.seo.title": "SEO Settings",
     "admin.seo.description": "Configure search engine optimization",
     "admin.seo.save_settings": "Save SEO Settings",
@@ -1648,7 +1602,6 @@
     "admin.seo.meta_description": "Default Meta Description",
     "admin.seo.meta_keywords": "Meta Keywords",
     "admin.seo.site_wide": "Site-wide SEO",
-
     "admin.privacy.title": "Privacy Settings",
     "admin.privacy.description": "Configure cookie consent and privacy options",
     "admin.privacy.save_settings": "Save Privacy Settings",
@@ -1682,7 +1635,6 @@
     "admin.privacy.consent_marketing_desc": "These scripts only load when visitors accept marketing cookies.",
     "admin.privacy.marketing_placeholder": "<!-- Marketing scripts here -->\n<script>fbq('init', 'PIXEL_ID');</script>",
     "admin.privacy.preview_banner": "Preview Banner",
-
     "admin.filter_settings.title": "Filter Settings",
     "admin.filter_settings.description": "Configure gallery filtering system",
     "admin.filter_settings.preview": "Preview",
@@ -1737,7 +1689,6 @@
     "admin.filter_settings.save_settings": "Save Settings",
     "admin.filter_settings.preview_changes": "Preview Changes",
     "admin.filter_settings.changes_applied_hint": "Changes will be applied immediately to the galleries page",
-
     "admin.commands.title": "System Commands",
     "admin.commands.description": "Execute system commands and maintenance tasks",
     "admin.commands.cli_guide": "CLI Guide",
@@ -1792,7 +1743,6 @@
     "admin.commands.seo_commands": "SEO Commands",
     "admin.commands.system_commands": "System Commands",
     "admin.commands.confirm_cleanup": "Are you sure you want to clean up old analytics data? This will permanently delete data older than your retention period. This action cannot be undone.",
-
     "admin.diagnostics.title": "System Diagnostics",
     "admin.diagnostics.description": "View system health and configuration",
     "admin.diagnostics.refresh": "Refresh",
@@ -1827,7 +1777,6 @@
     "admin.diagnostics.build_sitemap": "Build sitemap",
     "admin.diagnostics.run_diagnostics": "Run diagnostics",
     "admin.diagnostics.create_admin": "Create admin user",
-
     "admin.updates.title": "System Updates",
     "admin.updates.description": "Manage application updates and backups",
     "admin.updates.current_version": "Current Version",
@@ -1891,7 +1840,6 @@
     "admin.updates.downloading": "Downloading update...",
     "admin.updates.installing": "Installing update...",
     "admin.updates.do_not_close": "Do not close this window or navigate away during the update.",
-
     "admin.plugins.title": "Plugins",
     "admin.plugins.description": "Manage installed and available plugins for Cimaise",
     "admin.plugins.total_plugins": "total plugins",
@@ -1933,7 +1881,22 @@
     "admin.plugins.invalid_response": "Invalid response from server",
     "admin.plugins.reload_page": "Reload Page",
     "admin.plugins.upload_error": "Error during upload",
-    "admin.plugins.network_error": "Network error during upload"
+    "admin.plugins.network_error": "Network error during upload",
+    "settings": {
+      "breakpoint_sm": "Small (Mobile)",
+      "breakpoint_md": "Medium (Tablet)",
+      "breakpoint_lg": "Large (Desktop)",
+      "breakpoint_xl": "Extra Large",
+      "breakpoint_xxl": "2X Large"
+    },
+    "privacy": {
+      "nsfw_warning": "NSFW Global Warning",
+      "nsfw_warning_hint": "Show age verification gate when users first visit the site",
+      "enable_nsfw_warning": "Enable global NSFW warning",
+      "enable_nsfw_warning_hint": "Require age confirmation before accessing the site",
+      "nsfw_how_it_works": "How it works:",
+      "nsfw_how_it_works_desc": "If enabled, all visitors must confirm they are 18+ before accessing the site. Once confirmed, NSFW album content becomes visible."
+    }
   },
   "errors": {
     "errors.404.title": "Page not found",
@@ -1944,5 +1907,15 @@
     "errors.500.message": "Sorry, something went wrong on our end. Please try again later.",
     "errors.500.back_home": "Back to Home",
     "errors.500.back_dashboard": "Back to Dashboard"
+  },
+  "frontend": {
+    "nsfw_global": {
+      "title": "Adult Content Warning",
+      "message": "This website contains adult content. You must be 18 or older to continue.",
+      "disclaimer": "By continuing, you confirm that you are of legal age in your jurisdiction.",
+      "confirm": "I am 18+ - Enter",
+      "decline": "Exit",
+      "remember": "Your choice will be remembered for this session."
+    }
   }
 }

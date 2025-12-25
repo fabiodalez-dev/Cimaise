@@ -29,6 +29,7 @@ class PrivacyController extends BaseController
             'custom_js_marketing' => $svc->get('privacy.custom_js_marketing', ''),
             'show_analytics' => $svc->get('cookie_banner.show_analytics', false),
             'show_marketing' => $svc->get('cookie_banner.show_marketing', false),
+            'nsfw_global_warning' => $svc->get('privacy.nsfw_global_warning', false),
         ];
 
         return $this->view->render($response, 'admin/privacy/index.twig', [
@@ -52,6 +53,9 @@ class PrivacyController extends BaseController
         try {
             // Cookie banner enabled/disabled
             $svc->set('privacy.cookie_banner_enabled', isset($data['cookie_banner_enabled']));
+
+            // NSFW global warning enabled/disabled
+            $svc->set('privacy.nsfw_global_warning', isset($data['nsfw_global_warning']));
 
             // Custom JavaScript blocks
             $customJsEssential = trim((string)($data['custom_js_essential'] ?? ''));

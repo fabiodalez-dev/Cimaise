@@ -35,13 +35,11 @@
     "admin.sidebar.commands": "Comandi",
     "admin.sidebar.diagnostics": "Diagnostica",
     "admin.sidebar.updates": "Aggiornamenti",
-
     "admin.header.frontend": "Frontend",
     "admin.header.view_frontend": "Vedi Frontend",
     "admin.header.admin_user": "Utente Admin",
     "admin.header.administrator": "Amministratore",
     "admin.header.loading": "Caricamento...",
-
     "admin.profile.my_profile": "Il mio Profilo",
     "admin.profile.edit_personal_info": "Modifica informazioni personali",
     "admin.profile.change_password": "Cambia Password",
@@ -55,7 +53,6 @@
     "admin.profile.new_password": "Nuova Password",
     "admin.profile.confirm_password": "Conferma Nuova Password",
     "admin.profile.passwords_no_match": "Le password non corrispondono",
-
     "admin.users.title": "Gestione Utenti",
     "admin.users.manage_all": "Gestisci tutti gli utenti",
     "admin.users.total_users": "utenti totali",
@@ -108,14 +105,12 @@
     "admin.system.configure": "Configura l'applicazione",
     "admin.logout": "Esci",
     "admin.logout.exit": "Esci dall'amministrazione",
-
     "admin.login.title": "Accedi",
     "admin.login.admin_panel": "Pannello Admin",
     "admin.login.email": "Email",
     "admin.login.password": "Password",
     "admin.login.remember_me": "Resta connesso",
     "admin.login.submit": "Accedi",
-
     "admin.common.save": "Salva",
     "admin.common.cancel": "Annulla",
     "admin.common.delete": "Elimina",
@@ -145,7 +140,6 @@
     "admin.common.settings": "Impostazioni",
     "admin.common.description": "Descrizione",
     "admin.common.fix_errors": "Correggi i seguenti errori:",
-
     "admin.custom_fields.title": "Campi Personalizzati",
     "admin.custom_fields.description": "Definisci tipi di metadati personalizzati per le tue foto",
     "admin.custom_fields.add_type": "Aggiungi Tipo di Campo",
@@ -206,7 +200,6 @@
     "admin.custom_fields.migration_required": "Migrazione Database Richiesta",
     "admin.custom_fields.migration_hint": "Le tabelle dei campi personalizzati non sono installate. Esegui il comando di migrazione qui sotto:",
     "admin.custom_fields.migration_mysql_hint": "Per MySQL, usa il file SQL in database/migrations/migrate_custom_fields_mysql.sql",
-
     "admin.texts.title": "Traduzioni",
     "admin.texts.heading": "Gestisci Traduzioni",
     "admin.texts.description": "Gestisci le traduzioni dei testi del frontend",
@@ -270,7 +263,6 @@
     "admin.texts.cancel": "Annulla",
     "admin.texts.add_button": "Aggiungi Testo",
     "admin.texts.save_changes": "Salva Modifiche",
-
     "admin.pages.title": "Pagine",
     "admin.pages.description": "Gestisci le pagine statiche del sito",
     "admin.pages.edit": "Modifica",
@@ -280,7 +272,6 @@
     "admin.pages.cancel": "Annulla",
     "admin.pages.back": "Indietro",
     "admin.pages.save_settings": "Salva Impostazioni",
-
     "admin.pages.basic_texts": "Testi Base",
     "admin.pages.page_title": "Titolo Pagina",
     "admin.pages.subtitle": "Sottotitolo",
@@ -288,7 +279,6 @@
     "admin.pages.permalink_help": "Solo lettere, numeri e trattini (kebab-case)",
     "admin.pages.seo_description": "Descrizione SEO",
     "admin.pages.seo_description_help": "Usata come meta description per SEO",
-
     "admin.pages.about.edit": "Modifica pagina <strong>Chi sono</strong>",
     "admin.pages.about.bio_text": "Testo Biografia",
     "admin.pages.about.bio_placeholder": "Scrivi una breve biografia, il tuo approccio, premi, contatti...",
@@ -306,7 +296,6 @@
     "admin.pages.about.contact_help": "Il form About invierà un'email a questo indirizzo usando PHP mail()",
     "admin.pages.about.style": "Stile",
     "admin.pages.about.style_description": "La pagina Chi sono usa un layout minimale bianco e nero, con tipografia grande e immagine a tutta altezza su desktop.",
-
     "admin.pages.galleries.edit": "Modifica pagina <strong>Gallerie</strong> e configura filtri",
     "admin.pages.galleries.preview_filters": "Anteprima filtri",
     "admin.pages.galleries.gallery_template": "Template Pagina Galleria",
@@ -322,7 +311,6 @@
     "admin.pages.galleries.current": "Attuale",
     "admin.pages.galleries.no_default_template": "Nessun template predefinito",
     "admin.pages.galleries.magazine_warning": "Con <strong>Magazine Split</strong> come layout pagina, il template predefinito non è applicabile. Le impostazioni template sono gestite separatamente.",
-
     "admin.pages.galleries.filter_config": "Configurazione Filtri",
     "admin.pages.galleries.enable_filters": "Abilita Sistema Filtri",
     "admin.pages.galleries.enable_filters_help": "Abilita o disabilita tutti i filtri sulla pagina gallerie",
@@ -345,18 +333,15 @@
     "admin.pages.galleries.mobile": "Mobile",
     "admin.pages.galleries.columns": "colonne",
     "admin.pages.galleries.save_filter_settings": "Salva Impostazioni Filtri",
-
     "admin.pages.galleries.filter_texts": "Testi Filtri",
     "admin.pages.galleries.filter_button_text": "Testo Pulsante Filtri",
     "admin.pages.galleries.clear_filters_text": "Testo Cancella Filtri",
     "admin.pages.galleries.results_count_text": "Testo Conteggio Risultati",
     "admin.pages.galleries.results_count_help": "Es.: \"25 gallerie\" - solo la parola dopo il numero",
     "admin.pages.galleries.view_button_text": "Testo Pulsante Vedi",
-
     "admin.pages.galleries.empty_state": "Testi Stato Vuoto",
     "admin.pages.galleries.no_results_title": "Titolo Nessun Risultato",
     "admin.pages.galleries.no_results_message": "Messaggio Nessun Risultato",
-
     "admin.pages.galleries.filter_settings": "Impostazioni Filtri",
     "admin.pages.galleries.filters_enabled": "Filtri abilitati",
     "admin.pages.galleries.animations_label": "Animazioni",
@@ -377,11 +362,9 @@
     "admin.pages.galleries.album_example": "Esempio Album",
     "admin.pages.galleries.error_loading_preview": "Errore caricamento anteprima",
     "admin.pages.galleries.edit_texts_info": "Modifica testi pagina gallerie",
-
     "admin.pages.galleries.settings_saved": "Impostazioni salvate con successo",
     "admin.pages.galleries.error_saving": "Errore nel salvataggio",
     "admin.pages.galleries.connection_error": "Errore di connessione",
-
     "admin.pages.home.page_title": "Pagine — Home",
     "admin.pages.home.edit": "Modifica i testi della pagina <strong>Home</strong>",
     "admin.pages.home.view_page": "Vedi pagina",
@@ -491,7 +474,6 @@
     "admin.pages.home.masonry_animation_desc": "Effetto dissolvenza mentre le immagini entrano nella vista",
     "admin.pages.home.masonry_responsive": "Griglia Responsive",
     "admin.pages.home.masonry_responsive_desc": "Colonne configurabili per desktop, tablet e mobile",
-
     "admin.pages.home.template_snap": "Snap Albums",
     "admin.pages.home.template_snap_subtitle": "Scorri tra gli album",
     "admin.pages.home.template_snap_desc": "Layout a schermo intero con navigazione scroll-snap tra album",
@@ -518,7 +500,6 @@
     "admin.pages.home.gallery_sticky_desc": "Contenitore fisso che si muove con lo scroll verticale",
     "admin.pages.home.gallery_mobile_grid": "Griglia Mobile",
     "admin.pages.home.gallery_mobile_grid_desc": "Layout griglia a 2 colonne su dispositivi mobili",
-
     "admin.dashboard.title": "Dashboard",
     "admin.dashboard.welcome": "Benvenuto",
     "admin.dashboard.new_album": "Nuovo Album",
@@ -540,7 +521,6 @@
     "admin.dashboard.labs_desc": "Ricerca laboratori",
     "admin.dashboard.tools": "Strumenti",
     "admin.dashboard.tools_desc": "Migrazioni, seeding, sitemap",
-
     "admin.albums.title": "Album",
     "admin.albums.description": "Gestisci i tuoi album fotografici e collezioni",
     "admin.albums.new_album": "Nuovo Album",
@@ -567,7 +547,6 @@
     "admin.albums.next": "Successivo",
     "admin.albums.order_saved": "Ordine album salvato",
     "admin.albums.order_error": "Errore nel salvataggio ordine",
-
     "admin.albums.basic_info": "Informazioni Base",
     "admin.albums.basic_info_desc": "Titolo, descrizione e contenuto album",
     "admin.albums.title_field": "Titolo",
@@ -585,7 +564,6 @@
     "admin.albums.full_content": "Contenuto Completo",
     "admin.albums.full_content_placeholder": "Descrizione completa con formattazione...",
     "admin.albums.full_content_help": "Supporta formattazione: grassetto, corsivo, elenchi, link",
-
     "admin.albums.image_upload": "Caricamento Immagini",
     "admin.albums.image_upload_desc": "Carica immagini durante la creazione",
     "admin.albums.drag_images": "Trascina le immagini qui",
@@ -610,7 +588,6 @@
     "admin.albums.full_edit_page": "Pagina Modifica Completa",
     "admin.albums.upload_preview_alt": "Anteprima immagine caricata: {name}",
     "admin.albums.upload_error_generic": "Errore durante il caricamento",
-
     "admin.albums.publishing": "Impostazioni Pubblicazione",
     "admin.albums.publishing_desc": "Data, template e visibilità",
     "admin.albums.shoot_date": "Data Scatto",
@@ -622,7 +599,6 @@
     "admin.albums.allow_downloads": "Permetti download immagini",
     "admin.albums.nsfw_content": "Contenuto NSFW",
     "admin.albums.nsfw_help": "Seleziona se l'album contiene contenuti per adulti o sensibili",
-
     "admin.albums.equipment": "Attrezzatura Fotografica",
     "admin.albums.equipment_desc": "Attrezzatura usata per l'album",
     "admin.albums.cameras": "Fotocamere",
@@ -630,7 +606,6 @@
     "admin.albums.films": "Pellicole",
     "admin.albums.developers": "Sviluppatori",
     "admin.albums.labs": "Laboratori",
-
     "admin.albums.locations_security": "Località e Sicurezza",
     "admin.albums.locations_security_desc": "Posizioni e protezione album",
     "admin.albums.shooting_locations": "Luoghi di Scatto",
@@ -638,9 +613,7 @@
     "admin.albums.password": "Password Album (opzionale)",
     "admin.albums.password_placeholder": "Imposta password per proteggere l'album",
     "admin.albums.password_help": "Se impostata, l'album richiederà una password per l'accesso pubblico",
-
     "admin.albums.footer_hint": "Completa i campi obbligatori per salvare",
-
     "admin.albums.edit_image": "Modifica immagine",
     "admin.albums.alt_text": "Testo alternativo",
     "admin.albums.caption": "Titolo/Didascalia",
@@ -656,7 +629,6 @@
     "admin.albums.iso": "ISO",
     "admin.albums.shutter": "Otturatore",
     "admin.albums.aperture": "Apertura",
-
     "admin.albums.edit_description": "Aggiorna informazioni e gestisci immagini",
     "admin.albums.view_page": "Vedi pagina",
     "admin.albums.image_management": "Gestione Immagini",
@@ -753,7 +725,6 @@
     "admin.albums.image_preview": "Anteprima immagine",
     "admin.albums.album_password": "Password Album",
     "admin.albums.or_click_select": "o clicca per selezionare dal tuo computer",
-
     "admin.cameras.title": "Fotocamere",
     "admin.cameras.description": "Gestisci la libreria delle fotocamere",
     "admin.cameras.new": "Nuova Fotocamera",
@@ -781,7 +752,6 @@
     "admin.cameras.type_other": "Altro",
     "admin.cameras.update": "Aggiorna",
     "admin.cameras.cancel": "Annulla",
-
     "admin.lenses.title": "Obiettivi",
     "admin.lenses.description": "Gestisci la libreria degli obiettivi",
     "admin.lenses.new": "Nuovo Obiettivo",
@@ -803,7 +773,6 @@
     "admin.lenses.focal_min": "Focale min (mm)",
     "admin.lenses.focal_max": "Focale max (mm)",
     "admin.lenses.aperture_min": "Apertura min (f/)",
-
     "admin.films.title": "Pellicole",
     "admin.films.description": "Gestisci la libreria delle pellicole",
     "admin.films.new": "Nuova Pellicola",
@@ -854,7 +823,6 @@
     "admin.films.type_other": "Altro/Sperimentale",
     "admin.films.update": "Aggiorna",
     "admin.films.cancel": "Annulla",
-
     "admin.developers.title": "Sviluppatori",
     "admin.developers.description": "Gestisci la libreria degli sviluppatori",
     "admin.developers.new": "Nuovo Sviluppatore",
@@ -875,7 +843,6 @@
     "admin.developers.update": "Aggiorna",
     "admin.developers.cancel": "Annulla",
     "admin.developers.process": "Processo",
-
     "admin.labs.title": "Laboratori",
     "admin.labs.description": "Gestisci la libreria dei laboratori",
     "admin.labs.new": "Nuovo Laboratorio",
@@ -893,7 +860,6 @@
     "admin.labs.save": "Salva Laboratorio",
     "admin.labs.update": "Aggiorna",
     "admin.labs.cancel": "Annulla",
-
     "admin.locations.title": "Località",
     "admin.locations.description": "Gestisci i luoghi di scatto",
     "admin.locations.new": "Nuova Località",
@@ -930,7 +896,6 @@
     "admin.locations.delete_location": "Elimina Località",
     "admin.locations.delete_confirm_full": "Sei sicuro di voler eliminare questa località? Questa azione non può essere annullata.",
     "admin.locations.fix_errors": "Correggi i seguenti errori:",
-
     "admin.media.title": "Libreria Media",
     "admin.media.description": "Gestisci tutti i file media caricati",
     "admin.media.search": "Cerca per nome file, testo alternativo...",
@@ -981,7 +946,6 @@
     "admin.media.images_added_to_album": "{count} immagini aggiunte all'album",
     "admin.media.images_deleted": "{count} immagini eliminate",
     "admin.media.error_loading_gallery": "Errore nel caricamento della galleria",
-
     "admin.upload.in_progress_title": "Caricamento in corso",
     "admin.upload.preparing": "Preparazione...",
     "admin.upload.compressing": "Compressione {name}...",
@@ -998,7 +962,6 @@
     "admin.tinymce.subtitle": "Sottotitolo",
     "admin.tinymce.section_title": "Titolo sezione",
     "admin.tinymce.note": "Nota",
-
     "admin.categories.title": "Categorie",
     "admin.categories.description": "Gestisci le categorie degli album",
     "admin.categories.new": "Nuova Categoria",
@@ -1066,7 +1029,6 @@
     "admin.categories.name_min_length": "Il nome della categoria deve essere di almeno 2 caratteri",
     "admin.categories.preview": "Anteprima",
     "admin.categories.update_error": "Errore durante l'aggiornamento della categoria",
-
     "admin.tags.title": "Tag",
     "admin.tags.description": "Gestisci i tag degli album",
     "admin.tags.new": "Nuovo Tag",
@@ -1091,7 +1053,6 @@
     "admin.tags.cancel": "Annulla",
     "admin.tags.update": "Aggiorna",
     "admin.tags.delete": "Elimina",
-
     "admin.templates.title": "Template",
     "admin.templates.description": "Configura i template di visualizzazione galleria",
     "admin.templates.page_description": "Gestisci i template per la visualizzazione degli album",
@@ -1161,7 +1122,6 @@
     "admin.templates.gap_vertical_hint": "Spazio tra le foto nella stessa colonna",
     "admin.templates.masonry_full_info": "Questo layout usa CSS columns per un effetto masonry nativo. Le foto mantengono le loro proporzioni originali.",
     "admin.templates.css_columns": "CSS Columns",
-
     "admin.analytics.title": "Statistiche",
     "admin.analytics.description": "Visualizza statistiche del sito e informazioni sui visitatori",
     "admin.analytics.realtime": "Tempo reale",
@@ -1223,7 +1183,6 @@
     "admin.analytics.album_password_access_title": "Accessi con password per album",
     "admin.analytics.password_access_sorted_by": "Ordinati per sblocchi password ({start} a {end})",
     "admin.analytics.password_unlocks": "Sblocchi password",
-
     "admin.analytics.albums.page_title": "Analisi Album",
     "admin.analytics.albums.description": "Monitora le prestazioni dei tuoi album fotografici",
     "admin.analytics.albums.back_to_dashboard": "Torna alla Dashboard",
@@ -1255,7 +1214,6 @@
     "admin.analytics.albums.total_page_views": "Visualizzazioni Totali:",
     "admin.analytics.albums.total_unique_visitors": "Visitatori Unici Totali:",
     "admin.analytics.albums.average_time_per_album": "Tempo Medio per Album:",
-
     "admin.analytics.realtime.page_title": "Analisi in Tempo Reale",
     "admin.analytics.realtime.description": "Monitora l'attività dei visitatori in tempo reale",
     "admin.analytics.realtime.back_to_dashboard": "Torna alla Dashboard",
@@ -1281,7 +1239,6 @@
     "admin.analytics.realtime.no_activity": "Nessuna attività corrente",
     "admin.analytics.realtime.no_pages": "Nessuna visualizzazione nell'ultima ora",
     "admin.analytics.realtime.now": "adesso",
-
     "admin.analytics.export.page_title": "Esporta Dati Analytics",
     "admin.analytics.export.description": "Scarica i tuoi dati analytics in vari formati",
     "admin.analytics.export.back_to_dashboard": "Torna alla Dashboard",
@@ -1324,7 +1281,6 @@
     "admin.analytics.export.formats_note_1": "I file sono generati su richiesta e non memorizzati",
     "admin.analytics.export.formats_note_2": "Esportazioni grandi potrebbero richiedere alcuni istanti",
     "admin.analytics.export.album_analytics": "Analisi Album",
-
     "admin.analytics.settings.page_title": "Impostazioni Analytics",
     "admin.analytics.settings.description": "Configura privacy, conservazione dati e opzioni di tracciamento",
     "admin.analytics.settings.back_to_dashboard": "Torna alla Dashboard",
@@ -1372,7 +1328,6 @@
     "admin.analytics.settings.cleanup_confirm": "Sei sicuro di voler pulire i vecchi dati analytics? Questa azione non può essere annullata.",
     "admin.analytics.settings.cleanup_hint": "La pulizia rimuove i dati più vecchi del periodo di conservazione. L'esportazione include tutti i dati disponibili.",
     "admin.analytics.settings.save": "Salva Impostazioni",
-
     "admin.settings.title": "Impostazioni",
     "admin.settings.description": "Configura la tua installazione Cimaise",
     "admin.settings.save_settings": "Salva Impostazioni",
@@ -1502,7 +1457,6 @@
     "admin.settings.show_tags_in_header": "Mostra Tag nella Navigazione",
     "admin.settings.show_tags_in_header_desc": "Visualizza un menu dropdown Tag nella navigazione dell'header del sito",
     "admin.common.dashboard": "Dashboard",
-
     "admin.social.title": "Condivisione Social",
     "admin.social.description": "Seleziona e ordina i pulsanti di condivisione social",
     "admin.social.save_settings": "Salva Impostazioni",
@@ -1525,7 +1479,6 @@
     "admin.social.preview": "Anteprima",
     "admin.social.sharing_section": "Condivisione Social",
     "admin.social.sharing_section_desc": "Pulsanti che i visitatori possono usare per condividere le tue foto sui social",
-
     "admin.seo.title": "Impostazioni SEO",
     "admin.seo.description": "Configura l'ottimizzazione per i motori di ricerca",
     "admin.seo.save_settings": "Salva Impostazioni SEO",
@@ -1649,7 +1602,6 @@
     "admin.seo.meta_description": "Meta Description Predefinita",
     "admin.seo.meta_keywords": "Meta Keywords",
     "admin.seo.site_wide": "SEO Globale",
-
     "admin.privacy.title": "Impostazioni Privacy",
     "admin.privacy.description": "Configura consenso cookie e opzioni privacy",
     "admin.privacy.save_settings": "Salva Impostazioni Privacy",
@@ -1683,7 +1635,6 @@
     "admin.privacy.consent_marketing_desc": "Questi script si caricano solo quando i visitatori accettano i cookie marketing.",
     "admin.privacy.marketing_placeholder": "<!-- Script marketing qui -->\n<script>fbq('init', 'PIXEL_ID');</script>",
     "admin.privacy.preview_banner": "Anteprima Banner",
-
     "admin.filter_settings.title": "Impostazioni Filtri",
     "admin.filter_settings.description": "Configura il sistema di filtri della galleria",
     "admin.filter_settings.preview": "Anteprima",
@@ -1738,7 +1689,6 @@
     "admin.filter_settings.save_settings": "Salva Impostazioni",
     "admin.filter_settings.preview_changes": "Anteprima Modifiche",
     "admin.filter_settings.changes_applied_hint": "Le modifiche verranno applicate immediatamente alla pagina gallerie",
-
     "admin.commands.title": "Comandi Sistema",
     "admin.commands.description": "Esegui comandi di sistema e manutenzione",
     "admin.commands.cli_guide": "Guida CLI",
@@ -1793,7 +1743,6 @@
     "admin.commands.seo_commands": "Comandi SEO",
     "admin.commands.system_commands": "Comandi Sistema",
     "admin.commands.confirm_cleanup": "Sei sicuro di voler eliminare i vecchi dati analytics? Verranno eliminati permanentemente i dati più vecchi del periodo di conservazione. Questa azione non può essere annullata.",
-
     "admin.diagnostics.title": "Diagnostica Sistema",
     "admin.diagnostics.description": "Visualizza stato di salute e configurazione del sistema",
     "admin.diagnostics.refresh": "Aggiorna",
@@ -1828,7 +1777,6 @@
     "admin.diagnostics.build_sitemap": "Genera sitemap",
     "admin.diagnostics.run_diagnostics": "Esegui diagnostica",
     "admin.diagnostics.create_admin": "Crea utente admin",
-
     "admin.updates.title": "Aggiornamenti Sistema",
     "admin.updates.description": "Gestisci aggiornamenti e backup dell'applicazione",
     "admin.updates.current_version": "Versione Attuale",
@@ -1892,7 +1840,6 @@
     "admin.updates.downloading": "Download aggiornamento...",
     "admin.updates.installing": "Installazione aggiornamento...",
     "admin.updates.do_not_close": "Non chiudere questa finestra o navigare altrove durante l'aggiornamento.",
-
     "admin.plugins.title": "Plugin",
     "admin.plugins.description": "Gestisci i plugin installati e disponibili per Cimaise",
     "admin.plugins.total_plugins": "plugin totali",
@@ -1934,7 +1881,22 @@
     "admin.plugins.invalid_response": "Risposta non valida dal server",
     "admin.plugins.reload_page": "Ricarica Pagina",
     "admin.plugins.upload_error": "Errore durante il caricamento",
-    "admin.plugins.network_error": "Errore di rete durante il caricamento"
+    "admin.plugins.network_error": "Errore di rete durante il caricamento",
+    "settings": {
+      "breakpoint_sm": "Piccolo (Mobile)",
+      "breakpoint_md": "Medio (Tablet)",
+      "breakpoint_lg": "Grande (Desktop)",
+      "breakpoint_xl": "Extra Grande",
+      "breakpoint_xxl": "2X Grande"
+    },
+    "privacy": {
+      "nsfw_warning": "Avviso NSFW Globale",
+      "nsfw_warning_hint": "Mostra verifica età quando gli utenti visitano il sito per la prima volta",
+      "enable_nsfw_warning": "Abilita avviso NSFW globale",
+      "enable_nsfw_warning_hint": "Richiedi conferma età prima di accedere al sito",
+      "nsfw_how_it_works": "Come funziona:",
+      "nsfw_how_it_works_desc": "Se abilitato, tutti i visitatori devono confermare di avere 18+ anni prima di accedere al sito. Una volta confermato, i contenuti degli album NSFW diventano visibili."
+    }
   },
   "errors": {
     "errors.404.title": "Pagina non trovata",
@@ -1945,5 +1907,15 @@
     "errors.500.message": "Spiacenti, si è verificato un errore. Riprova più tardi.",
     "errors.500.back_home": "Torna alla Home",
     "errors.500.back_dashboard": "Torna alla Dashboard"
+  },
+  "frontend": {
+    "nsfw_global": {
+      "title": "Avviso Contenuto per Adulti",
+      "message": "Questo sito contiene contenuti per adulti. Devi avere almeno 18 anni per continuare.",
+      "disclaimer": "Continuando, confermi di essere maggiorenne nella tua giurisdizione.",
+      "confirm": "Ho 18+ anni - Entra",
+      "decline": "Esci",
+      "remember": "La tua scelta verrà ricordata per questa sessione."
+    }
   }
 }

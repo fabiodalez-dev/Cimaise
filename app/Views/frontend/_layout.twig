@@ -331,7 +331,36 @@
             background: rgba(0,0,0,0.7);
             padding: 12px 20px;
             border-radius: 6px;
-            /* removed blur for clarity and performance */
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            /* Hidden by default, shown via toggle button */
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .pswp__custom-caption.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* EXIF toggle button */
+        .pswp__button--info {
+            background: none !important;
+            border: none !important;
+            color: #fff !important;
+            font-size: 20px !important;
+            width: 44px;
+            height: 44px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .pswp__button--info:hover {
+            opacity: 1;
+        }
+
+        .pswp__button--info.active {
+            opacity: 1;
+            color: #4ade80 !important;
         }
         
         /* Responsive adjustments per caption */
@@ -2394,6 +2423,21 @@
 
                     // Enhanced Caption UI with metadata
                     lb.on('uiRegister', () => {
+                        // Info button to toggle EXIF/caption
+                        lb.pswp.ui.registerElement({
+                            name: 'info-button',
+                            order: 8,
+                            isButton: true,
+                            html: '<i class="fas fa-info-circle"></i>',
+                            onClick: (e, el) => {
+                                const caption = lb.pswp.element.querySelector('.pswp__custom-caption');
+                                if (caption) {
+                                    caption.classList.toggle('visible');
+                                    el.classList.toggle('active');
+                                }
+                            }
+                        });
+
                         // Custom caption inline (transparent background), includes meta info
                         lb.pswp.ui.registerElement({
                             name: 'custom-caption', order: 9, isButton: false, appendTo: 'root',
@@ -2984,5 +3028,8 @@
 
     {# Cookie Banner with conditional script loader #}
     {% include 'partials/cookie-banner.twig' %}
+
+    {# Global NSFW Warning Gate #}
+    {% include 'frontend/_nsfw_global_gate.twig' %}
 </body>
 </html>

@@ -65,12 +65,15 @@ class SettingsController extends BaseController
             'height' => null,
         ];
         $variantsAsync = isset($data['variants_async']);
-        
-        // breakpoints from textarea JSON
-        $breakpoints = json_decode((string)($data['breakpoints'] ?? ''), true);
-        if (!is_array($breakpoints)) {
-            $breakpoints = $svc->defaults()['image.breakpoints'];
-        }
+
+        // breakpoints from individual fields (improved UI)
+        $breakpoints = [
+            'sm' => max(100, min(2000, (int)($data['bp_sm'] ?? 400))),
+            'md' => max(100, min(2000, (int)($data['bp_md'] ?? 800))),
+            'lg' => max(100, min(3000, (int)($data['bp_lg'] ?? 1200))),
+            'xl' => max(100, min(4000, (int)($data['bp_xl'] ?? 1600))),
+            'xxl' => max(100, min(5000, (int)($data['bp_xxl'] ?? 2000))),
+        ];
         
         // default template - handle both empty string and actual values
         $defaultTemplateId = null;

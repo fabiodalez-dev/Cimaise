@@ -221,6 +221,8 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('custom_js_marketing', $settingsSvc->get('privacy.custom_js_marketing', ''));
         $twig->getEnvironment()->addGlobal('show_analytics', $settingsSvc->get('cookie_banner.show_analytics', false));
         $twig->getEnvironment()->addGlobal('show_marketing', $settingsSvc->get('cookie_banner.show_marketing', false));
+        // NSFW global warning
+        $twig->getEnvironment()->addGlobal('nsfw_global_warning', $settingsSvc->get('privacy.nsfw_global_warning', false));
         // Lightbox settings
         $twig->getEnvironment()->addGlobal('lightbox_show_exif', $settingsSvc->get('lightbox.show_exif', true));
         $twig->getEnvironment()->addGlobal('disable_right_click', (bool)$settingsSvc->get('frontend.disable_right_click', true));

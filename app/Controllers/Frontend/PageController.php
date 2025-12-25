@@ -183,8 +183,9 @@ class PageController extends BaseController
         $tags = $stmt->fetchAll();
         
         // Get random images from all published albums for infinite scroll
-        // Always exclude NSFW albums and password-protected albums for the homepage grid
-        $stmt = $pdo->prepare('
+        // Include NSFW albums if user has global consent, always exclude password-protected albums
+        $nsfwFilter = ($isAdmin || $nsfwConsent) ? '' : 'AND a.is_nsfw = 0';
+        $stmt = $pdo->prepare("
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description,
                    c.slug as category_slug, c.name as category_name
@@ -192,11 +193,11 @@ class PageController extends BaseController
             JOIN albums a ON a.id = i.album_id
             JOIN categories c ON c.id = a.category_id
             WHERE a.is_published = 1
-              AND a.is_nsfw = 0
-              AND (a.password_hash IS NULL OR a.password_hash = "")
+              {$nsfwFilter}
+              AND (a.password_hash IS NULL OR a.password_hash = '')
             ORDER BY RANDOM()
             LIMIT 500
-        ');
+        ");
         $stmt->execute();
         $allImages = $stmt->fetchAll();
         

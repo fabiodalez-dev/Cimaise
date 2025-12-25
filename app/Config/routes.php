@@ -124,6 +124,12 @@ $app->post('/album/{slug}/nsfw-confirm', function (Request $request, Response $r
     return $controller->confirmNsfw($request, $response, $args);
 })->add(new RateLimitMiddleware(10, 300));
 
+// Global NSFW warning confirmation (for entire site)
+$app->post('/nsfw-global-confirm', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+    return $controller->confirmNsfwGlobal($request, $response);
+})->add(new RateLimitMiddleware(10, 300));
+
 // Global NSFW age verification confirmation (no album context)
 $app->post('/nsfw/confirm', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
