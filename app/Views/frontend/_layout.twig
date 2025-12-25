@@ -160,9 +160,7 @@
     <!-- Font Awesome (icons) -->
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
 
-    <!-- Google Fonts (preconnect + load) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Google Fonts (Inter + Kalam) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kalam:wght@400&display=swap">
     
     <!-- JS flag class on <html> if needed elsewhere -->
@@ -2774,7 +2772,13 @@
                                   const ds = curr.dataset || {};
                                   const esc = (s)=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                                   const head = esc(ds.title || ds.alt || '');
-                                  const piece = (icon, val) => val ? `<span class="inline-flex items-center"><i class="${icon} mr-1"></i>${esc(val)}</span>` : '';
+                                  const piece = (icon, val) => {
+                                    if (!val) return '';
+                                    // Whitelist: FontAwesome safe classes (alphanumeric, spaces, hyphen, underscore)
+                                    let safeIcon = String(icon || '').replace(/[^a-z0-9\-\s_]/gi, '').trim();
+                                    if (!safeIcon) safeIcon = 'fas fa-tag';
+                                    return `<span class="inline-flex items-center"><i class="${safeIcon} mr-1"></i>${esc(val)}</span>`;
+                                  };
                                   // Equipment data (always shown)
                                   const equipment = [
                                     piece('fas fa-camera', ds.camera),
