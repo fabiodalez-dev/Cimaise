@@ -83,7 +83,7 @@ function safeLocalStorageSet(key, value) {
           'Content-Type': 'application/x-www-form-urlencoded',
           'X-Requested-With': 'XMLHttpRequest'
         },
-        body: 'nsfw_global_confirmed=1'
+        body: 'csrf={{ csrf|e('js') }}&nsfw_confirmed=1'
       }).then(() => {
         // Hide gate and reload to show NSFW content
         gate.classList.remove('active');
