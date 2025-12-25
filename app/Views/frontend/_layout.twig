@@ -355,6 +355,7 @@
             bottom: 0;
             width: 320px;
             max-width: 85vw;
+            background: #ffffffd4;
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             color: #1a1a1a;
@@ -2713,6 +2714,7 @@
                                         })
                                         .then(response => response.json())
                                         .then(data => {
+                                            currentExifRequest = null;
                                             exifCache[imageId] = data;
                                             renderExifContent(data, contentEl);
                                         })
@@ -2741,7 +2743,8 @@
                                             const imageId = curr?.dataset?.imageId;
                                             const contentEl = panel.querySelector('.pswp__exif-panel-content');
 
-                                            if (imageId && contentEl) {
+                                            // Validate imageId is numeric
+                                            if (imageId && /^\d+$/.test(imageId) && contentEl) {
                                                 fetchExifData(imageId, contentEl);
                                             } else if (contentEl) {
                                                 contentEl.innerHTML = `

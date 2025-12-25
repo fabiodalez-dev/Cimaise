@@ -78,9 +78,15 @@ class ExifService
             $meta['Model'] = $this->getPelEntryValue($ifd0, PelTag::MODEL);
             $meta['Orientation'] = $this->getPelEntryValue($ifd0, PelTag::ORIENTATION) ?? 1;
 
+            // Get IFD0 metadata (Software, Artist, Copyright)
+            $meta['Software'] = $this->getPelEntryValue($ifd0, PelTag::SOFTWARE);
+            $meta['Artist'] = $this->getPelEntryValue($ifd0, PelTag::ARTIST);
+            $meta['Copyright'] = $this->getPelEntryValue($ifd0, PelTag::COPYRIGHT);
+
             // Get EXIF sub-IFD entries
             $exifIfd = $ifd0->getSubIfd(PelIfd::EXIF);
             if ($exifIfd) {
+                // Basic exposure settings
                 $meta['ExposureTime'] = $this->getPelRationalString($exifIfd, PelTag::EXPOSURE_TIME);
                 $meta['FNumber'] = $this->getPelRationalFloat($exifIfd, PelTag::FNUMBER);
                 $meta['ISOSpeedRatings'] = $this->getPelEntryValue($exifIfd, PelTag::ISO_SPEED_RATINGS);
@@ -92,6 +98,24 @@ class ExifService
 
                 // LensModel tag (0xA434) - not defined as constant in PelTag
                 $meta['LensModel'] = $this->getPelEntryValue($exifIfd, 0xA434);
+
+                // Extended exposure info
+                $meta['ExposureBiasValue'] = $this->getPelRationalFloat($exifIfd, PelTag::EXPOSURE_BIAS_VALUE);
+                $meta['MeteringMode'] = $this->getPelEntryValue($exifIfd, PelTag::METERING_MODE);
+                $meta['ExposureMode'] = $this->getPelEntryValue($exifIfd, PelTag::EXPOSURE_MODE);
+                $meta['ExposureProgram'] = $this->getPelEntryValue($exifIfd, PelTag::EXPOSURE_PROGRAM);
+                $meta['FocalLengthIn35mmFilm'] = $this->getPelEntryValue($exifIfd, 0xA405);
+
+                // Image processing settings
+                $meta['Contrast'] = $this->getPelEntryValue($exifIfd, PelTag::CONTRAST);
+                $meta['Saturation'] = $this->getPelEntryValue($exifIfd, PelTag::SATURATION);
+                $meta['Sharpness'] = $this->getPelEntryValue($exifIfd, PelTag::SHARPNESS);
+                $meta['SceneCaptureType'] = $this->getPelEntryValue($exifIfd, PelTag::SCENE_CAPTURE_TYPE);
+
+                // Additional useful fields
+                $meta['SubjectDistance'] = $this->getPelRationalFloat($exifIfd, PelTag::SUBJECT_DISTANCE);
+                $meta['LightSource'] = $this->getPelEntryValue($exifIfd, PelTag::LIGHT_SOURCE);
+                $meta['DigitalZoomRatio'] = $this->getPelRationalFloat($exifIfd, 0xA404);
             }
 
             // Get GPS sub-IFD entries
@@ -232,19 +256,42 @@ class ExifService
             $meta['Make'] = $this->cleanString($ex['IFD0']['Make'] ?? $ex['EXIF']['Make'] ?? null);
             $meta['Model'] = $this->cleanString($ex['IFD0']['Model'] ?? $ex['EXIF']['Model'] ?? null);
 
+            // IFD0 metadata
+            $meta['Software'] = $this->cleanString($ex['IFD0']['Software'] ?? null);
+            $meta['Artist'] = $this->cleanString($ex['IFD0']['Artist'] ?? null);
+            $meta['Copyright'] = $this->cleanString($ex['IFD0']['Copyright'] ?? null);
+
             // Lens info (multiple possible tags)
             $meta['LensModel'] = $this->cleanString($ex['EXIF']['UndefinedTag:0xA434'] ??
                                                   $ex['EXIF']['LensModel'] ??
                                                   $ex['EXIF']['LensMake'] ??
                                                   $ex['EXIF']['LensSpecification'] ?? null);
 
-            // Exposure settings
+            // Basic exposure settings
             $meta['ISOSpeedRatings'] = $ex['EXIF']['ISOSpeedRatings'] ?? $ex['EXIF']['ISO'] ?? null;
             $meta['ExposureTime'] = $ex['EXIF']['ExposureTime'] ?? null;
             $meta['ShutterSpeedValue'] = $ex['EXIF']['ShutterSpeedValue'] ?? null;
             $meta['FNumber'] = isset($ex['EXIF']['FNumber']) ? $this->rationalToFloat($ex['EXIF']['FNumber']) : null;
             $meta['ApertureValue'] = isset($ex['EXIF']['ApertureValue']) ? $this->rationalToFloat($ex['EXIF']['ApertureValue']) : null;
             $meta['FocalLength'] = isset($ex['EXIF']['FocalLength']) ? $this->rationalToFloat($ex['EXIF']['FocalLength']) : null;
+
+            // Extended exposure info
+            $meta['ExposureBiasValue'] = isset($ex['EXIF']['ExposureBiasValue']) ? $this->rationalToFloat($ex['EXIF']['ExposureBiasValue']) : null;
+            $meta['MeteringMode'] = $ex['EXIF']['MeteringMode'] ?? null;
+            $meta['ExposureMode'] = $ex['EXIF']['ExposureMode'] ?? null;
+            $meta['ExposureProgram'] = $ex['EXIF']['ExposureProgram'] ?? null;
+            $meta['FocalLengthIn35mmFilm'] = $ex['EXIF']['FocalLengthIn35mmFilm'] ?? $ex['EXIF']['FocalLengthIn35mmFormat'] ?? null;
+
+            // Image processing settings
+            $meta['Contrast'] = $ex['EXIF']['Contrast'] ?? null;
+            $meta['Saturation'] = $ex['EXIF']['Saturation'] ?? null;
+            $meta['Sharpness'] = $ex['EXIF']['Sharpness'] ?? null;
+            $meta['SceneCaptureType'] = $ex['EXIF']['SceneCaptureType'] ?? null;
+
+            // Additional useful fields
+            $meta['SubjectDistance'] = isset($ex['EXIF']['SubjectDistance']) ? $this->rationalToFloat($ex['EXIF']['SubjectDistance']) : null;
+            $meta['LightSource'] = $ex['EXIF']['LightSource'] ?? null;
+            $meta['DigitalZoomRatio'] = isset($ex['EXIF']['DigitalZoomRatio']) ? $this->rationalToFloat($ex['EXIF']['DigitalZoomRatio']) : null;
 
             // Date/time
             $meta['DateTimeOriginal'] = $ex['EXIF']['DateTimeOriginal'] ?? $ex['EXIF']['DateTime'] ?? null;
@@ -540,6 +587,116 @@ class ExifService
     }
 
     /**
+     * Format exposure bias value with +/- prefix.
+     */
+    public function formatExposureBias(?float $bias): ?string
+    {
+        if ($bias === null) return null;
+        if ($bias == 0) return '±0 EV';
+        $sign = $bias > 0 ? '+' : '';
+        return $sign . number_format($bias, 1) . ' EV';
+    }
+
+    /**
+     * Get human-readable metering mode name.
+     */
+    private function getMeteringModeName(?int $mode): ?string
+    {
+        if ($mode === null) return null;
+        return match ($mode) {
+            0 => 'Unknown',
+            1 => 'Average',
+            2 => 'Center-weighted',
+            3 => 'Spot',
+            4 => 'Multi-spot',
+            5 => 'Multi-segment',
+            6 => 'Partial',
+            255 => 'Other',
+            default => null
+        };
+    }
+
+    /**
+     * Get human-readable exposure program name.
+     */
+    private function getExposureProgramName(?int $program): ?string
+    {
+        if ($program === null) return null;
+        return match ($program) {
+            0 => 'Unknown',
+            1 => 'Manual',
+            2 => 'Program (Auto)',
+            3 => 'Aperture Priority',
+            4 => 'Shutter Priority',
+            5 => 'Creative',
+            6 => 'Action',
+            7 => 'Portrait',
+            8 => 'Landscape',
+            default => null
+        };
+    }
+
+    /**
+     * Get human-readable exposure mode name.
+     */
+    private function getExposureModeName(?int $mode): ?string
+    {
+        if ($mode === null) return null;
+        return match ($mode) {
+            0 => 'Auto',
+            1 => 'Manual',
+            2 => 'Auto Bracket',
+            default => null
+        };
+    }
+
+    /**
+     * Get human-readable scene capture type.
+     */
+    private function getSceneCaptureTypeName(?int $type): ?string
+    {
+        if ($type === null) return null;
+        return match ($type) {
+            0 => 'Standard',
+            1 => 'Landscape',
+            2 => 'Portrait',
+            3 => 'Night Scene',
+            default => null
+        };
+    }
+
+    /**
+     * Get human-readable light source name.
+     */
+    private function getLightSourceName(?int $source): ?string
+    {
+        if ($source === null) return null;
+        return match ($source) {
+            0 => 'Unknown',
+            1 => 'Daylight',
+            2 => 'Fluorescent',
+            3 => 'Tungsten',
+            4 => 'Flash',
+            9 => 'Fine Weather',
+            10 => 'Cloudy',
+            11 => 'Shade',
+            12 => 'Daylight Fluorescent',
+            13 => 'Day White Fluorescent',
+            14 => 'Cool White Fluorescent',
+            15 => 'White Fluorescent',
+            17 => 'Standard Light A',
+            18 => 'Standard Light B',
+            19 => 'Standard Light C',
+            20 => 'D55',
+            21 => 'D65',
+            22 => 'D75',
+            23 => 'D50',
+            24 => 'ISO Studio Tungsten',
+            default => null
+        };
+    }
+
+    /**
      * Extract and format EXIF data for lightbox display.
      * Returns a structured array ready for JSON output.
      *
@@ -554,8 +711,8 @@ class ExifService
             'sections' => []
         ];
 
-        // Camera section
-        $camera = [];
+        // Equipment section (Camera, Lens)
+        $equipment = [];
         if (!empty($meta['Make']) || !empty($meta['Model'])) {
             $make = $meta['Make'] ?? '';
             $model = $meta['Model'] ?? '';
@@ -566,17 +723,17 @@ class ExifService
                 $cameraName = trim($make . ' ' . $model);
             }
             if ($cameraName) {
-                $camera[] = ['label' => 'Camera', 'value' => $cameraName, 'icon' => 'fa-camera'];
+                $equipment[] = ['label' => 'Camera', 'value' => $cameraName, 'icon' => 'fa-camera'];
             }
         }
         if (!empty($meta['LensModel'])) {
-            $camera[] = ['label' => 'Lens', 'value' => $meta['LensModel'], 'icon' => 'fa-circle-dot'];
+            $equipment[] = ['label' => 'Lens', 'value' => $meta['LensModel'], 'icon' => 'fa-circle-dot'];
         }
-        if (!empty($camera)) {
-            $result['sections'][] = ['title' => 'Equipment', 'items' => $camera];
+        if (!empty($equipment)) {
+            $result['sections'][] = ['title' => 'Equipment', 'items' => $equipment];
         }
 
-        // Exposure section
+        // Exposure section (basic shooting parameters)
         $exposure = [];
         if (!empty($meta['ExposureTime'])) {
             $shutter = $this->formatShutterSpeed($meta['ExposureTime']);
@@ -595,10 +752,48 @@ class ExifService
             $exposure[] = ['label' => 'ISO', 'value' => (string)$iso, 'icon' => 'fa-gauge-high'];
         }
         if (!empty($meta['FocalLength'])) {
-            $exposure[] = ['label' => 'Focal Length', 'value' => round($meta['FocalLength']) . 'mm', 'icon' => 'fa-ruler-horizontal'];
+            $focalValue = round($meta['FocalLength']) . 'mm';
+            // Add 35mm equivalent if available and different
+            if (!empty($meta['FocalLengthIn35mmFilm'])) {
+                $equiv = (int)$meta['FocalLengthIn35mmFilm'];
+                if ($equiv !== (int)round($meta['FocalLength'])) {
+                    $focalValue .= ' (' . $equiv . 'mm eq.)';
+                }
+            }
+            $exposure[] = ['label' => 'Focal Length', 'value' => $focalValue, 'icon' => 'fa-ruler-horizontal'];
+        }
+        if (isset($meta['ExposureBiasValue']) && $meta['ExposureBiasValue'] !== null) {
+            $bias = $this->formatExposureBias($meta['ExposureBiasValue']);
+            if ($bias) {
+                $exposure[] = ['label' => 'Exp. Comp.', 'value' => $bias, 'icon' => 'fa-sliders'];
+            }
         }
         if (!empty($exposure)) {
             $result['sections'][] = ['title' => 'Exposure', 'items' => $exposure];
+        }
+
+        // Camera Mode section (program, metering, exposure mode)
+        $mode = [];
+        if (isset($meta['ExposureProgram']) && $meta['ExposureProgram'] !== null) {
+            $programName = $this->getExposureProgramName($meta['ExposureProgram']);
+            if ($programName) {
+                $mode[] = ['label' => 'Program', 'value' => $programName, 'icon' => 'fa-dial'];
+            }
+        }
+        if (isset($meta['MeteringMode']) && $meta['MeteringMode'] !== null) {
+            $meteringName = $this->getMeteringModeName($meta['MeteringMode']);
+            if ($meteringName) {
+                $mode[] = ['label' => 'Metering', 'value' => $meteringName, 'icon' => 'fa-bullseye'];
+            }
+        }
+        if (isset($meta['ExposureMode']) && $meta['ExposureMode'] !== null) {
+            $modeName = $this->getExposureModeName($meta['ExposureMode']);
+            if ($modeName) {
+                $mode[] = ['label' => 'Exp. Mode', 'value' => $modeName, 'icon' => 'fa-gear'];
+            }
+        }
+        if (!empty($mode)) {
+            $result['sections'][] = ['title' => 'Mode', 'items' => $mode];
         }
 
         // Date & Settings section
@@ -628,6 +823,18 @@ class ExifService
             $wb = $meta['WhiteBalance'] == 0 ? 'Auto' : 'Manual';
             $settings[] = ['label' => 'White Balance', 'value' => $wb, 'icon' => 'fa-temperature-half'];
         }
+        if (isset($meta['LightSource']) && $meta['LightSource'] !== null && $meta['LightSource'] != 0) {
+            $lightName = $this->getLightSourceName($meta['LightSource']);
+            if ($lightName) {
+                $settings[] = ['label' => 'Light Source', 'value' => $lightName, 'icon' => 'fa-sun'];
+            }
+        }
+        if (isset($meta['SceneCaptureType']) && $meta['SceneCaptureType'] !== null) {
+            $sceneName = $this->getSceneCaptureTypeName($meta['SceneCaptureType']);
+            if ($sceneName) {
+                $settings[] = ['label' => 'Scene', 'value' => $sceneName, 'icon' => 'fa-image'];
+            }
+        }
         if (!empty($settings)) {
             $result['sections'][] = ['title' => 'Details', 'items' => $settings];
         }
@@ -641,6 +848,21 @@ class ExifService
             // Add Google Maps link
             $gps[] = ['label' => 'Map', 'value' => "https://www.google.com/maps?q={$lat},{$lng}", 'icon' => 'fa-map', 'isLink' => true];
             $result['sections'][] = ['title' => 'Location', 'items' => $gps];
+        }
+
+        // Metadata section (software, artist, copyright)
+        $metadata = [];
+        if (!empty($meta['Software'])) {
+            $metadata[] = ['label' => 'Software', 'value' => $meta['Software'], 'icon' => 'fa-wand-magic-sparkles'];
+        }
+        if (!empty($meta['Artist'])) {
+            $metadata[] = ['label' => 'Artist', 'value' => $meta['Artist'], 'icon' => 'fa-user'];
+        }
+        if (!empty($meta['Copyright'])) {
+            $metadata[] = ['label' => 'Copyright', 'value' => $meta['Copyright'], 'icon' => 'fa-copyright'];
+        }
+        if (!empty($metadata)) {
+            $result['sections'][] = ['title' => 'Info', 'items' => $metadata];
         }
 
         // If no EXIF data found
