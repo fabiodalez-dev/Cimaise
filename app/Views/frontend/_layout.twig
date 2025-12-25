@@ -2637,11 +2637,19 @@
                                     el.setAttribute('aria-label', '{{ trans('lightbox.info_button')|default('Image Info') }}');
 
                                     const renderExifContent = (data, contentEl) => {
+                                        // XSS prevention: escape HTML entities
+                                        const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                                        // Whitelist: FontAwesome safe classes (alphanumeric, spaces, hyphen, underscore)
+                                        const sanitizeIcon = (icon) => {
+                                            let safeIcon = String(icon || '').replace(/[^a-z0-9\-\s_]/gi, '').trim();
+                                            return safeIcon || 'fas fa-circle';
+                                        };
+
                                         if (!data.success || !data.sections || data.sections.length === 0) {
                                             contentEl.innerHTML = `
                                                 <div class="pswp__exif-empty">
                                                     <i class="fas fa-image"></i>
-                                                    <p>${data.message || '{{ trans('lightbox.no_exif')|default('No EXIF data available') }}'}</p>
+                                                    <p>${escapeHtml(data.message) || '{{ trans('lightbox.no_exif')|default('No EXIF data available') }}'}</p>
                                                 </div>
                                             `;
                                             return;
@@ -2650,19 +2658,20 @@
                                         let html = '';
                                         data.sections.forEach(section => {
                                             html += `<div class="pswp__exif-section">`;
-                                            html += `<div class="pswp__exif-section-title">${section.title}</div>`;
+                                            html += `<div class="pswp__exif-section-title">${escapeHtml(section.title)}</div>`;
                                             section.items.forEach(item => {
-                                                const icon = item.icon || 'fa-circle';
-                                                const iconClass = icon.startsWith('fa-') ? `fas ${icon}` : icon;
-                                                let valueHtml = item.value;
-                                                if (item.isLink && item.value.startsWith('http')) {
-                                                    valueHtml = `<a href="${item.value}" target="_blank" rel="noopener">{{ trans('lightbox.view_map')|default('View on map') }}</a>`;
+                                                const iconClass = sanitizeIcon(item.icon);
+                                                let valueHtml = escapeHtml(item.value);
+                                                if (item.isLink && String(item.value || '').startsWith('http')) {
+                                                    // Validate URL protocol for safety
+                                                    const safeUrl = escapeHtml(item.value);
+                                                    valueHtml = `<a href="${safeUrl}" target="_blank" rel="noopener">{{ trans('lightbox.view_map')|default('View on map') }}</a>`;
                                                 }
                                                 html += `
                                                     <div class="pswp__exif-item">
                                                         <div class="pswp__exif-icon"><i class="${iconClass}"></i></div>
                                                         <div class="pswp__exif-item-content">
-                                                            <div class="pswp__exif-label">${item.label}</div>
+                                                            <div class="pswp__exif-label">${escapeHtml(item.label)}</div>
                                                             <div class="pswp__exif-value">${valueHtml}</div>
                                                         </div>
                                                     </div>
