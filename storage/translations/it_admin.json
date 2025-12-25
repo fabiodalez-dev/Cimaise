@@ -1882,21 +1882,17 @@
     "admin.plugins.reload_page": "Ricarica Pagina",
     "admin.plugins.upload_error": "Errore durante il caricamento",
     "admin.plugins.network_error": "Errore di rete durante il caricamento",
-    "settings": {
-      "breakpoint_sm": "Piccolo (Mobile)",
-      "breakpoint_md": "Medio (Tablet)",
-      "breakpoint_lg": "Grande (Desktop)",
-      "breakpoint_xl": "Extra Grande",
-      "breakpoint_xxl": "Extra Extra Grande"
-    },
-    "privacy": {
-      "nsfw_warning": "Avviso NSFW Globale",
-      "nsfw_warning_hint": "Mostra verifica età quando gli utenti visitano il sito per la prima volta",
-      "enable_nsfw_warning": "Abilita avviso NSFW globale",
-      "enable_nsfw_warning_hint": "Richiedi conferma età prima di accedere al sito",
-      "nsfw_how_it_works": "Come funziona:",
-      "nsfw_how_it_works_desc": "Se abilitato, tutti i visitatori devono confermare di avere 18+ anni prima di accedere al sito. Una volta confermato, i contenuti degli album NSFW diventano visibili."
-    }
+    "admin.settings.breakpoint_sm": "Piccolo (Mobile)",
+    "admin.settings.breakpoint_md": "Medio (Tablet)",
+    "admin.settings.breakpoint_lg": "Grande (Desktop)",
+    "admin.settings.breakpoint_xl": "Extra Grande",
+    "admin.settings.breakpoint_xxl": "Extra Extra Grande",
+    "admin.privacy.nsfw_warning": "Avviso NSFW Globale",
+    "admin.privacy.nsfw_warning_hint": "Mostra verifica età quando gli utenti visitano il sito per la prima volta",
+    "admin.privacy.enable_nsfw_warning": "Abilita avviso NSFW globale",
+    "admin.privacy.enable_nsfw_warning_hint": "Richiedi conferma età prima di accedere al sito",
+    "admin.privacy.nsfw_how_it_works": "Come funziona:",
+    "admin.privacy.nsfw_how_it_works_desc": "Se abilitato, tutti i visitatori devono confermare di avere 18+ anni prima di accedere al sito. Una volta confermato, i contenuti degli album NSFW diventano visibili."
   },
   "errors": {
     "errors.404.title": "Pagina non trovata",
