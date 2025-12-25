@@ -264,7 +264,7 @@ class TextsController extends BaseController
             }
         }
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => "Seeded {$added} new translations."];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => str_replace('{count}', (string)$added, trans('admin.flash.translations_seeded'))];
         return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
     }
 
@@ -322,10 +322,8 @@ class TextsController extends BaseController
 
         $result = $this->importFromJsonFile($filePath, $mode);
 
-        $_SESSION['flash'][] = [
-            'type' => 'success',
-            'message' => "Imported {$result['added']} new, updated {$result['updated']} existing translations."
-        ];
+        $importMessage = str_replace(['{added}', '{updated}'], [(string)$result['added'], (string)$result['updated']], trans('admin.flash.translations_imported'));
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => $importMessage];
         return $response->withHeader('Location', $this->redirect('/admin/texts?scope=' . $scope))->withStatus(302);
     }
 
@@ -384,10 +382,8 @@ class TextsController extends BaseController
 
         unlink($tempPath);
 
-        $_SESSION['flash'][] = [
-            'type' => 'success',
-            'message' => "Imported {$result['added']} new, updated {$result['updated']} existing translations."
-        ];
+        $importMessage = str_replace(['{added}', '{updated}'], [(string)$result['added'], (string)$result['updated']], trans('admin.flash.translations_imported'));
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => $importMessage];
         return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
     }
 

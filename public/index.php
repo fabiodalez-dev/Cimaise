@@ -227,7 +227,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $nsfwGlobalEnabled = (bool)$settingsSvc->get('privacy.nsfw_global_warning', false);
         $hasNsfwAlbums = false;
         if ($nsfwGlobalEnabled) {
-            $nsfwCheck = $db->pdo()->query('SELECT 1 FROM albums WHERE is_published = 1 AND is_nsfw = 1 LIMIT 1');
+            $nsfwCheck = $container['db']->pdo()->query('SELECT 1 FROM albums WHERE is_published = 1 AND is_nsfw = 1 LIMIT 1');
             $hasNsfwAlbums = $nsfwCheck && $nsfwCheck->fetchColumn() !== false;
         }
         $twig->getEnvironment()->addGlobal('nsfw_global_warning', $nsfwGlobalEnabled && $hasNsfwAlbums);

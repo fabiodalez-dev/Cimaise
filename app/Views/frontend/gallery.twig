@@ -249,13 +249,14 @@
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
            class="pswp-link image-item block overflow-hidden bg-neutral-50 cursor-pointer"
            title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
            data-title="{{ image.caption|default('')|e }}"
            data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
            data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
            data-developer="{{ image.developer_name|default('')|e }}"
            data-lab="{{ image.lab_name|default('')|e }}"
@@ -264,6 +265,7 @@
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
            data-process="{{ image.process|default('')|e }}"
+           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
         >
           <picture>
             {% if image.sources and image.sources.avif|length %}
@@ -310,6 +312,7 @@
             <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
                class="pswp-link image-item block h-[70vh] bg-neutral-100 rounded-xl overflow-hidden flex items-center justify-center"
                title="{{ seo_title|e('html_attr') }}"
+               data-image-id="{{ image.id }}"
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
                data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -376,13 +379,14 @@
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
            class="pswp-link image-item block aspect-square bg-neutral-50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-out"
            title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
            data-title="{{ image.caption|default('')|e }}"
            data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
            data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
            data-developer="{{ image.developer_name|default('')|e }}"
            data-lab="{{ image.lab_name|default('')|e }}"
@@ -391,6 +395,7 @@
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
            data-process="{{ image.process|default('')|e }}"
+           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
         >
           <div class="relative w-full h-full">
             <picture>
@@ -422,13 +427,14 @@
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
            class="pswp-link image-item block w-full h-full bg-neutral-100 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 ease-out hover:z-10 {{ featured ? 'flex items-center justify-center' : '' }}"
            title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
            data-title="{{ image.caption|default('')|e }}"
            data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
            data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
            data-developer="{{ image.developer_name|default('')|e }}"
            data-lab="{{ image.lab_name|default('')|e }}"
@@ -436,7 +442,8 @@
            data-iso="{{ image.iso|default('') }}"
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
-           data-process="{{ image.process|default('')|e }}">
+           data-process="{{ image.process|default('')|e }}"
+           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
           <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full {{ featured ? 'object-contain max-w-full max-h-full' : 'object-cover' }}">
         </a>
       </div>
@@ -454,6 +461,7 @@
             <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
                class="pswp-link image-item block h-full bg-neutral-100 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-out relative flex items-center justify-center"
                title="{{ seo_title|e('html_attr') }}"
+               data-image-id="{{ image.id }}"
                data-pswp-width="{{ image.width|default(1600) }}"
                data-pswp-height="{{ image.height|default(1067) }}"
                data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
@@ -489,13 +497,14 @@
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
            class="pswp-link image-item block bg-white p-3 pb-12 shadow-2xl hover:shadow-3xl transition-shadow duration-300 ease-out hover:z-50 relative"
            title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
            data-title="{{ image.caption|default('')|e }}"
            data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
            data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
            data-developer="{{ image.developer_name|default('')|e }}"
            data-lab="{{ image.lab_name|default('')|e }}"
@@ -504,6 +513,7 @@
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
            data-process="{{ image.process|default('')|e }}"
+           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
            style="width: 200px; filter: sepia(0.2) contrast(1.1) brightness(1.05);">
           <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full aspect-square object-cover">
           {% if image.caption %}
@@ -526,13 +536,14 @@
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
            class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
            title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
            data-title="{{ image.caption|default('')|e }}"
            data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
            data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
            data-developer="{{ image.developer_name|default('')|e }}"
            data-lab="{{ image.lab_name|default('')|e }}"
@@ -540,7 +551,8 @@
            data-iso="{{ image.iso|default('') }}"
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
-           data-process="{{ image.process|default('')|e }}">
+           data-process="{{ image.process|default('')|e }}"
+           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
           <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-auto object-cover">
         </a>
       </div>
@@ -592,13 +604,14 @@
         <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
            class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
            title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
            data-title="{{ image.caption|default('')|e }}"
            data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
+           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
            data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
            data-developer="{{ image.developer_name|default('')|e }}"
            data-lab="{{ image.lab_name|default('')|e }}"
@@ -606,7 +619,8 @@
            data-iso="{{ image.iso|default('') }}"
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
-           data-process="{{ image.process|default('')|e }}">
+           data-process="{{ image.process|default('')|e }}"
+           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
           <picture>
             {% if image.sources and image.sources.avif|length %}
               <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">

@@ -187,9 +187,22 @@
       <a href="{{ href_src }}"
          class="pswp-link block w-full h-full {{ extra_class }}"
          title="{{ seo_title|e('html_attr') }}"
+         data-image-id="{{ image.id }}"
          data-pswp-width="{{ w }}"
          data-pswp-height="{{ h }}"
          data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
+         data-title="{{ image.caption|default('')|e }}"
+         data-alt="{{ image.alt|default('')|e }}"
+         data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+         data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
+         data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
+         data-developer="{{ image.developer_name|default('')|e }}"
+         data-lab="{{ image.lab_name|default('')|e }}"
+         data-location="{{ image.location_name|default('')|e }}"
+         data-iso="{{ image.iso|default('') }}"
+         data-shutter="{{ image.shutter_speed|default('')|e }}"
+         data-aperture="{{ image.aperture|default('') }}"
+         {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
          style="display:block;width:100%;height:100%;position:relative;z-index:1;">
         {{ _self.pic(image, base_path, album, seo_title) }}
         <div class="absolute inset-0 bg-gradient-to-t from-black/18 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>

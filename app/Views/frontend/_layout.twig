@@ -153,22 +153,23 @@
     
     <!-- PhotoSwipe CSS (local) -->
     <link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css">
-    
+
     <!-- Swiper CSS -->
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.css">
 
     <!-- Font Awesome (icons) -->
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
+
+    <!-- Google Fonts (preconnect + load) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kalam:wght@400&display=swap">
     
     <!-- JS flag class on <html> if needed elsewhere -->
     <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
     
     <!-- Custom styles -->
     <style nonce="{{ csp_nonce() }}">
-        /* Font imports must be at the top */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400&display=swap');
-        
         .line-clamp-2 {
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -347,7 +348,156 @@
         .pswp__button--info-button.active .pswp__icn {
             color: #888 !important;
         }
-        
+
+        /* EXIF Panel - slides in from right */
+        .pswp__exif-panel {
+            position: absolute;
+            top: 48px;
+            right: 0;
+            bottom: 0;
+            width: 320px;
+            max-width: 85vw;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #1a1a1a;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            border-left: 1px solid #e5e7eb;
+            border-top: 1px solid #e5e7eb;
+            border-radius: 10px;
+        }
+        .pswp__exif-panel.visible {
+            transform: translateX(0);
+        }
+        .pswp__exif-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(8px);
+            z-index: 2;
+        }
+        .pswp__exif-panel-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0;
+            color: #1a1a1a;
+        }
+        .pswp__exif-panel-close {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+        .pswp__exif-panel-close:hover {
+            background: rgba(0, 0, 0, 0.06);
+            color: #1a1a1a;
+        }
+        .pswp__exif-panel-content {
+            padding: 16px 20px;
+        }
+        .pswp__exif-section {
+            margin-bottom: 20px;
+        }
+        .pswp__exif-section:last-child {
+            margin-bottom: 0;
+        }
+        .pswp__exif-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+        .pswp__exif-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
+        .pswp__exif-item:last-child {
+            border-bottom: none;
+        }
+        .pswp__exif-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 6px;
+            color: #555;
+            flex-shrink: 0;
+        }
+        .pswp__exif-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .pswp__exif-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 2px;
+        }
+        .pswp__exif-value {
+            font-size: 13px;
+            color: #1a1a1a;
+            font-weight: 500;
+            word-break: break-word;
+        }
+        .pswp__exif-value a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .pswp__exif-value a:hover {
+            text-decoration: underline;
+        }
+        .pswp__exif-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+        .pswp__exif-loading i {
+            font-size: 24px;
+            margin-bottom: 12px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .pswp__exif-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+        .pswp__exif-empty i {
+            font-size: 32px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 480px) {
+            .pswp__exif-panel {
+                width: 100%;
+                max-width: 100%;
+                top: 44px;
+            }
+        }
+
         /* Responsive adjustments per caption */
         @media (max-width: 640px) {
             .pswp__custom-caption {
@@ -2054,12 +2204,36 @@
               height: parseInt(x.getAttribute('data-pswp-height')||'1067',10),
               element: x, // Preserve anchor reference for data attributes (EXIF, equipment)
               caption_html: (function(){
-                const dp = x.getAttribute('data-pswp-caption');
-                if (dp && dp.trim()) return dp;
-                const h = x.querySelector('.hidden-caption-content');
-                if (h && h.innerHTML.trim()) return h.innerHTML;
-                const img = x.querySelector('img');
-                return (img && img.getAttribute('alt')) || '';
+                // Build caption from photo title and equipment data attributes
+                const title = x.getAttribute('data-title') || '';
+                const camera = x.getAttribute('data-camera') || '';
+                const lens = x.getAttribute('data-lens') || '';
+                const film = x.getAttribute('data-film') || '';
+                const developer = x.getAttribute('data-developer') || '';
+                const lab = x.getAttribute('data-lab') || '';
+                const location = x.getAttribute('data-location') || '';
+
+                let html = '';
+
+                // Add photo title if present
+                if (title.trim()) {
+                  html += '<div class="mb-2 font-medium">' + title.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+                }
+
+                // Build equipment items with icons
+                const items = [];
+                if (camera.trim()) items.push('<span class="cc-item"><i class="fas fa-camera mr-1"></i>' + camera.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
+                if (lens.trim()) items.push('<span class="cc-item"><i class="fas fa-circle-notch mr-1"></i>' + lens.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
+                if (film.trim()) items.push('<span class="cc-item"><i class="fas fa-film mr-1"></i>' + film.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
+                if (developer.trim()) items.push('<span class="cc-item"><i class="fas fa-flask mr-1"></i>' + developer.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
+                if (lab.trim()) items.push('<span class="cc-item"><i class="fas fa-store mr-1"></i>' + lab.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
+                if (location.trim()) items.push('<span class="cc-item"><i class="fas fa-map-marker-alt mr-1"></i>' + location.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
+
+                if (items.length > 0) {
+                  html += '<div class="flex flex-wrap gap-2 justify-center text-sm opacity-90">' + items.join('') + '</div>';
+                }
+
+                return html;
               })()
             }));
         }
@@ -2409,8 +2583,51 @@
 
                     // Enhanced Caption UI with metadata
                     lb.on('uiRegister', () => {
-                        // Info button to toggle EXIF/caption (only if EXIF enabled)
+                        // EXIF Panel - slides in from right with real EXIF data
                         if (window.__showExifInLightbox) {
+                            // State for EXIF panel
+                            let exifCache = {}; // Cache fetched EXIF data by image ID
+                            let currentExifRequest = null; // Track current AJAX request
+
+                            // Register EXIF panel element
+                            lb.pswp.ui.registerElement({
+                                name: 'exif-panel',
+                                order: 99,
+                                appendTo: 'root',
+                                onInit: (panelEl, pswp) => {
+                                    panelEl.className = 'pswp__exif-panel pswp__hide-on-close';
+                                    panelEl.innerHTML = `
+                                        <div class="pswp__exif-panel-header">
+                                            <h3>{{ trans('lightbox.exif_title')|default('Image Details') }}</h3>
+                                            <button type="button" class="pswp__exif-panel-close" aria-label="Close">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        <div class="pswp__exif-panel-content">
+                                            <div class="pswp__exif-loading">
+                                                <i class="fas fa-spinner"></i>
+                                                <span>{{ trans('lightbox.loading')|default('Loading...') }}</span>
+                                            </div>
+                                        </div>
+                                    `;
+
+                                    // Close button handler
+                                    panelEl.querySelector('.pswp__exif-panel-close').onclick = () => {
+                                        panelEl.classList.remove('visible');
+                                        const infoBtn = pswp.element.querySelector('.pswp__button--info-button');
+                                        if (infoBtn) infoBtn.classList.remove('active');
+                                    };
+
+                                    // Close panel on slide change
+                                    pswp.on('change', () => {
+                                        panelEl.classList.remove('visible');
+                                        const infoBtn = pswp.element.querySelector('.pswp__button--info-button');
+                                        if (infoBtn) infoBtn.classList.remove('active');
+                                    });
+                                }
+                            });
+
+                            // Info button to toggle EXIF panel
                             lb.pswp.ui.registerElement({
                                 name: 'info-button',
                                 order: 9,
@@ -2418,16 +2635,115 @@
                                 appendTo: 'bar',
                                 html: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 32 32" width="32" height="32"><path d="M16 4C9.373 4 4 9.373 4 16s5.373 12 12 12 12-5.373 12-12S22.627 4 16 4zm0 5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm2 14h-4v-2h1v-5h-1v-2h3v7h1v2z" fill="currentColor"/></svg>',
                                 onInit: (el, pswp) => {
-                                    el.setAttribute('title', 'Info immagine');
-                                    el.setAttribute('aria-label', 'Info immagine');
+                                    el.setAttribute('title', '{{ trans('lightbox.info_button')|default('Image Info') }}');
+                                    el.setAttribute('aria-label', '{{ trans('lightbox.info_button')|default('Image Info') }}');
+
+                                    const renderExifContent = (data, contentEl) => {
+                                        if (!data.success || !data.sections || data.sections.length === 0) {
+                                            contentEl.innerHTML = `
+                                                <div class="pswp__exif-empty">
+                                                    <i class="fas fa-image"></i>
+                                                    <p>${data.message || '{{ trans('lightbox.no_exif')|default('No EXIF data available') }}'}</p>
+                                                </div>
+                                            `;
+                                            return;
+                                        }
+
+                                        let html = '';
+                                        data.sections.forEach(section => {
+                                            html += `<div class="pswp__exif-section">`;
+                                            html += `<div class="pswp__exif-section-title">${section.title}</div>`;
+                                            section.items.forEach(item => {
+                                                const icon = item.icon || 'fa-circle';
+                                                const iconClass = icon.startsWith('fa-') ? `fas ${icon}` : icon;
+                                                let valueHtml = item.value;
+                                                if (item.isLink && item.value.startsWith('http')) {
+                                                    valueHtml = `<a href="${item.value}" target="_blank" rel="noopener">{{ trans('lightbox.view_map')|default('View on map') }}</a>`;
+                                                }
+                                                html += `
+                                                    <div class="pswp__exif-item">
+                                                        <div class="pswp__exif-icon"><i class="${iconClass}"></i></div>
+                                                        <div class="pswp__exif-item-content">
+                                                            <div class="pswp__exif-label">${item.label}</div>
+                                                            <div class="pswp__exif-value">${valueHtml}</div>
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            });
+                                            html += `</div>`;
+                                        });
+                                        contentEl.innerHTML = html;
+                                    };
+
+                                    const fetchExifData = (imageId, contentEl) => {
+                                        // Check cache first
+                                        if (exifCache[imageId]) {
+                                            renderExifContent(exifCache[imageId], contentEl);
+                                            return;
+                                        }
+
+                                        // Show loading
+                                        contentEl.innerHTML = `
+                                            <div class="pswp__exif-loading">
+                                                <i class="fas fa-spinner"></i>
+                                                <span>{{ trans('lightbox.loading')|default('Loading...') }}</span>
+                                            </div>
+                                        `;
+
+                                        // Cancel previous request if any
+                                        if (currentExifRequest) {
+                                            currentExifRequest.abort();
+                                        }
+
+                                        // Fetch EXIF data
+                                        const controller = new AbortController();
+                                        currentExifRequest = controller;
+                                        const basePath = window.basePath || '{{ base_path|e("js") }}';
+
+                                        fetch(`${basePath}/api/image/${imageId}/exif`, {
+                                            signal: controller.signal,
+                                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                        })
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            exifCache[imageId] = data;
+                                            renderExifContent(data, contentEl);
+                                        })
+                                        .catch(err => {
+                                            if (err.name !== 'AbortError') {
+                                                contentEl.innerHTML = `
+                                                    <div class="pswp__exif-empty">
+                                                        <i class="fas fa-exclamation-triangle"></i>
+                                                        <p>{{ trans('lightbox.exif_error')|default('Failed to load EXIF data') }}</p>
+                                                    </div>
+                                                `;
+                                            }
+                                        });
+                                    };
+
                                     el.onclick = () => {
-                                        const caption = pswp.element.querySelector('.pswp__custom-caption');
-                                        if (caption) {
-                                            const isVisible = caption.classList.toggle('visible');
-                                            // Override inline opacity directly (higher specificity than CSS)
-                                            caption.style.opacity = isVisible ? '1' : '0';
-                                            caption.style.pointerEvents = isVisible ? 'auto' : 'none';
-                                            el.classList.toggle('active', isVisible);
+                                        const panel = pswp.element.querySelector('.pswp__exif-panel');
+                                        if (!panel) return;
+
+                                        const isVisible = panel.classList.toggle('visible');
+                                        el.classList.toggle('active', isVisible);
+
+                                        if (isVisible) {
+                                            // Get image ID from current slide
+                                            const curr = pswp.currSlide?.data?.element;
+                                            const imageId = curr?.dataset?.imageId;
+                                            const contentEl = panel.querySelector('.pswp__exif-panel-content');
+
+                                            if (imageId && contentEl) {
+                                                fetchExifData(imageId, contentEl);
+                                            } else if (contentEl) {
+                                                contentEl.innerHTML = `
+                                                    <div class="pswp__exif-empty">
+                                                        <i class="fas fa-image"></i>
+                                                        <p>{{ trans('lightbox.no_exif')|default('No EXIF data available') }}</p>
+                                                    </div>
+                                                `;
+                                            }
                                         }
                                     };
                                 }
@@ -2451,7 +2767,7 @@
                                   if (!curr) {
                                     el.innerHTML = '';
                                     el.classList.remove('visible');
-                                    const infoBtn = lb.pswp.element.querySelector('.pswp__button--info');
+                                    const infoBtn = lb.pswp.element.querySelector('.pswp__button--info-button');
                                     if (infoBtn) infoBtn.classList.remove('active');
                                     return;
                                   }
@@ -2479,17 +2795,28 @@
                                   if (ds.customFields) {
                                     try {
                                       const cf = JSON.parse(ds.customFields);
-                                      cf.forEach(field => {
-                                        if (field.values && field.values.length > 0) {
-                                          const icon = field.icon || 'fas fa-tag';
+                                      Object.values(cf).forEach(field => {
+                                        // Check show_in_lightbox if present (raw format), otherwise assume it should show (filtered format)
+                                        const shouldShow = field.show_in_lightbox === undefined || field.show_in_lightbox;
+                                        if (shouldShow && field.values && field.values.length > 0) {
+                                          // Add 'fas' prefix if icon doesn't have a prefix
+                                          let icon = field.icon || 'fa-tag';
+                                          if (icon && !icon.startsWith('fa-') && !icon.includes(' ')) {
+                                            icon = 'fas ' + icon;
+                                          } else if (icon && icon.startsWith('fa-') && !icon.includes(' ')) {
+                                            icon = 'fas ' + icon;
+                                          }
                                           const values = field.values.join(', ');
                                           customFieldsHtml.push(piece(icon, values));
                                         }
                                       });
                                     } catch(e) { /* ignore parse errors */ }
                                   }
-                                  const line = [...equipment, ...exif, ...customFieldsHtml].join(' ');
-                                  const html = (head ? `<div class="mb-1 text-black">${head}</div>` : '') + (line ? `<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">${line}</div>` : '');
+                                  // Build all items including title on a single line
+                                  const allItems = [];
+                                  if (head) allItems.push(`<span class="font-medium">${head}</span>`);
+                                  allItems.push(...equipment, ...exif, ...customFieldsHtml);
+                                  const html = allItems.length ? `<div class="flex flex-wrap gap-x-3 gap-y-1 items-center justify-center text-sm text-black">${allItems.join(' ')}</div>` : '';
                                   el.innerHTML = html;
                                   // If no content, reset visibility state
                                   if (!html.trim()) {
@@ -2498,6 +2825,11 @@
                                     el.style.pointerEvents = 'none';
                                     const infoBtn = lb.pswp.element.querySelector('.pswp__button--info-button');
                                     if (infoBtn) infoBtn.classList.remove('active');
+                                  } else {
+                                    // Always show caption when there's content (equipment, title, custom fields)
+                                    el.classList.add('visible');
+                                    el.style.opacity = '1';
+                                    el.style.pointerEvents = 'auto';
                                   }
                                 };
                                 lb.pswp.on('change', renderCaption);
