@@ -74,7 +74,16 @@ class SettingsController extends BaseController
             'xl' => max(100, min(4000, (int)($data['bp_xl'] ?? 1600))),
             'xxl' => max(100, min(5000, (int)($data['bp_xxl'] ?? 2000))),
         ];
-        
+
+        // Validate ascending order (sm < md < lg < xl < xxl)
+        if ($breakpoints['sm'] >= $breakpoints['md'] ||
+            $breakpoints['md'] >= $breakpoints['lg'] ||
+            $breakpoints['lg'] >= $breakpoints['xl'] ||
+            $breakpoints['xl'] >= $breakpoints['xxl']) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Breakpoint values must be in ascending order (sm < md < lg < xl < xxl)'];
+            return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+        }
+
         // default template - handle both empty string and actual values
         $defaultTemplateId = null;
         if (isset($data['default_template_id']) && $data['default_template_id'] !== '' && $data['default_template_id'] !== '0') {

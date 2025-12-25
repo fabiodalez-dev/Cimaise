@@ -2453,7 +2453,13 @@
                                 `;
                                 const renderCaption = () => {
                                   const curr = lb.pswp.currSlide && lb.pswp.currSlide.data && lb.pswp.currSlide.data.element;
-                                  if (!curr) { el.innerHTML=''; el.style.opacity='0'; return; }
+                                  if (!curr) {
+                                    el.innerHTML = '';
+                                    el.classList.remove('visible');
+                                    const infoBtn = lb.pswp.element.querySelector('.pswp__button--info');
+                                    if (infoBtn) infoBtn.classList.remove('active');
+                                    return;
+                                  }
                                   const ds = curr.dataset || {};
                                   const esc = (s)=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                                   const head = esc(ds.title || ds.alt || '');
@@ -2476,7 +2482,12 @@
                                   const line = [...equipment, ...exif].join(' ');
                                   const html = (head ? `<div class="mb-1 text-black">${head}</div>` : '') + (line ? `<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">${line}</div>` : '');
                                   el.innerHTML = html;
-                                  el.style.opacity = html.trim() ? '1' : '0';
+                                  // If no content, reset visibility state
+                                  if (!html.trim()) {
+                                    el.classList.remove('visible');
+                                    const infoBtn = lb.pswp.element.querySelector('.pswp__button--info');
+                                    if (infoBtn) infoBtn.classList.remove('active');
+                                  }
                                 };
                                 lb.pswp.on('change', renderCaption);
                                 lb.pswp.on('openingAnimationEnd', renderCaption);
