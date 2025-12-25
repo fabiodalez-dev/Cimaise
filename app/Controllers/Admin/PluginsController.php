@@ -42,7 +42,7 @@ class PluginsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
@@ -50,7 +50,7 @@ class PluginsController extends BaseController
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
-            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
+            $_SESSION['flash'][] = ['type' => 'error', 'message' => trans('admin.flash.plugin_not_specified')];
             return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
@@ -72,7 +72,7 @@ class PluginsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
@@ -80,7 +80,7 @@ class PluginsController extends BaseController
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
-            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
+            $_SESSION['flash'][] = ['type' => 'error', 'message' => trans('admin.flash.plugin_not_specified')];
             return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
@@ -102,7 +102,7 @@ class PluginsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
@@ -110,7 +110,7 @@ class PluginsController extends BaseController
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
-            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
+            $_SESSION['flash'][] = ['type' => 'error', 'message' => trans('admin.flash.plugin_not_specified')];
             return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
@@ -132,7 +132,7 @@ class PluginsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
@@ -140,7 +140,7 @@ class PluginsController extends BaseController
         $slug = (string)($data['slug'] ?? '');
 
         if (empty($slug)) {
-            $_SESSION['flash'][] = ['type' => 'error', 'message' => 'Plugin not specified'];
+            $_SESSION['flash'][] = ['type' => 'error', 'message' => trans('admin.flash.plugin_not_specified')];
             return $response->withHeader('Location', $this->redirect('/admin/plugins'))->withStatus(302);
         }
 
@@ -166,7 +166,7 @@ class PluginsController extends BaseController
         $csrf = $request->getHeaderLine('X-CSRF-Token');
         $sessionCsrf = $_SESSION['csrf'] ?? '';
         if (empty($csrf) || !is_string($sessionCsrf) || !hash_equals($sessionCsrf, $csrf)) {
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Invalid CSRF token']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.csrf_invalid')]));
             return $response->withStatus(403);
         }
 

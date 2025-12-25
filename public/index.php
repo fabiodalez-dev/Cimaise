@@ -153,6 +153,8 @@ $translationService = null;
 if ($container['db'] !== null) {
     $translationService = new \App\Services\TranslationService($container['db']);
     $twig->getEnvironment()->addExtension(new \App\Extensions\TranslationTwigExtension($translationService));
+    // Expose globally for trans() helper function in controllers
+    $GLOBALS['translationService'] = $translationService;
 }
 
 $app->add(TwigMiddleware::create($app, $twig));
@@ -221,8 +223,14 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('custom_js_marketing', $settingsSvc->get('privacy.custom_js_marketing', ''));
         $twig->getEnvironment()->addGlobal('show_analytics', $settingsSvc->get('cookie_banner.show_analytics', false));
         $twig->getEnvironment()->addGlobal('show_marketing', $settingsSvc->get('cookie_banner.show_marketing', false));
-        // NSFW global warning
-        $twig->getEnvironment()->addGlobal('nsfw_global_warning', $settingsSvc->get('privacy.nsfw_global_warning', false));
+        // NSFW global warning - only show if enabled AND there are published NSFW albums
+        $nsfwGlobalEnabled = (bool)$settingsSvc->get('privacy.nsfw_global_warning', false);
+        $hasNsfwAlbums = false;
+        if ($nsfwGlobalEnabled) {
+            $nsfwCheck = $db->pdo()->query('SELECT 1 FROM albums WHERE is_published = 1 AND is_nsfw = 1 LIMIT 1');
+            $hasNsfwAlbums = $nsfwCheck && $nsfwCheck->fetchColumn() !== false;
+        }
+        $twig->getEnvironment()->addGlobal('nsfw_global_warning', $nsfwGlobalEnabled && $hasNsfwAlbums);
         // Lightbox settings
         $twig->getEnvironment()->addGlobal('lightbox_show_exif', $settingsSvc->get('lightbox.show_exif', true));
         $twig->getEnvironment()->addGlobal('disable_right_click', (bool)$settingsSvc->get('frontend.disable_right_click', true));

@@ -44,7 +44,7 @@ class PrivacyController extends BaseController
 
         // CSRF validation (timing-safe)
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid security token. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid_try_again')];
             return $response->withHeader('Location', $this->redirect('/admin/privacy'))->withStatus(302);
         }
 
@@ -70,11 +70,11 @@ class PrivacyController extends BaseController
             $svc->set('cookie_banner.show_analytics', !empty($customJsAnalytics));
             $svc->set('cookie_banner.show_marketing', !empty($customJsMarketing));
 
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Privacy settings saved successfully'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.privacy_saved')];
 
         } catch (\Throwable $e) {
             Logger::error('PrivacyController::save error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error saving privacy settings. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_saving')];
         }
 
         return $response->withHeader('Location', $this->redirect('/admin/privacy'))->withStatus(302);

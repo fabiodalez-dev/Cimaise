@@ -37,7 +37,7 @@ class LabsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/labs/create')->withStatus(302);
         }
 
@@ -47,7 +47,7 @@ class LabsController extends BaseController
         $country = ($d['country'] ?? '') !== '' ? (string)$d['country'] : null;
 
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $res->withHeader('Location', $this->basePath . '/admin/labs/create')->withStatus(302);
         }
 
@@ -56,9 +56,9 @@ class LabsController extends BaseController
             $pdo->prepare('INSERT INTO labs(name, city, country) VALUES(?,?,?)')->execute([$name, $city, $country]);
             $id = (int)$pdo->lastInsertId();
             Hooks::doAction('metadata_lab_created', $id, ['name' => $name, 'city' => $city, 'country' => $country]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lab created'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.lab_created')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
             return $res->withHeader('Location', $this->basePath . '/admin/labs/create')->withStatus(302);
         }
 
@@ -83,7 +83,7 @@ class LabsController extends BaseController
 
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/labs/'.$id.'/edit')->withStatus(302);
         }
 
@@ -93,16 +93,16 @@ class LabsController extends BaseController
         $country = ($d['country'] ?? '') !== '' ? (string)$d['country'] : null;
 
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $res->withHeader('Location', $this->basePath . '/admin/labs/'.$id.'/edit')->withStatus(302);
         }
 
         try {
             $this->db->pdo()->prepare('UPDATE labs SET name=?, city=?, country=? WHERE id=?')->execute([$name, $city, $country, $id]);
             Hooks::doAction('metadata_lab_updated', $id, ['name' => $name, 'city' => $city, 'country' => $country]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lab updated'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.lab_updated')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
 
         return $res->withHeader('Location', $this->basePath . '/admin/labs')->withStatus(302);
@@ -112,7 +112,7 @@ class LabsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/labs')->withStatus(302);
         }
 
@@ -120,9 +120,9 @@ class LabsController extends BaseController
         try {
             $this->db->pdo()->prepare('DELETE FROM labs WHERE id=:id')->execute([':id' => $id]);
             Hooks::doAction('metadata_lab_deleted', $id);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lab deleted'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.lab_deleted')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
 
         return $res->withHeader('Location', $this->basePath . '/admin/labs')->withStatus(302);

@@ -31,13 +31,13 @@ class CustomFieldValuesController extends BaseController
 
         // Cannot manage values for system types (they use their own tables)
         if ($type['is_system']) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.system_uses_own_table')];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.system_field_own_table')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types')->withStatus(302);
         }
 
         // Text fields don't have predefined values
         if ($type['field_type'] === 'text') {
-            $_SESSION['flash'][] = ['type' => 'info', 'message' => trans('admin.custom_fields.text_no_values')];
+            $_SESSION['flash'][] = ['type' => 'info', 'message' => trans('admin.flash.text_field_no_values')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types')->withStatus(302);
         }
 
@@ -55,13 +55,13 @@ class CustomFieldValuesController extends BaseController
         $typeId = (int)($args['type_id'] ?? 0);
 
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/' . $typeId . '/values')->withStatus(302);
         }
 
         $type = $this->customFieldService->getFieldType($typeId);
         if (!$type || $type['is_system']) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.invalid_type')];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.field_type_invalid')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types')->withStatus(302);
         }
 
@@ -69,7 +69,7 @@ class CustomFieldValuesController extends BaseController
         $value = trim($data['value'] ?? '');
 
         if ($value === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.value_required')];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.value_required')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/' . $typeId . '/values')->withStatus(302);
         }
 
@@ -81,11 +81,11 @@ class CustomFieldValuesController extends BaseController
                 (int)($data['sort_order'] ?? 0)
             );
 
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.custom_fields.value_added')];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.value_added')];
         } catch (\PDOException $e) {
             // SQLSTATE 23000: Integrity constraint violation (includes unique constraint)
             if ($e->getCode() === '23000') {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.value_exists')];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.value_exists')];
             } else {
                 $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
             }
@@ -102,13 +102,13 @@ class CustomFieldValuesController extends BaseController
         $id = (int)($args['id'] ?? 0);
 
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/' . $typeId . '/values')->withStatus(302);
         }
 
         try {
             $this->customFieldService->deleteFieldValue($id);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.custom_fields.value_deleted')];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.value_deleted')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
         }
@@ -121,7 +121,7 @@ class CustomFieldValuesController extends BaseController
         $typeId = (int)($args['type_id'] ?? 0);
 
         if (!$this->validateCsrf($request)) {
-            $response->getBody()->write(json_encode(['error' => 'Invalid CSRF token']));
+            $response->getBody()->write(json_encode(['error' => trans('admin.flash.csrf_invalid')]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
         }
 

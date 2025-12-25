@@ -37,7 +37,7 @@ class LensesController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/lenses/create')->withStatus(302);
         }
 
@@ -49,7 +49,7 @@ class LensesController extends BaseController
         $amin = ($d['aperture_min'] ?? '') !== '' ? (float)$d['aperture_min'] : null;
 
         if ($brand === '' || $model === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Brand and Model are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.brand_model_required')];
             return $res->withHeader('Location', $this->basePath . '/admin/lenses/create')->withStatus(302);
         }
 
@@ -58,9 +58,9 @@ class LensesController extends BaseController
             $pdo->prepare('INSERT INTO lenses(brand, model, focal_min, focal_max, aperture_min) VALUES(?,?,?,?,?)')->execute([$brand, $model, $fmin, $fmax, $amin]);
             $id = (int)$pdo->lastInsertId();
             Hooks::doAction('metadata_lens_created', $id, ['brand' => $brand, 'model' => $model]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lens created'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.lens_created')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
             return $res->withHeader('Location', $this->basePath . '/admin/lenses/create')->withStatus(302);
         }
 
@@ -85,7 +85,7 @@ class LensesController extends BaseController
 
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/lenses/'.$id.'/edit')->withStatus(302);
         }
 
@@ -97,16 +97,16 @@ class LensesController extends BaseController
         $amin = ($d['aperture_min'] ?? '') !== '' ? (float)$d['aperture_min'] : null;
 
         if ($brand === '' || $model === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Brand and Model are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.brand_model_required')];
             return $res->withHeader('Location', $this->basePath . '/admin/lenses/'.$id.'/edit')->withStatus(302);
         }
 
         try {
             $this->db->pdo()->prepare('UPDATE lenses SET brand=?, model=?, focal_min=?, focal_max=?, aperture_min=? WHERE id=?')->execute([$brand, $model, $fmin, $fmax, $amin, $id]);
             Hooks::doAction('metadata_lens_updated', $id, ['brand' => $brand, 'model' => $model]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lens updated'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.lens_updated')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
 
         return $res->withHeader('Location', $this->basePath . '/admin/lenses')->withStatus(302);
@@ -116,7 +116,7 @@ class LensesController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/lenses')->withStatus(302);
         }
 
@@ -124,9 +124,9 @@ class LensesController extends BaseController
         try {
             $this->db->pdo()->prepare('DELETE FROM lenses WHERE id=:id')->execute([':id' => $id]);
             Hooks::doAction('metadata_lens_deleted', $id);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Lens deleted'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.lens_deleted')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
 
         return $res->withHeader('Location', $this->basePath . '/admin/lenses')->withStatus(302);

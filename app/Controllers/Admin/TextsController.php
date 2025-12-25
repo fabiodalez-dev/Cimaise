@@ -82,7 +82,7 @@ class TextsController extends BaseController
         $text = $this->translations->find($id);
 
         if (!$text) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Text not found.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.text_not_found')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
 
@@ -105,13 +105,13 @@ class TextsController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/texts/' . $id . '/edit'))->withStatus(302);
         }
 
         $text = $this->translations->find($id);
         if (!$text) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Text not found.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.text_not_found')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
 
@@ -121,7 +121,7 @@ class TextsController extends BaseController
             'description' => (string)($data['description'] ?? '')
         ]);
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Text updated successfully.'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.text_updated')];
         return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
     }
 
@@ -149,20 +149,20 @@ class TextsController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/texts/create'))->withStatus(302);
         }
 
         $key = trim((string)($data['text_key'] ?? ''));
         if ($key === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Text key is required.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.text_key_required')];
             return $response->withHeader('Location', $this->redirect('/admin/texts/create'))->withStatus(302);
         }
 
         // Check if key already exists
         $existing = $this->translations->findByKey($key);
         if ($existing) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'A text with this key already exists.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.text_key_exists')];
             return $response->withHeader('Location', $this->redirect('/admin/texts/create'))->withStatus(302);
         }
 
@@ -173,7 +173,7 @@ class TextsController extends BaseController
             'description' => (string)($data['description'] ?? '')
         ]);
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Text created successfully.'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.text_created')];
         return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
     }
 
@@ -187,19 +187,19 @@ class TextsController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
 
         $text = $this->translations->find($id);
         if (!$text) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Text not found.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.text_not_found')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
 
         $this->translations->delete($id);
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Text deleted successfully.'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.text_deleted')];
         return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
     }
 
@@ -211,7 +211,7 @@ class TextsController extends BaseController
         // Validate CSRF token from header
         $csrf = $request->getHeaderLine('X-CSRF-Token');
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $response->getBody()->write(json_encode(['success' => false, 'error' => 'Invalid CSRF token']));
+            $response->getBody()->write(json_encode(['success' => false, 'error' => trans('admin.flash.csrf_invalid')]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
         }
 
@@ -220,7 +220,7 @@ class TextsController extends BaseController
 
         $text = $this->translations->find($id);
         if (!$text) {
-            $response->getBody()->write(json_encode(['success' => false, 'error' => 'Text not found']));
+            $response->getBody()->write(json_encode(['success' => false, 'error' => trans('admin.flash.text_not_found')]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
         }
 
@@ -243,7 +243,7 @@ class TextsController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
 
@@ -289,7 +289,7 @@ class TextsController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
 
@@ -303,7 +303,7 @@ class TextsController extends BaseController
         }
 
         if ($langCode === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Please select a language.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.language_required')];
             return $response->withHeader('Location', $this->redirect('/admin/texts?scope=' . $scope))->withStatus(302);
         }
 
@@ -316,7 +316,7 @@ class TextsController extends BaseController
         $filePath = dirname(__DIR__, 3) . '/storage/translations/' . $filename;
 
         if (!file_exists($filePath)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Language file not found.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.language_file_not_found')];
             return $response->withHeader('Location', $this->redirect('/admin/texts?scope=' . $scope))->withStatus(302);
         }
 
@@ -338,7 +338,7 @@ class TextsController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
 
@@ -346,14 +346,14 @@ class TextsController extends BaseController
         $uploadedFile = $uploadedFiles['json_file'] ?? null;
 
         if (!$uploadedFile || $uploadedFile->getError() !== UPLOAD_ERR_OK) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Please upload a valid JSON file.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.json_file_required')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
 
         // Check file extension
         $filename = $uploadedFile->getClientFilename();
         if (strtolower(pathinfo($filename, PATHINFO_EXTENSION)) !== 'json') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Only JSON files are allowed.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.json_only')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
 
@@ -367,7 +367,7 @@ class TextsController extends BaseController
 
         if ($jsonData === null) {
             unlink($tempPath);
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid JSON file.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.json_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/texts'))->withStatus(302);
         }
 

@@ -43,14 +43,14 @@ class AuthController extends BaseController
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             return $this->view->render($response, 'admin/login.twig', [
-                'error' => 'Invalid CSRF token.',
+                'error' => trans('admin.flash.csrf_invalid'),
                 'csrf' => $_SESSION['csrf'] ?? ''
             ]);
         }
 
         if ($email === '' || $password === '') {
             return $this->view->render($response, 'admin/login.twig', [
-                'error' => 'Email and password are required.',
+                'error' => trans('admin.flash.email_password_required'),
                 'csrf' => $_SESSION['csrf'] ?? ''
             ]);
         }
@@ -61,7 +61,7 @@ class AuthController extends BaseController
 
         if (!$user || !password_verify($password, $user['password_hash'])) {
             return $this->view->render($response, 'admin/login.twig', [
-                'error' => 'Invalid credentials.',
+                'error' => trans('admin.flash.invalid_credentials'),
                 'csrf' => $_SESSION['csrf'] ?? ''
             ]);
         }
@@ -69,7 +69,7 @@ class AuthController extends BaseController
         // Check if user is active
         if (!$user['is_active']) {
             return $this->view->render($response, 'admin/login.twig', [
-                'error' => 'Account deactivated. Contact an administrator.',
+                'error' => trans('admin.flash.account_deactivated'),
                 'csrf' => $_SESSION['csrf'] ?? ''
             ]);
         }
@@ -77,7 +77,7 @@ class AuthController extends BaseController
         // Check if user has admin role for backend access
         if ($user['role'] !== 'admin') {
             return $this->view->render($response, 'admin/login.twig', [
-                'error' => 'Access denied. Only administrators can access the backend.',
+                'error' => trans('admin.flash.access_denied_admin_only'),
                 'csrf' => $_SESSION['csrf'] ?? ''
             ]);
         }
@@ -184,7 +184,7 @@ class AuthController extends BaseController
             $csrf = (string)($data['csrf'] ?? '');
 
             if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
                 return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
             }
         }
@@ -216,28 +216,28 @@ class AuthController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         if ($firstName === '' || $lastName === '' || $email === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'All fields are required.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.all_fields_required')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
-        
+
         // SECURITY: Validate names to prevent XSS
         if (strlen($firstName) > 50 || strlen($lastName) > 50) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'First and last name must be a maximum of 50 characters.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_max_length')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
-        
+
         if (!preg_match('/^[a-zA-Z\s\-\'\.À-ſ]+$/u', $firstName) || !preg_match('/^[a-zA-Z\s\-\'\.À-ſ]+$/u', $lastName)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'First and last name can only contain letters, spaces, apostrophes, and hyphens.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_invalid_chars')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid email.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_invalid')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
@@ -245,7 +245,7 @@ class AuthController extends BaseController
         $stmt = $this->db->pdo()->prepare('SELECT id FROM users WHERE email = :email AND id != :id');
         $stmt->execute([':email' => $email, ':id' => $_SESSION['admin_id']]);
         if ($stmt->fetch()) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'This email is already used by another user.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_already_used')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
@@ -265,10 +265,10 @@ class AuthController extends BaseController
             $_SESSION['admin_name'] = trim($firstName . ' ' . $lastName);
             $_SESSION['admin_email'] = $email;
 
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Profile updated successfully.'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.profile_updated')];
         } catch (\Throwable $e) {
             Logger::error('AuthController::updateProfile error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating profile. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
 
         return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
@@ -287,22 +287,22 @@ class AuthController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'All fields are required.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.all_fields_required')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         if (strlen($newPassword) < 8) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'New password must be at least 8 characters.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.password_min_length')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
         if ($newPassword !== $confirmPassword) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Passwords do not match.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.passwords_not_match')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
@@ -312,7 +312,7 @@ class AuthController extends BaseController
         $user = $stmt->fetch();
 
         if (!$user || !password_verify($currentPassword, $user['password_hash'])) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Current password is incorrect.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.current_password_incorrect')];
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 
@@ -327,10 +327,10 @@ class AuthController extends BaseController
                 ':id' => $_SESSION['admin_id']
             ]);
 
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Password changed successfully.'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.password_changed')];
         } catch (\Throwable $e) {
             Logger::error('AuthController::changePassword error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while changing password. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
 
         return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);

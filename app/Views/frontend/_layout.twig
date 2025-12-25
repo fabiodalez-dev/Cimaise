@@ -343,25 +343,9 @@
             pointer-events: auto;
         }
 
-        /* EXIF toggle button */
-        .pswp__button--info {
-            background: none !important;
-            border: none !important;
-            color: #fff !important;
-            font-size: 20px !important;
-            width: 44px;
-            height: 44px;
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-
-        .pswp__button--info:hover {
-            opacity: 1;
-        }
-
-        .pswp__button--info.active {
-            opacity: 1;
-            color: #4ade80 !important;
+        /* EXIF toggle button - icon turns gray when active */
+        .pswp__button--info-button.active .pswp__icn {
+            color: #888 !important;
         }
         
         /* Responsive adjustments per caption */
@@ -2068,6 +2052,7 @@
               src: x.getAttribute('href'),
               width: parseInt(x.getAttribute('data-pswp-width')||'1600',10),
               height: parseInt(x.getAttribute('data-pswp-height')||'1067',10),
+              element: x, // Preserve anchor reference for data attributes (EXIF, equipment)
               caption_html: (function(){
                 const dp = x.getAttribute('data-pswp-caption');
                 if (dp && dp.trim()) return dp;
@@ -2424,20 +2409,30 @@
 
                     // Enhanced Caption UI with metadata
                     lb.on('uiRegister', () => {
-                        // Info button to toggle EXIF/caption
-                        lb.pswp.ui.registerElement({
-                            name: 'info-button',
-                            order: 8,
-                            isButton: true,
-                            html: '<i class="fas fa-info-circle"></i>',
-                            onClick: (e, el) => {
-                                const caption = lb.pswp.element.querySelector('.pswp__custom-caption');
-                                if (caption) {
-                                    caption.classList.toggle('visible');
-                                    el.classList.toggle('active');
+                        // Info button to toggle EXIF/caption (only if EXIF enabled)
+                        if (window.__showExifInLightbox) {
+                            lb.pswp.ui.registerElement({
+                                name: 'info-button',
+                                order: 9,
+                                isButton: true,
+                                appendTo: 'bar',
+                                html: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 32 32" width="32" height="32"><path d="M16 4C9.373 4 4 9.373 4 16s5.373 12 12 12 12-5.373 12-12S22.627 4 16 4zm0 5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm2 14h-4v-2h1v-5h-1v-2h3v7h1v2z" fill="currentColor"/></svg>',
+                                onInit: (el, pswp) => {
+                                    el.setAttribute('title', 'Info immagine');
+                                    el.setAttribute('aria-label', 'Info immagine');
+                                    el.onclick = () => {
+                                        const caption = pswp.element.querySelector('.pswp__custom-caption');
+                                        if (caption) {
+                                            const isVisible = caption.classList.toggle('visible');
+                                            // Override inline opacity directly (higher specificity than CSS)
+                                            caption.style.opacity = isVisible ? '1' : '0';
+                                            caption.style.pointerEvents = isVisible ? 'auto' : 'none';
+                                            el.classList.toggle('active', isVisible);
+                                        }
+                                    };
                                 }
-                            }
-                        });
+                            });
+                        }
 
                         // Custom caption inline (transparent background), includes meta info
                         lb.pswp.ui.registerElement({
@@ -2479,13 +2474,29 @@
                                     piece('far fa-clock', ds.shutter),
                                     piece('fas fa-circle-half-stroke', ds.aperture ? ('f/' + ds.aperture) : '')
                                   ].filter(Boolean) : [];
-                                  const line = [...equipment, ...exif].join(' ');
+                                  // Custom fields (from album/image with override logic)
+                                  let customFieldsHtml = [];
+                                  if (ds.customFields) {
+                                    try {
+                                      const cf = JSON.parse(ds.customFields);
+                                      cf.forEach(field => {
+                                        if (field.values && field.values.length > 0) {
+                                          const icon = field.icon || 'fas fa-tag';
+                                          const values = field.values.join(', ');
+                                          customFieldsHtml.push(piece(icon, values));
+                                        }
+                                      });
+                                    } catch(e) { /* ignore parse errors */ }
+                                  }
+                                  const line = [...equipment, ...exif, ...customFieldsHtml].join(' ');
                                   const html = (head ? `<div class="mb-1 text-black">${head}</div>` : '') + (line ? `<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">${line}</div>` : '');
                                   el.innerHTML = html;
                                   // If no content, reset visibility state
                                   if (!html.trim()) {
                                     el.classList.remove('visible');
-                                    const infoBtn = lb.pswp.element.querySelector('.pswp__button--info');
+                                    el.style.opacity = '0';
+                                    el.style.pointerEvents = 'none';
+                                    const infoBtn = lb.pswp.element.querySelector('.pswp__button--info-button');
                                     if (infoBtn) infoBtn.classList.remove('active');
                                   }
                                 };
@@ -2920,6 +2931,7 @@
                     src: anchor.getAttribute('href'),
                     width: parseInt(anchor.getAttribute('data-pswp-width') || '1600', 10),
                     height: parseInt(anchor.getAttribute('data-pswp-height') || '1067', 10),
+                    element: anchor, // Preserve anchor reference for data attributes
                     caption_html: (function(){
                       const dp = anchor.getAttribute('data-pswp-caption');
                       if (dp && dp.trim()) return dp;

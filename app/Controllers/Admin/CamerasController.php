@@ -35,7 +35,7 @@ class CamerasController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->basePath . '/admin/cameras/create')->withStatus(302);
         }
 
@@ -44,7 +44,7 @@ class CamerasController extends BaseController
         $model = trim((string)($d['model'] ?? ''));
 
         if ($make === '' || $model === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Make and Model are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.make_model_required')];
             return $response->withHeader('Location', $this->basePath . '/admin/cameras/create')->withStatus(302);
         }
 
@@ -53,9 +53,9 @@ class CamerasController extends BaseController
             $pdo->prepare('INSERT INTO cameras(make, model) VALUES(:a,:b)')->execute([':a'=>$make, ':b'=>$model]);
             $id = (int)$pdo->lastInsertId();
             Hooks::doAction('metadata_camera_created', $id, ['make' => $make, 'model' => $model]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Camera created'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.camera_created')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
             return $response->withHeader('Location', $this->basePath . '/admin/cameras/create')->withStatus(302);
         }
 
@@ -80,7 +80,7 @@ class CamerasController extends BaseController
 
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->basePath . '/admin/cameras/'.$id.'/edit')->withStatus(302);
         }
 
@@ -89,16 +89,16 @@ class CamerasController extends BaseController
         $model = trim((string)($d['model'] ?? ''));
 
         if ($make === '' || $model === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Make and Model are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.make_model_required')];
             return $response->withHeader('Location', $this->basePath . '/admin/cameras/'.$id.'/edit')->withStatus(302);
         }
 
         try {
             $this->db->pdo()->prepare('UPDATE cameras SET make=:a, model=:b WHERE id=:id')->execute([':a'=>$make, ':b'=>$model, ':id'=>$id]);
             Hooks::doAction('metadata_camera_updated', $id, ['make' => $make, 'model' => $model]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Camera updated'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.camera_updated')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
 
         return $response->withHeader('Location', $this->basePath . '/admin/cameras')->withStatus(302);
@@ -108,7 +108,7 @@ class CamerasController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->basePath . '/admin/cameras')->withStatus(302);
         }
 
@@ -116,9 +116,9 @@ class CamerasController extends BaseController
         try {
             $this->db->pdo()->prepare('DELETE FROM cameras WHERE id=:id')->execute([':id' => $id]);
             Hooks::doAction('metadata_camera_deleted', $id);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Camera deleted'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.camera_deleted')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
 
         return $response->withHeader('Location', $this->basePath . '/admin/cameras')->withStatus(302);

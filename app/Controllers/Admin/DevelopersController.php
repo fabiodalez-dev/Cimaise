@@ -37,7 +37,7 @@ class DevelopersController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/developers/create')->withStatus(302);
         }
 
@@ -47,7 +47,7 @@ class DevelopersController extends BaseController
         $notes = ($d['notes'] ?? '') !== '' ? (string)$d['notes'] : null;
 
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $res->withHeader('Location', $this->basePath . '/admin/developers/create')->withStatus(302);
         }
 
@@ -56,9 +56,9 @@ class DevelopersController extends BaseController
             $pdo->prepare('INSERT INTO developers(name, process, notes) VALUES(?,?,?)')->execute([$name, $process, $notes]);
             $id = (int)$pdo->lastInsertId();
             Hooks::doAction('metadata_developer_created', $id, ['name' => $name, 'process' => $process]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Developer created'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.developer_created')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
             return $res->withHeader('Location', $this->basePath . '/admin/developers/create')->withStatus(302);
         }
 
@@ -83,7 +83,7 @@ class DevelopersController extends BaseController
 
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/developers/'.$id.'/edit')->withStatus(302);
         }
 
@@ -93,16 +93,16 @@ class DevelopersController extends BaseController
         $notes = ($d['notes'] ?? '') !== '' ? (string)$d['notes'] : null;
 
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $res->withHeader('Location', $this->basePath . '/admin/developers/'.$id.'/edit')->withStatus(302);
         }
 
         try {
             $this->db->pdo()->prepare('UPDATE developers SET name=?, process=?, notes=? WHERE id=?')->execute([$name, $process, $notes, $id]);
             Hooks::doAction('metadata_developer_updated', $id, ['name' => $name, 'process' => $process]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Developer updated'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.developer_updated')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
 
         return $res->withHeader('Location', $this->basePath . '/admin/developers')->withStatus(302);
@@ -112,7 +112,7 @@ class DevelopersController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/developers')->withStatus(302);
         }
 
@@ -120,9 +120,9 @@ class DevelopersController extends BaseController
         try {
             $this->db->pdo()->prepare('DELETE FROM developers WHERE id=:id')->execute([':id' => $id]);
             Hooks::doAction('metadata_developer_deleted', $id);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Developer deleted'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.developer_deleted')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
 
         return $res->withHeader('Location', $this->basePath . '/admin/developers')->withStatus(302);
