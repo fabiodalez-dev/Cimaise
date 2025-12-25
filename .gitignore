@@ -18,13 +18,17 @@ public/assets/*.css.map
 # User uploaded content
 public/media/*
 !public/media/.gitkeep
+!public/media/.htaccess
 public/assets/media/
 storage/originals/*
 !storage/originals/.gitkeep
+!storage/originals/.htaccess
 storage/tmp/*
 !storage/tmp/.gitkeep
 storage/cache/*
 !storage/cache/.gitkeep
+storage/rate_limits/*
+!storage/rate_limits/.gitkeep
 storage/translations/*
 !storage/translations/.gitkeep
 
