@@ -9,9 +9,17 @@
   <link rel="icon" type="image/png" sizes="32x32" href="{{ base_path }}/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="{{ base_path }}/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/apple-touch-icon.png">
+
+  <!-- Preconnect for Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/admin.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
+
+  <!-- Google Fonts - Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script nonce="{{ csp_nonce() }}">
     window.basePath = '{{ base_path|e('js') }}';
     window.cspNonce = '{{ csp_nonce()|e('js') }}';
