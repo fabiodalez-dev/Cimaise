@@ -1,27 +1,22 @@
 {# Global NSFW Warning Gate #}
 {% if nsfw_global_warning and not is_admin %}
-<div id="nsfw-global-gate" class="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-4"
+<div id="nsfw-global-gate" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="nsfw-global-gate-title" style="display: none;">
-  <div class="bg-white rounded-2xl max-w-xl w-full p-8 text-center shadow-2xl">
-    <div class="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
-      <i class="fas fa-exclamation-triangle text-amber-600 text-5xl" aria-hidden="true"></i>
+  <div class="bg-white rounded-2xl max-w-lg w-full p-8 text-center shadow-2xl">
+    <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <i class="fas fa-exclamation-triangle text-amber-600 text-4xl" aria-hidden="true"></i>
     </div>
-    <h2 id="nsfw-global-gate-title" class="text-3xl font-semibold text-gray-900 mb-4">
-      {{ trans('frontend.nsfw_global.title') }}
-    </h2>
-    <p class="text-gray-600 mb-4 leading-relaxed text-lg">
+    <h2 id="nsfw-global-gate-title" class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('frontend.nsfw_global.title') }}</h2>
+    <p class="text-gray-600 mb-6 leading-relaxed">
       {{ trans('frontend.nsfw_global.message') }}
     </p>
-    <p class="text-gray-500 mb-8 text-sm">
-      {{ trans('frontend.nsfw_global.disclaimer') }}
-    </p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <button id="nsfw-global-confirm-btn" class="px-8 py-4 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium text-lg">
+      <button id="nsfw-global-confirm-btn" class="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium">
         {{ trans('frontend.nsfw_global.confirm') }}
       </button>
-      <button id="nsfw-global-decline-btn" class="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium text-lg">
+      <a href="about:blank" id="nsfw-global-decline-link" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium inline-block">
         {{ trans('frontend.nsfw_global.decline') }}
-      </button>
+      </a>
     </div>
     <p class="text-xs text-gray-400 mt-6">
       {{ trans('frontend.nsfw_global.remember') }}
@@ -105,19 +100,6 @@ function safeLocalStorageSet(key, value) {
     });
   }
 
-  // Decline button - redirect to a safe page or close window
-  const declineBtn = document.getElementById('nsfw-global-decline-btn');
-  if (declineBtn) {
-    declineBtn.addEventListener('click', function() {
-      // Try to close the window (works if opened via window.open)
-      if (window.opener) {
-        window.close();
-      } else {
-        // Redirect to about:blank or show message
-        window.location.href = 'about:blank';
-      }
-    });
-  }
 })();
 </script>
 {% endif %}
