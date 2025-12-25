@@ -390,10 +390,10 @@ class PageController extends BaseController
 
         // Equipment (album-level pivot lists)
         $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
-        
-        // Load equipment: first try custom fields, then relationships, then images as fallback
+
+        // Load equipment: each type in its own try-catch to avoid one failure breaking all
+        // 1. Cameras
         try {
-            // Try custom equipment fields first (if present, they take priority)
             if (!empty($album['custom_cameras'])) {
                 $equipment['cameras'] = array_filter(array_map('trim', explode("\n", $album['custom_cameras'])));
             } else {
@@ -402,7 +402,10 @@ class PageController extends BaseController
                 $cameras = $cameraStmt->fetchAll();
                 $equipment['cameras'] = array_map(fn($c) => trim(($c['make'] ?? '') . ' ' . ($c['model'] ?? '')), $cameras);
             }
-            
+        } catch (\Throwable) {}
+
+        // 2. Lenses
+        try {
             if (!empty($album['custom_lenses'])) {
                 $equipment['lenses'] = array_filter(array_map('trim', explode("\n", $album['custom_lenses'])));
             } else {
@@ -411,7 +414,10 @@ class PageController extends BaseController
                 $lenses = $lensStmt->fetchAll();
                 $equipment['lenses'] = array_map(fn($l) => trim(($l['brand'] ?? '') . ' ' . ($l['model'] ?? '')), $lenses);
             }
-            
+        } catch (\Throwable) {}
+
+        // 3. Films
+        try {
             if (!empty($album['custom_films'])) {
                 $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
             } else {
@@ -427,7 +433,10 @@ class PageController extends BaseController
                     ];
                 }, $films);
             }
-            
+        } catch (\Throwable) {}
+
+        // 4. Developers
+        try {
             if (!empty($album['custom_developers'])) {
                 $equipment['developers'] = array_filter(array_map('trim', explode("\n", $album['custom_developers'])));
             } else {
@@ -436,7 +445,10 @@ class PageController extends BaseController
                 $developers = $devStmt->fetchAll();
                 $equipment['developers'] = array_map(fn($d) => $d['name'], $developers);
             }
-            
+        } catch (\Throwable) {}
+
+        // 5. Labs
+        try {
             if (!empty($album['custom_labs'])) {
                 $equipment['labs'] = array_filter(array_map('trim', explode("\n", $album['custom_labs'])));
             } else {
@@ -445,15 +457,15 @@ class PageController extends BaseController
                 $labs = $labStmt->fetchAll();
                 $equipment['labs'] = array_map(fn($l) => $l['name'], $labs);
             }
-            
-            // Locations
+        } catch (\Throwable) {}
+
+        // 6. Locations
+        try {
             $locStmt = $pdo->prepare('SELECT l.name FROM locations l JOIN album_location al ON l.id = al.location_id WHERE al.album_id = :a ORDER BY l.name');
             $locStmt->execute([':a' => $album['id']]);
             $locations = $locStmt->fetchAll();
             $equipment['locations'] = array_map(fn($l) => $l['name'], $locations);
-        } catch (\Throwable) {
-            // Equipment tables might not exist or have issues, continue with empty equipment
-        }
+        } catch (\Throwable) {}
         
         // Get album images
         $stmt = $pdo->prepare('
@@ -481,6 +493,40 @@ class PageController extends BaseController
 
         // Batch fetch metadata (camera, lens, film, developer, lab, location names)
         ImagesService::enrichWithMetadata($pdo, $images, 'album');
+
+        // Fallback: if album has no equipment, extract unique values from images
+        if (empty($equipment['cameras']) || empty($equipment['lenses']) || empty($equipment['film'])) {
+            $imgCameras = [];
+            $imgLenses = [];
+            $imgFilms = [];
+            foreach ($images as $img) {
+                // Camera from image metadata
+                $cam = $img['camera_name'] ?? ($img['custom_camera'] ?? null);
+                if ($cam && !in_array($cam, $imgCameras, true)) {
+                    $imgCameras[] = $cam;
+                }
+                // Lens from image metadata
+                $lens = $img['lens_name'] ?? ($img['custom_lens'] ?? null);
+                if ($lens && !in_array($lens, $imgLenses, true)) {
+                    $imgLenses[] = $lens;
+                }
+                // Film from image metadata
+                $film = $img['film_name'] ?? ($img['custom_film'] ?? null);
+                if ($film && !in_array($film, $imgFilms, true)) {
+                    $imgFilms[] = $film;
+                }
+            }
+            // Use image data as fallback if album equipment is empty
+            if (empty($equipment['cameras']) && !empty($imgCameras)) {
+                $equipment['cameras'] = $imgCameras;
+            }
+            if (empty($equipment['lenses']) && !empty($imgLenses)) {
+                $equipment['lenses'] = $imgLenses;
+            }
+            if (empty($equipment['film']) && !empty($imgFilms)) {
+                $equipment['film'] = $imgFilms;
+            }
+        }
 
         // Enrich images with custom fields
         try {
@@ -576,10 +622,49 @@ class PageController extends BaseController
             if (str_starts_with((string)$lightboxUrl, '/storage/')) { $lightboxUrl = $bestUrl; }
 
             // Build enhanced caption with equipment and location info
+            // Use per-image data with album-level fallback for lightbox display
             $equipBits = [];
             $cameraDisp = $image['camera_name'] ?? ($image['custom_camera'] ?? null);
             $lensDisp = $image['lens_name'] ?? ($image['custom_lens'] ?? null);
             $filmDisp = $image['film_name'] ?? ($image['custom_film'] ?? null);
+            $developerDisp = $image['developer_name'] ?? null;
+            $labDisp = $image['lab_name'] ?? null;
+            $locationDisp = $image['location_name'] ?? null;
+
+            // Fallback to album-level equipment if per-image is empty
+            if (empty($cameraDisp) && !empty($equipment['cameras'])) {
+                $cameraDisp = is_array($equipment['cameras'][0] ?? null)
+                    ? ($equipment['cameras'][0]['name'] ?? $equipment['cameras'][0])
+                    : ($equipment['cameras'][0] ?? null);
+            }
+            if (empty($lensDisp) && !empty($equipment['lenses'])) {
+                $lensDisp = is_array($equipment['lenses'][0] ?? null)
+                    ? ($equipment['lenses'][0]['name'] ?? $equipment['lenses'][0])
+                    : ($equipment['lenses'][0] ?? null);
+            }
+            if (empty($filmDisp) && !empty($equipment['film'])) {
+                $filmDisp = is_array($equipment['film'][0] ?? null)
+                    ? ($equipment['film'][0]['name'] ?? $equipment['film'][0])
+                    : ($equipment['film'][0] ?? null);
+            }
+            if (empty($developerDisp) && !empty($equipment['developers'])) {
+                $developerDisp = is_array($equipment['developers'][0] ?? null)
+                    ? ($equipment['developers'][0]['name'] ?? $equipment['developers'][0])
+                    : ($equipment['developers'][0] ?? null);
+            }
+            if (empty($labDisp) && !empty($equipment['labs'])) {
+                $labDisp = is_array($equipment['labs'][0] ?? null)
+                    ? ($equipment['labs'][0]['name'] ?? $equipment['labs'][0])
+                    : ($equipment['labs'][0] ?? null);
+            }
+
+            // Store fallback values in image array for template data attributes
+            $image['camera_name'] = $cameraDisp;
+            $image['lens_name'] = $lensDisp;
+            $image['film_name'] = $filmDisp;
+            $image['developer_name'] = $developerDisp;
+            $image['lab_name'] = $labDisp;
+            $image['location_name'] = $locationDisp;
             
             if (!empty($cameraDisp)) { $equipBits[] = '<i class="fa-solid fa-camera mr-1"></i>' . htmlspecialchars((string)$cameraDisp, ENT_QUOTES); }
             if (!empty($lensDisp)) { $equipBits[] = '<i class="fa-solid fa-dot-circle mr-1"></i>' . htmlspecialchars((string)$lensDisp, ENT_QUOTES); }

@@ -1005,6 +1005,11 @@ $app->get('/api/album/{id}/images', function (Request $request, Response $respon
     return $controller->albumImages($request, $response, $args);
 })->add(new RateLimitMiddleware(200, 60)); // 200 requests per minute
 
+$app->get('/api/image/{id}/exif', function (Request $request, Response $response, array $args) use ($container) {
+    $controller = new \App\Controllers\Frontend\ApiController($container['db'], Twig::fromRequest($request));
+    return $controller->imageExif($request, $response, $args);
+})->add(new RateLimitMiddleware(60, 60)); // 60 requests per minute
+
 // Media Library
 $app->get('/admin/media', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request));

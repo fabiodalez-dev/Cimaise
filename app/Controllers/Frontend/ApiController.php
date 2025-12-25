@@ -254,4 +254,76 @@ class ApiController extends BaseController
         if (!empty($image['process'])) { $display['process'] = ucfirst((string)$image['process']); }
         return $display;
     }
+
+    /**
+     * Get EXIF data for an image (extracted from original file).
+     */
+    public function imageExif(Request $request, Response $response, array $args): Response
+    {
+        $pdo = $this->db->pdo();
+        $imageId = (int)($args['id'] ?? 0);
+
+        // Get image and its album
+        $stmt = $pdo->prepare('
+            SELECT i.id, i.original_path, i.album_id, a.is_published, a.password_hash, a.is_nsfw
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            WHERE i.id = :id
+        ');
+        $stmt->execute([':id' => $imageId]);
+        $row = $stmt->fetch();
+
+        if (!$row) {
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Image not found']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        if (!$row['is_published']) {
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Album not published']));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Check album access (password protection & NSFW)
+        $isPasswordProtected = !empty($row['password_hash']);
+        $isNsfw = (bool)$row['is_nsfw'];
+        $accessResult = $this->validateAlbumAccess((int)$row['album_id'], $isPasswordProtected, $isNsfw);
+        if ($accessResult !== true) {
+            $error = match ($accessResult) {
+                'password' => 'Album is password protected',
+                'nsfw' => 'Age verification required',
+                default => 'Access denied',
+            };
+            $response->getBody()->write(json_encode(['success' => false, 'message' => $error]));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Build path to original file
+        $basePath = \dirname(__DIR__, 3);
+        $originalPath = $row['original_path'];
+
+        // Handle different path formats
+        if (\str_starts_with($originalPath, '/storage/originals/')) {
+            // Full path from root
+            $fullPath = $basePath . $originalPath;
+        } elseif (\str_starts_with($originalPath, 'storage/')) {
+            $fullPath = $basePath . '/' . $originalPath;
+        } elseif (\str_starts_with($originalPath, '/')) {
+            // Just filename with leading slash
+            $fullPath = $basePath . '/storage/originals' . $originalPath;
+        } else {
+            $fullPath = $basePath . '/storage/originals/' . $originalPath;
+        }
+
+        if (!\file_exists($fullPath)) {
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Original file not found']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Extract EXIF data
+        $exifService = new \App\Services\ExifService($this->db);
+        $exifData = $exifService->extractForLightbox($fullPath);
+
+        $response->getBody()->write(json_encode($exifData));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
 }

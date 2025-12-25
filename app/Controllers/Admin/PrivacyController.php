@@ -44,7 +44,7 @@ class PrivacyController extends BaseController
 
         // CSRF validation (timing-safe)
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid_try_again')];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/privacy'))->withStatus(302);
         }
 

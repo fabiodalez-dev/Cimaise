@@ -800,10 +800,40 @@ class AlbumsController extends BaseController
         }
 
         $id = (int)($args['id'] ?? 0);
-        $stmt = $this->db->pdo()->prepare('DELETE FROM albums WHERE id=:id');
+        $pdo = $this->db->pdo();
+
+        // Collect all file paths BEFORE deleting from DB (CASCADE will delete images/variants records)
+        $files = [];
+        $root = dirname(__DIR__, 2);
+
+        // Get all original image paths
+        $stmt = $pdo->prepare('SELECT id, original_path FROM images WHERE album_id = ?');
+        $stmt->execute([$id]);
+        $images = $stmt->fetchAll();
+
+        foreach ($images as $img) {
+            $files[] = $img['original_path'];
+            // Get variant paths for this image
+            $vstmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = ?');
+            $vstmt->execute([(int)$img['id']]);
+            foreach ($vstmt->fetchAll() as $v) {
+                $files[] = $v['path'];
+            }
+        }
+
+        // Delete album (CASCADE will handle images and image_variants records)
+        $stmt = $pdo->prepare('DELETE FROM albums WHERE id=:id');
         try {
             $stmt->execute([':id'=>$id]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_deleted')];
+
+            // Clean up files (best-effort, after successful DB deletion)
+            foreach ($files as $p) {
+                $abs = str_starts_with((string)$p, '/media/')
+                    ? ($root . '/public' . $p)
+                    : ($root . $p);
+                @unlink($abs);
+            }
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
         }

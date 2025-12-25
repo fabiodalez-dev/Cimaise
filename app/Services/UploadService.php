@@ -429,27 +429,23 @@ class UploadService
 
                 $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                 $destPath = $mediaDir . "/{$imageId}_{$variant}.{$fmt}";
+                $key = (string)$variant . '|' . (string)$fmt;
 
-                // Skip if variant already exists (unless force is enabled)
-                if (is_file($destPath) && !$force) {
-                    $key = (string)$variant . '|' . (string)$fmt;
-                    if (!isset($existingVariants[$key])) {
-                        $this->registerVariantFromFile(
-                            $pdo,
-                            $imageId,
-                            (string)$variant,
-                            (string)$fmt,
-                            $destRelUrl,
-                            $destPath,
-                            $targetW,
-                            $this->db->replaceKeyword()
-                        );
-                        $existingVariants[$key] = $destRelUrl;
-                        $stats['generated']++;
-                    } else {
-                        $stats['skipped']++;
-                    }
+                // Check if variant already exists in DB
+                $existsInDb = isset($existingVariants[$key]);
+
+                // Skip regeneration only if:
+                // 1. force is false AND
+                // 2. DB record exists AND
+                // 3. file exists on disk
+                if (!$force && $existsInDb && is_file($destPath)) {
+                    $stats['skipped']++;
                     continue;
+                }
+
+                // If file exists but NOT in DB (orphan file), delete it first
+                if (is_file($destPath) && !$existsInDb) {
+                    @unlink($destPath);
                 }
 
                 @mkdir(dirname($destPath), 0775, true);

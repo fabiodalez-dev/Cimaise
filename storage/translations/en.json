@@ -178,7 +178,13 @@
     "lightbox.download": "Download",
     "lightbox.slideshow": "Slideshow",
     "lightbox.stop_slideshow": "Stop Slideshow",
-    "lightbox.image_count": "Image {current} of {total}"
+    "lightbox.image_count": "Image {current} of {total}",
+    "lightbox.info_button": "Image Info",
+    "lightbox.exif_title": "Image Details",
+    "lightbox.loading": "Loading...",
+    "lightbox.no_exif": "No EXIF data available",
+    "lightbox.exif_error": "Failed to load EXIF data",
+    "lightbox.view_map": "View on map"
   },
   "share": {
     "share.facebook": "Share on Facebook",

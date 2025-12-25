@@ -20,7 +20,8 @@
      data-location="{{ image.location_name|default('')|e }}"
      data-iso="{{ image.iso|default('') }}"
      data-shutter="{{ image.shutter_speed|default('')|e }}"
-     data-aperture="{{ image.aperture|default('') }}">
+     data-aperture="{{ image.aperture|default('') }}"
+     {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
     <div class="relative overflow-hidden bg-neutral-50 cursor-pointer">
       <picture>
         {% set variants_avif = [] %}

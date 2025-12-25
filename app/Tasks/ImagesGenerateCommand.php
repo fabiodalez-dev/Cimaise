@@ -27,6 +27,7 @@ class ImagesGenerateCommand extends Command
     protected function configure(): void
     {
         $this->addOption('missing', null, InputOption::VALUE_NONE, 'Only generate missing variants');
+        $this->addOption('force', null, InputOption::VALUE_NONE, 'Force regeneration even if file exists');
         $this->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'Limit number of images', '0');
     }
 
@@ -38,6 +39,7 @@ class ImagesGenerateCommand extends Command
         $quality = $settings->get('image.quality');
         $breakpoints = $settings->get('image.breakpoints');
         $missingOnly = (bool)$input->getOption('missing');
+        $forceRegenerate = (bool)$input->getOption('force');
         $limit = (int)$input->getOption('limit');
 
         $output->writeln('<info>Image Variant Generation Starting...</info>');
@@ -109,26 +111,19 @@ class ImagesGenerateCommand extends Command
                     if (empty($formats[$fmt])) continue;
                     $destRelUrl = "/media/{$imageId}_{$variant}.{$fmt}";
                     $dest = dirname(__DIR__, 2) . '/public/media/' . "{$imageId}_{$variant}.{$fmt}";
-                    
-                    if ($missingOnly && is_file($dest)) {
-                        $key = (string)$variant . '|' . (string)$fmt;
-                        if (!isset($existingVariants[$key])) {
-                            $this->registerVariantFromFile(
-                                $pdo,
-                                $imageId,
-                                (string)$variant,
-                                (string)$fmt,
-                                $destRelUrl,
-                                $dest,
-                                (int)$width,
-                                $this->db->replaceKeyword()
-                            );
-                            $existingVariants[$key] = $destRelUrl;
-                            $totalGenerated++;
-                        } else {
-                            $totalSkipped++;
-                        }
+                    $key = (string)$variant . '|' . (string)$fmt;
+                    $existsInDb = isset($existingVariants[$key]);
+                    $existsOnDisk = is_file($dest);
+
+                    // Skip logic (unless force is used)
+                    if (!$forceRegenerate && $missingOnly && $existsOnDisk && $existsInDb) {
+                        $totalSkipped++;
                         continue;
+                    }
+
+                    // Delete orphan files (exist on disk but not in DB) before regenerating
+                    if ($existsOnDisk && !$existsInDb) {
+                        @unlink($dest);
                     }
                     
                     $ok = false;

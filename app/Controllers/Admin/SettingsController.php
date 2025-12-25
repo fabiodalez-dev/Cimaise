@@ -306,16 +306,17 @@ class SettingsController extends BaseController
 
             if ($result['success']) {
                 $generatedCount = count($result['generated']);
-                $message = "Successfully generated {$generatedCount} favicon file(s): " . implode(', ', $result['generated']);
+                $message = str_replace('{count}', (string)$generatedCount, trans('admin.flash.favicon_success'));
 
                 if (!empty($result['errors'])) {
-                    $message .= '. Errors: ' . implode(', ', $result['errors']);
+                    $errorSuffix = str_replace('{errors}', implode(', ', $result['errors']), trans('admin.flash.favicon_error_suffix'));
+                    $message .= '. ' . $errorSuffix;
                     $_SESSION['flash'][] = ['type' => 'warning', 'message' => $message];
                 } else {
                     $_SESSION['flash'][] = ['type' => 'success', 'message' => $message];
                 }
             } else {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Failed to generate favicons: ' . ($result['error'] ?? 'Unknown error')];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.favicon_failed')];
             }
 
         } catch (\Throwable $e) {
@@ -324,7 +325,7 @@ class SettingsController extends BaseController
             ], 'favicon');
             $_SESSION['flash'][] = [
                 'type' => 'danger',
-                'message' => trans('admin.flash.favicon_generation_error')
+                'message' => trans('admin.flash.favicon_failed')
             ];
         }
 

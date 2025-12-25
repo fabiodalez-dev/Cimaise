@@ -174,20 +174,20 @@ class PluginsController extends BaseController
         $file = $uploadedFiles['file'] ?? null;
 
         if (!$file || $file->getError() !== UPLOAD_ERR_OK) {
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'No file uploaded or upload error']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_no_file')]));
             return $response->withStatus(400);
         }
 
         // Check file type
         $filename = $file->getClientFilename();
         if (!str_ends_with(strtolower($filename), '.zip')) {
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'The file must be a ZIP archive']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_must_be_zip')]));
             return $response->withStatus(400);
         }
 
         // Check file size (max 10MB)
         if ($file->getSize() > 10 * 1024 * 1024) {
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'The file is too large (max 10MB)']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_file_too_large')]));
             return $response->withStatus(400);
         }
 
@@ -202,7 +202,7 @@ class PluginsController extends BaseController
         $zip = new \ZipArchive();
         if ($zip->open($tempZip) !== true) {
             $this->cleanupTemp($tempDir);
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Unable to open ZIP file']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_zip')]));
             return $response->withStatus(400);
         }
 
@@ -233,7 +233,7 @@ class PluginsController extends BaseController
 
         if (!$pluginJson) {
             $this->cleanupTemp($tempDir);
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'plugin.json not found in package']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_no_json')]));
             return $response->withStatus(400);
         }
 
@@ -241,7 +241,7 @@ class PluginsController extends BaseController
         $pluginData = json_decode(file_get_contents($pluginJson), true);
         if (!$pluginData || empty($pluginData['name'])) {
             $this->cleanupTemp($tempDir);
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'plugin.json invalid or missing "name" field']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_json')]));
             return $response->withStatus(400);
         }
 
@@ -249,10 +249,11 @@ class PluginsController extends BaseController
         $securityCheck = $this->validatePluginSecurity($pluginDir);
         if (!$securityCheck['valid']) {
             $this->cleanupTemp($tempDir);
-            $errorMessage = 'Plugin rejected due to security concerns: ' . implode('; ', array_slice($securityCheck['errors'], 0, 3));
+            $errorsSummary = implode('; ', array_slice($securityCheck['errors'], 0, 3));
             if (count($securityCheck['errors']) > 3) {
-                $errorMessage .= ' (and ' . (count($securityCheck['errors']) - 3) . ' more issues)';
+                $errorsSummary .= ' (+' . (count($securityCheck['errors']) - 3) . ')';
             }
+            $errorMessage = str_replace('{errors}', $errorsSummary, trans('admin.flash.plugin_security_rejected'));
             $response->getBody()->write(json_encode(['success' => false, 'message' => $errorMessage]));
             return $response->withStatus(400);
         }
@@ -266,7 +267,7 @@ class PluginsController extends BaseController
         // Check if plugin already exists
         if (is_dir($targetDir)) {
             $this->cleanupTemp($tempDir);
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'A plugin with this name already exists']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_already_exists')]));
             return $response->withStatus(400);
         }
 
@@ -278,16 +279,17 @@ class PluginsController extends BaseController
         // Move plugin to plugins directory
         if (!rename($pluginDir, $targetDir)) {
             $this->cleanupTemp($tempDir);
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Unable to install plugin']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_install_failed')]));
             return $response->withStatus(500);
         }
 
         // Cleanup temp
         $this->cleanupTemp($tempDir);
 
+        $successMessage = str_replace('{name}', htmlspecialchars($pluginData['name'], ENT_QUOTES, 'UTF-8'), trans('admin.flash.plugin_uploaded'));
         $response->getBody()->write(json_encode([
             'success' => true,
-            'message' => 'Plugin "' . htmlspecialchars($pluginData['name'], ENT_QUOTES, 'UTF-8') . '" uploaded successfully',
+            'message' => $successMessage,
             'plugin' => [
                 'slug' => $slug,
                 'name' => $pluginData['name'],
