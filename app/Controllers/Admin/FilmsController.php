@@ -37,7 +37,7 @@ class FilmsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/films/create')->withStatus(302);
         }
 
@@ -49,7 +49,7 @@ class FilmsController extends BaseController
         $type = (string)($d['type'] ?? 'bw');
 
         if ($brand === '' || $name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Brand and Name are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.brand_name_required')];
             return $res->withHeader('Location', $this->basePath . '/admin/films/create')->withStatus(302);
         }
 
@@ -58,9 +58,9 @@ class FilmsController extends BaseController
             $pdo->prepare('INSERT INTO films(brand, name, iso, format, type) VALUES(?,?,?,?,?)')->execute([$brand, $name, $iso, $format, $type]);
             $id = (int)$pdo->lastInsertId();
             Hooks::doAction('metadata_film_created', $id, ['brand' => $brand, 'name' => $name]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Film created'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.film_created')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
             return $res->withHeader('Location', $this->basePath . '/admin/films/create')->withStatus(302);
         }
 
@@ -85,7 +85,7 @@ class FilmsController extends BaseController
 
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/films/'.$id.'/edit')->withStatus(302);
         }
 
@@ -97,16 +97,16 @@ class FilmsController extends BaseController
         $type = (string)($d['type'] ?? 'bw');
 
         if ($brand === '' || $name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Brand and Name are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.brand_name_required')];
             return $res->withHeader('Location', $this->basePath . '/admin/films/'.$id.'/edit')->withStatus(302);
         }
 
         try {
             $this->db->pdo()->prepare('UPDATE films SET brand=?, name=?, iso=?, format=?, type=? WHERE id=?')->execute([$brand, $name, $iso, $format, $type, $id]);
             Hooks::doAction('metadata_film_updated', $id, ['brand' => $brand, 'name' => $name]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Film updated'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.film_updated')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
 
         return $res->withHeader('Location', $this->basePath . '/admin/films')->withStatus(302);
@@ -116,7 +116,7 @@ class FilmsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($r)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $res->withHeader('Location', $this->basePath . '/admin/films')->withStatus(302);
         }
 
@@ -124,9 +124,9 @@ class FilmsController extends BaseController
         try {
             $this->db->pdo()->prepare('DELETE FROM films WHERE id=:id')->execute([':id' => $id]);
             Hooks::doAction('metadata_film_deleted', $id);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Film deleted'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.film_deleted')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
 
         return $res->withHeader('Location', $this->basePath . '/admin/films')->withStatus(302);

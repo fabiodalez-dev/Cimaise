@@ -18,7 +18,20 @@
      data-location="{{ image.location_name|default('')|e }}"
      data-iso="{{ image.iso|default('') }}"
      data-shutter="{{ image.shutter_speed|default('')|e }}"
-     data-aperture="{{ image.aperture|default('') }}">
+     data-aperture="{{ image.aperture|default('') }}"
+     {% if image.custom_fields is defined and image.custom_fields %}
+       {% set lightbox_fields = [] %}
+       {% for typeId, field in image.custom_fields %}
+         {% if field.show_in_lightbox %}
+           {% set lightbox_fields = lightbox_fields|merge([{
+             'label': field.type_label,
+             'icon': field.icon,
+             'values': field.values
+           }]) %}
+         {% endif %}
+       {% endfor %}
+       {% if lightbox_fields %}data-custom-fields="{{ lightbox_fields|json_encode|e('html_attr') }}"{% endif %}
+     {% endif %}>
   <div class="relative aspect-[4/3] md:aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm cursor-pointer">
     <picture>
       {% set variants_avif = [] %}

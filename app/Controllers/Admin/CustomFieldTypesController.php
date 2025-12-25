@@ -51,7 +51,7 @@ class CustomFieldTypesController extends BaseController
     public function store(Request $request, Response $response): Response
     {
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/create')->withStatus(302);
         }
 
@@ -62,20 +62,20 @@ class CustomFieldTypesController extends BaseController
 
         // Validate name format (must be lowercase letters, numbers, underscores only)
         if ($rawName !== '' && !preg_match('/^[a-z0-9_]+$/', $rawName)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name must contain only lowercase letters, numbers, and underscores'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.name_invalid')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/create')->withStatus(302);
         }
 
         $name = $rawName;
 
         if ($name === '' || $label === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name and label are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.name_required')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/create')->withStatus(302);
         }
 
         // Check if name already exists
         if ($this->customFieldService->getFieldTypeByName($name)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'A field type with this name already exists'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.name_exists')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/create')->withStatus(302);
         }
 
@@ -103,9 +103,9 @@ class CustomFieldTypesController extends BaseController
                 'sort_order' => (int)($data['sort_order'] ?? 0)
             ]);
 
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Custom field type created'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.custom_fields.created')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/create')->withStatus(302);
         }
 
@@ -123,7 +123,7 @@ class CustomFieldTypesController extends BaseController
 
         // Cannot edit system types
         if ($type['is_system']) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'System field types cannot be edited'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.cannot_edit_system')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types')->withStatus(302);
         }
 
@@ -139,13 +139,13 @@ class CustomFieldTypesController extends BaseController
         $id = (int)($args['id'] ?? 0);
 
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/' . $id . '/edit')->withStatus(302);
         }
 
         $type = $this->customFieldService->getFieldType($id);
         if (!$type || $type['is_system']) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'System field types cannot be edited'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.cannot_edit_system')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types')->withStatus(302);
         }
 
@@ -153,7 +153,7 @@ class CustomFieldTypesController extends BaseController
         $label = trim($data['label'] ?? '');
 
         if ($label === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Label is required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.label_required')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types/' . $id . '/edit')->withStatus(302);
         }
 
@@ -180,9 +180,9 @@ class CustomFieldTypesController extends BaseController
                 'sort_order' => (int)($data['sort_order'] ?? 0)
             ]);
 
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Custom field type updated'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.custom_fields.updated')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
 
         return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types')->withStatus(302);
@@ -191,7 +191,7 @@ class CustomFieldTypesController extends BaseController
     public function delete(Request $request, Response $response, array $args): Response
     {
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types')->withStatus(302);
         }
 
@@ -199,12 +199,12 @@ class CustomFieldTypesController extends BaseController
 
         try {
             if ($this->customFieldService->deleteFieldType($id)) {
-                $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Custom field type deleted'];
+                $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.custom_fields.deleted')];
             } else {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'System field types cannot be deleted'];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.custom_fields.cannot_delete_system')];
             }
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
 
         return $response->withHeader('Location', $this->basePath . '/admin/custom-field-types')->withStatus(302);

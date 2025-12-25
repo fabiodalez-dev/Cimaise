@@ -37,7 +37,7 @@ class LocationsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/locations/create'))->withStatus(302);
         }
 
@@ -46,16 +46,16 @@ class LocationsController extends BaseController
         $slug = trim((string)($data['slug'] ?? ''));
         $desc = trim((string)($data['description'] ?? '')) ?: null;
         if ($name === '' || $slug === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name and slug are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_slug_required')];
             return $response->withHeader('Location', $this->redirect('/admin/locations/create'))->withStatus(302);
         }
         try {
             $id = $this->locations->create(['name' => $name, 'slug' => $slug, 'description' => $desc]);
             Hooks::doAction('metadata_location_created', $id, ['name' => $name, 'slug' => $slug, 'description' => $desc]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location created'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.location_created')];
             return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
             return $response->withHeader('Location', $this->redirect('/admin/locations/create'))->withStatus(302);
         }
     }
@@ -77,7 +77,7 @@ class LocationsController extends BaseController
 
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/locations/' . $id . '/edit'))->withStatus(302);
         }
 
@@ -86,15 +86,15 @@ class LocationsController extends BaseController
         $slug = trim((string)($data['slug'] ?? ''));
         $desc = trim((string)($data['description'] ?? '')) ?: null;
         if ($name === '' || $slug === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name and slug are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_slug_required')];
             return $response->withHeader('Location', $this->redirect('/admin/locations/' . $id . '/edit'))->withStatus(302);
         }
         try {
             $this->locations->update($id, ['name' => $name, 'slug' => $slug, 'description' => $desc]);
             Hooks::doAction('metadata_location_updated', $id, ['name' => $name, 'slug' => $slug, 'description' => $desc]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location updated'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.location_updated')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
         return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
     }
@@ -103,7 +103,7 @@ class LocationsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
         }
 
@@ -111,9 +111,9 @@ class LocationsController extends BaseController
         try {
             $this->locations->delete($id);
             Hooks::doAction('metadata_location_deleted', $id);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Location deleted'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.location_deleted')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
         }
         return $response->withHeader('Location', $this->redirect('/admin/locations'))->withStatus(302);
     }

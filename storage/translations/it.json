@@ -310,13 +310,11 @@
     "errors.500.back_dashboard": "Torna alla Dashboard"
   },
   "frontend": {
-    "nsfw_global": {
-      "title": "Avviso Contenuto per Adulti",
-      "message": "Questo sito contiene contenuti per adulti. Devi avere almeno 18 anni per continuare.",
-      "disclaimer": "Continuando, confermi di essere maggiorenne nella tua giurisdizione.",
-      "confirm": "Ho 18+ anni - Entra",
-      "decline": "Esci",
-      "remember": "La tua scelta verrà ricordata per questa sessione."
-    }
+    "frontend.nsfw_global.title": "Avviso Contenuto per Adulti",
+    "frontend.nsfw_global.message": "Questo sito contiene contenuti per adulti. Devi avere almeno 18 anni per continuare.",
+    "frontend.nsfw_global.disclaimer": "Continuando, confermi di essere maggiorenne nella tua giurisdizione.",
+    "frontend.nsfw_global.confirm": "Ho 18+ anni - Entra",
+    "frontend.nsfw_global.decline": "Esci",
+    "frontend.nsfw_global.remember": "La tua scelta verrà ricordata per questa sessione."
   }
 }

@@ -68,6 +68,12 @@ class PagesController extends BaseController
             'home.gallery_scroll_direction' => (string)($svc->get('home.gallery_scroll_direction', 'vertical') ?? 'vertical'),
             'home.gallery_text_title' => (string)($svc->get('home.gallery_text_title', '') ?? ''),
             'home.gallery_text_content' => (string)($svc->get('home.gallery_text_content', '') ?? ''),
+            // Masonry settings
+            'home.masonry_gap_h' => (int)($svc->get('home.masonry_gap_h', 0) ?? 0),
+            'home.masonry_gap_v' => (int)($svc->get('home.masonry_gap_v', 0) ?? 0),
+            'home.masonry_col_desktop' => (int)($svc->get('home.masonry_col_desktop', 5) ?? 5),
+            'home.masonry_col_tablet' => (int)($svc->get('home.masonry_col_tablet', 3) ?? 3),
+            'home.masonry_col_mobile' => (int)($svc->get('home.masonry_col_mobile', 2) ?? 2),
         ];
         return $this->view->render($response, 'admin/pages/home.twig', [
             'settings' => $settings,
@@ -81,7 +87,7 @@ class PagesController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/pages/home'))->withStatus(302);
         }
 
@@ -136,7 +142,7 @@ class PagesController extends BaseController
         $svc->set('home.gallery_text_title', trim((string)($data['gallery_text_title'] ?? '')));
         $svc->set('home.gallery_text_content', \App\Support\Sanitizer::html((string)($data['gallery_text_content'] ?? '')));
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Home page saved successfully.'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.home_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/home'))->withStatus(302);
     }
 
@@ -168,7 +174,7 @@ class PagesController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/pages/about'))->withStatus(302);
         }
 
@@ -240,15 +246,15 @@ class PagesController extends BaseController
                         $svc->set('about.photo_url', $rel);
                     } else {
                         @unlink($dest);
-                        $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Invalid image file after upload.'];
+                        $_SESSION['flash'][] = ['type' => 'warning', 'message' => trans('admin.flash.image_invalid_after_upload')];
                     }
                 }
             } else {
-                $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Invalid image file or unsupported format.'];
+                $_SESSION['flash'][] = ['type' => 'warning', 'message' => trans('admin.flash.image_invalid')];
             }
         }
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'About page saved successfully.'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.about_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/about'))->withStatus(302);
     }
 
@@ -296,7 +302,7 @@ class PagesController extends BaseController
         $csrf = (string)($data['csrf'] ?? '');
 
         if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);
         }
 
@@ -322,7 +328,7 @@ class PagesController extends BaseController
         // Default gallery template selector moved to global Settings page.
         // Intentionally ignore any incoming default_template_id here to keep a single source of truth.
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Galleries page saved successfully.'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.galleries_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);
     }
 

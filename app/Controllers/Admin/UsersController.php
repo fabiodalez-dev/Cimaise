@@ -58,7 +58,7 @@ class UsersController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
 
@@ -75,22 +75,22 @@ class UsersController extends BaseController
         
         // Validation
         if (empty($email) || empty($firstName) || empty($lastName) || empty($password)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'All required fields must be filled'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.all_fields_required')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
         
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid email'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
         
         if (strlen($password) < 8) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Password must be at least 8 characters'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.password_min_length')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
         
         if ($password !== $confirmPassword) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Passwords do not match'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.passwords_no_match')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
         
@@ -102,7 +102,7 @@ class UsersController extends BaseController
         $stmt = $this->db->pdo()->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
         $stmt->execute([':email' => $email]);
         if ($stmt->fetch()) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Email already in use'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_already_used')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
         
@@ -123,11 +123,11 @@ class UsersController extends BaseController
                 ':is_active' => $isActive
             ]);
             
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'User created successfully'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.user_created')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         } catch (\Throwable $e) {
             Logger::error('UsersController::store error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while creating user. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
     }
@@ -140,10 +140,10 @@ class UsersController extends BaseController
         $user = $stmt->fetch();
         
         if (!$user) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'User not found'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.user_not_found')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         }
-        
+
         return $this->view->render($response, 'admin/users/edit.twig', [
             'user' => $user,
             'csrf' => $_SESSION['csrf'] ?? ''
@@ -156,7 +156,7 @@ class UsersController extends BaseController
 
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
         }
 
@@ -168,10 +168,10 @@ class UsersController extends BaseController
         $currentUser = $stmt->fetch();
         
         if (!$currentUser) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'User not found'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.user_not_found')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         }
-        
+
         // Validate fields
         $email = trim((string)($data['email'] ?? ''));
         $firstName = trim((string)($data['first_name'] ?? ''));
@@ -183,23 +183,23 @@ class UsersController extends BaseController
         
         // Validation
         if (empty($email) || empty($firstName) || empty($lastName)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Email, first name and last name are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_email_required')];
             return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
         }
-        
+
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid email'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
         }
-        
+
         if (!empty($password)) {
             if (strlen($password) < 8) {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Password must be at least 8 characters'];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.password_min_length')];
                 return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
             }
-            
+
             if ($password !== $confirmPassword) {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Passwords do not match'];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.passwords_no_match')];
                 return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
             }
         }
@@ -212,7 +212,7 @@ class UsersController extends BaseController
         $stmt = $this->db->pdo()->prepare('SELECT id FROM users WHERE email = :email AND id != :id LIMIT 1');
         $stmt->execute([':email' => $email, ':id' => $id]);
         if ($stmt->fetch()) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Email already in use by another user'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_already_used')];
             return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
         }
         
@@ -255,11 +255,11 @@ class UsersController extends BaseController
         
         try {
             $stmt->execute($params);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'User updated successfully'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.user_updated')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         } catch (\Throwable $e) {
             Logger::error('UsersController::update error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating user. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
             return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
         }
     }
@@ -268,7 +268,7 @@ class UsersController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         }
 
@@ -276,39 +276,39 @@ class UsersController extends BaseController
 
         // Prevent self-deletion and ensure at least one admin remains
         if ($id === $_SESSION['admin_id']) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'You cannot delete your own account'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.cannot_delete_own_account')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         }
-        
+
         // Check if user exists and get role
         $stmt = $this->db->pdo()->prepare('SELECT role FROM users WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $user = $stmt->fetch();
-        
+
         if (!$user) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'User not found'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.user_not_found')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         }
-        
+
         // If deleting an admin, ensure at least one admin remains
         if ($user['role'] === 'admin') {
             $stmt = $this->db->pdo()->query("SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_active = 1");
             $adminCount = (int)$stmt->fetchColumn();
-            
+
             if ($adminCount <= 1) {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'At least one active administrator must remain'];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.one_admin_required')];
                 return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
             }
         }
-        
+
         // Delete user
         $stmt = $this->db->pdo()->prepare('DELETE FROM users WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'User deleted'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.user_deleted')];
         } catch (\Throwable $e) {
             Logger::error('UsersController::delete error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while deleting user. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
 
         return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
@@ -318,7 +318,7 @@ class UsersController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         }
 
@@ -326,43 +326,43 @@ class UsersController extends BaseController
 
         // Prevent self-deactivation
         if ($id === $_SESSION['admin_id']) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'You cannot deactivate your own account'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.cannot_deactivate_own_account')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         }
-        
+
         // Get current status
         $stmt = $this->db->pdo()->prepare('SELECT is_active, role FROM users WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $user = $stmt->fetch();
-        
+
         if (!$user) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'User not found'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.user_not_found')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         }
-        
+
         $newStatus = $user['is_active'] ? 0 : 1;
-        
+
         // If deactivating an admin, ensure at least one admin remains active
         if ($user['role'] === 'admin' && $newStatus === 0) {
             $stmt = $this->db->pdo()->query("SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_active = 1");
             $adminCount = (int)$stmt->fetchColumn();
-            
+
             if ($adminCount <= 1) {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'At least one active administrator must remain'];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.one_admin_required')];
                 return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
             }
         }
-        
+
         // Toggle status
         $now = $this->db->nowExpression();
         $stmt = $this->db->pdo()->prepare("UPDATE users SET is_active = :status, updated_at = {$now} WHERE id = :id");
         try {
             $stmt->execute([':status' => $newStatus, ':id' => $id]);
-            $statusText = $newStatus ? 'activated' : 'deactivated';
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => "User {$statusText}"];
+            $statusKey = $newStatus ? 'admin.flash.user_activated' : 'admin.flash.user_deactivated';
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans($statusKey)];
         } catch (\Throwable $e) {
             Logger::error('UsersController::toggleActive error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating user status. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
 
         return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);

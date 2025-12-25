@@ -54,7 +54,7 @@ class TagsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/tags/create'))->withStatus(302);
         }
 
@@ -62,7 +62,7 @@ class TagsController extends BaseController
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $response->withHeader('Location', $this->redirect('/admin/tags/create'))->withStatus(302);
         }
         if ($slug === '') {
@@ -74,11 +74,11 @@ class TagsController extends BaseController
         try {
             $stmt->execute([':n' => $name, ':s' => $slug]);
             unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag created'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.tag_created')];
             return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
         } catch (\Throwable $e) {
             Logger::error('TagsController::store error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while creating tag. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
             return $response->withHeader('Location', $this->redirect('/admin/tags/create'))->withStatus(302);
         }
     }
@@ -105,7 +105,7 @@ class TagsController extends BaseController
 
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/tags/'.$id.'/edit'))->withStatus(302);
         }
 
@@ -113,7 +113,7 @@ class TagsController extends BaseController
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $response->withHeader('Location', $this->redirect('/admin/tags/'.$id.'/edit'))->withStatus(302);
         }
         if ($slug === '') {
@@ -125,10 +125,10 @@ class TagsController extends BaseController
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':id' => $id]);
             unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag updated'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.tag_updated')];
         } catch (\Throwable $e) {
             Logger::error('TagsController::update error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while updating tag. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
         return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
     }
@@ -137,7 +137,7 @@ class TagsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
         }
 
@@ -146,10 +146,10 @@ class TagsController extends BaseController
         try {
             $stmt->execute([':id' => $id]);
             unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Tag deleted'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.tag_deleted')];
         } catch (\Throwable $e) {
             Logger::error('TagsController::delete error', ['error' => $e->getMessage()], 'admin');
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'An error occurred while deleting tag. Please try again.'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
         return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
     }

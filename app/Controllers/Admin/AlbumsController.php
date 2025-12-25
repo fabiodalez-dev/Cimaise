@@ -133,7 +133,7 @@ class AlbumsController extends BaseController
             if (str_contains($accept, 'application/json')) {
                 return $this->csrfErrorJson($response);
             }
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/albums/create'))->withStatus(302);
         }
 
@@ -183,7 +183,7 @@ class AlbumsController extends BaseController
         $customLabs = trim((string)($d['custom_labs'] ?? '')) ?: null;
         
         if ($title === '' || $category_id <= 0) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Title and category are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.title_category_required')];
             return $response->withHeader('Location', $this->redirect('/admin/albums/create'))->withStatus(302);
         }
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
@@ -316,7 +316,7 @@ class AlbumsController extends BaseController
                 $response->getBody()->write($payload);
                 return $response->withHeader('Content-Type','application/json');
             }
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album created'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_created')];
             return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
         } catch (\Throwable $e) {
             $accept = $request->getHeaderLine('Accept');
@@ -337,7 +337,7 @@ class AlbumsController extends BaseController
         $stmt->execute([':id'=>$id]);
         $item = $stmt->fetch();
         if (!$item) {
-            $response->getBody()->write('Album not found');
+            $response->getBody()->write(trans('admin.flash.album_not_found'));
             return $response->withStatus(404);
         }
         // Add password flag for template (checks password_hash existence)
@@ -489,7 +489,7 @@ class AlbumsController extends BaseController
             if (str_contains($accept, 'application/json')) {
                 return $this->csrfErrorJson($response);
             }
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
         }
 
@@ -531,7 +531,7 @@ class AlbumsController extends BaseController
             $response->getBody()->write(json_encode(['ok' => true]));
             return $response->withHeader('Content-Type','application/json');
         }
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Image updated'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.image_updated')];
         return $response->withHeader('Location',$this->basePath . '/admin/albums/'.$albumId.'/edit')->withStatus(302);
     }
 
@@ -541,7 +541,7 @@ class AlbumsController extends BaseController
 
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
         }
 
@@ -597,7 +597,7 @@ class AlbumsController extends BaseController
         $customLabs = trim((string)($d['custom_labs'] ?? '')) ?: null;
         
         if ($title === '' || $category_id <= 0) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Title and category are required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.title_category_required')];
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
         }
         $slug = $slug !== '' ? \App\Support\Str::slug($slug) : \App\Support\Str::slug($title);
@@ -784,7 +784,7 @@ class AlbumsController extends BaseController
                 }
             }
 
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album updated'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_updated')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
         }
@@ -795,7 +795,7 @@ class AlbumsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
         }
 
@@ -803,7 +803,7 @@ class AlbumsController extends BaseController
         $stmt = $this->db->pdo()->prepare('DELETE FROM albums WHERE id=:id');
         try {
             $stmt->execute([':id'=>$id]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album deleted'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_deleted')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
         }
@@ -814,7 +814,7 @@ class AlbumsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
         }
 
@@ -822,7 +822,7 @@ class AlbumsController extends BaseController
         // Use portable CURRENT_TIMESTAMP instead of MySQL-specific NOW()
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET is_published=1, published_at=CURRENT_TIMESTAMP WHERE id=:id');
         $stmt->execute([':id'=>$id]);
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album published'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_published')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
     }
 
@@ -830,14 +830,14 @@ class AlbumsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
         }
 
         $id = (int)($args['id'] ?? 0);
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET is_published=0, published_at=NULL WHERE id=:id');
         $stmt->execute([':id'=>$id]);
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Album unpublished'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_unpublished')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
     }
 
@@ -849,7 +849,7 @@ class AlbumsController extends BaseController
             if (str_contains($accept, 'application/json')) {
                 return $this->csrfErrorJson($response);
             }
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
         }
 
@@ -859,7 +859,7 @@ class AlbumsController extends BaseController
         $check = $this->db->pdo()->prepare('SELECT 1 FROM images WHERE id=:img AND album_id=:a');
         $check->execute([':img'=>$imageId, ':a'=>$albumId]);
         if (!$check->fetchColumn()) {
-            $_SESSION['flash'][] = ['type'=>'danger','message'=>'Image does not belong to this album'];
+            $_SESSION['flash'][] = ['type'=>'danger','message'=>trans('admin.flash.image_not_in_album')];
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$albumId.'/edit'))->withStatus(302);
         }
         $stmt = $this->db->pdo()->prepare('UPDATE albums SET cover_image_id=:img WHERE id=:id');
@@ -869,7 +869,7 @@ class AlbumsController extends BaseController
             $response->getBody()->write(json_encode(['ok'=>true]));
             return $response->withHeader('Content-Type','application/json');
         }
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Cover updated'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.cover_updated')];
         return $response->withHeader('Location', $this->redirect('/admin/albums/'.$albumId.'/edit'))->withStatus(302);
     }
 
@@ -1075,7 +1075,7 @@ class AlbumsController extends BaseController
         $dupStmt = $pdo->prepare('SELECT id FROM images WHERE album_id = :album AND file_hash = :hash LIMIT 1');
         $dupStmt->execute([':album' => $albumId, ':hash' => $src['file_hash']]);
         if ($dupStmt->fetch()) {
-            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Image already exists in this album']));
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => trans('admin.flash.image_already_in_album')]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(409);
         }
 

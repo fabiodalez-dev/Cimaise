@@ -42,7 +42,7 @@ class SettingsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
         }
 
@@ -80,7 +80,7 @@ class SettingsController extends BaseController
             $breakpoints['md'] >= $breakpoints['lg'] ||
             $breakpoints['lg'] >= $breakpoints['xl'] ||
             $breakpoints['xl'] >= $breakpoints['xxl']) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Breakpoint values must be in ascending order (sm < md < lg < xl < xxl)'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.breakpoints_ascending_order')];
             return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
         }
 
@@ -150,11 +150,11 @@ class SettingsController extends BaseController
         // Validate reCAPTCHA key format (alphanumeric, underscore, hyphen only)
         $recaptchaKeyPattern = '/^[A-Za-z0-9_-]+$/';
         if ($recaptchaSiteKey !== '' && !preg_match($recaptchaKeyPattern, $recaptchaSiteKey)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid reCAPTCHA Site Key format'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.recaptcha_site_key_invalid')];
             $recaptchaSiteKey = ''; // Reject invalid key
         }
         if ($recaptchaSecretKey !== '' && !preg_match($recaptchaKeyPattern, $recaptchaSecretKey)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid reCAPTCHA Secret Key format'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.recaptcha_secret_key_invalid')];
             $recaptchaSecretKey = ''; // Reject invalid key
         }
 
@@ -168,7 +168,7 @@ class SettingsController extends BaseController
 
         // Validate: cannot enable reCAPTCHA without both keys
         if ($recaptchaEnabled && ($finalSiteKey === '' || $finalSecretKey === '')) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Cannot enable reCAPTCHA without both Site Key and Secret Key'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.recaptcha_keys_required')];
             $recaptchaEnabled = false;
         }
 
@@ -185,8 +185,9 @@ class SettingsController extends BaseController
         $svc->set('admin.debug_logs', isset($data['admin_debug_logs']));
         $svc->set('frontend.disable_right_click', $disableRightClick);
         $svc->set('navigation.show_tags_in_header', isset($data['show_tags_in_header']));
+        $svc->set('privacy.nsfw_global_warning', isset($data['nsfw_global_warning']));
 
-        $_SESSION['flash'][] = ['type'=>'success','message'=>'Settings saved successfully'];
+        $_SESSION['flash'][] = ['type'=>'success','message'=> trans('admin.flash.settings_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
     }
 
@@ -197,7 +198,7 @@ class SettingsController extends BaseController
             if ($this->isAjaxRequest($request)) {
                 return $this->csrfErrorJson($response);
             }
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
         }
 
@@ -217,7 +218,7 @@ class SettingsController extends BaseController
             if ($this->isAjaxRequest($request)) {
                 $payload = json_encode([
                     'success' => true,
-                    'message' => 'Image variant generation started.'
+                    'message' => trans('admin.flash.image_generation_started')
                 ]);
                 $response->getBody()->write($payload !== false ? $payload : '{"success":true}');
                 return $response->withHeader('Content-Type', 'application/json');
@@ -225,7 +226,7 @@ class SettingsController extends BaseController
 
             $_SESSION['flash'][] = [
                 'type' => 'info',
-                'message' => 'Image variant generation started.'
+                'message' => trans('admin.flash.image_generation_started')
             ];
 
         } catch (\Throwable $e) {
@@ -236,7 +237,7 @@ class SettingsController extends BaseController
             if ($this->isAjaxRequest($request)) {
                 $payload = json_encode([
                     'success' => false,
-                    'error' => 'Generation failed',
+                    'error' => trans('admin.flash.generation_failed'),
                 ]);
                 $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
                 return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
@@ -244,7 +245,7 @@ class SettingsController extends BaseController
 
             $_SESSION['flash'][] = [
                 'type' => 'danger',
-                'message' => 'Error starting generation'
+                'message' => trans('admin.flash.generation_failed')
             ];
         }
 
@@ -255,7 +256,7 @@ class SettingsController extends BaseController
     {
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
         }
 
@@ -265,7 +266,7 @@ class SettingsController extends BaseController
             $logoPath = (string)$svc->get('site.logo', '');
 
             if ($logoPath === '') {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Please upload a logo first before generating favicons'];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.logo_required_for_favicon')];
                 return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
             }
 
@@ -278,7 +279,7 @@ class SettingsController extends BaseController
                     'logoPath' => $logoPath,
                     'absoluteLogoPath' => $absoluteLogoPath,
                 ], 'favicon');
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Logo file not found'];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.logo_not_found')];
                 return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
             }
 
@@ -288,14 +289,14 @@ class SettingsController extends BaseController
                     'logoPath' => $logoPath,
                     'absoluteLogoPath' => $absoluteLogoPath,
                 ], 'favicon');
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Logo file is not readable'];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.logo_not_readable')];
                 return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
             }
 
             // Validate MIME type
             $mimeType = mime_content_type($absoluteLogoPath);
             if (!$mimeType || !str_starts_with($mimeType, 'image/')) {
-                $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Logo file must be an image'];
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.logo_must_be_image')];
                 return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
             }
 
@@ -323,7 +324,7 @@ class SettingsController extends BaseController
             ], 'favicon');
             $_SESSION['flash'][] = [
                 'type' => 'danger',
-                'message' => 'Error generating favicons'
+                'message' => trans('admin.flash.favicon_generation_error')
             ];
         }
 

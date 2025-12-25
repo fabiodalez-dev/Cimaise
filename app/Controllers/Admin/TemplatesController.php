@@ -35,14 +35,14 @@ class TemplatesController extends BaseController
     // New template creation is disabled
     public function create(Request $request, Response $response): Response
     {
-        $_SESSION['flash'][] = ['type' => 'warning', 'message' => 'Creating new templates is disabled. You can only edit existing templates.'];
+        $_SESSION['flash'][] = ['type' => 'warning', 'message' => trans('admin.flash.templates_disabled')];
         return $response->withHeader('Location', $this->redirect('/admin/templates'))->withStatus(302);
     }
 
     // Saving new templates is disabled
     public function store(Request $request, Response $response): Response
     {
-        $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Operation not allowed.'];
+        $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.operation_not_allowed')];
         return $response->withHeader('Location', $this->redirect('/admin/templates'))->withStatus(302);
     }
 
@@ -54,7 +54,7 @@ class TemplatesController extends BaseController
         $template = $stmt->fetch();
         
         if (!$template) {
-            $response->getBody()->write('Template not found');
+            $response->getBody()->write(trans('admin.flash.template_not_found'));
             return $response->withStatus(404);
         }
         
@@ -74,7 +74,7 @@ class TemplatesController extends BaseController
 
         // CSRF validation
         if (!$this->validateCsrf($request)) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/templates/'.$id.'/edit'))->withStatus(302);
         }
 
@@ -82,9 +82,9 @@ class TemplatesController extends BaseController
         $name = trim((string)($data['name'] ?? ''));
         $slug = trim((string)($data['slug'] ?? ''));
         $description = trim((string)($data['description'] ?? ''));
-        
+
         if ($name === '') {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Name is required'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_required')];
             return $response->withHeader('Location', $this->redirect('/admin/templates/'.$id.'/edit'))->withStatus(302);
         }
         
@@ -162,9 +162,9 @@ class TemplatesController extends BaseController
                 ':libs' => json_encode($libs),
                 ':id' => $id
             ]);
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Template updated'];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.template_updated')];
         } catch (\Throwable $e) {
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: ' . $e->getMessage()];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic')];
         }
         return $response->withHeader('Location', $this->redirect('/admin/templates'))->withStatus(302);
     }
@@ -172,7 +172,7 @@ class TemplatesController extends BaseController
     // Deleting templates is disabled
     public function delete(Request $request, Response $response, array $args): Response
     {
-        $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Operation not allowed.'];
+        $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.operation_not_allowed')];
         return $response->withHeader('Location', $this->redirect('/admin/templates'))->withStatus(302);
     }
 }

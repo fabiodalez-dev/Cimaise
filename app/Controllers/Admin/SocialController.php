@@ -81,7 +81,7 @@ class SocialController extends BaseController
             if ($this->isAjaxRequest($request)) {
                 return $this->csrfErrorJson($response);
             }
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
         }
 
@@ -146,7 +146,7 @@ class SocialController extends BaseController
             return $response->withHeader('Content-Type', 'application/json');
         }
 
-        $_SESSION['flash'][] = ['type'=>'success','message'=>'Social settings saved successfully'];
+        $_SESSION['flash'][] = ['type'=>'success','message'=>trans('admin.flash.social_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
     }
 
@@ -601,7 +601,7 @@ class SocialController extends BaseController
             if ($this->isAjaxRequest($request)) {
                 return $this->csrfErrorJson($response);
             }
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Invalid CSRF token'];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
         }
 
@@ -637,7 +637,7 @@ class SocialController extends BaseController
             return $response->withHeader('Content-Type', 'application/json');
         }
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => 'Social profiles saved successfully'];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.social_profiles_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/social'))->withStatus(302);
     }
 
