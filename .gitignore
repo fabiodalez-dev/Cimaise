@@ -27,8 +27,6 @@ storage/tmp/*
 !storage/tmp/.gitkeep
 storage/cache/*
 !storage/cache/.gitkeep
-storage/lensfun/*
-!storage/lensfun/.gitkeep
 storage/rate_limits/*
 !storage/rate_limits/.gitkeep
 storage/translations/*
