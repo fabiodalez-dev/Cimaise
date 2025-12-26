@@ -68,23 +68,36 @@
     });
 
     async function fetchSuggestions(query, type, dropdown, input) {
-      const endpoint = type === 'lens-maker'
+      let endpoint = type === 'lens-maker'
         ? '{{ base_path }}/admin/api/lensfun/lens-makers'
         : '{{ base_path }}/admin/api/lensfun/lenses';
 
+      // Add maker filter when searching for lens models
+      if (type === 'lens-model') {
+        const brandInput = document.getElementById('lens-brand');
+        const makerValue = brandInput?.value?.trim() || '';
+        if (makerValue) {
+          endpoint += `?q=${encodeURIComponent(query)}&maker=${encodeURIComponent(makerValue)}&limit=15`;
+        } else {
+          endpoint += `?q=${encodeURIComponent(query)}&limit=15`;
+        }
+      } else {
+        endpoint += `?q=${encodeURIComponent(query)}&limit=15`;
+      }
+
       try {
-        const response = await fetch(`${endpoint}?q=${encodeURIComponent(query)}&limit=15`);
+        const response = await fetch(endpoint);
         const data = await response.json();
         if (data.success && data.results?.length > 0) {
-          renderDropdown(data.results, type, dropdown, input);
+          renderDropdown(data.results, type, dropdown, input, data.total);
         } else {
-          dropdown.innerHTML = '<div class="px-3 py-2 text-xs text-gray-500 italic">{{ trans('admin.common.no_results')|default('No results')|e('js') }}</div>';
+          dropdown.innerHTML = '<div class="px-3 py-2 text-xs text-gray-500 italic">{{ trans('admin.exif.no_results')|default('No results found')|e('js') }}</div>';
           dropdown.classList.remove('hidden');
         }
       } catch (error) { dropdown.classList.add('hidden'); }
     }
 
-    function renderDropdown(results, type, dropdown, input) {
+    function renderDropdown(results, type, dropdown, input, total) {
       dropdown.innerHTML = '';
       results.forEach(item => {
         const div = document.createElement('div');
@@ -102,6 +115,13 @@
         div.addEventListener('click', () => selectItem(div, input, dropdown));
         dropdown.appendChild(div);
       });
+      // Show hint if there are more results
+      if (total > results.length) {
+        const hint = document.createElement('div');
+        hint.className = 'px-3 py-2 text-xs text-gray-500 italic border-t border-gray-200';
+        hint.textContent = '{{ trans('admin.exif.results_hint')|default('Showing {shown} of {total} - refine your search')|e('js') }}'.replace('{shown}', results.length).replace('{total}', total);
+        dropdown.appendChild(hint);
+      }
       dropdown.classList.remove('hidden');
     }
 

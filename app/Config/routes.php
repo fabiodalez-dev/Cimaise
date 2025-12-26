@@ -353,20 +353,29 @@ $app->get('/admin/api/lensfun/makers', function (Request $request, Response $res
     $limit = (int)($request->getQueryParams()['limit'] ?? 20);
 
     $lensfunService = new \App\Services\LensfunService();
-    $results = $lensfunService->searchMakers($query, min($limit, 50));
+    $data = $lensfunService->searchMakers($query, min($limit, 50), true);
 
-    $response->getBody()->write(json_encode(['success' => true, 'results' => $results]));
+    $response->getBody()->write(json_encode([
+        'success' => true,
+        'results' => $data['results'],
+        'total' => $data['total']
+    ]));
     return $response->withHeader('Content-Type', 'application/json');
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->get('/admin/api/lensfun/cameras', function (Request $request, Response $response) use ($container) {
     $query = $request->getQueryParams()['q'] ?? '';
     $limit = (int)($request->getQueryParams()['limit'] ?? 20);
+    $maker = $request->getQueryParams()['maker'] ?? null;
 
     $lensfunService = new \App\Services\LensfunService();
-    $results = $lensfunService->searchCameras($query, min($limit, 50));
+    $data = $lensfunService->searchCameras($query, min($limit, 50), $maker, true);
 
-    $response->getBody()->write(json_encode(['success' => true, 'results' => $results]));
+    $response->getBody()->write(json_encode([
+        'success' => true,
+        'results' => $data['results'],
+        'total' => $data['total']
+    ]));
     return $response->withHeader('Content-Type', 'application/json');
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
@@ -375,9 +384,13 @@ $app->get('/admin/api/lensfun/lens-makers', function (Request $request, Response
     $limit = (int)($request->getQueryParams()['limit'] ?? 20);
 
     $lensfunService = new \App\Services\LensfunService();
-    $results = $lensfunService->searchLensMakers($query, min($limit, 50));
+    $data = $lensfunService->searchLensMakers($query, min($limit, 50), true);
 
-    $response->getBody()->write(json_encode(['success' => true, 'results' => $results]));
+    $response->getBody()->write(json_encode([
+        'success' => true,
+        'results' => $data['results'],
+        'total' => $data['total']
+    ]));
     return $response->withHeader('Content-Type', 'application/json');
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
