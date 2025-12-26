@@ -1589,6 +1589,7 @@
     "admin.settings.lensfun_desc": "Camera and lens database from lensfun.github.io for EXIF autocomplete.",
     "admin.settings.update_lensfun": "Update Database",
     "admin.settings.updating_lensfun": "Updating...",
+    "admin.settings.downloading": "Downloading...",
     "admin.settings.lensfun_source": "Source: github.com/lensfun/lensfun",
     "admin.settings.lensfun_updated": "Database updated:",
     "admin.settings.lensfun_error": "Update failed",
