@@ -220,6 +220,7 @@ class MediaController extends BaseController
         $exifFields = [
             'exif_make' => $d['exif_make'] ?? null,
             'exif_model' => $d['exif_model'] ?? null,
+            'exif_lens_maker' => $d['exif_lens_maker'] ?? null,
             'exif_lens_model' => $d['exif_lens_model'] ?? null,
             'software' => $d['software'] ?? null,
             'focal_length' => ($d['focal_length'] ?? '') !== '' ? (float)$d['focal_length'] : null,
@@ -277,6 +278,7 @@ class MediaController extends BaseController
         return [
             'exif_make' => $d['exif_make'] ?? null,
             'exif_model' => $d['exif_model'] ?? null,
+            'exif_lens_maker' => $d['exif_lens_maker'] ?? null,
             'exif_lens_model' => $d['exif_lens_model'] ?? null,
             'software' => $d['software'] ?? null,
             'focal_length' => ($d['focal_length'] ?? '') !== '' ? (float)$d['focal_length'] : null,

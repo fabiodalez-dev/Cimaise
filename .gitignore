@@ -78,6 +78,7 @@ updater.md
 # Local database files
 storage/database.sqlite
 database/database.sqlite
+database/cimaise.sqlite
 app/database/
 
 # Local documentation files (not tracked)

@@ -209,6 +209,13 @@
                     </div>
                   </div>
                   <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.lens_maker')|default('Lens Maker') }}</label>
+                    <div class="autocomplete-wrapper relative">
+                      <input type="text" name="exif_lens_maker" id="exif-lens-maker" class="form-input text-sm w-full" autocomplete="off" data-autocomplete="lens-maker">
+                      <div class="autocomplete-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"></div>
+                    </div>
+                  </div>
+                  <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.lens')|default('Lens') }}</label>
                     <div class="autocomplete-wrapper relative">
                       <input type="text" name="exif_lens_model" id="exif-lens-model" class="form-input text-sm w-full" autocomplete="off" data-autocomplete="lens">
@@ -761,6 +768,7 @@
         // Text fields
         document.getElementById('exif-make').value = data.exif_make || '';
         document.getElementById('exif-model').value = data.exif_model || '';
+        document.getElementById('exif-lens-maker').value = data.exif_lens_maker || '';
         document.getElementById('exif-lens-model').value = data.exif_lens_model || '';
         document.getElementById('exif-software').value = data.software || '';
         document.getElementById('exif-focal-length').value = data.focal_length || '';
@@ -1027,20 +1035,30 @@
 
       async function fetchAutocompleteSuggestions(query, type, dropdown, input) {
         let endpoint = '';
+        let params = `q=${encodeURIComponent(query)}&limit=15`;
+
         if (type === 'camera-make') {
           endpoint = '{{ base_path }}/admin/api/lensfun/makers';
         } else if (type === 'camera-model') {
           endpoint = '{{ base_path }}/admin/api/lensfun/cameras';
+        } else if (type === 'lens-maker') {
+          endpoint = '{{ base_path }}/admin/api/lensfun/lens-makers';
         } else if (type === 'lens') {
           endpoint = '{{ base_path }}/admin/api/lensfun/lenses';
+          // Use lens maker as filter if set
+          const lensMaker = document.getElementById('exif-lens-maker')?.value?.trim();
+          if (lensMaker) {
+            params += `&maker=${encodeURIComponent(lensMaker)}`;
+          }
         }
 
         try {
-          const response = await fetch(`${endpoint}?q=${encodeURIComponent(query)}&limit=15`);
+          const response = await fetch(`${endpoint}?${params}`);
           const data = await response.json();
 
           if (data.success && data.results && data.results.length > 0) {
-            renderAutocompleteDropdown(data.results, type, dropdown, input);
+            const total = data.total || null;
+            renderAutocompleteDropdown(data.results, type, dropdown, input, total);
           } else {
             dropdown.innerHTML = '<div class="px-3 py-2 text-xs text-gray-500 italic">{{ trans('admin.exif.no_results')|default('No results found')|e('js') }}</div>';
             dropdown.classList.remove('hidden');
@@ -1051,14 +1069,14 @@
         }
       }
 
-      function renderAutocompleteDropdown(results, type, dropdown, input) {
+      function renderAutocompleteDropdown(results, type, dropdown, input, total = null) {
         dropdown.innerHTML = '';
 
         results.forEach(item => {
           const div = document.createElement('div');
           div.className = 'autocomplete-item px-3 py-2 text-sm cursor-pointer hover:bg-gray-100';
 
-          if (type === 'camera-make') {
+          if (type === 'camera-make' || type === 'lens-maker') {
             div.textContent = item.maker;
             div.dataset.value = item.maker;
           } else if (type === 'camera-model') {
@@ -1075,6 +1093,16 @@
           dropdown.appendChild(div);
         });
 
+        // Show results hint if there are more results than shown
+        if (total !== null && total > results.length) {
+          const hint = document.createElement('div');
+          hint.className = 'px-3 py-2 text-xs text-gray-500 bg-gray-50 border-t border-gray-200 italic';
+          hint.textContent = '{{ trans('admin.exif.results_hint')|default('Showing {shown} of {total} - refine your search')|e('js') }}'
+            .replace('{shown}', results.length)
+            .replace('{total}', total);
+          dropdown.appendChild(hint);
+        }
+
         dropdown.classList.remove('hidden');
       }
 
@@ -1085,10 +1113,18 @@
 
         // If camera model selected, also fill the maker
         const type = input.dataset.autocomplete;
-        if ((type === 'camera-model' || type === 'lens') && item.dataset.maker) {
+        if (type === 'camera-model' && item.dataset.maker) {
           const makeInput = document.getElementById('exif-make');
           if (makeInput && !makeInput.value) {
             makeInput.value = item.dataset.maker;
+          }
+        }
+
+        // If lens selected, also fill the lens maker
+        if (type === 'lens' && item.dataset.maker) {
+          const lensMakerInput = document.getElementById('exif-lens-maker');
+          if (lensMakerInput && !lensMakerInput.value) {
+            lensMakerInput.value = item.dataset.maker;
           }
         }
 

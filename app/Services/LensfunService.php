@@ -57,6 +57,7 @@ class LensfunService
 
     /**
      * Search cameras by query string.
+     * Supports multi-word search: all words must be present (but not necessarily contiguous).
      *
      * @param string $query Search query
      * @param int $limit Maximum results
@@ -71,11 +72,22 @@ class LensfunService
         }
 
         $query = strtolower(trim($query));
+        $queryWords = preg_split('/\s+/', $query);
         $results = [];
 
         foreach ($this->cameras as $camera) {
             $searchText = strtolower($camera['maker'] . ' ' . $camera['model']);
-            if (str_contains($searchText, $query)) {
+
+            // All query words must be present in searchText
+            $allMatch = true;
+            foreach ($queryWords as $word) {
+                if (!str_contains($searchText, $word)) {
+                    $allMatch = false;
+                    break;
+                }
+            }
+
+            if ($allMatch) {
                 $results[] = $camera;
                 if (count($results) >= $limit) {
                     break;
@@ -88,33 +100,58 @@ class LensfunService
 
     /**
      * Search lenses by query string.
+     * Supports multi-word search: all words must be present (but not necessarily contiguous).
      *
      * @param string $query Search query
      * @param int $limit Maximum results
-     * @return array Matching lenses
+     * @param string|null $maker Optional: filter by maker
+     * @param bool $withCount If true, returns ['results' => [...], 'total' => N]
+     * @return array Matching lenses or array with results and total count
      */
-    public function searchLenses(string $query, int $limit = 20): array
+    public function searchLenses(string $query, int $limit = 20, ?string $maker = null, bool $withCount = false): array
     {
         $this->loadData();
 
+        // Pre-filter by maker if specified
+        $lensPool = $this->lenses;
+        if ($maker !== null && $maker !== '') {
+            $makerLower = strtolower(trim($maker));
+            $lensPool = array_filter($this->lenses, fn($l) =>
+                strtolower($l['maker']) === $makerLower
+            );
+        }
+
         if (empty($query)) {
-            return array_slice($this->lenses, 0, $limit);
+            $total = count($lensPool);
+            $results = array_slice(array_values($lensPool), 0, $limit);
+            return $withCount ? ['results' => $results, 'total' => $total] : $results;
         }
 
         $query = strtolower(trim($query));
-        $results = [];
+        $queryWords = preg_split('/\s+/', $query);
+        $allMatches = [];
 
-        foreach ($this->lenses as $lens) {
+        foreach ($lensPool as $lens) {
             $searchText = strtolower($lens['maker'] . ' ' . $lens['model']);
-            if (str_contains($searchText, $query)) {
-                $results[] = $lens;
-                if (count($results) >= $limit) {
+
+            // All query words must be present in searchText
+            $allMatch = true;
+            foreach ($queryWords as $word) {
+                if (!str_contains($searchText, $word)) {
+                    $allMatch = false;
                     break;
                 }
             }
+
+            if ($allMatch) {
+                $allMatches[] = $lens;
+            }
         }
 
-        return $results;
+        $total = count($allMatches);
+        $results = array_slice($allMatches, 0, $limit);
+
+        return $withCount ? ['results' => $results, 'total' => $total] : $results;
     }
 
     /**

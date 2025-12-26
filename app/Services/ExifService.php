@@ -1287,7 +1287,7 @@ class ExifService
     {
         $stmt = $this->db->pdo()->prepare('
             SELECT
-                exif_make, exif_model, exif_lens_model, software,
+                exif_make, exif_model, exif_lens_maker, exif_lens_model, software,
                 focal_length, exposure_bias,
                 flash, white_balance, exposure_program, metering_mode, exposure_mode,
                 date_original, color_space, contrast, saturation, sharpness,

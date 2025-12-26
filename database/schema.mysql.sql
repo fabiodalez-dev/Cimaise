@@ -234,6 +234,7 @@ CREATE TABLE IF NOT EXISTS `images` (
   `copyright` VARCHAR(500) DEFAULT NULL,
   `exif_make` VARCHAR(255) DEFAULT NULL,
   `exif_model` VARCHAR(255) DEFAULT NULL,
+  `exif_lens_maker` VARCHAR(255) DEFAULT NULL,
   `exif_lens_model` VARCHAR(255) DEFAULT NULL,
   `software` VARCHAR(255) DEFAULT NULL,
   `exif_extended` JSON DEFAULT NULL,

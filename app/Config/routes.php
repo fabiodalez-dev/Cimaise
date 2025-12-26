@@ -384,11 +384,16 @@ $app->get('/admin/api/lensfun/lens-makers', function (Request $request, Response
 $app->get('/admin/api/lensfun/lenses', function (Request $request, Response $response) use ($container) {
     $query = $request->getQueryParams()['q'] ?? '';
     $limit = (int)($request->getQueryParams()['limit'] ?? 20);
+    $maker = $request->getQueryParams()['maker'] ?? null;
 
     $lensfunService = new \App\Services\LensfunService();
-    $results = $lensfunService->searchLenses($query, min($limit, 50));
+    $data = $lensfunService->searchLenses($query, min($limit, 50), $maker, true);
 
-    $response->getBody()->write(json_encode(['success' => true, 'results' => $results]));
+    $response->getBody()->write(json_encode([
+        'success' => true,
+        'results' => $data['results'],
+        'total' => $data['total']
+    ]));
     return $response->withHeader('Content-Type', 'application/json');
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
