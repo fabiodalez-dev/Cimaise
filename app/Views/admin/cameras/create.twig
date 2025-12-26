@@ -84,7 +84,7 @@
       }
 
       try {
-        const response = await fetch(endpoint);
+        const response = await fetch(endpoint, { credentials: 'same-origin' });
         if (!response.ok) {
           console.error('Autocomplete fetch failed:', response.status, response.statusText);
           dropdown.classList.add('hidden');
