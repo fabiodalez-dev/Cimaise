@@ -87,6 +87,11 @@
 
       try {
         const response = await fetch(endpoint);
+        if (!response.ok) {
+          console.error('Autocomplete fetch failed:', response.status, response.statusText);
+          dropdown.classList.add('hidden');
+          return;
+        }
         const data = await response.json();
         if (data.success && data.results?.length > 0) {
           renderDropdown(data.results, type, dropdown, input, data.total);
@@ -94,7 +99,10 @@
           dropdown.innerHTML = '<div class="px-3 py-2 text-xs text-gray-500 italic">{{ trans('admin.exif.no_results')|default('No results found')|e('js') }}</div>';
           dropdown.classList.remove('hidden');
         }
-      } catch (error) { dropdown.classList.add('hidden'); }
+      } catch (error) {
+        console.error('Autocomplete error:', error);
+        dropdown.classList.add('hidden');
+      }
     }
 
     function renderDropdown(results, type, dropdown, input, total) {
