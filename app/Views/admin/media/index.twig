@@ -171,6 +171,215 @@
             </button>
           </div>
         </form>
+
+        <!-- EXIF Editor Section -->
+        <div class="border-t pt-4 mt-4">
+          <button type="button" id="exif-toggle" class="flex items-center justify-between w-full text-left font-medium text-gray-900 hover:text-black">
+            <span><i class="fas fa-camera-retro mr-2"></i>{{ trans('admin.exif.title')|default('EXIF Editor') }}</span>
+            <i class="fas fa-chevron-down text-gray-400 transition-transform" id="exif-toggle-icon"></i>
+          </button>
+
+          <div id="exif-editor" class="hidden mt-4 space-y-4">
+            <div id="exif-loading" class="text-center text-gray-500 py-4">
+              <i class="fas fa-spinner fa-spin mr-2"></i>{{ trans('admin.exif.loading')|default('Loading EXIF data...') }}
+            </div>
+
+            <form id="exif-form" class="hidden space-y-4">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+
+              <!-- Equipment Section -->
+              <div class="exif-section">
+                <button type="button" class="exif-section-toggle flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-black py-2 border-b">
+                  <span><i class="fas fa-camera mr-2"></i>{{ trans('admin.exif.equipment')|default('Equipment') }}</span>
+                  <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform"></i>
+                </button>
+                <div class="exif-section-content space-y-3 pt-3">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.make')|default('Make') }}</label>
+                    <div class="autocomplete-wrapper relative">
+                      <input type="text" name="exif_make" id="exif-make" class="form-input text-sm w-full" autocomplete="off" data-autocomplete="camera-make">
+                      <div class="autocomplete-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.model')|default('Model') }}</label>
+                    <div class="autocomplete-wrapper relative">
+                      <input type="text" name="exif_model" id="exif-model" class="form-input text-sm w-full" autocomplete="off" data-autocomplete="camera-model">
+                      <div class="autocomplete-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.lens')|default('Lens') }}</label>
+                    <div class="autocomplete-wrapper relative">
+                      <input type="text" name="exif_lens_model" id="exif-lens-model" class="form-input text-sm w-full" autocomplete="off" data-autocomplete="lens">
+                      <div class="autocomplete-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.software')|default('Software') }}</label>
+                    <input type="text" name="software" id="exif-software" class="form-input text-sm w-full">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Exposure Section -->
+              <div class="exif-section">
+                <button type="button" class="exif-section-toggle flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-black py-2 border-b">
+                  <span><i class="fas fa-sun mr-2"></i>{{ trans('admin.exif.exposure')|default('Exposure') }}</span>
+                  <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform"></i>
+                </button>
+                <div class="exif-section-content space-y-3 pt-3">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.focal_length')|default('Focal Length') }}</label>
+                      <div class="flex">
+                        <input type="number" step="0.1" name="focal_length" id="exif-focal-length" class="form-input text-sm w-full rounded-r-none">
+                        <span class="inline-flex items-center px-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r text-xs text-gray-500">mm</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.exposure_bias')|default('Exp. Bias') }}</label>
+                      <div class="flex">
+                        <input type="number" step="0.1" name="exposure_bias" id="exif-exposure-bias" class="form-input text-sm w-full rounded-r-none">
+                        <span class="inline-flex items-center px-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r text-xs text-gray-500">EV</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mode Section -->
+              <div class="exif-section">
+                <button type="button" class="exif-section-toggle flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-black py-2 border-b">
+                  <span><i class="fas fa-sliders mr-2"></i>{{ trans('admin.exif.mode')|default('Mode') }}</span>
+                  <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform"></i>
+                </button>
+                <div class="exif-section-content space-y-3 pt-3">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.flash')|default('Flash') }}</label>
+                    <select name="flash" id="exif-flash" class="form-input text-sm w-full"></select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.white_balance')|default('White Balance') }}</label>
+                    <select name="white_balance" id="exif-white-balance" class="form-input text-sm w-full"></select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.exposure_program')|default('Exposure Program') }}</label>
+                    <select name="exposure_program" id="exif-exposure-program" class="form-input text-sm w-full"></select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.metering_mode')|default('Metering Mode') }}</label>
+                    <select name="metering_mode" id="exif-metering-mode" class="form-input text-sm w-full"></select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.exposure_mode')|default('Exposure Mode') }}</label>
+                    <select name="exposure_mode" id="exif-exposure-mode" class="form-input text-sm w-full"></select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Details Section -->
+              <div class="exif-section">
+                <button type="button" class="exif-section-toggle flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-black py-2 border-b">
+                  <span><i class="fas fa-info-circle mr-2"></i>{{ trans('admin.exif.details')|default('Details') }}</span>
+                  <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform"></i>
+                </button>
+                <div class="exif-section-content space-y-3 pt-3 hidden">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.date_original')|default('Date Taken') }}</label>
+                    <input type="text" name="date_original" id="exif-date-original" class="form-input text-sm w-full" placeholder="YYYY:MM:DD HH:MM:SS">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.color_space')|default('Color Space') }}</label>
+                    <select name="color_space" id="exif-color-space" class="form-input text-sm w-full"></select>
+                  </div>
+                  <div class="grid grid-cols-3 gap-2">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.contrast')|default('Contrast') }}</label>
+                      <select name="contrast" id="exif-contrast" class="form-input text-sm w-full"></select>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.saturation')|default('Saturation') }}</label>
+                      <select name="saturation" id="exif-saturation" class="form-input text-sm w-full"></select>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.sharpness')|default('Sharpness') }}</label>
+                      <select name="sharpness" id="exif-sharpness" class="form-input text-sm w-full"></select>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.scene_type')|default('Scene Type') }}</label>
+                    <select name="scene_capture_type" id="exif-scene-type" class="form-input text-sm w-full"></select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.light_source')|default('Light Source') }}</label>
+                    <select name="light_source" id="exif-light-source" class="form-input text-sm w-full"></select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Location Section -->
+              <div class="exif-section">
+                <button type="button" class="exif-section-toggle flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-black py-2 border-b">
+                  <span><i class="fas fa-map-marker-alt mr-2"></i>{{ trans('admin.exif.location')|default('Location') }}</span>
+                  <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform"></i>
+                </button>
+                <div class="exif-section-content space-y-3 pt-3 hidden">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.latitude')|default('Latitude') }}</label>
+                      <input type="number" step="0.000001" name="gps_lat" id="exif-gps-lat" class="form-input text-sm w-full" placeholder="-90 to 90">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.longitude')|default('Longitude') }}</label>
+                      <input type="number" step="0.000001" name="gps_lng" id="exif-gps-lng" class="form-input text-sm w-full" placeholder="-180 to 180">
+                    </div>
+                  </div>
+                  <button type="button" id="exif-show-map" class="btn-secondary text-xs w-full">
+                    <i class="fas fa-map mr-1"></i>{{ trans('admin.exif.show_map')|default('Show/Edit on Map') }}
+                  </button>
+                  <div id="exif-map" class="hidden h-48 rounded-lg border border-gray-200"></div>
+                </div>
+              </div>
+
+              <!-- Info Section -->
+              <div class="exif-section">
+                <button type="button" class="exif-section-toggle flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-black py-2 border-b">
+                  <span><i class="fas fa-user mr-2"></i>{{ trans('admin.exif.info')|default('Info') }}</span>
+                  <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform"></i>
+                </button>
+                <div class="exif-section-content space-y-3 pt-3">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.artist')|default('Artist') }}</label>
+                    <input type="text" name="artist" id="exif-artist" class="form-input text-sm w-full">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ trans('admin.exif.copyright')|default('Copyright') }}</label>
+                    <input type="text" name="copyright" id="exif-copyright" class="form-input text-sm w-full">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Write to files checkbox -->
+              <div class="border-t pt-3 mt-3">
+                <label class="inline-flex items-start gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" name="write_exif_to_file" id="exif-write-to-file" class="rounded border-gray-300 text-black focus:ring-black mt-0.5">
+                  <span class="text-gray-700">
+                    {{ trans('admin.exif.write_to_file')|default('Write EXIF to JPEG files') }}
+                    <span class="block text-xs text-gray-500">{{ trans('admin.exif.write_to_file_hint')|default('Updates original and all JPEG variants. WebP/AVIF not modified.') }}</span>
+                  </span>
+                </label>
+              </div>
+
+              <!-- Save button -->
+              <div class="pt-3">
+                <button type="submit" class="btn-primary w-full text-sm">
+                  <i class="fas fa-save mr-1"></i>{{ trans('admin.exif.save')|default('Save EXIF Data') }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -457,19 +666,471 @@
 
       // Initialize selection UI
       updateSelectionUI();
+
+      // ========================================
+      // EXIF Editor functionality
+      // ========================================
+      const exifToggle = document.getElementById('exif-toggle');
+      const exifToggleIcon = document.getElementById('exif-toggle-icon');
+      const exifEditor = document.getElementById('exif-editor');
+      const exifLoading = document.getElementById('exif-loading');
+      const exifForm = document.getElementById('exif-form');
+      let exifOptionsCache = null;
+      let leafletMap = null;
+      let leafletMarker = null;
+
+      // Toggle EXIF editor visibility
+      exifToggle?.addEventListener('click', async () => {
+        const isHidden = exifEditor.classList.contains('hidden');
+        exifEditor.classList.toggle('hidden');
+        exifToggleIcon.style.transform = isHidden ? 'rotate(180deg)' : '';
+
+        if (isHidden && currentImageId) {
+          await loadExifData(currentImageId);
+        }
+      });
+
+      // Load EXIF data for an image
+      async function loadExifData(imageId) {
+        exifLoading.classList.remove('hidden');
+        exifForm.classList.add('hidden');
+
+        try {
+          const response = await fetch(`{{ base_path }}/admin/media/images/${imageId}/exif`, {
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (!response.ok) throw new Error('Failed to load EXIF data');
+
+          const result = await response.json();
+          if (!result.ok) throw new Error(result.error || 'Unknown error');
+
+          // Cache options for select fields
+          exifOptionsCache = result.options;
+
+          // Populate select dropdowns
+          populateSelectOptions();
+
+          // Populate form fields
+          populateExifForm(result.data);
+
+          exifLoading.classList.add('hidden');
+          exifForm.classList.remove('hidden');
+        } catch (error) {
+          console.error('Error loading EXIF data:', error);
+          exifLoading.innerHTML = '<span class="text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i>Failed to load EXIF data</span>';
+        }
+      }
+
+      // Populate select options from cached options
+      function populateSelectOptions() {
+        if (!exifOptionsCache) return;
+
+        const selectFields = {
+          'exif-flash': 'flash',
+          'exif-white-balance': 'white_balance',
+          'exif-exposure-program': 'exposure_program',
+          'exif-metering-mode': 'metering_mode',
+          'exif-exposure-mode': 'exposure_mode',
+          'exif-color-space': 'color_space',
+          'exif-contrast': 'contrast',
+          'exif-saturation': 'saturation',
+          'exif-sharpness': 'sharpness',
+          'exif-scene-type': 'scene_capture_type',
+          'exif-light-source': 'light_source'
+        };
+
+        for (const [elementId, optionKey] of Object.entries(selectFields)) {
+          const select = document.getElementById(elementId);
+          if (!select || !exifOptionsCache[optionKey]) continue;
+
+          select.innerHTML = '<option value="">—</option>';
+          for (const [value, label] of Object.entries(exifOptionsCache[optionKey])) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            select.appendChild(option);
+          }
+        }
+      }
+
+      // Populate form fields with EXIF data
+      function populateExifForm(data) {
+        if (!data) return;
+
+        // Text fields
+        document.getElementById('exif-make').value = data.exif_make || '';
+        document.getElementById('exif-model').value = data.exif_model || '';
+        document.getElementById('exif-lens-model').value = data.exif_lens_model || '';
+        document.getElementById('exif-software').value = data.software || '';
+        document.getElementById('exif-focal-length').value = data.focal_length || '';
+        document.getElementById('exif-exposure-bias').value = data.exposure_bias || '';
+        document.getElementById('exif-date-original').value = data.date_original || '';
+        document.getElementById('exif-gps-lat').value = data.gps_lat || '';
+        document.getElementById('exif-gps-lng').value = data.gps_lng || '';
+        document.getElementById('exif-artist').value = data.artist || '';
+        document.getElementById('exif-copyright').value = data.copyright || '';
+
+        // Select fields
+        document.getElementById('exif-flash').value = data.flash ?? '';
+        document.getElementById('exif-white-balance').value = data.white_balance ?? '';
+        document.getElementById('exif-exposure-program').value = data.exposure_program ?? '';
+        document.getElementById('exif-metering-mode').value = data.metering_mode ?? '';
+        document.getElementById('exif-exposure-mode').value = data.exposure_mode ?? '';
+        document.getElementById('exif-color-space').value = data.color_space ?? '';
+        document.getElementById('exif-contrast').value = data.contrast ?? '';
+        document.getElementById('exif-saturation').value = data.saturation ?? '';
+        document.getElementById('exif-sharpness').value = data.sharpness ?? '';
+        document.getElementById('exif-scene-type').value = data.scene_capture_type ?? '';
+        document.getElementById('exif-light-source').value = data.light_source ?? '';
+      }
+
+      // Collapsible section toggles
+      document.querySelectorAll('.exif-section-toggle').forEach(toggle => {
+        toggle.addEventListener('click', () => {
+          const section = toggle.closest('.exif-section');
+          const content = section.querySelector('.exif-section-content');
+          const icon = toggle.querySelector('.fa-chevron-down');
+
+          content.classList.toggle('hidden');
+          icon.style.transform = content.classList.contains('hidden') ? '' : 'rotate(180deg)';
+        });
+      });
+
+      // EXIF form submission
+      exifForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentImageId) return;
+
+        const formData = new FormData(exifForm);
+
+        try {
+          const response = await fetch(`{{ base_path }}/admin/media/images/${currentImageId}/exif`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'Accept': 'application/json' }
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.ok) {
+            let msg = '{{ trans('admin.exif.saved')|default('EXIF data saved')|e('js') }}';
+            if (result.exif_write) {
+              const ew = result.exif_write;
+              if (ew.updated && ew.updated.length > 0) {
+                msg += ` (${ew.updated.length} files updated)`;
+              }
+              // Show errors if any
+              if (ew.errors && ew.errors.length > 0) {
+                const errorMsg = '{{ trans('admin.exif.write_errors')|default('EXIF write errors')|e('js') }}: ' + ew.errors.join(', ');
+                if (window.showToast) window.showToast(errorMsg, 'error');
+              }
+              // Show warnings for unsupported tags
+              if (ew.warnings && ew.warnings.length > 0) {
+                const warnMsg = '{{ trans('admin.exif.unsupported_tags')|default('Some EXIF tags not supported')|e('js') }}: ' + ew.warnings.join(', ');
+                if (window.showToast) window.showToast(warnMsg, 'warning');
+              }
+            }
+            if (window.showToast) window.showToast(msg, 'success');
+          } else {
+            throw new Error(result.error || 'Save failed');
+          }
+        } catch (error) {
+          console.error('Error saving EXIF:', error);
+          if (window.showToast) window.showToast('{{ trans('admin.exif.save_error')|default('Error saving EXIF data')|e('js') }}', 'error');
+        }
+      });
+
+      // Show map button handler
+      document.getElementById('exif-show-map')?.addEventListener('click', () => {
+        const mapContainer = document.getElementById('exif-map');
+        const lat = parseFloat(document.getElementById('exif-gps-lat').value) || 0;
+        const lng = parseFloat(document.getElementById('exif-gps-lng').value) || 0;
+
+        mapContainer.classList.toggle('hidden');
+
+        if (!mapContainer.classList.contains('hidden')) {
+          // Initialize or update Leaflet map
+          if (!leafletMap) {
+            initLeafletMap(lat, lng);
+          } else {
+            updateMapPosition(lat, lng);
+          }
+        }
+      });
+
+      // Initialize Leaflet map
+      function initLeafletMap(lat, lng) {
+        // Load Leaflet CSS if not already loaded
+        if (!document.querySelector('link[href*="leaflet"]')) {
+          const leafletCss = document.createElement('link');
+          leafletCss.rel = 'stylesheet';
+          leafletCss.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          document.head.appendChild(leafletCss);
+        }
+
+        // Load Leaflet JS if not already loaded
+        if (typeof L === 'undefined') {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.onload = () => createMap(lat, lng);
+          document.head.appendChild(script);
+        } else {
+          createMap(lat, lng);
+        }
+      }
+
+      function createMap(lat, lng) {
+        const mapContainer = document.getElementById('exif-map');
+        const defaultLat = lat || 45.4642;
+        const defaultLng = lng || 9.19;
+
+        leafletMap = L.map(mapContainer).setView([defaultLat, defaultLng], lat ? 12 : 4);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(leafletMap);
+
+        leafletMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(leafletMap);
+
+        // Update coordinates when marker is dragged
+        leafletMarker.on('dragend', function(e) {
+          const pos = e.target.getLatLng();
+          document.getElementById('exif-gps-lat').value = pos.lat.toFixed(6);
+          document.getElementById('exif-gps-lng').value = pos.lng.toFixed(6);
+        });
+
+        // Update marker when clicking on map
+        leafletMap.on('click', function(e) {
+          leafletMarker.setLatLng(e.latlng);
+          document.getElementById('exif-gps-lat').value = e.latlng.lat.toFixed(6);
+          document.getElementById('exif-gps-lng').value = e.latlng.lng.toFixed(6);
+        });
+
+        // Fix map display issues
+        setTimeout(() => leafletMap.invalidateSize(), 100);
+      }
+
+      function updateMapPosition(lat, lng) {
+        if (!leafletMap || !leafletMarker) return;
+        const newLat = lat || 45.4642;
+        const newLng = lng || 9.19;
+        leafletMap.setView([newLat, newLng], lat ? 12 : 4);
+        leafletMarker.setLatLng([newLat, newLng]);
+        setTimeout(() => leafletMap.invalidateSize(), 100);
+      }
+
+      // Update GPS inputs sync with map
+      document.getElementById('exif-gps-lat')?.addEventListener('change', () => {
+        if (leafletMap) {
+          updateMapPosition(
+            parseFloat(document.getElementById('exif-gps-lat').value),
+            parseFloat(document.getElementById('exif-gps-lng').value)
+          );
+        }
+      });
+
+      document.getElementById('exif-gps-lng')?.addEventListener('change', () => {
+        if (leafletMap) {
+          updateMapPosition(
+            parseFloat(document.getElementById('exif-gps-lat').value),
+            parseFloat(document.getElementById('exif-gps-lng').value)
+          );
+        }
+      });
+
+      // Load EXIF when sidebar opens
+      const originalOpenSidebar = window.openSidebar || openSidebar;
+      function openSidebarWithExif(imageId, cardElement) {
+        // Reset EXIF editor state
+        exifEditor.classList.add('hidden');
+        exifToggleIcon.style.transform = '';
+        exifLoading.classList.remove('hidden');
+        exifForm.classList.add('hidden');
+
+        // Destroy existing map
+        if (leafletMap) {
+          leafletMap.remove();
+          leafletMap = null;
+          leafletMarker = null;
+        }
+
+        // Call original openSidebar
+        originalOpenSidebar(imageId, cardElement);
+      }
+
+      // Lensfun Autocomplete functionality
+      const autocompleteInputs = document.querySelectorAll('[data-autocomplete]');
+      let autocompleteTimeout = null;
+      let activeAutocomplete = null;
+
+      autocompleteInputs.forEach(input => {
+        const wrapper = input.closest('.autocomplete-wrapper');
+        const dropdown = wrapper.querySelector('.autocomplete-dropdown');
+        const type = input.dataset.autocomplete;
+
+        // Input event - fetch suggestions
+        input.addEventListener('input', () => {
+          const query = input.value.trim();
+          clearTimeout(autocompleteTimeout);
+
+          if (query.length < 2) {
+            dropdown.classList.add('hidden');
+            return;
+          }
+
+          autocompleteTimeout = setTimeout(() => {
+            fetchAutocompleteSuggestions(query, type, dropdown, input);
+          }, 300);
+        });
+
+        // Focus - show dropdown if has content
+        input.addEventListener('focus', () => {
+          if (dropdown.children.length > 0 && input.value.trim().length >= 2) {
+            dropdown.classList.remove('hidden');
+          }
+        });
+
+        // Blur - hide dropdown (with delay for click)
+        input.addEventListener('blur', () => {
+          setTimeout(() => {
+            dropdown.classList.add('hidden');
+          }, 200);
+        });
+
+        // Keyboard navigation
+        input.addEventListener('keydown', (e) => {
+          if (dropdown.classList.contains('hidden')) return;
+
+          const items = dropdown.querySelectorAll('.autocomplete-item');
+          const current = dropdown.querySelector('.autocomplete-item.bg-blue-100');
+          let index = Array.from(items).indexOf(current);
+
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            index = Math.min(index + 1, items.length - 1);
+            items.forEach((item, i) => item.classList.toggle('bg-blue-100', i === index));
+            items[index]?.scrollIntoView({ block: 'nearest' });
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            index = Math.max(index - 1, 0);
+            items.forEach((item, i) => item.classList.toggle('bg-blue-100', i === index));
+            items[index]?.scrollIntoView({ block: 'nearest' });
+          } else if (e.key === 'Enter' && current) {
+            e.preventDefault();
+            selectAutocompleteItem(current, input, dropdown);
+          } else if (e.key === 'Escape') {
+            dropdown.classList.add('hidden');
+          }
+        });
+      });
+
+      async function fetchAutocompleteSuggestions(query, type, dropdown, input) {
+        let endpoint = '';
+        if (type === 'camera-make') {
+          endpoint = '{{ base_path }}/admin/api/lensfun/makers';
+        } else if (type === 'camera-model') {
+          endpoint = '{{ base_path }}/admin/api/lensfun/cameras';
+        } else if (type === 'lens') {
+          endpoint = '{{ base_path }}/admin/api/lensfun/lenses';
+        }
+
+        try {
+          const response = await fetch(`${endpoint}?q=${encodeURIComponent(query)}&limit=15`);
+          const data = await response.json();
+
+          if (data.success && data.results && data.results.length > 0) {
+            renderAutocompleteDropdown(data.results, type, dropdown, input);
+          } else {
+            dropdown.innerHTML = '<div class="px-3 py-2 text-xs text-gray-500 italic">{{ trans('admin.exif.no_results')|default('No results found')|e('js') }}</div>';
+            dropdown.classList.remove('hidden');
+          }
+        } catch (error) {
+          console.error('Autocomplete fetch error:', error);
+          dropdown.classList.add('hidden');
+        }
+      }
+
+      function renderAutocompleteDropdown(results, type, dropdown, input) {
+        dropdown.innerHTML = '';
+
+        results.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item px-3 py-2 text-sm cursor-pointer hover:bg-gray-100';
+
+          if (type === 'camera-make') {
+            div.textContent = item.maker;
+            div.dataset.value = item.maker;
+          } else if (type === 'camera-model') {
+            div.innerHTML = `<span class="font-medium">${escapeHtml(item.model)}</span> <span class="text-xs text-gray-500">(${escapeHtml(item.maker)})</span>`;
+            div.dataset.value = item.model;
+            div.dataset.maker = item.maker;
+          } else if (type === 'lens') {
+            div.innerHTML = `<span class="font-medium">${escapeHtml(item.model)}</span> <span class="text-xs text-gray-500">(${escapeHtml(item.maker)})</span>`;
+            div.dataset.value = item.model;
+            div.dataset.maker = item.maker;
+          }
+
+          div.addEventListener('click', () => selectAutocompleteItem(div, input, dropdown));
+          dropdown.appendChild(div);
+        });
+
+        dropdown.classList.remove('hidden');
+      }
+
+      function selectAutocompleteItem(item, input, dropdown) {
+        const value = item.dataset.value;
+        input.value = value;
+        dropdown.classList.add('hidden');
+
+        // If camera model selected, also fill the maker
+        const type = input.dataset.autocomplete;
+        if ((type === 'camera-model' || type === 'lens') && item.dataset.maker) {
+          const makeInput = document.getElementById('exif-make');
+          if (makeInput && !makeInput.value) {
+            makeInput.value = item.dataset.maker;
+          }
+        }
+
+        // Trigger change event
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
     })();
   </script>
   <style nonce="{{ csp_nonce() }}">
     #media-sidebar {
       flex-direction: column !important;
+      max-height: calc(100vh - 8rem);
+      overflow-y: auto;
     }
-    
+
     /* Ensure proper z-index for close button */
     #sidebar-close {
       z-index: 10;
       position: absolute !important;
     }
-    
+
+    /* EXIF section styles */
+    .exif-section-toggle .fa-chevron-down {
+      transition: transform 0.2s ease;
+    }
+
+    .exif-section-content {
+      transition: opacity 0.2s ease;
+    }
+
+    #exif-toggle-icon {
+      transition: transform 0.2s ease;
+    }
+
     /* Fix for mobile responsiveness */
     @media (max-width: 1023px) {
       #media-sidebar {

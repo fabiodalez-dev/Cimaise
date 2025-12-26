@@ -5,12 +5,128 @@
   <form method="post" action="{{ base_path }}/admin/lenses">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.brand') }}</label><input class="form-input" type="text" name="brand" required></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.model') }}</label><input class="form-input" type="text" name="model" required></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.focal_min') }}</label><input class="form-input" type="number" step="0.01" name="focal_min"></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.focal_max') }}</label><input class="form-input" type="number" step="0.01" name="focal_max"></div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.brand') }}</label>
+        <div class="autocomplete-wrapper relative">
+          <input class="form-input" type="text" name="brand" id="lens-brand" required autocomplete="off" data-autocomplete="lens-maker">
+          <div class="autocomplete-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"></div>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.model') }}</label>
+        <div class="autocomplete-wrapper relative">
+          <input class="form-input" type="text" name="model" id="lens-model" required autocomplete="off" data-autocomplete="lens-model">
+          <div class="autocomplete-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"></div>
+        </div>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.focal_min') }}</label><input class="form-input" type="number" step="0.01" name="focal_min" id="lens-focal-min"></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.focal_max') }}</label><input class="form-input" type="number" step="0.01" name="focal_max" id="lens-focal-max"></div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.aperture_min') }}</label><input class="form-input" type="number" step="0.01" name="aperture_min"></div>
     </div>
     <div class="mt-3 flex gap-3"><button class="btn-primary">{{ trans('admin.common.save') }}</button> <a class="btn-secondary" href="{{ base_path }}/admin/lenses">{{ trans('admin.common.cancel') }}</a></div>
   </form>
+
+  <script nonce="{{ csp_nonce() }}">
+  document.addEventListener('DOMContentLoaded', function() {
+    const autocompleteInputs = document.querySelectorAll('[data-autocomplete]');
+    let autocompleteTimeout = null;
+
+    autocompleteInputs.forEach(input => {
+      const wrapper = input.closest('.autocomplete-wrapper');
+      const dropdown = wrapper.querySelector('.autocomplete-dropdown');
+      const type = input.dataset.autocomplete;
+
+      input.addEventListener('input', () => {
+        const query = input.value.trim();
+        clearTimeout(autocompleteTimeout);
+        if (query.length < 2) { dropdown.classList.add('hidden'); return; }
+        autocompleteTimeout = setTimeout(() => fetchSuggestions(query, type, dropdown, input), 300);
+      });
+
+      input.addEventListener('focus', () => {
+        if (dropdown.children.length > 0 && input.value.trim().length >= 2) dropdown.classList.remove('hidden');
+      });
+
+      input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 200));
+
+      input.addEventListener('keydown', (e) => {
+        if (dropdown.classList.contains('hidden')) return;
+        const items = dropdown.querySelectorAll('.autocomplete-item');
+        const current = dropdown.querySelector('.autocomplete-item.bg-blue-100');
+        let index = Array.from(items).indexOf(current);
+        if (e.key === 'ArrowDown') { e.preventDefault(); index = Math.min(index + 1, items.length - 1); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); index = Math.max(index - 1, 0); }
+        else if (e.key === 'Enter' && current) { e.preventDefault(); selectItem(current, input, dropdown); return; }
+        else if (e.key === 'Escape') { dropdown.classList.add('hidden'); return; }
+        items.forEach((item, i) => item.classList.toggle('bg-blue-100', i === index));
+        items[index]?.scrollIntoView({ block: 'nearest' });
+      });
+    });
+
+    async function fetchSuggestions(query, type, dropdown, input) {
+      const endpoint = type === 'lens-maker'
+        ? '{{ base_path }}/admin/api/lensfun/lens-makers'
+        : '{{ base_path }}/admin/api/lensfun/lenses';
+
+      try {
+        const response = await fetch(`${endpoint}?q=${encodeURIComponent(query)}&limit=15`);
+        const data = await response.json();
+        if (data.success && data.results?.length > 0) {
+          renderDropdown(data.results, type, dropdown, input);
+        } else {
+          dropdown.innerHTML = '<div class="px-3 py-2 text-xs text-gray-500 italic">{{ trans('admin.common.no_results')|default('No results')|e('js') }}</div>';
+          dropdown.classList.remove('hidden');
+        }
+      } catch (error) { dropdown.classList.add('hidden'); }
+    }
+
+    function renderDropdown(results, type, dropdown, input) {
+      dropdown.innerHTML = '';
+      results.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'autocomplete-item px-3 py-2 text-sm cursor-pointer hover:bg-gray-100';
+        if (type === 'lens-maker') {
+          div.textContent = item.maker;
+          div.dataset.value = item.maker;
+        } else {
+          div.innerHTML = `<span class="font-medium">${escapeHtml(item.model)}</span> <span class="text-xs text-gray-500">(${escapeHtml(item.maker)})</span>`;
+          div.dataset.value = item.model;
+          div.dataset.maker = item.maker;
+          div.dataset.focalMin = item.focal_min || '';
+          div.dataset.focalMax = item.focal_max || '';
+        }
+        div.addEventListener('click', () => selectItem(div, input, dropdown));
+        dropdown.appendChild(div);
+      });
+      dropdown.classList.remove('hidden');
+    }
+
+    function selectItem(item, input, dropdown) {
+      input.value = item.dataset.value;
+      dropdown.classList.add('hidden');
+      // Auto-fill brand and focal lengths when selecting model
+      if (input.dataset.autocomplete === 'lens-model') {
+        if (item.dataset.maker) {
+          const brandInput = document.getElementById('lens-brand');
+          if (brandInput && !brandInput.value) brandInput.value = item.dataset.maker;
+        }
+        if (item.dataset.focalMin) {
+          const focalMinInput = document.getElementById('lens-focal-min');
+          if (focalMinInput && !focalMinInput.value) focalMinInput.value = item.dataset.focalMin;
+        }
+        if (item.dataset.focalMax) {
+          const focalMaxInput = document.getElementById('lens-focal-max');
+          if (focalMaxInput && !focalMaxInput.value) focalMaxInput.value = item.dataset.focalMax;
+        }
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+  });
+  </script>
 {% endblock %}

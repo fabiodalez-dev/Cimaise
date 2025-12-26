@@ -333,29 +333,51 @@ class GalleryController extends BaseController
                 'url' => $bestUrl,
                 'lightbox_url' => $lightboxUrl, // High quality for lightbox
                 'alt' => $img['alt_text'] ?: $album['title'],
+                'alt_text' => $img['alt_text'] ?? '',
                 'width' => (int)($img['width'] ?? 1200),
                 'height' => (int)($img['height'] ?? 800),
                 'caption' => $enhancedCaption,
                 'caption_html' => $captionHtml,
+                'original_path' => $img['original_path'] ?? '',
                 // Display values
                 'camera' => $cameraDisp ?? '',
                 'lens' => $lensDisp ?? '',
                 // Raw fields for consumers
                 'camera_db' => $img['camera_name'] ?? null,
+                'camera_name' => $img['camera_name'] ?? null,
                 'lens_db' => $img['lens_name'] ?? null,
+                'lens_name' => $img['lens_name'] ?? null,
                 'film_db' => $img['film_name'] ?? null,
+                'film_name' => $img['film_name'] ?? null,
                 'developer_db' => $img['developer_name'] ?? null,
+                'developer_name' => $img['developer_name'] ?? null,
                 'lab_db' => $img['lab_name'] ?? null,
+                'lab_name' => $img['lab_name'] ?? null,
+                'location_name' => $img['location_name'] ?? null,
                 'camera_custom' => $img['custom_camera'] ?? null,
+                'custom_camera' => $img['custom_camera'] ?? null,
                 'lens_custom' => $img['custom_lens'] ?? null,
+                'custom_lens' => $img['custom_lens'] ?? null,
                 'film_custom' => $img['custom_film'] ?? null,
+                'custom_film' => $img['custom_film'] ?? null,
                 'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
                 'shutter_speed' => $img['shutter_speed'] ?? null,
                 'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
                 'process' => $img['process'] ?? null,
+                // Extended EXIF fields
+                'focal_length' => $img['focal_length'] ?? null,
+                'exif_make' => $img['exif_make'] ?? null,
+                'exif_model' => $img['exif_model'] ?? null,
+                'exif_lens_model' => $img['exif_lens_model'] ?? null,
+                'gps_lat' => $img['gps_lat'] ?? null,
+                'gps_lng' => $img['gps_lng'] ?? null,
+                'date_original' => $img['date_original'] ?? null,
+                'artist' => $img['artist'] ?? null,
+                'copyright' => $img['copyright'] ?? null,
                 'settings' => '',
                 'sources' => $sources, // Add sources array with base_path prepended
-                'fallback_src' => $lightboxUrl ?: $bestUrl
+                'fallback_src' => $lightboxUrl ?: $bestUrl,
+                'variants' => []
             ];
         }
 
@@ -641,9 +663,11 @@ class GalleryController extends BaseController
                     'url' => $bestUrl,
                     'lightbox_url' => $lightboxUrl,
                     'alt' => $img['alt_text'] ?: $album['title'],
+                    'alt_text' => $img['alt_text'] ?? '',
                     'width' => (int)($img['width'] ?? 1200),
                     'height' => (int)($img['height'] ?? 800),
                     'caption' => $img['caption'] ?? '',
+                    'original_path' => $img['original_path'] ?? '',
                     'custom_camera' => $img['custom_camera'] ?? '',
                     'camera_name' => $img['camera_name'] ?? '',
                     'custom_lens' => $img['custom_lens'] ?? '',
@@ -657,8 +681,19 @@ class GalleryController extends BaseController
                     'shutter_speed' => $img['shutter_speed'] ?? null,
                     'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
                     'process' => $img['process'] ?? null,
+                    // Extended EXIF fields
+                    'focal_length' => $img['focal_length'] ?? null,
+                    'exif_make' => $img['exif_make'] ?? null,
+                    'exif_model' => $img['exif_model'] ?? null,
+                    'exif_lens_model' => $img['exif_lens_model'] ?? null,
+                    'gps_lat' => $img['gps_lat'] ?? null,
+                    'gps_lng' => $img['gps_lng'] ?? null,
+                    'date_original' => $img['date_original'] ?? null,
+                    'artist' => $img['artist'] ?? null,
+                    'copyright' => $img['copyright'] ?? null,
                     'sources' => $sources ?? ['avif'=>[], 'webp'=>[], 'jpg'=>[]],
-                    'fallback_src' => $lightboxUrl ?: $bestUrl
+                    'fallback_src' => $lightboxUrl ?: $bestUrl,
+                    'variants' => []
                 ];
             }
 

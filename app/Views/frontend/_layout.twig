@@ -2211,25 +2211,71 @@
                 const developer = x.getAttribute('data-developer') || '';
                 const lab = x.getAttribute('data-lab') || '';
                 const location = x.getAttribute('data-location') || '';
+                // EXIF data
+                const iso = x.getAttribute('data-iso') || '';
+                const shutter = x.getAttribute('data-shutter') || '';
+                const aperture = x.getAttribute('data-aperture') || '';
+                const focalLength = x.getAttribute('data-focal-length') || '';
+                const exifMake = x.getAttribute('data-exif-make') || '';
+                const exifModel = x.getAttribute('data-exif-model') || '';
+                const exifLens = x.getAttribute('data-exif-lens') || '';
+                const gpsLat = x.getAttribute('data-gps-lat') || '';
+                const gpsLng = x.getAttribute('data-gps-lng') || '';
+                const dateOriginal = x.getAttribute('data-date-original') || '';
+                const artist = x.getAttribute('data-artist') || '';
+                const copyright = x.getAttribute('data-copyright') || '';
 
                 let html = '';
+                const esc = s => s.replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
                 // Add photo title if present
                 if (title.trim()) {
-                  html += '<div class="mb-2 font-medium">' + title.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+                  html += '<div class="mb-2 font-medium">' + esc(title) + '</div>';
                 }
 
-                // Build equipment items with icons
+                // Build equipment items with icons (user custom data takes priority)
                 const items = [];
-                if (camera.trim()) items.push('<span class="cc-item"><i class="fas fa-camera mr-1"></i>' + camera.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
-                if (lens.trim()) items.push('<span class="cc-item"><i class="fas fa-circle-notch mr-1"></i>' + lens.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
-                if (film.trim()) items.push('<span class="cc-item"><i class="fas fa-film mr-1"></i>' + film.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
-                if (developer.trim()) items.push('<span class="cc-item"><i class="fas fa-flask mr-1"></i>' + developer.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
-                if (lab.trim()) items.push('<span class="cc-item"><i class="fas fa-store mr-1"></i>' + lab.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
-                if (location.trim()) items.push('<span class="cc-item"><i class="fas fa-map-marker-alt mr-1"></i>' + location.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>');
+                // Camera: prefer custom, then EXIF make+model
+                const cameraDisplay = camera.trim() || ((exifMake.trim() || exifModel.trim()) ? (exifMake + ' ' + exifModel).trim() : '');
+                if (cameraDisplay) items.push('<span class="cc-item"><i class="fas fa-camera mr-1"></i>' + esc(cameraDisplay) + '</span>');
+                // Lens: prefer custom, then EXIF lens
+                const lensDisplay = lens.trim() || exifLens.trim();
+                if (lensDisplay) items.push('<span class="cc-item"><i class="fas fa-circle-notch mr-1"></i>' + esc(lensDisplay) + '</span>');
+                if (film.trim()) items.push('<span class="cc-item"><i class="fas fa-film mr-1"></i>' + esc(film) + '</span>');
+                if (developer.trim()) items.push('<span class="cc-item"><i class="fas fa-flask mr-1"></i>' + esc(developer) + '</span>');
+                if (lab.trim()) items.push('<span class="cc-item"><i class="fas fa-store mr-1"></i>' + esc(lab) + '</span>');
+                if (location.trim()) items.push('<span class="cc-item"><i class="fas fa-map-marker-alt mr-1"></i>' + esc(location) + '</span>');
 
                 if (items.length > 0) {
                   html += '<div class="flex flex-wrap gap-2 justify-center text-sm opacity-90">' + items.join('') + '</div>';
+                }
+
+                // Build EXIF exposure items
+                const exifItems = [];
+                if (focalLength.trim()) exifItems.push('<span class="cc-item"><i class="fas fa-arrows-alt-h mr-1"></i>' + esc(focalLength) + 'mm</span>');
+                if (aperture.trim()) exifItems.push('<span class="cc-item"><i class="fas fa-dot-circle mr-1"></i>f/' + esc(aperture) + '</span>');
+                if (shutter.trim()) exifItems.push('<span class="cc-item"><i class="far fa-clock mr-1"></i>' + esc(shutter) + '</span>');
+                if (iso.trim()) exifItems.push('<span class="cc-item"><i class="fas fa-signal mr-1"></i>ISO ' + esc(iso) + '</span>');
+
+                if (exifItems.length > 0) {
+                  html += '<div class="flex flex-wrap gap-2 justify-center text-xs opacity-75 mt-1">' + exifItems.join('') + '</div>';
+                }
+
+                // Additional info row (date, GPS, copyright)
+                const infoItems = [];
+                if (dateOriginal.trim()) {
+                  const d = new Date(dateOriginal);
+                  const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString() : dateOriginal;
+                  infoItems.push('<span class="cc-item"><i class="far fa-calendar mr-1"></i>' + esc(dateStr) + '</span>');
+                }
+                if (gpsLat.trim() && gpsLng.trim()) {
+                  infoItems.push('<span class="cc-item"><i class="fas fa-globe mr-1"></i>' + esc(gpsLat) + ', ' + esc(gpsLng) + '</span>');
+                }
+                if (artist.trim()) infoItems.push('<span class="cc-item"><i class="fas fa-user mr-1"></i>' + esc(artist) + '</span>');
+                if (copyright.trim()) infoItems.push('<span class="cc-item"><i class="far fa-copyright mr-1"></i>' + esc(copyright) + '</span>');
+
+                if (infoItems.length > 0) {
+                  html += '<div class="flex flex-wrap gap-2 justify-center text-xs opacity-60 mt-1">' + infoItems.join('') + '</div>';
                 }
 
                 return html;

@@ -252,6 +252,92 @@ class SettingsController extends BaseController
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
     }
 
+    public function updateLensfun(Request $request, Response $response): Response
+    {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            if ($this->isAjaxRequest($request)) {
+                return $this->csrfErrorJson($response);
+            }
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
+            return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+        }
+
+        try {
+            $lensfun = new \App\Services\LensfunService();
+
+            // Download XML files from GitHub
+            $dataDir = dirname(__DIR__, 3) . '/storage/lensfun';
+            if (!is_dir($dataDir)) {
+                mkdir($dataDir, 0775, true);
+            }
+
+            $xmlFiles = [
+                '6x6', 'actioncams',
+                'compact-canon', 'compact-casio', 'compact-fujifilm', 'compact-kodak',
+                'compact-konica-minolta', 'compact-leica', 'compact-nikon', 'compact-olympus',
+                'compact-panasonic', 'compact-pentax', 'compact-ricoh', 'compact-samsung',
+                'compact-sigma', 'compact-sony',
+                'contax', 'generic',
+                'mil-canon', 'mil-fujifilm', 'mil-leica', 'mil-nikon', 'mil-olympus',
+                'mil-panasonic', 'mil-pentax', 'mil-samsung', 'mil-sigma', 'mil-sony', 'mil-yongnuo',
+                'misc', 'om-system',
+                'rf-canon', 'rf-contax', 'rf-fujifilm', 'rf-leica', 'rf-minolta',
+                'rf-nikon', 'rf-olympus', 'rf-voigtlander',
+                'slr-canon', 'slr-contax', 'slr-fujifilm', 'slr-hasselblad', 'slr-konica-minolta',
+                'slr-mamiya', 'slr-minolta', 'slr-nikon', 'slr-olympus', 'slr-panasonic',
+                'slr-pentax', 'slr-samsung', 'slr-sigma', 'slr-sony'
+            ];
+
+            $baseUrl = 'https://raw.githubusercontent.com/lensfun/lensfun/master/data/db/';
+            $downloaded = 0;
+
+            foreach ($xmlFiles as $file) {
+                $url = $baseUrl . $file . '.xml';
+                $localPath = $dataDir . '/' . $file . '.xml';
+                $content = @file_get_contents($url);
+                if ($content !== false && @file_put_contents($localPath, $content)) {
+                    $downloaded++;
+                }
+            }
+
+            // Rebuild cache
+            $stats = $lensfun->rebuildCache();
+
+            $result = [
+                'success' => true,
+                'message' => trans('admin.flash.lensfun_updated'),
+                'downloaded' => $downloaded,
+                'cameras' => $stats['cameras'],
+                'lenses' => $stats['lenses'],
+            ];
+
+            if ($this->isAjaxRequest($request)) {
+                $payload = json_encode($result);
+                $response->getBody()->write($payload !== false ? $payload : '{"success":true}');
+                return $response->withHeader('Content-Type', 'application/json');
+            }
+
+            $_SESSION['flash'][] = [
+                'type' => 'success',
+                'message' => trans('admin.flash.lensfun_updated') . " ({$stats['cameras']} cameras, {$stats['lenses']} lenses)"
+            ];
+
+        } catch (\Throwable $e) {
+            Logger::error('Error updating Lensfun database', ['error' => $e->getMessage()], 'app');
+
+            if ($this->isAjaxRequest($request)) {
+                $payload = json_encode(['success' => false, 'error' => $e->getMessage()]);
+                $response->getBody()->write($payload !== false ? $payload : '{"success":false}');
+                return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            }
+
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.lensfun_failed')];
+        }
+
+        return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+    }
+
     public function generateFavicons(Request $request, Response $response): Response
     {
         // CSRF validation

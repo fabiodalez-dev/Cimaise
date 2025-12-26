@@ -5,14 +5,18 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Services\ExifService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 
 class MediaController extends BaseController
 {
-    public function __construct(private Database $db, private Twig $view)
-    {
+    public function __construct(
+        private Database $db,
+        private Twig $view,
+        private ExifService $exifService
+    ) {
         parent::__construct();
     }
 
@@ -148,7 +152,151 @@ class MediaController extends BaseController
             $stmt->execute($params);
         }
 
+        // Handle EXIF write to files if requested
+        if (!empty($d['write_exif_to_file'])) {
+            $exifData = $this->buildExifDataArray($d);
+            $originalsDir = dirname(__DIR__, 3) . '/storage/originals';
+            $mediaDir = dirname(__DIR__, 3) . '/public/media';
+            $writeResult = $this->exifService->propagateExifToVariants($id, $exifData, $originalsDir, $mediaDir);
+
+            $response->getBody()->write(json_encode([
+                'ok' => true,
+                'exif_write' => $writeResult
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
         $response->getBody()->write(json_encode(['ok' => true]));
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Get EXIF data for an image (AJAX endpoint).
+     */
+    public function getExif(Request $request, Response $response, array $args): Response
+    {
+        $id = (int)($args['id'] ?? 0);
+        if ($id <= 0) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid image ID']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $exifData = $this->exifService->getExifForEditor($id);
+        if (empty($exifData)) {
+            $response->getBody()->write(json_encode(['error' => 'Image not found']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Add EXIF options for dropdowns
+        $options = $this->exifService->getExifOptions();
+
+        $response->getBody()->write(json_encode([
+            'ok' => true,
+            'data' => $exifData,
+            'options' => $options
+        ], JSON_UNESCAPED_UNICODE));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Update EXIF data for an image.
+     */
+    public function updateExif(Request $request, Response $response, array $args): Response
+    {
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
+        $id = (int)($args['id'] ?? 0);
+        if ($id <= 0) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid image ID']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $d = (array)$request->getParsedBody();
+        $pdo = $this->db->pdo();
+
+        // Build EXIF fields array
+        $exifFields = [
+            'exif_make' => $d['exif_make'] ?? null,
+            'exif_model' => $d['exif_model'] ?? null,
+            'exif_lens_model' => $d['exif_lens_model'] ?? null,
+            'software' => $d['software'] ?? null,
+            'focal_length' => ($d['focal_length'] ?? '') !== '' ? (float)$d['focal_length'] : null,
+            'exposure_bias' => ($d['exposure_bias'] ?? '') !== '' ? (float)$d['exposure_bias'] : null,
+            'flash' => ($d['flash'] ?? '') !== '' ? (int)$d['flash'] : null,
+            'white_balance' => ($d['white_balance'] ?? '') !== '' ? (int)$d['white_balance'] : null,
+            'exposure_program' => ($d['exposure_program'] ?? '') !== '' ? (int)$d['exposure_program'] : null,
+            'metering_mode' => ($d['metering_mode'] ?? '') !== '' ? (int)$d['metering_mode'] : null,
+            'exposure_mode' => ($d['exposure_mode'] ?? '') !== '' ? (int)$d['exposure_mode'] : null,
+            'date_original' => $d['date_original'] ?? null,
+            'color_space' => ($d['color_space'] ?? '') !== '' ? (int)$d['color_space'] : null,
+            'contrast' => ($d['contrast'] ?? '') !== '' ? (int)$d['contrast'] : null,
+            'saturation' => ($d['saturation'] ?? '') !== '' ? (int)$d['saturation'] : null,
+            'sharpness' => ($d['sharpness'] ?? '') !== '' ? (int)$d['sharpness'] : null,
+            'scene_capture_type' => ($d['scene_capture_type'] ?? '') !== '' ? (int)$d['scene_capture_type'] : null,
+            'light_source' => ($d['light_source'] ?? '') !== '' ? (int)$d['light_source'] : null,
+            'gps_lat' => ($d['gps_lat'] ?? '') !== '' ? (float)$d['gps_lat'] : null,
+            'gps_lng' => ($d['gps_lng'] ?? '') !== '' ? (float)$d['gps_lng'] : null,
+            'artist' => $d['artist'] ?? null,
+            'copyright' => $d['copyright'] ?? null,
+        ];
+
+        // Build SET clause
+        $setParts = [];
+        $params = [':id' => $id];
+        foreach ($exifFields as $field => $value) {
+            $setParts[] = "$field = :$field";
+            $params[":$field"] = $value;
+        }
+
+        $sql = 'UPDATE images SET ' . implode(', ', $setParts) . ' WHERE id = :id';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        // Handle EXIF write to files if requested
+        $writeResult = null;
+        if (!empty($d['write_exif_to_file'])) {
+            $originalsDir = dirname(__DIR__, 3) . '/storage/originals';
+            $mediaDir = dirname(__DIR__, 3) . '/public/media';
+            $writeResult = $this->exifService->propagateExifToVariants($id, $exifFields, $originalsDir, $mediaDir);
+        }
+
+        $response->getBody()->write(json_encode([
+            'ok' => true,
+            'exif_write' => $writeResult
+        ], JSON_UNESCAPED_UNICODE));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Build EXIF data array from form data.
+     */
+    private function buildExifDataArray(array $d): array
+    {
+        return [
+            'exif_make' => $d['exif_make'] ?? null,
+            'exif_model' => $d['exif_model'] ?? null,
+            'exif_lens_model' => $d['exif_lens_model'] ?? null,
+            'software' => $d['software'] ?? null,
+            'focal_length' => ($d['focal_length'] ?? '') !== '' ? (float)$d['focal_length'] : null,
+            'exposure_bias' => ($d['exposure_bias'] ?? '') !== '' ? (float)$d['exposure_bias'] : null,
+            'flash' => ($d['flash'] ?? '') !== '' ? (int)$d['flash'] : null,
+            'white_balance' => ($d['white_balance'] ?? '') !== '' ? (int)$d['white_balance'] : null,
+            'exposure_program' => ($d['exposure_program'] ?? '') !== '' ? (int)$d['exposure_program'] : null,
+            'metering_mode' => ($d['metering_mode'] ?? '') !== '' ? (int)$d['metering_mode'] : null,
+            'exposure_mode' => ($d['exposure_mode'] ?? '') !== '' ? (int)$d['exposure_mode'] : null,
+            'date_original' => $d['date_original'] ?? null,
+            'color_space' => ($d['color_space'] ?? '') !== '' ? (int)$d['color_space'] : null,
+            'contrast' => ($d['contrast'] ?? '') !== '' ? (int)$d['contrast'] : null,
+            'saturation' => ($d['saturation'] ?? '') !== '' ? (int)$d['saturation'] : null,
+            'sharpness' => ($d['sharpness'] ?? '') !== '' ? (int)$d['sharpness'] : null,
+            'scene_capture_type' => ($d['scene_capture_type'] ?? '') !== '' ? (int)$d['scene_capture_type'] : null,
+            'light_source' => ($d['light_source'] ?? '') !== '' ? (int)$d['light_source'] : null,
+            'gps_lat' => ($d['gps_lat'] ?? '') !== '' ? (float)$d['gps_lat'] : null,
+            'gps_lng' => ($d['gps_lng'] ?? '') !== '' ? (float)$d['gps_lng'] : null,
+            'artist' => $d['artist'] ?? null,
+            'copyright' => $d['copyright'] ?? null,
+        ];
     }
 }
