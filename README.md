@@ -211,8 +211,27 @@ Cimaise understands analog workflow:
 Upload a digital file and Cimaise extracts:
 - Camera make and model
 - Lens information (including adapted lenses)
-- ISO, shutter speed, aperture
+- ISO, shutter speed, aperture, focal length
+- Exposure program, metering mode, flash
 - GPS coordinates (if embedded)
+- Artist and copyright metadata
+
+### EXIF Display in Lightbox
+
+When visitors view your images in the lightbox, they see the technical details:
+- Camera and lens used
+- Exposure settings (shutter, aperture, ISO)
+- For film: stock, developer, lab
+- Toggle on/off from Admin → Settings
+
+### Lensfun Database Integration
+
+Cimaise includes the complete [Lensfun](https://lensfun.github.io/) camera and lens database:
+- **1,000+ cameras** from all major manufacturers
+- **1,300+ lenses** with focal length data
+- **Autocomplete** when adding equipment in admin
+- **Auto-fill** focal lengths when selecting a lens
+- Database updates available from Admin → Settings
 
 ### Film Metadata Input
 
@@ -307,6 +326,7 @@ Cimaise focuses on what photographers actually need:
 - **Logo & Favicon** — Upload once, automatic generation of all sizes (16px to 512px)
 - **Site Title & Description** — Used in browser tabs, search results, social shares
 - **Copyright Notice** — `© {year}` auto-updates each January
+- **Social Profiles** — Display your Instagram, 500px, Flickr, website links in the header
 
 ### Gallery Presentation
 - **Template Selection** — 6 gallery templates per album
@@ -321,9 +341,14 @@ Cimaise focuses on what photographers actually need:
 - **Lazy Loading** — Above-fold images load instantly, below-fold on scroll
 
 ### Languages
-- **Site Language** — English, Italian (more coming)
-- **Admin Language** — Can differ from public site
+- **Site Language** — English, Italian (fully translated)
+- **Admin Language** — Complete Italian backend translation
 - **Date Format** — ISO (2024-01-15) or European (15-01-2024)
+- **i18n System** — Easy to add new languages via JSON files
+
+### Developer Tools
+- **Debug Logs** — View application logs from Admin → Settings
+- **System Updater** — Check for and apply updates from admin panel
 
 ### Privacy & Compliance
 - **Cookie Banner** — GDPR-compliant consent (Silktide integration)
