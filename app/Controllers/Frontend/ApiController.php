@@ -263,11 +263,25 @@ class ApiController extends BaseController
         $pdo = $this->db->pdo();
         $imageId = (int)($args['id'] ?? 0);
 
-        // Get image and its album
+        // Get image with all EXIF fields and album info
         $stmt = $pdo->prepare('
-            SELECT i.id, i.original_path, i.album_id, a.is_published, a.password_hash, a.is_nsfw
+            SELECT i.id, i.original_path, i.album_id, i.custom_camera, i.custom_lens, i.custom_film,
+                   i.iso, i.shutter_speed, i.aperture,
+                   i.exif_make, i.exif_model, i.exif_lens_model, i.software,
+                   i.focal_length, i.exposure_bias, i.flash, i.white_balance,
+                   i.exposure_program, i.metering_mode, i.exposure_mode,
+                   i.date_original, i.color_space, i.contrast, i.saturation, i.sharpness,
+                   i.scene_capture_type, i.light_source,
+                   i.gps_lat, i.gps_lng, i.artist, i.copyright,
+                   c.make as camera_make, c.model as camera_model,
+                   l.brand as lens_brand, l.model as lens_model,
+                   f.brand as film_brand, f.name as film_name,
+                   a.is_published, a.password_hash, a.is_nsfw
             FROM images i
             JOIN albums a ON a.id = i.album_id
+            LEFT JOIN cameras c ON c.id = i.camera_id
+            LEFT JOIN lenses l ON l.id = i.lens_id
+            LEFT JOIN films f ON f.id = i.film_id
             WHERE i.id = :id
         ');
         $stmt->execute([':id' => $imageId]);
@@ -297,33 +311,146 @@ class ApiController extends BaseController
             return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 
-        // Build path to original file
-        $basePath = \dirname(__DIR__, 3);
-        $originalPath = $row['original_path'];
+        // Build EXIF response from DATABASE values (not from file)
+        $result = [
+            'success' => true,
+            'sections' => []
+        ];
 
-        // Handle different path formats
-        if (\str_starts_with($originalPath, '/storage/originals/')) {
-            // Full path from root
-            $fullPath = $basePath . $originalPath;
-        } elseif (\str_starts_with($originalPath, 'storage/')) {
-            $fullPath = $basePath . '/' . $originalPath;
-        } elseif (\str_starts_with($originalPath, '/')) {
-            // Just filename with leading slash
-            $fullPath = $basePath . '/storage/originals' . $originalPath;
-        } else {
-            $fullPath = $basePath . '/storage/originals/' . $originalPath;
+        // Equipment section
+        $equipment = [];
+
+        // Camera: prefer custom_camera, then EXIF make+model, then linked camera
+        $cameraName = '';
+        if (!empty($row['custom_camera'])) {
+            $cameraName = $row['custom_camera'];
+        } elseif (!empty($row['exif_make']) || !empty($row['exif_model'])) {
+            $make = $row['exif_make'] ?? '';
+            $model = $row['exif_model'] ?? '';
+            // Avoid duplication if Model already contains Make
+            if ($make && $model && stripos($model, $make) === 0) {
+                $cameraName = $model;
+            } else {
+                $cameraName = trim($make . ' ' . $model);
+            }
+        } elseif (!empty($row['camera_make']) || !empty($row['camera_model'])) {
+            $cameraName = trim(($row['camera_make'] ?? '') . ' ' . ($row['camera_model'] ?? ''));
+        }
+        if ($cameraName) {
+            $equipment[] = ['label' => 'Camera', 'value' => $cameraName, 'icon' => 'fa-camera'];
         }
 
-        if (!\file_exists($fullPath)) {
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Original file not found']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        // Lens: prefer custom_lens, then EXIF lens, then linked lens
+        $lensName = '';
+        if (!empty($row['custom_lens'])) {
+            $lensName = $row['custom_lens'];
+        } elseif (!empty($row['exif_lens_model'])) {
+            $lensName = $row['exif_lens_model'];
+        } elseif (!empty($row['lens_brand']) || !empty($row['lens_model'])) {
+            $lensName = trim(($row['lens_brand'] ?? '') . ' ' . ($row['lens_model'] ?? ''));
+        }
+        if ($lensName) {
+            $equipment[] = ['label' => 'Lens', 'value' => $lensName, 'icon' => 'fa-circle-dot'];
         }
 
-        // Extract EXIF data
-        $exifService = new \App\Services\ExifService($this->db);
-        $exifData = $exifService->extractForLightbox($fullPath);
+        // Film
+        $filmName = '';
+        if (!empty($row['custom_film'])) {
+            $filmName = $row['custom_film'];
+        } elseif (!empty($row['film_brand']) || !empty($row['film_name'])) {
+            $filmName = trim(($row['film_brand'] ?? '') . ' ' . ($row['film_name'] ?? ''));
+        }
+        if ($filmName) {
+            $equipment[] = ['label' => 'Film', 'value' => $filmName, 'icon' => 'fa-film'];
+        }
 
-        $response->getBody()->write(json_encode($exifData));
+        if (!empty($equipment)) {
+            $result['sections'][] = ['title' => 'Equipment', 'items' => $equipment];
+        }
+
+        // Exposure section
+        $exposure = [];
+        if (!empty($row['focal_length'])) {
+            $exposure[] = ['label' => 'Focal Length', 'value' => $row['focal_length'] . 'mm', 'icon' => 'fa-arrows-alt-h'];
+        }
+        if (!empty($row['aperture'])) {
+            $exposure[] = ['label' => 'Aperture', 'value' => 'f/' . $row['aperture'], 'icon' => 'fa-circle'];
+        }
+        if (!empty($row['shutter_speed'])) {
+            $exposure[] = ['label' => 'Shutter Speed', 'value' => $row['shutter_speed'], 'icon' => 'fa-clock'];
+        }
+        if (!empty($row['iso'])) {
+            $exposure[] = ['label' => 'ISO', 'value' => (string)$row['iso'], 'icon' => 'fa-signal'];
+        }
+        if ($row['exposure_bias'] !== null && $row['exposure_bias'] != 0) {
+            $exposure[] = ['label' => 'Exposure Bias', 'value' => ($row['exposure_bias'] >= 0 ? '+' : '') . $row['exposure_bias'] . ' EV', 'icon' => 'fa-adjust'];
+        }
+        if (!empty($exposure)) {
+            $result['sections'][] = ['title' => 'Exposure', 'items' => $exposure];
+        }
+
+        // Mode section
+        $mode = [];
+        if ($row['exposure_program'] !== null) {
+            $programLabels = [0 => 'Not Defined', 1 => 'Manual', 2 => 'Program AE', 3 => 'Aperture Priority', 4 => 'Shutter Priority', 5 => 'Creative', 6 => 'Action', 7 => 'Portrait', 8 => 'Landscape'];
+            if (isset($programLabels[$row['exposure_program']])) {
+                $mode[] = ['label' => 'Exposure Program', 'value' => $programLabels[$row['exposure_program']], 'icon' => 'fa-sliders-h'];
+            }
+        }
+        if ($row['metering_mode'] !== null) {
+            $meterLabels = [0 => 'Unknown', 1 => 'Average', 2 => 'Center-weighted', 3 => 'Spot', 4 => 'Multi-spot', 5 => 'Multi-segment', 6 => 'Partial'];
+            if (isset($meterLabels[$row['metering_mode']])) {
+                $mode[] = ['label' => 'Metering', 'value' => $meterLabels[$row['metering_mode']], 'icon' => 'fa-bullseye'];
+            }
+        }
+        if ($row['flash'] !== null) {
+            $flashFired = ($row['flash'] & 1) === 1;
+            $mode[] = ['label' => 'Flash', 'value' => $flashFired ? 'Fired' : 'Not Fired', 'icon' => 'fa-bolt'];
+        }
+        if ($row['white_balance'] !== null) {
+            $mode[] = ['label' => 'White Balance', 'value' => $row['white_balance'] == 0 ? 'Auto' : 'Manual', 'icon' => 'fa-thermometer-half'];
+        }
+        if (!empty($mode)) {
+            $result['sections'][] = ['title' => 'Mode', 'items' => $mode];
+        }
+
+        // Details section
+        $details = [];
+        if (!empty($row['date_original'])) {
+            $details[] = ['label' => 'Date Taken', 'value' => $row['date_original'], 'icon' => 'fa-calendar'];
+        }
+        if ($row['color_space'] !== null) {
+            $details[] = ['label' => 'Color Space', 'value' => $row['color_space'] == 1 ? 'sRGB' : 'Adobe RGB', 'icon' => 'fa-palette'];
+        }
+        if (!empty($details)) {
+            $result['sections'][] = ['title' => 'Details', 'items' => $details];
+        }
+
+        // Location section
+        $location = [];
+        if (!empty($row['gps_lat']) && !empty($row['gps_lng'])) {
+            $location[] = ['label' => 'GPS', 'value' => round($row['gps_lat'], 6) . ', ' . round($row['gps_lng'], 6), 'icon' => 'fa-map-marker-alt'];
+        }
+        if (!empty($location)) {
+            $result['sections'][] = ['title' => 'Location', 'items' => $location];
+        }
+
+        // Info section
+        $info = [];
+        if (!empty($row['artist'])) {
+            $info[] = ['label' => 'Artist', 'value' => $row['artist'], 'icon' => 'fa-user'];
+        }
+        if (!empty($row['copyright'])) {
+            $info[] = ['label' => 'Copyright', 'value' => $row['copyright'], 'icon' => 'fa-copyright'];
+        }
+        if (!empty($row['software'])) {
+            $info[] = ['label' => 'Software', 'value' => $row['software'], 'icon' => 'fa-wand-magic-sparkles'];
+        }
+        if (!empty($info)) {
+            $result['sections'][] = ['title' => 'Info', 'items' => $info];
+        }
+
+        $response->getBody()->write(json_encode($result));
         return $response->withHeader('Content-Type', 'application/json');
     }
 }

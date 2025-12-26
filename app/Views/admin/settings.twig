@@ -475,7 +475,36 @@
         </div>
       </div>
     </div>
-    
+
+    <!-- Lensfun Database -->
+    <div class="card mb-6">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-camera-retro mr-3 text-gray-600"></i>
+          {{ trans('admin.settings.lensfun_database')|default('Lensfun Database') }}
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">{{ trans('admin.settings.lensfun_desc')|default('Camera and lens database from lensfun.github.io for EXIF autocomplete.') }}</p>
+
+        <div id="lensfun-update" class="border-t border-gray-200 pt-4">
+          <button id="lensfun-btn" type="button" class="btn-secondary">
+            <i id="lensfun-icon" class="fas fa-download mr-2"></i>
+            <span id="lensfun-text">{{ trans('admin.settings.update_lensfun')|default('Update Database') }}</span>
+          </button>
+          <div id="lensfun-status" class="mt-2 hidden">
+            <div class="text-xs text-blue-600 flex items-center">
+              <i class="fas fa-spinner fa-spin mr-2"></i>
+              <span>{{ trans('admin.settings.downloading')|default('Downloading...') }}</span>
+            </div>
+          </div>
+          <div id="lensfun-result" class="mt-2 hidden"></div>
+          <p class="text-xs text-gray-500 mt-3">
+            <i class="fas fa-info-circle mr-1"></i>
+            {{ trans('admin.settings.lensfun_source')|default('Source: github.com/lensfun/lensfun') }}
+          </p>
+        </div>
+      </div>
+    </div>
+
     </form>
   </div>
 
@@ -581,6 +610,84 @@ document.addEventListener('DOMContentLoaded', function() {
         result.innerHTML = `<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span></span></div>`;
         const errSpan = result.querySelector('span');
         if (errSpan) errSpan.textContent = `{{ trans('admin.settings.generate_error')|e('js') }}: ${error.message}`;
+        result.classList.remove('hidden');
+      });
+    });
+  }
+
+  // Lensfun database update handler
+  const lensfunBtn = document.getElementById('lensfun-btn');
+  if (lensfunBtn) {
+    lensfunBtn.addEventListener('click', function() {
+      const icon = document.getElementById('lensfun-icon');
+      const text = document.getElementById('lensfun-text');
+      const status = document.getElementById('lensfun-status');
+      const result = document.getElementById('lensfun-result');
+
+      // Show loading state
+      lensfunBtn.disabled = true;
+      icon.className = 'fas fa-spinner fa-spin mr-2';
+      text.textContent = '{{ trans('admin.settings.updating_lensfun')|default('Updating...')|e('js') }}';
+      status.classList.remove('hidden');
+      result.classList.add('hidden');
+
+      // Submit request via fetch
+      const csrf = document.querySelector('#settings-form input[name="csrf"]')?.value || '';
+      const formData = new FormData();
+      formData.append('csrf', csrf);
+
+      fetch('{{ base_path }}/admin/settings/update-lensfun', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Reset button state
+        lensfunBtn.disabled = false;
+        icon.className = 'fas fa-download mr-2';
+        text.textContent = '{{ trans('admin.settings.update_lensfun')|default('Update Database')|e('js') }}';
+        status.classList.add('hidden');
+
+        if (data.error || data.success === false) {
+          throw new Error(data.message || data.error || 'Update failed');
+        }
+
+        // Show success result
+        const cameras = data.cameras || 0;
+        const lenses = data.lenses || 0;
+        const files = data.files || 0;
+        const message = `{{ trans('admin.settings.lensfun_updated')|default('Database updated:')|e('js') }} ${cameras} {{ trans('admin.settings.cameras')|default('cameras')|e('js') }}, ${lenses} {{ trans('admin.settings.lenses')|default('lenses')|e('js') }} (${files} {{ trans('admin.settings.files')|default('files')|e('js') }})`;
+
+        result.innerHTML = '<div class="text-xs text-green-600 flex items-center"><i class="fas fa-check-circle mr-2"></i><span></span></div>';
+        const msgSpan = result.querySelector('span');
+        if (msgSpan) msgSpan.textContent = message;
+        result.classList.remove('hidden');
+
+        // Hide result after 15 seconds
+        setTimeout(() => {
+          result.classList.add('hidden');
+        }, 15000);
+      })
+      .catch(error => {
+        // Reset button state
+        lensfunBtn.disabled = false;
+        icon.className = 'fas fa-download mr-2';
+        text.textContent = '{{ trans('admin.settings.update_lensfun')|default('Update Database')|e('js') }}';
+        status.classList.add('hidden');
+
+        // Show error result
+        result.innerHTML = '<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span></span></div>';
+        const errSpan = result.querySelector('span');
+        if (errSpan) errSpan.textContent = `{{ trans('admin.settings.lensfun_error')|default('Update failed')|e('js') }}: ${error.message}`;
         result.classList.remove('hidden');
       });
     });

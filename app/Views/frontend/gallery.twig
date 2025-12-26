@@ -264,6 +264,15 @@
            data-iso="{{ image.iso|default('') }}"
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
+           data-focal-length="{{ image.focal_length|default('') }}"
+           data-exif-make="{{ image.exif_make|default('')|e }}"
+           data-exif-model="{{ image.exif_model|default('')|e }}"
+           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+           data-gps-lat="{{ image.gps_lat|default('') }}"
+           data-gps-lng="{{ image.gps_lng|default('') }}"
+           data-date-original="{{ image.date_original|default('')|e }}"
+           data-artist="{{ image.artist|default('')|e }}"
+           data-copyright="{{ image.copyright|default('')|e }}"
            data-process="{{ image.process|default('')|e }}"
            {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
         >
@@ -327,6 +336,15 @@
                data-iso="{{ image.iso|default('') }}"
                data-shutter="{{ image.shutter_speed|default('')|e }}"
                data-aperture="{{ image.aperture|default('') }}"
+               data-focal-length="{{ image.focal_length|default('') }}"
+               data-exif-make="{{ image.exif_make|default('')|e }}"
+               data-exif-model="{{ image.exif_model|default('')|e }}"
+               data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+               data-gps-lat="{{ image.gps_lat|default('') }}"
+               data-gps-lng="{{ image.gps_lng|default('') }}"
+               data-date-original="{{ image.date_original|default('')|e }}"
+               data-artist="{{ image.artist|default('')|e }}"
+               data-copyright="{{ image.copyright|default('')|e }}"
                data-process="{{ image.process|default('')|e }}"
             >
               <picture>
@@ -394,6 +412,15 @@
            data-iso="{{ image.iso|default('') }}"
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
+           data-focal-length="{{ image.focal_length|default('') }}"
+           data-exif-make="{{ image.exif_make|default('')|e }}"
+           data-exif-model="{{ image.exif_model|default('')|e }}"
+           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+           data-gps-lat="{{ image.gps_lat|default('') }}"
+           data-gps-lng="{{ image.gps_lng|default('') }}"
+           data-date-original="{{ image.date_original|default('')|e }}"
+           data-artist="{{ image.artist|default('')|e }}"
+           data-copyright="{{ image.copyright|default('')|e }}"
            data-process="{{ image.process|default('')|e }}"
            {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
         >
@@ -442,6 +469,15 @@
            data-iso="{{ image.iso|default('') }}"
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
+           data-focal-length="{{ image.focal_length|default('') }}"
+           data-exif-make="{{ image.exif_make|default('')|e }}"
+           data-exif-model="{{ image.exif_model|default('')|e }}"
+           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+           data-gps-lat="{{ image.gps_lat|default('') }}"
+           data-gps-lng="{{ image.gps_lng|default('') }}"
+           data-date-original="{{ image.date_original|default('')|e }}"
+           data-artist="{{ image.artist|default('')|e }}"
+           data-copyright="{{ image.copyright|default('')|e }}"
            data-process="{{ image.process|default('')|e }}"
            {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
           <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full {{ featured ? 'object-contain max-w-full max-h-full' : 'object-cover' }}">
@@ -476,6 +512,15 @@
                data-iso="{{ image.iso|default('') }}"
                data-shutter="{{ image.shutter_speed|default('')|e }}"
                data-aperture="{{ image.aperture|default('') }}"
+               data-focal-length="{{ image.focal_length|default('') }}"
+               data-exif-make="{{ image.exif_make|default('')|e }}"
+               data-exif-model="{{ image.exif_model|default('')|e }}"
+               data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+               data-gps-lat="{{ image.gps_lat|default('') }}"
+               data-gps-lng="{{ image.gps_lng|default('') }}"
+               data-date-original="{{ image.date_original|default('')|e }}"
+               data-artist="{{ image.artist|default('')|e }}"
+               data-copyright="{{ image.copyright|default('')|e }}"
                data-process="{{ image.process|default('')|e }}">
               <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="max-h-full max-w-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};">
             </a>
@@ -512,6 +557,15 @@
            data-iso="{{ image.iso|default('') }}"
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
+           data-focal-length="{{ image.focal_length|default('') }}"
+           data-exif-make="{{ image.exif_make|default('')|e }}"
+           data-exif-model="{{ image.exif_model|default('')|e }}"
+           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+           data-gps-lat="{{ image.gps_lat|default('') }}"
+           data-gps-lng="{{ image.gps_lng|default('') }}"
+           data-date-original="{{ image.date_original|default('')|e }}"
+           data-artist="{{ image.artist|default('')|e }}"
+           data-copyright="{{ image.copyright|default('')|e }}"
            data-process="{{ image.process|default('')|e }}"
            {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
            style="width: 200px; filter: sepia(0.2) contrast(1.1) brightness(1.05);">
@@ -551,6 +605,15 @@
            data-iso="{{ image.iso|default('') }}"
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
+           data-focal-length="{{ image.focal_length|default('') }}"
+           data-exif-make="{{ image.exif_make|default('')|e }}"
+           data-exif-model="{{ image.exif_model|default('')|e }}"
+           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+           data-gps-lat="{{ image.gps_lat|default('') }}"
+           data-gps-lng="{{ image.gps_lng|default('') }}"
+           data-date-original="{{ image.date_original|default('')|e }}"
+           data-artist="{{ image.artist|default('')|e }}"
+           data-copyright="{{ image.copyright|default('')|e }}"
            data-process="{{ image.process|default('')|e }}"
            {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
           <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-auto object-cover">
@@ -619,6 +682,15 @@
            data-iso="{{ image.iso|default('') }}"
            data-shutter="{{ image.shutter_speed|default('')|e }}"
            data-aperture="{{ image.aperture|default('') }}"
+           data-focal-length="{{ image.focal_length|default('') }}"
+           data-exif-make="{{ image.exif_make|default('')|e }}"
+           data-exif-model="{{ image.exif_model|default('')|e }}"
+           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+           data-gps-lat="{{ image.gps_lat|default('') }}"
+           data-gps-lng="{{ image.gps_lng|default('') }}"
+           data-date-original="{{ image.date_original|default('')|e }}"
+           data-artist="{{ image.artist|default('')|e }}"
+           data-copyright="{{ image.copyright|default('')|e }}"
            data-process="{{ image.process|default('')|e }}"
            {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
           <picture>

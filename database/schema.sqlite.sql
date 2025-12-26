@@ -207,6 +207,30 @@ CREATE TABLE IF NOT EXISTS images (
   iso INTEGER,
   shutter_speed TEXT,
   aperture REAL,
+  -- Extended EXIF fields
+  focal_length REAL DEFAULT NULL,
+  exposure_bias REAL DEFAULT NULL,
+  flash INTEGER DEFAULT NULL,
+  white_balance INTEGER DEFAULT NULL,
+  exposure_program INTEGER DEFAULT NULL,
+  metering_mode INTEGER DEFAULT NULL,
+  exposure_mode INTEGER DEFAULT NULL,
+  date_original TEXT DEFAULT NULL,
+  color_space INTEGER DEFAULT NULL,
+  contrast INTEGER DEFAULT NULL,
+  saturation INTEGER DEFAULT NULL,
+  sharpness INTEGER DEFAULT NULL,
+  scene_capture_type INTEGER DEFAULT NULL,
+  light_source INTEGER DEFAULT NULL,
+  gps_lat REAL DEFAULT NULL,
+  gps_lng REAL DEFAULT NULL,
+  artist TEXT DEFAULT NULL,
+  copyright TEXT DEFAULT NULL,
+  exif_make TEXT DEFAULT NULL,
+  exif_model TEXT DEFAULT NULL,
+  exif_lens_model TEXT DEFAULT NULL,
+  software TEXT DEFAULT NULL,
+  exif_extended TEXT DEFAULT NULL,
   sort_order INTEGER DEFAULT 0,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
@@ -230,6 +254,9 @@ CREATE INDEX IF NOT EXISTS idx_images_location ON images(location_id);
 CREATE INDEX IF NOT EXISTS idx_images_process ON images(process);
 CREATE INDEX IF NOT EXISTS idx_images_iso ON images(iso);
 CREATE INDEX IF NOT EXISTS idx_images_album_sort ON images(album_id, sort_order, id);
+CREATE INDEX IF NOT EXISTS idx_images_date_original ON images(date_original);
+CREATE INDEX IF NOT EXISTS idx_images_gps ON images(gps_lat, gps_lng);
+CREATE INDEX IF NOT EXISTS idx_images_artist ON images(artist);
 
 CREATE TABLE IF NOT EXISTS image_variants (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

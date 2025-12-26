@@ -21,6 +21,15 @@
      data-iso="{{ image.iso|default('') }}"
      data-shutter="{{ image.shutter_speed|default('')|e }}"
      data-aperture="{{ image.aperture|default('') }}"
+     data-focal-length="{{ image.focal_length|default('') }}"
+     data-exif-make="{{ image.exif_make|default('')|e }}"
+     data-exif-model="{{ image.exif_model|default('')|e }}"
+     data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+     data-gps-lat="{{ image.gps_lat|default('') }}"
+     data-gps-lng="{{ image.gps_lng|default('') }}"
+     data-date-original="{{ image.date_original|default('')|e }}"
+     data-artist="{{ image.artist|default('')|e }}"
+     data-copyright="{{ image.copyright|default('')|e }}"
      {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
     <div class="relative overflow-hidden bg-neutral-50 cursor-pointer">
       <picture>

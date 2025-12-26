@@ -1125,9 +1125,11 @@ class PageController extends BaseController
                     'url' => $bestUrl,
                     'lightbox_url' => $lightboxUrl,
                     'alt' => $img['alt_text'] ?: $album['title'],
+                    'alt_text' => $img['alt_text'] ?? '',
                     'width' => (int)($img['width'] ?? 1200),
                     'height' => (int)($img['height'] ?? 800),
                     'caption' => $img['caption'] ?? '',
+                    'original_path' => $img['original_path'] ?? '',
                     'custom_camera' => $img['custom_camera'] ?? '',
                     'camera_name' => $img['camera_name'] ?? '',
                     'custom_lens' => $img['custom_lens'] ?? '',
@@ -1142,8 +1144,19 @@ class PageController extends BaseController
                     'shutter_speed' => $img['shutter_speed'] ?? null,
                     'aperture' => isset($img['aperture']) && is_numeric($img['aperture']) ? (float)$img['aperture'] : null,
                     'process' => $img['process'] ?? null,
+                    // Extended EXIF fields
+                    'focal_length' => $img['focal_length'] ?? null,
+                    'exif_make' => $img['exif_make'] ?? null,
+                    'exif_model' => $img['exif_model'] ?? null,
+                    'exif_lens_model' => $img['exif_lens_model'] ?? null,
+                    'gps_lat' => $img['gps_lat'] ?? null,
+                    'gps_lng' => $img['gps_lng'] ?? null,
+                    'date_original' => $img['date_original'] ?? null,
+                    'artist' => $img['artist'] ?? null,
+                    'copyright' => $img['copyright'] ?? null,
                     'sources' => $sources,
-                    'fallback_src' => $lightboxUrl ?: $bestUrl
+                    'fallback_src' => $lightboxUrl ?: $bestUrl,
+                    'variants' => []
                 ];
             }
 

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a012aafba4c476ac2b006c4c6a675466",
+    "content-hash": "a3402077a7909349fe673fa553059c7f",
     "packages": [
         {
             "name": "composer/ca-bundle",
@@ -133,6 +133,70 @@
                 "source": "https://github.com/php-fig/http-message-util/tree/1.1.5"
             },
             "time": "2020-11-24T22:02:12+00:00"
+        },
+        {
+            "name": "fileeye/pel",
+            "version": "0.12.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/FileEye/pel.git",
+                "reference": "fc531bce31c675ceefbd05b1eeed877915ecde30"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/FileEye/pel/zipball/fc531bce31c675ceefbd05b1eeed877915ecde30",
+                "reference": "fc531bce31c675ceefbd05b1eeed877915ecde30",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1"
+            },
+            "require-dev": {
+                "ext-exif": "*",
+                "ext-gd": "*",
+                "nunomaduro/phpinsights": "^1 || ^2",
+                "phpstan/extension-installer": "^1.4",
+                "phpstan/phpstan": "^1 || ^2",
+                "phpstan/phpstan-phpunit": "^1 || ^2",
+                "phpunit/phpunit": "^10 || ^11 ",
+                "rector/rector": "^1 || ^2",
+                "squizlabs/php_codesniffer": ">=3.7"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "lsolesen\\pel\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Lars Olesen",
+                    "email": "lars@intraface.dk",
+                    "homepage": "http://intraface.dk",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Martin Geisler",
+                    "email": "martin@geisler.net",
+                    "homepage": "http://geisler.net",
+                    "role": "Developer"
+                }
+            ],
+            "description": "PHP Exif Library. A library for reading and writing Exif headers in JPEG and TIFF images using PHP.",
+            "homepage": "https://github.com/FileEye/pel",
+            "keywords": [
+                "exif",
+                "image"
+            ],
+            "support": {
+                "issues": "https://github.com/FileEye/pel/issues",
+                "source": "https://github.com/FileEye/pel/tree/0.12.0"
+            },
+            "time": "2025-01-17T21:19:20+00:00"
         },
         {
             "name": "geoip2/geoip2",
@@ -378,67 +442,6 @@
                 }
             ],
             "time": "2023-10-23T20:29:53+00:00"
-        },
-        {
-            "name": "lsolesen/pel",
-            "version": "0.9.12",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/pel/pel.git",
-                "reference": "b95fe29cdacf9d36330da277f10910a13648c84c"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/pel/pel/zipball/b95fe29cdacf9d36330da277f10910a13648c84c",
-                "reference": "b95fe29cdacf9d36330da277f10910a13648c84c",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=7.1.0"
-            },
-            "require-dev": {
-                "ext-exif": "*",
-                "ext-gd": "*",
-                "php-coveralls/php-coveralls": ">2.4",
-                "squizlabs/php_codesniffer": ">3.5",
-                "symfony/phpunit-bridge": "^4 || ^5"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "lsolesen\\pel\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "GPL-2.0"
-            ],
-            "authors": [
-                {
-                    "name": "Lars Olesen",
-                    "email": "lars@intraface.dk",
-                    "homepage": "http://intraface.dk",
-                    "role": "Developer"
-                },
-                {
-                    "name": "Martin Geisler",
-                    "email": "martin@geisler.net",
-                    "homepage": "http://geisler.net",
-                    "role": "Developer"
-                }
-            ],
-            "description": "PHP Exif Library. A library for reading and writing Exif headers in JPEG and TIFF images using PHP.",
-            "homepage": "http://pel.github.com/pel/",
-            "keywords": [
-                "exif",
-                "image"
-            ],
-            "support": {
-                "issues": "https://github.com/pel/pel/issues",
-                "source": "https://github.com/pel/pel/tree/0.9.12"
-            },
-            "abandoned": true,
-            "time": "2022-02-18T13:20:54+00:00"
         },
         {
             "name": "maxmind-db/reader",

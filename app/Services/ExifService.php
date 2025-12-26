@@ -7,11 +7,21 @@ use App\Support\Database;
 use App\Support\Logger;
 use lsolesen\pel\PelJpeg;
 use lsolesen\pel\PelTiff;
+use lsolesen\pel\PelExif;
 use lsolesen\pel\PelIfd;
 use lsolesen\pel\PelTag;
+use lsolesen\pel\PelEntryAscii;
+use lsolesen\pel\PelEntryShort;
+use lsolesen\pel\PelEntryRational;
+use lsolesen\pel\PelEntrySRational;
+use lsolesen\pel\PelEntryByte;
+use lsolesen\pel\PelEntryCopyright;
 
 class ExifService
 {
+    /** @var array Warnings from the last EXIF write operation */
+    private array $lastWriteWarnings = [];
+
     public function __construct(private Database $db) {}
 
     /**
@@ -872,6 +882,564 @@ class ExifService
         }
 
         return $result;
+    }
+
+    // =========================================================================
+    // EXIF WRITING METHODS
+    // =========================================================================
+
+    /**
+     * Write EXIF data to a JPEG file.
+     *
+     * @param string $path Absolute path to the JPEG file
+     * @param array $exifData Array of EXIF data to write
+     * @return bool True on success, false on failure
+     */
+    public function writeToJpeg(string $path, array $exifData): bool
+    {
+        // Clear previous warnings at start of each write
+        $this->clearWriteWarnings();
+
+        if (!@is_file($path)) {
+            Logger::warning('ExifService: File not found for EXIF writing', ['path' => $path], 'upload');
+            return false;
+        }
+
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg', 'jpeg'])) {
+            Logger::warning('ExifService: Can only write EXIF to JPEG files', ['path' => $path], 'upload');
+            return false;
+        }
+
+        try {
+            $jpeg = new PelJpeg($path);
+
+            // Get or create EXIF structure
+            $exif = $jpeg->getExif();
+            if (!$exif) {
+                $exif = new PelExif();
+                $jpeg->setExif($exif);
+            }
+
+            // Get or create TIFF structure
+            $tiff = $exif->getTiff();
+            if (!$tiff) {
+                $tiff = new PelTiff();
+                $exif->setTiff($tiff);
+            }
+
+            // Get or create IFD0
+            $ifd0 = $tiff->getIfd();
+            if (!$ifd0) {
+                $ifd0 = new PelIfd(PelIfd::IFD0);
+                $tiff->setIfd($ifd0);
+            }
+
+            // Write IFD0 entries (Make, Model, Software, Artist, Copyright)
+            $this->writeIfd0Entries($ifd0, $exifData);
+
+            // Get or create EXIF sub-IFD
+            $exifIfd = $ifd0->getSubIfd(PelIfd::EXIF);
+            if (!$exifIfd) {
+                $exifIfd = new PelIfd(PelIfd::EXIF);
+                $ifd0->addSubIfd($exifIfd);
+            }
+
+            // Write EXIF sub-IFD entries
+            $this->writeExifSubIfdEntries($exifIfd, $exifData);
+
+            // Write GPS data if coordinates provided
+            if (isset($exifData['gps_lat']) && isset($exifData['gps_lng']) &&
+                $exifData['gps_lat'] !== null && $exifData['gps_lng'] !== null) {
+                $this->writeGpsData($ifd0, (float)$exifData['gps_lat'], (float)$exifData['gps_lng']);
+            }
+
+            // Save the file
+            $jpeg->saveFile($path);
+
+            Logger::info('ExifService: EXIF data written successfully', ['path' => $path], 'upload');
+            return true;
+
+        } catch (\Throwable $e) {
+            Logger::error('ExifService: Failed to write EXIF', [
+                'error' => $e->getMessage(),
+                'path' => $path
+            ], 'upload');
+            return false;
+        }
+    }
+
+    /**
+     * Write IFD0 entries (camera info, artist, copyright).
+     */
+    private function writeIfd0Entries(PelIfd $ifd0, array $data): void
+    {
+        // Camera Make
+        if (isset($data['exif_make']) && $data['exif_make'] !== null) {
+            $this->trySetEntry($ifd0, PelTag::MAKE,
+                new PelEntryAscii(PelTag::MAKE, (string)$data['exif_make']), 'Make');
+        }
+
+        // Camera Model
+        if (isset($data['exif_model']) && $data['exif_model'] !== null) {
+            $this->trySetEntry($ifd0, PelTag::MODEL,
+                new PelEntryAscii(PelTag::MODEL, (string)$data['exif_model']), 'Model');
+        }
+
+        // Software
+        if (isset($data['software']) && $data['software'] !== null) {
+            $this->trySetEntry($ifd0, PelTag::SOFTWARE,
+                new PelEntryAscii(PelTag::SOFTWARE, (string)$data['software']), 'Software');
+        }
+
+        // Artist
+        if (isset($data['artist']) && $data['artist'] !== null) {
+            $this->trySetEntry($ifd0, PelTag::ARTIST,
+                new PelEntryAscii(PelTag::ARTIST, (string)$data['artist']), 'Artist');
+        }
+
+        // Copyright (uses special PelEntryCopyright class)
+        if (isset($data['copyright']) && $data['copyright'] !== null) {
+            $this->trySetEntry($ifd0, PelTag::COPYRIGHT,
+                new PelEntryCopyright((string)$data['copyright']), 'Copyright');
+        }
+    }
+
+    /**
+     * Write EXIF sub-IFD entries (exposure settings, modes, details).
+     */
+    private function writeExifSubIfdEntries(PelIfd $exifIfd, array $data): void
+    {
+        // Lens Model (tag 0xA434) - use trySetEntry as PEL may not support this tag
+        if (isset($data['exif_lens_model']) && $data['exif_lens_model'] !== null) {
+            $this->trySetEntry($exifIfd, 0xA434,
+                new PelEntryAscii(0xA434, (string)$data['exif_lens_model']), 'LensModel');
+        }
+
+        // Focal Length (rational)
+        if (isset($data['focal_length']) && $data['focal_length'] !== null) {
+            $fl = (float)$data['focal_length'];
+            // Store as rational: focal_length * 10 / 10 for one decimal precision
+            $this->trySetEntry($exifIfd, PelTag::FOCAL_LENGTH,
+                new PelEntryRational(PelTag::FOCAL_LENGTH, [(int)($fl * 10), 10]), 'FocalLength');
+        }
+
+        // Exposure Bias (signed rational)
+        if (isset($data['exposure_bias']) && $data['exposure_bias'] !== null) {
+            $bias = (float)$data['exposure_bias'];
+            // Store as signed rational with precision of 0.1 EV
+            $this->trySetEntry($exifIfd, PelTag::EXPOSURE_BIAS_VALUE,
+                new PelEntrySRational(PelTag::EXPOSURE_BIAS_VALUE, [(int)($bias * 10), 10]), 'ExposureBias');
+        }
+
+        // Flash (short)
+        if (isset($data['flash']) && $data['flash'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::FLASH,
+                new PelEntryShort(PelTag::FLASH, (int)$data['flash']), 'Flash');
+        }
+
+        // White Balance (short)
+        if (isset($data['white_balance']) && $data['white_balance'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::WHITE_BALANCE,
+                new PelEntryShort(PelTag::WHITE_BALANCE, (int)$data['white_balance']), 'WhiteBalance');
+        }
+
+        // Exposure Program (short)
+        if (isset($data['exposure_program']) && $data['exposure_program'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::EXPOSURE_PROGRAM,
+                new PelEntryShort(PelTag::EXPOSURE_PROGRAM, (int)$data['exposure_program']), 'ExposureProgram');
+        }
+
+        // Metering Mode (short)
+        if (isset($data['metering_mode']) && $data['metering_mode'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::METERING_MODE,
+                new PelEntryShort(PelTag::METERING_MODE, (int)$data['metering_mode']), 'MeteringMode');
+        }
+
+        // Exposure Mode (short)
+        if (isset($data['exposure_mode']) && $data['exposure_mode'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::EXPOSURE_MODE,
+                new PelEntryShort(PelTag::EXPOSURE_MODE, (int)$data['exposure_mode']), 'ExposureMode');
+        }
+
+        // Color Space (short) - use trySetEntry as we use raw hex tag
+        if (isset($data['color_space']) && $data['color_space'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::COLOR_SPACE,
+                new PelEntryShort(PelTag::COLOR_SPACE, (int)$data['color_space']), 'ColorSpace');
+        }
+
+        // Contrast (short)
+        if (isset($data['contrast']) && $data['contrast'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::CONTRAST,
+                new PelEntryShort(PelTag::CONTRAST, (int)$data['contrast']), 'Contrast');
+        }
+
+        // Saturation (short)
+        if (isset($data['saturation']) && $data['saturation'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::SATURATION,
+                new PelEntryShort(PelTag::SATURATION, (int)$data['saturation']), 'Saturation');
+        }
+
+        // Sharpness (short)
+        if (isset($data['sharpness']) && $data['sharpness'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::SHARPNESS,
+                new PelEntryShort(PelTag::SHARPNESS, (int)$data['sharpness']), 'Sharpness');
+        }
+
+        // Scene Capture Type (short)
+        if (isset($data['scene_capture_type']) && $data['scene_capture_type'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::SCENE_CAPTURE_TYPE,
+                new PelEntryShort(PelTag::SCENE_CAPTURE_TYPE, (int)$data['scene_capture_type']), 'SceneCaptureType');
+        }
+
+        // Light Source (short)
+        if (isset($data['light_source']) && $data['light_source'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::LIGHT_SOURCE,
+                new PelEntryShort(PelTag::LIGHT_SOURCE, (int)$data['light_source']), 'LightSource');
+        }
+
+        // DateTimeOriginal (ASCII string in EXIF format)
+        if (isset($data['date_original']) && $data['date_original'] !== null) {
+            $this->trySetEntry($exifIfd, PelTag::DATE_TIME_ORIGINAL,
+                new PelEntryAscii(PelTag::DATE_TIME_ORIGINAL, (string)$data['date_original']), 'DateTimeOriginal');
+        }
+    }
+
+    /**
+     * Write GPS coordinates to EXIF.
+     */
+    private function writeGpsData(PelIfd $ifd0, float $lat, float $lng): void
+    {
+        // Get or create GPS sub-IFD
+        $gpsIfd = $ifd0->getSubIfd(PelIfd::GPS);
+        if (!$gpsIfd) {
+            $gpsIfd = new PelIfd(PelIfd::GPS);
+            $ifd0->addSubIfd($gpsIfd);
+        }
+
+        // GPS Version ID (required)
+        $this->trySetEntry($gpsIfd, PelTag::GPS_VERSION_ID,
+            new PelEntryByte(PelTag::GPS_VERSION_ID, 2, 3, 0, 0), 'GPSVersionID');
+
+        // Latitude
+        $latRef = $lat >= 0 ? 'N' : 'S';
+        $latDms = $this->convertDdToDms(abs($lat));
+        $this->trySetEntry($gpsIfd, PelTag::GPS_LATITUDE_REF,
+            new PelEntryAscii(PelTag::GPS_LATITUDE_REF, $latRef), 'GPSLatitudeRef');
+        $this->trySetEntry($gpsIfd, PelTag::GPS_LATITUDE,
+            new PelEntryRational(PelTag::GPS_LATITUDE,
+                [$latDms['degrees'], 1],
+                [$latDms['minutes'], 1],
+                [(int)($latDms['seconds'] * 10000), 10000]
+            ), 'GPSLatitude');
+
+        // Longitude
+        $lngRef = $lng >= 0 ? 'E' : 'W';
+        $lngDms = $this->convertDdToDms(abs($lng));
+        $this->trySetEntry($gpsIfd, PelTag::GPS_LONGITUDE_REF,
+            new PelEntryAscii(PelTag::GPS_LONGITUDE_REF, $lngRef), 'GPSLongitudeRef');
+        $this->trySetEntry($gpsIfd, PelTag::GPS_LONGITUDE,
+            new PelEntryRational(PelTag::GPS_LONGITUDE,
+                [$lngDms['degrees'], 1],
+                [$lngDms['minutes'], 1],
+                [(int)($lngDms['seconds'] * 10000), 10000]
+            ), 'GPSLongitude');
+    }
+
+    /**
+     * Convert decimal degrees to degrees/minutes/seconds.
+     */
+    private function convertDdToDms(float $dd): array
+    {
+        $degrees = (int)floor($dd);
+        $minutesFloat = ($dd - $degrees) * 60;
+        $minutes = (int)floor($minutesFloat);
+        $seconds = ($minutesFloat - $minutes) * 60;
+
+        return [
+            'degrees' => $degrees,
+            'minutes' => $minutes,
+            'seconds' => $seconds
+        ];
+    }
+
+    /**
+     * Safely try to set an EXIF entry. Returns true on success, false on failure.
+     * Used for tags that may not be supported by PEL library (like LensModel 0xA434).
+     * Failed tags are tracked in $lastWriteWarnings for reporting to the user.
+     */
+    private function trySetEntry(PelIfd $ifd, int $tag, $entry, string $tagName = ''): bool
+    {
+        try {
+            $ifd->addEntry($entry);
+            return true;
+        } catch (\Throwable $e) {
+            $name = $tagName ?: \sprintf('0x%04X', $tag);
+            $this->lastWriteWarnings[] = $name;
+            Logger::warning('ExifService: Could not write EXIF tag', [
+                'tag' => $name,
+                'error' => $e->getMessage()
+            ], 'upload');
+            return false;
+        }
+    }
+
+    /**
+     * Get warnings from the last EXIF write operation.
+     */
+    public function getLastWriteWarnings(): array
+    {
+        return array_unique($this->lastWriteWarnings);
+    }
+
+    /**
+     * Clear write warnings (called at start of new write operation).
+     */
+    private function clearWriteWarnings(): void
+    {
+        $this->lastWriteWarnings = [];
+    }
+
+    /**
+     * Propagate EXIF data to original and all JPEG variants.
+     *
+     * @param int $imageId The image ID from database
+     * @param array $exifData EXIF data to write
+     * @param string $originalsDir Path to originals directory
+     * @param string $mediaDir Path to public media directory
+     * @return array Results with updated files and any errors
+     */
+    public function propagateExifToVariants(int $imageId, array $exifData, string $originalsDir, string $mediaDir): array
+    {
+        $results = [
+            'success' => true,
+            'updated' => [],
+            'skipped' => [],
+            'errors' => []
+        ];
+
+        // Get image data from database
+        $stmt = $this->db->pdo()->prepare('SELECT file_hash, original_path FROM images WHERE id = ?');
+        $stmt->execute([$imageId]);
+        $image = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$image) {
+            $results['success'] = false;
+            $results['errors'][] = 'Image not found in database';
+            return $results;
+        }
+
+        $hash = $image['file_hash'];
+        $ext = strtolower(pathinfo($image['original_path'], PATHINFO_EXTENSION));
+
+        // 1. Write to original (only if JPEG)
+        if (in_array($ext, ['jpg', 'jpeg'])) {
+            $originalPath = rtrim($originalsDir, '/') . '/' . $hash . '.' . $ext;
+            if (is_file($originalPath)) {
+                if ($this->writeToJpeg($originalPath, $exifData)) {
+                    $results['updated'][] = 'original';
+                } else {
+                    $results['errors'][] = 'Failed to update original';
+                }
+            } else {
+                $results['skipped'][] = 'original (file not found)';
+            }
+        } else {
+            $results['skipped'][] = 'original (not JPEG)';
+        }
+
+        // 2. Write to all JPEG variants in media directory
+        $sizes = ['sm', 'md', 'lg', 'xl', 'xxl'];
+        foreach ($sizes as $size) {
+            $variantPath = rtrim($mediaDir, '/') . '/' . $imageId . '_' . $size . '.jpg';
+            if (is_file($variantPath)) {
+                if ($this->writeToJpeg($variantPath, $exifData)) {
+                    $results['updated'][] = $size . '.jpg';
+                } else {
+                    $results['errors'][] = 'Failed to update ' . $size . '.jpg';
+                }
+            }
+        }
+
+        // WebP and AVIF variants are skipped (don't support EXIF)
+
+        if (!empty($results['errors'])) {
+            $results['success'] = false;
+        }
+
+        // Add warnings for unsupported tags (like LensModel)
+        $warnings = $this->getLastWriteWarnings();
+        if (!empty($warnings)) {
+            $results['warnings'] = $warnings;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get all EXIF data for an image from database, merged with defaults.
+     * Used by the admin EXIF editor to populate the form.
+     *
+     * @param int $imageId The image ID
+     * @return array Complete EXIF data array
+     */
+    public function getExifForEditor(int $imageId): array
+    {
+        $stmt = $this->db->pdo()->prepare('
+            SELECT
+                exif_make, exif_model, exif_lens_model, software,
+                focal_length, exposure_bias,
+                flash, white_balance, exposure_program, metering_mode, exposure_mode,
+                date_original, color_space, contrast, saturation, sharpness,
+                scene_capture_type, light_source,
+                gps_lat, gps_lng,
+                artist, copyright,
+                exif_extended,
+                iso, shutter_speed, aperture,
+                camera_id, lens_id
+            FROM images WHERE id = ?
+        ');
+        $stmt->execute([$imageId]);
+        $data = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$data) {
+            return [];
+        }
+
+        // Decode extended EXIF JSON if present
+        if (!empty($data['exif_extended'])) {
+            $extended = json_decode($data['exif_extended'], true);
+            if (is_array($extended)) {
+                $data = array_merge($data, $extended);
+            }
+        }
+
+        // Get camera and lens names from lookup tables
+        if ($data['camera_id']) {
+            $stmt = $this->db->pdo()->prepare('SELECT make, model FROM cameras WHERE id = ?');
+            $stmt->execute([$data['camera_id']]);
+            $camera = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($camera) {
+                $data['camera_make'] = $camera['make'];
+                $data['camera_model'] = $camera['model'];
+            }
+        }
+
+        if ($data['lens_id']) {
+            $stmt = $this->db->pdo()->prepare('SELECT brand, model FROM lenses WHERE id = ?');
+            $stmt->execute([$data['lens_id']]);
+            $lens = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($lens) {
+                $data['lens_brand'] = $lens['brand'];
+                $data['lens_model'] = $lens['model'];
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get human-readable options for EXIF select fields.
+     * Returns arrays for populating dropdown menus in the editor.
+     */
+    public function getExifOptions(): array
+    {
+        return [
+            'flash' => [
+                0 => 'No Flash',
+                1 => 'Flash Fired',
+                5 => 'Flash Fired, No Strobe Return',
+                7 => 'Flash Fired, Strobe Return Detected',
+                8 => 'On, Did not fire',
+                9 => 'Flash Fired, Compulsory',
+                13 => 'Flash Fired, Compulsory, Return not detected',
+                15 => 'Flash Fired, Compulsory, Return detected',
+                16 => 'Off, Did not fire',
+                24 => 'Auto, Did not fire',
+                25 => 'Auto, Fired',
+                29 => 'Auto, Fired, Return not detected',
+                31 => 'Auto, Fired, Return detected',
+            ],
+            'white_balance' => [
+                0 => 'Auto',
+                1 => 'Manual',
+            ],
+            'exposure_program' => [
+                0 => 'Not Defined',
+                1 => 'Manual',
+                2 => 'Program AE',
+                3 => 'Aperture Priority',
+                4 => 'Shutter Priority',
+                5 => 'Creative (Slow)',
+                6 => 'Action (Fast)',
+                7 => 'Portrait',
+                8 => 'Landscape',
+            ],
+            'metering_mode' => [
+                0 => 'Unknown',
+                1 => 'Average',
+                2 => 'Center-weighted',
+                3 => 'Spot',
+                4 => 'Multi-spot',
+                5 => 'Multi-segment',
+                6 => 'Partial',
+                255 => 'Other',
+            ],
+            'exposure_mode' => [
+                0 => 'Auto',
+                1 => 'Manual',
+                2 => 'Auto Bracket',
+            ],
+            'color_space' => [
+                1 => 'sRGB',
+                2 => 'Adobe RGB',
+                65535 => 'Uncalibrated',
+            ],
+            'contrast' => [
+                0 => 'Normal',
+                1 => 'Low',
+                2 => 'High',
+            ],
+            'saturation' => [
+                0 => 'Normal',
+                1 => 'Low',
+                2 => 'High',
+            ],
+            'sharpness' => [
+                0 => 'Normal',
+                1 => 'Soft',
+                2 => 'Hard',
+            ],
+            'scene_capture_type' => [
+                0 => 'Standard',
+                1 => 'Landscape',
+                2 => 'Portrait',
+                3 => 'Night',
+            ],
+            'light_source' => [
+                0 => 'Unknown',
+                1 => 'Daylight',
+                2 => 'Fluorescent',
+                3 => 'Tungsten',
+                4 => 'Flash',
+                9 => 'Fine Weather',
+                10 => 'Cloudy',
+                11 => 'Shade',
+                12 => 'Daylight Fluorescent',
+                13 => 'Day White Fluorescent',
+                14 => 'Cool White Fluorescent',
+                15 => 'White Fluorescent',
+                17 => 'Standard Light A',
+                18 => 'Standard Light B',
+                19 => 'Standard Light C',
+                20 => 'D55',
+                21 => 'D65',
+                22 => 'D75',
+                23 => 'D50',
+                24 => 'ISO Studio Tungsten',
+                255 => 'Other',
+            ],
+        ];
     }
 }
 

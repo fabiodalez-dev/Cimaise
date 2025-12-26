@@ -341,6 +341,57 @@ $app->post('/admin/settings/generate-favicons', function (Request $request, Resp
 })->add(new RateLimitMiddleware(5, 600))
   ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+$app->post('/admin/settings/update-lensfun', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
+    return $controller->updateLensfun($request, $response);
+})->add(new RateLimitMiddleware(2, 600))
+  ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+// Lensfun API - Camera/Lens search for EXIF autocomplete
+$app->get('/admin/api/lensfun/makers', function (Request $request, Response $response) use ($container) {
+    $query = $request->getQueryParams()['q'] ?? '';
+    $limit = (int)($request->getQueryParams()['limit'] ?? 20);
+
+    $lensfunService = new \App\Services\LensfunService();
+    $results = $lensfunService->searchMakers($query, min($limit, 50));
+
+    $response->getBody()->write(json_encode(['success' => true, 'results' => $results]));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/api/lensfun/cameras', function (Request $request, Response $response) use ($container) {
+    $query = $request->getQueryParams()['q'] ?? '';
+    $limit = (int)($request->getQueryParams()['limit'] ?? 20);
+
+    $lensfunService = new \App\Services\LensfunService();
+    $results = $lensfunService->searchCameras($query, min($limit, 50));
+
+    $response->getBody()->write(json_encode(['success' => true, 'results' => $results]));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/api/lensfun/lens-makers', function (Request $request, Response $response) use ($container) {
+    $query = $request->getQueryParams()['q'] ?? '';
+    $limit = (int)($request->getQueryParams()['limit'] ?? 20);
+
+    $lensfunService = new \App\Services\LensfunService();
+    $results = $lensfunService->searchLensMakers($query, min($limit, 50));
+
+    $response->getBody()->write(json_encode(['success' => true, 'results' => $results]));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->get('/admin/api/lensfun/lenses', function (Request $request, Response $response) use ($container) {
+    $query = $request->getQueryParams()['q'] ?? '';
+    $limit = (int)($request->getQueryParams()['limit'] ?? 20);
+
+    $lensfunService = new \App\Services\LensfunService();
+    $results = $lensfunService->searchLenses($query, min($limit, 50));
+
+    $response->getBody()->write(json_encode(['success' => true, 'results' => $results]));
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
 // SEO Settings
 $app->get('/admin/seo', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\SeoController($container['db'], Twig::fromRequest($request));
@@ -1012,16 +1063,30 @@ $app->get('/api/image/{id}/exif', function (Request $request, Response $response
 
 // Media Library
 $app->get('/admin/media', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request));
+    $exifService = new \App\Services\ExifService($container['db']);
+    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request), $exifService);
     return $controller->index($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/media/images/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
-    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request));
+    $exifService = new \App\Services\ExifService($container['db']);
+    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request), $exifService);
     return $controller->delete($request, $response, $args);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->post('/admin/media/images/{id}/update', function (Request $request, Response $response, array $args) use ($container) {
-    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request));
+    $exifService = new \App\Services\ExifService($container['db']);
+    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request), $exifService);
     return $controller->update($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+// EXIF Editor endpoints
+$app->get('/admin/media/images/{id}/exif', function (Request $request, Response $response, array $args) use ($container) {
+    $exifService = new \App\Services\ExifService($container['db']);
+    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request), $exifService);
+    return $controller->getExif($request, $response, $args);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/media/images/{id}/exif', function (Request $request, Response $response, array $args) use ($container) {
+    $exifService = new \App\Services\ExifService($container['db']);
+    $controller = new \App\Controllers\Admin\MediaController($container['db'], Twig::fromRequest($request), $exifService);
+    return $controller->updateExif($request, $response, $args);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 }; // End routes function
