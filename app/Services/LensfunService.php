@@ -27,9 +27,10 @@ class LensfunService
      *
      * @param string $query Search query
      * @param int $limit Maximum results
-     * @return array Unique matching makers
+     * @param bool $withCount If true, returns ['results' => [...], 'total' => N]
+     * @return array Unique matching makers or array with results and total count
      */
-    public function searchMakers(string $query, int $limit = 20): array
+    public function searchMakers(string $query, int $limit = 20, bool $withCount = false): array
     {
         $this->loadData();
 
@@ -37,22 +38,24 @@ class LensfunService
         sort($makers, SORT_STRING | SORT_FLAG_CASE);
 
         if (empty($query)) {
-            return array_slice(array_map(fn($m) => ['maker' => $m], $makers), 0, $limit);
+            $total = count($makers);
+            $results = array_slice(array_map(fn($m) => ['maker' => $m], $makers), 0, $limit);
+            return $withCount ? ['results' => $results, 'total' => $total] : $results;
         }
 
         $query = strtolower(trim($query));
-        $results = [];
+        $allMatches = [];
 
         foreach ($makers as $maker) {
             if (str_contains(strtolower($maker), $query)) {
-                $results[] = ['maker' => $maker];
-                if (count($results) >= $limit) {
-                    break;
-                }
+                $allMatches[] = ['maker' => $maker];
             }
         }
 
-        return $results;
+        $total = count($allMatches);
+        $results = array_slice($allMatches, 0, $limit);
+
+        return $withCount ? ['results' => $results, 'total' => $total] : $results;
     }
 
     /**
@@ -61,21 +64,34 @@ class LensfunService
      *
      * @param string $query Search query
      * @param int $limit Maximum results
-     * @return array Matching cameras
+     * @param string|null $maker Optional: filter by maker
+     * @param bool $withCount If true, returns ['results' => [...], 'total' => N]
+     * @return array Matching cameras or array with results and total count
      */
-    public function searchCameras(string $query, int $limit = 20): array
+    public function searchCameras(string $query, int $limit = 20, ?string $maker = null, bool $withCount = false): array
     {
         $this->loadData();
 
+        // Pre-filter by maker if specified
+        $cameraPool = $this->cameras;
+        if ($maker !== null && $maker !== '') {
+            $makerLower = strtolower(trim($maker));
+            $cameraPool = array_filter($this->cameras, fn($c) =>
+                strtolower($c['maker']) === $makerLower
+            );
+        }
+
         if (empty($query)) {
-            return array_slice($this->cameras, 0, $limit);
+            $total = count($cameraPool);
+            $results = array_slice(array_values($cameraPool), 0, $limit);
+            return $withCount ? ['results' => $results, 'total' => $total] : $results;
         }
 
         $query = strtolower(trim($query));
         $queryWords = preg_split('/\s+/', $query);
-        $results = [];
+        $allMatches = [];
 
-        foreach ($this->cameras as $camera) {
+        foreach ($cameraPool as $camera) {
             $searchText = strtolower($camera['maker'] . ' ' . $camera['model']);
 
             // All query words must be present in searchText
@@ -88,14 +104,14 @@ class LensfunService
             }
 
             if ($allMatch) {
-                $results[] = $camera;
-                if (count($results) >= $limit) {
-                    break;
-                }
+                $allMatches[] = $camera;
             }
         }
 
-        return $results;
+        $total = count($allMatches);
+        $results = array_slice($allMatches, 0, $limit);
+
+        return $withCount ? ['results' => $results, 'total' => $total] : $results;
     }
 
     /**
@@ -159,9 +175,10 @@ class LensfunService
      *
      * @param string $query Search query
      * @param int $limit Maximum results
-     * @return array Unique matching lens makers
+     * @param bool $withCount If true, returns ['results' => [...], 'total' => N]
+     * @return array Unique matching lens makers or array with results and total count
      */
-    public function searchLensMakers(string $query, int $limit = 20): array
+    public function searchLensMakers(string $query, int $limit = 20, bool $withCount = false): array
     {
         $this->loadData();
 
@@ -169,22 +186,24 @@ class LensfunService
         sort($makers, SORT_STRING | SORT_FLAG_CASE);
 
         if (empty($query)) {
-            return array_slice(array_map(fn($m) => ['maker' => $m], $makers), 0, $limit);
+            $total = count($makers);
+            $results = array_slice(array_map(fn($m) => ['maker' => $m], $makers), 0, $limit);
+            return $withCount ? ['results' => $results, 'total' => $total] : $results;
         }
 
         $query = strtolower(trim($query));
-        $results = [];
+        $allMatches = [];
 
         foreach ($makers as $maker) {
             if (str_contains(strtolower($maker), $query)) {
-                $results[] = ['maker' => $maker];
-                if (count($results) >= $limit) {
-                    break;
-                }
+                $allMatches[] = ['maker' => $maker];
             }
         }
 
-        return $results;
+        $total = count($allMatches);
+        $results = array_slice($allMatches, 0, $limit);
+
+        return $withCount ? ['results' => $results, 'total' => $total] : $results;
     }
 
     /**
