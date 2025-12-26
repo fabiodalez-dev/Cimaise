@@ -228,6 +228,7 @@ CREATE TABLE IF NOT EXISTS images (
   copyright TEXT DEFAULT NULL,
   exif_make TEXT DEFAULT NULL,
   exif_model TEXT DEFAULT NULL,
+  exif_lens_maker TEXT DEFAULT NULL,
   exif_lens_model TEXT DEFAULT NULL,
   software TEXT DEFAULT NULL,
   exif_extended TEXT DEFAULT NULL,

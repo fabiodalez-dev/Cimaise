@@ -5,6 +5,7 @@
 -- Equipment fields (stored separately for editing)
 ALTER TABLE images ADD COLUMN exif_make VARCHAR(255) DEFAULT NULL;
 ALTER TABLE images ADD COLUMN exif_model VARCHAR(255) DEFAULT NULL;
+ALTER TABLE images ADD COLUMN exif_lens_maker VARCHAR(255) DEFAULT NULL;
 ALTER TABLE images ADD COLUMN exif_lens_model VARCHAR(255) DEFAULT NULL;
 ALTER TABLE images ADD COLUMN software VARCHAR(255) DEFAULT NULL;
 
