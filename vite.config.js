@@ -16,6 +16,7 @@ export default defineConfig({
         'js/home-gallery': path.resolve(__dirname, 'resources/js/home-gallery.js'),
         'js/smooth-scroll': path.resolve(__dirname, 'resources/js/smooth-scroll.js'),
         'admin': path.resolve(__dirname, 'resources/admin.js'),
+        'app': path.resolve(__dirname, 'resources/app.css'),
       },
       output: {
         // keep folder/name stable (no hash) to match Twig includes

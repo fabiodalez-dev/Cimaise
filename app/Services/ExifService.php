@@ -502,8 +502,9 @@ class ExifService
         if ($id) return (int)$id;
         
         // Fuzzy match on model (same make) - use LIKE for SQLite compatibility
-        $stmt = $pdo->prepare('SELECT id FROM cameras WHERE make = :make AND LOWER(model) LIKE LOWER(:model) LIMIT 1');
-        $stmt->execute([':make' => $cleanMake, ':model' => '%' . $cleanModel . '%']);
+        $stmt = $pdo->prepare('SELECT id FROM cameras WHERE make = :make AND LOWER(model) LIKE LOWER(:model) ESCAPE \'\\\' LIMIT 1');
+        $escapedModel = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $cleanModel);
+        $stmt->execute([':make' => $cleanMake, ':model' => '%' . $escapedModel . '%']);
         $id = $stmt->fetchColumn();
         if ($id) return (int)$id;
         

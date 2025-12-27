@@ -85,7 +85,7 @@ class InstallCommand extends Command
             
             $io->note('Next steps:');
             $io->writeln([
-                '1. Start the development server: php -S localhost:8000 -t public',
+                '1. Start the development server: php -S localhost:8000 -t public public/router.php',
                 '2. Visit http://localhost:8000/admin/login',
                 '3. Log in with your admin credentials',
                 '4. Start creating your photography portfolio!'

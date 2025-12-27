@@ -15,14 +15,20 @@
     transform: translateY(20px);
 }
 /* Fallback: show elements if GSAP hasn't animated them after 1.5s */
-.gsap-ready [data-gsap="categories"],
-.gsap-ready [data-gsap="title"],
-.gsap-ready [data-gsap="meta"],
-.gsap-ready [data-gsap="excerpt"],
-.gsap-ready [data-gsap="body"],
-.gsap-ready [data-gsap="equipment"] {
+/* Only apply to elements NOT yet animated by GSAP */
+.gsap-ready [data-gsap="categories"]:not([data-animated]),
+.gsap-ready [data-gsap="title"]:not([data-animated]),
+.gsap-ready [data-gsap="meta"]:not([data-animated]),
+.gsap-ready [data-gsap="excerpt"]:not([data-animated]),
+.gsap-ready [data-gsap="body"]:not([data-animated]),
+.gsap-ready [data-gsap="equipment"]:not([data-animated]) {
     opacity: 1;
     transform: translateY(0);
+}
+/* Equipment section title should use body font, not heading font */
+[data-gsap="equipment"] h3 {
+    font-family: var(--font-body), system-ui, sans-serif !important;
+    font-weight: 500 !important;
 }
 </style>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1103,27 +1109,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     headerElements.forEach((selector, index) => {
         const el = document.querySelector(selector);
-        if (el) {
-            gsap.to(el, {
-                opacity: 1,
-                y: 0,
-                duration: 0.6,
-                delay: index * 0.1,
-                ease: 'power2.out'
-            });
+        if (el && !el.hasAttribute('data-animated')) {
+            el.setAttribute('data-animated', '1'); // Mark immediately to prevent re-animation
+            gsap.fromTo(el,
+                { opacity: 0, y: 20 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.6,
+                    delay: index * 0.1,
+                    ease: 'power2.out'
+                }
+            );
         }
     });
 
     // Equipment section
     const equipment = document.querySelector('[data-gsap="equipment"]');
-    if (equipment) {
-        gsap.to(equipment, {
-            opacity: 1,
-            y: 0,
-            duration: 0.6,
-            delay: 0.5,
-            ease: 'power2.out'
-        });
+    if (equipment && !equipment.hasAttribute('data-animated')) {
+        equipment.setAttribute('data-animated', '1'); // Mark immediately to prevent re-animation
+        gsap.fromTo(equipment,
+            { opacity: 0, y: 20 },
+            {
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
+                delay: 0.5,
+                ease: 'power2.out'
+            }
+        );
     }
 
     // Fallback timeout: if animations haven't run, show elements

@@ -17,9 +17,8 @@
     <link rel="manifest" href="{{ base_path }}/site.webmanifest">
     <meta name="theme-color" content="#ffffff">
 
-    <!-- Preconnect for External Resources -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Preload local typography fonts -->
+    <link rel="preload" href="{{ base_path }}/fonts/typography.css" as="style">
 
     <!-- Open Graph -->
     <meta property="og:title" content="{{ page_title|e('html_attr') }}">
@@ -151,8 +150,8 @@
     <!-- Classic frontend styles (mobile only) -->
     <link rel="stylesheet" href="{{ base_path }}/assets/app.css" media="(max-width: 767px)">
 
-    <!-- Google Fonts - Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Typography (local fonts, GDPR compliant) -->
+    <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css">
 
     <!-- Modern Home Styles -->
     {% block styles %}{% endblock %}

@@ -443,6 +443,16 @@
               <div class="space-y-3">
                 <label class="flex items-center gap-3">
                   <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
+                         type="checkbox" name="allow_template_switch" id="allow_template_switch"
+                         {% if item.allow_template_switch %}checked{% endif %}>
+                  <span class="text-sm font-medium text-gray-700">{{ trans('admin.albums.allow_template_switch') }}</span>
+                </label>
+                <p class="text-xs text-gray-500 ml-7">{{ trans('admin.albums.allow_template_switch_help') }}</p>
+              </div>
+
+              <div class="space-y-3">
+                <label class="flex items-center gap-3">
+                  <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"
                          type="checkbox" name="show_date" id="show_date"
                          {% if item.show_date %}checked{% endif %}>
                   <span class="text-sm font-medium text-gray-700">{{ trans('admin.albums.show_date') }}</span>

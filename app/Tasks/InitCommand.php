@@ -120,7 +120,7 @@ class InitCommand extends Command
         $output->writeln('🎉 <info>Cimaise initialization completed successfully!</info>');
         $output->writeln('');
         $output->writeln('<comment>Next steps:</comment>');
-        $output->writeln('1. Start the PHP server: <info>php -S 127.0.0.1:8000 -t public</info>');
+        $output->writeln('1. Start the PHP server: <info>php -S 127.0.0.1:8000 -t public public/router.php</info>');
         $output->writeln('2. Visit the frontend: <info>http://127.0.0.1:8000/</info>');
         $output->writeln('3. Access admin panel: <info>http://127.0.0.1:8000/admin/login</info>');
         $output->writeln("4. Login with: <info>{$adminEmail}</info>");

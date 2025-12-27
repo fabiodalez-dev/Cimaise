@@ -217,7 +217,7 @@ document.addEventListener('click', function(event) {
 /* Fallback: show elements if reduced motion or no JS */
 @media (prefers-reduced-motion: reduce) { [data-gsap] { opacity: 1 !important; } }
 </style>
-<noscript><style>[data-gsap] { opacity: 1 !important; }</style></noscript>
+<noscript><style nonce="{{ csp_nonce() }}">[data-gsap] { opacity: 1 !important; }</style></noscript>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}
 </div>
@@ -981,22 +981,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // All animatable header elements - animate once with stagger
     const allHeaderElements = document.querySelectorAll('[data-gsap="breadcrumb"], [data-gsap="category"], [data-gsap="hero-title"], [data-gsap="title"], [data-gsap="hero-excerpt"], [data-gsap="excerpt"], [data-gsap="hero-meta"], [data-gsap="meta"], [data-gsap="hero-tags"], [data-gsap="tags"], [data-gsap="body"]');
 
-    // Filter to only existing elements
+    // Filter to only existing elements not yet animated
     const elements = Array.from(allHeaderElements).filter(el => !el.hasAttribute('data-animated'));
     if (elements.length === 0) return;
 
-    // Set initial state FIRST (ensures elements stay hidden during transition)
-    gsap.set(elements, { opacity: 0, y: 15 });
-    // Mark as animated AFTER gsap.set (CSS hides until this point)
+    // Mark as animated immediately to prevent re-animation
     elements.forEach(el => el.setAttribute('data-animated', '1'));
-    // Animate TO visible
-    gsap.to(elements, {
-        opacity: 1,
-        y: 0,
-        duration: 0.5,
-        stagger: 0.08,
-        ease: 'power2.out'
-    });
+
+    // Use fromTo for guaranteed initial state
+    gsap.fromTo(elements,
+        { opacity: 0, y: 15 },
+        {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            stagger: 0.08,
+            ease: 'power2.out'
+        }
+    );
 
     // Fallback: show elements if animation doesn't complete in 3 seconds
     setTimeout(() => {

@@ -162,7 +162,7 @@
       </div>
     </div>
   </div>
-  <script src="{{ base_path }}/assets/vendor/tinymce/tinymce.min.js"></script>
+  <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/tinymce/tinymce.min.js"></script>
   <script nonce="{{ csp_nonce() }}">
     document.addEventListener('DOMContentLoaded', function(){
       if (window.tinymce) {

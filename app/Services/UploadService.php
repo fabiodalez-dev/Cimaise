@@ -172,7 +172,7 @@ class UploadService
             ':cam'=> $map['camera_id'],
             ':lens'=> $map['lens_id'],
             ':iso'=> isset($exif['ISOSpeedRatings']) ? (int)$exif['ISOSpeedRatings'] : null,
-            ':sh'=> $exif['ExposureTime'] ?? null,
+            ':sh'=> $exifSvc->formatShutterSpeed($exif['ExposureTime'] ?? null),
             ':ap'=> $exif['FNumber'] ?? null,
             ':s'=>0,
         ]);

@@ -450,7 +450,7 @@ footer {
   const mobileTrack = document.getElementById('snapMobileTrack');
   const indicatorsContainer = document.getElementById('snapIndicators');
 
-  if (!leftTrack || !rightTrack || !indicatorsContainer) return;
+  if (!leftTrack || !rightTrack || !indicatorsContainer || !mobileTrack) return;
 
   const albumCount = leftTrack.querySelectorAll('.snap-album-info').length;
   if (albumCount === 0) return;
