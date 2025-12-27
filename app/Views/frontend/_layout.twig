@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js">
+<html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js{% if dark_mode|default(false) %} dark{% endif %}">
 <head>
     <!-- JS flag class on <html> for no-JS fallbacks -->
     <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.remove('no-js'); document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
