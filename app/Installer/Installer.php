@@ -473,6 +473,15 @@ class Installer
             'admin.language' => $adminLanguage,
             'date.format' => $dateFormat,
             'site.logo' => $data['site_logo_path'] ?? null,
+            // Typography defaults (EB Garamond for headings, Inter for body - all local fonts)
+            'typography.headings_font' => 'eb-garamond',
+            'typography.headings_weight' => 600,
+            'typography.body_font' => 'inter',
+            'typography.body_weight' => 400,
+            'typography.navigation_font' => 'inter',
+            'typography.navigation_weight' => 500,
+            'typography.captions_font' => 'inter',
+            'typography.captions_weight' => 400,
         ];
 
         // Add page settings based on selected language

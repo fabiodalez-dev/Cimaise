@@ -79,6 +79,13 @@ if (typeof window !== 'undefined') {
 
     // Expose recalculate function globally
     window.lenisResize = recalculate
+    window.lenisMutationObserver = observer
+    window.lenisCleanup = () => {
+      if (window.lenisMutationObserver) {
+        window.lenisMutationObserver.disconnect()
+      }
+      clearInterval(recalcInterval)
+    }
   }
 }
 

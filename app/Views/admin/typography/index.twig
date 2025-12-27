@@ -1,0 +1,381 @@
+{% extends 'admin/_layout.twig' %}
+
+{% block title %}{{ trans('admin.typography.title') }} — Cimaise{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-8">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.typography.title') }}</h1>
+        <p class="text-gray-600 mt-1">{{ trans('admin.typography.description') }}</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <button type="submit" form="typography-form" class="btn-primary">
+            <i class="fas fa-save mr-2"></i>
+            {{ trans('admin.typography.save') }}
+        </button>
+        <a href="{{ base_path }}/admin" class="btn-secondary">
+            <i class="fas fa-arrow-left mr-2"></i>
+            {{ trans('admin.common.dashboard') }}
+        </a>
+    </div>
+</div>
+
+<!-- Sticky Footer -->
+<div class="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-gray-200 shadow-lg admin-sticky-actions">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button type="submit" form="typography-form" class="btn-primary">
+                    <i class="fas fa-save mr-2"></i>
+                    {{ trans('admin.typography.save') }}
+                </button>
+                <form action="{{ base_path }}/admin/typography/reset" method="post" class="inline" onsubmit="return confirm('{{ trans('admin.typography.reset_confirm') }}');">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <button type="submit" class="btn-secondary">
+                        <i class="fas fa-undo mr-2"></i>
+                        {{ trans('admin.typography.reset') }}
+                    </button>
+                </form>
+            </div>
+            <div class="text-sm text-gray-500">
+                <i class="fas fa-font mr-1"></i>
+                {{ trans('admin.typography.gdpr_note') }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-48">
+    <!-- Left Column: Settings Form -->
+    <div class="space-y-6">
+        <form id="typography-form" action="{{ base_path }}/admin/typography" method="post" class="space-y-6">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+
+            {% for contextKey, contextConfig in contexts %}
+            <div class="card">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">
+                                {{ trans('admin.typography.context.' ~ contextKey) }}
+                            </h3>
+                            <p class="text-sm text-gray-500 mt-1">{{ contextConfig.description }}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                {{ trans('admin.typography.font_family') }}
+                            </label>
+                            <select name="{{ contextKey }}_font"
+                                    class="font-selector w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    data-context="{{ contextKey }}">
+                                <optgroup label="{{ trans('admin.typography.serif_editorial') }}">
+                                    {% for slug, font in serifByCategory.editorial %}
+                                    <option value="{{ slug }}"
+                                            {% if typography[contextKey].font == slug %}selected{% endif %}
+                                            title="{{ font.description }}">
+                                        {{ font.name }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                                <optgroup label="{{ trans('admin.typography.serif_display') }}">
+                                    {% for slug, font in serifByCategory.display %}
+                                    <option value="{{ slug }}"
+                                            {% if typography[contextKey].font == slug %}selected{% endif %}
+                                            title="{{ font.description }}">
+                                        {{ font.name }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                                <optgroup label="{{ trans('admin.typography.serif_modern') }}">
+                                    {% for slug, font in serifByCategory.modern %}
+                                    <option value="{{ slug }}"
+                                            {% if typography[contextKey].font == slug %}selected{% endif %}
+                                            title="{{ font.description }}">
+                                        {{ font.name }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                                <optgroup label="{{ trans('admin.typography.sans_clean') }}">
+                                    {% for slug, font in sansByCategory.clean %}
+                                    <option value="{{ slug }}"
+                                            {% if typography[contextKey].font == slug %}selected{% endif %}
+                                            title="{{ font.description }}">
+                                        {{ font.name }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                                <optgroup label="{{ trans('admin.typography.sans_geometric') }}">
+                                    {% for slug, font in sansByCategory.geometric %}
+                                    <option value="{{ slug }}"
+                                            {% if typography[contextKey].font == slug %}selected{% endif %}
+                                            title="{{ font.description }}">
+                                        {{ font.name }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                                <optgroup label="{{ trans('admin.typography.sans_readable') }}">
+                                    {% for slug, font in sansByCategory.readable %}
+                                    <option value="{{ slug }}"
+                                            {% if typography[contextKey].font == slug %}selected{% endif %}
+                                            title="{{ font.description }}">
+                                        {{ font.name }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                {{ trans('admin.typography.font_weight') }}
+                            </label>
+                            <select name="{{ contextKey }}_weight"
+                                    class="weight-selector w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    data-context="{{ contextKey }}">
+                                <option value="400" {% if typography[contextKey].weight == 400 %}selected{% endif %}>Regular (400)</option>
+                                <option value="500" {% if typography[contextKey].weight == 500 %}selected{% endif %}>Medium (500)</option>
+                                <option value="600" {% if typography[contextKey].weight == 600 %}selected{% endif %}>Semi-Bold (600)</option>
+                                <option value="700" {% if typography[contextKey].weight == 700 %}selected{% endif %}>Bold (700)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Quick Font Selection Chips -->
+                    <div class="font-chips-wrapper">
+                        <p class="text-xs text-gray-500 mb-2">{{ trans('admin.typography.quick_select') }}</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            {% set chipFonts = [
+                                'playfair-display', 'eb-garamond', 'cormorant-garamond', 'lora',
+                                'bodoni-moda', 'cinzel', 'dm-serif-display',
+                                'inter', 'dm-sans', 'manrope', 'montserrat', 'space-grotesk'
+                            ] %}
+                            {% for slug in chipFonts %}
+                                {% set font = fonts.serif[slug] ?? fonts.sans[slug] ?? null %}
+                                {% if font %}
+                                <button type="button"
+                                        class="font-chip px-2 py-1 text-xs border rounded-full hover:bg-gray-100 transition-colors {% if typography[contextKey].font == slug %}bg-indigo-100 border-indigo-500 text-indigo-700{% else %}border-gray-300 text-gray-600{% endif %}"
+                                        data-font="{{ slug }}"
+                                        data-context="{{ contextKey }}"
+                                        title="{{ font.description }}">
+                                    {{ font.name }}
+                                </button>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </form>
+    </div>
+
+    <!-- Right Column: Live Preview -->
+    <div class="lg:sticky lg:top-4 space-y-6">
+        <div class="card">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <i class="fas fa-eye mr-2 text-gray-500"></i>
+                        {{ trans('admin.typography.preview') }}
+                    </h3>
+                    <span class="text-xs text-gray-400">{{ trans('admin.typography.live_update') }}</span>
+                </div>
+
+                <!-- Preview Container -->
+                <div id="typography-preview" class="border rounded-lg p-6 bg-gray-50 space-y-6">
+                    <!-- Site Header Preview -->
+                    <div class="border-b pb-4">
+                        <h1 class="preview-headings text-3xl mb-1" style="font-family: var(--preview-headings); font-weight: var(--preview-headings-weight);">
+                            Portfolio Name
+                        </h1>
+                        <nav class="preview-navigation text-sm text-gray-600" style="font-family: var(--preview-navigation); font-weight: var(--preview-navigation-weight);">
+                            Home &nbsp;|&nbsp; Galleries &nbsp;|&nbsp; About &nbsp;|&nbsp; Contact
+                        </nav>
+                    </div>
+
+                    <!-- Album Card Preview -->
+                    <div class="bg-white rounded-lg shadow-sm p-4">
+                        <h2 class="preview-headings text-xl mb-2" style="font-family: var(--preview-headings); font-weight: var(--preview-headings-weight);">
+                            Summer Collection 2024
+                        </h2>
+                        <p class="preview-body text-gray-600 mb-3" style="font-family: var(--preview-body); font-weight: var(--preview-body-weight);">
+                            A curated selection of landscapes and portraits from my travels through coastal regions, capturing the essence of summer light and seaside tranquility.
+                        </p>
+                        <p class="preview-captions text-sm text-gray-400" style="font-family: var(--preview-captions); font-weight: var(--preview-captions-weight);">
+                            24 images &bull; Published June 2024
+                        </p>
+                    </div>
+
+                    <!-- Image Caption Preview -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-20 h-20 bg-gray-300 rounded flex-shrink-0"></div>
+                        <div>
+                            <p class="preview-captions text-sm text-gray-500 mb-1" style="font-family: var(--preview-captions); font-weight: var(--preview-captions-weight);">
+                                Sunset over the Mediterranean
+                            </p>
+                            <p class="preview-captions text-xs text-gray-400" style="font-family: var(--preview-captions); font-weight: var(--preview-captions-weight);">
+                                Canon EOS R5 &bull; RF 24-70mm f/2.8 &bull; 1/250s &bull; f/8 &bull; ISO 100
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Text Block Preview -->
+                    <div class="border-t pt-4">
+                        <h3 class="preview-headings text-lg mb-2" style="font-family: var(--preview-headings); font-weight: var(--preview-headings-weight);">
+                            About the Photographer
+                        </h3>
+                        <p class="preview-body text-gray-600" style="font-family: var(--preview-body); font-weight: var(--preview-body-weight);">
+                            Based in Milan, I specialize in landscape and documentary photography. My work explores the relationship between natural light and architectural forms.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Font Info Panel -->
+                <div id="font-info-panel" class="mt-4 p-4 bg-indigo-50 rounded-lg hidden">
+                    <h4 class="font-medium text-indigo-900 mb-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <span id="font-info-name">Font Name</span>
+                    </h4>
+                    <p id="font-info-description" class="text-sm text-indigo-700"></p>
+                    <p id="font-info-weights" class="text-xs text-indigo-500 mt-1"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Typography Tips -->
+        <div class="card bg-amber-50 border-amber-200">
+            <div class="p-4">
+                <h4 class="font-medium text-amber-900 mb-2">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    {{ trans('admin.typography.tips_title') }}
+                </h4>
+                <ul class="text-sm text-amber-800 space-y-1">
+                    <li>&bull; {{ trans('admin.typography.tip_serif_headings') }}</li>
+                    <li>&bull; {{ trans('admin.typography.tip_sans_body') }}</li>
+                    <li>&bull; {{ trans('admin.typography.tip_consistency') }}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style nonce="{{ csp_nonce() }}">
+    /* Preview CSS Variables - will be updated by JS */
+    #typography-preview {
+        --preview-headings: 'Playfair Display', serif;
+        --preview-headings-weight: 600;
+        --preview-body: 'Inter', sans-serif;
+        --preview-body-weight: 400;
+        --preview-captions: 'Inter', sans-serif;
+        --preview-captions-weight: 400;
+        --preview-navigation: 'Inter', sans-serif;
+        --preview-navigation-weight: 500;
+    }
+
+    .font-chip.active {
+        background-color: rgb(224, 231, 255);
+        border-color: rgb(99, 102, 241);
+        color: rgb(67, 56, 202);
+    }
+</style>
+
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('typography-form');
+    const preview = document.getElementById('typography-preview');
+    const fontInfoPanel = document.getElementById('font-info-panel');
+    const fontInfoName = document.getElementById('font-info-name');
+    const fontInfoDescription = document.getElementById('font-info-description');
+    const fontInfoWeights = document.getElementById('font-info-weights');
+
+    // Font data from backend
+    const fontData = {
+        serif: {{ fonts.serif|json_encode|raw }},
+        sans: {{ fonts.sans|json_encode|raw }}
+    };
+
+    // Get font info by slug
+    function getFontInfo(slug) {
+        return fontData.serif[slug] || fontData.sans[slug] || null;
+    }
+
+    // Update preview CSS variables
+    function updatePreview() {
+        const contexts = ['headings', 'body', 'captions', 'navigation'];
+
+        contexts.forEach(context => {
+            const fontSelect = document.querySelector(`select[name="${context}_font"]`);
+            const weightSelect = document.querySelector(`select[name="${context}_weight"]`);
+
+            if (fontSelect && weightSelect) {
+                const fontInfo = getFontInfo(fontSelect.value);
+                if (fontInfo) {
+                    const fallback = fontData.serif[fontSelect.value] ? 'Georgia, serif' : '-apple-system, sans-serif';
+                    preview.style.setProperty(`--preview-${context}`, `'${fontInfo.name}', ${fallback}`);
+                    preview.style.setProperty(`--preview-${context}-weight`, weightSelect.value);
+                }
+            }
+        });
+    }
+
+    // Update font chips active state
+    function updateFontChips(context, selectedFont) {
+        document.querySelectorAll(`.font-chip[data-context="${context}"]`).forEach(chip => {
+            chip.classList.toggle('active', chip.dataset.font === selectedFont);
+            chip.classList.toggle('bg-indigo-100', chip.dataset.font === selectedFont);
+            chip.classList.toggle('border-indigo-500', chip.dataset.font === selectedFont);
+            chip.classList.toggle('text-indigo-700', chip.dataset.font === selectedFont);
+        });
+    }
+
+    // Show font info panel
+    function showFontInfo(slug) {
+        const info = getFontInfo(slug);
+        if (info) {
+            fontInfoName.textContent = info.name;
+            fontInfoDescription.textContent = info.description || '';
+            fontInfoWeights.textContent = `Available weights: ${info.weights.join(', ')}`;
+            fontInfoPanel.classList.remove('hidden');
+        }
+    }
+
+    // Event: Font selector change
+    document.querySelectorAll('.font-selector').forEach(select => {
+        select.addEventListener('change', function() {
+            updatePreview();
+            updateFontChips(this.dataset.context, this.value);
+            showFontInfo(this.value);
+        });
+    });
+
+    // Event: Weight selector change
+    document.querySelectorAll('.weight-selector').forEach(select => {
+        select.addEventListener('change', updatePreview);
+    });
+
+    // Event: Font chip click
+    document.querySelectorAll('.font-chip').forEach(chip => {
+        chip.addEventListener('click', function() {
+            const context = this.dataset.context;
+            const font = this.dataset.font;
+            const select = document.querySelector(`select[name="${context}_font"]`);
+
+            if (select) {
+                select.value = font;
+                select.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+
+    // Initialize preview
+    updatePreview();
+
+    // Initialize font chips
+    document.querySelectorAll('.font-selector').forEach(select => {
+        updateFontChips(select.dataset.context, select.value);
+    });
+});
+</script>
+{% endblock %}

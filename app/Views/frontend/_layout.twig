@@ -17,9 +17,8 @@
     <link rel="manifest" href="{{ base_path }}/site.webmanifest">
     <meta name="theme-color" content="#ffffff">
 
-    <!-- Preconnect for External Resources (includes dns-prefetch in modern browsers) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Preload local typography fonts -->
+    <link rel="preload" href="{{ base_path }}/fonts/typography.css" as="style">
     
     <!-- Open Graph -->
     <meta property="og:title" content="{{ page_title|e('html_attr') }}">
@@ -160,8 +159,8 @@
     <!-- Font Awesome (icons) -->
     <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
 
-    <!-- Google Fonts (Inter + Kalam) -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kalam:wght@400&display=swap">
+    <!-- Typography (local fonts, GDPR compliant) -->
+    <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css">
     
     <!-- JS flag class on <html> if needed elsewhere -->
     <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
@@ -383,8 +382,9 @@
             z-index: 2;
         }
         .pswp__exif-panel-header h3 {
+            font-family: var(--font-body), system-ui, sans-serif !important;
             font-size: 15px;
-            font-weight: 600;
+            font-weight: 600 !important;
             margin: 0;
             color: #1a1a1a;
         }
@@ -863,7 +863,7 @@
         
         /* Font handwriting personalizzato */
         .font-handwriting {
-            font-family: 'Kalam', cursive;
+            font-family: var(--font-captions);
         }
         
         /* Responsive adjustments per polaroid */
@@ -1440,15 +1440,15 @@
     <!-- PhotoSwipe lightbox (local) loaded dynamically in JS -->
     
     <!-- Swiper.js -->
-    <script src="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.js"></script>
 
     <!-- GSAP -->
-    <script src="{{ base_path }}/assets/vendor/gsap/gsap.min.js"></script>
-    <script src="{{ base_path }}/assets/vendor/gsap/ScrollTrigger.min.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/gsap.min.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/ScrollTrigger.min.js"></script>
 
     <!-- imagesLoaded + Masonry -->
-    <script src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
-    <script src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
     
     <!-- App JS -->
     <script nonce="{{ csp_nonce() }}">
@@ -3390,10 +3390,10 @@
     </script>
 
     <!-- Smooth Scroll (Lenis) -->
-    <script type="module" src="{{ base_path }}/assets/js/smooth-scroll.js"></script>
+    <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/smooth-scroll.js"></script>
 
     <!-- Analytics Tracking (Cookieless) -->
-    <script src="{{ base_path }}/assets/js/analytics.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/js/analytics.js"></script>
     <script nonce="{{ csp_nonce() }}">
         // Initialize analytics with site configuration
         // Enable by default; JS guard will self-disable if endpoint fails

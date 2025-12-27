@@ -3,7 +3,7 @@
 
 {# Load Silktide CSS and JS #}
 <link rel="stylesheet" href="{{ base_path }}/assets/css/silktide-consent-manager.css">
-<script src="{{ base_path }}/assets/js/silktide-consent-manager.js"></script>
+<script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/js/silktide-consent-manager.js"></script>
 
 {# Custom JS Loader - Conditional script injection based on consent #}
 {% if custom_js_analytics or custom_js_marketing %}

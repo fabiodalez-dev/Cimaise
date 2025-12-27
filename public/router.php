@@ -9,6 +9,12 @@ if (str_starts_with($uri, '/media/')) {
     return;
 }
 
+// Dynamic typography CSS (must go through PHP)
+if ($uri === '/fonts/typography.css') {
+    require __DIR__ . '/index.php';
+    return;
+}
+
 if ($uri !== '/' && file_exists($file) && !is_dir($file)) {
     return false; // serve the requested resource as-is
 }

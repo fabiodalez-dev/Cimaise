@@ -42,7 +42,7 @@
 {% block scripts %}
   {% include 'frontend/home/_styles.twig' %}
   <script nonce="{{ csp_nonce() }}">window.basePath = '{{ base_path }}';</script>
-  <script type="module" src="{{ base_path }}/assets/js/home.js"></script>
+  <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/home.js"></script>
 
   {# WebSite JSON-LD for home page #}
   <script type="application/ld+json" nonce="{{ csp_nonce() }}">
@@ -65,4 +65,3 @@
   }
   </script>
 {% endblock %}
-
