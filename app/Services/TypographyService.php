@@ -354,7 +354,8 @@ class TypographyService
             }
             if (isset($data["{$context}_weight"])) {
                 $weight = (int) $data["{$context}_weight"];
-                if (in_array($weight, [400, 500, 600, 700])) {
+                // Validate weight is in reasonable range (will be adjusted to closest available at render time)
+                if ($weight >= 100 && $weight <= 900) {
                     $this->settings->set("typography.{$context}_weight", $weight);
                 }
             }
@@ -542,7 +543,8 @@ class TypographyService
     private function sanitizeFontSlug(string $slug): string
     {
         // Only allow lowercase letters, numbers, and hyphens
-        $slug = preg_replace('/[^a-z0-9\-]/', '', strtolower($slug));
+        // Null coalesce handles potential PCRE error in PHP 8.x
+        $slug = preg_replace('/[^a-z0-9\-]/', '', strtolower($slug)) ?? '';
 
         // Verify it's a valid font
         if (!isset(self::SERIF_FONTS[$slug]) && !isset(self::SANS_FONTS[$slug])) {
