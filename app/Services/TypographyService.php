@@ -498,7 +498,11 @@ class TypographyService
     public function writeCssFile(string $outputPath, string $basePath = ''): bool
     {
         $css = $this->generateFullCss($basePath);
-        return file_put_contents($outputPath, $css) !== false;
+        $result = @file_put_contents($outputPath, $css);
+        if ($result === false) {
+            error_log("TypographyService: Failed to write CSS file to {$outputPath}");
+        }
+        return $result !== false;
     }
 
     /**
@@ -553,6 +557,11 @@ class TypographyService
      */
     private function getClosestWeight(array $available, int $target): int
     {
+        // Defensive check for empty array
+        if (empty($available)) {
+            return 400; // Default to regular weight
+        }
+
         $closest = $available[0];
         $minDiff = abs($target - $closest);
 

@@ -106,10 +106,18 @@ $app->get('/fonts/typography.css', function (Request $request, Response $respons
     $typographyService = new \App\Services\TypographyService($settingsService);
     $css = $typographyService->generateFullCss($basePath);
 
+    // ETag for efficient caching with revalidation
+    $etag = '"' . md5($css) . '"';
+    $ifNoneMatch = $request->getHeaderLine('If-None-Match');
+    if ($ifNoneMatch === $etag) {
+        return $response->withStatus(304);
+    }
+
     $response->getBody()->write($css);
     return $response
         ->withHeader('Content-Type', 'text/css')
-        ->withHeader('Cache-Control', 'public, max-age=3600');
+        ->withHeader('Cache-Control', 'public, max-age=3600')
+        ->withHeader('ETag', $etag);
 });
 
 // Protected media serving (for password-protected and NSFW albums)
