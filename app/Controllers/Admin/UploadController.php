@@ -148,6 +148,14 @@ class UploadController extends BaseController
 
     public function uploadSiteLogo(Request $request, Response $response): Response
     {
+        // CSRF validation
+        $csrfHeader = $request->getHeaderLine('X-CSRF-Token');
+        $sessionCsrf = $_SESSION['csrf'] ?? '';
+        if (empty($csrfHeader) || !hash_equals($sessionCsrf, $csrfHeader)) {
+            $response->getBody()->write(json_encode(['ok'=>false, 'error' => 'CSRF validation failed']));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+
         // Accept single file under 'file', validate image, store under /public/media/site/
         $files = $request->getUploadedFiles();
         $file = $files['file'] ?? null;
