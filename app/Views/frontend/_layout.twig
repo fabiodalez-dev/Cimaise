@@ -862,7 +862,7 @@
         
         /* Font handwriting personalizzato */
         .font-handwriting {
-            font-family: 'Kalam', cursive;
+            font-family: var(--font-captions);
         }
         
         /* Responsive adjustments per polaroid */
@@ -1439,15 +1439,15 @@
     <!-- PhotoSwipe lightbox (local) loaded dynamically in JS -->
     
     <!-- Swiper.js -->
-    <script src="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.js"></script>
 
     <!-- GSAP -->
-    <script src="{{ base_path }}/assets/vendor/gsap/gsap.min.js"></script>
-    <script src="{{ base_path }}/assets/vendor/gsap/ScrollTrigger.min.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/gsap.min.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/ScrollTrigger.min.js"></script>
 
     <!-- imagesLoaded + Masonry -->
-    <script src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
-    <script src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
     
     <!-- App JS -->
     <script nonce="{{ csp_nonce() }}">
@@ -3389,10 +3389,10 @@
     </script>
 
     <!-- Smooth Scroll (Lenis) -->
-    <script type="module" src="{{ base_path }}/assets/js/smooth-scroll.js"></script>
+    <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/smooth-scroll.js"></script>
 
     <!-- Analytics Tracking (Cookieless) -->
-    <script src="{{ base_path }}/assets/js/analytics.js"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/js/analytics.js"></script>
     <script nonce="{{ csp_nonce() }}">
         // Initialize analytics with site configuration
         // Enable by default; JS guard will self-disable if endpoint fails

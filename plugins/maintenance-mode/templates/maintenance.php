@@ -25,6 +25,7 @@ $siteLogo = $config['site_logo'] ?? null;
 $showLogo = $config['show_logo'] ?? true;
 $showCountdown = $config['show_countdown'] ?? true;
 $basePath ??= '';
+$nonce = bin2hex(random_bytes(16));
 
 // Set response headers
 http_response_code(503);
@@ -52,7 +53,7 @@ header('Content-Type: text/html; charset=UTF-8');
     <!-- Typography (local fonts) -->
     <link rel="stylesheet" href="<?= $basePath ?>/fonts/typography.css">
 
-    <style>
+    <style nonce="<?= htmlspecialchars($nonce, ENT_QUOTES, 'UTF-8') ?>">
         * {
             margin: 0;
             padding: 0;

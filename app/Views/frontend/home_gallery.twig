@@ -271,7 +271,7 @@ body > footer.border-t {
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="{{ base_path }}/assets/js/home-gallery.js"></script>
+  <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/home-gallery.js"></script>
 <script nonce="{{ csp_nonce() }}">
 // Disable header hide on scroll for gallery wall
 document.body.classList.add('gallery-wall-page');

@@ -261,7 +261,7 @@
     </div>
 </div>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
     /* Preview CSS Variables - will be updated by JS */
     #typography-preview {
         --preview-headings: 'Playfair Display', serif;
@@ -281,7 +281,7 @@
     }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('typography-form');
     const preview = document.getElementById('typography-preview');

@@ -80,7 +80,9 @@ class TypographyController extends BaseController
 
             // Regenerate CSS file
             $cssPath = dirname(__DIR__, 3) . '/public/css/typography.css';
-            $this->typographyService->writeCssFile($cssPath);
+            if (!$this->typographyService->writeCssFile($cssPath)) {
+                throw new \RuntimeException('Failed to write typography CSS file');
+            }
 
             $_SESSION['flash'][] = [
                 'type' => 'success',
@@ -111,7 +113,9 @@ class TypographyController extends BaseController
 
             // Regenerate CSS file
             $cssPath = dirname(__DIR__, 3) . '/public/css/typography.css';
-            $this->typographyService->writeCssFile($cssPath);
+            if (!$this->typographyService->writeCssFile($cssPath)) {
+                throw new \RuntimeException('Failed to write typography CSS file');
+            }
 
             $_SESSION['flash'][] = [
                 'type' => 'success',
@@ -120,7 +124,7 @@ class TypographyController extends BaseController
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = [
                 'type' => 'danger',
-                'message' => trans('admin.typography.reset_error'),
+                'message' => trans('admin.typography.reset_error') . ': ' . $e->getMessage(),
             ];
         }
 

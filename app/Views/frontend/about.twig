@@ -30,7 +30,7 @@
 
 {% if recaptcha_enabled and recaptcha_site_key %}
 {# Google reCAPTCHA v3 #}
-<script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key|e('url') }}"></script>
+<script nonce="{{ csp_nonce() }}" src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key|e('url') }}"></script>
 <script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
   const contactForm = document.querySelector('form[action*="/contact"]');

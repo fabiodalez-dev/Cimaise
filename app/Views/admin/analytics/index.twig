@@ -449,7 +449,7 @@
 </div>
 
 <!-- Chart.js -->
-<script src="{{ base_path }}/assets/vendor/chartjs/chart.umd.js"></script>
+<script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/chartjs/chart.umd.js"></script>
 
 <script nonce="{{ csp_nonce() }}">
 // Chart.js default configuration for minimal black/white/silver theme

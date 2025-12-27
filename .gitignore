@@ -57,6 +57,7 @@ Thumbs.db
 reset_app.php
 phpinfo.php
 tests/
+docs/
 
 # Cache
 .cache/
@@ -98,11 +99,7 @@ custom-fields.md
 typography.md
 html/
 PR.md
-plan.md
 cleanup.MD
-
-# Documentation folder (internal only)
-docs/
 
 # Reports folder
 reports/

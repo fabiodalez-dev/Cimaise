@@ -348,6 +348,8 @@ class TypographyService
     public function saveTypography(array $data): void
     {
         foreach (array_keys(self::CONTEXTS) as $context) {
+            $currentFont = $this->settings->get("typography.{$context}_font", self::CONTEXTS[$context]['default_font']);
+            $fontSlug = $this->sanitizeFontSlug($currentFont);
             if (isset($data["{$context}_font"])) {
                 $fontSlug = $this->sanitizeFontSlug($data["{$context}_font"]);
                 $this->settings->set("typography.{$context}_font", $fontSlug);
@@ -356,6 +358,10 @@ class TypographyService
                 $weight = (int) $data["{$context}_weight"];
                 // Validate weight is in reasonable range (will be adjusted to closest available at render time)
                 if ($weight >= 100 && $weight <= 900) {
+                    $fontData = $this->getFontBySlug($fontSlug);
+                    if ($fontData && !in_array($weight, $fontData['weights'], true)) {
+                        $weight = $this->getClosestWeight($fontData['weights'], $weight);
+                    }
                     $this->settings->set("typography.{$context}_weight", $weight);
                 }
             }

@@ -217,7 +217,7 @@ document.addEventListener('click', function(event) {
 /* Fallback: show elements if reduced motion or no JS */
 @media (prefers-reduced-motion: reduce) { [data-gsap] { opacity: 1 !important; } }
 </style>
-<noscript><style>[data-gsap] { opacity: 1 !important; }</style></noscript>
+<noscript><style nonce="{{ csp_nonce() }}">[data-gsap] { opacity: 1 !important; }</style></noscript>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}
 </div>
