@@ -232,6 +232,8 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('admin_debug', (bool)$settingsSvc->get('admin.debug_logs', false));
         // Dark mode setting
         $twig->getEnvironment()->addGlobal('dark_mode', (bool)$settingsSvc->get('frontend.dark_mode', false));
+        // Custom CSS (frontend only, already sanitized in controller)
+        $twig->getEnvironment()->addGlobal('custom_css', (string)$settingsSvc->get('frontend.custom_css', ''));
         // Expose translation maps for JS bundles (admin/frontend)
         if ($translationService !== null) {
             if ($isAdminRoute) {

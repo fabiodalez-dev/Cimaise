@@ -153,6 +153,14 @@
     <!-- Typography (local fonts, GDPR compliant) -->
     <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css">
 
+    <!-- Custom CSS (Frontend Only) -->
+    {% if custom_css|default('') is not empty %}
+    <style nonce="{{ csp_nonce() }}">
+        /* ===== Custom CSS ===== */
+        {{ custom_css|raw }}
+    </style>
+    {% endif %}
+
     <!-- Modern Home Styles -->
     {% block styles %}{% endblock %}
 </head>
