@@ -19,18 +19,18 @@ class UploadController extends BaseController
 
     public function uploadToAlbum(Request $request, Response $response, array $args): Response
     {
-        $albumId = (int)($args['id'] ?? 0);
+        $albumId = (int) ($args['id'] ?? 0);
         $files = $request->getUploadedFiles();
         $file = $files['file'] ?? null;
 
         // Validate album exists
         try {
             $check = $this->db->pdo()->prepare('SELECT id FROM albums WHERE id = :id');
-            $check->execute([':id'=>$albumId]);
+            $check->execute([':id' => $albumId]);
             if (!$check->fetch()) {
                 Logger::warning('UploadController: Album not found', ['album_id' => $albumId], 'upload');
-                $response->getBody()->write(json_encode(['ok'=>false,'error'=>'Album not found']));
-                return $response->withStatus(404)->withHeader('Content-Type','application/json');
+                $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Album not found']));
+                return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
             }
         } catch (\Throwable $e) {
             Logger::error('UploadController: DB error checking album', ['error' => $e->getMessage()], 'upload');
@@ -39,8 +39,8 @@ class UploadController extends BaseController
 
         if (!$file) {
             Logger::warning('UploadController: No file in request', [], 'upload');
-            $response->getBody()->write(json_encode(['ok'=>false,'error'=>'No file']));
-            return $response->withStatus(400)->withHeader('Content-Type','application/json');
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'No file']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
         // Check for upload errors
@@ -61,10 +61,10 @@ class UploadController extends BaseController
                 'error_msg' => $errorMsg,
                 'file_name' => $file->getClientFilename(),
             ], 'upload');
-            $response->getBody()->write(json_encode(['ok'=>false,'error'=>$errorMsg]));
-            return $response->withStatus(400)->withHeader('Content-Type','application/json');
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => $errorMsg]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
-        
+
         // Persist the uploaded stream to a secure temporary path on disk.
         // Rationale: PSR-7 UploadedFile may expose a memory stream (php://temp),
         // and UploadService expects a filesystem path.
@@ -76,8 +76,8 @@ class UploadController extends BaseController
         try {
             $file->moveTo($tmpPath);
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['ok'=>false,'error'=>'Failed to persist upload: '.$e->getMessage()]));
-            return $response->withStatus(400)->withHeader('Content-Type','application/json');
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Failed to persist upload: ' . $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
         // Check if album is NSFW for blur generation
@@ -85,13 +85,13 @@ class UploadController extends BaseController
         try {
             $nsfwCheck = $this->db->pdo()->prepare('SELECT is_nsfw FROM albums WHERE id = ?');
             $nsfwCheck->execute([$albumId]);
-            $isNsfw = (bool)$nsfwCheck->fetchColumn();
+            $isNsfw = (bool) $nsfwCheck->fetchColumn();
         } catch (\Throwable) {
             // Column might not exist, assume not NSFW
         }
 
         // Prepare array compatible with UploadService
-        $fArr = [ 'tmp_name' => $tmpPath, 'error' => $file->getError() ];
+        $fArr = ['tmp_name' => $tmpPath, 'error' => $file->getError()];
         try {
             $svc = new UploadService($this->db);
             $meta = $svc->ingestAlbumUpload($albumId, $fArr);
@@ -99,7 +99,7 @@ class UploadController extends BaseController
             // Generate blurred variant if album is NSFW (quick preview)
             if ($isNsfw && !empty($meta['id'])) {
                 try {
-                    $svc->generateBlurredVariant((int)$meta['id']);
+                    $svc->generateBlurredVariant((int) $meta['id']);
                 } catch (\Throwable $blurError) {
                     // Log but don't fail the upload
                     \App\Support\Logger::warning('Failed to generate NSFW blur for uploaded image', [
@@ -117,7 +117,7 @@ class UploadController extends BaseController
             ];
             $json = json_encode($payload);
             $response->getBody()->write($json);
-            $response = $response->withHeader('Content-Type','application/json');
+            $response = $response->withHeader('Content-Type', 'application/json');
 
             // Flush response to client to keep upload snappy
             if (function_exists('fastcgi_finish_request')) {
@@ -130,7 +130,7 @@ class UploadController extends BaseController
             // Generate full variants in background (non-blocking for client)
             if (!empty($meta['id'])) {
                 try {
-                    $svc->generateVariantsForImage((int)$meta['id'], false);
+                    $svc->generateVariantsForImage((int) $meta['id'], false);
                 } catch (\Throwable $variantError) {
                     \App\Support\Logger::warning('Failed to generate variants in background', [
                         'image_id' => $meta['id'],
@@ -141,8 +141,8 @@ class UploadController extends BaseController
 
             return $response;
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['ok'=>false,'error'=>$e->getMessage()]));
-            return $response->withStatus(400)->withHeader('Content-Type','application/json');
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
     }
 
@@ -152,7 +152,7 @@ class UploadController extends BaseController
         $csrfHeader = $request->getHeaderLine('X-CSRF-Token');
         $sessionCsrf = $_SESSION['csrf'] ?? '';
         if (empty($csrfHeader) || !hash_equals($sessionCsrf, $csrfHeader)) {
-            $response->getBody()->write(json_encode(['ok'=>false, 'error' => 'CSRF validation failed']));
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'CSRF validation failed']));
             return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 
@@ -160,28 +160,32 @@ class UploadController extends BaseController
         $files = $request->getUploadedFiles();
         $file = $files['file'] ?? null;
         if (!$file) {
-            $response->getBody()->write(json_encode(['ok'=>false,'error'=>'No file']));
-            return $response->withStatus(400)->withHeader('Content-Type','application/json');
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'No file']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
         try {
             // Read stream without relying on temp rename (more robust across environments)
             $stream = $file->getStream();
-            if (method_exists($stream, 'rewind')) { $stream->rewind(); }
-            $contents = (string)$stream->getContents();
+            if (method_exists($stream, 'rewind')) {
+                $stream->rewind();
+            }
+            $contents = (string) $stream->getContents();
             if ($contents === '' || strlen($contents) === 0) {
                 throw new \RuntimeException('Empty upload');
             }
             // Validate using finfo + whitelist
             $finfo = new \finfo(FILEINFO_MIME_TYPE);
             $mime = $finfo->buffer($contents) ?: '';
-            $allowed = ['image/png'=>'.png','image/jpeg'=>'.jpg','image/webp'=>'.webp'];
+            $allowed = ['image/png' => '.png', 'image/jpeg' => '.jpg', 'image/webp' => '.webp'];
             if (!isset($allowed[$mime])) {
                 throw new \RuntimeException('Unsupported file type for logo');
             }
             $info = @getimagesizefromstring($contents);
-            if ($info === false) throw new \RuntimeException('Invalid image file');
-            [$w,$h] = $info;
-            if ($w<=0 || $h<=0 || $w>10000 || $h>10000) throw new \RuntimeException('Invalid image dimensions');
+            if ($info === false)
+                throw new \RuntimeException('Invalid image file');
+            [$w, $h] = $info;
+            if ($w <= 0 || $h <= 0 || $w > 10000 || $h > 10000)
+                throw new \RuntimeException('Invalid image dimensions');
 
             $hash = sha1($contents) ?: bin2hex(random_bytes(20));
             $ext = $allowed[$mime];
@@ -220,10 +224,10 @@ class UploadController extends BaseController
                 'height' => $h,
                 'favicons' => $faviconResult
             ]));
-            return $response->withHeader('Content-Type','application/json');
+            return $response->withHeader('Content-Type', 'application/json');
         } catch (\Throwable $e) {
-            $response->getBody()->write(json_encode(['ok'=>false,'error'=>$e->getMessage()]));
-            return $response->withStatus(400)->withHeader('Content-Type','application/json');
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
     }
 }
