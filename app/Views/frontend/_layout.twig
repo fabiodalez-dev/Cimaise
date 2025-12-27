@@ -2782,6 +2782,10 @@
 
                                         const isVisible = panel.classList.toggle('visible');
                                         el.classList.toggle('active', isVisible);
+                                        const captionEl = pswp.element.querySelector('.pswp__custom-caption');
+                                        if (captionEl && captionEl.innerHTML.trim()) {
+                                            captionEl.classList.toggle('visible', isVisible);
+                                        }
 
                                         if (isVisible) {
                                             // Get image ID from current slide
@@ -2883,15 +2887,15 @@
                                   // If no content, reset visibility state
                                   if (!html.trim()) {
                                     el.classList.remove('visible');
-                                    el.style.opacity = '0';
-                                    el.style.pointerEvents = 'none';
                                     const infoBtn = lb.pswp.element.querySelector('.pswp__button--info-button');
                                     if (infoBtn) infoBtn.classList.remove('active');
                                   } else {
-                                    // Always show caption when there's content (equipment, title, custom fields)
-                                    el.classList.add('visible');
-                                    el.style.opacity = '1';
-                                    el.style.pointerEvents = 'auto';
+                                    const infoBtn = lb.pswp.element.querySelector('.pswp__button--info-button');
+                                    if (window.__showExifInLightbox && infoBtn) {
+                                      el.classList.toggle('visible', infoBtn.classList.contains('active'));
+                                    } else {
+                                      el.classList.add('visible');
+                                    }
                                   }
                                 };
                                 lb.pswp.on('change', renderCaption);

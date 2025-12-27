@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Plugin Name: Maintenance Mode
  * Description: Put your site under construction with a beautiful maintenance page. Only admins can access the site.
@@ -6,8 +8,6 @@
  * Author: Cimaise Team
  * License: MIT
  */
-
-declare(strict_types=1);
 
 use App\Support\Hooks;
 
@@ -252,6 +252,7 @@ class MaintenanceModePlugin
                 'show_logo' => (bool)$settingsService->get('maintenance.show_logo', self::SETTINGS_DEFAULTS['maintenance.show_logo']),
                 'show_countdown' => (bool)$settingsService->get('maintenance.show_countdown', self::SETTINGS_DEFAULTS['maintenance.show_countdown']),
                 'site_title' => $siteTitle,
+                'site_language' => $siteLanguage,
                 'site_logo' => $settingsService->get('site.logo', null),
                 'admin_login_text' => $siteLanguage === 'it' ? 'Accesso Admin' : 'Admin Login',
             ];
@@ -263,6 +264,7 @@ class MaintenanceModePlugin
                 'show_logo' => false,
                 'show_countdown' => true,
                 'site_title' => 'Cimaise',
+                'site_language' => 'en',
                 'site_logo' => null,
                 'admin_login_text' => 'Admin Login',
             ];
