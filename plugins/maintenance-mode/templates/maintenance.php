@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Maintenance Mode Page Template
  *
@@ -22,7 +24,7 @@ $siteTitle = htmlspecialchars($config['site_title'] ?? 'Cimaise', ENT_QUOTES, 'U
 $siteLogo = $config['site_logo'] ?? null;
 $showLogo = $config['show_logo'] ?? true;
 $showCountdown = $config['show_countdown'] ?? true;
-$basePath = $basePath ?? '';
+$basePath ??= '';
 
 // Set response headers
 http_response_code(503);
@@ -295,7 +297,7 @@ header('Content-Type: text/html; charset=UTF-8');
         <?php endif; ?>
 
         <!-- Admin Login Link -->
-        <a href="<?= $basePath ?>/admin/login" class="login-link">Admin Login</a>
+        <a href="<?= $basePath ?>/admin/login" class="login-link"><?= htmlspecialchars($config['admin_login_text'] ?? 'Admin Login', ENT_QUOTES, 'UTF-8') ?></a>
     </div>
 
     <footer class="footer">

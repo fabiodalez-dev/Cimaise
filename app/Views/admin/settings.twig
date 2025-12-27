@@ -460,7 +460,7 @@
           {{ trans('admin.maintenance.title') }}
         </h3>
 
-        {% if settings['maintenance_enabled'] %}
+        {% if settings['maintenance.enabled'] %}
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
           <div class="flex items-center">
             <i class="fas fa-exclamation-triangle text-amber-600 mr-3"></i>
@@ -477,7 +477,7 @@
               <p class="text-xs text-gray-500 mt-1">{{ trans('admin.maintenance.enabled_hint') }}</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" name="maintenance_enabled" class="sr-only peer" {{ settings['maintenance_enabled']|default(false) ? 'checked' : '' }}>
+              <input type="checkbox" name="maintenance_enabled" class="sr-only peer" {{ settings['maintenance.enabled']|default(false) ? 'checked' : '' }}>
               <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
@@ -485,21 +485,21 @@
           <!-- Custom Title -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.maintenance.page_title') }}</label>
-            <input type="text" name="maintenance_title" value="{{ settings['maintenance_title']|default('') }}" class="form-input" placeholder="{{ settings['site.title']|default('Site Under Construction') }}">
+            <input type="text" name="maintenance_title" value="{{ settings['maintenance.title']|default('') }}" class="form-input" placeholder="{{ settings['site.title']|default('Site Under Construction') }}">
             <p class="text-xs text-gray-500 mt-1">{{ trans('admin.maintenance.page_title_hint') }}</p>
           </div>
 
           <!-- Custom Message -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.maintenance.message') }}</label>
-            <textarea name="maintenance_message" rows="3" class="form-input" placeholder="{{ trans('admin.maintenance.message_placeholder') }}">{{ settings['maintenance_message']|default('') }}</textarea>
+            <textarea name="maintenance_message" rows="3" class="form-input" placeholder="{{ trans('admin.maintenance.message_placeholder') }}">{{ settings['maintenance.message']|default('') }}</textarea>
             <p class="text-xs text-gray-500 mt-1">{{ trans('admin.maintenance.message_hint') }}</p>
           </div>
 
           <!-- Display Options -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label class="flex items-start">
-              <input type="checkbox" name="maintenance_show_logo" class="rounded border-gray-300 text-black focus:ring-black mt-1" {{ settings['maintenance_show_logo']|default(true) ? 'checked' : '' }}>
+              <input type="checkbox" name="maintenance_show_logo" class="rounded border-gray-300 text-black focus:ring-black mt-1" {{ settings['maintenance.show_logo']|default(true) ? 'checked' : '' }}>
               <span class="ml-3">
                 <span class="text-sm font-medium text-gray-900 block">{{ trans('admin.maintenance.show_logo') }}</span>
                 <span class="text-xs text-gray-600 block mt-1">{{ trans('admin.maintenance.show_logo_hint') }}</span>
@@ -507,7 +507,7 @@
             </label>
 
             <label class="flex items-start">
-              <input type="checkbox" name="maintenance_show_countdown" class="rounded border-gray-300 text-black focus:ring-black mt-1" {{ settings['maintenance_show_countdown']|default(true) ? 'checked' : '' }}>
+              <input type="checkbox" name="maintenance_show_countdown" class="rounded border-gray-300 text-black focus:ring-black mt-1" {{ settings['maintenance.show_countdown']|default(true) ? 'checked' : '' }}>
               <span class="ml-3">
                 <span class="text-sm font-medium text-gray-900 block">{{ trans('admin.maintenance.show_animation') }}</span>
                 <span class="text-xs text-gray-600 block mt-1">{{ trans('admin.maintenance.show_animation_hint') }}</span>
