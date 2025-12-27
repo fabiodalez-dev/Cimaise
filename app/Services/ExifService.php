@@ -593,14 +593,24 @@ class ExifService
     public function formatShutterSpeed(?string $exposureTime): ?string
     {
         if (!$exposureTime) return null;
-        
+
+        // Already formatted (e.g., "1/100" or "1/100s" with small denominator)
+        if (preg_match('/^1\/\d{1,4}s?$/', $exposureTime) || preg_match('/^\d+s$/', $exposureTime)) {
+            // Add 's' suffix if missing for consistency
+            return str_ends_with($exposureTime, 's') ? $exposureTime : $exposureTime . 's';
+        }
+
+        // Try to convert raw fraction (e.g., "300000/10000000")
         $speed = $this->rationalToFloat($exposureTime);
-        if (!$speed) return $exposureTime;
-        
+        if ($speed === null || $speed <= 0) {
+            // Cannot parse - return null to avoid storing garbage
+            return null;
+        }
+
         if ($speed >= 1) {
-            return (int)$speed . 's';
+            return (int)round($speed) . 's';
         } else {
-            return '1/' . (int)round(1 / $speed);
+            return '1/' . (int)round(1 / $speed) . 's';
         }
     }
 

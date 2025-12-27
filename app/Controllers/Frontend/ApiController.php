@@ -245,7 +245,7 @@ class ApiController extends BaseController
             $display['aperture'] = 'f/' . number_format((float)$image['aperture'], 1);
         }
         if (!empty($image['shutter_speed'])) {
-            $display['shutter'] = (string)$image['shutter_speed'];
+            $display['shutter'] = $this->formatShutterSpeedForDisplay((string)$image['shutter_speed']);
         }
         if (!empty($image['iso'])) {
             $display['iso'] = 'ISO ' . (int)$image['iso'];
@@ -377,7 +377,8 @@ class ApiController extends BaseController
             $exposure[] = ['label' => 'Aperture', 'value' => 'f/' . $row['aperture'], 'icon' => 'fa-circle'];
         }
         if (!empty($row['shutter_speed'])) {
-            $exposure[] = ['label' => 'Shutter Speed', 'value' => $row['shutter_speed'], 'icon' => 'fa-clock'];
+            $shutterDisplay = $this->formatShutterSpeedForDisplay($row['shutter_speed']);
+            $exposure[] = ['label' => 'Shutter Speed', 'value' => $shutterDisplay, 'icon' => 'fa-clock'];
         }
         if (!empty($row['iso'])) {
             $exposure[] = ['label' => 'ISO', 'value' => (string)$row['iso'], 'icon' => 'fa-signal'];
@@ -452,5 +453,37 @@ class ApiController extends BaseController
 
         $response->getBody()->write(json_encode($result));
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Format shutter speed for display, handling both raw EXIF fractions and pre-formatted values.
+     * Converts raw values like "300000/10000000" to human-readable "1/33s".
+     */
+    private function formatShutterSpeedForDisplay(string $value): string
+    {
+        // Already formatted (starts with "1/" and is short, or ends with "s")
+        if (preg_match('/^1\/\d{1,4}$/', $value) || preg_match('/^\d+s$/', $value)) {
+            return $value;
+        }
+
+        // Raw fraction format from EXIF (e.g., "300000/10000000")
+        if (str_contains($value, '/')) {
+            $parts = explode('/', $value, 2);
+            if (count($parts) === 2) {
+                $num = (float)$parts[0];
+                $den = (float)$parts[1];
+                if ($den > 0) {
+                    $speed = $num / $den;
+                    if ($speed >= 1) {
+                        return (int)round($speed) . 's';
+                    } elseif ($speed > 0) {
+                        return '1/' . (int)round(1 / $speed) . 's';
+                    }
+                }
+            }
+        }
+
+        // Return as-is if we can't parse it
+        return $value;
     }
 }

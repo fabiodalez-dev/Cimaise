@@ -686,7 +686,7 @@ class PageController extends BaseController
             if (!empty($image['developer_name'])) { $equipBits[] = '<i class="fa-solid fa-flask mr-1"></i>' . htmlspecialchars((string)$image['developer_name'], ENT_QUOTES); }
             if (!empty($image['lab_name'])) { $equipBits[] = '<i class="fa-solid fa-industry mr-1"></i>' . htmlspecialchars((string)$image['lab_name'], ENT_QUOTES); }
             if (!empty($image['iso'])) { $equipBits[] = '<i class="fa-solid fa-signal mr-1"></i>ISO ' . (int)$image['iso']; }
-            if (!empty($image['shutter_speed'])) { $equipBits[] = '<i class="fa-regular fa-clock mr-1"></i>' . htmlspecialchars((string)$image['shutter_speed'], ENT_QUOTES); }
+            if (!empty($image['shutter_speed'])) { $equipBits[] = '<i class="fa-regular fa-clock mr-1"></i>' . htmlspecialchars($this->formatShutterSpeed($image['shutter_speed']) ?? (string)$image['shutter_speed'], ENT_QUOTES); }
             if (!empty($image['aperture']) && is_numeric($image['aperture'])) { $equipBits[] = '<i class="fa-solid fa-circle-half-stroke mr-1"></i>f/' . number_format((float)$image['aperture'], 1); }
 
             // Add custom fields to caption (with show_in_lightbox=1)
@@ -1151,7 +1151,7 @@ class PageController extends BaseController
                     'lab_name' => $img['lab_name'] ?? '',
                     'location_name' => $img['location_name'] ?? '',
                     'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
-                    'shutter_speed' => $img['shutter_speed'] ?? null,
+                    'shutter_speed' => $this->formatShutterSpeed($img['shutter_speed'] ?? null),
                     'aperture' => isset($img['aperture']) && is_numeric($img['aperture']) ? (float)$img['aperture'] : null,
                     'process' => $img['process'] ?? null,
                     // Extended EXIF fields
@@ -1638,18 +1638,45 @@ class PageController extends BaseController
         return $display;
     }
 
-    private function formatShutterSpeed(string $speed): string
+    private function formatShutterSpeed(?string $speed): ?string
     {
-        if (strpos($speed, '/') !== false) {
-            return $speed;
+        if ($speed === null || $speed === '') {
+            return null;
         }
-        
-        $f = (float)$speed;
-        if ($f >= 1) {
-            return (int)$f . 's';
-        } else {
-            return '1/' . (int)round(1 / $f);
+
+        // Already formatted (e.g., "1/100", "1/100s", "2s")
+        if (preg_match('/^1\/\d{1,4}s?$/', $speed) || preg_match('/^\d+s$/', $speed)) {
+            return str_ends_with($speed, 's') ? $speed : $speed . 's';
         }
+
+        // Raw fraction from EXIF (e.g., "300000/10000000")
+        if (str_contains($speed, '/')) {
+            $parts = explode('/', $speed, 2);
+            if (\count($parts) === 2) {
+                $num = (float)$parts[0];
+                $den = (float)$parts[1];
+                if ($den > 0 && $num > 0) {
+                    $f = $num / $den;
+                    if ($f >= 1) {
+                        return (int)round($f) . 's';
+                    } else {
+                        return '1/' . (int)round(1 / $f) . 's';
+                    }
+                }
+            }
+        }
+
+        // Numeric value (decimal seconds)
+        if (is_numeric($speed)) {
+            $f = (float)$speed;
+            if ($f >= 1) {
+                return (int)round($f) . 's';
+            } elseif ($f > 0) {
+                return '1/' . (int)round(1 / $f) . 's';
+            }
+        }
+
+        return $speed;
     }
 
     private function processImageSources(array $image): array

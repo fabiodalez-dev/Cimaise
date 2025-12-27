@@ -18,6 +18,40 @@ class GalleryController extends BaseController
         parent::__construct();
     }
 
+    /**
+     * Format shutter speed for display, handling raw EXIF fractions.
+     */
+    private function formatShutterSpeed(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        // Already formatted (e.g., "1/100", "1/100s", "2s")
+        if (preg_match('/^1\/\d{1,4}s?$/', $value) || preg_match('/^\d+s$/', $value)) {
+            return str_ends_with($value, 's') ? $value : $value . 's';
+        }
+
+        // Raw fraction format from EXIF (e.g., "300000/10000000")
+        if (str_contains($value, '/')) {
+            $parts = explode('/', $value, 2);
+            if (\count($parts) === 2) {
+                $num = (float)$parts[0];
+                $den = (float)$parts[1];
+                if ($den > 0 && $num > 0) {
+                    $speed = $num / $den;
+                    if ($speed >= 1) {
+                        return (int)round($speed) . 's';
+                    } else {
+                        return '1/' . (int)round(1 / $speed) . 's';
+                    }
+                }
+            }
+        }
+
+        return $value;
+    }
+
     private function applyTemplateOverrides(array $template, array $templateSettings): array
     {
         $templateSettings = $this->normalizeTemplateSettings($templateSettings);
@@ -305,7 +339,7 @@ class GalleryController extends BaseController
             if (!empty($lensDisp)) { $metaParts[] = '🔭 ' . $lensDisp; }
             if (!empty($filmDisp)) { $metaParts[] = '🎞️ ' . $filmDisp; }
             if (!empty($img['iso'])) { $metaParts[] = 'ISO ' . (int)$img['iso']; }
-            if (!empty($img['shutter_speed'])) { $metaParts[] = (string)$img['shutter_speed']; }
+            if (!empty($img['shutter_speed'])) { $metaParts[] = $this->formatShutterSpeed($img['shutter_speed']) ?? (string)$img['shutter_speed']; }
             if (!empty($img['aperture'])) { $metaParts[] = 'f/' . number_format((float)$img['aperture'], 1); }
 
             $enhancedCaption = trim(($img['caption'] ?? '') . (count($metaParts) ? ( ($img['caption'] ?? '') !== '' ? ' — ' : '' ) . implode(' • ', $metaParts) : ''));
@@ -318,7 +352,7 @@ class GalleryController extends BaseController
             if (!empty($img['developer_name'])) { $equipBits[] = '<i class="fa-solid fa-flask mr-1"></i>' . htmlspecialchars((string)$img['developer_name'], ENT_QUOTES); }
             if (!empty($img['lab_name'])) { $equipBits[] = '<i class="fa-solid fa-industry mr-1"></i>' . htmlspecialchars((string)$img['lab_name'], ENT_QUOTES); }
             if (!empty($img['iso'])) { $equipBits[] = '<i class="fa-solid fa-signal mr-1"></i>ISO ' . (int)$img['iso']; }
-            if (!empty($img['shutter_speed'])) { $equipBits[] = '<i class="fa-regular fa-clock mr-1"></i>' . htmlspecialchars((string)$img['shutter_speed'], ENT_QUOTES); }
+            if (!empty($img['shutter_speed'])) { $equipBits[] = '<i class="fa-regular fa-clock mr-1"></i>' . htmlspecialchars($this->formatShutterSpeed($img['shutter_speed']) ?? (string)$img['shutter_speed'], ENT_QUOTES); }
             if (!empty($img['aperture'])) { $equipBits[] = '<i class="fa-solid fa-circle-half-stroke mr-1"></i>f/' . number_format((float)$img['aperture'], 1); }
             $captionHtml = '';
             if (!empty($img['caption'])) {
@@ -361,7 +395,7 @@ class GalleryController extends BaseController
                 'film_custom' => $img['custom_film'] ?? null,
                 'custom_film' => $img['custom_film'] ?? null,
                 'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
-                'shutter_speed' => $img['shutter_speed'] ?? null,
+                'shutter_speed' => $this->formatShutterSpeed($img['shutter_speed'] ?? null),
                 'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
                 'process' => $img['process'] ?? null,
                 // Extended EXIF fields
@@ -681,7 +715,7 @@ class GalleryController extends BaseController
                     'lab_name' => $img['lab_name'] ?? '',
                     'location_name' => $img['location_name'] ?? '',
                     'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
-                    'shutter_speed' => $img['shutter_speed'] ?? null,
+                    'shutter_speed' => $this->formatShutterSpeed($img['shutter_speed'] ?? null),
                     'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
                     'process' => $img['process'] ?? null,
                     // Extended EXIF fields
