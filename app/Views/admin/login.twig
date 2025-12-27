@@ -11,7 +11,7 @@
 <body class="bg-gray-50 min-h-screen flex items-center justify-center">
   <div class="max-w-md w-full space-y-8">
     <div class="text-center">
-      {% if site_logo %}
+      {% if logo_type == 'image' and site_logo %}
         <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}"
              alt="{{ site_title|default('Cimaise')|e }}" class="h-12 w-auto mx-auto mb-4">
       {% else %}

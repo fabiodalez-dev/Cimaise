@@ -647,6 +647,8 @@ INSERT INTO `settings` (`key`, `value`, `type`) VALUES
 ('pagination.limit', '12', 'number'),
 ('cache.ttl', '24', 'number'),
 ('site.logo', 'null', 'null'),
+('site.logo_type', 'text', 'string'),
+('site.favicon_source', 'null', 'null'),
 ('social.enabled', '["bluesky","facebook","pinterest","telegram","threads","whatsapp","x"]', 'string'),
 ('social.order', '["bluesky","facebook","pinterest","telegram","threads","whatsapp","x"]', 'string'),
 -- SEO Settings

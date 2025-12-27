@@ -372,6 +372,18 @@ $app->post('/admin/settings/generate-favicons', function (Request $request, Resp
 })->add(new RateLimitMiddleware(5, 600))
   ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+$app->post('/admin/settings/favicon-source-upload', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
+    return $controller->uploadFaviconSource($request, $response);
+})->add(new RateLimitMiddleware(10, 60))
+  ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+$app->post('/admin/settings/generate-favicons-from-source', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
+    return $controller->generateFaviconsFromSource($request, $response);
+})->add(new RateLimitMiddleware(5, 600))
+  ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
 $app->post('/admin/settings/update-lensfun', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\SettingsController($container['db'], Twig::fromRequest($request));
     return $controller->updateLensfun($request, $response);

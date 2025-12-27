@@ -140,46 +140,123 @@
           {{ trans('admin.settings.site_config') }}
         </h3>
 
-        <!-- Logo Upload Section (Full Width) -->
+        <!-- Logo Type Selector -->
         <div class="mb-8">
-          <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.site_logo') }}</label>
-          <input type="hidden" id="site_logo" name="site_logo" value="{{ settings['site.logo'] ?? '' }}">
-          <div class="flex flex-col md:flex-row items-start gap-6">
-            <div class="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-              {% if settings['site.logo'] %}
-                <img id="site-logo-preview" src="{{ base_path ~ settings['site.logo'] }}" alt="Logo" class="max-w-full max-h-full">
-              {% else %}
-                <img id="site-logo-preview" src="" alt="Logo" class="max-w-full max-h-full hidden">
-                <span class="text-xs text-gray-500">{{ trans('admin.settings.no_logo') }}</span>
+          <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.settings.site_logo') }}</label>
+
+          <!-- Logo Type Toggle -->
+          <div class="flex gap-4 mb-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="logo_type" value="text" class="text-black focus:ring-black"
+                     {{ settings['site.logo_type']|default('text') == 'text' ? 'checked' : '' }}>
+              <span class="text-sm text-gray-700">{{ trans('admin.settings.logo_type_text') }}</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="logo_type" value="image" class="text-black focus:ring-black"
+                     {{ settings['site.logo_type'] == 'image' ? 'checked' : '' }}>
+              <span class="text-sm text-gray-700">{{ trans('admin.settings.logo_type_image') }}</span>
+            </label>
+          </div>
+
+          <!-- Image Logo Section (shown when logo_type=image) -->
+          <div id="logo-image-section" class="{{ settings['site.logo_type'] == 'image' ? '' : 'hidden' }}">
+            <input type="hidden" id="site_logo" name="site_logo" value="{{ settings['site.logo'] ?? '' }}">
+            <div class="flex flex-col md:flex-row items-start gap-6">
+              <div class="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                {% if settings['site.logo'] %}
+                  <img id="site-logo-preview" src="{{ base_path ~ settings['site.logo'] }}" alt="Logo" class="max-w-full max-h-full">
+                  <span id="site-logo-placeholder" class="text-xs text-gray-500 hidden">{{ trans('admin.settings.no_logo') }}</span>
+                {% else %}
+                  <img id="site-logo-preview" src="" alt="Logo" class="max-w-full max-h-full hidden">
+                  <span id="site-logo-placeholder" class="text-xs text-gray-500">{{ trans('admin.settings.no_logo') }}</span>
+                {% endif %}
+              </div>
+              <div class="flex-1">
+                <div id="logo-uppy" data-endpoint="{{ base_path }}/admin/settings/logo-upload" data-csrf="{{ csrf }}"
+                     class="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
+                  <div class="flex flex-col items-center justify-center gap-2">
+                    <i class="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
+                    <div class="font-medium">{{ trans('admin.settings.upload_logo') }}</div>
+                    <div class="text-sm text-gray-500">{{ trans('admin.settings.logo_formats') }}</div>
+                  </div>
+                </div>
+                <button id="site-logo-clear" type="button" class="mt-3 text-sm text-red-600 hover:underline {{ settings['site.logo'] ? '' : 'hidden' }}">
+                  <i class="fas fa-trash mr-1"></i>{{ trans('admin.settings.remove_logo') }}
+                </button>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">{{ trans('admin.settings.logo_hint') }}</p>
+
+            <!-- Favicon Generation -->
+            <div id="favicon-section" class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <h4 class="text-sm font-medium text-gray-900 mb-2">{{ trans('admin.settings.generate_favicons') }}</h4>
+              <p class="text-xs text-gray-600 mb-3">{{ trans('admin.settings.generate_favicons_desc') }}</p>
+              <button type="submit" formaction="{{ base_path }}/admin/settings/generate-favicons" formmethod="post" class="btn-secondary text-sm {{ settings['site.logo'] ? '' : 'opacity-50 cursor-not-allowed' }}" {{ settings['site.logo'] ? '' : 'disabled' }}>
+                <i class="fas fa-magic mr-2"></i>{{ trans('admin.settings.generate_favicons_button') }}
+              </button>
+              <p class="text-xs text-gray-500 mt-2"><i class="fas fa-info-circle mr-1"></i>{{ trans('admin.settings.favicons_dont_save_note') }}</p>
+              {% if not settings['site.logo'] %}
+                <p class="text-xs text-amber-600 mt-2"><i class="fas fa-info-circle mr-1"></i>{{ trans('admin.settings.upload_logo_first') }}</p>
               {% endif %}
             </div>
-            <div class="flex-1">
-              <div id="logo-uppy" data-endpoint="{{ base_path }}/admin/settings/logo-upload" data-csrf="{{ csrf }}"
-                   class="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
-                <div class="flex flex-col items-center justify-center gap-2">
-                  <i class="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
-                  <div class="font-medium">{{ trans('admin.settings.upload_logo') }}</div>
-                  <div class="text-sm text-gray-500">{{ trans('admin.settings.logo_formats') }}</div>
+          </div>
+
+          <!-- Text Logo Section (shown when logo_type=text) -->
+          <div id="logo-text-section" class="{{ settings['site.logo_type']|default('text') == 'text' ? '' : 'hidden' }}">
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
+              <div class="flex items-start gap-3">
+                <i class="fas fa-font text-blue-600 mt-0.5"></i>
+                <div>
+                  <p class="text-sm text-blue-800">{{ trans('admin.settings.logo_text_info') }}</p>
+                  <p class="text-xs text-blue-600 mt-1">{{ trans('admin.settings.logo_text_hint') }}</p>
                 </div>
               </div>
-              <button id="site-logo-clear" type="button" class="mt-3 text-sm text-red-600 hover:underline {{ settings['site.logo'] ? '' : 'hidden' }}">
-                <i class="fas fa-trash mr-1"></i>{{ trans('admin.settings.remove_logo') }}
-              </button>
             </div>
-          </div>
-          <p class="text-xs text-gray-500 mt-2">{{ trans('admin.settings.logo_hint') }}</p>
 
-          <!-- Favicon Generation -->
-          <div class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h4 class="text-sm font-medium text-gray-900 mb-2">{{ trans('admin.settings.generate_favicons') }}</h4>
-            <p class="text-xs text-gray-600 mb-3">{{ trans('admin.settings.generate_favicons_desc') }}</p>
-            <button type="submit" formaction="{{ base_path }}/admin/settings/generate-favicons" formmethod="post" class="btn-secondary text-sm {{ settings['site.logo'] ? '' : 'opacity-50 cursor-not-allowed' }}" {{ settings['site.logo'] ? '' : 'disabled' }}>
-              <i class="fas fa-magic mr-2"></i>{{ trans('admin.settings.generate_favicons_button') }}
-            </button>
-            <p class="text-xs text-gray-500 mt-2"><i class="fas fa-info-circle mr-1"></i>{{ trans('admin.settings.favicons_dont_save_note') }}</p>
-            {% if not settings['site.logo'] %}
-              <p class="text-xs text-amber-600 mt-2"><i class="fas fa-info-circle mr-1"></i>{{ trans('admin.settings.upload_logo_first') }}</p>
-            {% endif %}
+            <!-- Favicon Source Image Upload (separate from logo) -->
+            <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <h4 class="text-sm font-medium text-gray-900 mb-3">{{ trans('admin.settings.favicon_source') }}</h4>
+              <p class="text-xs text-gray-600 mb-4">{{ trans('admin.settings.favicon_source_desc') }}</p>
+
+              <input type="hidden" id="favicon_source" name="favicon_source" value="{{ settings['site.favicon_source'] ?? '' }}">
+              <div class="flex flex-col md:flex-row items-start gap-4">
+                <div class="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {% if settings['site.favicon_source'] %}
+                    <img id="favicon-source-preview" src="{{ base_path ~ settings['site.favicon_source'] }}" alt="Favicon source" class="max-w-full max-h-full">
+                    <span id="favicon-source-placeholder" class="text-xs text-gray-500 hidden">{{ trans('admin.settings.no_image') }}</span>
+                  {% else %}
+                    <img id="favicon-source-preview" src="" alt="Favicon source" class="max-w-full max-h-full hidden">
+                    <span id="favicon-source-placeholder" class="text-xs text-gray-500">{{ trans('admin.settings.no_image') }}</span>
+                  {% endif %}
+                </div>
+                <div class="flex-1">
+                  <div id="favicon-uppy" data-endpoint="{{ base_path }}/admin/settings/favicon-source-upload" data-csrf="{{ csrf }}"
+                       class="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div class="flex flex-col items-center justify-center gap-2">
+                      <i class="fas fa-cloud-upload-alt text-xl text-gray-400"></i>
+                      <div class="font-medium text-sm">{{ trans('admin.settings.upload_favicon_source') }}</div>
+                      <div class="text-xs text-gray-500">{{ trans('admin.settings.favicon_source_formats') }}</div>
+                    </div>
+                  </div>
+                  <button id="favicon-source-clear" type="button" class="mt-2 text-sm text-red-600 hover:underline {{ settings['site.favicon_source'] ? '' : 'hidden' }}">
+                    <i class="fas fa-trash mr-1"></i>{{ trans('admin.settings.remove_image') }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Generate Favicons Button -->
+              <div class="mt-4 pt-4 border-t border-gray-200">
+                <button type="submit" formaction="{{ base_path }}/admin/settings/generate-favicons-from-source" formmethod="post"
+                        id="generate-favicons-text-btn"
+                        class="btn-secondary text-sm {{ settings['site.favicon_source'] ? '' : 'opacity-50 cursor-not-allowed' }}"
+                        {{ settings['site.favicon_source'] ? '' : 'disabled' }}>
+                  <i class="fas fa-magic mr-2"></i>{{ trans('admin.settings.generate_favicons_button') }}
+                </button>
+                {% if not settings['site.favicon_source'] %}
+                  <p class="text-xs text-amber-600 mt-2"><i class="fas fa-info-circle mr-1"></i>{{ trans('admin.settings.upload_favicon_source_first') }}</p>
+                {% endif %}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -821,5 +898,26 @@ function updateDefaultTemplateSelector(selectedValue) {
     }
   }
 }
+
+// Logo type toggle handler
+document.addEventListener('DOMContentLoaded', function() {
+  const logoTypeRadios = document.querySelectorAll('input[name="logo_type"]');
+  const imageSection = document.getElementById('logo-image-section');
+  const textSection = document.getElementById('logo-text-section');
+
+  if (logoTypeRadios.length > 0 && imageSection && textSection) {
+    logoTypeRadios.forEach(radio => {
+      radio.addEventListener('change', function() {
+        if (this.value === 'image') {
+          imageSection.classList.remove('hidden');
+          textSection.classList.add('hidden');
+        } else {
+          imageSection.classList.add('hidden');
+          textSection.classList.remove('hidden');
+        }
+      });
+    });
+  }
+});
 </script>
 {% endblock %}

@@ -139,7 +139,17 @@ class SettingsController extends BaseController
         $svc->set('gallery.default_template_id', $defaultTemplateId);
         $svc->set('site.title', $siteSettings['title']);
         $svc->set('site.logo', $siteSettings['logo']);
-        $svc->set('site.description', $siteSettings['description']);  
+
+        // Logo type (text or image)
+        $logoType = in_array($data['logo_type'] ?? 'text', ['text', 'image'], true) ? $data['logo_type'] : 'text';
+        $svc->set('site.logo_type', $logoType);
+
+        // Favicon source (for text logo mode) - only save if provided, don't clear on empty
+        if (isset($data['favicon_source']) && $data['favicon_source'] !== '') {
+            $svc->set('site.favicon_source', (string)$data['favicon_source']);
+        }
+
+        $svc->set('site.description', $siteSettings['description']);
         $svc->set('site.copyright', $siteSettings['copyright']);
         $svc->set('site.email', $siteSettings['email']);
 
@@ -425,6 +435,152 @@ class SettingsController extends BaseController
 
         } catch (\Throwable $e) {
             Logger::error('Error generating favicons', [
+                'error' => $e->getMessage(),
+            ], 'favicon');
+            $_SESSION['flash'][] = [
+                'type' => 'danger',
+                'message' => trans('admin.flash.favicon_failed')
+            ];
+        }
+
+        return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+    }
+
+    /**
+     * Upload favicon source image (for text logo mode)
+     */
+    public function uploadFaviconSource(Request $request, Response $response): Response
+    {
+        // CSRF check via header
+        $csrfHeader = $request->getHeaderLine('X-CSRF-Token');
+        $sessionCsrf = $_SESSION['csrf'] ?? '';
+        if (empty($csrfHeader) || !hash_equals($sessionCsrf, $csrfHeader)) {
+            $response->getBody()->write(json_encode(['error' => 'CSRF validation failed']));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+
+        $files = $request->getUploadedFiles();
+        $file = $files['file'] ?? null;
+
+        if (!$file || $file->getError() !== UPLOAD_ERR_OK) {
+            $response->getBody()->write(json_encode(['error' => 'No file uploaded or upload error']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Validate MIME type
+        $allowedMimes = ['image/png', 'image/jpeg', 'image/webp'];
+        $stream = $file->getStream();
+        $stream->rewind();
+        $content = $stream->read(8192);
+        $stream->rewind();
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($content);
+
+        if (!in_array($mimeType, $allowedMimes, true)) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid file type. Use PNG, JPG, or WebP.']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Determine extension
+        $ext = match ($mimeType) {
+            'image/png' => 'png',
+            'image/jpeg' => 'jpg',
+            'image/webp' => 'webp',
+            default => 'png',
+        };
+
+        $publicPath = dirname(__DIR__, 3) . '/public';
+        $filename = 'favicon-source.' . $ext;
+        $relativePath = '/' . $filename;
+        $absolutePath = $publicPath . $relativePath;
+
+        // Remove old favicon source files
+        foreach (['png', 'jpg', 'webp'] as $oldExt) {
+            $oldFile = $publicPath . '/favicon-source.' . $oldExt;
+            if (file_exists($oldFile)) {
+                @unlink($oldFile);
+            }
+        }
+
+        // Save file
+        $file->moveTo($absolutePath);
+
+        // Save setting
+        $svc = new SettingsService($this->db);
+        $svc->set('site.favicon_source', $relativePath);
+
+        $response->getBody()->write(json_encode([
+            'ok' => true,
+            'path' => $relativePath,
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Generate favicons from the favicon source image (for text logo mode)
+     */
+    public function generateFaviconsFromSource(Request $request, Response $response): Response
+    {
+        // CSRF validation
+        if (!$this->validateCsrf($request)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
+            return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+        }
+
+        try {
+            // Get favicon source path from settings
+            $svc = new SettingsService($this->db);
+            $sourcePath = (string)$svc->get('site.favicon_source', '');
+
+            if ($sourcePath === '') {
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.favicon_source_required')];
+                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+            }
+
+            // Convert relative path to absolute path
+            $publicPath = dirname(__DIR__, 3) . '/public';
+            $absoluteSourcePath = $publicPath . $sourcePath;
+
+            if (!file_exists($absoluteSourcePath)) {
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.favicon_source_not_found')];
+                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+            }
+
+            // Validate file is readable
+            if (!is_readable($absoluteSourcePath)) {
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.favicon_source_not_readable')];
+                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+            }
+
+            // Validate MIME type
+            $mimeType = mime_content_type($absoluteSourcePath);
+            if (!$mimeType || !str_starts_with($mimeType, 'image/')) {
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.favicon_source_must_be_image')];
+                return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+            }
+
+            // Generate favicons
+            $faviconService = new \App\Services\FaviconService($publicPath);
+            $result = $faviconService->generateFavicons($absoluteSourcePath);
+
+            if ($result['success']) {
+                $generatedCount = count($result['generated']);
+                $message = str_replace('{count}', (string)$generatedCount, trans('admin.flash.favicon_success'));
+
+                if (!empty($result['errors'])) {
+                    $errorSuffix = str_replace('{errors}', implode(', ', $result['errors']), trans('admin.flash.favicon_error_suffix'));
+                    $message .= '. ' . $errorSuffix;
+                    $_SESSION['flash'][] = ['type' => 'warning', 'message' => $message];
+                } else {
+                    $_SESSION['flash'][] = ['type' => 'success', 'message' => $message];
+                }
+            } else {
+                $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.favicon_failed')];
+            }
+
+        } catch (\Throwable $e) {
+            Logger::error('Error generating favicons from source', [
                 'error' => $e->getMessage(),
             ], 'favicon');
             $_SESSION['flash'][] = [

@@ -84,7 +84,7 @@
                 <div class="flex items-center gap-8">
                     <h1 class="text-xl font-semibold">
                         <a href="{{ base_path }}/" class="hover:text-gray-600 transition-colors duration-200 flex items-center gap-3">
-                            {% if site_logo %}
+                            {% if logo_type == 'image' and site_logo %}
                               <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}" alt="{{ site_title|default('Portfolio')|e }}" class="h-12 w-auto">
                             {% else %}
                               {{ site_title|default('Portfolio')|e }}
@@ -300,7 +300,7 @@
 <div class="global-head modern-desktop-only">
     <div class="global-head_layout">
         <a href="{{ base_path }}/" class="head-logo_holder">
-            {% if site_logo %}
+            {% if logo_type == 'image' and site_logo %}
                 <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}" alt="{{ site_title|e('html_attr') }}" class="head-logo_img">
             {% else %}
                 <div class="head-logo_text">{{ site_title|e }}</div>

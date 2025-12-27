@@ -78,12 +78,6 @@ class TypographyController extends BaseController
         try {
             $this->typographyService->saveTypography($data);
 
-            // Regenerate CSS file
-            $cssPath = dirname(__DIR__, 3) . '/public/css/typography.css';
-            if (!$this->typographyService->writeCssFile($cssPath)) {
-                throw new \RuntimeException('Failed to write typography CSS file');
-            }
-
             $_SESSION['flash'][] = [
                 'type' => 'success',
                 'message' => trans('admin.typography.saved'),
@@ -111,12 +105,6 @@ class TypographyController extends BaseController
         try {
             $this->typographyService->resetToDefaults();
 
-            // Regenerate CSS file
-            $cssPath = dirname(__DIR__, 3) . '/public/css/typography.css';
-            if (!$this->typographyService->writeCssFile($cssPath)) {
-                throw new \RuntimeException('Failed to write typography CSS file');
-            }
-
             $_SESSION['flash'][] = [
                 'type' => 'success',
                 'message' => trans('admin.typography.reset_success'),
@@ -136,6 +124,11 @@ class TypographyController extends BaseController
      */
     public function preview(Request $request, Response $response): Response
     {
+        if (!$this->validateCsrf($request)) {
+            $response->getBody()->write('/* CSRF validation failed */');
+            return $response->withStatus(403)->withHeader('Content-Type', 'text/css');
+        }
+
         $data = (array) $request->getParsedBody();
 
         // Build temporary typography array

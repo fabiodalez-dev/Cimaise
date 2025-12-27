@@ -131,6 +131,7 @@ class PageController extends BaseController
             'masonry_col_desktop' => max(2, min(8, (int)($svc->get('home.masonry_col_desktop', 5) ?? 5))),
             'masonry_col_tablet' => max(2, min(6, (int)($svc->get('home.masonry_col_tablet', 3) ?? 3))),
             'masonry_col_mobile' => max(1, min(4, (int)($svc->get('home.masonry_col_mobile', 2) ?? 2))),
+            'masonry_layout_mode' => in_array((string)($svc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'), ['fullwidth', 'boxed'], true) ? (string)$svc->get('home.masonry_layout_mode', 'fullwidth') : 'fullwidth',
         ];
 
         // Pagination parameters

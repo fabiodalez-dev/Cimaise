@@ -600,6 +600,7 @@ window.AdminInit = function() {
   initTomSelects();
   initUppyAreaUpload();
   initLogoUpload();
+  initFaviconSourceUpload();
   initSortableGrid();
   bindGridButtons();
   initTinyMCE();
@@ -711,6 +712,7 @@ function initLogoUpload(){
   const area = document.getElementById('logo-uppy');
   const hidden = document.getElementById('site_logo');
   const preview = document.getElementById('site-logo-preview');
+  const placeholder = document.getElementById('site-logo-placeholder');
   const clearBtn = document.getElementById('site-logo-clear');
   if (!area || !hidden) return;
   if (area._uppyInitialized) return; area._uppyInitialized = true;
@@ -745,6 +747,7 @@ function initLogoUpload(){
     if (body && body.ok && body.path) {
       hidden.value = body.path;
       if (preview) { preview.src = (window.basePath || '') + body.path; preview.classList.remove('hidden'); }
+      if (placeholder) placeholder.classList.add('hidden');
       if (clearBtn) clearBtn.classList.remove('hidden');
 
       // Show favicon generation result
@@ -774,7 +777,77 @@ function initLogoUpload(){
       e.preventDefault();
       hidden.value = '';
       if (preview) preview.classList.add('hidden');
+      if (placeholder) placeholder.classList.remove('hidden');
+      clearBtn.classList.add('hidden');
       if (window.showToast) window.showToast(t('admin.settings.logo_removed_info'), 'info');
+    });
+  }
+}
+
+// Favicon source upload in Settings page (for text logo mode)
+function initFaviconSourceUpload(){
+  const area = document.getElementById('favicon-uppy');
+  const hidden = document.getElementById('favicon_source');
+  const preview = document.getElementById('favicon-source-preview');
+  const placeholder = document.getElementById('favicon-source-placeholder');
+  const clearBtn = document.getElementById('favicon-source-clear');
+  const generateBtn = document.getElementById('generate-favicons-text-btn');
+  if (!area || !hidden) return;
+  if (area._uppyInitialized) return; area._uppyInitialized = true;
+  const endpoint = area.dataset.endpoint;
+  const csrf = area.dataset.csrf;
+  const uppy = new Uppy({
+    autoProceed: true,
+    restrictions: { allowedFileTypes: ['image/png','image/jpeg','image/webp'] }
+  }).use(XHRUpload, {
+    endpoint,
+    fieldName: 'file',
+    headers: { 'X-CSRF-Token': csrf, 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' }
+  });
+  if (!window.uppyInstances) window.uppyInstances = [];
+  window.uppyInstances.push(uppy);
+
+  let input = area.querySelector('input[type="file"].uppy-input');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/png,image/jpeg,image/webp'; input.style.display='none'; input.classList.add('uppy-input');
+    area.appendChild(input);
+  }
+  area.addEventListener('click', ()=> input.click());
+  input.addEventListener('change', ()=>{ if (input.files && input.files[0]) { try{ uppy.addFile({ name: input.files[0].name, type: input.files[0].type, data: input.files[0] }); }catch{} input.value=''; } });
+  area.addEventListener('dragover', e=>{ e.preventDefault(); area.classList.add('bg-gray-100'); });
+  area.addEventListener('dragleave', ()=> area.classList.remove('bg-gray-100'));
+  area.addEventListener('drop', e=>{ e.preventDefault(); area.classList.remove('bg-gray-100'); const f=e.dataTransfer?.files?.[0]; if (f) { try{ uppy.addFile({ name:f.name, type:f.type, data:f }); }catch{} } });
+
+  uppy.on('complete', (res)=>{
+    const first = res.successful && res.successful[0];
+    const body = first && first.response && (first.response.body || {});
+    if (body && body.ok && body.path) {
+      hidden.value = body.path;
+      if (preview) { preview.src = (window.basePath || '') + body.path; preview.classList.remove('hidden'); }
+      if (placeholder) placeholder.classList.add('hidden');
+      if (clearBtn) clearBtn.classList.remove('hidden');
+      if (generateBtn) { generateBtn.disabled = false; generateBtn.classList.remove('opacity-50', 'cursor-not-allowed'); }
+      if (window.showToast) window.showToast(t('admin.settings.favicon_source_uploaded') || 'Image uploaded', 'success');
+    } else {
+      if (window.showToast) window.showToast(t('admin.settings.favicon_source_upload_failed') || 'Upload failed', 'error');
+    }
+  });
+  uppy.on('upload-error', (file, err, resp)=>{
+    const candidate = (resp && resp.body && (resp.body.error || resp.body.message)) || (err && err.message) || '';
+    try { if (candidate) console.warn('[Favicon source upload error]', candidate); } catch (e) {}
+    if (window.showToast) window.showToast(t('admin.settings.favicon_source_upload_error') || 'Upload error', 'error');
+  });
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      hidden.value = '';
+      if (preview) preview.classList.add('hidden');
+      if (placeholder) placeholder.classList.remove('hidden');
+      clearBtn.classList.add('hidden');
+      if (generateBtn) { generateBtn.disabled = true; generateBtn.classList.add('opacity-50', 'cursor-not-allowed'); }
+      if (window.showToast) window.showToast(t('admin.settings.favicon_source_removed') || 'Image removed (save to apply)', 'info');
     });
   }
 }

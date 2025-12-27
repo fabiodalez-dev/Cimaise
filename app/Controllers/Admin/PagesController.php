@@ -74,6 +74,7 @@ class PagesController extends BaseController
             'home.masonry_col_desktop' => (int)($svc->get('home.masonry_col_desktop', 5) ?? 5),
             'home.masonry_col_tablet' => (int)($svc->get('home.masonry_col_tablet', 3) ?? 3),
             'home.masonry_col_mobile' => (int)($svc->get('home.masonry_col_mobile', 2) ?? 2),
+            'home.masonry_layout_mode' => (string)($svc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'),
         ];
         return $this->view->render($response, 'admin/pages/home.twig', [
             'settings' => $settings,
@@ -118,6 +119,13 @@ class PagesController extends BaseController
         $svc->set('home.masonry_col_desktop', $masonryColDesktop);
         $svc->set('home.masonry_col_tablet', $masonryColTablet);
         $svc->set('home.masonry_col_mobile', $masonryColMobile);
+
+        // Masonry layout mode (fullwidth or boxed)
+        $masonryLayoutMode = (string)($data['masonry_layout_mode'] ?? 'fullwidth');
+        if (!in_array($masonryLayoutMode, ['fullwidth', 'boxed'], true)) {
+            $masonryLayoutMode = 'fullwidth';
+        }
+        $svc->set('home.masonry_layout_mode', $masonryLayoutMode);
 
         // Hero section
         $svc->set('home.hero_title', trim((string)($data['hero_title'] ?? 'Portfolio')) ?: 'Portfolio');
