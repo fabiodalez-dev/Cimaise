@@ -230,6 +230,8 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('site_language', $siteLanguage);
         $twig->getEnvironment()->addGlobal('admin_language', $adminLanguage);
         $twig->getEnvironment()->addGlobal('admin_debug', (bool)$settingsSvc->get('admin.debug_logs', false));
+        // Dark mode setting
+        $twig->getEnvironment()->addGlobal('dark_mode', (bool)$settingsSvc->get('frontend.dark_mode', false));
         // Expose translation maps for JS bundles (admin/frontend)
         if ($translationService !== null) {
             if ($isAdminRoute) {

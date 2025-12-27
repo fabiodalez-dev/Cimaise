@@ -1594,6 +1594,8 @@
     "admin.settings.enable_compression": "Enable Compression",
     "admin.settings.disable_right_click": "Disable right-click on images",
     "admin.settings.disable_right_click_desc": "Prevents the context menu for non-admin visitors on image elements.",
+    "admin.settings.dark_mode": "Enable Dark Mode",
+    "admin.settings.dark_mode_desc": "Inverts colors across the entire frontend, login, and lightbox for a dark theme.",
     "admin.settings.lazy_loading": "Lazy Loading",
     "admin.settings.image_cache": "Image Cache (days)",
     "admin.settings.enable_cdn": "Enable CDN",

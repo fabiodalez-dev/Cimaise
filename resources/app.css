@@ -4,10 +4,44 @@
 
 /* Custom CSS for Cimaise */
 @layer base {
+  /* Color variables for light/dark mode */
+  :root {
+    --color-bg-primary: #fafafa;
+    --color-bg-secondary: #ffffff;
+    --color-bg-tertiary: #f5f5f5;
+    --color-text-primary: #171717;
+    --color-text-secondary: #525252;
+    --color-text-tertiary: #737373;
+    --color-border: #e5e5e5;
+    --color-border-secondary: #f5f5f5;
+    --color-icon: #171717;
+    --color-icon-secondary: #525252;
+    --color-shadow: rgba(0, 0, 0, 0.1);
+    --color-shadow-hover: rgba(0, 0, 0, 0.15);
+  }
+
+  html.dark {
+    --color-bg-primary: #0a0a0a;
+    --color-bg-secondary: #171717;
+    --color-bg-tertiary: #262626;
+    --color-text-primary: #fafafa;
+    --color-text-secondary: #d4d4d4;
+    --color-text-tertiary: #a3a3a3;
+    --color-border: #262626;
+    --color-border-secondary: #1a1a1a;
+    --color-icon: #fafafa;
+    --color-icon-secondary: #d4d4d4;
+    --color-shadow: rgba(0, 0, 0, 0.3);
+    --color-shadow-hover: rgba(0, 0, 0, 0.4);
+  }
+
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
-  
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
@@ -19,13 +53,31 @@
   .btn {
     @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
-  
+
   .btn-primary {
     @apply bg-black text-white hover:bg-gray-800 focus:ring-gray-500;
   }
-  
+
+  html.dark .btn-primary {
+    background-color: #fafafa;
+    color: #171717;
+  }
+
+  html.dark .btn-primary:hover {
+    background-color: #f5f5f5;
+  }
+
   .btn-secondary {
     @apply bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-300;
+  }
+
+  html.dark .btn-secondary {
+    background-color: #262626;
+    color: #fafafa;
+  }
+
+  html.dark .btn-secondary:hover {
+    background-color: #404040;
   }
   
   .btn-sm {
@@ -40,10 +92,26 @@
   .card {
     @apply bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200;
   }
-  
+
+  html.dark .card {
+    background-color: #171717;
+    border-color: #262626;
+  }
+
   /* Form styles */
   .form-input {
     @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
+  }
+
+  html.dark .form-input {
+    background-color: #171717;
+    border-color: #404040;
+    color: #fafafa;
+  }
+
+  html.dark .form-input:focus {
+    border-color: #fafafa;
+    --tw-ring-color: #fafafa;
   }
 
   /* Date input - ensure native picker is visible */
@@ -73,9 +141,31 @@
   .form-select {
     @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
   }
-  
+
+  html.dark .form-select {
+    background-color: #171717;
+    border-color: #404040;
+    color: #fafafa;
+  }
+
+  html.dark .form-select:focus {
+    border-color: #fafafa;
+    --tw-ring-color: #fafafa;
+  }
+
   .form-textarea {
     @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
+  }
+
+  html.dark .form-textarea {
+    background-color: #171717;
+    border-color: #404040;
+    color: #fafafa;
+  }
+
+  html.dark .form-textarea:focus {
+    border-color: #fafafa;
+    --tw-ring-color: #fafafa;
   }
   
   /* Text truncation utilities */
@@ -166,3 +256,99 @@
   --tw-translate-y: 0 !important;
   --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
 }
+
+/* Dark mode specific styles */
+html.dark {
+  color-scheme: dark;
+}
+
+/* PhotoSwipe Dark Mode */
+html.dark .pswp {
+  --pswp-bg: #0a0a0a !important;
+  --pswp-icon-color: #fafafa !important;
+  --pswp-icon-color-secondary: #d4d4d4 !important;
+  --pswp-placeholder-bg: #171717 !important;
+}
+
+html.dark .pswp__bg {
+  background: #0a0a0a !important;
+}
+
+html.dark .pswp__button,
+html.dark .pswp__button--arrow--left,
+html.dark .pswp__button--arrow--right {
+  background-color: rgba(250, 250, 250, 0.1) !important;
+}
+
+html.dark .pswp__button:hover {
+  background-color: rgba(250, 250, 250, 0.2) !important;
+}
+
+html.dark .pswp__caption {
+  background-color: rgba(10, 10, 10, 0.95) !important;
+  color: #fafafa !important;
+}
+
+html.dark .pswp__caption__center {
+  color: #fafafa !important;
+}
+
+/* Dark mode for general elements */
+html.dark svg,
+html.dark i {
+  color: var(--color-icon);
+}
+
+html.dark a {
+  color: var(--color-text-primary);
+}
+
+html.dark a:hover {
+  color: var(--color-text-secondary);
+}
+
+/* Dark mode for borders and dividers */
+html.dark hr,
+html.dark .border,
+html.dark [class*="border-"] {
+  border-color: var(--color-border);
+}
+
+/* Dark mode for shadows */
+html.dark .shadow,
+html.dark .shadow-sm,
+html.dark .shadow-md,
+html.dark .shadow-lg {
+  box-shadow: 0 0 0 1px var(--color-border), 0 4px 6px -1px var(--color-shadow);
+}
+
+/* Dark mode for text colors */
+html.dark .text-gray-50 { color: #0a0a0a; }
+html.dark .text-gray-100 { color: #171717; }
+html.dark .text-gray-200 { color: #262626; }
+html.dark .text-gray-300 { color: #404040; }
+html.dark .text-gray-400 { color: #737373; }
+html.dark .text-gray-500 { color: #a3a3a3; }
+html.dark .text-gray-600 { color: #d4d4d4; }
+html.dark .text-gray-700 { color: #e5e5e5; }
+html.dark .text-gray-800 { color: #f5f5f5; }
+html.dark .text-gray-900 { color: #fafafa; }
+
+/* Dark mode for background colors */
+html.dark .bg-gray-50 { background-color: #0a0a0a; }
+html.dark .bg-gray-100 { background-color: #171717; }
+html.dark .bg-gray-200 { background-color: #262626; }
+html.dark .bg-white { background-color: #171717; }
+html.dark .bg-black { background-color: #fafafa; }
+
+/* Dark mode for borders */
+html.dark .border-gray-100 { border-color: #262626; }
+html.dark .border-gray-200 { border-color: #404040; }
+html.dark .border-gray-300 { border-color: #525252; }
+
+/* Dark mode for hover states */
+html.dark .hover\:bg-gray-50:hover { background-color: #171717; }
+html.dark .hover\:bg-gray-100:hover { background-color: #262626; }
+html.dark .hover\:bg-gray-200:hover { background-color: #404040; }
+html.dark .hover\:bg-gray-800:hover { background-color: #f5f5f5; }
+html.dark .hover\:text-gray-900:hover { color: #fafafa; }
