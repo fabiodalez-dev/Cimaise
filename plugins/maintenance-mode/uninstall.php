@@ -15,18 +15,15 @@ if (!isset($container['db']) || !$container['db']) {
     return;
 }
 
+// Load plugin class to access constants
+require_once __DIR__ . '/plugin.php';
+
 try {
     $db = $container['db'];
     $pdo = $db->pdo();
 
-    // Remove all maintenance mode settings
-    $settingsToRemove = [
-        'maintenance_enabled',
-        'maintenance_title',
-        'maintenance_message',
-        'maintenance_show_logo',
-        'maintenance_show_countdown',
-    ];
+    // Remove all maintenance mode settings using centralized keys
+    $settingsToRemove = MaintenanceModePlugin::SETTINGS_KEYS;
 
     $placeholders = implode(',', array_fill(0, count($settingsToRemove), '?'));
     $stmt = $pdo->prepare("DELETE FROM settings WHERE `key` IN ({$placeholders})");

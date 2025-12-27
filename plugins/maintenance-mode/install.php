@@ -15,22 +15,15 @@ if (!isset($container['db']) || !$container['db']) {
     return;
 }
 
+// Load plugin class to access constants
+require_once __DIR__ . '/plugin.php';
+
 try {
     $settingsService = new \App\Services\SettingsService($container['db']);
 
-    // Set default values for maintenance mode settings
+    // Set default values using centralized constants
     // Only set if not already configured (to preserve existing settings on reinstall)
-
-    $defaults = [
-        'maintenance_enabled' => false,
-        'maintenance_title' => '',
-        'maintenance_message' => 'We are currently working on some improvements. Please check back soon!',
-        'maintenance_show_logo' => true,
-        'maintenance_show_countdown' => true,
-    ];
-
-    foreach ($defaults as $key => $value) {
-        // Check if setting already exists
+    foreach (MaintenanceModePlugin::SETTINGS_DEFAULTS as $key => $value) {
         $existing = $settingsService->get($key, null);
         if ($existing === null) {
             $settingsService->set($key, $value);

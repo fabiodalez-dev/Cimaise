@@ -31,6 +31,29 @@ class MaintenanceModePlugin
     private const PLUGIN_NAME = 'maintenance-mode';
     private const VERSION = '1.0.0';
 
+    /**
+     * Settings keys used by this plugin (dot notation for consistency)
+     * Shared constant to avoid divergence between install/uninstall/config
+     */
+    public const SETTINGS_KEYS = [
+        'maintenance.enabled',
+        'maintenance.title',
+        'maintenance.message',
+        'maintenance.show_logo',
+        'maintenance.show_countdown',
+    ];
+
+    /**
+     * Default values for settings
+     */
+    public const SETTINGS_DEFAULTS = [
+        'maintenance.enabled' => false,
+        'maintenance.title' => '',
+        'maintenance.message' => 'We are currently working on some improvements. Please check back soon!',
+        'maintenance.show_logo' => true,
+        'maintenance.show_countdown' => true,
+    ];
+
     public function __construct()
     {
         $this->init();
@@ -125,10 +148,10 @@ class MaintenanceModePlugin
 
     /**
      * Check if maintenance mode is enabled via settings
+     * Note: Uses global $container as hooks don't inject dependencies
      */
     private function isMaintenanceEnabled(): bool
     {
-        // Get database from global container if available
         global $container;
         if (!isset($container['db']) || !$container['db']) {
             return false;
@@ -136,7 +159,7 @@ class MaintenanceModePlugin
 
         try {
             $settingsService = new \App\Services\SettingsService($container['db']);
-            return (bool)$settingsService->get('maintenance_enabled', false);
+            return (bool)$settingsService->get('maintenance.enabled', false);
         } catch (\Throwable $e) {
             return false;
         }
@@ -150,7 +173,7 @@ class MaintenanceModePlugin
     {
         try {
             $settingsService = new \App\Services\SettingsService($db);
-            $enabled = (bool)$settingsService->get('maintenance_enabled', false);
+            $enabled = (bool)$settingsService->get('maintenance.enabled', false);
 
             if (!$enabled) {
                 return false;
@@ -169,6 +192,22 @@ class MaintenanceModePlugin
             $path = $_SERVER['REQUEST_URI'] ?? '/';
             $path = parse_url($path, PHP_URL_PATH) ?? '/';
 
+            // Calculate base path to normalize the request path
+            // (handles subdirectory installations like /photos/admin/login)
+            $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+            $scriptDir = dirname($scriptName);
+            $isBuiltInServer = php_sapi_name() === 'cli-server';
+            $basePath = $isBuiltInServer ? '' : ($scriptDir === '/' ? '' : $scriptDir);
+            if (str_ends_with($basePath, '/public')) {
+                $basePath = substr($basePath, 0, -7);
+            }
+
+            // Normalize path by removing base path prefix
+            $normalizedPath = $path;
+            if ($basePath !== '' && str_starts_with($path, $basePath)) {
+                $normalizedPath = substr($path, strlen($basePath)) ?: '/';
+            }
+
             // Allow these paths even in maintenance mode
             $allowedPaths = [
                 '/login',
@@ -178,7 +217,7 @@ class MaintenanceModePlugin
             ];
 
             foreach ($allowedPaths as $allowed) {
-                if ($path === $allowed || str_starts_with($path, $allowed . '?') || str_ends_with($path, $allowed)) {
+                if ($normalizedPath === $allowed) {
                     return false;
                 }
             }
@@ -202,27 +241,30 @@ class MaintenanceModePlugin
         try {
             $settingsService = new \App\Services\SettingsService($db);
 
-            $customTitle = trim((string)$settingsService->get('maintenance_title', ''));
+            $customTitle = trim((string)$settingsService->get('maintenance.title', self::SETTINGS_DEFAULTS['maintenance.title']));
             $siteTitle = $settingsService->get('site.title', 'Cimaise');
+            $siteLanguage = $settingsService->get('site.language', 'en');
 
             return [
                 'title' => $customTitle ?: $siteTitle,
                 'has_custom_title' => $customTitle !== '',
-                'message' => $settingsService->get('maintenance_message', 'We are currently working on some improvements. Please check back soon!'),
-                'show_logo' => (bool)$settingsService->get('maintenance_show_logo', true),
-                'show_countdown' => (bool)$settingsService->get('maintenance_show_countdown', true),
+                'message' => $settingsService->get('maintenance.message', self::SETTINGS_DEFAULTS['maintenance.message']),
+                'show_logo' => (bool)$settingsService->get('maintenance.show_logo', self::SETTINGS_DEFAULTS['maintenance.show_logo']),
+                'show_countdown' => (bool)$settingsService->get('maintenance.show_countdown', self::SETTINGS_DEFAULTS['maintenance.show_countdown']),
                 'site_title' => $siteTitle,
                 'site_logo' => $settingsService->get('site.logo', null),
+                'admin_login_text' => $siteLanguage === 'it' ? 'Accesso Admin' : 'Admin Login',
             ];
         } catch (\Throwable $e) {
             return [
                 'title' => 'Site Under Construction',
                 'has_custom_title' => false,
-                'message' => 'We are currently working on some improvements. Please check back soon!',
+                'message' => self::SETTINGS_DEFAULTS['maintenance.message'],
                 'show_logo' => false,
                 'show_countdown' => true,
                 'site_title' => 'Cimaise',
                 'site_logo' => null,
+                'admin_login_text' => 'Admin Login',
             ];
         }
     }

@@ -198,12 +198,12 @@ class SettingsController extends BaseController
         $svc->set('navigation.show_tags_in_header', isset($data['show_tags_in_header']));
         $svc->set('privacy.nsfw_global_warning', isset($data['nsfw_global_warning']));
 
-        // Maintenance Mode settings
-        $svc->set('maintenance_enabled', isset($data['maintenance_enabled']));
-        $svc->set('maintenance_title', trim((string)($data['maintenance_title'] ?? '')));
-        $svc->set('maintenance_message', trim((string)($data['maintenance_message'] ?? '')));
-        $svc->set('maintenance_show_logo', isset($data['maintenance_show_logo']));
-        $svc->set('maintenance_show_countdown', isset($data['maintenance_show_countdown']));
+        // Maintenance Mode settings (dot notation for consistency)
+        $svc->set('maintenance.enabled', isset($data['maintenance_enabled']));
+        $svc->set('maintenance.title', trim((string)($data['maintenance_title'] ?? '')));
+        $svc->set('maintenance.message', trim((string)($data['maintenance_message'] ?? '')));
+        $svc->set('maintenance.show_logo', isset($data['maintenance_show_logo']));
+        $svc->set('maintenance.show_countdown', isset($data['maintenance_show_countdown']));
 
         $_SESSION['flash'][] = ['type'=>'success','message'=> trans('admin.flash.settings_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
