@@ -147,6 +147,25 @@ class TemplatesController extends BaseController
             ];
         }
 
+        // Dense Grid layout settings
+        if (($settings['layout'] ?? '') === 'dense_grid') {
+            $minDesktop = (int)($data['dense_min_desktop'] ?? 300);
+            $minTablet = (int)($data['dense_min_tablet'] ?? 150);
+            $cellMobile = (int)($data['dense_cell_mobile'] ?? 300);
+            $denseGap = (int)($data['dense_gap'] ?? 15);
+            $maxWidth = (int)($data['dense_max_width'] ?? 1400);
+            $adaptive = isset($data['dense_adaptive']);
+
+            $settings['dense_grid'] = [
+                'minCellDesktop' => max(100, min(500, $minDesktop)),
+                'minCellTablet' => max(80, min(300, $minTablet)),
+                'cellHeightMobile' => max(150, min(500, $cellMobile)),
+                'gap' => max(0, min(50, $denseGap)),
+                'maxWidth' => max(800, min(2400, $maxWidth)),
+                'adaptiveSizing' => $adaptive,
+            ];
+        }
+
         $libs = ['photoswipe'];
         if ($settings['masonry']) {
             $libs[] = 'masonry';
