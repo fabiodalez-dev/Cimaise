@@ -1,0 +1,40 @@
+{
+  "name": "icamys/php-sitemap-generator",
+  "description": "Simple PHP sitemap generator.",
+  "keywords": ["php", "sitemap", "generator", "psr-1", "psr-2", "psr-4"],
+  "homepage": "https://github.com/icamys/php-sitemap-generator",
+  "type": "library",
+  "license": "MIT",
+  "minimum-stability": "stable",
+  "authors": [
+    {
+      "name": "Dmitrii Prisacari",
+      "email": "prisacari.dmitrii@gmail.com",
+      "homepage": "https://github.com/icamys/"
+    }
+  ],
+  "require": {
+    "php": "^8.0",
+    "ext-curl": "*",
+    "ext-dom": "*",
+    "ext-mbstring": "*",
+    "ext-simplexml": "*",
+    "ext-SPL": "*",
+    "ext-xml": "*",
+    "ext-xmlwriter": "*",
+    "ext-zlib": "*"
+  },
+  "autoload": {
+    "psr-4": {"Icamys\\SitemapGenerator\\": "src/"}
+  },
+  "autoload-dev": {
+    "psr-0": {
+      "Icamys\\SitemapGenerator\\Tests\\": "test/"
+    }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "php-mock/php-mock-phpunit": "^2.7",
+    "vimeo/psalm": "^5.15"
+  }
+}
