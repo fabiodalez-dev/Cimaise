@@ -187,6 +187,7 @@ Show mature work responsibly:
 - **Blur Previews** — Thumbnails are automatically blurred until age confirmation
 - **Age Gate** — "I am 18+" confirmation before accessing content
 - **Per-Album Setting** — Mark individual galleries as NSFW, keep the rest public
+- **Global NSFW Warning** — Optional site-wide age gate that covers all NSFW content at once
 - **Session Memory** — Visitors confirm once per session, not per image
 - **Server-Side Enforcement** — Blur can't be bypassed by inspecting HTML
 
