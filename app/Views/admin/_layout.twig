@@ -10,16 +10,12 @@
   <link rel="icon" type="image/png" sizes="16x16" href="{{ base_path }}/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/apple-touch-icon.png">
 
-  <!-- Preconnect for Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
   <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/admin.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
 
-  <!-- Google Fonts - Inter -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Typography - Local Fonts (GDPR compliant) -->
+  <link href="{{ base_path }}/fonts/typography.css" rel="stylesheet">
   <script nonce="{{ csp_nonce() }}">
     window.basePath = '{{ base_path|e('js') }}';
     window.cspNonce = '{{ csp_nonce()|e('js') }}';
@@ -549,6 +545,9 @@
             </a>
             <a href="{{ base_path }}/admin/social" class="sidebar-link" data-spa-link>
               <i class="fas fa-share-alt"></i>{{ trans('admin.sidebar.social') }}
+            </a>
+            <a href="{{ base_path }}/admin/typography" class="sidebar-link" data-spa-link>
+              <i class="fas fa-font"></i>{{ trans('admin.sidebar.typography') }}
             </a>
             <a href="{{ base_path }}/admin/seo" class="sidebar-link" data-spa-link>
               <i class="fas fa-search"></i>{{ trans('admin.sidebar.seo') }}
@@ -1389,6 +1388,6 @@
       };
     })();
   </script>
-  <script type="module" src="{{ base_path }}/assets/admin.js"></script>
+  <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/admin.js"></script>
 </body>
 </html>

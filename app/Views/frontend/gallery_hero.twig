@@ -716,5 +716,5 @@
 
 {% block scripts %}
   {{ parent() }}
-  <script type="module" src="{{ base_path }}/assets/js/hero.js"></script>
+  <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/hero.js"></script>
 {% endblock %}

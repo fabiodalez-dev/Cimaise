@@ -121,17 +121,50 @@ body {
 </script>
 
 {% if all_images|length > 0 %}
-<main class="gallery">
-  <div class="gallery-track">
+<main class="gallery" data-parallax-gallery>
+  <div class="gallery-track" data-parallax-track>
     {% for image in all_images %}
-    <div class="card">
-      <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}" class="card-link">
+    <div class="card" data-parallax-card>
+      {% set album_url = '/album/' ~ image.album_slug %}
+      <a href="{% if album_url starts with '/' %}{{ base_path }}{{ album_url }}{% else %}{{ album_url }}{% endif %}" class="card-link">
         <div class="card-image-wrapper">
-          <img
-            src="{{ base_path }}{{ image.fallback_src|default(image.original_path)|e('html_attr') }}"
-            alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
-            loading="lazy"
-          >
+          {% set raw_path = image.fallback_src|default(image.original_path) %}
+          {% set img_src = raw_path starts with '/' ? base_path ~ raw_path : raw_path %}
+          {% set variants_avif = [] %}
+          {% set variants_webp = [] %}
+          {% set variants_jpg = [] %}
+          {% set best_jpg_path = img_src %}
+          {% set best_jpg_w = 0 %}
+          {% for variant in image.variants|default([]) %}
+            {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+            {% if variant.format == 'avif' %}
+              {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+            {% elseif variant.format == 'webp' %}
+              {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+            {% elseif variant.format == 'jpg' %}
+              {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+              {% if variant.width > best_jpg_w %}
+                {% set best_jpg_path = variant_url %}
+                {% set best_jpg_w = variant.width %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          <picture>
+            {% if variants_avif %}
+              <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+            {% endif %}
+            {% if variants_webp %}
+              <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+            {% endif %}
+            <img
+              src="{{ best_jpg_path|e('html_attr') }}"
+              alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
+              loading="lazy"
+              decoding="async"
+              data-fallback="hide"
+              data-parallax-image
+            >
+          </picture>
         </div>
         <div class="card-overlay">
           <h3>{{ image.album_title|e }}</h3>
@@ -162,9 +195,9 @@ body {
 (function() {
   'use strict';
 
-  const gallery = document.querySelector('.gallery');
-  const track = document.querySelector('.gallery-track');
-  const cards = document.querySelectorAll('.card');
+  const gallery = document.querySelector('[data-parallax-gallery]');
+  const track = document.querySelector('[data-parallax-track]');
+  const cards = document.querySelectorAll('[data-parallax-card]');
 
   if (!gallery || !track || !cards.length) return;
 

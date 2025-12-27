@@ -25,6 +25,7 @@ $siteLogo = $config['site_logo'] ?? null;
 $showLogo = $config['show_logo'] ?? true;
 $showCountdown = $config['show_countdown'] ?? true;
 $basePath ??= '';
+$nonce = bin2hex(random_bytes(16));
 
 // Set response headers
 http_response_code(503);
@@ -49,7 +50,10 @@ header('Content-Type: text/html; charset=UTF-8');
     <!-- Favicon -->
     <link rel="icon" href="<?= $basePath ?>/favicon.ico" type="image/x-icon">
 
-    <style>
+    <!-- Typography (local fonts) -->
+    <link rel="stylesheet" href="<?= $basePath ?>/fonts/typography.css">
+
+    <style nonce="<?= htmlspecialchars($nonce, ENT_QUOTES, 'UTF-8') ?>">
         * {
             margin: 0;
             padding: 0;
@@ -57,7 +61,7 @@ header('Content-Type: text/html; charset=UTF-8');
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: var(--font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif);
             background-color: #ffffff;
             color: #1a1a1a;
             min-height: 100vh;
@@ -87,6 +91,7 @@ header('Content-Type: text/html; charset=UTF-8');
         }
 
         .logo-text {
+            font-family: var(--font-heading, inherit);
             font-size: 2rem;
             font-weight: 700;
             color: #1a1a1a;
@@ -94,6 +99,7 @@ header('Content-Type: text/html; charset=UTF-8');
         }
 
         .title {
+            font-family: var(--font-heading, inherit);
             font-size: 2.5rem;
             font-weight: 700;
             color: #1a1a1a;
@@ -102,6 +108,7 @@ header('Content-Type: text/html; charset=UTF-8');
         }
 
         .subtitle {
+            font-family: var(--font-heading, inherit);
             font-size: 1.25rem;
             font-weight: 500;
             color: #4b5563;
@@ -213,31 +220,6 @@ header('Content-Type: text/html; charset=UTF-8');
             color: #9ca3af;
         }
 
-        /* Decorative elements */
-        .decoration {
-            position: fixed;
-            opacity: 0.03;
-            z-index: -1;
-        }
-
-        .decoration-1 {
-            top: 10%;
-            left: 10%;
-            width: 300px;
-            height: 300px;
-            border: 2px solid #1a1a1a;
-            border-radius: 50%;
-        }
-
-        .decoration-2 {
-            bottom: 15%;
-            right: 10%;
-            width: 200px;
-            height: 200px;
-            border: 2px solid #1a1a1a;
-            transform: rotate(45deg);
-        }
-
         @media (max-width: 640px) {
             .title {
                 font-size: 1.75rem;
@@ -250,18 +232,10 @@ header('Content-Type: text/html; charset=UTF-8');
             .message {
                 font-size: 1rem;
             }
-
-            .decoration {
-                display: none;
-            }
         }
     </style>
 </head>
 <body>
-    <!-- Decorative background elements -->
-    <div class="decoration decoration-1"></div>
-    <div class="decoration decoration-2"></div>
-
     <div class="container">
         <!-- Logo or Site Name -->
         <div class="logo">

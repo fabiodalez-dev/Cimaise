@@ -1,6 +1,0 @@
-parameters:
-	level: 8
-	paths:
-		- src
-	ignoreErrors:
-		- message: '#Method (.*) has parameter (.*) with generic class Slim\\App but does not specify its types: TContainerInterface#'

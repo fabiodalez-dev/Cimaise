@@ -121,7 +121,7 @@
     {% endif %}
   </div>
 
-  <script src="{{ base_path }}/assets/vendor/sortablejs/Sortable.min.js"></script>
+  <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/sortablejs/Sortable.min.js"></script>
   <script nonce="{{ csp_nonce() }}">
     // Albums index page initialization - Compatible with SPA
     function initializeAlbumsIndexPage() {

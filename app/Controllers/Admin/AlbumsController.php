@@ -153,6 +153,7 @@ class AlbumsController extends BaseController
         $tagIds = array_map('intval', (array)($d['tags'] ?? []));
         $allow_downloads = isset($d['allow_downloads']) ? 1 : 0;
         $is_nsfw = isset($d['is_nsfw']) ? 1 : 0;
+        $allow_template_switch = isset($d['allow_template_switch']) ? 1 : 0;
         $passwordRaw = (string)($d['password'] ?? '');
         $password_hash = $passwordRaw !== '' ? password_hash($passwordRaw, PASSWORD_ARGON2ID) : null;
         $cameraIds = array_map('intval', (array)($d['cameras'] ?? []));
@@ -202,9 +203,9 @@ class AlbumsController extends BaseController
 
         // Try with template_id, custom equipment fields, and SEO fields
         try {
-            $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, is_nsfw, password_hash, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_path, schema_type, schema_data, canonical_url, robots_index, robots_follow) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:cc,:cl,:cf,:cd,:clab,:dl,:nsfw,:ph,:seo_title,:seo_desc,:seo_kw,:og_title,:og_desc,:og_img,:schema_type,:schema_data,:canonical_url,:robots_index,:robots_follow)');
+            $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, is_nsfw, allow_template_switch, password_hash, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_path, schema_type, schema_data, canonical_url, robots_index, robots_follow) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:cc,:cl,:cf,:cd,:clab,:dl,:nsfw,:ats,:ph,:seo_title,:seo_desc,:seo_kw,:og_title,:og_desc,:og_img,:schema_type,:schema_data,:canonical_url,:robots_index,:robots_follow)');
             $stmt->execute([
-                ':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':dl'=>$allow_downloads, ':nsfw'=>$is_nsfw, ':ph'=>$password_hash,
+                ':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':dl'=>$allow_downloads, ':nsfw'=>$is_nsfw, ':ats'=>$allow_template_switch, ':ph'=>$password_hash,
                 ':seo_title'=>$seoTitle, ':seo_desc'=>$seoDescription, ':seo_kw'=>$seoKeywords,
                 ':og_title'=>$ogTitle, ':og_desc'=>$ogDescription, ':og_img'=>$ogImagePath,
                 ':schema_type'=>$schemaType, ':schema_data'=>$schemaData, ':canonical_url'=>$canonicalUrl,
@@ -566,6 +567,7 @@ class AlbumsController extends BaseController
         $template_id = (int)($d['template_id'] ?? 0) ?: null;
         $allow_downloads = isset($d['allow_downloads']) ? 1 : 0;
         $is_nsfw = isset($d['is_nsfw']) ? 1 : 0;
+        $allow_template_switch = isset($d['allow_template_switch']) ? 1 : 0;
         $passwordRaw = (string)($d['password'] ?? '');
         $clearPassword = !empty($d['password_clear']);
         $tagIds = array_map('intval', (array)($d['tags'] ?? []));
@@ -616,9 +618,9 @@ class AlbumsController extends BaseController
 
         // Try with template_id, custom equipment fields, and SEO fields
         try {
-            $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab, seo_title=:seo_title, seo_description=:seo_desc, seo_keywords=:seo_kw, og_title=:og_title, og_description=:og_desc, og_image_path=:og_img, schema_type=:schema_type, schema_data=:schema_data, canonical_url=:canonical_url, robots_index=:robots_index, robots_follow=:robots_follow WHERE id=:id');
+            $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, allow_template_switch=:ats, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab, seo_title=:seo_title, seo_description=:seo_desc, seo_keywords=:seo_kw, og_title=:og_title, og_description=:og_desc, og_image_path=:og_img, schema_type=:schema_type, schema_data=:schema_data, canonical_url=:canonical_url, robots_index=:robots_index, robots_follow=:robots_follow WHERE id=:id');
             $stmt->execute([
-                ':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':id'=>$id,
+                ':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id,':ats'=>$allow_template_switch,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':id'=>$id,
                 ':seo_title'=>$seoTitle, ':seo_desc'=>$seoDescription, ':seo_kw'=>$seoKeywords,
                 ':og_title'=>$ogTitle, ':og_desc'=>$ogDescription, ':og_img'=>$ogImagePath,
                 ':schema_type'=>$schemaType, ':schema_data'=>$schemaData, ':canonical_url'=>$canonicalUrl,

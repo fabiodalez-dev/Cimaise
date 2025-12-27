@@ -11,7 +11,7 @@
      data-pswp-width="{{ image.width }}"
      data-pswp-height="{{ image.height }}"
      data-title="{{ image.caption|default('')|e }}"
-     data-alt="{{ image.alt|default(image.alt_text)|default('')|e }}"
+     data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
      data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
      data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
      data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
@@ -61,7 +61,7 @@
         {% endif %}
 
         <img src="{{ best_jpg_path }}"
-             alt="{{ image.alt|default(image.alt_text)|default('')|e }}"
+             alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
              title="{{ seo_title|e('html_attr') }}"
              width="{{ image.width }}"
              height="{{ image.height }}"

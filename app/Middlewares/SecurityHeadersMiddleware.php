@@ -34,8 +34,8 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
             $csp = "upgrade-insecure-requests; default-src 'self'; "
                  . "img-src 'self' data: blob:; "
                  . "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-                 . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-                 . "font-src 'self' https://fonts.gstatic.com data:; "
+                 . "style-src 'self' 'unsafe-inline'; "
+                 . "font-src 'self' data:; "
                  . "connect-src 'self'; "
                  . "frame-src 'self'; "
                  . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
@@ -43,8 +43,8 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
             $csp = "upgrade-insecure-requests; default-src 'self'; "
                  . "img-src 'self' data: blob:; "
                  . "script-src 'self' 'nonce-{$nonce}' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; "
-                 . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-                 . "font-src 'self' https://fonts.gstatic.com data:; "
+                 . "style-src 'self' 'unsafe-inline'; "
+                 . "font-src 'self' data:; "
                  . "connect-src 'self'; "
                  . "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; "
                  . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";

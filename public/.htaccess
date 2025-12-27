@@ -1,9 +1,15 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
+  # RewriteBase is auto-detected, uncomment and adjust for subdirectory installations
+  # RewriteBase /your-subdirectory/
+
   # SECURITY: Route /media/ requests through PHP for access control
   # Protected albums (password/NSFW) require session validation before serving
   RewriteRule ^media/(.+)$ index.php [QSA,L]
+
+  # Dynamic typography CSS (must go through PHP)
+  RewriteRule ^fonts/typography\.css$ index.php [QSA,L]
 
   # Serve real files and directories directly (media excluded above)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
@@ -13,3 +19,20 @@
   # Route all other requests to index.php
   RewriteRule ^ index.php [QSA,L]
 </IfModule>
+
+# Security headers (Apache)
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set X-XSS-Protection "1; mode=block"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Protect sensitive files
+<FilesMatch "^\.">
+  Order allow,deny
+  Deny from all
+</FilesMatch>

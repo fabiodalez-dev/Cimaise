@@ -228,7 +228,8 @@ body > footer.border-t {
         <div class="gallery-wall-item {{ isHorizontal ? 'horizontal' : 'vertical' }}">
           <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
             {% set imgSrc = image.fallback_src|default(image.original_path) %}
-            <img src="{{ base_path }}{{ imgSrc|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy">
+            {% set imgUrl = imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
+            <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy" decoding="async" data-fallback="hide">
             <div class="gallery-wall-overlay">
               <h3>{{ image.album_title|e }}</h3>
               <p>{{ image.category_name|e }}</p>
@@ -248,7 +249,8 @@ body > footer.border-t {
       <div class="gallery-mobile-item {{ isHorizontal and loop.index % 5 == 1 ? 'wide' : '' }}">
         <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
           {% set imgSrc = image.fallback_src|default(image.original_path) %}
-          <img src="{{ base_path }}{{ imgSrc|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy">
+          {% set imgUrl = imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
+          <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy" decoding="async" data-fallback="hide">
         </a>
       </div>
       {% endfor %}
@@ -271,7 +273,7 @@ body > footer.border-t {
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="{{ base_path }}/assets/js/home-gallery.js"></script>
+  <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/home-gallery.js"></script>
 <script nonce="{{ csp_nonce() }}">
 // Disable header hide on scroll for gallery wall
 document.body.classList.add('gallery-wall-page');

@@ -83,7 +83,7 @@
   {% set grid_cols = equipment_count <= 3 ? equipment_count : 3 %}
   
   <div class="max-w-5xl mx-auto mb-10 p-4 bg-neutral-50 rounded-lg">
-    <h3 class="text-sm font-medium mb-3 text-center">Equipment</h3>
+    <h3 class="text-sm mb-3 text-center" style="font-family: var(--font-body), system-ui, sans-serif !important; font-weight: 500 !important">{{ trans('album.equipment') }}</h3>
     <div class="grid grid-cols-1 {% if equipment_count > 1 %}md:grid-cols-{{ equipment_count <= 2 ? equipment_count : 2 }}{% endif %} {% if equipment_count > 2 %}lg:grid-cols-{{ grid_cols }}{% endif %} gap-4 text-xs text-neutral-600">
       {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
       <div class="flex flex-col items-center text-center">
@@ -273,7 +273,7 @@
   </section>
 </div>
 
-<style>
+<style nonce="{{ csp_nonce() }}">
 .m-mobile-wrap { display:block; }
 .m-desktop-wrap { display:none; }
 @media (min-width:768px){
