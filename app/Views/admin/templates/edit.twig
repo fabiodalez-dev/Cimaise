@@ -41,6 +41,7 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.layout_type') }}</label>
               <select class="form-input" name="layout" id="layout-select">
                 <option value="grid"{% if item.settings.layout == 'grid' %} selected{% endif %}>{{ trans('admin.templates.grid') }}</option>
+                <option value="dense_grid"{% if item.settings.layout == 'dense_grid' %} selected{% endif %}>{{ trans('admin.templates.dense_grid') }}</option>
                 <option value="masonry"{% if item.settings.layout == 'masonry' %} selected{% endif %}>{{ trans('admin.templates.masonry') }}</option>
                 <option value="masonry_fit"{% if item.settings.layout == 'masonry_fit' %} selected{% endif %}>{{ trans('admin.templates.masonry_full') }}</option>
                 <option value="slideshow"{% if item.settings.layout == 'slideshow' %} selected{% endif %}>{{ trans('admin.templates.slideshow') }}</option>
@@ -55,7 +56,7 @@
             </div>
           </div>
 
-          <div class="border-t pt-4">
+          <div class="border-t pt-4" id="columns-per-device-section" style="{% if item.settings.layout == 'dense_grid' %}display: none;{% endif %}">
             <h3 class="text-md font-medium text-gray-800 mb-3">{{ trans('admin.templates.columns_per_device') }}</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               {% set cols = item.settings.columns is defined ? item.settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
@@ -159,6 +160,71 @@
           </div>
         </div>
 
+        <div class="card p-6" id="dense-grid-settings" style="{% if item.settings.layout != 'dense_grid' %}display: none;{% endif %}">
+          <h2 class="text-lg font-medium text-gray-900 mb-4">
+            <i class="fas fa-th-large text-indigo-500 mr-2"></i>{{ trans('admin.templates.dense_grid_settings') }}
+          </h2>
+          <p class="text-sm text-gray-600 mb-4">
+            {{ trans('admin.templates.dense_grid_description') }}
+          </p>
+          {% set dense = item.settings.dense_grid|default({}) %}
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                <i class="fas fa-desktop text-gray-400 mr-1"></i>{{ trans('admin.templates.min_cell_desktop') }}
+              </label>
+              <input class="form-input" type="number" name="dense_min_desktop" min="100" max="500" step="10" value="{{ dense.minCellDesktop|default(300) }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.min_cell_hint') }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                <i class="fas fa-tablet-alt text-gray-400 mr-1"></i>{{ trans('admin.templates.min_cell_tablet') }}
+              </label>
+              <input class="form-input" type="number" name="dense_min_tablet" min="80" max="300" step="10" value="{{ dense.minCellTablet|default(150) }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.min_cell_hint') }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                <i class="fas fa-mobile-alt text-gray-400 mr-1"></i>{{ trans('admin.templates.cell_height_mobile') }}
+              </label>
+              <input class="form-input" type="number" name="dense_cell_mobile" min="150" max="500" step="10" value="{{ dense.cellHeightMobile|default(300) }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.cell_height_hint') }}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                <i class="fas fa-arrows-alt text-gray-400 mr-1"></i>{{ trans('admin.templates.grid_gap') }}
+              </label>
+              <input class="form-input" type="number" name="dense_gap" min="0" max="50" step="1" value="{{ dense.gap|default(15) }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.grid_gap_hint') }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                <i class="fas fa-expand-arrows-alt text-gray-400 mr-1"></i>{{ trans('admin.templates.max_width') }}
+              </label>
+              <input class="form-input" type="number" name="dense_max_width" min="800" max="2400" step="100" value="{{ dense.maxWidth|default(1400) }}">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.max_width_hint') }}</p>
+            </div>
+          </div>
+          <div class="border-t pt-4">
+            <h3 class="text-md font-medium text-gray-800 mb-3">{{ trans('admin.templates.adaptive_sizing') }}</h3>
+            <div class="space-y-3">
+              <label class="flex items-center">
+                <input type="checkbox" name="dense_adaptive" class="form-checkbox"{% if dense.adaptiveSizing is not defined or dense.adaptiveSizing %} checked{% endif %}>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.enable_adaptive') }}</span>
+              </label>
+              <p class="text-xs text-gray-500 ml-6">{{ trans('admin.templates.adaptive_description') }}</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 bg-indigo-50 rounded-lg">
+            <p class="text-xs text-indigo-700">
+              <i class="fas fa-info-circle mr-1"></i>
+              {{ trans('admin.templates.dense_grid_info') }}
+            </p>
+          </div>
+        </div>
+
         <div class="card p-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.photoswipe_settings') }}</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -244,6 +310,8 @@
     const mobileSelect = document.querySelector('select[name="columns_mobile"]');
     const masonryCheck = document.querySelector('input[name="masonry"]');
     const gapSettings = document.getElementById('masonry-gap-settings');
+    const denseSettings = document.getElementById('dense-grid-settings');
+    const columnsSection = document.getElementById('columns-per-device-section');
 
     function updatePreview() {
       document.getElementById('preview-layout').textContent = layoutSelect.options[layoutSelect.selectedIndex].text;
@@ -258,6 +326,14 @@
       // Show/hide masonry gap settings based on layout
       if (gapSettings) {
         gapSettings.style.display = (layout === 'masonry_fit') ? 'block' : 'none';
+      }
+      // Show/hide dense grid settings based on layout
+      if (denseSettings) {
+        denseSettings.style.display = (layout === 'dense_grid') ? 'block' : 'none';
+      }
+      // Show/hide columns section (not applicable to dense_grid which uses auto-fill)
+      if (columnsSection) {
+        columnsSection.style.display = (layout === 'dense_grid') ? 'none' : 'block';
       }
       // Auto-check masonry checkbox for masonry layouts
       if (layout === 'masonry_fit' || layout === 'masonry') {
