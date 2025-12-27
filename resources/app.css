@@ -257,7 +257,17 @@
   --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
 }
 
-/* Dark mode specific styles */
+/* ===================================================================
+ * DARK MODE SPECIFIC STYLES
+ *
+ * Note on !important usage (~200+ occurrences):
+ * - Required to override Tailwind utility classes with high specificity
+ * - Dark mode was added after initial development, not alongside it
+ * - All !important declarations are scoped to html.dark, so they don't
+ *   affect light mode or create specificity wars
+ * - For future refactoring: consider CSS custom properties or
+ *   dedicated theme utility classes to reduce !important usage
+ * =================================================================== */
 html.dark {
   color-scheme: dark;
 }
@@ -365,7 +375,7 @@ html.dark .bg-gray-50 { background-color: #0a0a0a !important; }
 html.dark .bg-gray-100 { background-color: #171717 !important; }
 html.dark .bg-gray-200 { background-color: #262626 !important; }
 html.dark .bg-white { background-color: #171717 !important; }
-html.dark .bg-black { background-color: #fafafa !important; }
+/* Note: .bg-black is handled with specific selectors (button.bg-black, a.bg-black) to preserve contrast */
 
 /* Dark mode for background opacity variants */
 html.dark .bg-white\/95 { background-color: rgba(23, 23, 23, 0.95) !important; }
@@ -391,7 +401,11 @@ html.dark .text-neutral-600 { color: #d4d4d4 !important; }
 html.dark .text-neutral-500 { color: #d4d4d4 !important; }
 html.dark .text-neutral-400 { color: #a3a3a3 !important; }
 
-/* Dark mode for ALL headings (not just .text-black) */
+/* Dark mode for ALL headings (not just .text-black)
+ * Note: Uses !important to override Tailwind utilities
+ * This is acceptable for this photo gallery app which doesn't use semantic heading colors
+ * If semantic colors are needed in future (e.g. red headings for errors),
+ * consider using more specific selectors or dedicated classes */
 html.dark h1,
 html.dark h2,
 html.dark h3,
