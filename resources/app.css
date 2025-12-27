@@ -401,10 +401,20 @@ html.dark h6 {
   color: #fafafa !important;
 }
 
-/* Dark mode for paragraphs and spans */
-html.dark p,
-html.dark span {
-  color: #d4d4d4 !important;
+/* Dark mode for paragraphs and spans (non semantic) */
+html.dark .card p,
+html.dark .gallery-card p,
+html.dark .album-card p,
+html.dark article p,
+html.dark .description p,
+html.dark .caption p {
+  color: #d4d4d4;
+}
+
+html.dark .card span:not([class*="text-"]),
+html.dark .gallery-card span:not([class*="text-"]),
+html.dark .album-card span:not([class*="text-"]) {
+  color: #d4d4d4;
 }
 
 /* Override for explicitly white text */
@@ -964,6 +974,80 @@ html.dark #toggle-filters i {
 
 html.dark #toggle-filters span {
   color: #171717 !important;
+}
+
+/* ===== DARK MODE: ALL BLACK BUTTONS ===== */
+html.dark .bg-black {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark .bg-black:hover,
+html.dark .hover\:bg-gray-800:hover,
+html.dark .hover\:bg-neutral-800:hover {
+  background-color: #e5e5e5 !important;
+  color: #171717 !important;
+}
+
+html.dark .bg-black i {
+  color: #171717 !important;
+}
+
+/* Dark mode for apply-filters button */
+html.dark #apply-filters,
+html.dark #apply-image-filters {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark #apply-filters:hover,
+html.dark #apply-image-filters:hover {
+  background-color: #e5e5e5 !important;
+}
+
+html.dark #apply-filters i,
+html.dark #apply-image-filters i {
+  color: #171717 !important;
+}
+
+/* Dark mode for clear-filters button */
+html.dark [data-action="clear-filters"] {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark [data-action="clear-filters"]:hover {
+  background-color: #e5e5e5 !important;
+}
+
+html.dark [data-action="clear-filters"] i {
+  color: #171717 !important;
+}
+
+/* Dark mode for NSFW confirm buttons */
+html.dark [data-action="confirm-nsfw"],
+html.dark [data-action="confirm-nsfw-album"],
+html.dark #nsfw-global-confirm-btn,
+html.dark #nsfw-confirm-btn {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark [data-action="confirm-nsfw"]:hover,
+html.dark [data-action="confirm-nsfw-album"]:hover,
+html.dark #nsfw-global-confirm-btn:hover,
+html.dark #nsfw-confirm-btn:hover {
+  background-color: #e5e5e5 !important;
+}
+
+/* Dark mode for category badges on cards */
+html.dark .bg-white\/80 {
+  background-color: rgba(23, 23, 23, 0.8) !important;
+  color: #fafafa !important;
+}
+
+html.dark .bg-white\/80:hover {
+  background-color: #262626 !important;
 }
 
 /* ===== DARK MODE: GALLERIES PAGE ===== */
