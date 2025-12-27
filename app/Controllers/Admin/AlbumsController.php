@@ -214,8 +214,8 @@ class AlbumsController extends BaseController
         } catch (\Throwable $e) {
             // Fallback for old DB schema without custom fields
             try {
-                $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, allow_downloads, is_nsfw, password_hash) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:dl,:nsfw,:ph)');
-                $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':dl'=>$allow_downloads, ':nsfw'=>$is_nsfw, ':ph'=>$password_hash]);
+                $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, allow_downloads, is_nsfw, allow_template_switch, password_hash) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:dl,:nsfw,:ats,:ph)');
+                $stmt->execute([':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':dl'=>$allow_downloads, ':nsfw'=>$is_nsfw, ':ats'=>$allow_template_switch, ':ph'=>$password_hash]);
             } catch (\Throwable $e2) {
                 // Final fallback
                 $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, allow_downloads) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:dl)');
@@ -650,10 +650,10 @@ class AlbumsController extends BaseController
                 // SEO fields don't exist yet, continue without error
             }
         }
-        // Try to update downloads, NSFW and password when columns exist
+        // Try to update downloads, NSFW, template switch and password when columns exist
         try {
-            $set = 'allow_downloads = :dl, is_nsfw = :nsfw';
-            $params = [':dl'=>$allow_downloads, ':nsfw'=>$is_nsfw, ':id'=>$id];
+            $set = 'allow_downloads = :dl, is_nsfw = :nsfw, allow_template_switch = :ats';
+            $params = [':dl'=>$allow_downloads, ':nsfw'=>$is_nsfw, ':ats'=>$allow_template_switch, ':id'=>$id];
             if ($clearPassword) {
                 $set .= ', password_hash = NULL';
             } elseif ($passwordRaw !== '') {
