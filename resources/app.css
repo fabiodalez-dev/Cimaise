@@ -742,3 +742,233 @@ html.dark .hover\:bg-neutral-100:hover {
 html.dark .hover\:text-black:hover {
   color: #fafafa !important;
 }
+
+/* ===== DARK MODE: HOME GRADIENTS ===== */
+/* Vertical veils */
+html.dark .home-veil-top {
+  background: linear-gradient(180deg, rgb(10 10 10) 0%, rgb(10 10 10) 77%, rgb(10 10 10 / 12%) 100%) !important;
+}
+
+html.dark .home-veil-bottom {
+  background: linear-gradient(0deg, rgb(10 10 10) 0%, rgb(10 10 10) 77%, rgb(10 10 10 / 12%) 100%) !important;
+}
+
+/* Horizontal veils */
+html.dark .home-veil-left {
+  background: linear-gradient(90deg, rgb(10 10 10) 0%, rgb(10 10 10) 77%, rgb(10 10 10 / 12%) 100%) !important;
+}
+
+html.dark .home-veil-right {
+  background: linear-gradient(270deg, rgb(10 10 10) 0%, rgb(10 10 10) 77%, rgb(10 10 10 / 12%) 100%) !important;
+}
+
+/* Albums carousel edges */
+html.dark .albums-edge-left {
+  background: linear-gradient(to right, rgba(10,10,10,1) 0%, rgba(10,10,10,0.8) 30%, rgba(10,10,10,0) 100%) !important;
+}
+
+html.dark .albums-edge-right {
+  background: linear-gradient(to left, rgba(10,10,10,1) 0%, rgba(10,10,10,0.8) 30%, rgba(10,10,10,0) 100%) !important;
+}
+
+/* Albums carousel arrows */
+html.dark .albums-arrow {
+  background: rgba(23,23,23,.9) !important;
+  color: #fafafa !important;
+  border-color: rgba(255,255,255,.08) !important;
+}
+
+html.dark .albums-arrow:hover {
+  background: rgba(38,38,38,.95) !important;
+}
+
+/* ===== DARK MODE: GALLERY WALL ===== */
+html.dark .gallery-wall-container {
+  background: #0a0a0a !important;
+}
+
+html.dark .gallery-wall-item::after {
+  background: #171717 !important;
+}
+
+/* ===== DARK MODE: MODERN HOME ===== */
+html.dark .global-head {
+  background-color: #0a0a0a !important;
+  border-color: #262626 !important;
+}
+
+html.dark .head-logo_text {
+  color: #fafafa !important;
+}
+
+html.dark .menu-btn {
+  background-color: rgba(23, 23, 23, 0.9) !important;
+  color: #fafafa !important;
+}
+
+html.dark .menu-btn:hover {
+  background-color: rgba(38, 38, 38, 0.95) !important;
+}
+
+html.dark .page-content {
+  background-color: #0a0a0a !important;
+}
+
+html.dark .work-col.is-static {
+  background-color: #0a0a0a !important;
+  color: #fafafa !important;
+}
+
+html.dark .grid-toggle_item {
+  color: #a3a3a3 !important;
+}
+
+html.dark .grid-toggle_item.is-active {
+  color: #fafafa !important;
+}
+
+html.dark .grid-toggle_item:hover {
+  color: #fafafa !important;
+  background-color: rgba(38, 38, 38, 0.5) !important;
+}
+
+html.dark .body-copy,
+html.dark .paragraph {
+  color: #d4d4d4 !important;
+}
+
+html.dark .menu-component {
+  background-color: rgba(10, 10, 10, 0.98) !important;
+}
+
+html.dark .mega-menu_link {
+  color: #fafafa !important;
+}
+
+html.dark .mega-menu_link:hover {
+  color: #d4d4d4 !important;
+}
+
+html.dark .modern-search-panel {
+  background-color: rgba(23, 23, 23, 0.98) !important;
+  border-color: #262626 !important;
+}
+
+html.dark .modern-search-input {
+  background-color: #171717 !important;
+  color: #fafafa !important;
+  border-color: #404040 !important;
+}
+
+html.dark .modern-search-input::placeholder {
+  color: #737373 !important;
+}
+
+html.dark .modern-search-input:focus {
+  border-color: #fafafa !important;
+}
+
+html.dark .modern-search-suggestions {
+  background-color: #171717 !important;
+  border-color: #262626 !important;
+}
+
+html.dark .modern-search-suggestions__title {
+  color: #fafafa !important;
+}
+
+html.dark .modern-search-suggestions__subtitle {
+  color: #a3a3a3 !important;
+}
+
+html.dark .modern-search-suggestions button:hover {
+  background-color: #262626 !important;
+}
+
+/* ===== DARK MODE: FILTER TOGGLE BUTTON ===== */
+html.dark #toggle-filters {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark #toggle-filters:hover {
+  background-color: #e5e5e5 !important;
+}
+
+html.dark #toggle-filters i {
+  color: #171717 !important;
+}
+
+html.dark #toggle-filters span {
+  color: #171717 !important;
+}
+
+/* ===== DARK MODE: GALLERIES PAGE ===== */
+html.dark .max-w-7xl {
+  background-color: transparent !important;
+}
+
+/* Ensure main containers have proper dark background */
+html.dark main,
+html.dark .container {
+  background-color: transparent !important;
+}
+
+/* ===== DARK MODE: TEMPLATE SWITCH BUTTONS ===== */
+html.dark .tpl-switch {
+  background-color: #262626 !important;
+  color: #fafafa !important;
+  border-color: #404040 !important;
+}
+
+html.dark .tpl-switch:hover {
+  background-color: #404040 !important;
+}
+
+html.dark .tpl-switch.active,
+html.dark .tpl-switch.is-active,
+html.dark .tpl-switch[aria-pressed="true"] {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark .tpl-switch.active i,
+html.dark .tpl-switch.is-active i,
+html.dark .tpl-switch[aria-pressed="true"] i {
+  color: #171717 !important;
+}
+
+/* ===== DARK MODE: PHOTOSWIPE EXIF PANEL HEADER ===== */
+html.dark .pswp__exif-panel-header {
+  background-color: #171717 !important;
+  border-color: #262626 !important;
+}
+
+html.dark .pswp__exif-panel-header h3 {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-panel-close {
+  color: #fafafa !important;
+  background-color: transparent !important;
+}
+
+html.dark .pswp__exif-panel-close:hover {
+  background-color: #262626 !important;
+}
+
+html.dark .pswp__exif-panel-close i {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-label {
+  color: #a3a3a3 !important;
+}
+
+html.dark .pswp__exif-value {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-item-content {
+  color: #fafafa !important;
+}
