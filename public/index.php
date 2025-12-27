@@ -111,26 +111,46 @@ if ((bool)($_ENV['APP_DEBUG'] ?? false) === false) {
 }
 session_start();
 
-$app = AppFactory::create();
-
-// Set base path for subdirectory installations
+// Calculate base path once for subdirectory installations
 // Note: PHP built-in server sets SCRIPT_NAME to the requested URI when using a router,
 // so we need to detect this and use an empty base path instead
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
 $scriptDir = dirname($scriptName);
-
-// Detect PHP built-in server (no actual script like index.php in SCRIPT_NAME)
 $isBuiltInServer = php_sapi_name() === 'cli-server';
-if ($isBuiltInServer) {
-    // Built-in server with router: base path is always empty
-    $basePath = '';
-} else {
-    $basePath = $scriptDir === '/' ? '' : $scriptDir;
-    // Remove /public from the base path if present (since document root should be public/)
-    if (str_ends_with($basePath, '/public')) {
-        $basePath = substr($basePath, 0, -7); // Remove '/public'
+$basePath = $isBuiltInServer ? '' : ($scriptDir === '/' ? '' : $scriptDir);
+// Remove /public from the base path if present (since document root should be public/)
+if (str_ends_with($basePath, '/public')) {
+    $basePath = substr($basePath, 0, -7);
+}
+
+// Maintenance mode check - must be after session_start() and before routing
+if ($container['db'] !== null && !$isInstallerRoute) {
+    $maintenancePluginFile = __DIR__ . '/../plugins/maintenance-mode/plugin.php';
+    if (file_exists($maintenancePluginFile)) {
+        // Check if plugin is active
+        try {
+            $pluginCheckStmt = $container['db']->pdo()->prepare('SELECT is_active FROM plugin_status WHERE slug = ? AND is_installed = 1');
+            $pluginCheckStmt->execute(['maintenance-mode']);
+            $pluginStatus = $pluginCheckStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($pluginStatus && $pluginStatus['is_active']) {
+                require_once $maintenancePluginFile;
+
+                if (MaintenanceModePlugin::shouldShowMaintenancePage($container['db'])) {
+                    // Get configuration and render maintenance page (uses $basePath calculated above)
+                    $config = MaintenanceModePlugin::getMaintenanceConfig($container['db']);
+                    require __DIR__ . '/../plugins/maintenance-mode/templates/maintenance.php';
+                    exit;
+                }
+            }
+        } catch (\Throwable $e) {
+            // If plugin check fails, continue normally
+            error_log('Maintenance mode check failed: ' . $e->getMessage());
+        }
     }
 }
+
+$app = AppFactory::create();
 
 if ($basePath) {
     $app->setBasePath($basePath);
