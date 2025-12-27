@@ -976,20 +976,33 @@ html.dark #toggle-filters span {
   color: #171717 !important;
 }
 
-/* ===== DARK MODE: ALL BLACK BUTTONS ===== */
-html.dark .bg-black {
+/* ===== DARK MODE: BLACK BUTTONS (Specific selectors only) ===== */
+/* Only invert buttons/interactive elements, not all .bg-black */
+html.dark button.bg-black,
+html.dark a.bg-black,
+html.dark .bg-black.text-white {
   background-color: #fafafa !important;
   color: #171717 !important;
 }
 
-html.dark .bg-black:hover,
-html.dark .hover\:bg-gray-800:hover,
-html.dark .hover\:bg-neutral-800:hover {
+html.dark button.bg-black:hover,
+html.dark a.bg-black:hover,
+html.dark button.hover\:bg-gray-800:hover,
+html.dark button.hover\:bg-neutral-800:hover {
   background-color: #e5e5e5 !important;
   color: #171717 !important;
 }
 
-html.dark .bg-black i {
+html.dark button.bg-black i,
+html.dark a.bg-black i,
+html.dark .bg-black.text-white i {
+  color: #171717 !important;
+}
+
+html.dark button.bg-black .text-white,
+html.dark a.bg-black .text-white,
+html.dark button.bg-black span,
+html.dark a.bg-black span {
   color: #171717 !important;
 }
 
