@@ -184,7 +184,7 @@ class PageController extends BaseController
         
         // Get random images from all published albums for infinite scroll
         // Include NSFW albums if user has global consent, always exclude password-protected albums
-        $nsfwFilter = ($isAdmin || $nsfwConsent) ? '' : 'AND a.is_nsfw = 0';
+        $includeNsfw = ($isAdmin || $nsfwConsent) ? 1 : 0;
         $stmt = $pdo->prepare("
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description,
@@ -193,12 +193,12 @@ class PageController extends BaseController
             JOIN albums a ON a.id = i.album_id
             JOIN categories c ON c.id = a.category_id
             WHERE a.is_published = 1
-              {$nsfwFilter}
+              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
             ORDER BY RANDOM()
             LIMIT 500
         ");
-        $stmt->execute();
+        $stmt->execute([':include_nsfw' => $includeNsfw]);
         $allImages = $stmt->fetchAll();
         
         // Process images with responsive sources

@@ -326,10 +326,22 @@ class ExifService
         return $meta;
     }
 
-    private function cleanString(?string $str): ?string
+    private function cleanString($value): ?string
     {
-        if (!$str) return null;
-        return trim(preg_replace('/\s+/', ' ', $str));
+        if ($value === null) return null;
+
+        if (is_array($value)) {
+            $parts = [];
+            foreach ($value as $item) {
+                if ($item === null || $item === '') continue;
+                if (is_array($item)) continue;
+                $parts[] = (string)$item;
+            }
+            $value = implode(' ', $parts);
+        }
+
+        $str = trim(preg_replace('/\s+/', ' ', (string)$value));
+        return $str === '' ? null : $str;
     }
 
     private function rationalToFloat($val): ?float
@@ -1442,4 +1454,3 @@ class ExifService
         ];
     }
 }
-
