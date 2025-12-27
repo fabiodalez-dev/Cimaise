@@ -29,11 +29,22 @@ class SettingsController extends BaseController
         } catch (\Throwable $e) {
             // Templates table doesn't exist yet
         }
-        
-        
+
+        // Check if maintenance-mode plugin is active
+        $maintenancePluginActive = false;
+        try {
+            $stmt = $this->db->pdo()->prepare('SELECT is_active FROM plugin_status WHERE slug = ? AND is_installed = 1');
+            $stmt->execute(['maintenance-mode']);
+            $pluginStatus = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $maintenancePluginActive = $pluginStatus && $pluginStatus['is_active'];
+        } catch (\Throwable $e) {
+            // Plugin table doesn't exist yet
+        }
+
         return $this->view->render($response, 'admin/settings.twig', [
             'settings' => $settings,
             'templates' => $templates,
+            'maintenancePluginActive' => $maintenancePluginActive,
             'csrf' => $_SESSION['csrf'] ?? '',
         ]);
     }
@@ -186,6 +197,13 @@ class SettingsController extends BaseController
         $svc->set('frontend.disable_right_click', $disableRightClick);
         $svc->set('navigation.show_tags_in_header', isset($data['show_tags_in_header']));
         $svc->set('privacy.nsfw_global_warning', isset($data['nsfw_global_warning']));
+
+        // Maintenance Mode settings (dot notation for consistency)
+        $svc->set('maintenance.enabled', isset($data['maintenance_enabled']));
+        $svc->set('maintenance.title', trim((string)($data['maintenance_title'] ?? '')));
+        $svc->set('maintenance.message', trim((string)($data['maintenance_message'] ?? '')));
+        $svc->set('maintenance.show_logo', isset($data['maintenance_show_logo']));
+        $svc->set('maintenance.show_countdown', isset($data['maintenance_show_countdown']));
 
         $_SESSION['flash'][] = ['type'=>'success','message'=> trans('admin.flash.settings_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
