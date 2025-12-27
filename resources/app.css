@@ -561,14 +561,35 @@ html.dark #main-header .bg-gray-900:hover {
   background-color: #e5e5e5 !important;
 }
 
+html.dark #main-header .bg-gray-900 i {
+  color: #171717 !important;
+}
+
+html.dark #main-header .bg-gray-900 span {
+  color: #171717 !important;
+}
+
 html.dark #main-header .text-white {
   color: #171717 !important;
+}
+
+/* Dark mode for social profile icons in header */
+html.dark #main-header .text-gray-600 {
+  color: #d4d4d4 !important;
+}
+
+html.dark #main-header .text-gray-600:hover {
+  color: #fafafa !important;
+}
+
+html.dark #main-header .hover\:text-gray-900:hover {
+  color: #fafafa !important;
 }
 
 /* Dark mode for icon colors in header */
 html.dark #main-header i,
 html.dark #main-header svg {
-  color: #fafafa;
+  color: inherit;
 }
 
 /* Dark mode for mobile category groups */
@@ -750,29 +771,29 @@ html.dark .hover\:text-black:hover {
 /* ===== DARK MODE: HOME GRADIENTS ===== */
 /* Vertical veils */
 html.dark .home-veil-top {
-  background: linear-gradient(180deg, rgb(10 10 10) 0%, rgb(10 10 10) 77%, rgb(10 10 10 / 12%) 100%) !important;
+  background: linear-gradient(180deg, #0a0a0a 0%, #0a0a0a 77%, transparent 100%) !important;
 }
 
 html.dark .home-veil-bottom {
-  background: linear-gradient(0deg, rgb(10 10 10) 0%, rgb(10 10 10) 77%, rgb(10 10 10 / 12%) 100%) !important;
+  background: linear-gradient(0deg, #0a0a0a 0%, #0a0a0a 77%, transparent 100%) !important;
 }
 
 /* Horizontal veils */
 html.dark .home-veil-left {
-  background: linear-gradient(90deg, rgb(10 10 10) 0%, rgb(10 10 10) 77%, rgb(10 10 10 / 12%) 100%) !important;
+  background: linear-gradient(90deg, #0a0a0a 0%, #0a0a0a 77%, transparent 100%) !important;
 }
 
 html.dark .home-veil-right {
-  background: linear-gradient(270deg, rgb(10 10 10) 0%, rgb(10 10 10) 77%, rgb(10 10 10 / 12%) 100%) !important;
+  background: linear-gradient(270deg, #0a0a0a 0%, #0a0a0a 77%, transparent 100%) !important;
 }
 
 /* Albums carousel edges */
 html.dark .albums-edge-left {
-  background: linear-gradient(to right, rgba(10,10,10,1) 0%, rgba(10,10,10,0.8) 30%, rgba(10,10,10,0) 100%) !important;
+  background: linear-gradient(to right, #0a0a0a 0%, #0a0a0a 30%, transparent 100%) !important;
 }
 
 html.dark .albums-edge-right {
-  background: linear-gradient(to left, rgba(10,10,10,1) 0%, rgba(10,10,10,0.8) 30%, rgba(10,10,10,0) 100%) !important;
+  background: linear-gradient(to left, #0a0a0a 0%, #0a0a0a 30%, transparent 100%) !important;
 }
 
 /* Albums carousel arrows */
@@ -820,6 +841,27 @@ html.dark .page-content {
 
 html.dark .work-col.is-static {
   background-color: #0a0a0a !important;
+  color: #fafafa !important;
+}
+
+html.dark .work-col.is-work {
+  background-color: transparent !important;
+  color: #fafafa !important;
+}
+
+html.dark .inf-work_wrap {
+  background-color: transparent !important;
+}
+
+html.dark .inf-work_list {
+  background-color: transparent !important;
+}
+
+html.dark .inf-work_item {
+  background-color: transparent !important;
+}
+
+html.dark .inf-work_link {
   color: #fafafa !important;
 }
 
