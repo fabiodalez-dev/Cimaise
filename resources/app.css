@@ -277,11 +277,11 @@ html.dark .pswp__bg {
 html.dark .pswp__button,
 html.dark .pswp__button--arrow--left,
 html.dark .pswp__button--arrow--right {
-  background-color: rgba(250, 250, 250, 0.1) !important;
+  background-color: transparent !important;
 }
 
 html.dark .pswp__button:hover {
-  background-color: rgba(250, 250, 250, 0.2) !important;
+  background-color: rgba(250, 250, 250, 0.1) !important;
 }
 
 html.dark .pswp__caption {
@@ -290,6 +290,28 @@ html.dark .pswp__caption {
 }
 
 html.dark .pswp__caption__center {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__icn {
+  color: #fafafa !important;
+  fill: #fafafa !important;
+}
+
+html.dark .pswp__exif-panel {
+  background-color: rgba(10, 10, 10, 0.95) !important;
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-panel i {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-panel .pswp__exif-icon {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-panel .pswp__exif-icon i {
   color: #fafafa !important;
 }
 
@@ -352,3 +374,341 @@ html.dark .hover\:bg-gray-100:hover { background-color: #262626; }
 html.dark .hover\:bg-gray-200:hover { background-color: #404040; }
 html.dark .hover\:bg-gray-800:hover { background-color: #f5f5f5; }
 html.dark .hover\:text-gray-900:hover { color: #fafafa; }
+
+/* Dark mode for text-black elements */
+html.dark .text-black { color: #fafafa !important; }
+
+/* Dark mode for header and navigation */
+html.dark #main-header {
+  background-color: rgba(23, 23, 23, 0.95) !important;
+  border-color: #262626 !important;
+}
+
+html.dark #main-header h1 a,
+html.dark #main-header nav a,
+html.dark #main-header button {
+  color: #fafafa;
+}
+
+html.dark #main-header h1 a:hover,
+html.dark #main-header nav a:hover,
+html.dark #main-header button:hover {
+  color: #d4d4d4;
+}
+
+/* Dark mode for text colors in header */
+html.dark #main-header .text-gray-600,
+html.dark #main-header .text-gray-700,
+html.dark #main-header .text-gray-800,
+html.dark #main-header .text-gray-900 {
+  color: #fafafa;
+}
+
+/* Dark mode for mega menu and dropdowns */
+html.dark #categories-mega-menu,
+html.dark #tags-mega-menu {
+  background-color: #171717 !important;
+  border-color: #262626 !important;
+}
+
+html.dark .category-parent-item h3,
+html.dark .tag-item span {
+  color: #fafafa;
+}
+
+html.dark .category-parent-item:hover h3,
+html.dark .tag-item:hover span {
+  color: #ffffff;
+}
+
+html.dark .category-parent-item .bg-gray-50,
+html.dark .tag-item .bg-gray-100 {
+  background-color: #262626;
+}
+
+html.dark .category-parent-item:hover .bg-gray-50,
+html.dark .tag-item:hover .bg-gray-100 {
+  background-color: #404040;
+}
+
+/* Dark mode for search panel */
+html.dark #header-search-panel {
+  background-color: rgba(23, 23, 23, 0.95) !important;
+  border-color: #262626 !important;
+}
+
+html.dark .header-search-input,
+html.dark #header-search {
+  background-color: #171717 !important;
+  border-color: #404040 !important;
+  color: #fafafa !important;
+}
+
+html.dark .header-search-input::placeholder,
+html.dark #header-search::placeholder {
+  color: #737373;
+}
+
+html.dark #header-search-suggestions {
+  background-color: #171717 !important;
+  border-color: #262626 !important;
+}
+
+/* Dark mode for mobile menu */
+html.dark #mobile-menu {
+  background-color: rgba(23, 23, 23, 0.98) !important;
+  border-color: #262626 !important;
+}
+
+html.dark #mobile-menu a {
+  color: #fafafa;
+}
+
+html.dark #mobile-menu a:hover {
+  background-color: #262626 !important;
+}
+
+html.dark #mobile-menu a.bg-white {
+  background-color: #262626 !important;
+  color: #fafafa !important;
+}
+
+html.dark #mobile-menu .text-gray-500 {
+  color: #a3a3a3;
+}
+
+html.dark #mobile-menu .bg-gray-100 {
+  background-color: #262626;
+}
+
+/* Dark mode for filters panel */
+html.dark #filters-panel {
+  background-color: rgba(23, 23, 23, 0.8) !important;
+  border-color: #262626 !important;
+}
+
+html.dark #filters-panel label {
+  color: #d4d4d4;
+}
+
+html.dark #filters-panel select,
+html.dark #filters-panel input {
+  background-color: #171717 !important;
+  border-color: #404040 !important;
+  color: #fafafa !important;
+}
+
+html.dark #filters-panel select:focus,
+html.dark #filters-panel input:focus {
+  border-color: #525252 !important;
+}
+
+/* Dark mode for buttons in filters */
+html.dark #filters-panel button {
+  color: #fafafa;
+}
+
+html.dark #filters-panel .bg-black {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark #filters-panel .bg-black:hover {
+  background-color: #e5e5e5 !important;
+}
+
+/* Dark mode for admin button in header */
+html.dark #main-header .bg-gray-900 {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark #main-header .bg-gray-900:hover {
+  background-color: #e5e5e5 !important;
+}
+
+html.dark #main-header .text-white {
+  color: #171717 !important;
+}
+
+/* Dark mode for icon colors in header */
+html.dark #main-header i,
+html.dark #main-header svg {
+  color: #fafafa;
+}
+
+/* Dark mode for mobile category groups */
+html.dark .mobile-category-group a {
+  color: #fafafa;
+}
+
+html.dark .mobile-category-group .bg-gray-100 {
+  background-color: #262626;
+}
+
+html.dark .mobile-category-group i {
+  color: #a3a3a3;
+}
+
+/* Dark mode for hover effects in navigation */
+html.dark #main-header .hover\:text-gray-600:hover {
+  color: #d4d4d4 !important;
+}
+
+html.dark #main-header .hover\:bg-gray-50:hover {
+  background-color: #262626 !important;
+}
+
+/* Dark mode for page titles and headings */
+html.dark h1.text-black,
+html.dark h2.text-black,
+html.dark h3.text-black,
+html.dark h4.text-black,
+html.dark h5.text-black,
+html.dark h6.text-black {
+  color: #fafafa !important;
+}
+
+/* Dark mode for filters section */
+html.dark #filters-section {
+  background-color: rgba(23, 23, 23, 0.95) !important;
+  border-color: #262626 !important;
+}
+
+html.dark #filters-section .text-gray-600,
+html.dark #filters-section .text-gray-900 {
+  color: #fafafa;
+}
+
+html.dark #filters-section .bg-black {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark #filters-section .bg-black:hover {
+  background-color: #e5e5e5 !important;
+}
+
+html.dark #filters-section input,
+html.dark #filters-section select {
+  background-color: #171717 !important;
+  border-color: #404040 !important;
+  color: #fafafa !important;
+}
+
+html.dark #filters-section input::placeholder {
+  color: #737373;
+}
+
+html.dark #filters-section .filter-chip {
+  background-color: #262626;
+  color: #fafafa;
+  border-color: #404040;
+}
+
+html.dark #filters-section .filter-chip:hover {
+  background-color: #404040;
+}
+
+html.dark #filters-section .filter-chip[aria-pressed="true"] {
+  background-color: #fafafa;
+  color: #171717;
+}
+
+html.dark #filters-section .hover\:bg-gray-100:hover {
+  background-color: #262626 !important;
+}
+
+/* Dark mode for gallery cards */
+html.dark .gallery-card {
+  background-color: #171717 !important;
+}
+
+html.dark .gallery-card h3.text-black {
+  color: #fafafa !important;
+}
+
+html.dark .gallery-card .text-gray-600 {
+  color: #d4d4d4 !important;
+}
+
+html.dark .gallery-card .text-gray-500 {
+  color: #d4d4d4 !important;
+}
+
+html.dark .gallery-card .text-black {
+  color: #fafafa;
+}
+
+html.dark .gallery-card:hover h3 {
+  color: #e5e5e5 !important;
+}
+
+html.dark .gallery-card .bg-gray-100 {
+  background-color: #262626;
+}
+
+/* Dark mode for album descriptions */
+html.dark p.text-gray-600 {
+  color: #d4d4d4 !important;
+}
+
+/* Dark mode for category badges */
+html.dark .bg-white\/90 {
+  background-color: rgba(23, 23, 23, 0.9) !important;
+  color: #fafafa !important;
+}
+
+/* Dark mode for image count badges */
+html.dark .bg-black\/70 {
+  background-color: rgba(250, 250, 250, 0.7) !important;
+  color: #171717 !important;
+}
+
+/* Dark mode for filter labels and icons */
+html.dark .filter-group label {
+  color: #fafafa !important;
+}
+
+html.dark .filter-group i {
+  color: #a3a3a3;
+}
+
+/* Dark mode for active filters count */
+html.dark #results-count {
+  color: #d4d4d4;
+}
+
+html.dark #clear-filters {
+  color: #a3a3a3;
+}
+
+html.dark #clear-filters:hover {
+  color: #ef4444;
+  background-color: #262626 !important;
+}
+
+/* Dark mode for category/tag badges */
+html.dark .bg-neutral-50 {
+  background-color: #262626 !important;
+}
+
+html.dark .text-neutral-700 {
+  color: #d4d4d4 !important;
+}
+
+html.dark .border-neutral-300 {
+  border-color: #404040 !important;
+}
+
+html.dark .bg-neutral-700 {
+  background-color: #d4d4d4 !important;
+}
+
+html.dark .hover\:bg-neutral-100:hover {
+  background-color: #404040 !important;
+}
+
+html.dark .hover\:text-black:hover {
+  color: #fafafa !important;
+}
