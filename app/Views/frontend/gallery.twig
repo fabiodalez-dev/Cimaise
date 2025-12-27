@@ -178,7 +178,9 @@
       <div id="template-switcher" class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm max-md:hidden">
         {% for template in available_templates %}
         <button type="button" class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" title="{{ template.name }}" aria-label="{{ template.name }}">
-          {% if template.settings.layout == 'masonry_fit' %}
+          {% if template.settings.layout == 'dense_grid' %}
+            <i class="fas fa-th-large"></i>
+          {% elseif template.settings.layout == 'masonry_fit' %}
             <i class="fas fa-expand-arrows-alt"></i>
           {% elseif template.settings.layout == 'slideshow' and 'swiper' in template.libs %}
             <i class="fas fa-play-circle"></i>
@@ -587,6 +589,166 @@
       {% endfor %}
     </div>
 
+  {# 7. DENSE GRID - Responsive CSS Grid with auto-flow dense and adaptive image sizing #}
+  {% elseif layout == 'dense_grid' %}
+    {% set dense = template_settings.dense_grid|default({}) %}
+    {% set minDesktop = dense.minCellDesktop|default(250) %}
+    {% set minTablet = dense.minCellTablet|default(150) %}
+    {% set cellMobile = dense.cellHeightMobile|default(300) %}
+    {% set gridGap = dense.gap|default(15) %}
+    {% set maxWidth = dense.maxWidth|default(1400) %}
+    {% set adaptive = dense.adaptiveSizing|default(true) %}
+    <div id="images-gallery" class="dense-grid pswp-gallery" data-layout="dense_grid" data-adaptive="{{ adaptive ? 'true' : 'false' }}">
+      {% for image in images %}
+      <div class="dense-grid-item" data-image-id="{{ image.id }}" data-width="{{ image.width|default(0) }}" data-height="{{ image.height|default(0) }}">
+        <div class="dense-loading"></div>
+        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
+           class="pswp-link dense-grid-link"
+           title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
+           data-pswp-width="{{ image.width|default(1600) }}"
+           data-pswp-height="{{ image.height|default(1067) }}"
+           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
+           data-title="{{ image.caption|default('')|e }}"
+           data-alt="{{ image.alt|default('')|e }}"
+           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
+           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
+           data-developer="{{ image.developer_name|default('')|e }}"
+           data-lab="{{ image.lab_name|default('')|e }}"
+           data-location="{{ image.location_name|default('')|e }}"
+           data-iso="{{ image.iso|default('') }}"
+           data-shutter="{{ image.shutter_speed|default('')|e }}"
+           data-aperture="{{ image.aperture|default('') }}"
+           data-focal-length="{{ image.focal_length|default('') }}"
+           data-exif-make="{{ image.exif_make|default('')|e }}"
+           data-exif-model="{{ image.exif_model|default('')|e }}"
+           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+           data-gps-lat="{{ image.gps_lat|default('') }}"
+           data-gps-lng="{{ image.gps_lng|default('') }}"
+           data-date-original="{{ image.date_original|default('')|e }}"
+           data-artist="{{ image.artist|default('')|e }}"
+           data-copyright="{{ image.copyright|default('')|e }}"
+           data-process="{{ image.process|default('')|e }}"
+           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
+        >
+          <picture>
+            {% if image.sources and image.sources.avif|length %}
+              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+            {% endif %}
+            {% if image.sources and image.sources.webp|length %}
+              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+            {% endif %}
+            {% if image.sources and image.sources.jpg|length %}
+              <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+            {% endif %}
+            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="dense-grid-img" loading="lazy" decoding="async" data-fallback="hide">
+          </picture>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <style nonce="{{ csp_nonce() }}">
+    /* Dense Grid Layout - CSS Grid with auto-flow dense */
+    .dense-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax({{ minDesktop }}px, 1fr));
+      grid-auto-rows: {{ minDesktop }}px;
+      gap: {{ gridGap }}px;
+      grid-auto-flow: dense;
+      max-width: {{ maxWidth }}px;
+      margin: 0 auto;
+      padding: 0 {{ gridGap }}px;
+    }
+    .dense-grid-item {
+      position: relative;
+      overflow: hidden;
+      background: #f5f5f5;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .dense-grid-item:hover {
+      transform: scale(1.02);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      z-index: 10;
+    }
+    .dense-grid-link {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .dense-grid-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: opacity 0.3s ease;
+    }
+    .dense-grid-img:not(.loaded) {
+      opacity: 0;
+    }
+    .dense-grid-img.loaded {
+      opacity: 1;
+    }
+    /* Adaptive sizing classes */
+    .dense-grid-item.landscape {
+      grid-column: span 2;
+    }
+    .dense-grid-item.portrait-tall {
+      grid-row: span 2;
+    }
+    .dense-grid-item.square-large {
+      grid-column: span 2;
+      grid-row: span 2;
+    }
+    /* Loading spinner */
+    .dense-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: dense-spin 1s linear infinite;
+      z-index: 1;
+    }
+    @keyframes dense-spin {
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    /* Tablet responsive */
+    @media (max-width: 768px) {
+      .dense-grid {
+        grid-template-columns: repeat(auto-fill, minmax({{ minTablet }}px, 1fr));
+        grid-auto-rows: {{ minTablet }}px;
+        gap: 10px;
+        padding: 0 10px;
+      }
+    }
+    /* Mobile - single column */
+    @media (max-width: 480px) {
+      .dense-grid {
+        grid-template-columns: 1fr;
+        grid-auto-rows: {{ cellMobile }}px;
+        gap: 10px;
+        padding: 0 10px;
+      }
+      .dense-grid-item.landscape,
+      .dense-grid-item.portrait-tall,
+      .dense-grid-item.square-large {
+        grid-column: span 1;
+        grid-row: span 1;
+      }
+      .dense-grid-item:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    }
+    </style>
+
   {# DEFAULT: Standard masonry with CSS columns #}
   {% elseif masonry %}
     <div id="images-gallery" class="masonry-grid pswp-gallery" data-layout="masonry">
@@ -772,7 +934,12 @@ function initializeGalleryLayout() {
   const masonry = window.templateSettings?.masonry || false;
   
   // 1. MASONRY FIT - No special JS needed, pure CSS Grid
-  
+
+  // 1b. DENSE GRID - Initialize adaptive sizing based on image aspect ratios
+  if (layout === 'dense_grid') {
+    initDenseGrid();
+  }
+
   // 2. SLIDESHOW PRO - Enhanced slideshow with thumbnails
   if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
     const slideshowThumbs = new Swiper('.slideshow-thumbs', {
@@ -945,6 +1112,103 @@ function initMagazineAutoscroll() {
   }
 }
 
+// Dense Grid initialization - adaptive sizing based on image aspect ratios
+function initDenseGrid() {
+  const container = document.querySelector('.dense-grid');
+  if (!container) return;
+
+  const isAdaptive = container.getAttribute('data-adaptive') === 'true';
+  const items = container.querySelectorAll('.dense-grid-item');
+
+  items.forEach(item => {
+    const img = item.querySelector('.dense-grid-img');
+    const loading = item.querySelector('.dense-loading');
+
+    if (!img) return;
+
+    // Get dimensions from data attributes first (faster)
+    const dataWidth = parseInt(item.getAttribute('data-width') || '0');
+    const dataHeight = parseInt(item.getAttribute('data-height') || '0');
+
+    function applyAdaptiveSizing(width, height) {
+      if (!isAdaptive || window.innerWidth <= 480) return;
+
+      const ratio = width / height;
+
+      // Remove previous classes
+      item.classList.remove('landscape', 'portrait-tall', 'square-large');
+
+      // Apply new classes based on aspect ratio
+      if (ratio > 1.4) {
+        item.classList.add('landscape');
+      } else if (ratio < 0.7) {
+        item.classList.add('portrait-tall');
+      } else if (ratio >= 0.9 && ratio <= 1.1) {
+        // Square images occasionally get larger size (30% chance)
+        if (Math.random() > 0.7) {
+          item.classList.add('square-large');
+        }
+      } else if (ratio > 1.1 && ratio <= 1.4) {
+        // Slightly landscape - span 2 columns
+        item.classList.add('landscape');
+      }
+    }
+
+    // If we have data attributes, use them immediately
+    if (dataWidth > 0 && dataHeight > 0) {
+      applyAdaptiveSizing(dataWidth, dataHeight);
+      if (loading) loading.style.display = 'none';
+      img.classList.add('loaded');
+    } else {
+      // Fallback to onload detection
+      img.onload = function() {
+        if (loading) loading.remove();
+        img.classList.add('loaded');
+        applyAdaptiveSizing(this.naturalWidth, this.naturalHeight);
+      };
+
+      // If image already loaded
+      if (img.complete && img.naturalWidth > 0) {
+        if (loading) loading.remove();
+        img.classList.add('loaded');
+        applyAdaptiveSizing(img.naturalWidth, img.naturalHeight);
+      }
+    }
+
+    // Handle image load errors
+    img.onerror = function() {
+      if (loading) loading.remove();
+      item.style.display = 'none';
+    };
+  });
+
+  // Recalculate on resize (debounced)
+  let resizeTimeout;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(function() {
+      items.forEach(item => {
+        const dataWidth = parseInt(item.getAttribute('data-width') || '0');
+        const dataHeight = parseInt(item.getAttribute('data-height') || '0');
+
+        if (window.innerWidth <= 480) {
+          // Mobile: remove all span classes
+          item.classList.remove('landscape', 'portrait-tall', 'square-large');
+        } else if (dataWidth > 0 && dataHeight > 0 && isAdaptive) {
+          // Reapply adaptive sizing
+          const ratio = dataWidth / dataHeight;
+          item.classList.remove('landscape', 'portrait-tall', 'square-large');
+          if (ratio > 1.4) {
+            item.classList.add('landscape');
+          } else if (ratio < 0.7) {
+            item.classList.add('portrait-tall');
+          }
+        }
+      });
+    }, 150);
+  });
+}
+
 // Template switcher functionality removed - using delegated handler below
 
 // Fallback: delegated handler to intercept clicks even if buttons are re-rendered
@@ -996,6 +1260,55 @@ document.addEventListener('click', function(event) {
         galleryContainer.className = 'swiper slideshow-pro max-w-6xl mx-auto';
       } else if (newLayout === 'fullscreen') {
         galleryContainer.className = 'grid grid-cols-1 lg:grid-cols-2 gap-2';
+      } else if (newLayout === 'dense_grid') {
+        // Dense Grid layout with CSS Grid auto-flow dense
+        galleryContainer.className = 'dense-grid pswp-gallery';
+        galleryContainer.setAttribute('data-layout', 'dense_grid');
+        const dense = window.templateSettings?.dense_grid || {};
+        const adaptive = dense.adaptiveSizing !== false;
+        galleryContainer.setAttribute('data-adaptive', adaptive ? 'true' : 'false');
+        // Inject dynamic CSS for dense grid
+        const prevDenseStyle = document.getElementById('dense-grid-dynamic-style');
+        if (prevDenseStyle) prevDenseStyle.remove();
+        const minDesktop = dense.minCellDesktop || 250;
+        const minTablet = dense.minCellTablet || 150;
+        const cellMobile = dense.cellHeightMobile || 300;
+        const gridGap = dense.gap || 15;
+        const maxWidth = dense.maxWidth || 1400;
+        const denseStyleEl = document.createElement('style');
+        denseStyleEl.id = 'dense-grid-dynamic-style';
+        denseStyleEl.textContent = `
+          .dense-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(${minDesktop}px, 1fr));
+            grid-auto-rows: ${minDesktop}px;
+            gap: ${gridGap}px;
+            grid-auto-flow: dense;
+            max-width: ${maxWidth}px;
+            margin: 0 auto;
+            padding: 0 ${gridGap}px;
+          }
+          .dense-grid-item { position: relative; overflow: hidden; background: #f5f5f5; cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+          .dense-grid-item:hover { transform: scale(1.02); box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 10; }
+          .dense-grid-link { display: block; width: 100%; height: 100%; }
+          .dense-grid-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.3s ease; }
+          .dense-grid-img:not(.loaded) { opacity: 0; }
+          .dense-grid-img.loaded { opacity: 1; }
+          .dense-grid-item.landscape { grid-column: span 2; }
+          .dense-grid-item.portrait-tall { grid-row: span 2; }
+          .dense-grid-item.square-large { grid-column: span 2; grid-row: span 2; }
+          .dense-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #333; border-radius: 50%; animation: dense-spin 1s linear infinite; z-index: 1; }
+          @keyframes dense-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+          @media (max-width: 768px) {
+            .dense-grid { grid-template-columns: repeat(auto-fill, minmax(${minTablet}px, 1fr)); grid-auto-rows: ${minTablet}px; gap: 10px; padding: 0 10px; }
+          }
+          @media (max-width: 480px) {
+            .dense-grid { grid-template-columns: 1fr; grid-auto-rows: ${cellMobile}px; gap: 10px; padding: 0 10px; }
+            .dense-grid-item.landscape, .dense-grid-item.portrait-tall, .dense-grid-item.square-large { grid-column: span 1; grid-row: span 1; }
+            .dense-grid-item:hover { transform: none; box-shadow: none; }
+          }
+        `;
+        document.head.appendChild(denseStyleEl);
       } else if (newLayout === 'masonry_fit' || newLayout === 'masonry') {
         // Masonry Full layout with CSS columns (full images)
         galleryContainer.className = 'masonry-fit-container pswp-gallery';
@@ -1053,6 +1366,9 @@ document.addEventListener('click', function(event) {
         if (newLayout === 'magazine') {
           console.log('Initializing Magazine Split in delegated handler');
           setTimeout(() => { try { initMagazineAutoscroll(); } catch(e){ console.error('Magazine init error in delegated handler:', e); } }, 100);
+        } else if (newLayout === 'dense_grid') {
+          console.log('Initializing Dense Grid in delegated handler');
+          setTimeout(() => { try { initDenseGrid(); } catch(e){ console.error('Dense Grid init error:', e); } }, 100);
         } else {
           initializeGalleryLayout();
         }
