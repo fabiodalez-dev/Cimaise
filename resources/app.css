@@ -281,7 +281,11 @@ html.dark .pswp__button--arrow--right {
 }
 
 html.dark .pswp__button:hover {
-  background-color: rgba(250, 250, 250, 0.1) !important;
+  background-color: transparent !important;
+}
+
+html.dark .pswp__button:hover .pswp__icn {
+  opacity: 0.6 !important;
 }
 
 html.dark .pswp__caption {
