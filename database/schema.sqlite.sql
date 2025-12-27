@@ -648,7 +648,7 @@ INSERT INTO settings (key, value, type) VALUES
 ('image.quality', '{"avif":50,"webp":75,"jpg":85}', 'string'),
 ('image.preview', '{"width":480,"height":null}', 'string'),
 ('image.breakpoints', '{"sm":768,"md":1200,"lg":1920,"xl":2560,"xxl":3840}', 'string'),
-('gallery.default_template_id', '1', 'number'),
+('gallery.default_template_id', '4', 'number'),
 ('performance.compression', 'true', 'boolean'),
 ('pagination.limit', '12', 'number'),
 ('cache.ttl', '24', 'number'),
