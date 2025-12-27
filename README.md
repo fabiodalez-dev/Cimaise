@@ -357,6 +357,27 @@ Cimaise focuses on what photographers actually need:
 
 ---
 
+## Plugins
+
+Cimaise includes a plugin system for extending functionality:
+
+### Maintenance Mode
+
+**Put your site under construction while you build.**
+
+When enabled, visitors see a beautiful maintenance page while you work on your portfolio. Admins can still access the site normally.
+
+- **One-Click Activation** — Enable/disable from Admin → Settings
+- **Custom Message** — Write your own "coming soon" text
+- **Site Branding** — Automatically shows your logo and site name
+- **SEO Protected** — Sends proper 503 status and noindex headers
+- **Admin Bypass** — Logged-in admins always see the real site
+- **Multi-Language** — Admin login button adapts to site language (EN/IT/DE/FR/ES)
+
+Perfect for: Initial setup, major redesigns, temporary closures.
+
+---
+
 ## SEO Built for Photographers
 
 ### Automatic Structured Data
