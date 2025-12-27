@@ -1084,6 +1084,10 @@ document.addEventListener('click', function(event) {
 
 // Elegant GSAP Animations for Gallery
 document.addEventListener('DOMContentLoaded', function() {
+    if (document.body.dataset.gsapGalleryIntroDone === '1') {
+        return;
+    }
+    document.body.dataset.gsapGalleryIntroDone = '1';
     // Check for reduced motion preference
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

@@ -414,9 +414,6 @@
   </div>
 </div>
 
-<!-- GSAP Library -->
-<script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/gsap.min.js"></script>
-
 <!-- Select2 for advanced dropdowns -->
 <link href="{{ base_path }}/assets/vendor/select2/select2.min.css" rel="stylesheet" />
 <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/jquery/jquery.min.js"></script>
@@ -497,6 +494,9 @@ $(document).ready(function() {
 });
 
 function ensureUIVisibility() {
+    const grid = document.getElementById('galleries-grid');
+    const isAnimating = document.body.classList.contains('gsap-intro-animating')
+        || (grid && grid.classList.contains('gsap-grid-animating'));
     // Ensure critical UI elements are always visible
     const criticalElements = [
         '#toggle-filters',
@@ -508,7 +508,7 @@ function ensureUIVisibility() {
     criticalElements.forEach(selector => {
         const elements = document.querySelectorAll(selector);
         elements.forEach(el => {
-            if (el.style.opacity === '0' && !document.body.classList.contains('gsap-animating')) {
+            if (el.style.opacity === '0' && !isAnimating) {
                 el.style.opacity = '1';
                 el.style.visibility = 'visible';
             }
@@ -517,6 +517,9 @@ function ensureUIVisibility() {
 }
 
 function initPageAnimations() {
+    if (document.body.dataset.gsapIntroDone === '1') {
+        return;
+    }
     // Ensure all elements are visible by default
     gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'transform' });
     
@@ -526,13 +529,14 @@ function initPageAnimations() {
     }
     
     // Add animation class temporarily
-    document.body.classList.add('gsap-animating');
+    document.body.classList.add('gsap-intro-animating');
+    document.body.dataset.gsapIntroDone = '1';
     
     // Timeline for page load with safety measures
     const tl = gsap.timeline({
         onComplete: function() {
             // Remove animation class when done
-            document.body.classList.remove('gsap-animating');
+            document.body.classList.remove('gsap-intro-animating');
             // Ensure all elements are visible
             gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'all' });
             gsap.set('#galleries-grid .gallery-card', { opacity: 1, clearProps: 'all' });
@@ -566,7 +570,7 @@ function initPageAnimations() {
     
     // Safety timeout to ensure all elements are visible
     setTimeout(() => {
-        document.body.classList.remove('gsap-animating');
+        document.body.classList.remove('gsap-intro-animating');
         gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'all' });
         gsap.set('#galleries-grid .gallery-card', { opacity: 1, clearProps: 'all' });
     }, 2000);
@@ -758,7 +762,9 @@ function updateGalleries(albums, animate = false) {
             });
             grid.html(html);
         }
-        document.body.classList.remove('gsap-animating');
+        if (grid[0]) {
+            grid[0].classList.remove('gsap-grid-animating');
+        }
         isUpdatingGalleries = false;
         hideLoading();
         return;
@@ -769,7 +775,9 @@ function updateGalleries(albums, animate = false) {
     isUpdatingGalleries = true;
     
     // Add animation class
-    document.body.classList.add('gsap-animating');
+    if (grid[0]) {
+        grid[0].classList.add('gsap-grid-animating');
+    }
     
     // Animate out current galleries with specific selector
     gsap.to('#galleries-grid .gallery-card', {
@@ -796,7 +804,9 @@ function updateGalleries(albums, animate = false) {
                         </div>
                     </div>
                 `);
-                document.body.classList.remove('gsap-animating');
+                if (grid[0]) {
+                    grid[0].classList.remove('gsap-grid-animating');
+                }
                 isUpdatingGalleries = false;
             } else {
                 // Generate new gallery cards HTML
@@ -814,7 +824,9 @@ function updateGalleries(albums, animate = false) {
                     stagger: 0.1,
                     ease: 'power3.out',
                     onComplete: function() {
-                        document.body.classList.remove('gsap-animating');
+                        if (grid[0]) {
+                            grid[0].classList.remove('gsap-grid-animating');
+                        }
                         gsap.set('#galleries-grid .gallery-card', { clearProps: 'all' });
                         isUpdatingGalleries = false;
                     }
@@ -1264,18 +1276,22 @@ function debounce(func, wait) {
 }
 
 /* CSS Protection for Gallery Cards and UI elements */
-#galleries-grid .gallery-card,
+#galleries-grid .gallery-card {
+    opacity: 1 !important;
+}
 [data-gsap="filter-toggle"],
 [data-gsap="title"],
 [data-gsap="subtitle"] {
-    opacity: 1 !important;
+    opacity: 1;
 }
 
 /* Only allow GSAP to control opacity during specific animations */
-.gsap-animating #galleries-grid .gallery-card,
-.gsap-animating [data-gsap="filter-toggle"],
-.gsap-animating [data-gsap="title"],
-.gsap-animating [data-gsap="subtitle"] {
+#galleries-grid.gsap-grid-animating .gallery-card {
+    opacity: 0;
+}
+.gsap-intro-animating [data-gsap="filter-toggle"],
+.gsap-intro-animating [data-gsap="title"],
+.gsap-intro-animating [data-gsap="subtitle"] {
     opacity: 0;
 }
 
