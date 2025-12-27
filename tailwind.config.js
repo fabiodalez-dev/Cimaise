@@ -11,6 +11,10 @@ module.exports = {
     'block',
     'flex',
     'inline-flex',
+    'sm:hidden',
+    'sm:block',
+    'sm:flex',
+    'sm:inline-flex',
     'md:hidden',
     'md:block',
     'md:flex',
@@ -19,9 +23,6 @@ module.exports = {
     'lg:block',
     'lg:flex',
     'lg:inline-flex',
-    'sm:hidden',
-    'sm:block',
-    'sm:flex',
   ],
   theme: {
     extend: {
