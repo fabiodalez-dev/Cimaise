@@ -347,6 +347,19 @@ Cimaise focuses on what photographers actually need:
 - **Date Format** — ISO (2024-01-15) or European (15-01-2024)
 - **i18n System** — Easy to add new languages via JSON files
 
+### Frontend & Theming
+- **Dark Mode** — One-click toggle to invert all frontend colors for a dark theme
+  - Applies to all 6 home pages, galleries, albums, and login page
+  - Near-black (#0a0a0a, #171717) and near-white (#fafafa) for optimal contrast
+  - Smooth 0.3s transitions when switching modes
+  - Admin panel always stays in light mode for clarity
+- **Custom CSS** — Add your own CSS rules for fine-tuning
+  - 50,000 character limit for extensive customizations
+  - Security-sanitized (strips scripts, blocks external imports)
+  - CSP-compliant with nonce-based inline styles
+  - Frontend-only (doesn't affect admin panel)
+  - Perfect for brand colors, custom fonts, or layout tweaks
+
 ### Developer Tools
 - **Debug Logs** — View application logs from Admin → Settings
 - **System Updater** — Check for and apply updates from admin panel
