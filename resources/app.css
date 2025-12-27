@@ -388,19 +388,24 @@ html.dark .text-neutral-500 { color: #d4d4d4 !important; }
 html.dark .text-neutral-400 { color: #a3a3a3 !important; }
 
 /* Dark mode for ALL headings (not just .text-black) */
-html.dark h1:not(.text-white),
-html.dark h2:not(.text-white),
-html.dark h3:not(.text-white),
-html.dark h4:not(.text-white),
-html.dark h5:not(.text-white),
-html.dark h6:not(.text-white) {
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
   color: #fafafa !important;
 }
 
 /* Dark mode for paragraphs and spans */
-html.dark p:not(.text-white),
-html.dark span:not(.text-white) {
-  color: #d4d4d4;
+html.dark p,
+html.dark span {
+  color: #d4d4d4 !important;
+}
+
+/* Override for explicitly white text */
+html.dark .text-white {
+  color: #fff !important;
 }
 
 /* Dark mode for header and navigation */
