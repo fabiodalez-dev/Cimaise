@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="{{ lang|default('it')|e('html_attr') }}">
+<html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js">
 <head>
     <!-- JS flag class on <html> for no-JS fallbacks -->
-    <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
+    <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.remove('no-js'); document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title|e }}</title>
@@ -239,6 +239,16 @@
                 opacity: 1 !important;
                 transform: none !important;
             }
+        }
+        html.no-js [data-gsap],
+        html.no-js #images-gallery > .masonry-item,
+        html.no-js #images-gallery > .image-item,
+        html.no-js #images-gallery > .grid-minimal-item,
+        html.no-js #images-gallery > .polaroid-item,
+        html.no-js #images-gallery > .mosaic-item,
+        html.no-js main .album-card {
+            opacity: 1 !important;
+            transform: none !important;
         }
 
         /* Focus hover effect - fade other images when hovering one */

@@ -191,6 +191,64 @@
     </a>
   </div>
   {% endfor %}
+{% elseif layout == 'dense_grid' %}
+  {# Dense Grid layout - CSS Grid with auto-flow dense and adaptive image sizing #}
+  {% set dense = template_settings.dense_grid|default({}) %}
+  {% set minDesktop = dense.minCellDesktop|default(250) %}
+  {% set minTablet = dense.minCellTablet|default(150) %}
+  {% set cellMobile = dense.cellHeightMobile|default(300) %}
+  {% set gridGap = dense.gap|default(15) %}
+  {% set maxWidth = dense.maxWidth|default(1400) %}
+  {% set adaptive = dense.adaptiveSizing|default(true) %}
+  {% for image in images %}
+  <div class="dense-grid-item" data-image-id="{{ image.id }}" data-width="{{ image.width|default(0) }}" data-height="{{ image.height|default(0) }}">
+    <div class="dense-loading"></div>
+    {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+    <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}"
+       class="pswp-link dense-grid-link"
+       title="{{ seo_title|e('html_attr') }}"
+       data-image-id="{{ image.id }}"
+       data-pswp-width="{{ image.width|default(1600) }}"
+       data-pswp-height="{{ image.height|default(1067) }}"
+       data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+       data-title="{{ image.caption|default('')|e }}"
+       data-alt="{{ image.alt|default('')|e }}"
+       data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+       data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
+       data-film="{{ image.film_name|default(image.film_display)|default(image.custom_film)|default('')|e }}"
+       data-developer="{{ image.developer_name|default('')|e }}"
+       data-lab="{{ image.lab_name|default('')|e }}"
+       data-location="{{ image.location_name|default('')|e }}"
+       data-iso="{{ image.iso|default('') }}"
+       data-shutter="{{ image.shutter_speed|default('')|e }}"
+       data-aperture="{{ image.aperture|default('') }}"
+       data-focal-length="{{ image.focal_length|default('') }}"
+       data-exif-make="{{ image.exif_make|default('')|e }}"
+       data-exif-model="{{ image.exif_model|default('')|e }}"
+       data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+       data-gps-lat="{{ image.gps_lat|default('') }}"
+       data-gps-lng="{{ image.gps_lng|default('') }}"
+       data-date-original="{{ image.date_original|default('')|e }}"
+       data-artist="{{ image.artist|default('')|e }}"
+       data-copyright="{{ image.copyright|default('')|e }}"
+       data-process="{{ image.process|default('')|e }}"
+       {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
+    >
+      <picture>
+        {% if image.sources.avif|length %}
+          <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+        {% endif %}
+        {% if image.sources.webp|length %}
+          <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+        {% endif %}
+        {% if image.sources.jpg|length %}
+          <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+        {% endif %}
+        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="dense-grid-img" loading="lazy" decoding="async" data-fallback="hide">
+      </picture>
+    </a>
+  </div>
+  {% endfor %}
 {% elseif masonry %}
   {% for image in images %}
   <div class="masonry-item">
