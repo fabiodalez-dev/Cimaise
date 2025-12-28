@@ -969,6 +969,26 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
 
 // Initialize PhotoSwipe lightbox (handled by main layout)
 
+// Handle bfcache (back-forward cache) restoration
+// When user navigates with back/forward, page is restored from cache
+// but JavaScript re-runs which can cause flickering
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        // Page was restored from bfcache - immediately show all animated elements
+        const animatedElements = document.querySelectorAll('[data-gsap]');
+        animatedElements.forEach(function(el) {
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+            el.setAttribute('data-animated', '1');
+        });
+
+        // Clear any GSAP inline styles
+        if (typeof gsap !== 'undefined') {
+            gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
+        }
+    }
+});
+
 // GSAP Animations for album header/meta elements - runs ONCE on load
 document.addEventListener('DOMContentLoaded', function() {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1012,39 +1032,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // NOTE: #images-gallery animation is handled by _layout.twig animateGalleryOnce()
 
-    // Related albums section with scroll trigger
+    // Related albums section with scroll trigger - use fromTo to prevent flicker
     const relatedTitle = document.querySelector('[data-gsap="related-title"]');
-    if (relatedTitle && typeof ScrollTrigger !== 'undefined') {
-        gsap.from(relatedTitle, {
-            opacity: 0,
-            y: 20,
-            duration: 0.6,
-            ease: 'power2.out',
-            scrollTrigger: {
-                trigger: relatedTitle,
-                start: 'top 90%',
-                once: true
-            }
-        });
-    }
-
-    // Related album cards with stagger
-    const relatedGrid = document.querySelector('[data-gsap="related-grid"]');
-    if (relatedGrid && typeof ScrollTrigger !== 'undefined') {
-        const cards = relatedGrid.querySelectorAll('.album-card');
-        if (cards.length > 0) {
-            gsap.from(cards, {
-                opacity: 0,
-                y: 30,
-                duration: 0.7,
-                stagger: 0.1,
+    if (relatedTitle && !relatedTitle.hasAttribute('data-animated') && typeof ScrollTrigger !== 'undefined') {
+        relatedTitle.setAttribute('data-animated', '1');
+        gsap.fromTo(relatedTitle,
+            { opacity: 0, y: 20 },
+            {
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
                 ease: 'power2.out',
                 scrollTrigger: {
-                    trigger: relatedGrid,
-                    start: 'top 85%',
+                    trigger: relatedTitle,
+                    start: 'top 90%',
                     once: true
                 }
-            });
+            }
+        );
+    }
+
+    // Related album cards with stagger - use fromTo to prevent flicker
+    const relatedGrid = document.querySelector('[data-gsap="related-grid"]');
+    if (relatedGrid && typeof ScrollTrigger !== 'undefined') {
+        const cards = Array.from(relatedGrid.querySelectorAll('.album-card:not([data-animated])'));
+        if (cards.length > 0) {
+            cards.forEach(c => c.setAttribute('data-animated', '1'));
+            gsap.fromTo(cards,
+                { opacity: 0, y: 30 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.7,
+                    stagger: 0.1,
+                    ease: 'power2.out',
+                    scrollTrigger: {
+                        trigger: relatedGrid,
+                        start: 'top 85%',
+                        once: true
+                    }
+                }
+            );
         }
     }
 

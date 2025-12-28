@@ -149,9 +149,11 @@ class TemplatesController extends BaseController
 
         // Dense Grid layout settings
         if (($settings['layout'] ?? '') === 'dense_grid') {
-            $minDesktop = (int)($data['dense_min_desktop'] ?? 300);
+            $minDesktop = (int)($data['dense_min_desktop'] ?? 250);
             $minTablet = (int)($data['dense_min_tablet'] ?? 150);
-            $cellMobile = (int)($data['dense_cell_mobile'] ?? 300);
+            $rowHeight = (int)($data['dense_row_height'] ?? 250);
+            $rowHeightTablet = (int)($data['dense_row_height_tablet'] ?? 150);
+            $rowHeightMobile = (int)($data['dense_row_height_mobile'] ?? 300);
             $denseGap = (int)($data['dense_gap'] ?? 15);
             $maxWidth = (int)($data['dense_max_width'] ?? 1400);
             $adaptive = isset($data['dense_adaptive']);
@@ -159,7 +161,9 @@ class TemplatesController extends BaseController
             $settings['dense_grid'] = [
                 'minCellDesktop' => max(100, min(500, $minDesktop)),
                 'minCellTablet' => max(80, min(300, $minTablet)),
-                'cellHeightMobile' => max(150, min(500, $cellMobile)),
+                'rowHeight' => max(100, min(500, $rowHeight)),
+                'rowHeightTablet' => max(80, min(300, $rowHeightTablet)),
+                'rowHeightMobile' => max(150, min(500, $rowHeightMobile)),
                 'gap' => max(0, min(50, $denseGap)),
                 'maxWidth' => max(800, min(2400, $maxWidth)),
                 'adaptiveSizing' => $adaptive,

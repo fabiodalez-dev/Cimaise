@@ -5,15 +5,15 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}
 </div>
-<div class="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-neutral-900 dark:to-neutral-900">
   <!-- Hero Section -->
-  <div class="relative bg-white border-b border-gray-200">
+  <div class="relative bg-white border-b border-gray-200 dark:bg-neutral-900 dark:border-neutral-700">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="text-center">
-        <h1 class="text-4xl md:text-5xl font-light text-black mb-6 tracking-tight" data-gsap="title">
+        <h1 class="text-4xl md:text-5xl font-light text-black dark:text-white mb-6 tracking-tight" data-gsap="title">
           {{ page_texts.title|default(trans('galleries.title'))|e }}
         </h1>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed" data-gsap="subtitle">
+        <p class="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed" data-gsap="subtitle">
           {{ page_texts.subtitle|default(trans('galleries.subtitle'))|e }}
         </p>
       </div>
@@ -445,6 +445,38 @@
 
 <script nonce="{{ csp_nonce() }}">
 // Galleries Page JavaScript with GSAP Animations
+
+// Handle bfcache (back-forward cache) restoration
+// When user navigates with back/forward, page is restored from cache
+// but JavaScript re-runs which can cause flickering
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        // Page was restored from bfcache - immediately make everything visible
+        document.body.classList.remove('gsap-intro-animating');
+        document.body.dataset.gsapIntroDone = '1';
+
+        // Immediately show all potentially hidden elements
+        const animatedElements = document.querySelectorAll('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"], #galleries-grid .gallery-card');
+        animatedElements.forEach(function(el) {
+            el.style.opacity = '1';
+            el.style.visibility = 'visible';
+            el.style.transform = 'none';
+            el.setAttribute('data-animated', '1');
+        });
+
+        // Clear any GSAP inline styles
+        if (typeof gsap !== 'undefined') {
+            gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
+        }
+
+        // Remove grid animation class
+        const grid = document.getElementById('galleries-grid');
+        if (grid) {
+            grid.classList.remove('gsap-grid-animating');
+        }
+    }
+});
+
 $(document).ready(function() {
     // Global base path for API calls
     window.basePath = '{{ base_path }}';
@@ -543,29 +575,36 @@ function initPageAnimations() {
         }
     });
     
-    // Animate hero section with safer approach
-    tl.from('[data-gsap="title"]', {
-        y: 30,
-        opacity: 0,
-        duration: {{ filter_settings.animation_duration }},
-        ease: 'power2.out'
-    })
-    .from('[data-gsap="subtitle"]', {
-        y: 20,
-        opacity: 0,
-        duration: {{ filter_settings.animation_duration }},
-        ease: 'power2.out'
-    }, '-=0.4');
-    
-    // Animate gallery cards with safer approach
-    if (document.querySelectorAll('#galleries-grid .gallery-card').length > 0) {
-        tl.from('#galleries-grid .gallery-card', {
-            y: 30,
-            opacity: 0,
-            duration: {{ filter_settings.animation_duration }},
-            stagger: 0.08,
-            ease: 'power2.out'
-        }, '-=0.2');
+    // Animate hero section with fromTo for no flicker
+    const titleEl = document.querySelector('[data-gsap="title"]');
+    const subtitleEl = document.querySelector('[data-gsap="subtitle"]');
+
+    if (titleEl && !titleEl.hasAttribute('data-animated')) {
+        titleEl.setAttribute('data-animated', '1');
+        tl.fromTo(titleEl,
+            { y: 30, opacity: 0 },
+            { y: 0, opacity: 1, duration: {{ filter_settings.animation_duration }}, ease: 'power2.out' }
+        );
+    }
+
+    if (subtitleEl && !subtitleEl.hasAttribute('data-animated')) {
+        subtitleEl.setAttribute('data-animated', '1');
+        tl.fromTo(subtitleEl,
+            { y: 20, opacity: 0 },
+            { y: 0, opacity: 1, duration: {{ filter_settings.animation_duration }}, ease: 'power2.out' },
+            '-=0.4'
+        );
+    }
+
+    // Animate gallery cards with fromTo for no flicker
+    const galleryCards = document.querySelectorAll('#galleries-grid .gallery-card:not([data-animated])');
+    if (galleryCards.length > 0) {
+        galleryCards.forEach(card => card.setAttribute('data-animated', '1'));
+        tl.fromTo(galleryCards,
+            { y: 30, opacity: 0 },
+            { y: 0, opacity: 1, duration: {{ filter_settings.animation_duration }}, stagger: 0.08, ease: 'power2.out' },
+            '-=0.2'
+        );
     }
     
     // Safety timeout to ensure all elements are visible
