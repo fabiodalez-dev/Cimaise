@@ -445,6 +445,29 @@
 
 <script nonce="{{ csp_nonce() }}">
 // Galleries Page JavaScript with GSAP Animations
+let galleriesIntroUserScrolled = false;
+let galleriesIntroTimeline = null;
+
+window.addEventListener('scroll', function() {
+    galleriesIntroUserScrolled = true;
+    if (document.body.classList.contains('gsap-intro-animating')) {
+        document.body.classList.remove('gsap-intro-animating');
+        const animatedElements = document.querySelectorAll('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"], #galleries-grid .gallery-card');
+        animatedElements.forEach(function(el) {
+            el.style.opacity = '1';
+            el.style.visibility = 'visible';
+            el.style.transform = 'none';
+            el.setAttribute('data-animated', '1');
+        });
+        if (typeof gsap !== 'undefined') {
+            gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
+        }
+        if (galleriesIntroTimeline) {
+            galleriesIntroTimeline.kill();
+            galleriesIntroTimeline = null;
+        }
+    }
+}, { passive: true, once: true });
 
 // Handle bfcache (back-forward cache) restoration
 // When user navigates with back/forward, page is restored from cache
@@ -552,17 +575,19 @@ function initPageAnimations() {
     if (document.body.dataset.gsapIntroDone === '1') {
         return;
     }
-    // Ensure all elements are visible by default
-    gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'transform' });
-    
-    // Only animate if animation is enabled
-    if (!{{ filter_settings.animation_enabled ? 'true' : 'false' }}) {
-        return;
-    }
-    
-    // Add animation class temporarily
-    document.body.classList.add('gsap-intro-animating');
+    // Keep UI visible and skip intro animations to avoid flicker
     document.body.dataset.gsapIntroDone = '1';
+    const animatedElements = document.querySelectorAll('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"], #galleries-grid .gallery-card');
+    animatedElements.forEach(function(el) {
+        el.style.opacity = '1';
+        el.style.visibility = 'visible';
+        el.style.transform = 'none';
+        el.setAttribute('data-animated', '1');
+    });
+    if (typeof gsap !== 'undefined') {
+        gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
+    }
+    return;
     
     // Timeline for page load with safety measures
     const tl = gsap.timeline({
@@ -574,6 +599,7 @@ function initPageAnimations() {
             gsap.set('#galleries-grid .gallery-card', { opacity: 1, clearProps: 'all' });
         }
     });
+    galleriesIntroTimeline = tl;
     
     // Animate hero section with fromTo for no flicker
     const titleEl = document.querySelector('[data-gsap="title"]');
@@ -1326,11 +1352,6 @@ function debounce(func, wait) {
 
 /* Only allow GSAP to control opacity during specific animations */
 #galleries-grid.gsap-grid-animating .gallery-card {
-    opacity: 0;
-}
-.gsap-intro-animating [data-gsap="filter-toggle"],
-.gsap-intro-animating [data-gsap="title"],
-.gsap-intro-animating [data-gsap="subtitle"] {
     opacity: 0;
 }
 

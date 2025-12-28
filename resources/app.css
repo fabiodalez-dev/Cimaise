@@ -990,8 +990,8 @@ html.dark .mega-menu_link:hover {
 }
 
 html.dark .modern-search-panel {
-  background-color: rgba(23, 23, 23, 0.98) !important;
-  border-color: #262626 !important;
+  background-color: rgba(0, 0, 0, 0.72) !important;
+  border-color: transparent !important;
 }
 
 html.dark .modern-search-input {
