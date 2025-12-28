@@ -752,3 +752,5 @@ CREATE TABLE IF NOT EXISTS `frontend_texts` (
 
 -- NOTE: Frontend texts are loaded from JSON files in storage/translations/
 -- The frontend_texts table is for user-customized translations only
+
+SET FOREIGN_KEY_CHECKS = 1;
