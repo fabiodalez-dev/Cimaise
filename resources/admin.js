@@ -367,6 +367,10 @@ function initTomSelects() {
     render: {
       option: (data, escape) => `<div>${escape(data.text ?? data.name ?? data.value)}</div>`,
       item: (data, escape) => `<div>${escape(data.text ?? data.name ?? data.value)}</div>`
+    },
+    onItemAdd() {
+      this.setTextboxValue('');
+      this.refreshOptions(false);
     }
   };
 
