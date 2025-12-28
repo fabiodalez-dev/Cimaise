@@ -73,7 +73,8 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.media.alt_text') }}</label>
-            <input type="text" name="alt_text" id="sidebar-alt" class="form-input text-sm">
+            <input type="text" name="alt_text" id="sidebar-alt" class="form-input text-sm" maxlength="200" required placeholder="{{ trans('admin.media.alt_placeholder')|default('Describe the subject for accessibility') }}" aria-describedby="sidebar-alt-help">
+            <p id="sidebar-alt-help" class="text-xs text-gray-500 mt-1">{{ trans('admin.media.alt_help')|default('Use a short, descriptive sentence; avoid “image of”.') }}</p>
           </div>
 
           <div>
