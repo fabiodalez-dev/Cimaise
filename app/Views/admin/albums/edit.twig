@@ -728,7 +728,7 @@
 {{ do_action('admin_album_edit_after', {album: item, base_path: base_path}) }}
 
 <!-- Modal edit image -->
-<div id="image-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[10000] p-4">
+<div id="image-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4" style="z-index: var(--z-modal);">
   <div class="bg-white w-full max-w-5xl rounded-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
     <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
       <h3 class="text-xl font-semibold text-gray-900">{{ trans('admin.albums.edit_image') }}</h3>
@@ -883,7 +883,7 @@
   </div>
 
   <!-- Media Library Modal -->
-  <div id="media-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[10000] p-4">
+  <div id="media-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4" style="z-index: var(--z-modal);">
     <div class="bg-white w-full max-w-5xl rounded-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
       <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
         <h3 class="text-xl font-semibold text-gray-900">{{ trans('admin.albums.gallery') }}</h3>

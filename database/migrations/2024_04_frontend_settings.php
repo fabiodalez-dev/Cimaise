@@ -7,8 +7,6 @@
 return new class {
     public function up(\PDO $pdo): void
     {
-        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-
         // Settings to add with their default values
         $settings = [
             ['frontend.dark_mode', 'false', 'boolean'],

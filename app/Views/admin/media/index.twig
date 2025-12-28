@@ -440,7 +440,7 @@
         card.addEventListener('click', (e) => {
           // Don't open sidebar if checkbox was clicked
           if (e.target.type === 'checkbox') return;
-          openSidebar(id, card);
+          openSidebarWithExif(id, card);
         });
 
         // Update selection count when checkbox changes
@@ -1005,6 +1005,7 @@
         // Call original openSidebar
         originalOpenSidebar(imageId, cardElement);
       }
+      window.openSidebar = openSidebarWithExif;
 
       // Lensfun Autocomplete functionality
       const autocompleteInputs = document.querySelectorAll('[data-autocomplete]');

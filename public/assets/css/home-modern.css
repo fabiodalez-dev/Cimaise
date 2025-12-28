@@ -844,11 +844,11 @@ html.dark .menu-component {
 }
 
 html.dark .menu-close .menu-btn_text {
-    color: var(--modern-white);
+    color: var(--modern-black);
 }
 
 html.dark .mega-menu_link {
-    color: var(--modern-white);
+    color: var(--modern-black);
 }
 
 .menu-component.is-open {

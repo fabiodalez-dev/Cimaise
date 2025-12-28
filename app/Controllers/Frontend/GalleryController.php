@@ -226,10 +226,17 @@ class GalleryController extends BaseController
             if (!empty($album['custom_films'])) {
                 $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
             } else {
-                $filmStmt = $pdo->prepare('SELECT f.brand, f.name FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
+                $filmStmt = $pdo->prepare('SELECT f.brand, f.name, f.iso, f.format FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
                 $filmStmt->execute([':a' => $album['id']]);
                 $films = $filmStmt->fetchAll();
-                $equipment['film'] = array_map(fn($f) => trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? '')), $films);
+                $equipment['film'] = array_map(function($f) {
+                    $name = trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? ''));
+                    return [
+                        'name' => $name,
+                        'iso' => $f['iso'] ?? null,
+                        'format' => $f['format'] ?? null
+                    ];
+                }, $films);
             }
             
             if (!empty($album['custom_developers'])) {
@@ -268,6 +275,17 @@ class GalleryController extends BaseController
 
         // Enrich images with metadata from related tables
         \App\Services\ImagesService::enrichWithMetadata($pdo, $imagesRows, 'gallery');
+
+        // Enrich images with custom fields and load album-level custom fields
+        $albumCustomFields = [];
+        try {
+            $customFieldService = new \App\Services\CustomFieldService($pdo);
+            $imagesRows = $customFieldService->enrichImagesWithCustomFields($imagesRows, (int)$album['id']);
+            $albumCustomFields = $customFieldService->getAlbumMetadata((int)$album['id']);
+        } catch (\Throwable) {
+            // Custom fields tables may not exist yet
+            $albumCustomFields = [];
+        }
 
         // Build gallery items for the template, preferring public variants
         $images = [];
@@ -423,6 +441,7 @@ class GalleryController extends BaseController
                 'date_original' => $img['date_original'] ?? null,
                 'artist' => $img['artist'] ?? null,
                 'copyright' => $img['copyright'] ?? null,
+                'custom_fields' => $img['custom_fields'] ?? [],
                 'settings' => '',
                 'sources' => $sources, // Add sources array with base_path prepended
                 'fallback_src' => $lightboxUrl ?: $bestUrl,
@@ -431,9 +450,9 @@ class GalleryController extends BaseController
         }
 
         // Fallback equipment aggregation from images if album-level empty
-        if (!$equipment['cameras']) { $equipment['cameras'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['custom_camera'] ?? null, $imagesRows)))); }
-        if (!$equipment['lenses']) { $equipment['lenses'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['custom_lens'] ?? null, $imagesRows)))); }
-        if (!$equipment['film'])   { $equipment['film'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['custom_film'] ?? ($r['film_name'] ?? null), $imagesRows)))); }
+        if (!$equipment['cameras']) { $equipment['cameras'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['camera_name'] ?? ($r['custom_camera'] ?? null), $imagesRows)))); }
+        if (!$equipment['lenses']) { $equipment['lenses'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['lens_name'] ?? ($r['custom_lens'] ?? null), $imagesRows)))); }
+        if (!$equipment['film'])   { $equipment['film'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['film_name'] ?? ($r['custom_film'] ?? null), $imagesRows)))); }
         if (!$equipment['developers']) { $equipment['developers'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['developer_name'] ?? null, $imagesRows)))); }
         if (!$equipment['labs']) { $equipment['labs'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['lab_name'] ?? null, $imagesRows)))); }
 
@@ -558,7 +577,8 @@ class GalleryController extends BaseController
             'is_admin' => $isAdmin,
             'current_album' => ['id' => (int)$album['id']],
             'nsfw_consent' => $this->hasNsfwConsent(),
-            'allow_downloads' => !empty($album['allow_downloads'])
+            'allow_downloads' => !empty($album['allow_downloads']),
+            'album_custom_fields' => $albumCustomFields
         ]);
     }
 
@@ -633,6 +653,14 @@ class GalleryController extends BaseController
 
             // Enrich images with metadata from related tables
             \App\Services\ImagesService::enrichWithMetadata($pdo, $imagesRows, 'gallery');
+
+            // Enrich images with custom fields for template rendering
+            try {
+                $customFieldService = new \App\Services\CustomFieldService($pdo);
+                $imagesRows = $customFieldService->enrichImagesWithCustomFields($imagesRows, (int)$album['id']);
+            } catch (\Throwable) {
+                // Custom fields tables may not exist yet
+            }
 
             // Build gallery items for the template, preferring public variants
             $images = [];
@@ -733,6 +761,7 @@ class GalleryController extends BaseController
                     'shutter_speed' => $this->formatShutterSpeed($img['shutter_speed'] ?? null),
                     'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
                     'process' => $img['process'] ?? null,
+                    'custom_fields' => $img['custom_fields'] ?? [],
                     // Extended EXIF fields
                     'focal_length' => $img['focal_length'] ?? null,
                     'exif_make' => $img['exif_make'] ?? null,
