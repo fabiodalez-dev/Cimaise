@@ -198,10 +198,21 @@
         /* Template-specific styles */
         .masonry-grid {
             column-gap: var(--grid-gap, 1rem);
+            column-count: var(--cols-mobile, 1);
         }
         .masonry-item {
             break-inside: avoid;
             margin-bottom: 1rem;
+        }
+        @media (min-width: 768px) {
+            .masonry-grid {
+                column-count: var(--cols-tablet, 2);
+            }
+        }
+        @media (min-width: 1024px) {
+            .masonry-grid {
+                column-count: var(--cols-desktop, 3);
+            }
         }
 
         /* Prevent FOUC: hide gallery items (exclude Magazine template wrappers) */
