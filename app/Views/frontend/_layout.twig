@@ -2256,7 +2256,10 @@
                 const copyright = x.getAttribute('data-copyright') || '';
 
                 let html = '';
-                const esc = s => s.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const esc = (s) => String(s || '')
+                  .replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;');
 
                 // Add photo title if present
                 if (title.trim()) {
