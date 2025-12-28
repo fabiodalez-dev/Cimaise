@@ -4,26 +4,15 @@
 
 {% block content %}
 <style nonce="{{ csp_nonce() }}">
-/* Hide GSAP-animated elements initially to prevent flicker */
+/* Keep content visible; no intro hides to avoid flicker */
 [data-gsap="categories"],
 [data-gsap="title"],
 [data-gsap="meta"],
 [data-gsap="excerpt"],
 [data-gsap="body"],
 [data-gsap="equipment"] {
-    opacity: 0;
-    transform: translateY(20px);
-}
-/* Fallback: show elements if GSAP hasn't animated them after 1.5s */
-/* Only apply to elements NOT yet animated by GSAP */
-.gsap-ready [data-gsap="categories"]:not([data-animated]),
-.gsap-ready [data-gsap="title"]:not([data-animated]),
-.gsap-ready [data-gsap="meta"]:not([data-animated]),
-.gsap-ready [data-gsap="excerpt"]:not([data-animated]),
-.gsap-ready [data-gsap="body"]:not([data-animated]),
-.gsap-ready [data-gsap="equipment"]:not([data-animated]) {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
 }
 /* Equipment section title should use body font, not heading font */
 [data-gsap="equipment"] h3 {
@@ -1436,66 +1425,15 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     document.body.dataset.gsapGalleryIntroDone = '1';
-    // Check for reduced motion preference
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    // Fallback: if no GSAP or reduced motion, show elements immediately
-    if (prefersReducedMotion || typeof gsap === 'undefined') {
-        document.body.classList.add('gsap-ready');
-        return;
-    }
-
-    // Register ScrollTrigger
-    if (typeof ScrollTrigger !== 'undefined') {
-        gsap.registerPlugin(ScrollTrigger);
-    }
-
-    // Header entrance animations with stagger - animate TO visible
-    const headerElements = [
-        '[data-gsap="categories"]',
-        '[data-gsap="title"]',
-        '[data-gsap="meta"]',
-        '[data-gsap="excerpt"]',
-        '[data-gsap="body"]'
-    ];
-
-    headerElements.forEach((selector, index) => {
-        const el = document.querySelector(selector);
-        if (el && !el.hasAttribute('data-animated')) {
-            el.setAttribute('data-animated', '1'); // Mark immediately to prevent re-animation
-            gsap.fromTo(el,
-                { opacity: 0, y: 20 },
-                {
-                    opacity: 1,
-                    y: 0,
-                    duration: 0.6,
-                    delay: index * 0.1,
-                    ease: 'power2.out'
-                }
-            );
-        }
+    const allHeaderEls = document.querySelectorAll('[data-gsap="categories"], [data-gsap="title"], [data-gsap="meta"], [data-gsap="excerpt"], [data-gsap="body"], [data-gsap="equipment"]');
+    allHeaderEls.forEach(el => {
+        el.setAttribute('data-animated', '1');
+        el.style.opacity = '1';
+        el.style.transform = 'none';
     });
-
-    // Equipment section
-    const equipment = document.querySelector('[data-gsap="equipment"]');
-    if (equipment && !equipment.hasAttribute('data-animated')) {
-        equipment.setAttribute('data-animated', '1'); // Mark immediately to prevent re-animation
-        gsap.fromTo(equipment,
-            { opacity: 0, y: 20 },
-            {
-                opacity: 1,
-                y: 0,
-                duration: 0.6,
-                delay: 0.5,
-                ease: 'power2.out'
-            }
-        );
+    if (typeof gsap !== 'undefined') {
+        gsap.set(allHeaderEls, { clearProps: 'all', opacity: 1 });
     }
-
-    // Fallback timeout: if animations haven't run, show elements
-    setTimeout(() => {
-        document.body.classList.add('gsap-ready');
-    }, 1500);
 
     // Template switcher buttons (hidden initially, animate to visible)
     const templateSwitcher = document.getElementById('template-switcher');
