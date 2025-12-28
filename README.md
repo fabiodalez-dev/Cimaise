@@ -8,6 +8,155 @@
 
 ---
 
+## Screenshots
+
+### Home Page Templates
+
+Choose from 7 distinct homepage layouts. The Classic template supports both horizontal and vertical scroll directions.
+
+<table>
+<tr>
+<td width="33%"><img src="screenshot/home classic horizontal.jpg" alt="Classic Horizontal"><br><strong>Classic (Horizontal)</strong></td>
+<td width="33%"><img src="screenshot/home classic vertical.jpg" alt="Classic Vertical"><br><strong>Classic (Vertical)</strong></td>
+<td width="33%"><img src="screenshot/modern home.jpg" alt="Modern"><br><strong>Modern</strong></td>
+</tr>
+<tr>
+<td width="33%"><img src="screenshot/Parallax Home.jpg" alt="Parallax"><br><strong>Parallax</strong></td>
+<td width="33%"><img src="screenshot/home gallery wall.jpg" alt="Gallery Wall"><br><strong>Gallery Wall</strong></td>
+<td width="33%"><img src="screenshot/home pure masonry.jpg" alt="Masonry Wall"><br><strong>Masonry Wall</strong></td>
+</tr>
+<tr>
+<td width="33%"><img src="screenshot/home snap album.jpg" alt="Snap Albums"><br><strong>Snap Albums</strong></td>
+<td width="33%"></td>
+<td width="33%"></td>
+</tr>
+</table>
+
+### Gallery Templates
+
+6 ways to present your albums:
+
+<table>
+<tr>
+<td width="33%"><img src="screenshot/template 1.jpg" alt="Classic Grid"><br><strong>Classic Grid</strong></td>
+<td width="33%"><img src="screenshot/template 2.jpg" alt="Masonry"><br><strong>Masonry</strong></td>
+<td width="33%"><img src="screenshot/template 3.jpg" alt="Masonry Full"><br><strong>Masonry Full</strong></td>
+</tr>
+<tr>
+<td width="33%"><img src="screenshot/template 4.jpg" alt="Magazine"><br><strong>Magazine</strong></td>
+<td width="33%"><img src="screenshot/template 5.jpg" alt="Dense Grid"><br><strong>Dense Grid</strong></td>
+<td width="33%"><img src="screenshot/Template 6.jpg" alt="Large Grid"><br><strong>Large Grid</strong></td>
+</tr>
+</table>
+
+### Password-Protected Galleries
+
+<img src="screenshot/album protetto password.jpg" alt="Password Protected Album" width="600">
+
+Share private client work without making it public. Each album can have its own password—clients enter it once and browse freely for 24 hours. Clean URLs like `yoursite.com/album/wedding-jones`, no ugly tokens. Rate limiting prevents brute-force attacks. Perfect for client proofing, private events, or pre-release work.
+
+### NSFW / Adult Content Mode
+
+<img src="screenshot/album nsfw.jpg" alt="NSFW Age Gate" width="600">
+
+Show mature work responsibly. Thumbnails are automatically blurred until age confirmation. Visitors must confirm they're 18+ before accessing content. The setting is per-album—mark individual galleries as NSFW while keeping the rest public. Server-side enforcement means the blur can't be bypassed by inspecting HTML.
+
+### NSFW + Password Combined
+
+<img src="screenshot/album nsfw protetto da password.jpg" alt="NSFW and Password Protected" width="600">
+
+For maximum protection, combine both. Visitors must confirm their age AND enter a password. The age gate appears first, followed by the password prompt. Ideal for private boudoir sessions or commissioned figure work.
+
+### Dark Mode
+
+<img src="screenshot/Dark Mode Category Archive.jpg" alt="Dark Mode" width="800">
+
+One-click toggle inverts all frontend colors for a dark theme. Near-black backgrounds (#0a0a0a) with near-white text (#fafafa) for optimal contrast. Applies to all home pages, galleries, albums, and login. Smooth 0.3s transitions when switching modes.
+
+### Typography Customization
+
+<img src="screenshot/Typography.jpg" alt="Typography Settings" width="800">
+
+Customize fonts for your portfolio with live preview. Choose from curated font pairs—serif options like EB Garamond, Playfair Display, Cormorant Garamond, or clean sans-serif like Inter, DM Sans, Manrope. Set different fonts for headings and body text. All fonts are served locally for GDPR compliance.
+
+### PhotoSwipe Lightbox
+
+<img src="screenshot/Lightbox.jpg" alt="Lightbox" width="800">
+
+Full-screen image viewing with smooth animations. Caption and equipment metadata displayed below (camera, lens, category). Dot navigation shows position in gallery. Keyboard navigation, zoom controls, and share buttons. Clean minimal UI that doesn't distract from your images.
+
+### EXIF Data Display
+
+<img src="screenshot/exif.jpg" alt="EXIF Details" width="800">
+
+Technical details panel shows focal length, aperture, shutter speed, ISO, and capture date. Automatically extracted from your uploads. Toggle on/off from settings. Film photographers can manually add stock, developer, and lab information.
+
+### Gallery Filters
+
+<img src="screenshot/filtri pagina galleria.jpg" alt="Gallery Filters" width="800">
+
+Multi-criteria filtering lets visitors explore by category, tag, camera, lens, film stock, location, or year. Combine filters: "Show me all medium-format Portra 400 shots from 2024." Every filter combination creates a shareable URL.
+
+### Galleries Archive
+
+<img src="screenshot/gallerie.jpg" alt="Galleries Page" width="800">
+
+Browse all albums with collapsible filter panel. Each card shows cover image, category badge, photo count, title, and description preview. Breadcrumb navigation and result count.
+
+### Album Page
+
+<img src="screenshot/album testata.jpg" alt="Album Header" width="800">
+
+Rich album headers with colored category/tag badges, title, date, description, and equipment used. Social sharing buttons for Bluesky, Facebook, Pinterest, Telegram, Threads, WhatsApp, X. Template switcher lets visitors change gallery layout on the fly.
+
+### About & Contact
+
+<img src="screenshot/about-me.jpg" alt="About Page" width="600">
+
+Customizable About page with bio text and contact form. Portrait placeholder, rich text description, and contact form with name, email, and message fields. reCAPTCHA v3 protection available.
+
+---
+
+## Admin Panel
+
+### Album Management
+
+<img src="screenshot/admin album.jpg" alt="Album Management" width="800">
+
+Create and organize your albums with drag-and-drop reordering. Each row shows cover thumbnail, title, categories, publish status, and SEO slug. Quick actions: view grid, edit, unpublish, delete. Switch between manual order and date order. Full metadata sidebar with Cameras, Lenses, Films, Developers, Labs, and Locations for film photographers.
+
+### Media Library
+
+<img src="screenshot/media page.jpg" alt="Media Library" width="800">
+
+Visual grid of all uploaded images with batch selection. Right panel shows photo metadata—assign camera (Hasselblad 500C/M shown), lens, film stock, developer, lab, location, and custom fields. Bulk upload 100+ images at once. Click any image to edit its metadata or view in lightbox.
+
+### Translation Management
+
+<img src="screenshot/Traduzione.jpg" alt="Translation Management" width="800">
+
+Full i18n system with separate Frontend and Admin Panel scopes. Import/export translations as JSON. Search and filter by context. Inline editing—click any value to modify. Preset languages (English, Italian) or upload your own. Every text string in Cimaise is translatable.
+
+### Built-in Analytics
+
+<img src="screenshot/Analytics.jpg" alt="Analytics Dashboard" width="800">
+
+Privacy-first analytics that keep data on your server. Sessions, page views, lightbox opens tracked over time. Date range filtering, comparison with previous periods. No Google required, no third-party tracking.
+
+### Plugin System
+
+<img src="screenshot/Plugin.jpg" alt="Plugins" width="800">
+
+Extend functionality with plugins. One-click install from the plugins directory. Available plugins include Analytics Logger, Image Rating, and more. Each plugin shows version, author, and description.
+
+### Social Sharing
+
+<img src="screenshot/social share.jpg" alt="Social Sharing Settings" width="800">
+
+Configure which social networks appear on album pages. Drag to reorder, toggle to enable/disable. Supports Bluesky, Facebook, Pinterest, Telegram, Threads, WhatsApp, X, DeviantArt, Behance, and more. Preview shows exactly how buttons will appear.
+
+---
+
 ## Your Work Deserves Better
 
 You've spent hours in the darkroom, days on location, years perfecting your craft. Your portfolio platform shouldn't fight against you.
@@ -346,6 +495,19 @@ Cimaise focuses on what photographers actually need:
 - **Admin Language** — Complete Italian backend translation
 - **Date Format** — ISO (2024-01-15) or European (15-01-2024)
 - **i18n System** — Easy to add new languages via JSON files
+
+### Frontend & Theming
+- **Dark Mode** — One-click toggle to invert all frontend colors for a dark theme
+  - Applies to all 6 home pages, galleries, albums, and login page
+  - Near-black (#0a0a0a, #171717) and near-white (#fafafa) for optimal contrast
+  - Smooth 0.3s transitions when switching modes
+  - Admin panel always stays in light mode for clarity
+- **Custom CSS** — Add your own CSS rules for fine-tuning
+  - 50,000 character limit for extensive customizations
+  - Security-sanitized (strips scripts, blocks external imports)
+  - CSP-compliant with nonce-based inline styles
+  - Frontend-only (doesn't affect admin panel)
+  - Perfect for brand colors, custom fonts, or layout tweaks
 
 ### Developer Tools
 - **Debug Logs** — View application logs from Admin → Settings

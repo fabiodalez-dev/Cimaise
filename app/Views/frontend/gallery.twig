@@ -4,26 +4,15 @@
 
 {% block content %}
 <style nonce="{{ csp_nonce() }}">
-/* Hide GSAP-animated elements initially to prevent flicker */
+/* Keep content visible; no intro hides to avoid flicker */
 [data-gsap="categories"],
 [data-gsap="title"],
 [data-gsap="meta"],
 [data-gsap="excerpt"],
 [data-gsap="body"],
 [data-gsap="equipment"] {
-    opacity: 0;
-    transform: translateY(20px);
-}
-/* Fallback: show elements if GSAP hasn't animated them after 1.5s */
-/* Only apply to elements NOT yet animated by GSAP */
-.gsap-ready [data-gsap="categories"]:not([data-animated]),
-.gsap-ready [data-gsap="title"]:not([data-animated]),
-.gsap-ready [data-gsap="meta"]:not([data-animated]),
-.gsap-ready [data-gsap="excerpt"]:not([data-animated]),
-.gsap-ready [data-gsap="body"]:not([data-animated]),
-.gsap-ready [data-gsap="equipment"]:not([data-animated]) {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
 }
 /* Equipment section title should use body font, not heading font */
 [data-gsap="equipment"] h3 {
@@ -37,15 +26,15 @@
     <div class="mt-4 mb-4 flex flex-wrap gap-2 justify-center" data-gsap="categories">
       {% if album.categories is defined and album.categories|length > 0 %}
         {% for cat in album.categories %}
-        <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ cat.name|e }}">
-          <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ cat.name|e }}
+        <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-black dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 transition-colors" title="{{ cat.name|e }}">
+          <span class="w-1.5 h-1.5 rounded-full bg-neutral-700 dark:bg-neutral-300"></span>{{ cat.name|e }}
         </a>
         {% endfor %}
       {% endif %}
       {% if album.tags is defined and album.tags|length > 0 %}
         {% for tag in album.tags %}
-        <a href="{{ base_path }}/tag/{{ tag.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors" title="{{ tag.name|e }}">
-          <span class="w-1.5 h-1.5 rounded-full bg-blue-700"></span>{{ tag.name|e }}
+        <a href="{{ base_path }}/tag/{{ tag.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-600 dark:bg-blue-900/50 dark:text-blue-200 dark:hover:bg-blue-800/50 transition-colors" title="{{ tag.name|e }}">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-700 dark:bg-blue-400"></span>{{ tag.name|e }}
         </a>
         {% endfor %}
       {% endif %}
@@ -116,11 +105,11 @@
   {% set equipment_count = equipment_items|length %}
   {% set grid_cols = equipment_count <= 3 ? equipment_count : 3 %}
 
-  <div class="max-w-5xl mx-auto mb-8 p-4 bg-neutral-50 rounded-lg" data-gsap="equipment">
-    <h3 class="text-sm font-medium mb-3 text-center">{{ trans('album.equipment') }}</h3>
-    <div class="grid grid-cols-1 {% if equipment_count > 1 %}md:grid-cols-{{ equipment_count <= 2 ? equipment_count : 2 }}{% endif %} {% if equipment_count > 2 %}lg:grid-cols-{{ grid_cols }}{% endif %} gap-4 text-xs text-neutral-600">
+  <div class="max-w-5xl mx-auto mb-8 p-6 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-transparent dark:border-neutral-700" data-gsap="equipment">
+    <h3 class="text-sm font-medium mb-3 text-left">{{ trans('album.equipment') }}</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-2 text-xs text-neutral-600">
       {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
-      <div class="flex flex-col items-center text-center">
+      <div class="flex flex-col items-start text-left">
         <i class="fas fa-camera mb-1 text-neutral-500"></i>
         <div class="space-y-1">
           {% for camera in album.equipment.cameras %}<div>{{ camera }}</div>{% endfor %}
@@ -128,7 +117,7 @@
       </div>
       {% endif %}
       {% if album.equipment.lenses is defined and album.equipment.lenses|length > 0 %}
-      <div class="flex flex-col items-center text-center">
+      <div class="flex flex-col items-start text-left">
         <i class="fas fa-dot-circle mb-1 text-neutral-500"></i>
         <div class="space-y-1">
           {% for lens in album.equipment.lenses %}<div>{{ lens }}</div>{% endfor %}
@@ -136,7 +125,7 @@
       </div>
       {% endif %}
       {% if album.equipment.film is defined and album.equipment.film|length > 0 %}
-      <div class="flex flex-col items-center text-center">
+      <div class="flex flex-col items-start text-left">
         <i class="fas fa-film mb-1 text-neutral-500"></i>
         <div class="space-y-1">
           {% for film in album.equipment.film %}<div>{% if film.name is defined %}{{ film.name }}{% if film.iso or film.format %} ({% if film.iso %}ISO {{ film.iso }}{% endif %}{% if film.iso and film.format %} - {% endif %}{% if film.format %}{{ film.format }}{% endif %}){% endif %}{% else %}{{ film }}{% endif %}</div>{% endfor %}
@@ -144,7 +133,7 @@
       </div>
       {% endif %}
       {% if album.equipment.developers is defined and album.equipment.developers|length > 0 %}
-      <div class="flex flex-col items-center text-center">
+      <div class="flex flex-col items-start text-left">
         <i class="fas fa-flask mb-1 text-neutral-500"></i>
         <div class="space-y-1">
           {% for dev in album.equipment.developers %}<div>{{ dev }}</div>{% endfor %}
@@ -152,7 +141,7 @@
       </div>
       {% endif %}
       {% if album.equipment.labs is defined and album.equipment.labs|length > 0 %}
-      <div class="flex flex-col items-center text-center">
+      <div class="flex flex-col items-start text-left">
         <i class="fas fa-industry mb-1 text-neutral-500"></i>
         <div class="space-y-1">
           {% for lab in album.equipment.labs %}<div>{{ lab }}</div>{% endfor %}
@@ -161,7 +150,7 @@
       {% endif %}
       {# Custom fields #}
       {% for field in custom_fields_for_gallery %}
-      <div class="flex flex-col items-center text-center">
+      <div class="flex flex-col items-start text-left">
         <i class="fas {{ field.icon|default('fa-tag') }} mb-1 text-neutral-500"></i>
         <div class="space-y-1">
           {% for valueData in field.values %}<div>{{ valueData.value|e }}</div>{% endfor %}
@@ -592,9 +581,13 @@
   {# 7. DENSE GRID - Responsive CSS Grid with auto-flow dense and adaptive image sizing #}
   {% elseif layout == 'dense_grid' %}
     {% set dense = template_settings.dense_grid|default({}) %}
+    {% set columnMode = dense.columnMode|default('auto') %}
     {% set minDesktop = dense.minCellDesktop|default(250) %}
     {% set minTablet = dense.minCellTablet|default(150) %}
     {% set cellMobile = dense.cellHeightMobile|default(300) %}
+    {% set colsDesktop = dense.colsDesktop|default(3) %}
+    {% set colsTablet = dense.colsTablet|default(2) %}
+    {% set colsMobile = dense.colsMobile|default(1) %}
     {% set gridGap = dense.gap|default(15) %}
     {% set maxWidth = dense.maxWidth|default(1400) %}
     {% set adaptive = dense.adaptiveSizing|default(true) %}
@@ -649,12 +642,15 @@
       </div>
       {% endfor %}
     </div>
+    {% set rowHeight = dense.rowHeight|default(250) %}
+    {% set rowHeightTablet = dense.rowHeightTablet|default(150) %}
+    {% set rowHeightMobile = dense.rowHeightMobile|default(300) %}
     <style nonce="{{ csp_nonce() }}">
-    /* Dense Grid Layout - CSS Grid with auto-flow dense */
+    /* Dense Grid Layout - CSS Grid with auto-flow dense (like photo-gallery-white.html) */
     .dense-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax({{ minDesktop }}px, 1fr));
-      grid-auto-rows: {{ minDesktop }}px;
+      grid-auto-rows: {{ rowHeight }}px;
       gap: {{ gridGap }}px;
       grid-auto-flow: dense;
       max-width: {{ maxWidth }}px;
@@ -691,7 +687,7 @@
     .dense-grid-img.loaded {
       opacity: 1;
     }
-    /* Adaptive sizing classes */
+    /* Adaptive sizing classes - images span based on aspect ratio */
     .dense-grid-item.landscape {
       grid-column: span 2;
     }
@@ -723,16 +719,16 @@
     @media (max-width: 768px) {
       .dense-grid {
         grid-template-columns: repeat(auto-fill, minmax({{ minTablet }}px, 1fr));
-        grid-auto-rows: {{ minTablet }}px;
+        grid-auto-rows: {{ rowHeightTablet }}px;
         gap: 10px;
         padding: 0 10px;
       }
     }
-    /* Mobile - single column */
+    /* Mobile - single column, no adaptive spans */
     @media (max-width: 480px) {
       .dense-grid {
         grid-template-columns: 1fr;
-        grid-auto-rows: {{ cellMobile }}px;
+        grid-auto-rows: {{ rowHeightMobile }}px;
         gap: 10px;
         padding: 0 10px;
       }
@@ -792,6 +788,7 @@
     <style nonce="{{ csp_nonce() }}">
     .masonry-grid {
         column-gap: 1rem;
+        column-fill: auto;
     }
     .masonry-grid .masonry-item {
         break-inside: avoid;
@@ -1120,7 +1117,7 @@ function initDenseGrid() {
   const isAdaptive = container.getAttribute('data-adaptive') === 'true';
   const items = container.querySelectorAll('.dense-grid-item');
 
-  items.forEach(item => {
+  items.forEach((item, index) => {
     const img = item.querySelector('.dense-grid-img');
     const loading = item.querySelector('.dense-loading');
 
@@ -1130,7 +1127,7 @@ function initDenseGrid() {
     const dataWidth = parseInt(item.getAttribute('data-width') || '0');
     const dataHeight = parseInt(item.getAttribute('data-height') || '0');
 
-    function applyAdaptiveSizing(width, height) {
+    function applyAdaptiveSizing(width, height, itemIndex) {
       if (!isAdaptive || window.innerWidth <= 480) return;
 
       const ratio = width / height;
@@ -1138,25 +1135,39 @@ function initDenseGrid() {
       // Remove previous classes
       item.classList.remove('landscape', 'portrait-tall', 'square-large');
 
-      // Apply new classes based on aspect ratio
+      // Smart distribution: only apply landscape to ~40% of horizontal images
+      // This ensures the grid fills properly when most images are horizontal
+      // Use item index for consistent distribution (not random on each render)
+      const shouldSpanWide = (itemIndex % 5) < 2; // 40% of images span wide
+      const shouldSpanTall = (itemIndex % 4) < 1; // 25% of portrait images span tall
+      const shouldBeLarge = (itemIndex % 7) === 0; // ~14% of squares go large
+
       if (ratio > 1.4) {
-        item.classList.add('landscape');
+        // Landscape - only some span 2 columns
+        if (shouldSpanWide) {
+          item.classList.add('landscape');
+        }
       } else if (ratio < 0.7) {
-        item.classList.add('portrait-tall');
+        // Portrait - only some span 2 rows
+        if (shouldSpanTall) {
+          item.classList.add('portrait-tall');
+        }
       } else if (ratio >= 0.9 && ratio <= 1.1) {
-        // Square images occasionally get larger size (30% chance)
-        if (Math.random() > 0.7) {
+        // Square - occasionally larger
+        if (shouldBeLarge) {
           item.classList.add('square-large');
         }
       } else if (ratio > 1.1 && ratio <= 1.4) {
-        // Slightly landscape - span 2 columns
-        item.classList.add('landscape');
+        // Slightly landscape - only some span 2 columns
+        if (shouldSpanWide) {
+          item.classList.add('landscape');
+        }
       }
     }
 
     // If we have data attributes, use them immediately
     if (dataWidth > 0 && dataHeight > 0) {
-      applyAdaptiveSizing(dataWidth, dataHeight);
+      applyAdaptiveSizing(dataWidth, dataHeight, index);
       if (loading) loading.style.display = 'none';
       img.classList.add('loaded');
     } else {
@@ -1164,14 +1175,14 @@ function initDenseGrid() {
       img.onload = function() {
         if (loading) loading.remove();
         img.classList.add('loaded');
-        applyAdaptiveSizing(this.naturalWidth, this.naturalHeight);
+        applyAdaptiveSizing(this.naturalWidth, this.naturalHeight, index);
       };
 
       // If image already loaded
       if (img.complete && img.naturalWidth > 0) {
         if (loading) loading.remove();
         img.classList.add('loaded');
-        applyAdaptiveSizing(img.naturalWidth, img.naturalHeight);
+        applyAdaptiveSizing(img.naturalWidth, img.naturalHeight, index);
       }
     }
 
@@ -1187,7 +1198,7 @@ function initDenseGrid() {
   window.addEventListener('resize', function() {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(function() {
-      items.forEach(item => {
+      items.forEach((item, idx) => {
         const dataWidth = parseInt(item.getAttribute('data-width') || '0');
         const dataHeight = parseInt(item.getAttribute('data-height') || '0');
 
@@ -1195,14 +1206,9 @@ function initDenseGrid() {
           // Mobile: remove all span classes
           item.classList.remove('landscape', 'portrait-tall', 'square-large');
         } else if (dataWidth > 0 && dataHeight > 0 && isAdaptive) {
-          // Reapply adaptive sizing
-          const ratio = dataWidth / dataHeight;
+          // Reapply using existing adaptive sizing logic
           item.classList.remove('landscape', 'portrait-tall', 'square-large');
-          if (ratio > 1.4) {
-            item.classList.add('landscape');
-          } else if (ratio < 0.7) {
-            item.classList.add('portrait-tall');
-          }
+          applyAdaptiveSizing(dataWidth, dataHeight, idx);
         }
       });
     }, 150);
@@ -1261,7 +1267,7 @@ document.addEventListener('click', function(event) {
       } else if (newLayout === 'fullscreen') {
         galleryContainer.className = 'grid grid-cols-1 lg:grid-cols-2 gap-2';
       } else if (newLayout === 'dense_grid') {
-        // Dense Grid layout with CSS Grid auto-flow dense
+        // Dense Grid layout with CSS Grid auto-flow dense (like photo-gallery-white.html)
         galleryContainer.className = 'dense-grid pswp-gallery';
         galleryContainer.setAttribute('data-layout', 'dense_grid');
         const dense = window.templateSettings?.dense_grid || {};
@@ -1272,7 +1278,9 @@ document.addEventListener('click', function(event) {
         if (prevDenseStyle) prevDenseStyle.remove();
         const minDesktop = dense.minCellDesktop || 250;
         const minTablet = dense.minCellTablet || 150;
-        const cellMobile = dense.cellHeightMobile || 300;
+        const rowHeight = dense.rowHeight || 250;
+        const rowHeightTablet = dense.rowHeightTablet || 150;
+        const rowHeightMobile = dense.rowHeightMobile || 300;
         const gridGap = dense.gap || 15;
         const maxWidth = dense.maxWidth || 1400;
         const denseStyleEl = document.createElement('style');
@@ -1281,7 +1289,7 @@ document.addEventListener('click', function(event) {
           .dense-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(${minDesktop}px, 1fr));
-            grid-auto-rows: ${minDesktop}px;
+            grid-auto-rows: ${rowHeight}px;
             gap: ${gridGap}px;
             grid-auto-flow: dense;
             max-width: ${maxWidth}px;
@@ -1300,10 +1308,10 @@ document.addEventListener('click', function(event) {
           .dense-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #333; border-radius: 50%; animation: dense-spin 1s linear infinite; z-index: 1; }
           @keyframes dense-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
           @media (max-width: 768px) {
-            .dense-grid { grid-template-columns: repeat(auto-fill, minmax(${minTablet}px, 1fr)); grid-auto-rows: ${minTablet}px; gap: 10px; padding: 0 10px; }
+            .dense-grid { grid-template-columns: repeat(auto-fill, minmax(${minTablet}px, 1fr)); grid-auto-rows: ${rowHeightTablet}px; gap: 10px; padding: 0 10px; }
           }
           @media (max-width: 480px) {
-            .dense-grid { grid-template-columns: 1fr; grid-auto-rows: ${cellMobile}px; gap: 10px; padding: 0 10px; }
+            .dense-grid { grid-template-columns: 1fr; grid-auto-rows: ${rowHeightMobile}px; gap: 10px; padding: 0 10px; }
             .dense-grid-item.landscape, .dense-grid-item.portrait-tall, .dense-grid-item.square-large { grid-column: span 1; grid-row: span 1; }
             .dense-grid-item:hover { transform: none; box-shadow: none; }
           }
@@ -1341,7 +1349,7 @@ document.addEventListener('click', function(event) {
         const masonryStyleEl = document.createElement('style');
         masonryStyleEl.id = 'masonry-grid-dynamic-style';
         masonryStyleEl.textContent = `
-          .masonry-grid { column-gap: 1rem; }
+          .masonry-grid { column-gap: 1rem; column-fill: auto; }
           .masonry-grid .masonry-item { break-inside: avoid; margin-bottom: 1rem; }
           @media (min-width: 1024px) { .masonry-grid { column-count: ${d}; } }
           @media (min-width: 768px) and (max-width: 1023px) { .masonry-grid { column-count: ${t}; } }
@@ -1404,66 +1412,15 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     document.body.dataset.gsapGalleryIntroDone = '1';
-    // Check for reduced motion preference
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    // Fallback: if no GSAP or reduced motion, show elements immediately
-    if (prefersReducedMotion || typeof gsap === 'undefined') {
-        document.body.classList.add('gsap-ready');
-        return;
-    }
-
-    // Register ScrollTrigger
-    if (typeof ScrollTrigger !== 'undefined') {
-        gsap.registerPlugin(ScrollTrigger);
-    }
-
-    // Header entrance animations with stagger - animate TO visible
-    const headerElements = [
-        '[data-gsap="categories"]',
-        '[data-gsap="title"]',
-        '[data-gsap="meta"]',
-        '[data-gsap="excerpt"]',
-        '[data-gsap="body"]'
-    ];
-
-    headerElements.forEach((selector, index) => {
-        const el = document.querySelector(selector);
-        if (el && !el.hasAttribute('data-animated')) {
-            el.setAttribute('data-animated', '1'); // Mark immediately to prevent re-animation
-            gsap.fromTo(el,
-                { opacity: 0, y: 20 },
-                {
-                    opacity: 1,
-                    y: 0,
-                    duration: 0.6,
-                    delay: index * 0.1,
-                    ease: 'power2.out'
-                }
-            );
-        }
+    const allHeaderEls = document.querySelectorAll('[data-gsap="categories"], [data-gsap="title"], [data-gsap="meta"], [data-gsap="excerpt"], [data-gsap="body"], [data-gsap="equipment"]');
+    allHeaderEls.forEach(el => {
+        el.setAttribute('data-animated', '1');
+        el.style.opacity = '1';
+        el.style.transform = 'none';
     });
-
-    // Equipment section
-    const equipment = document.querySelector('[data-gsap="equipment"]');
-    if (equipment && !equipment.hasAttribute('data-animated')) {
-        equipment.setAttribute('data-animated', '1'); // Mark immediately to prevent re-animation
-        gsap.fromTo(equipment,
-            { opacity: 0, y: 20 },
-            {
-                opacity: 1,
-                y: 0,
-                duration: 0.6,
-                delay: 0.5,
-                ease: 'power2.out'
-            }
-        );
+    if (typeof gsap !== 'undefined') {
+        gsap.set(allHeaderEls, { clearProps: 'all', opacity: 1 });
     }
-
-    // Fallback timeout: if animations haven't run, show elements
-    setTimeout(() => {
-        document.body.classList.add('gsap-ready');
-    }, 1500);
 
     // Template switcher buttons (hidden initially, animate to visible)
     const templateSwitcher = document.getElementById('template-switcher');

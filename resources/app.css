@@ -4,10 +4,44 @@
 
 /* Custom CSS for Cimaise */
 @layer base {
+  /* Color variables for light/dark mode */
+  :root {
+    --color-bg-primary: #fafafa;
+    --color-bg-secondary: #ffffff;
+    --color-bg-tertiary: #f5f5f5;
+    --color-text-primary: #171717;
+    --color-text-secondary: #525252;
+    --color-text-tertiary: #737373;
+    --color-border: #e5e5e5;
+    --color-border-secondary: #f5f5f5;
+    --color-icon: #171717;
+    --color-icon-secondary: #525252;
+    --color-shadow: rgba(0, 0, 0, 0.1);
+    --color-shadow-hover: rgba(0, 0, 0, 0.15);
+  }
+
+  html.dark {
+    --color-bg-primary: #0a0a0a;
+    --color-bg-secondary: #171717;
+    --color-bg-tertiary: #262626;
+    --color-text-primary: #fafafa;
+    --color-text-secondary: #d4d4d4;
+    --color-text-tertiary: #a3a3a3;
+    --color-border: #262626;
+    --color-border-secondary: #1a1a1a;
+    --color-icon: #fafafa;
+    --color-icon-secondary: #d4d4d4;
+    --color-shadow: rgba(0, 0, 0, 0.3);
+    --color-shadow-hover: rgba(0, 0, 0, 0.4);
+  }
+
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
-  
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
@@ -19,13 +53,31 @@
   .btn {
     @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
-  
+
   .btn-primary {
     @apply bg-black text-white hover:bg-gray-800 focus:ring-gray-500;
   }
-  
+
+  html.dark .btn-primary {
+    background-color: #fafafa;
+    color: #171717;
+  }
+
+  html.dark .btn-primary:hover {
+    background-color: #f5f5f5;
+  }
+
   .btn-secondary {
     @apply bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-300;
+  }
+
+  html.dark .btn-secondary {
+    background-color: #262626;
+    color: #fafafa;
+  }
+
+  html.dark .btn-secondary:hover {
+    background-color: #404040;
   }
   
   .btn-sm {
@@ -40,10 +92,26 @@
   .card {
     @apply bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200;
   }
-  
+
+  html.dark .card {
+    background-color: #171717;
+    border-color: #262626;
+  }
+
   /* Form styles */
   .form-input {
     @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
+  }
+
+  html.dark .form-input {
+    background-color: #171717;
+    border-color: #404040;
+    color: #fafafa;
+  }
+
+  html.dark .form-input:focus {
+    border-color: #fafafa;
+    --tw-ring-color: #fafafa;
   }
 
   /* Date input - ensure native picker is visible */
@@ -73,9 +141,31 @@
   .form-select {
     @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
   }
-  
+
+  html.dark .form-select {
+    background-color: #171717;
+    border-color: #404040;
+    color: #fafafa;
+  }
+
+  html.dark .form-select:focus {
+    border-color: #fafafa;
+    --tw-ring-color: #fafafa;
+  }
+
   .form-textarea {
     @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm;
+  }
+
+  html.dark .form-textarea {
+    background-color: #171717;
+    border-color: #404040;
+    color: #fafafa;
+  }
+
+  html.dark .form-textarea:focus {
+    border-color: #fafafa;
+    --tw-ring-color: #fafafa;
   }
   
   /* Text truncation utilities */
@@ -165,4 +255,947 @@
   transform: none !important;
   --tw-translate-y: 0 !important;
   --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+}
+
+/* ===================================================================
+ * DARK MODE SPECIFIC STYLES
+ *
+ * Note on !important usage (~200+ occurrences):
+ * - Required to override Tailwind utility classes with high specificity
+ * - Dark mode was added after initial development, not alongside it
+ * - All !important declarations are scoped to html.dark, so they don't
+ *   affect light mode or create specificity wars
+ * - For future refactoring: consider CSS custom properties or
+ *   dedicated theme utility classes to reduce !important usage
+ * =================================================================== */
+html.dark {
+  color-scheme: dark;
+}
+
+/* PhotoSwipe Dark Mode */
+html.dark .pswp {
+  --pswp-bg: #0a0a0a !important;
+  --pswp-icon-color: #fafafa !important;
+  --pswp-icon-color-secondary: #d4d4d4 !important;
+  --pswp-placeholder-bg: #171717 !important;
+}
+
+html.dark .pswp__bg {
+  background: #0a0a0a !important;
+}
+
+html.dark .pswp__button,
+html.dark .pswp__button--arrow--left,
+html.dark .pswp__button--arrow--right {
+  background-color: transparent !important;
+}
+
+html.dark .pswp__button:hover {
+  background-color: transparent !important;
+}
+
+html.dark .pswp__button:hover .pswp__icn {
+  opacity: 0.6 !important;
+}
+
+html.dark .pswp__caption {
+  background-color: rgba(10, 10, 10, 0.95) !important;
+  color: #fafafa !important;
+}
+
+html.dark .pswp__caption__center {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__icn {
+  color: #fafafa !important;
+  fill: #fafafa !important;
+}
+
+html.dark .pswp__exif-panel {
+  background-color: rgba(10, 10, 10, 0.95) !important;
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-panel i {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-panel .pswp__exif-icon {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-panel .pswp__exif-icon i {
+  color: #fafafa !important;
+}
+
+/* Dark mode for general elements */
+html.dark svg,
+html.dark i {
+  color: var(--color-icon);
+}
+
+html.dark a {
+  color: var(--color-text-primary);
+}
+
+html.dark a:hover {
+  color: var(--color-text-secondary);
+}
+
+/* Dark mode for borders and dividers */
+html.dark hr,
+html.dark .border,
+html.dark [class*="border-"] {
+  border-color: var(--color-border);
+}
+
+/* Dark mode for shadows */
+html.dark .shadow,
+html.dark .shadow-sm,
+html.dark .shadow-md,
+html.dark .shadow-lg {
+  box-shadow: 0 0 0 1px var(--color-border), 0 4px 6px -1px var(--color-shadow);
+}
+
+/* Dark mode for text colors */
+html.dark .text-gray-50 { color: #0a0a0a; }
+html.dark .text-gray-100 { color: #171717; }
+html.dark .text-gray-200 { color: #262626; }
+html.dark .text-gray-300 { color: #404040; }
+html.dark .text-gray-400 { color: #737373; }
+html.dark .text-gray-500 { color: #a3a3a3; }
+html.dark .text-gray-600 { color: #d4d4d4; }
+html.dark .text-gray-700 { color: #e5e5e5; }
+html.dark .text-gray-800 { color: #f5f5f5; }
+html.dark .text-gray-900 { color: #fafafa; }
+
+/* Dark mode for background colors */
+html.dark .bg-gray-50 { background-color: #0a0a0a !important; }
+html.dark .bg-gray-100 { background-color: #171717 !important; }
+html.dark .bg-gray-200 { background-color: #262626 !important; }
+html.dark .bg-white { background-color: #171717 !important; }
+/* Note: .bg-black is handled with specific selectors (button.bg-black, a.bg-black) to preserve contrast */
+
+/* Dark mode for background opacity variants */
+html.dark .bg-white\/95 { background-color: rgba(23, 23, 23, 0.95) !important; }
+html.dark .bg-white\/98 { background-color: rgba(23, 23, 23, 0.98) !important; }
+html.dark .bg-white\/80 { background-color: rgba(23, 23, 23, 0.8) !important; }
+html.dark .bg-gray-50\/80 { background-color: rgba(10, 10, 10, 0.8) !important; }
+
+/* Dark mode for borders */
+html.dark .border-gray-100 { border-color: #262626; }
+html.dark .border-gray-200 { border-color: #404040; }
+html.dark .border-gray-300 { border-color: #525252; }
+
+/* Dark mode for hover states */
+html.dark .hover\:bg-gray-50:hover { background-color: #171717; }
+html.dark .hover\:bg-gray-100:hover { background-color: #262626; }
+html.dark .hover\:bg-gray-200:hover { background-color: #404040; }
+html.dark .hover\:bg-gray-800:hover { background-color: #f5f5f5; }
+html.dark .hover\:text-gray-900:hover { color: #fafafa; }
+
+/* Dark mode for text-black and text-neutral elements */
+html.dark .text-black { color: #fafafa !important; }
+html.dark .text-neutral-600 { color: #d4d4d4 !important; }
+html.dark .text-neutral-500 { color: #d4d4d4 !important; }
+html.dark .text-neutral-400 { color: #a3a3a3 !important; }
+html.dark .text-neutral-700 { color: #d4d4d4 !important; }
+html.dark .text-neutral-800 { color: #e5e5e5 !important; }
+
+/* Preserve dark text on explicitly light backgrounds (hero overlays, etc.)
+ * Use .preserve-light-text on containers with light backgrounds in dark mode */
+html.dark .preserve-light-text,
+html.dark .preserve-light-text .text-black,
+html.dark .preserve-light-text h1,
+html.dark .preserve-light-text h2,
+html.dark .preserve-light-text h3 {
+  color: #0a0a0a !important;
+}
+
+html.dark .preserve-light-text .text-neutral-700,
+html.dark .preserve-light-text .text-neutral-800 {
+  color: #404040 !important;
+}
+
+html.dark .preserve-light-text .text-neutral-600,
+html.dark .preserve-light-text .text-neutral-500 {
+  color: #525252 !important;
+}
+
+/* Dark mode for prose content (Tailwind Typography plugin) */
+html.dark .prose-neutral {
+  --tw-prose-body: #d4d4d4;
+  --tw-prose-headings: #fafafa;
+  --tw-prose-links: #60a5fa;
+  --tw-prose-bold: #fafafa;
+  --tw-prose-counters: #a3a3a3;
+  --tw-prose-bullets: #a3a3a3;
+  --tw-prose-quotes: #d4d4d4;
+  --tw-prose-code: #fafafa;
+  --tw-prose-hr: #404040;
+}
+
+html.dark .prose-neutral p,
+html.dark .prose-neutral li,
+html.dark .prose-neutral span {
+  color: #d4d4d4;
+}
+
+html.dark .prose-neutral h1,
+html.dark .prose-neutral h2,
+html.dark .prose-neutral h3,
+html.dark .prose-neutral h4,
+html.dark .prose-neutral strong {
+  color: #fafafa;
+}
+
+html.dark .prose-neutral a {
+  color: #60a5fa;
+}
+
+/* Dark mode for ALL headings (not just .text-black)
+ * Note: Uses !important to override Tailwind utilities
+ * This is acceptable for this photo gallery app which doesn't use semantic heading colors
+ * If semantic colors are needed in future (e.g. red headings for errors),
+ * consider using more specific selectors or dedicated classes */
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #fafafa !important;
+}
+
+/* Dark mode for paragraphs and spans (non semantic) */
+html.dark .card p,
+html.dark .gallery-card p,
+html.dark .album-card p,
+html.dark article p,
+html.dark .description p,
+html.dark .caption p {
+  color: #d4d4d4;
+}
+
+html.dark .card span:not([class*="text-"]),
+html.dark .gallery-card span:not([class*="text-"]),
+html.dark .album-card span:not([class*="text-"]) {
+  color: #d4d4d4;
+}
+
+/* Override for explicitly white text */
+html.dark .text-white {
+  color: #fff !important;
+}
+
+/* Dark mode for header and navigation */
+html.dark #main-header {
+  background-color: rgba(23, 23, 23, 0.95) !important;
+  border-color: #262626 !important;
+}
+
+html.dark #main-header h1 a,
+html.dark #main-header nav a,
+html.dark #main-header button {
+  color: #fafafa;
+}
+
+html.dark #main-header h1 a:hover,
+html.dark #main-header nav a:hover,
+html.dark #main-header button:hover {
+  color: #d4d4d4;
+}
+
+/* Dark mode for text colors in header */
+html.dark #main-header .text-gray-600,
+html.dark #main-header .text-gray-700,
+html.dark #main-header .text-gray-800,
+html.dark #main-header .text-gray-900 {
+  color: #fafafa;
+}
+
+/* Dark mode for mega menu and dropdowns */
+html.dark #categories-mega-menu,
+html.dark #tags-mega-menu {
+  background-color: #171717 !important;
+  border-color: #262626 !important;
+}
+
+html.dark .category-parent-item h3,
+html.dark .tag-item span {
+  color: #fafafa;
+}
+
+html.dark .category-parent-item:hover h3,
+html.dark .tag-item:hover span {
+  color: #ffffff;
+}
+
+html.dark .category-parent-item .bg-gray-50,
+html.dark .tag-item .bg-gray-100 {
+  background-color: #262626;
+}
+
+html.dark .category-parent-item:hover .bg-gray-50,
+html.dark .tag-item:hover .bg-gray-100 {
+  background-color: #404040;
+}
+
+/* Dark mode for search panel */
+html.dark #header-search-panel {
+  background-color: rgba(23, 23, 23, 0.95) !important;
+  border-color: #262626 !important;
+}
+
+html.dark .header-search-input,
+html.dark #header-search {
+  background-color: #171717 !important;
+  border-color: #404040 !important;
+  color: #fafafa !important;
+}
+
+html.dark .header-search-input::placeholder,
+html.dark #header-search::placeholder {
+  color: #737373;
+}
+
+html.dark #header-search-suggestions {
+  background-color: #171717 !important;
+  border-color: #262626 !important;
+}
+
+/* Dark mode for mobile menu */
+html.dark #mobile-menu {
+  background-color: rgba(23, 23, 23, 0.98) !important;
+  border-color: #262626 !important;
+}
+
+html.dark #mobile-menu a {
+  color: #fafafa;
+}
+
+html.dark #mobile-menu a:hover {
+  background-color: #262626 !important;
+}
+
+html.dark #mobile-menu a.bg-white {
+  background-color: #262626 !important;
+  color: #fafafa !important;
+}
+
+html.dark #mobile-menu .text-gray-500 {
+  color: #a3a3a3;
+}
+
+html.dark #mobile-menu .bg-gray-100 {
+  background-color: #262626;
+}
+
+/* Dark mode for filters panel */
+html.dark #filters-panel {
+  background-color: rgba(23, 23, 23, 0.8) !important;
+  border-color: #262626 !important;
+}
+
+html.dark #filters-panel label {
+  color: #d4d4d4;
+}
+
+html.dark #filters-panel select,
+html.dark #filters-panel input {
+  background-color: #171717 !important;
+  border-color: #404040 !important;
+  color: #fafafa !important;
+}
+
+html.dark #filters-panel select:focus,
+html.dark #filters-panel input:focus {
+  border-color: #525252 !important;
+}
+
+/* Dark mode for buttons in filters */
+html.dark #filters-panel button {
+  color: #fafafa;
+}
+
+html.dark #filters-panel .bg-black {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark #filters-panel .bg-black:hover {
+  background-color: #e5e5e5 !important;
+}
+
+/* Dark mode for admin button in header */
+html.dark #main-header .bg-gray-900 {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark #main-header .bg-gray-900:hover {
+  background-color: #e5e5e5 !important;
+}
+
+html.dark #main-header .bg-gray-900 i {
+  color: #171717 !important;
+}
+
+html.dark #main-header .bg-gray-900 span {
+  color: #171717 !important;
+}
+
+html.dark #main-header .text-white {
+  color: #171717 !important;
+}
+
+/* Dark mode for social profile icons in header */
+html.dark #main-header .text-gray-600 {
+  color: #d4d4d4 !important;
+}
+
+html.dark #main-header .text-gray-600:hover {
+  color: #fafafa !important;
+}
+
+html.dark #main-header .hover\:text-gray-900:hover {
+  color: #fafafa !important;
+}
+
+/* Dark mode for icon colors in header */
+html.dark #main-header i,
+html.dark #main-header svg {
+  color: inherit;
+}
+
+/* Dark mode for mobile category groups */
+html.dark .mobile-category-group a {
+  color: #fafafa;
+}
+
+html.dark .mobile-category-group .bg-gray-100 {
+  background-color: #262626;
+}
+
+html.dark .mobile-category-group i {
+  color: #a3a3a3;
+}
+
+/* Dark mode for hover effects in navigation */
+html.dark #main-header .hover\:text-gray-600:hover {
+  color: #d4d4d4 !important;
+}
+
+html.dark #main-header .hover\:bg-gray-50:hover {
+  background-color: #262626 !important;
+}
+
+/* Dark mode for page titles and headings */
+html.dark h1.text-black,
+html.dark h2.text-black,
+html.dark h3.text-black,
+html.dark h4.text-black,
+html.dark h5.text-black,
+html.dark h6.text-black {
+  color: #fafafa !important;
+}
+
+/* Dark mode for filters section */
+html.dark #filters-section {
+  background-color: rgba(23, 23, 23, 0.95) !important;
+  border-color: #262626 !important;
+}
+
+html.dark #filters-section .text-gray-600,
+html.dark #filters-section .text-gray-900 {
+  color: #fafafa;
+}
+
+html.dark #filters-section .bg-black {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark #filters-section .bg-black:hover {
+  background-color: #e5e5e5 !important;
+}
+
+html.dark #filters-section input,
+html.dark #filters-section select {
+  background-color: #171717 !important;
+  border-color: #404040 !important;
+  color: #fafafa !important;
+}
+
+html.dark #filters-section input::placeholder {
+  color: #737373;
+}
+
+html.dark #filters-section .filter-chip {
+  background-color: #262626;
+  color: #fafafa;
+  border-color: #404040;
+}
+
+html.dark #filters-section .filter-chip:hover {
+  background-color: #404040;
+}
+
+html.dark #filters-section .filter-chip[aria-pressed="true"] {
+  background-color: #fafafa;
+  color: #171717;
+}
+
+html.dark #filters-section .hover\:bg-gray-100:hover {
+  background-color: #262626 !important;
+}
+
+/* Dark mode for gallery cards */
+html.dark .gallery-card {
+  background-color: #171717 !important;
+}
+
+html.dark .gallery-card h3.text-black {
+  color: #fafafa !important;
+}
+
+html.dark .gallery-card .text-gray-600 {
+  color: #d4d4d4 !important;
+}
+
+html.dark .gallery-card .text-gray-500 {
+  color: #d4d4d4 !important;
+}
+
+html.dark .gallery-card .text-black {
+  color: #fafafa !important;
+}
+
+html.dark .gallery-card:hover h3 {
+  color: #e5e5e5 !important;
+}
+
+html.dark .gallery-card .bg-gray-100 {
+  background-color: #262626 !important;
+}
+
+html.dark .gallery-card .group-hover\:text-gray-700:hover {
+  color: #e5e5e5 !important;
+}
+
+/* Dark mode for galleries grid container */
+html.dark #galleries-grid {
+  background-color: transparent !important;
+}
+
+html.dark #galleries-grid .bg-white {
+  background-color: #171717 !important;
+}
+
+html.dark #galleries-grid .bg-gray-100 {
+  background-color: #262626 !important;
+}
+
+/* Dark mode for album descriptions */
+html.dark p.text-gray-600 {
+  color: #d4d4d4 !important;
+}
+
+/* Dark mode for category badges */
+html.dark .bg-white\/90 {
+  background-color: rgba(23, 23, 23, 0.9) !important;
+  color: #fafafa !important;
+}
+
+/* Dark mode for image count badges */
+html.dark .bg-black\/70 {
+  background-color: rgba(250, 250, 250, 0.7) !important;
+  color: #171717 !important;
+}
+
+/* Dark mode for filter labels and icons */
+html.dark .filter-group label {
+  color: #fafafa !important;
+}
+
+html.dark .filter-group i {
+  color: #a3a3a3;
+}
+
+/* Dark mode for active filters count */
+html.dark #results-count {
+  color: #d4d4d4;
+}
+
+html.dark #clear-filters {
+  color: #a3a3a3;
+}
+
+html.dark #clear-filters:hover {
+  color: #ef4444;
+  background-color: #262626 !important;
+}
+
+/* Dark mode for category/tag badges */
+html.dark .bg-neutral-50 {
+  background-color: #262626 !important;
+}
+
+html.dark .text-neutral-700 {
+  color: #d4d4d4 !important;
+}
+
+html.dark .border-neutral-300 {
+  border-color: #404040 !important;
+}
+
+html.dark .bg-neutral-700 {
+  background-color: #d4d4d4 !important;
+}
+
+html.dark .hover\:bg-neutral-100:hover {
+  background-color: #404040 !important;
+}
+
+html.dark .hover\:text-black:hover {
+  color: #fafafa !important;
+}
+
+/* ===== DARK MODE: HOME GRADIENTS ===== */
+/* Vertical veils */
+html.dark .home-veil-top {
+  background: linear-gradient(180deg, #0a0a0a 0%, #0a0a0a 77%, transparent 100%) !important;
+}
+
+html.dark .home-veil-bottom {
+  background: linear-gradient(0deg, #0a0a0a 0%, #0a0a0a 77%, transparent 100%) !important;
+}
+
+/* Horizontal veils */
+html.dark .home-veil-left {
+  background: linear-gradient(90deg, #0a0a0a 0%, #0a0a0a 77%, transparent 100%) !important;
+}
+
+html.dark .home-veil-right {
+  background: linear-gradient(270deg, #0a0a0a 0%, #0a0a0a 77%, transparent 100%) !important;
+}
+
+/* Albums carousel edges */
+html.dark .albums-edge-left {
+  background: linear-gradient(to right, #0a0a0a 0%, #0a0a0a 30%, transparent 100%) !important;
+}
+
+html.dark .albums-edge-right {
+  background: linear-gradient(to left, #0a0a0a 0%, #0a0a0a 30%, transparent 100%) !important;
+}
+
+/* Albums carousel arrows */
+html.dark .albums-arrow {
+  background: rgba(23,23,23,.9) !important;
+  color: #fafafa !important;
+  border-color: rgba(255,255,255,.08) !important;
+}
+
+html.dark .albums-arrow:hover {
+  background: rgba(38,38,38,.95) !important;
+}
+
+/* ===== DARK MODE: GALLERY WALL ===== */
+html.dark .gallery-wall-container {
+  background: #0a0a0a !important;
+}
+
+html.dark .gallery-wall-item::after {
+  background: #171717 !important;
+}
+
+/* ===== DARK MODE: MODERN HOME ===== */
+html.dark .global-head {
+  background-color: #0a0a0a !important;
+  border-color: #262626 !important;
+}
+
+html.dark .head-logo_text {
+  color: #fafafa !important;
+}
+
+html.dark .menu-btn {
+  background-color: rgba(23, 23, 23, 0.9) !important;
+  color: #fafafa !important;
+}
+
+html.dark .menu-btn:hover {
+  background-color: rgba(38, 38, 38, 0.95) !important;
+}
+
+html.dark .page-content {
+  background-color: #0a0a0a !important;
+}
+
+html.dark .work-col.is-static {
+  background-color: #0a0a0a !important;
+  color: #fafafa !important;
+}
+
+html.dark .work-col.is-work {
+  background-color: transparent !important;
+  color: #fafafa !important;
+}
+
+html.dark .inf-work_wrap {
+  background-color: transparent !important;
+}
+
+html.dark .inf-work_list {
+  background-color: transparent !important;
+}
+
+html.dark .inf-work_item {
+  background-color: transparent !important;
+}
+
+html.dark .inf-work_link {
+  color: #fafafa !important;
+}
+
+html.dark .grid-toggle_item {
+  color: #a3a3a3 !important;
+}
+
+html.dark .grid-toggle_item.is-active {
+  color: #fafafa !important;
+}
+
+html.dark .grid-toggle_item:hover {
+  color: #fafafa !important;
+  background-color: rgba(38, 38, 38, 0.5) !important;
+}
+
+html.dark .body-copy,
+html.dark .paragraph {
+  color: #d4d4d4 !important;
+}
+
+html.dark .menu-component {
+  background-color: rgba(10, 10, 10, 0.98) !important;
+}
+
+html.dark .mega-menu_link {
+  color: #fafafa !important;
+}
+
+html.dark .mega-menu_link:hover {
+  color: #d4d4d4 !important;
+}
+
+html.dark .modern-search-panel {
+  background-color: rgba(0, 0, 0, 0.72) !important;
+  border-color: transparent !important;
+}
+
+html.dark .modern-search-input {
+  background-color: #171717 !important;
+  color: #fafafa !important;
+  border-color: #404040 !important;
+}
+
+html.dark .modern-search-input::placeholder {
+  color: #737373 !important;
+}
+
+html.dark .modern-search-input:focus {
+  border-color: #fafafa !important;
+}
+
+html.dark .modern-search-suggestions {
+  background-color: #171717 !important;
+  border-color: #262626 !important;
+}
+
+html.dark .modern-search-suggestions__title {
+  color: #fafafa !important;
+}
+
+html.dark .modern-search-suggestions__subtitle {
+  color: #a3a3a3 !important;
+}
+
+html.dark .modern-search-suggestions button:hover {
+  background-color: #262626 !important;
+}
+
+/* ===== DARK MODE: FILTER TOGGLE BUTTON ===== */
+html.dark #toggle-filters {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark #toggle-filters:hover {
+  background-color: #e5e5e5 !important;
+}
+
+html.dark #toggle-filters i {
+  color: #171717 !important;
+}
+
+html.dark #toggle-filters span {
+  color: #171717 !important;
+}
+
+/* ===== DARK MODE: BLACK BUTTONS (Specific selectors only) ===== */
+/* Only invert buttons/interactive elements, not all .bg-black */
+html.dark button.bg-black,
+html.dark a.bg-black,
+html.dark .bg-black.text-white {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark button.bg-black:hover,
+html.dark a.bg-black:hover,
+html.dark button.hover\:bg-gray-800:hover,
+html.dark button.hover\:bg-neutral-800:hover {
+  background-color: #e5e5e5 !important;
+  color: #171717 !important;
+}
+
+html.dark button.bg-black i,
+html.dark a.bg-black i,
+html.dark .bg-black.text-white i {
+  color: #171717 !important;
+}
+
+html.dark button.bg-black .text-white,
+html.dark a.bg-black .text-white,
+html.dark button.bg-black span,
+html.dark a.bg-black span {
+  color: #171717 !important;
+}
+
+/* Dark mode for apply-filters button */
+html.dark #apply-filters,
+html.dark #apply-image-filters {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark #apply-filters:hover,
+html.dark #apply-image-filters:hover {
+  background-color: #e5e5e5 !important;
+}
+
+html.dark #apply-filters i,
+html.dark #apply-image-filters i {
+  color: #171717 !important;
+}
+
+/* Dark mode for clear-filters button */
+html.dark [data-action="clear-filters"] {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark [data-action="clear-filters"]:hover {
+  background-color: #e5e5e5 !important;
+}
+
+html.dark [data-action="clear-filters"] i {
+  color: #171717 !important;
+}
+
+/* Dark mode for NSFW confirm buttons */
+html.dark [data-action="confirm-nsfw"],
+html.dark [data-action="confirm-nsfw-album"],
+html.dark #nsfw-global-confirm-btn,
+html.dark #nsfw-confirm-btn {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark [data-action="confirm-nsfw"]:hover,
+html.dark [data-action="confirm-nsfw-album"]:hover,
+html.dark #nsfw-global-confirm-btn:hover,
+html.dark #nsfw-confirm-btn:hover {
+  background-color: #e5e5e5 !important;
+}
+
+/* Dark mode for category badges on cards */
+html.dark .bg-white\/80 {
+  background-color: rgba(23, 23, 23, 0.8) !important;
+  color: #fafafa !important;
+}
+
+html.dark .bg-white\/80:hover {
+  background-color: #262626 !important;
+}
+
+/* ===== DARK MODE: GALLERIES PAGE ===== */
+html.dark .max-w-7xl {
+  background-color: transparent !important;
+}
+
+/* Ensure main containers have proper dark background */
+html.dark main,
+html.dark .container {
+  background-color: transparent !important;
+}
+
+/* ===== DARK MODE: TEMPLATE SWITCH BUTTONS ===== */
+html.dark .tpl-switch {
+  background-color: #262626 !important;
+  color: #fafafa !important;
+  border-color: #404040 !important;
+}
+
+html.dark .tpl-switch:hover {
+  background-color: #404040 !important;
+}
+
+html.dark .tpl-switch.active,
+html.dark .tpl-switch.is-active,
+html.dark .tpl-switch[aria-pressed="true"] {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+
+html.dark .tpl-switch.active i,
+html.dark .tpl-switch.is-active i,
+html.dark .tpl-switch[aria-pressed="true"] i {
+  color: #171717 !important;
+}
+
+/* ===== DARK MODE: PHOTOSWIPE EXIF PANEL HEADER ===== */
+html.dark .pswp__exif-panel-header {
+  background-color: #171717 !important;
+  border-color: #262626 !important;
+}
+
+html.dark .pswp__exif-panel-header h3 {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-panel-close {
+  color: #fafafa !important;
+  background-color: transparent !important;
+}
+
+html.dark .pswp__exif-panel-close:hover {
+  background-color: #262626 !important;
+}
+
+html.dark .pswp__exif-panel-close i {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-label {
+  color: #a3a3a3 !important;
+}
+
+html.dark .pswp__exif-value {
+  color: #fafafa !important;
+}
+
+html.dark .pswp__exif-item-content {
+  color: #fafafa !important;
 }

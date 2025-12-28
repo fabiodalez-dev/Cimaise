@@ -157,10 +157,34 @@ class UploadService
             }
         }
 
-        // Insert DB record
+        // Insert DB record with EXIF editor fields
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('INSERT INTO images(album_id, original_path, file_hash, width, height, mime, alt_text, caption, exif, camera_id, lens_id, iso, shutter_speed, aperture, sort_order) 
-                               VALUES(:a,:p,:h,:w,:h2,:m, NULL, NULL, :exif, :cam, :lens, :iso, :sh, :ap, :s)');
+        $stmt = $pdo->prepare('INSERT INTO images(
+            album_id, original_path, file_hash, width, height, mime, alt_text, caption, exif,
+            camera_id, lens_id, iso, shutter_speed, aperture, sort_order,
+            exif_make, exif_model, exif_lens_maker, exif_lens_model, software,
+            focal_length, exposure_bias, flash, white_balance, exposure_program,
+            metering_mode, exposure_mode, date_original, color_space, contrast,
+            saturation, sharpness, scene_capture_type, light_source,
+            gps_lat, gps_lng, artist, copyright
+        ) VALUES(
+            :a, :p, :h, :w, :h2, :m, NULL, NULL, :exif,
+            :cam, :lens, :iso, :sh, :ap, :s,
+            :exif_make, :exif_model, :exif_lens_maker, :exif_lens_model, :software,
+            :focal_length, :exposure_bias, :flash, :white_balance, :exposure_program,
+            :metering_mode, :exposure_mode, :date_original, :color_space, :contrast,
+            :saturation, :sharpness, :scene_capture_type, :light_source,
+            :gps_lat, :gps_lng, :artist, :copyright
+        )');
+
+        // Extract GPS coordinates if available
+        $gpsLat = null;
+        $gpsLng = null;
+        if (!empty($exif['GPS'])) {
+            $gpsLat = $exif['GPS']['lat'] ?? null;
+            $gpsLng = $exif['GPS']['lng'] ?? null;
+        }
+
         $stmt->execute([
             ':a'=>$albumId,
             ':p'=>str_replace(dirname(__DIR__, 2), '', $dest),
@@ -175,6 +199,29 @@ class UploadService
             ':sh'=> $exifSvc->formatShutterSpeed($exif['ExposureTime'] ?? null),
             ':ap'=> $exif['FNumber'] ?? null,
             ':s'=>0,
+            ':exif_make' => $exif['Make'] ?? null,
+            ':exif_model' => $exif['Model'] ?? null,
+            ':exif_lens_maker' => $exif['LensMake'] ?? null,
+            ':exif_lens_model' => $exif['LensModel'] ?? null,
+            ':software' => $exif['Software'] ?? null,
+            ':focal_length' => isset($exif['FocalLength']) ? (float)$exif['FocalLength'] : null,
+            ':exposure_bias' => isset($exif['ExposureBiasValue']) ? (float)$exif['ExposureBiasValue'] : null,
+            ':flash' => isset($exif['Flash']) ? (int)$exif['Flash'] : null,
+            ':white_balance' => isset($exif['WhiteBalance']) ? (int)$exif['WhiteBalance'] : null,
+            ':exposure_program' => isset($exif['ExposureProgram']) ? (int)$exif['ExposureProgram'] : null,
+            ':metering_mode' => isset($exif['MeteringMode']) ? (int)$exif['MeteringMode'] : null,
+            ':exposure_mode' => isset($exif['ExposureMode']) ? (int)$exif['ExposureMode'] : null,
+            ':date_original' => $exif['DateTimeOriginal'] ?? null,
+            ':color_space' => isset($exif['ColorSpace']) ? (int)$exif['ColorSpace'] : null,
+            ':contrast' => isset($exif['Contrast']) ? (int)$exif['Contrast'] : null,
+            ':saturation' => isset($exif['Saturation']) ? (int)$exif['Saturation'] : null,
+            ':sharpness' => isset($exif['Sharpness']) ? (int)$exif['Sharpness'] : null,
+            ':scene_capture_type' => isset($exif['SceneCaptureType']) ? (int)$exif['SceneCaptureType'] : null,
+            ':light_source' => isset($exif['LightSource']) ? (int)$exif['LightSource'] : null,
+            ':gps_lat' => $gpsLat,
+            ':gps_lng' => $gpsLng,
+            ':artist' => $exif['Artist'] ?? null,
+            ':copyright' => $exif['Copyright'] ?? null,
         ]);
         $imageId = (int)$pdo->lastInsertId();
 

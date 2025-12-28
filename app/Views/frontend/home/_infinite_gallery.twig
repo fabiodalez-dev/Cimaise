@@ -53,8 +53,11 @@
   {% set col1 = all_images %}
   {% set col2 = all_images|slice(o2, totalImages - o2)|merge(all_images|slice(0, o2)) %}
   {% set col3 = all_images|slice(o3, totalImages - o3)|merge(all_images|slice(0, o3)) %}
+  {% set minItems = 30 %}
+  {% set repeat_times = (minItems / totalImages)|round(0, 'ceil') %}
+  {% set repeat_times = repeat_times < 2 ? 2 : (repeat_times > 5 ? 5 : repeat_times) %}
 
-  <div id="home-infinite-gallery" class="relative h-full entry-init" style="opacity:0;">
+  <div id="home-infinite-gallery" class="relative h-full">
     <div class="home-mobile-wrap">
       <div class="home-mobile">
         {% for image in all_images %}
@@ -73,16 +76,10 @@
         {% set dir = idx == 1 ? 'left' : 'right' %}
         <div class="home-row" data-direction="{{ dir }}" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-row-index="{{ idx }}">
           <div class="home-track-h">
-            {% set repeat_times = 6 %}
             {% for r in 1..repeat_times %}
               {% for image in row %}
                 {# First repeat of each row: eager load first 6 images #}
                 <div class="home-cell-h">{{ H.home_item(image, base_path, site_title, loop.parent.loop.index0 == 0 and loop.index0 < 6) }}</div>
-              {% endfor %}
-            {% endfor %}
-            {% for r in 1..repeat_times %}
-              {% for image in row %}
-                <div class="home-cell-h">{{ H.home_item(image, base_path, site_title, false) }}</div>
               {% endfor %}
             {% endfor %}
           </div>
@@ -99,15 +96,9 @@
         {% set dir = idx == 1 ? 'up' : 'down' %}
         <div class="home-col" data-direction="{{ dir }}" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-col-index="{{ idx }}">
           <div class="home-track">
-            {% set repeat_times = 6 %}
             {% for r in 1..repeat_times %}
               {% for image in col %}
                 <div class="home-cell">{{ H.home_item(image, base_path, site_title, loop.parent.loop.index0 == 0 and loop.index0 == 0) }}</div>
-              {% endfor %}
-            {% endfor %}
-            {% for r in 1..repeat_times %}
-              {% for image in col %}
-                <div class="home-cell">{{ H.home_item(image, base_path, site_title, false) }}</div>
               {% endfor %}
             {% endfor %}
           </div>

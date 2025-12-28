@@ -77,7 +77,7 @@
 
 <!-- Mobile: use the classic header (identical to _layout.twig) -->
 <div class="modern-mobile-only" data-modern-mobile-header>
-    <header class="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-md z-50 transition-all duration-300" id="main-header">
+    <header class="border-b border-gray-200 sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md z-50 transition-all duration-300" id="main-header">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-5">
                 <!-- Left: Logo and Desktop Navigation -->
@@ -303,7 +303,7 @@
             {% if logo_type == 'image' and site_logo %}
                 <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}" alt="{{ site_title|e('html_attr') }}" class="head-logo_img">
             {% else %}
-                <div class="head-logo_text">{{ site_title|e }}</div>
+                <h1 class="head-logo_text">{{ site_title|e }}</h1>
             {% endif %}
         </a>
         <div class="global-head_actions modern-desktop-only flex items-center">

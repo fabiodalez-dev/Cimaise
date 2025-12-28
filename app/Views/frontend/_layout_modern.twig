@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js lenis">
+<html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js lenis{% if dark_mode|default(false) %} dark{% endif %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -152,6 +152,14 @@
 
     <!-- Typography (local fonts, GDPR compliant) -->
     <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css">
+
+    <!-- Custom CSS (Frontend Only) -->
+    {% if custom_css|default('') is not empty %}
+    <style nonce="{{ csp_nonce() }}">
+        /* ===== Custom CSS ===== */
+        {{ custom_css|raw }}
+    </style>
+    {% endif %}
 
     <!-- Modern Home Styles -->
     {% block styles %}{% endblock %}

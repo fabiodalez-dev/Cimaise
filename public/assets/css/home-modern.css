@@ -13,6 +13,14 @@
     --modern-dark-grey: #373737;
 }
 
+/* Dark Mode - invert colors (aligned with app.css) */
+html.dark {
+    --modern-black: #fafafa;
+    --modern-white: #171717;
+    --modern-grey: #a3a3a3;
+    --modern-dark-grey: #d4d4d4;
+}
+
 /* ============================================
    RESET & BASE STYLES
    ============================================ */
@@ -37,7 +45,7 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-body, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
     font-size: 14px;
     line-height: 1.4;
     color: var(--modern-black);
@@ -108,11 +116,12 @@ img {
 }
 
 .head-logo_holder .head-logo_text {
-    font-family: inherit;
-    font-size: 1rem;
+    font-family: var(--font-heading, inherit);
+    font-size: 1.5rem;
     font-weight: 600;
     letter-spacing: -0.02em;
     white-space: nowrap;
+    margin: 0;
 }
 
 .head-logo_holder .head-logo_img {
@@ -128,22 +137,45 @@ img {
 }
 
 .modern-search-toggle {
-    width: 2.5rem;
-    height: 2.5rem;
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 40;
+    width: 3rem;
+    height: 3rem;
     border-radius: 999px;
     border: 1px solid #e5e7eb;
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.95);
     color: #111827;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
 }
 
 .modern-search-toggle:hover {
     background: #111827;
     color: #ffffff;
     border-color: #111827;
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode - search toggle */
+html.dark .modern-search-toggle {
+    border-color: #374151;
+    background: rgba(0, 0, 0, 0.9);
+    color: #f3f4f6;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .modern-search-toggle:hover {
+    background: #f3f4f6;
+    color: #111827;
+    border-color: #f3f4f6;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
 }
 
 .modern-search-toggle:focus:not(:focus-visible) {
@@ -155,22 +187,35 @@ img {
     outline-offset: 2px;
 }
 
+/* Hide floating search on mobile (mobile header has its own) */
+@media (max-width: 767px) {
+    .modern-search-toggle {
+        display: none !important;
+    }
+}
+
 .modern-search-panel {
     position: fixed;
-    top: 4.75rem;
-    left: 0;
-    right: 0;
-    z-index: 60;
-    background: rgba(255, 255, 255, 0.96);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid #e5e7eb;
-    padding: 0.75rem 1.5rem 1rem;
+    inset: 0;
+    z-index: 80;
+    background: rgba(255, 255, 255, 0.78);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 0;
+    padding: 2.5rem 1.5rem;
     pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Dark mode - search panel */
+html.dark .modern-search-panel {
+    background: rgba(0, 0, 0, 0.72);
 }
 
 .modern-search-panel__inner {
-    max-width: 56rem;
+    width: min(56rem, 100%);
     margin: 0 auto;
 }
 
@@ -191,6 +236,12 @@ img {
     overflow: hidden;
 }
 
+/* Dark mode - search field */
+html.dark .modern-search-field {
+    background: #111827;
+    border-color: #374151;
+}
+
 .modern-search-input {
     flex: 1;
     min-width: 0;
@@ -202,6 +253,15 @@ img {
     color: #111827;
     background: transparent;
     appearance: none;
+}
+
+/* Dark mode - search input */
+html.dark .modern-search-input {
+    color: #f3f4f6;
+}
+
+html.dark .modern-search-input::placeholder {
+    color: #9ca3af;
 }
 
 .modern-search-input:focus {
@@ -250,6 +310,18 @@ input[type="search"]::-webkit-search-results-decoration {
     color: #111827;
 }
 
+/* Dark mode - search buttons */
+html.dark .modern-search-clear,
+html.dark .modern-search-submit {
+    color: #9ca3af;
+}
+
+html.dark .modern-search-clear:hover,
+html.dark .modern-search-submit:hover {
+    background: #1f2937;
+    color: #f3f4f6;
+}
+
 .modern-search-suggestions {
     margin-top: 0.75rem;
     background: #ffffff;
@@ -258,6 +330,13 @@ input[type="search"]::-webkit-search-results-decoration {
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
     max-height: 320px;
     overflow-y: auto;
+}
+
+/* Dark mode - search suggestions */
+html.dark .modern-search-suggestions {
+    background: #111827;
+    border-color: #374151;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
 }
 
 .modern-search-suggestions button {
@@ -275,6 +354,11 @@ input[type="search"]::-webkit-search-results-decoration {
 
 .modern-search-suggestions button:hover {
     background: #f9fafb;
+}
+
+/* Dark mode - suggestions hover */
+html.dark .modern-search-suggestions button:hover {
+    background: #1f2937;
 }
 
 .modern-search-suggestions__thumbnail {
@@ -313,6 +397,15 @@ input[type="search"]::-webkit-search-results-decoration {
     text-overflow: ellipsis;
 }
 
+/* Dark mode - suggestion text */
+html.dark .modern-search-suggestions__title {
+    color: #f3f4f6;
+}
+
+html.dark .modern-search-suggestions__subtitle {
+    color: #9ca3af;
+}
+
 @media (max-width: 767px) {
     .modern-search-panel {
         top: 4.25rem;
@@ -338,7 +431,7 @@ input[type="search"]::-webkit-search-results-decoration {
 .menu-btn_text {
     color: var(--modern-white);
     text-transform: uppercase;
-    font-family: inherit;
+    font-family: var(--font-body, inherit);
     font-size: 0.875rem;
     font-weight: 600;
     line-height: 1;
@@ -428,9 +521,8 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 .grid-toggle {
-    text-transform: uppercase;
-    font-family: inherit;
-    font-size: 0.875rem;
+    font-family: var(--font-body, inherit);
+    font-size: 1rem;
     font-weight: 600;
     line-height: 1.4;
     opacity: 0.5;
@@ -462,7 +554,7 @@ input[type="search"]::-webkit-search-results-decoration {
 .toggle-cat_item:hover .grid-toggle {
     color: var(--modern-black);
     opacity: 1;
-    font-size: 0.925rem;
+    font-size: 1.05rem;
     background: linear-gradient(
         90deg,
         var(--modern-black) 0%,
@@ -478,10 +570,12 @@ input[type="search"]::-webkit-search-results-decoration {
     animation: shimmer 3s ease-in-out infinite;
 }
 
+/* Dark mode - shimmer uses CSS variables automatically */
+
 /* Body copy for counter */
 .body-copy {
     text-transform: uppercase;
-    font-family: inherit;
+    font-family: var(--font-body, inherit);
     font-size: 0.875rem;
     font-weight: 600;
     line-height: 1.1;
@@ -509,7 +603,7 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 .image-grid-info_holder .paragraph {
-    font-family: inherit;
+    font-family: var(--font-body, inherit);
     font-size: 0.875rem;
     line-height: 1.4;
     opacity: 0.7;
@@ -645,6 +739,12 @@ input[type="search"]::-webkit-search-results-decoration {
     font-weight: 300;
 }
 
+/* Dark mode - image placeholder */
+html.dark .img-placeholder {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    color: #6b7280;
+}
+
 /* NSFW blur effect */
 .nsfw-blur {
     filter: blur(20px);
@@ -688,6 +788,8 @@ input[type="search"]::-webkit-search-results-decoration {
     transform-origin: bottom;
     pointer-events: none;
 }
+
+/* Dark mode - page transition uses CSS variables automatically */
 
 .page-transition.is-active {
     animation: wipeIn 0.6s cubic-bezier(0.77, 0, 0.175, 1) forwards;
@@ -736,6 +838,19 @@ input[type="search"]::-webkit-search-results-decoration {
     justify-content: center;
 }
 
+/* Dark mode - mega menu */
+html.dark .menu-component {
+    background: rgba(0, 0, 0, 0.92);
+}
+
+html.dark .menu-close .menu-btn_text {
+    color: var(--modern-black);
+}
+
+html.dark .mega-menu_link {
+    color: var(--modern-black);
+}
+
 .menu-component.is-open {
     pointer-events: auto;
     opacity: 1;
@@ -769,7 +884,7 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 .mega-menu_link {
-    font-family: inherit;
+    font-family: var(--font-heading, inherit);
     font-size: clamp(3rem, 10vw, 8rem);
     font-weight: 600;
     color: var(--modern-black);
@@ -826,6 +941,7 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 .modern-empty-state__title {
+    font-family: var(--font-heading, inherit);
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--modern-black);

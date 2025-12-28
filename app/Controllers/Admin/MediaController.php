@@ -48,7 +48,7 @@ class MediaController extends BaseController
                        i.iso, i.shutter_speed, i.aperture,
                        COALESCE(iv.path, i.original_path) AS preview_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = \'sm\' AND iv.format = \'jpg\'';
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = \'sm\'';
         $params = [];
         if ($q !== '') {
             $sql .= ' WHERE i.alt_text LIKE :q OR i.caption LIKE :q OR i.original_path LIKE :q';
@@ -137,6 +137,9 @@ class MediaController extends BaseController
             'iso' => ($d['iso'] ?? '') !== '' ? (int)$d['iso'] : null,
             'shutter_speed' => $d['shutter_speed'] ?? null,
             'aperture' => ($d['aperture'] ?? '') !== '' ? (float)$d['aperture'] : null,
+            'custom_camera' => !empty($d['custom_camera']) ? trim(substr((string)$d['custom_camera'], 0, 160)) : null,
+            'custom_lens' => !empty($d['custom_lens']) ? trim(substr((string)$d['custom_lens'], 0, 160)) : null,
+            'custom_film' => !empty($d['custom_film']) ? trim(substr((string)$d['custom_film'], 0, 160)) : null,
         ];
 
         $setParts = [];

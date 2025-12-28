@@ -513,6 +513,55 @@
       </div>
     </div>
 
+    <!-- Frontend Settings -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-paint-brush mr-3 text-gray-600"></i>
+          {{ trans('admin.settings.frontend_title') }}
+        </h3>
+
+        <!-- Dark Mode Toggle -->
+        <div class="mb-6">
+          <label class="flex items-start">
+            <input type="checkbox" name="dark_mode" class="rounded border-gray-300 text-black focus:ring-black mt-1" {% if settings['frontend.dark_mode']|default(false) %}checked{% endif %}>
+            <span class="ml-3">
+              <span class="text-sm font-medium text-gray-900 block">{{ trans('admin.settings.dark_mode') }}</span>
+              <span class="text-xs text-gray-600 block mt-1">{{ trans('admin.settings.dark_mode_desc') }}</span>
+            </span>
+          </label>
+        </div>
+
+        <!-- Custom CSS -->
+        <div class="border-t border-gray-200 pt-6">
+          <label class="block text-sm font-medium text-gray-900 mb-2">
+            {{ trans('admin.settings.custom_css') }}
+          </label>
+          <p class="text-xs text-gray-600 mb-3">{{ trans('admin.settings.custom_css_desc') }}</p>
+
+          <textarea
+            name="custom_css"
+            rows="12"
+            class="form-input font-mono text-sm"
+            placeholder="{{ trans('admin.settings.custom_css_placeholder') }}"
+            maxlength="50000">{{ settings['frontend.custom_css']|default('') }}</textarea>
+
+          <div class="mt-2 flex items-start gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-3">
+            <i class="fas fa-exclamation-triangle mt-0.5"></i>
+            <div>
+              <strong>{{ trans('admin.settings.custom_css_warning') }}</strong><br>
+              {{ trans('admin.settings.custom_css_warning_desc') }}
+            </div>
+          </div>
+
+          <p class="text-xs text-gray-500 mt-2">
+            <i class="fas fa-info-circle mr-1"></i>
+            {{ trans('admin.settings.custom_css_hint') }}
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Debug / Diagnostics -->
     <div class="card">
       <div class="p-6">

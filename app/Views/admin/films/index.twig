@@ -42,22 +42,30 @@
               <span class="text-sm text-gray-600">{{ f.format }}</span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              {% if f.type == 'color_negative' %}
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                  Color Negative
-                </span>
-              {% elseif f.type == 'color_reversal' %}
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                  Color Reversal
-                </span>
-              {% elseif f.type == 'bw' %}
+              {% if f.type and film_types[f.type] is defined %}
+                {% if f.type starts with 'bw' %}
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                  Black & White
+                  {{ film_types[f.type] }}
                 </span>
-              {% else %}
+                {% elseif f.type starts with 'c41' or f.type == 'color_negative' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                  {{ film_types[f.type] }}
+                </span>
+                {% elseif f.type starts with 'e6' or f.type == 'color_reversal' %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                  {{ film_types[f.type] }}
+                </span>
+                {% else %}
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  {{ film_types[f.type] }}
+                </span>
+                {% endif %}
+              {% elseif f.type %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
                   {{ f.type }}
                 </span>
+              {% else %}
+                <span class="text-gray-400 text-sm">—</span>
               {% endif %}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

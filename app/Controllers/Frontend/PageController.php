@@ -819,7 +819,18 @@ class PageController extends BaseController
         // Use selected page template
         // SEO for album page: use album title and excerpt; cover image as OG
         $coverPath = null;
-        try { $coverPath = $album['cover']['variants'][0]['path'] ?? null; } catch (\Throwable) {}
+        try {
+            $variants = (array)($album['cover']['variants'] ?? []);
+            foreach ($variants as $variant) {
+                if (($variant['variant'] ?? '') !== 'blur' && !empty($variant['path'])) {
+                    $coverPath = $variant['path'];
+                    break;
+                }
+            }
+            if (!$coverPath) {
+                $coverPath = $album['cover']['original_path'] ?? null;
+            }
+        } catch (\Throwable) {}
         $seoMeta = $this->buildSeo($request, (string)$album['title'], (string)($album['excerpt'] ?? ''), $coverPath);
 
         // Compute album-specific robots directive from album fields (default both to true if null)
@@ -1074,7 +1085,7 @@ class PageController extends BaseController
                 $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
 
                 try {
-                    $v = $pdo->prepare("SELECT path, width, height, variant, format FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
+                    $v = $pdo->prepare("SELECT path, width, height, variant, format FROM image_variants WHERE image_id = :id ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
                     $v->execute([':id' => $img['id']]);
                     $vr = $v->fetch();
                     if ($vr && !empty($vr['path'])) {

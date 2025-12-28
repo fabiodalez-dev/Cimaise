@@ -178,7 +178,8 @@ class MediaController extends BaseController
         }
 
         // Validate variant name (prevent path traversal)
-        if (!preg_match('/^(sm|md|lg|xl|xxl|blur|thumb)$/', $variant)) {
+        // Only allow actual generated variants: sm, md, lg, xl, xxl, blur
+        if (!preg_match('/^(sm|md|lg|xl|xxl|blur)$/', $variant)) {
             return $response->withStatus(400);
         }
 

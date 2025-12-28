@@ -99,6 +99,7 @@ function safeLocalStorageSet(key, value) {
 
   if (serverConsent && !localConfirmed) {
     safeLocalStorageSet('nsfw_confirmed', 'true');
+    if (window.applyNsfwConsentState) window.applyNsfwConsentState();
   }
 
   if (!serverConsent && gate) {
@@ -133,6 +134,7 @@ function confirmNsfwAndShow() {
     }
     safeLocalStorageSet('nsfw_confirmed', 'true');
     window.nsfwConsent = true;
+    if (window.applyNsfwConsentState) window.applyNsfwConsentState();
     window.location.reload();
   }).catch((err) => {
     console.warn('NSFW confirmation failed:', err);
@@ -212,12 +214,9 @@ document.addEventListener('click', function(event) {
 </script>
 {% endif %}
 <style nonce="{{ csp_nonce() }}">
-/* Pre-hide animated elements to prevent flash before GSAP runs */
-[data-gsap]:not([data-animated]) { opacity: 0; }
-/* Fallback: show elements if reduced motion or no JS */
-@media (prefers-reduced-motion: reduce) { [data-gsap] { opacity: 1 !important; } }
+/* Keep content visible; no intro hides to avoid flicker */
+[data-gsap] { opacity: 1; transform: none; }
 </style>
-<noscript><style nonce="{{ csp_nonce() }}">[data-gsap] { opacity: 1 !important; }</style></noscript>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}
 </div>
@@ -491,13 +490,32 @@ document.addEventListener('click', function(event) {
             {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
         </div>
     {% elseif masonry %}
-        <div id="images-gallery" class="masonry-grid" style="column-count: {{ desktop_cols }};">
+        <div id="images-gallery" class="masonry-grid">
             {% for image in images %}
                 <div class="masonry-item">
                     {% include "frontend/_image_item.twig" %}
                 </div>
             {% endfor %}
         </div>
+        <style nonce="{{ csp_nonce() }}">
+        #images-gallery.masonry-grid {
+            column-gap: 1rem;
+            column-fill: auto;
+        }
+        #images-gallery.masonry-grid .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 1rem;
+        }
+        @media (min-width: 1024px) {
+            #images-gallery.masonry-grid { column-count: {{ desktop_cols }}; }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            #images-gallery.masonry-grid { column-count: {{ tablet_cols }}; }
+        }
+        @media (max-width: 767px) {
+            #images-gallery.masonry-grid { column-count: {{ mobile_cols }}; }
+        }
+        </style>
     {% else %}
         {# Generate responsive grid classes #}
         {% set mobile_class = 'grid-cols-' ~ mobile_cols %}
@@ -969,82 +987,105 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
 
 // Initialize PhotoSwipe lightbox (handled by main layout)
 
+// Handle bfcache (back-forward cache) restoration
+// When user navigates with back/forward, page is restored from cache
+// but JavaScript re-runs which can cause flickering
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        // Page was restored from bfcache - immediately show all animated elements
+        const animatedElements = document.querySelectorAll('[data-gsap]');
+        animatedElements.forEach(function(el) {
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+            el.setAttribute('data-animated', '1');
+        });
+
+        // Clear any GSAP inline styles
+        if (typeof gsap !== 'undefined') {
+            gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
+        }
+    }
+});
+
+// Track early scroll to avoid hiding content mid-scroll
+let albumIntroUserScrolled = false;
+let albumIntroElements = [];
+let albumIntroTween = null;
+window.addEventListener('scroll', () => {
+    albumIntroUserScrolled = true;
+    document.body.classList.remove('gsap-armed');
+    if (albumIntroElements.length > 0) {
+        albumIntroElements.forEach(el => {
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+            el.setAttribute('data-animated', '1');
+        });
+        if (typeof gsap !== 'undefined') {
+            gsap.killTweensOf(albumIntroElements);
+            gsap.set(albumIntroElements, { clearProps: 'all', opacity: 1 });
+        }
+    }
+    if (albumIntroTween) {
+        albumIntroTween.kill();
+        albumIntroTween = null;
+    }
+}, { passive: true, once: true });
+
 // GSAP Animations for album header/meta elements - runs ONCE on load
 document.addEventListener('DOMContentLoaded', function() {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion || typeof gsap === 'undefined') return;
-
-    if (typeof ScrollTrigger !== 'undefined') {
-        gsap.registerPlugin(ScrollTrigger);
-    }
-
-    // All animatable header elements - animate once with stagger
     const allHeaderElements = document.querySelectorAll('[data-gsap="breadcrumb"], [data-gsap="category"], [data-gsap="hero-title"], [data-gsap="title"], [data-gsap="hero-excerpt"], [data-gsap="excerpt"], [data-gsap="hero-meta"], [data-gsap="meta"], [data-gsap="hero-tags"], [data-gsap="tags"], [data-gsap="body"]');
-
-    // Filter to only existing elements not yet animated
-    const elements = Array.from(allHeaderElements).filter(el => !el.hasAttribute('data-animated'));
-    if (elements.length === 0) return;
-
-    // Mark as animated immediately to prevent re-animation
-    elements.forEach(el => el.setAttribute('data-animated', '1'));
-
-    // Use fromTo for guaranteed initial state
-    gsap.fromTo(elements,
-        { opacity: 0, y: 15 },
-        {
-            opacity: 1,
-            y: 0,
-            duration: 0.5,
-            stagger: 0.08,
-            ease: 'power2.out'
-        }
-    );
-
-    // Fallback: show elements if animation doesn't complete in 3 seconds
-    setTimeout(() => {
-        elements.forEach(el => {
-            if (getComputedStyle(el).opacity === '0') {
-                el.style.opacity = '1';
-                el.style.transform = 'none';
-            }
-        });
-    }, 3000);
+    allHeaderElements.forEach(el => {
+        el.setAttribute('data-animated', '1');
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+    });
+    if (typeof gsap !== 'undefined') {
+        gsap.set(allHeaderElements, { clearProps: 'all', opacity: 1 });
+    }
 
     // NOTE: #images-gallery animation is handled by _layout.twig animateGalleryOnce()
 
-    // Related albums section with scroll trigger
+    // Related albums section with scroll trigger - use fromTo to prevent flicker
     const relatedTitle = document.querySelector('[data-gsap="related-title"]');
-    if (relatedTitle && typeof ScrollTrigger !== 'undefined') {
-        gsap.from(relatedTitle, {
-            opacity: 0,
-            y: 20,
-            duration: 0.6,
-            ease: 'power2.out',
-            scrollTrigger: {
-                trigger: relatedTitle,
-                start: 'top 90%',
-                once: true
-            }
-        });
-    }
-
-    // Related album cards with stagger
-    const relatedGrid = document.querySelector('[data-gsap="related-grid"]');
-    if (relatedGrid && typeof ScrollTrigger !== 'undefined') {
-        const cards = relatedGrid.querySelectorAll('.album-card');
-        if (cards.length > 0) {
-            gsap.from(cards, {
-                opacity: 0,
-                y: 30,
-                duration: 0.7,
-                stagger: 0.1,
+    if (relatedTitle && !relatedTitle.hasAttribute('data-animated') && typeof ScrollTrigger !== 'undefined') {
+        relatedTitle.setAttribute('data-animated', '1');
+        gsap.fromTo(relatedTitle,
+            { opacity: 0, y: 20 },
+            {
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
                 ease: 'power2.out',
                 scrollTrigger: {
-                    trigger: relatedGrid,
-                    start: 'top 85%',
+                    trigger: relatedTitle,
+                    start: 'top 90%',
                     once: true
                 }
-            });
+            }
+        );
+    }
+
+    // Related album cards with stagger - use fromTo to prevent flicker
+    const relatedGrid = document.querySelector('[data-gsap="related-grid"]');
+    if (relatedGrid && typeof ScrollTrigger !== 'undefined') {
+        const cards = Array.from(relatedGrid.querySelectorAll('.album-card:not([data-animated])'));
+        if (cards.length > 0) {
+            cards.forEach(c => c.setAttribute('data-animated', '1'));
+            gsap.fromTo(cards,
+                { opacity: 0, y: 30 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.7,
+                    stagger: 0.1,
+                    ease: 'power2.out',
+                    scrollTrigger: {
+                        trigger: relatedGrid,
+                        start: 'top 85%',
+                        once: true
+                    }
+                }
+            );
         }
     }
 
@@ -1052,19 +1093,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const allImageItems = document.querySelectorAll('.image-item');
     allImageItems.forEach(item => {
         item.addEventListener('mouseenter', function() {
-            gsap.to(this, {
-                scale: 1.02,
-                duration: 0.3,
-                ease: 'power2.out'
-            });
+            if (typeof gsap !== 'undefined') {
+                gsap.to(this, {
+                    scale: 1.02,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            }
         });
 
         item.addEventListener('mouseleave', function() {
-            gsap.to(this, {
-                scale: 1,
-                duration: 0.3,
-                ease: 'power2.out'
-            });
+            if (typeof gsap !== 'undefined') {
+                gsap.to(this, {
+                    scale: 1,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            }
         });
     });
 });

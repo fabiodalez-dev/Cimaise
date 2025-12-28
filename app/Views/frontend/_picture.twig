@@ -21,9 +21,20 @@
   {% if variants_webp %}
     <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width:1024px) 70vw, 95vw">
   {% endif %}
-  {% set picture_src = (variants_jpg|length > 0) ? variants_jpg[0]|split(' ')|first : img.original_path %}
+{% set picture_src = (variants_jpg|length > 0) ? variants_jpg[0]|split(' ')|first : img.original_path %}
+{# Alt fallback: prefer img.alt_text, then img.alt, then album title, site title, or a generic label #}
+{% set alt_text = img.alt_text|default(img.alt|default('')) %}
+{% if alt_text is empty %}
+  {% if album is defined and album.title is defined %}
+    {% set alt_text = album.title %}
+  {% elseif site_title is defined %}
+    {% set alt_text = site_title %}
+  {% else %}
+    {% set alt_text = trans('general.image')|default('Image') %}
+  {% endif %}
+{% endif %}
   <img src="{% if picture_src starts with '/' %}{{ base_path }}{{ picture_src }}{% else %}{{ picture_src }}{% endif %}"
-       alt="{{ img.alt_text|e }}"
+       alt="{{ alt_text|e }}"
        width="{{ img.width }}"
        height="{{ img.height }}"
        loading="lazy" decoding="async"

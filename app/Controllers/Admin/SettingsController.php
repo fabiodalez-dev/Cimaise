@@ -205,6 +205,41 @@ class SettingsController extends BaseController
         $svc->set('cache.ttl', $cacheTtl);
         $svc->set('admin.debug_logs', isset($data['admin_debug_logs']));
         $svc->set('frontend.disable_right_click', $disableRightClick);
+        $svc->set('frontend.dark_mode', isset($data['dark_mode']));
+
+        // Custom CSS - sanitize with maximum security
+        $customCss = '';
+        if (isset($data['custom_css'])) {
+            $customCss = (string)$data['custom_css'];
+
+            // 1. Limit length to 50,000 characters
+            if (strlen($customCss) > 50000) {
+                $customCss = substr($customCss, 0, 50000);
+            }
+
+            // 2. Strip all HTML tags (removes <script>, <style>, etc.)
+            $customCss = strip_tags($customCss);
+
+            // 3. Remove HTML comments
+            $customCss = preg_replace('/<!--.*?-->/s', '', $customCss);
+
+            // 4. Security: Remove javascript: protocol and data: URIs in url()
+            $customCss = preg_replace('/url\s*\(\s*[\'"]?\s*(?:javascript|data):/i', 'url(#blocked:', $customCss);
+
+            // 5. Remove @import rules (can be used to load external malicious CSS)
+            $customCss = preg_replace('/@import\s+(?:url\s*\()?[^;]+;/i', '/* @import blocked */', $customCss);
+
+            // 6. Remove expression() (old IE CSS expressions - potential XSS)
+            $customCss = preg_replace('/expression\s*\(/i', '/* expression blocked */ (', $customCss);
+
+            // 7. Remove behavior: property (IE-specific, can execute scripts)
+            $customCss = preg_replace('/behavior\s*:\s*url\s*\([^)]+\)/i', '/* behavior blocked */', $customCss);
+
+            // 8. Trim whitespace
+            $customCss = trim($customCss);
+        }
+
+        $svc->set('frontend.custom_css', $customCss);
         $svc->set('navigation.show_tags_in_header', isset($data['show_tags_in_header']));
         $svc->set('privacy.nsfw_global_warning', isset($data['nsfw_global_warning']));
 

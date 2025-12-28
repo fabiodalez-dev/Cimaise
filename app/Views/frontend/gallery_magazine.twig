@@ -6,15 +6,15 @@
     <div class="mb-4 flex flex-wrap gap-2 justify-center">
       {% if album.categories is defined and album.categories|length > 0 %}
         {% for cat in album.categories %}
-        <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-black transition-colors" title="{{ cat.name|e }}">
-          <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>{{ cat.name|e }}
+        <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-black dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 transition-colors" title="{{ cat.name|e }}">
+          <span class="w-1.5 h-1.5 rounded-full bg-neutral-700 dark:bg-neutral-300"></span>{{ cat.name|e }}
         </a>
         {% endfor %}
       {% endif %}
       {% if album.tags is defined and album.tags|length > 0 %}
         {% for tag in album.tags %}
-        <a href="{{ base_path }}/tag/{{ tag.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors" title="{{ tag.name|e }}">
-          <span class="w-1.5 h-1.5 rounded-full bg-blue-700"></span>{{ tag.name|e }}
+        <a href="{{ base_path }}/tag/{{ tag.slug }}" class="inline-flex items-center gap-2 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-600 dark:bg-blue-900/50 dark:text-blue-200 dark:hover:bg-blue-800/50 transition-colors" title="{{ tag.name|e }}">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-700 dark:bg-blue-400"></span>{{ tag.name|e }}
         </a>
         {% endfor %}
       {% endif %}
@@ -311,6 +311,14 @@
 }
 .masonry-veil-bottom {
   background: radial-gradient(120% 70% at 50% 120%, rgba(255,255,255,.34) 0%, rgba(255,255,255,.10) 40%, rgba(255,255,255,0) 72%);
+}
+
+/* Dark mode veil gradients - using #171717 background color */
+html.dark .masonry-veil-top {
+  background: radial-gradient(120% 70% at 50% -20%, rgba(23,23,23,.34) 0%, rgba(23,23,23,.10) 40%, rgba(23,23,23,0) 72%);
+}
+html.dark .masonry-veil-bottom {
+  background: radial-gradient(120% 70% at 50% 120%, rgba(23,23,23,.34) 0%, rgba(23,23,23,.10) 40%, rgba(23,23,23,0) 72%);
 }
 
 /* perf */

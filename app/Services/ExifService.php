@@ -1317,7 +1317,7 @@ class ExifService
                 scene_capture_type, light_source,
                 gps_lat, gps_lng,
                 artist, copyright,
-                exif_extended,
+                exif_extended, exif,
                 iso, shutter_speed, aperture,
                 camera_id, lens_id
             FROM images WHERE id = ?
@@ -1328,6 +1328,56 @@ class ExifService
         if (!$data) {
             return [];
         }
+
+        // For older images, fall back to raw exif JSON if dedicated fields are empty
+        if (!empty($data['exif'])) {
+            $rawExif = json_decode($data['exif'], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Logger::warning('ExifService: Invalid JSON in exif field', [
+                    'image_id' => $imageId,
+                    'error' => json_last_error_msg()
+                ], 'exif');
+                $rawExif = null;
+            }
+            if (is_array($rawExif)) {
+                // Map raw EXIF keys to editor field names (only if not already set)
+                $fallbackMap = [
+                    'exif_make' => 'Make',
+                    'exif_model' => 'Model',
+                    'exif_lens_model' => 'LensModel',
+                    'software' => 'Software',
+                    'focal_length' => 'FocalLength',
+                    'exposure_bias' => 'ExposureBiasValue',
+                    'flash' => 'Flash',
+                    'white_balance' => 'WhiteBalance',
+                    'exposure_program' => 'ExposureProgram',
+                    'metering_mode' => 'MeteringMode',
+                    'exposure_mode' => 'ExposureMode',
+                    'date_original' => 'DateTimeOriginal',
+                    'color_space' => 'ColorSpace',
+                    'contrast' => 'Contrast',
+                    'saturation' => 'Saturation',
+                    'sharpness' => 'Sharpness',
+                    'scene_capture_type' => 'SceneCaptureType',
+                    'light_source' => 'LightSource',
+                    'artist' => 'Artist',
+                    'copyright' => 'Copyright',
+                ];
+                foreach ($fallbackMap as $dbField => $exifKey) {
+                    if (empty($data[$dbField]) && isset($rawExif[$exifKey])) {
+                        $data[$dbField] = $rawExif[$exifKey];
+                    }
+                }
+                // GPS fallback
+                if (empty($data['gps_lat']) && !empty($rawExif['GPS']['lat'])) {
+                    $data['gps_lat'] = $rawExif['GPS']['lat'];
+                }
+                if (empty($data['gps_lng']) && !empty($rawExif['GPS']['lng'])) {
+                    $data['gps_lng'] = $rawExif['GPS']['lng'];
+                }
+            }
+        }
+        unset($data['exif']); // Don't expose raw JSON to editor
 
         // Decode extended EXIF JSON if present
         if (!empty($data['exif_extended'])) {

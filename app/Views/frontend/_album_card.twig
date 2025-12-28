@@ -9,45 +9,58 @@
   <div class="relative">
     {# Image area with link #}
     <a href="{{ album_url }}" class="block aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm" title="{{ seo_title|e('html_attr') }}">
-    {# NSFW album cards ALWAYS show blur variants - never expose real image URLs in card previews
-       Real images are only visible on the full album page after consent #}
     {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
     {% if album.cover %}
-      {% if album.is_nsfw %}
-        {# NSFW albums: always show blur variant in cards for security #}
+      {% if album.is_nsfw and not (nsfw_consent|default(false)) and not (is_admin|default(false)) %}
+        {# NSFW albums: use blur preview until consent is confirmed client-side #}
         {% set blur_path = null %}
         {% for variant in album.cover.variants %}
           {% if variant.variant == 'blur' %}
             {% set blur_path = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
           {% endif %}
         {% endfor %}
+        {% set card_img_url = album.cover.original_path %}
+        {% if album.cover.variants is iterable %}
+          {% for variant in album.cover.variants %}
+            {% if card_img_url == album.cover.original_path and (variant.variant is not defined or variant.variant != 'blur') %}
+              {% set card_img_url = variant.path %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        {% set real_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
         {% if blur_path %}
           <img src="{{ blur_path }}"
+               data-nsfw-real-src="{{ real_url }}"
                alt="{{ (album.cover.alt_text ?? album.title)|e }}"
                title="{{ seo_title|e('html_attr') }}"
                loading="lazy"
                decoding="async"
                class="nsfw-blur block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
         {% else %}
-          <div class="w-full h-full bg-gradient-to-br from-neutral-300 to-neutral-400 flex flex-col items-center justify-center text-neutral-600">
-            <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
-            <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
-          </div>
+          <img src="{{ real_url }}"
+               data-nsfw-real-src="{{ real_url }}"
+               alt="{{ (album.cover.alt_text ?? album.title)|e }}"
+               title="{{ seo_title|e('html_attr') }}"
+               loading="lazy"
+               decoding="async"
+               class="nsfw-blur block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
         {% endif %}
       {% else %}
-        {# Non-NSFW albums: show full quality responsive images #}
+        {# Non-NSFW albums (or consented NSFW): show full quality responsive images #}
         <picture class="block absolute inset-0 w-full h-full">
           {% set variants_avif = [] %}
           {% set variants_webp = [] %}
           {% set variants_jpg = [] %}
           {% for variant in album.cover.variants %}
-            {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
-            {% if variant.format == 'avif' %}
-              {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
-            {% elseif variant.format == 'webp' %}
-              {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
-            {% elseif variant.format == 'jpg' %}
-              {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+            {% if variant.variant is not defined or variant.variant != 'blur' %}
+              {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+              {% if variant.format == 'avif' %}
+                {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+              {% elseif variant.format == 'webp' %}
+                {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+              {% elseif variant.format == 'jpg' %}
+                {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+              {% endif %}
             {% endif %}
           {% endfor %}
 
@@ -65,8 +78,12 @@
           {% endif %}
 
           {% set card_img_url = album.cover.original_path %}
-          {% if album.cover.variants|length > 0 %}
-            {% set card_img_url = album.cover.variants[0].path %}
+          {% if album.cover.variants is iterable %}
+            {% for variant in album.cover.variants %}
+              {% if card_img_url == album.cover.original_path and (variant.variant is not defined or variant.variant != 'blur') %}
+                {% set card_img_url = variant.path %}
+              {% endif %}
+            {% endfor %}
           {% endif %}
           {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
 
@@ -81,7 +98,7 @@
 
       {# NSFW Overlay - shown only when user hasn't given consent (not for admins) #}
       {% if album.is_nsfw and show_nsfw_overlay %}
-      <div class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10" role="img" aria-label="{{ trans('album.nsfw_warning_short') }}">
+      <div class="nsfw-overlay absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10" role="img" aria-label="{{ trans('album.nsfw_warning_short') }}">
         <i class="fas fa-eye-slash text-2xl mb-1" aria-hidden="true"></i>
         <span class="text-xs font-medium">{{ trans('album.nsfw_warning_short') }}</span>
       </div>
