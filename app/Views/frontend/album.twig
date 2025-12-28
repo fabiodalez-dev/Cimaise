@@ -99,6 +99,7 @@ function safeLocalStorageSet(key, value) {
 
   if (serverConsent && !localConfirmed) {
     safeLocalStorageSet('nsfw_confirmed', 'true');
+    if (window.applyNsfwConsentState) window.applyNsfwConsentState();
   }
 
   if (!serverConsent && gate) {
@@ -133,6 +134,7 @@ function confirmNsfwAndShow() {
     }
     safeLocalStorageSet('nsfw_confirmed', 'true');
     window.nsfwConsent = true;
+    if (window.applyNsfwConsentState) window.applyNsfwConsentState();
     window.location.reload();
   }).catch((err) => {
     console.warn('NSFW confirmation failed:', err);
@@ -488,13 +490,32 @@ document.addEventListener('click', function(event) {
             {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
         </div>
     {% elseif masonry %}
-        <div id="images-gallery" class="masonry-grid" style="column-count: {{ desktop_cols }};">
+        <div id="images-gallery" class="masonry-grid">
             {% for image in images %}
                 <div class="masonry-item">
                     {% include "frontend/_image_item.twig" %}
                 </div>
             {% endfor %}
         </div>
+        <style nonce="{{ csp_nonce() }}">
+        #images-gallery.masonry-grid {
+            column-gap: 1rem;
+            column-fill: auto;
+        }
+        #images-gallery.masonry-grid .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 1rem;
+        }
+        @media (min-width: 1024px) {
+            #images-gallery.masonry-grid { column-count: {{ desktop_cols }}; }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            #images-gallery.masonry-grid { column-count: {{ tablet_cols }}; }
+        }
+        @media (max-width: 767px) {
+            #images-gallery.masonry-grid { column-count: {{ mobile_cols }}; }
+        }
+        </style>
     {% else %}
         {# Generate responsive grid classes #}
         {% set mobile_class = 'grid-cols-' ~ mobile_cols %}
@@ -1072,19 +1093,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const allImageItems = document.querySelectorAll('.image-item');
     allImageItems.forEach(item => {
         item.addEventListener('mouseenter', function() {
-            gsap.to(this, {
-                scale: 1.02,
-                duration: 0.3,
-                ease: 'power2.out'
-            });
+            if (typeof gsap !== 'undefined') {
+                gsap.to(this, {
+                    scale: 1.02,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            }
         });
 
         item.addEventListener('mouseleave', function() {
-            gsap.to(this, {
-                scale: 1,
-                duration: 0.3,
-                ease: 'power2.out'
-            });
+            if (typeof gsap !== 'undefined') {
+                gsap.to(this, {
+                    scale: 1,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            }
         });
     });
 });

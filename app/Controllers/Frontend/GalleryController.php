@@ -300,7 +300,7 @@ class GalleryController extends BaseController
             $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
             try {
                 // Get best variant for gallery grid
-                $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND format = 'jpg' AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
+                $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
                 $v->execute([':id' => $img['id']]);
                 $vr = $v->fetch();
                 if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
@@ -347,7 +347,7 @@ class GalleryController extends BaseController
             // Ensure we never leak /storage/originals (not publicly served)
             if (str_starts_with((string)$bestUrl, '/storage/')) {
                 // If no public variants available, try to find any jpg variant
-                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format = 'jpg' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
+                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
                 $fallbackStmt->execute([':id' => $img['id']]);
                 $fallback = $fallbackStmt->fetchColumn();
                 $bestUrl = $fallback ?: '/media/placeholder.jpg'; // Use placeholder if no variants
@@ -496,7 +496,7 @@ class GalleryController extends BaseController
                 $stmt = $pdo->prepare("
                     SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
                     FROM images i
-                    LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'lg' AND iv.format = 'jpg'
+                    LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'lg'
                     WHERE i.id = :id
                 ");
                 $stmt->execute([':id' => $album['cover_image_id']]);
@@ -719,7 +719,7 @@ class GalleryController extends BaseController
                 // Fallbacks - ensure we never serve /storage/ paths
                 if (str_starts_with((string)$bestUrl, '/storage/')) {
                     // Try to find any public variant
-                    $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format = 'jpg' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
+                    $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
                     $fallbackStmt->execute([':id' => $img['id']]);
                     $fallback = $fallbackStmt->fetchColumn();
                     $bestUrl = $fallback ?: '/media/placeholder.jpg';

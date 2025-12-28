@@ -303,6 +303,12 @@
             filter: blur(20px);
             transition: filter 0.3s ease;
         }
+        .nsfw-confirmed .nsfw-blur {
+            filter: none;
+        }
+        .nsfw-confirmed .nsfw-overlay {
+            display: none;
+        }
 
         /* Simple Lightbox fallback */
         #slb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.95); color:#fff; display:none; align-items:center; justify-content:center; z-index: 10000; }
@@ -3472,6 +3478,40 @@
         window.nsfwConsent = {{ nsfw_consent|default(false) ? 'true' : 'false' }};
         window.isAdmin = {{ is_admin|default(false) ? 'true' : 'false' }};
         window.allowDownloads = {{ allow_downloads|default(false) ? 'true' : 'false' }};
+
+        function safeLocalStorageGet(key) {
+            try {
+                return window.localStorage ? window.localStorage.getItem(key) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        window.applyNsfwConsentState = function() {
+            const localConfirmed = safeLocalStorageGet('nsfw_confirmed') === 'true'
+                || safeLocalStorageGet('nsfw_global_confirmed') === 'true';
+            const canShow = window.isAdmin || window.nsfwConsent === true || localConfirmed;
+            if (!canShow) return;
+
+            document.documentElement.classList.add('nsfw-confirmed');
+            document.body.classList.add('nsfw-confirmed');
+
+            document.querySelectorAll('img[data-nsfw-real-src]').forEach(function(img) {
+                const realSrc = img.getAttribute('data-nsfw-real-src');
+                if (realSrc && img.getAttribute('data-nsfw-swapped') !== '1') {
+                    img.setAttribute('data-nsfw-swapped', '1');
+                    img.src = realSrc;
+                }
+                img.classList.remove('nsfw-blur');
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            window.applyNsfwConsentState();
+        });
+        window.addEventListener('storage', function() {
+            window.applyNsfwConsentState();
+        });
         
         // Add meta tags for analytics
         {% if current_album %}

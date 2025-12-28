@@ -59,7 +59,7 @@
 .home-item img { backface-visibility: hidden; }
 
 /* Entry state: hide items only when JS sets the hidden class */
-.home-item--hidden { opacity: 0; filter: blur(4px); transform: scale(0.985); }
+.home-item--hidden { opacity: 0; filter: blur(4px); transform: scale(0.985); transition: opacity .6s ease, filter .6s ease, transform .6s ease; }
 .home-item.home-item--revealed { opacity: 1; filter: blur(0); transform: scale(1); transition: opacity .6s ease, filter .6s ease, transform .6s ease; }
 
 /* Albums Horizontal Infinite Carousel */

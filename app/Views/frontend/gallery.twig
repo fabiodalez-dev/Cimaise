@@ -105,7 +105,7 @@
   {% set equipment_count = equipment_items|length %}
   {% set grid_cols = equipment_count <= 3 ? equipment_count : 3 %}
 
-  <div class="max-w-5xl mx-auto mb-8 p-6 bg-neutral-50 rounded-lg" data-gsap="equipment">
+  <div class="max-w-5xl mx-auto mb-8 p-6 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-transparent dark:border-neutral-700" data-gsap="equipment">
     <h3 class="text-sm font-medium mb-3 text-left">{{ trans('album.equipment') }}</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-2 text-xs text-neutral-600">
       {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
@@ -788,6 +788,7 @@
     <style nonce="{{ csp_nonce() }}">
     .masonry-grid {
         column-gap: 1rem;
+        column-fill: auto;
     }
     .masonry-grid .masonry-item {
         break-inside: avoid;
@@ -1205,23 +1206,9 @@ function initDenseGrid() {
           // Mobile: remove all span classes
           item.classList.remove('landscape', 'portrait-tall', 'square-large');
         } else if (dataWidth > 0 && dataHeight > 0 && isAdaptive) {
-          // Reapply adaptive sizing with smart distribution
-          const ratio = dataWidth / dataHeight;
+          // Reapply using existing adaptive sizing logic
           item.classList.remove('landscape', 'portrait-tall', 'square-large');
-
-          const shouldSpanWide = (idx % 5) < 2;
-          const shouldSpanTall = (idx % 4) < 1;
-          const shouldBeLarge = (idx % 7) === 0;
-
-          if (ratio > 1.4 && shouldSpanWide) {
-            item.classList.add('landscape');
-          } else if (ratio < 0.7 && shouldSpanTall) {
-            item.classList.add('portrait-tall');
-          } else if (ratio >= 0.9 && ratio <= 1.1 && shouldBeLarge) {
-            item.classList.add('square-large');
-          } else if (ratio > 1.1 && ratio <= 1.4 && shouldSpanWide) {
-            item.classList.add('landscape');
-          }
+          applyAdaptiveSizing(dataWidth, dataHeight, idx);
         }
       });
     }, 150);
@@ -1362,7 +1349,7 @@ document.addEventListener('click', function(event) {
         const masonryStyleEl = document.createElement('style');
         masonryStyleEl.id = 'masonry-grid-dynamic-style';
         masonryStyleEl.textContent = `
-          .masonry-grid { column-gap: 1rem; }
+          .masonry-grid { column-gap: 1rem; column-fill: auto; }
           .masonry-grid .masonry-item { break-inside: avoid; margin-bottom: 1rem; }
           @media (min-width: 1024px) { .masonry-grid { column-count: ${d}; } }
           @media (min-width: 768px) and (max-width: 1023px) { .masonry-grid { column-count: ${t}; } }

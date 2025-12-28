@@ -544,8 +544,14 @@ $(document).ready(function() {
     // Initialize responsive grid
     initResponsiveGrid();
     
-    // Safety check every 2 seconds
-    setInterval(ensureUIVisibility, 2000);
+    // Safety check every 2 seconds (auto-stop when intro is done)
+    let visibilityCheckInterval = setInterval(function() {
+        ensureUIVisibility();
+        if (document.body.dataset.gsapIntroDone === '1'
+            && !document.body.classList.contains('gsap-intro-animating')) {
+            clearInterval(visibilityCheckInterval);
+        }
+    }, 2000);
 });
 
 function ensureUIVisibility() {
@@ -588,57 +594,6 @@ function initPageAnimations() {
         gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
     }
     return;
-    
-    // Timeline for page load with safety measures
-    const tl = gsap.timeline({
-        onComplete: function() {
-            // Remove animation class when done
-            document.body.classList.remove('gsap-intro-animating');
-            // Ensure all elements are visible
-            gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'all' });
-            gsap.set('#galleries-grid .gallery-card', { opacity: 1, clearProps: 'all' });
-        }
-    });
-    galleriesIntroTimeline = tl;
-    
-    // Animate hero section with fromTo for no flicker
-    const titleEl = document.querySelector('[data-gsap="title"]');
-    const subtitleEl = document.querySelector('[data-gsap="subtitle"]');
-
-    if (titleEl && !titleEl.hasAttribute('data-animated')) {
-        titleEl.setAttribute('data-animated', '1');
-        tl.fromTo(titleEl,
-            { y: 30, opacity: 0 },
-            { y: 0, opacity: 1, duration: {{ filter_settings.animation_duration }}, ease: 'power2.out' }
-        );
-    }
-
-    if (subtitleEl && !subtitleEl.hasAttribute('data-animated')) {
-        subtitleEl.setAttribute('data-animated', '1');
-        tl.fromTo(subtitleEl,
-            { y: 20, opacity: 0 },
-            { y: 0, opacity: 1, duration: {{ filter_settings.animation_duration }}, ease: 'power2.out' },
-            '-=0.4'
-        );
-    }
-
-    // Animate gallery cards with fromTo for no flicker
-    const galleryCards = document.querySelectorAll('#galleries-grid .gallery-card:not([data-animated])');
-    if (galleryCards.length > 0) {
-        galleryCards.forEach(card => card.setAttribute('data-animated', '1'));
-        tl.fromTo(galleryCards,
-            { y: 30, opacity: 0 },
-            { y: 0, opacity: 1, duration: {{ filter_settings.animation_duration }}, stagger: 0.08, ease: 'power2.out' },
-            '-=0.2'
-        );
-    }
-    
-    // Safety timeout to ensure all elements are visible
-    setTimeout(() => {
-        document.body.classList.remove('gsap-intro-animating');
-        gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'all' });
-        gsap.set('#galleries-grid .gallery-card', { opacity: 1, clearProps: 'all' });
-    }, 2000);
 }
 
 function initFilters() {
@@ -927,20 +882,27 @@ function formatDateByPattern(dateStr) {
     }
 }
 
+// Utility: HTML escape
+function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function generateGalleryCard(album) {
-    const esc = (s)=> String(s==null?'':s)
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/\"/g,'&quot;').replace(/'/g,'&#039;');
     const coverImage = album.cover_image || {};
     const tags = Array.isArray(album.tags) ? album.tags : [];
     const imgPath = (coverImage.preview_path || coverImage.original_path || '');
     const blurPath = coverImage.blur_path || '';
     const safeSrc = imgPath.startsWith('/') && window.basePath ? (window.basePath + imgPath) : imgPath;
     const safeBlurSrc = blurPath.startsWith('/') && window.basePath ? (window.basePath + blurPath) : blurPath;
-    const title = esc(album.title);
-    const excerpt = esc(album.excerpt || '');
-    const category = esc(album.category_name || '');
-    const alt = esc(coverImage.alt_text || album.title || '');
+    const title = escapeHtml(album.title);
+    const excerpt = escapeHtml(album.excerpt || '');
+    const category = escapeHtml(album.category_name || '');
+    const alt = escapeHtml(coverImage.alt_text || album.title || '');
     const slug = encodeURIComponent(album.slug || '');
     // Skip NSFW restrictions for admins
     const isNsfw = (album.is_nsfw && !window.isAdmin) ? true : false;
@@ -965,6 +927,7 @@ function generateGalleryCard(album) {
         if (safeBlurSrc) {
             const img = document.createElement('img');
             img.src = safeBlurSrc;
+            if (safeSrc) img.setAttribute('data-nsfw-real-src', safeSrc);
             img.alt = alt;
             if (seoTitle) img.title = seoTitle;
             img.className = 'nsfw-blur w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
@@ -1074,9 +1037,6 @@ function updateActiveFilters(filters) {
     const clearButton = $('#clear-filters');
     let activeFiltersHtml = '';
     let hasActiveFilters = false;
-    const escapeHtml = (s)=> String(s==null?'':s)
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/\"/g,'&quot;').replace(/'/g,'&#039;');
 
     const categoryNames = getSelectedCategoryNames();
     if (categoryNames.length > 0) {
@@ -1536,6 +1496,7 @@ function confirmNsfwAge() {
         }
         safeLocalStorageSet('nsfw_confirmed', 'true');
         window.nsfwConsent = true;
+        if (window.applyNsfwConsentState) window.applyNsfwConsentState();
         hideNsfwModal();
 
         // Navigate to the pending URL if any
@@ -1604,6 +1565,7 @@ document.getElementById('nsfw-modal')?.addEventListener('click', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     if (hasConfirmedNsfw()) {
         safeLocalStorageSet('nsfw_confirmed', 'true');
+        if (window.applyNsfwConsentState) window.applyNsfwConsentState();
     }
 });
 </script>

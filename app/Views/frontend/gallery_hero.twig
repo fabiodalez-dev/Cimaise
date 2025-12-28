@@ -84,15 +84,15 @@
         <div class="mb-3 flex flex-wrap justify-center gap-2">
           {% if album.categories is defined and album.categories|length > 0 %}
             {% for cat in album.categories %}
-              <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white/80 text-neutral-800 hover:bg-white transition-colors" title="{{ cat.name|e }}">
-                <span class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-800"></span>{{ cat.name|e }}
+              <a href="{{ base_path }}/category/{{ cat.slug }}" class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-neutral-300 bg-white/80 text-neutral-800 hover:bg-white dark:border-neutral-600 dark:bg-neutral-800/80 dark:text-neutral-200 dark:hover:bg-neutral-700 transition-colors" title="{{ cat.name|e }}">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-800 dark:bg-neutral-300"></span>{{ cat.name|e }}
               </a>
             {% endfor %}
           {% endif %}
           {% if album.tags is defined and album.tags|length > 0 %}
             {% for tag in album.tags %}
-            <a href="{{ base_path }}/tag/{{ tag.slug }}" class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors" title="{{ tag.name|e }}">
-              <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-600"></span>{{ tag.name|e }}
+            <a href="{{ base_path }}/tag/{{ tag.slug }}" class="inline-flex items-center gap-2 text-[11px] font-medium px-2.5 py-1 rounded-full border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-600 dark:bg-blue-900/50 dark:text-blue-200 dark:hover:bg-blue-800/50 transition-colors" title="{{ tag.name|e }}">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400"></span>{{ tag.name|e }}
             </a>
             {% endfor %}
           {% endif %}

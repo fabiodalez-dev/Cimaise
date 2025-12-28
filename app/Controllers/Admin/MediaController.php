@@ -48,7 +48,7 @@ class MediaController extends BaseController
                        i.iso, i.shutter_speed, i.aperture,
                        COALESCE(iv.path, i.original_path) AS preview_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = \'sm\' AND iv.format = \'jpg\'';
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = \'sm\'';
         $params = [];
         if ($q !== '') {
             $sql .= ' WHERE i.alt_text LIKE :q OR i.caption LIKE :q OR i.original_path LIKE :q';
