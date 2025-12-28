@@ -55,6 +55,7 @@ class InstallerController
         $requirements = $this->checkRequirements();
         
         return $this->view->render($response, 'installer/index.twig', [
+            'base_path' => $this->basePath,
             'requirements' => $requirements,
             'allGood' => empty($requirements['errors'])
         ]);
@@ -76,6 +77,7 @@ class InstallerController
         }
         
         return $this->view->render($response, 'installer/database.twig', [
+            'base_path' => $this->basePath,
             'db_connection' => 'sqlite',
             'db_host' => '127.0.0.1',
             'db_port' => 3306,
@@ -141,6 +143,7 @@ class InstallerController
         }
         
         return $this->view->render($response, 'installer/admin.twig', [
+            'base_path' => $this->basePath,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -201,6 +204,7 @@ class InstallerController
         }
         
         return $this->view->render($response, 'installer/settings.twig', [
+            'base_path' => $this->basePath,
             'site_title' => 'Cimaise',
             'site_description' => 'Professional Photography Portfolio',
             'site_copyright' => '© {year} Photography Portfolio',
@@ -329,6 +333,7 @@ class InstallerController
         }
         
         return $this->view->render($response, 'installer/confirm.twig', [
+            'base_path' => $this->basePath,
             'db_config' => $_SESSION['install_db_config'],
             'admin_config' => $_SESSION['install_admin_config'],
             'settings_config' => $_SESSION['install_settings_config'],
