@@ -332,7 +332,9 @@ class SettingsController extends BaseController
             // Download XML files from GitHub
             $dataDir = dirname(__DIR__, 3) . '/storage/lensfun';
             if (!is_dir($dataDir)) {
-                mkdir($dataDir, 0775, true);
+                if (!mkdir($dataDir, 0775, true)) {
+                    throw new \RuntimeException('Failed to create lensfun directory');
+                }
             }
 
             $xmlFiles = [
@@ -354,14 +356,33 @@ class SettingsController extends BaseController
 
             $baseUrl = 'https://raw.githubusercontent.com/lensfun/lensfun/master/data/db/';
             $downloaded = 0;
+            $errors = [];
 
             foreach ($xmlFiles as $file) {
                 $url = $baseUrl . $file . '.xml';
                 $localPath = $dataDir . '/' . $file . '.xml';
-                $content = @file_get_contents($url);
-                if ($content !== false && @file_put_contents($localPath, $content)) {
-                    $downloaded++;
+
+                // Try file_get_contents first, then cURL as fallback
+                $content = $this->downloadUrl($url);
+
+                if ($content !== false) {
+                    if (@file_put_contents($localPath, $content)) {
+                        $downloaded++;
+                    } else {
+                        $errors[] = "Failed to write: {$file}.xml";
+                    }
+                } else {
+                    $errors[] = "Failed to download: {$file}.xml";
                 }
+            }
+
+            // Log any errors but continue if at least some files downloaded
+            if (!empty($errors)) {
+                Logger::warning('Lensfun download issues', ['errors' => array_slice($errors, 0, 5), 'total_errors' => count($errors)], 'app');
+            }
+
+            if ($downloaded === 0) {
+                throw new \RuntimeException('No files could be downloaded. Check allow_url_fopen or cURL extension.');
             }
 
             // Rebuild cache
@@ -370,7 +391,7 @@ class SettingsController extends BaseController
             $result = [
                 'success' => true,
                 'message' => trans('admin.flash.lensfun_updated'),
-                'downloaded' => $downloaded,
+                'files' => $downloaded,
                 'cameras' => $stats['cameras'],
                 'lenses' => $stats['lenses'],
             ];
@@ -395,10 +416,62 @@ class SettingsController extends BaseController
                 return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
             }
 
-            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.lensfun_failed')];
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.lensfun_failed') . ': ' . $e->getMessage()];
         }
 
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+    }
+
+    /**
+     * Download URL content with file_get_contents or cURL fallback.
+     */
+    private function downloadUrl(string $url): string|false
+    {
+        // Try file_get_contents first (if allow_url_fopen is enabled)
+        if (ini_get('allow_url_fopen')) {
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 30,
+                    'user_agent' => 'Cimaise/1.0',
+                ],
+                'ssl' => [
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ],
+            ]);
+            $content = @file_get_contents($url, false, $context);
+            if ($content !== false) {
+                return $content;
+            }
+        }
+
+        // Fallback to cURL
+        if (function_exists('curl_init')) {
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 3,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_USERAGENT => 'Cimaise/1.0',
+                CURLOPT_SSL_VERIFYPEER => true,
+            ]);
+            $content = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if ($content !== false && $httpCode === 200) {
+                return $content;
+            }
+
+            if ($error) {
+                Logger::warning('cURL download failed', ['url' => $url, 'error' => $error], 'app');
+            }
+        }
+
+        return false;
     }
 
     public function generateFavicons(Request $request, Response $response): Response
