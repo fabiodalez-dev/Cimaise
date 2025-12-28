@@ -33,7 +33,16 @@ import './albums-carousel.js'
     };
 
     syncLayout();
-    window.addEventListener('resize', syncLayout);
+
+    // Debounce resize with requestAnimationFrame for performance
+    let resizeRaf = null;
+    window.addEventListener('resize', () => {
+      if (resizeRaf) return;
+      resizeRaf = requestAnimationFrame(() => {
+        syncLayout();
+        resizeRaf = null;
+      });
+    });
 
     // Ensure the gallery is visible even if JS animations are disabled
     gallery.style.opacity = '1';
