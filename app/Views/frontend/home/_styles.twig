@@ -45,6 +45,7 @@
 /* Pause only hovered column */
 .home-col:hover .home-track { animation-play-state: paused; cursor: grab; }
 .home-col:active .home-track { cursor: grabbing; }
+.home-track--virtual { animation: none !important; }
 
 /* Veils - Vertical */
 .home-veil-top { background: linear-gradient(180deg, rgb(255 255 255) 0%, rgb(255 255 255) 77%, rgb(255 255 255 / 12%) 100%); }
@@ -169,6 +170,7 @@
 /* Horizontal mode: no pause on hover, always scrolling */
 .home-row .home-track-h { cursor: default; }
 .home-row.dragging .home-track-h { animation: none; cursor: grabbing; }
+.home-track-h--virtual { animation: none !important; }
 
 /* Horizontal item hover - adjust for horizontal layout */
 .home-horizontal .home-item:hover { transform: translateX(-4px) scale(1.02); }
