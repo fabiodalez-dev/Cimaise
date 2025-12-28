@@ -619,7 +619,6 @@ CREATE TABLE IF NOT EXISTS `metadata_extensions` (
   KEY `idx_meta_ext_plugin` (`plugin_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================
 -- DEFAULT DATA
