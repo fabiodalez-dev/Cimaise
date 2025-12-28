@@ -438,7 +438,7 @@
 {{ do_action('admin_album_create_after', {base_path: base_path}) }}
 
   <!-- Modal edit image (for when images are present after upload) -->
-  <div id="image-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-[10000]">
+  <div id="image-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center" style="z-index: var(--z-modal);">
     <div class="bg-white w-full max-w-2xl rounded shadow-lg overflow-hidden">
       <div class="px-5 py-3 border-b flex items-center justify-between">
         <h3 class="text-lg font-medium">{{ trans('admin.albums.edit_image') }}</h3>
