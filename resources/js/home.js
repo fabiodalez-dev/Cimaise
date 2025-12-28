@@ -43,6 +43,8 @@ import './albums-carousel.js'
     if (!items.length) return;
 
     // Too many nodes: reveal immediately to avoid blank gallery on load
+    // With 600+ items, staggered setTimeout animations would take too long
+    // and risk showing a blank gallery. Skip animation for performance.
     if (items.length > 600) {
       items.forEach((item) => item.classList.add('home-item--revealed'));
       return;
@@ -67,6 +69,18 @@ import './albums-carousel.js'
     }
 
     // Reveal in random order and complete within target duration
+    //
+    // Note: We use setTimeout-based random reveal instead of IntersectionObserver.
+    // IntersectionObserver caused issues with:
+    // - bfcache (back-forward cache): observers can fire unexpectedly on restore
+    // - Rapid scroll: multiple intersection events caused flickering
+    // - Mobile: inconsistent behavior with CSS column layouts
+    //
+    // The timeout approach ensures predictable, smooth entry animation without
+    // these edge cases. If reverting to IntersectionObserver, test thoroughly:
+    // 1. Navigate away and press back button (bfcache restore)
+    // 2. Rapid scroll through gallery on mobile
+    // 3. Resize window during animation
     const totalMs = 6000;
     const step = Math.max(8, Math.floor(totalMs / items.length));
     const shuffled = items
