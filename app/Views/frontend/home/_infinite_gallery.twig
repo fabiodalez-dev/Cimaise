@@ -72,7 +72,7 @@
       {% set rows = [col1, col2, col3] %}
       {% for row in rows %}
         {% set idx = loop.index0 %}
-        {% set dur = idx == 0 ? '380s' : (idx == 1 ? '420s' : '480s') %}
+        {% set dur = idx == 0 ? '560s' : (idx == 1 ? '640s' : '720s') %}
         {% set dir = idx == 1 ? 'left' : 'right' %}
         <div class="home-row" data-direction="{{ dir }}" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-row-index="{{ idx }}">
           <div class="home-track-h">
@@ -92,7 +92,7 @@
       {% set cols = [col1, col2, col3] %}
       {% for col in cols %}
         {% set idx = loop.index0 %}
-        {% set dur = idx == 0 ? '420s' : (idx == 1 ? '540s' : '660s') %}
+        {% set dur = idx == 0 ? '600s' : (idx == 1 ? '780s' : '960s') %}
         {% set dir = idx == 1 ? 'up' : 'down' %}
         <div class="home-col" data-direction="{{ dir }}" style="--home-duration: {{ dur }}; --home-delay: 0s;" data-col-index="{{ idx }}">
           <div class="home-track">
