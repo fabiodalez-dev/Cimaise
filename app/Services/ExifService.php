@@ -1332,6 +1332,13 @@ class ExifService
         // For older images, fall back to raw exif JSON if dedicated fields are empty
         if (!empty($data['exif'])) {
             $rawExif = json_decode($data['exif'], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Logger::warning('ExifService: Invalid JSON in exif field', [
+                    'image_id' => $imageId,
+                    'error' => json_last_error_msg()
+                ], 'exif');
+                $rawExif = null;
+            }
             if (is_array($rawExif)) {
                 // Map raw EXIF keys to editor field names (only if not already set)
                 $fallbackMap = [

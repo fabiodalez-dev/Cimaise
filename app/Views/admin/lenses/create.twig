@@ -87,6 +87,7 @@
       try {
         const response = await fetch(endpoint, { credentials: 'same-origin' });
         if (!response.ok) {
+          console.error('Autocomplete fetch failed:', response.status, response.statusText);
           dropdown.classList.add('hidden');
           return;
         }
@@ -98,6 +99,7 @@
           dropdown.classList.remove('hidden');
         }
       } catch (error) {
+        console.error('Autocomplete error:', error);
         dropdown.classList.add('hidden');
       }
     }
