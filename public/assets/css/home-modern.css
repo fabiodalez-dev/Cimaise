@@ -13,12 +13,12 @@
     --modern-dark-grey: #373737;
 }
 
-/* Dark Mode - invert colors */
+/* Dark Mode - invert colors (aligned with app.css) */
 html.dark {
-    --modern-black: #fff;
-    --modern-white: #000;
-    --modern-grey: #808080;
-    --modern-dark-grey: #c8c8c8;
+    --modern-black: #fafafa;
+    --modern-white: #171717;
+    --modern-grey: #a3a3a3;
+    --modern-dark-grey: #d4d4d4;
 }
 
 /* ============================================
@@ -117,10 +117,11 @@ img {
 
 .head-logo_holder .head-logo_text {
     font-family: var(--font-heading, inherit);
-    font-size: 1rem;
+    font-size: 1.5rem;
     font-weight: 600;
     letter-spacing: -0.02em;
     white-space: nowrap;
+    margin: 0;
 }
 
 .head-logo_holder .head-logo_img {
@@ -520,9 +521,8 @@ html.dark .modern-search-suggestions__subtitle {
 }
 
 .grid-toggle {
-    text-transform: uppercase;
     font-family: var(--font-body, inherit);
-    font-size: 0.875rem;
+    font-size: 1rem;
     font-weight: 600;
     line-height: 1.4;
     opacity: 0.5;
@@ -554,7 +554,7 @@ html.dark .modern-search-suggestions__subtitle {
 .toggle-cat_item:hover .grid-toggle {
     color: var(--modern-black);
     opacity: 1;
-    font-size: 0.925rem;
+    font-size: 1.05rem;
     background: linear-gradient(
         90deg,
         var(--modern-black) 0%,

@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS `cameras` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `make` VARCHAR(120) NOT NULL,
   `model` VARCHAR(160) NOT NULL,
+  `type` VARCHAR(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_cameras_make_model` (`make`, `model`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -102,8 +103,8 @@ CREATE TABLE IF NOT EXISTS `films` (
   `brand` VARCHAR(120) NOT NULL,
   `name` VARCHAR(160) NOT NULL,
   `iso` INT NULL,
-  `format` ENUM('35mm', '120', '4x5', '8x10', 'other') DEFAULT '35mm',
-  `type` ENUM('color_negative', 'color_reversal', 'bw') NOT NULL DEFAULT 'color_negative',
+  `format` VARCHAR(50) DEFAULT '35mm',
+  `type` VARCHAR(50) NOT NULL DEFAULT 'color_negative',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_films_brand_name_iso_format` (`brand`, `name`, `iso`, `format`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

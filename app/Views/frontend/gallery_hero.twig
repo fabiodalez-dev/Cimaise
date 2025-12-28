@@ -79,7 +79,7 @@
     {# Subtle light overlay for readability on top of blurred image #}
     <div class="absolute inset-0 z-10 pointer-events-none backdrop-blur-[1px]" style="background: linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.90) 83%, rgba(255,255,255,0.95) 100%);"></div>
 
-    <div class="relative z-20 flex flex-col items-center max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 text-center text-black" style="min-height:50vh; padding-top:3rem; padding-bottom:3rem">
+    <div class="relative z-20 flex flex-col items-center max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 text-center text-black preserve-light-text" style="min-height:50vh; padding-top:3rem; padding-bottom:3rem">
       <div class="flex-grow flex flex-col items-center justify-center">
         <div class="mb-3 flex flex-wrap justify-center gap-2">
           {% if album.categories is defined and album.categories|length > 0 %}

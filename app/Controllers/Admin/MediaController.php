@@ -137,6 +137,9 @@ class MediaController extends BaseController
             'iso' => ($d['iso'] ?? '') !== '' ? (int)$d['iso'] : null,
             'shutter_speed' => $d['shutter_speed'] ?? null,
             'aperture' => ($d['aperture'] ?? '') !== '' ? (float)$d['aperture'] : null,
+            'custom_camera' => $d['custom_camera'] ?? null,
+            'custom_lens' => $d['custom_lens'] ?? null,
+            'custom_film' => $d['custom_film'] ?? null,
         ];
 
         $setParts = [];

@@ -19,9 +19,9 @@
           <div class="autocomplete-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"></div>
         </div>
       </div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.focal_min') }}</label><input class="form-input" type="number" step="0.01" name="focal_min" id="lens-focal-min"></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.focal_max') }}</label><input class="form-input" type="number" step="0.01" name="focal_max" id="lens-focal-max"></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.aperture_min') }}</label><input class="form-input" type="number" step="0.01" name="aperture_min"></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.focal_min') }}</label><input class="form-input" type="number" step="any" name="focal_min" id="lens-focal-min"></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.focal_max') }}</label><input class="form-input" type="number" step="any" name="focal_max" id="lens-focal-max"></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.lenses.aperture_min') }}</label><input class="form-input" type="number" step="any" name="aperture_min"></div>
     </div>
     <div class="mt-3 flex gap-3"><button class="btn-primary">{{ trans('admin.common.save') }}</button> <a class="btn-secondary" href="{{ base_path }}/admin/lenses">{{ trans('admin.common.cancel') }}</a></div>
   </form>
@@ -39,7 +39,10 @@
       input.addEventListener('input', () => {
         const query = input.value.trim();
         clearTimeout(autocompleteTimeout);
-        if (query.length < 2) { dropdown.classList.add('hidden'); return; }
+        if (query.length < 2) {
+          dropdown.classList.add('hidden');
+          return;
+        }
         autocompleteTimeout = setTimeout(() => fetchSuggestions(query, type, dropdown, input), 300);
       });
 
@@ -84,7 +87,6 @@
       try {
         const response = await fetch(endpoint, { credentials: 'same-origin' });
         if (!response.ok) {
-          console.error('Autocomplete fetch failed:', response.status, response.statusText);
           dropdown.classList.add('hidden');
           return;
         }
@@ -96,7 +98,6 @@
           dropdown.classList.remove('hidden');
         }
       } catch (error) {
-        console.error('Autocomplete error:', error);
         dropdown.classList.add('hidden');
       }
     }

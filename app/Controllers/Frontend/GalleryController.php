@@ -52,6 +52,21 @@ class GalleryController extends BaseController
         return $value;
     }
 
+    /**
+     * Build alt text by combining image title/caption with album title.
+     */
+    private function buildAltText(string $altText, string $caption, string $albumTitle): string
+    {
+        // Use alt_text (title) first, then caption as fallback
+        $imageText = trim($altText) ?: trim($caption);
+
+        if ($imageText && $albumTitle) {
+            return $imageText . ' — ' . $albumTitle;
+        }
+
+        return $imageText ?: $albumTitle;
+    }
+
     private function applyTemplateOverrides(array $template, array $templateSettings): array
     {
         $templateSettings = $this->normalizeTemplateSettings($templateSettings);
@@ -366,7 +381,7 @@ class GalleryController extends BaseController
                 'id' => (int)$img['id'],
                 'url' => $bestUrl,
                 'lightbox_url' => $lightboxUrl, // High quality for lightbox
-                'alt' => $img['alt_text'] ?: $album['title'],
+                'alt' => $this->buildAltText($img['alt_text'] ?? '', $img['caption'] ?? '', $album['title'] ?? ''),
                 'alt_text' => $img['alt_text'] ?? '',
                 'width' => (int)($img['width'] ?? 1200),
                 'height' => (int)($img['height'] ?? 800),
@@ -699,7 +714,7 @@ class GalleryController extends BaseController
                     'id' => (int)$img['id'],
                     'url' => $bestUrl,
                     'lightbox_url' => $lightboxUrl,
-                    'alt' => $img['alt_text'] ?: $album['title'],
+                    'alt' => $this->buildAltText($img['alt_text'] ?? '', $img['caption'] ?? '', $album['title'] ?? ''),
                     'alt_text' => $img['alt_text'] ?? '',
                     'width' => (int)($img['width'] ?? 1200),
                     'height' => (int)($img['height'] ?? 800),

@@ -400,6 +400,59 @@ html.dark .text-black { color: #fafafa !important; }
 html.dark .text-neutral-600 { color: #d4d4d4 !important; }
 html.dark .text-neutral-500 { color: #d4d4d4 !important; }
 html.dark .text-neutral-400 { color: #a3a3a3 !important; }
+html.dark .text-neutral-700 { color: #d4d4d4 !important; }
+html.dark .text-neutral-800 { color: #e5e5e5 !important; }
+
+/* Preserve dark text on explicitly light backgrounds (hero overlays, etc.)
+ * Use .preserve-light-text on containers with light backgrounds in dark mode */
+html.dark .preserve-light-text,
+html.dark .preserve-light-text .text-black,
+html.dark .preserve-light-text h1,
+html.dark .preserve-light-text h2,
+html.dark .preserve-light-text h3 {
+  color: #0a0a0a !important;
+}
+
+html.dark .preserve-light-text .text-neutral-700,
+html.dark .preserve-light-text .text-neutral-800 {
+  color: #404040 !important;
+}
+
+html.dark .preserve-light-text .text-neutral-600,
+html.dark .preserve-light-text .text-neutral-500 {
+  color: #525252 !important;
+}
+
+/* Dark mode for prose content (Tailwind Typography plugin) */
+html.dark .prose-neutral {
+  --tw-prose-body: #d4d4d4;
+  --tw-prose-headings: #fafafa;
+  --tw-prose-links: #60a5fa;
+  --tw-prose-bold: #fafafa;
+  --tw-prose-counters: #a3a3a3;
+  --tw-prose-bullets: #a3a3a3;
+  --tw-prose-quotes: #d4d4d4;
+  --tw-prose-code: #fafafa;
+  --tw-prose-hr: #404040;
+}
+
+html.dark .prose-neutral p,
+html.dark .prose-neutral li,
+html.dark .prose-neutral span {
+  color: #d4d4d4;
+}
+
+html.dark .prose-neutral h1,
+html.dark .prose-neutral h2,
+html.dark .prose-neutral h3,
+html.dark .prose-neutral h4,
+html.dark .prose-neutral strong {
+  color: #fafafa;
+}
+
+html.dark .prose-neutral a {
+  color: #60a5fa;
+}
 
 /* Dark mode for ALL headings (not just .text-black)
  * Note: Uses !important to override Tailwind utilities

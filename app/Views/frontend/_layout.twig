@@ -331,23 +331,36 @@
             transform: translateX(-50%);
             bottom: 56px;
             max-width: 95vw;
-            color: #fff;
             text-align: center;
             font-size: 14px;
             line-height: 1.3;
-            z-index: 2;
-            background: rgba(0,0,0,0.7);
+            z-index: 28;
+            background: transparent;
             padding: 12px 20px;
             border-radius: 6px;
             transition: opacity 0.3s ease, transform 0.3s ease;
-            /* Hidden by default, shown via toggle button */
+            /* Hidden by default, shown via toggle button or when content exists */
             opacity: 0;
             pointer-events: none;
+            /* Light mode: dark text on light images */
+            color: #171717;
         }
 
         .pswp__custom-caption.visible {
-            opacity: 1;
+            opacity: 1 !important;
             pointer-events: auto;
+        }
+
+        /* Dark mode: light text */
+        html.dark .pswp__custom-caption {
+            color: #fafafa;
+        }
+
+        .pswp__custom-caption .caption-title {
+            font-weight: 600;
+        }
+        .pswp__custom-caption .caption-item i {
+            opacity: 0.7;
         }
 
         /* EXIF toggle button - icon turns gray when active */
@@ -951,16 +964,15 @@
             height: 24px !important;
         }
 
-        /* Caption styling */
+        /* Caption styling - inherit colors from parent for dark/light mode */
         .pswp__custom-caption {
             background: none;
-            color: #000;
             padding: 16px;
             text-align: center;
         }
-        
+
         .pswp__custom-caption .cc-item i {
-            color: #000 !important;
+            opacity: 0.7;
         }
 
         input[type="search"]::-webkit-search-cancel-button,
@@ -2833,12 +2845,12 @@
                             name: 'custom-caption', order: 9, isButton: false, appendTo: 'root',
                             onInit: (el, pswp) => {
                                 el.className = 'pswp__custom-caption pswp__hide-on-close';
+                                // Styles are defined in CSS, only set positioning here
                                 el.style.cssText = `
                                     position: absolute; left: 50%; transform: translateX(-50%);
                                     bottom: 56px; width: min(1100px, calc(100% - 24px));
-                                    background: transparent; color: #000; padding: 0 8px;
+                                    background: transparent; padding: 0 8px;
                                     font-size: 14px; line-height: 1.5; text-align: center;
-                                    pointer-events: none; opacity: 0; transition: opacity 0.2s ease;
                                 `;
                                 const renderCaption = () => {
                                   const curr = lb.pswp.currSlide && lb.pswp.currSlide.data && lb.pswp.currSlide.data.element;
@@ -2851,7 +2863,10 @@
                                   }
                                   const ds = curr.dataset || {};
                                   const esc = (s)=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                                  const head = esc(ds.title || ds.alt || '');
+                                  // Title: use alt text as the image title
+                                  const title = esc(ds.alt || '');
+                                  // Caption: use data-title which maps to image.caption
+                                  const caption = esc(ds.title || '');
                                   const piece = (icon, val) => {
                                     if (!val) return '';
                                     // Whitelist: FontAwesome safe classes (alphanumeric, spaces, hyphen, underscore)
@@ -2859,7 +2874,7 @@
                                     if (!safeIcon) safeIcon = 'fas fa-tag';
                                     return `<span class="inline-flex items-center"><i class="${safeIcon} mr-1"></i>${esc(val)}</span>`;
                                   };
-                                  // Equipment data (always shown)
+                                  // Custom assigned equipment (camera, lens, film, etc.) - NOT EXIF
                                   const equipment = [
                                     piece('fas fa-camera', ds.camera),
                                     piece('fas fa-dot-circle', ds.lens),
@@ -2868,13 +2883,7 @@
                                     piece('fas fa-industry', ds.lab),
                                     piece('fas fa-map-marker-alt', ds.location)
                                   ].filter(Boolean);
-                                  // EXIF data (only shown if setting enabled)
-                                  const exif = window.__showExifInLightbox ? [
-                                    piece('fas fa-signal', ds.iso ? ('ISO ' + ds.iso) : ''),
-                                    piece('far fa-clock', ds.shutter),
-                                    piece('fas fa-circle-half-stroke', ds.aperture ? ('f/' + ds.aperture) : '')
-                                  ].filter(Boolean) : [];
-                                  // Custom fields (from album/image with override logic)
+                                  // Album custom fields (from album/image with override logic)
                                   let customFieldsHtml = [];
                                   if (ds.customFields) {
                                     try {
@@ -2896,11 +2905,12 @@
                                       });
                                     } catch(e) { /* ignore parse errors */ }
                                   }
-                                  // Build all items including title on a single line
+                                  // Build caption: Title - Caption - Custom Fields (no EXIF)
                                   const allItems = [];
-                                  if (head) allItems.push(`<span class="font-medium">${head}</span>`);
-                                  allItems.push(...equipment, ...exif, ...customFieldsHtml);
-                                  const html = allItems.length ? `<div class="flex flex-wrap gap-x-3 gap-y-1 items-center justify-center text-sm text-black">${allItems.join(' ')}</div>` : '';
+                                  if (title) allItems.push(`<span class="caption-title font-semibold">${title}</span>`);
+                                  if (caption && caption !== title) allItems.push(`<span class="caption-text opacity-80">${caption}</span>`);
+                                  allItems.push(...equipment, ...customFieldsHtml);
+                                  const html = allItems.length ? `<div class="caption-content flex flex-wrap gap-x-3 gap-y-1 items-center justify-center text-sm">${allItems.join(' ')}</div>` : '';
                                   el.innerHTML = html;
                                   // If no content, reset visibility state
                                   if (!html.trim()) {
@@ -3313,11 +3323,12 @@
           .pswp__bullets-indicator { display:flex; gap:8px; position:absolute; bottom:24px; left:50%; transform:translateX(-50%); z-index:30; }
           .pswp__bullet { width:8px; height:8px; border-radius:50%; background:#C0C0C0; }
           .pswp__bullet--active { background:#000; }
+          html.dark .pswp__bullet--active { background:#fff; }
           .pswp__custom-caption { z-index: 28; }
           .pswp__custom-caption .cc-title { font-weight:600; margin-bottom:6px; }
           .pswp__custom-caption .cc-line { display:inline-flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-          .pswp__custom-caption .cc-item { display:inline-flex; gap:6px; align-items:center; color:#000; }
-          .pswp__custom-caption .cc-item i { color:#000; }
+          .pswp__custom-caption .cc-item { display:inline-flex; gap:6px; align-items:center; color:inherit; }
+          .pswp__custom-caption .cc-item i { color:inherit; opacity:0.7; }
           .pswp__custom-caption .cc-sep { opacity:.6; margin: 0 6px; }
         `;
         document.head.appendChild(pswpStyle);
