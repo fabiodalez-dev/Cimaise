@@ -106,3 +106,4 @@ reports/
 
 # Public vendor markdown files
 public/assets/vendor/**/*.md
+storage/cimaise.db
