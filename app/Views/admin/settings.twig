@@ -223,10 +223,10 @@
                 <div class="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                   {% if settings['site.favicon_source'] %}
                     <img id="favicon-source-preview" src="{{ base_path ~ settings['site.favicon_source'] }}" alt="Favicon source" class="max-w-full max-h-full">
-                    <span id="favicon-source-placeholder" class="text-xs text-gray-500 hidden">{{ trans('admin.settings.no_image') }}</span>
+                    <span id="favicon-source-placeholder" class="text-xs text-gray-500 text-center hidden">{{ trans('admin.settings.no_image') }}</span>
                   {% else %}
                     <img id="favicon-source-preview" src="" alt="Favicon source" class="max-w-full max-h-full hidden">
-                    <span id="favicon-source-placeholder" class="text-xs text-gray-500">{{ trans('admin.settings.no_image') }}</span>
+                    <span id="favicon-source-placeholder" class="text-xs text-gray-500 text-center">{{ trans('admin.settings.no_image') }}</span>
                   {% endif %}
                 </div>
                 <div class="flex-1">
