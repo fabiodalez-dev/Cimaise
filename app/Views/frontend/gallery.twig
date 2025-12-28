@@ -748,7 +748,7 @@
 
   {# DEFAULT: Standard masonry with CSS columns #}
   {% elseif masonry %}
-    <div id="images-gallery" class="masonry-grid pswp-gallery" data-layout="masonry">
+    <div id="images-gallery" class="masonry-grid pswp-gallery" data-layout="masonry" style="--cols-desktop: {{ desktop_cols }}; --cols-tablet: {{ tablet_cols }}; --cols-mobile: {{ mobile_cols }};">
       {% for image in images %}
       <div class="masonry-item">
         {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
