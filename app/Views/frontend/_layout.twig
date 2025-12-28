@@ -1176,7 +1176,7 @@
                                 <div class="p-8">
                                     <!-- Parent Categories Grid -->
                                     <div class="grid grid-cols-3 gap-6" id="parent-categories-grid">
-                                        {% for category in parent_categories|default([]) %}
+                                        {% for category in parent_categories|default([])|filter(c => c.albums_count > 0 or c.children|filter(ch => ch.albums_count > 0)|length > 0) %}
                                         <div class="group cursor-pointer category-parent-item relative" data-category-id="{{ category.id }}" data-category-slug="{{ category.slug }}" data-category-name="{{ category.name|e }}">
                                             <a href="{{ base_path }}/category/{{ category.slug }}" class="block hover:no-underline">
                                                 <div class="relative aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-gray-50 transition-all duration-300 group-hover:shadow-lg">
@@ -1195,19 +1195,20 @@
                                                     <h3 class="font-medium text-sm text-gray-900 group-hover:text-black transition-colors duration-200 mb-1">{{ category.name|e }}</h3>
                                                     
                                                     <!-- Subcategories shown as text on hover -->
-                                                    {% if category.children|length > 0 %}
+                                                    {% set visible_children = category.children|filter(ch => ch.albums_count > 0) %}
+                                                    {% if visible_children|length > 0 %}
                                                         <div class="subcategories-hover-text opacity-0 group-hover:opacity-100 transition-all duration-300 max-h-0 group-hover:max-h-32 overflow-hidden">
                                                             <div class="text-xs text-gray-600 mt-2 space-y-1">
-                                                                {% for child in category.children|slice(0, 4) %}
+                                                                {% for child in visible_children|slice(0, 4) %}
                                                                     <div class="hover:text-black transition-colors duration-150">{{ child.name|e }}</div>
                                                                 {% endfor %}
-                                                                {% if category.children|length > 4 %}
-                                                                    <div class="text-gray-400 text-xs">+{{ category.children|length - 4 }} more</div>
+                                                                {% if visible_children|length > 4 %}
+                                                                    <div class="text-gray-400 text-xs">+{{ visible_children|length - 4 }} more</div>
                                                                 {% endif %}
                                                             </div>
                                                         </div>
                                                         <p class="text-xs text-gray-500 group-hover:opacity-0 transition-opacity duration-200">
-                                                            {{ category.children|length }} {{ category.children|length == 1 ? 'subcategory' : 'subcategories' }}
+                                                            {{ visible_children|length }} {{ visible_children|length == 1 ? trans('filter.subcategory') : trans('filter.subcategories') }}
                                                         </p>
                                                     {% else %}
                                                         <p class="text-xs text-gray-500 group-hover:text-black transition-colors duration-200">{{ trans('album.view_all') }}</p>
@@ -1327,9 +1328,10 @@
                 <div class="border-t border-gray-200 pt-4">
                     <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 px-3">{{ trans('filter.categories') }}</div>
                     <div class="space-y-1">
-                        {% for category in parent_categories|default([]) %}
+                        {% for category in parent_categories|default([])|filter(c => c.albums_count > 0 or c.children|filter(ch => ch.albums_count > 0)|length > 0) %}
+                        {% set mobile_visible_children = category.children|filter(ch => ch.albums_count > 0) %}
                         <div class="mobile-category-group rounded-md overflow-hidden">
-                            {% if category.children|length > 0 %}
+                            {% if mobile_visible_children|length > 0 %}
                                 <div class="flex items-center justify-between w-full text-left font-medium bg-white hover:bg-gray-50 transition-colors duration-200">
                                     <a href="{{ base_path }}/category/{{ category.slug }}" class="flex-grow flex items-center gap-4 p-3 w-full">
                                         {% if category.image_path and category.image_path != '' %}
@@ -1347,11 +1349,11 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300"></i>
                                     </button>
                                 </div>
-                                
+
                                 <div class="mobile-subcategories hidden overflow-hidden transition-all duration-300 ease-in-out bg-gray-50/70">
                                     <div class="pt-2 pb-3 pl-8 pr-2">
                                         <div class="border-l-2 border-gray-200 pl-6 space-y-1">
-                                            {% for child in category.children %}
+                                            {% for child in mobile_visible_children %}
                                                 <a href="{{ base_path }}/category/{{ child.slug }}" class="flex items-center gap-3 text-sm text-gray-600 hover:text-black p-2 rounded-md hover:bg-gray-200/60 transition-colors duration-200">
                                                     <i class="fas fa-level-up-alt fa-xs text-gray-400 -rotate-90"></i>
                                                     <span>{{ child.name|e }}</span>
@@ -1556,13 +1558,13 @@
 
         
         
-        // Enhanced Desktop mega menu with category data and images
-        const megaMenuData = {{ parent_categories|default([])|map(c => {
+        // Enhanced Desktop mega menu with category data and images (only categories with albums)
+        const megaMenuData = {{ parent_categories|default([])|filter(c => c.albums_count > 0 or c.children|filter(ch => ch.albums_count > 0)|length > 0)|map(c => {
             id: c.id,
             name: c.name,
             slug: c.slug,
             image: c.image_path ?? '',
-            children: c.children|default([])|map(ch => { name: ch.name, slug: ch.slug })
+            children: c.children|default([])|filter(ch => ch.albums_count > 0)|map(ch => { name: ch.name, slug: ch.slug })
         })|reduce((acc, c) => acc|merge({ (c.id): c }), {})|json_encode|raw }};
         
         // Enhanced Desktop categories mega menu with animations
@@ -1974,13 +1976,47 @@
             gsap.registerPlugin(ScrollTrigger);
         }
 
+        // Handle bfcache (back-forward cache) restoration for album cards
+        // When user navigates with back/forward, page is restored from cache
+        // but JavaScript re-runs which can cause flickering
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Page was restored from bfcache - immediately show all album cards
+                const albumCards = document.querySelectorAll('main .album-card');
+                albumCards.forEach(function(card) {
+                    card.style.opacity = '1';
+                    card.style.transform = 'none';
+                    card.setAttribute('data-animated', '1');
+                });
+
+                // Also handle gallery items
+                const galleryItems = document.querySelectorAll('#images-gallery > .masonry-item, #images-gallery > .image-item, #images-gallery > .grid-minimal-item, #images-gallery > .polaroid-item, #images-gallery > .mosaic-item');
+                galleryItems.forEach(function(item) {
+                    item.style.opacity = '1';
+                    item.style.transform = 'none';
+                    item.setAttribute('data-animated', '1');
+                });
+
+                // Clear any GSAP inline styles
+                if (typeof gsap !== 'undefined') {
+                    if (albumCards.length > 0) {
+                        gsap.set(albumCards, { clearProps: 'all', opacity: 1 });
+                    }
+                    if (galleryItems.length > 0) {
+                        gsap.set(galleryItems, { clearProps: 'all', opacity: 1 });
+                    }
+                }
+            }
+        });
+
         // Animate album cards with explicit start/end values
         // CSS hides cards initially (opacity:0, translateY:20px)
         if (typeof gsap !== 'undefined') {
             const albumCards = gsap.utils.toArray('main .album-card:not([data-animated])');
             if (albumCards.length > 0) {
-                // Use fromTo with explicit values - set data-animated in onComplete
-                // This ensures GSAP reads the from values before CSS overrides them
+                // Mark as animated IMMEDIATELY to prevent CSS conflict during animation
+                albumCards.forEach(el => el.setAttribute('data-animated', '1'));
+                // Use fromTo with explicit values for smooth animation
                 gsap.fromTo(albumCards,
                     { opacity: 0, y: 20 },
                     {
@@ -1991,8 +2027,7 @@
                             amount: Math.min(0.4, albumCards.length * 0.05),
                             from: 'start'
                         },
-                        ease: "power2.out",
-                        onComplete: () => albumCards.forEach(el => el.setAttribute('data-animated', '1'))
+                        ease: "power2.out"
                     }
                 );
             }
@@ -2018,8 +2053,9 @@
                 .filter(n => !n.hasAttribute('data-animated'));
             if (!nodes.length) return;
 
-            // Use fromTo with explicit values - set data-animated in onComplete
-            // This ensures GSAP reads the from values before CSS overrides them
+            // Mark as animated IMMEDIATELY to prevent CSS conflict during animation
+            nodes.forEach(n => n.setAttribute('data-animated', '1'));
+            // Use fromTo with explicit values for smooth animation
             gsap.fromTo(nodes,
                 { opacity: 0, scale: 0.9 },
                 {
@@ -2030,8 +2066,7 @@
                         amount: Math.min(0.25, nodes.length * 0.02),
                         from: 'start'
                     },
-                    ease: 'power3.out',
-                    onComplete: () => nodes.forEach(n => n.setAttribute('data-animated', '1'))
+                    ease: 'power3.out'
                 }
             );
         };
