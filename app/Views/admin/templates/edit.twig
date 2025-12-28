@@ -165,62 +165,91 @@
             <i class="fas fa-th-large text-indigo-500 mr-2"></i>{{ trans('admin.templates.dense_grid_settings') }}
           </h2>
           <p class="text-sm text-gray-600 mb-4">
-            {{ trans('admin.templates.dense_grid_description') }}
+            Griglia densa con riempimento automatico e dimensionamento adattivo delle immagini (landscape, portrait, square).
           </p>
           {% set dense = item.settings.dense_grid|default({}) %}
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <i class="fas fa-desktop text-gray-400 mr-1"></i>{{ trans('admin.templates.min_cell_desktop') }}
-              </label>
-              <input class="form-input" type="number" name="dense_min_desktop" min="100" max="500" step="10" value="{{ dense.minCellDesktop|default(300) }}">
-              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.min_cell_hint') }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <i class="fas fa-tablet-alt text-gray-400 mr-1"></i>{{ trans('admin.templates.min_cell_tablet') }}
-              </label>
-              <input class="form-input" type="number" name="dense_min_tablet" min="80" max="300" step="10" value="{{ dense.minCellTablet|default(150) }}">
-              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.min_cell_hint') }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <i class="fas fa-mobile-alt text-gray-400 mr-1"></i>{{ trans('admin.templates.cell_height_mobile') }}
-              </label>
-              <input class="form-input" type="number" name="dense_cell_mobile" min="150" max="500" step="10" value="{{ dense.cellHeightMobile|default(300) }}">
-              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.cell_height_hint') }}</p>
+
+          {# Minimum Cell Width (determines how many columns fit) #}
+          <div class="border-b pb-4 mb-4">
+            <h3 class="text-md font-medium text-gray-800 mb-3">
+              <i class="fas fa-arrows-alt-h text-gray-400 mr-1"></i>Larghezza minima cella
+            </h3>
+            <p class="text-xs text-gray-500 mb-3">Determina quante colonne entrano in ogni riga. Più piccolo = più colonne.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <i class="fas fa-desktop text-gray-400 mr-1"></i>Desktop (px)
+                </label>
+                <input class="form-input" type="number" name="dense_min_desktop" min="100" max="500" step="10" value="{{ dense.minCellDesktop|default(250) }}">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <i class="fas fa-tablet-alt text-gray-400 mr-1"></i>Tablet (px)
+                </label>
+                <input class="form-input" type="number" name="dense_min_tablet" min="80" max="300" step="10" value="{{ dense.minCellTablet|default(150) }}">
+              </div>
             </div>
           </div>
+
+          {# Row Heights #}
+          <div class="border-b pb-4 mb-4">
+            <h3 class="text-md font-medium text-gray-800 mb-3">
+              <i class="fas fa-arrows-alt-v text-gray-400 mr-1"></i>Altezza righe
+            </h3>
+            <p class="text-xs text-gray-500 mb-3">Altezza fissa delle righe. Le immagini landscape/portrait spanneranno più righe/colonne.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <i class="fas fa-desktop text-gray-400 mr-1"></i>Desktop (px)
+                </label>
+                <input class="form-input" type="number" name="dense_row_height" min="100" max="500" step="10" value="{{ dense.rowHeight|default(250) }}">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <i class="fas fa-tablet-alt text-gray-400 mr-1"></i>Tablet (px)
+                </label>
+                <input class="form-input" type="number" name="dense_row_height_tablet" min="80" max="300" step="10" value="{{ dense.rowHeightTablet|default(150) }}">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <i class="fas fa-mobile-alt text-gray-400 mr-1"></i>Mobile (px)
+                </label>
+                <input class="form-input" type="number" name="dense_row_height_mobile" min="150" max="500" step="10" value="{{ dense.rowHeightMobile|default(300) }}">
+              </div>
+            </div>
+          </div>
+
+          {# Other Settings #}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                <i class="fas fa-arrows-alt text-gray-400 mr-1"></i>{{ trans('admin.templates.grid_gap') }}
+                <i class="fas fa-arrows-alt text-gray-400 mr-1"></i>Gap (px)
               </label>
               <input class="form-input" type="number" name="dense_gap" min="0" max="50" step="1" value="{{ dense.gap|default(15) }}">
-              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.grid_gap_hint') }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                <i class="fas fa-expand-arrows-alt text-gray-400 mr-1"></i>{{ trans('admin.templates.max_width') }}
+                <i class="fas fa-expand-arrows-alt text-gray-400 mr-1"></i>Larghezza massima (px)
               </label>
               <input class="form-input" type="number" name="dense_max_width" min="800" max="2400" step="100" value="{{ dense.maxWidth|default(1400) }}">
-              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.max_width_hint') }}</p>
             </div>
           </div>
+
+          {# Adaptive Sizing #}
           <div class="border-t pt-4">
-            <h3 class="text-md font-medium text-gray-800 mb-3">{{ trans('admin.templates.adaptive_sizing') }}</h3>
+            <h3 class="text-md font-medium text-gray-800 mb-3">Dimensionamento adattivo</h3>
             <div class="space-y-3">
               <label class="flex items-center">
                 <input type="checkbox" name="dense_adaptive" class="form-checkbox"{% if dense.adaptiveSizing is not defined or dense.adaptiveSizing %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.enable_adaptive') }}</span>
+                <span class="ml-2 text-sm text-gray-700">Abilita span adattivo</span>
               </label>
-              <p class="text-xs text-gray-500 ml-6">{{ trans('admin.templates.adaptive_description') }}</p>
+              <p class="text-xs text-gray-500 ml-6">Le immagini landscape spannano 2 colonne, portrait 2 righe. Disattiva per celle uniformi.</p>
             </div>
           </div>
           <div class="mt-4 p-3 bg-indigo-50 rounded-lg">
             <p class="text-xs text-indigo-700">
               <i class="fas fa-info-circle mr-1"></i>
-              {{ trans('admin.templates.dense_grid_info') }}
+              Questa griglia usa CSS Grid con auto-fill e flow dense. Le immagini riempiono automaticamente gli spazi vuoti.
             </p>
           </div>
         </div>
@@ -347,5 +376,6 @@
     tabletSelect.addEventListener('change', updatePreview);
     mobileSelect.addEventListener('change', updatePreview);
     masonryCheck.addEventListener('change', updatePreview);
+
   </script>
 {% endblock %}

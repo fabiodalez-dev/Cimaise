@@ -5,15 +5,15 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
   {% include 'frontend/_breadcrumbs.twig' %}
 </div>
-<div class="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-neutral-900 dark:to-neutral-900">
   <!-- Hero Section -->
-  <div class="relative bg-white border-b border-gray-200">
+  <div class="relative bg-white border-b border-gray-200 dark:bg-neutral-900 dark:border-neutral-700">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="text-center">
-        <h1 class="text-4xl md:text-5xl font-light text-black mb-6 tracking-tight" data-gsap="title">
+        <h1 class="text-4xl md:text-5xl font-light text-black dark:text-white mb-6 tracking-tight" data-gsap="title">
           {{ page_texts.title|default(trans('galleries.title'))|e }}
         </h1>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed" data-gsap="subtitle">
+        <p class="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed" data-gsap="subtitle">
           {{ page_texts.subtitle|default(trans('galleries.subtitle'))|e }}
         </p>
       </div>
@@ -445,6 +445,61 @@
 
 <script nonce="{{ csp_nonce() }}">
 // Galleries Page JavaScript with GSAP Animations
+let galleriesIntroUserScrolled = false;
+let galleriesIntroTimeline = null;
+
+window.addEventListener('scroll', function() {
+    galleriesIntroUserScrolled = true;
+    if (document.body.classList.contains('gsap-intro-animating')) {
+        document.body.classList.remove('gsap-intro-animating');
+        const animatedElements = document.querySelectorAll('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"], #galleries-grid .gallery-card');
+        animatedElements.forEach(function(el) {
+            el.style.opacity = '1';
+            el.style.visibility = 'visible';
+            el.style.transform = 'none';
+            el.setAttribute('data-animated', '1');
+        });
+        if (typeof gsap !== 'undefined') {
+            gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
+        }
+        if (galleriesIntroTimeline) {
+            galleriesIntroTimeline.kill();
+            galleriesIntroTimeline = null;
+        }
+    }
+}, { passive: true, once: true });
+
+// Handle bfcache (back-forward cache) restoration
+// When user navigates with back/forward, page is restored from cache
+// but JavaScript re-runs which can cause flickering
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        // Page was restored from bfcache - immediately make everything visible
+        document.body.classList.remove('gsap-intro-animating');
+        document.body.dataset.gsapIntroDone = '1';
+
+        // Immediately show all potentially hidden elements
+        const animatedElements = document.querySelectorAll('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"], #galleries-grid .gallery-card');
+        animatedElements.forEach(function(el) {
+            el.style.opacity = '1';
+            el.style.visibility = 'visible';
+            el.style.transform = 'none';
+            el.setAttribute('data-animated', '1');
+        });
+
+        // Clear any GSAP inline styles
+        if (typeof gsap !== 'undefined') {
+            gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
+        }
+
+        // Remove grid animation class
+        const grid = document.getElementById('galleries-grid');
+        if (grid) {
+            grid.classList.remove('gsap-grid-animating');
+        }
+    }
+});
+
 $(document).ready(function() {
     // Global base path for API calls
     window.basePath = '{{ base_path }}';
@@ -489,8 +544,14 @@ $(document).ready(function() {
     // Initialize responsive grid
     initResponsiveGrid();
     
-    // Safety check every 2 seconds
-    setInterval(ensureUIVisibility, 2000);
+    // Safety check every 2 seconds (auto-stop when intro is done)
+    let visibilityCheckInterval = setInterval(function() {
+        ensureUIVisibility();
+        if (document.body.dataset.gsapIntroDone === '1'
+            && !document.body.classList.contains('gsap-intro-animating')) {
+            clearInterval(visibilityCheckInterval);
+        }
+    }, 2000);
 });
 
 function ensureUIVisibility() {
@@ -520,60 +581,19 @@ function initPageAnimations() {
     if (document.body.dataset.gsapIntroDone === '1') {
         return;
     }
-    // Ensure all elements are visible by default
-    gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'transform' });
-    
-    // Only animate if animation is enabled
-    if (!{{ filter_settings.animation_enabled ? 'true' : 'false' }}) {
-        return;
-    }
-    
-    // Add animation class temporarily
-    document.body.classList.add('gsap-intro-animating');
+    // Keep UI visible and skip intro animations to avoid flicker
     document.body.dataset.gsapIntroDone = '1';
-    
-    // Timeline for page load with safety measures
-    const tl = gsap.timeline({
-        onComplete: function() {
-            // Remove animation class when done
-            document.body.classList.remove('gsap-intro-animating');
-            // Ensure all elements are visible
-            gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'all' });
-            gsap.set('#galleries-grid .gallery-card', { opacity: 1, clearProps: 'all' });
-        }
+    const animatedElements = document.querySelectorAll('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"], #galleries-grid .gallery-card');
+    animatedElements.forEach(function(el) {
+        el.style.opacity = '1';
+        el.style.visibility = 'visible';
+        el.style.transform = 'none';
+        el.setAttribute('data-animated', '1');
     });
-    
-    // Animate hero section with safer approach
-    tl.from('[data-gsap="title"]', {
-        y: 30,
-        opacity: 0,
-        duration: {{ filter_settings.animation_duration }},
-        ease: 'power2.out'
-    })
-    .from('[data-gsap="subtitle"]', {
-        y: 20,
-        opacity: 0,
-        duration: {{ filter_settings.animation_duration }},
-        ease: 'power2.out'
-    }, '-=0.4');
-    
-    // Animate gallery cards with safer approach
-    if (document.querySelectorAll('#galleries-grid .gallery-card').length > 0) {
-        tl.from('#galleries-grid .gallery-card', {
-            y: 30,
-            opacity: 0,
-            duration: {{ filter_settings.animation_duration }},
-            stagger: 0.08,
-            ease: 'power2.out'
-        }, '-=0.2');
+    if (typeof gsap !== 'undefined') {
+        gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
     }
-    
-    // Safety timeout to ensure all elements are visible
-    setTimeout(() => {
-        document.body.classList.remove('gsap-intro-animating');
-        gsap.set('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"]', { opacity: 1, clearProps: 'all' });
-        gsap.set('#galleries-grid .gallery-card', { opacity: 1, clearProps: 'all' });
-    }, 2000);
+    return;
 }
 
 function initFilters() {
@@ -862,20 +882,28 @@ function formatDateByPattern(dateStr) {
     }
 }
 
+// Utility: HTML escape
+function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+const esc = escapeHtml; // Alias for brevity
+
 function generateGalleryCard(album) {
-    const esc = (s)=> String(s==null?'':s)
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/\"/g,'&quot;').replace(/'/g,'&#039;');
     const coverImage = album.cover_image || {};
     const tags = Array.isArray(album.tags) ? album.tags : [];
     const imgPath = (coverImage.preview_path || coverImage.original_path || '');
     const blurPath = coverImage.blur_path || '';
     const safeSrc = imgPath.startsWith('/') && window.basePath ? (window.basePath + imgPath) : imgPath;
     const safeBlurSrc = blurPath.startsWith('/') && window.basePath ? (window.basePath + blurPath) : blurPath;
-    const title = esc(album.title);
-    const excerpt = esc(album.excerpt || '');
-    const category = esc(album.category_name || '');
-    const alt = esc(coverImage.alt_text || album.title || '');
+    const title = escapeHtml(album.title);
+    const excerpt = escapeHtml(album.excerpt || '');
+    const category = escapeHtml(album.category_name || '');
+    const alt = escapeHtml(coverImage.alt_text || album.title || '');
     const slug = encodeURIComponent(album.slug || '');
     // Skip NSFW restrictions for admins
     const isNsfw = (album.is_nsfw && !window.isAdmin) ? true : false;
@@ -900,6 +928,7 @@ function generateGalleryCard(album) {
         if (safeBlurSrc) {
             const img = document.createElement('img');
             img.src = safeBlurSrc;
+            if (safeSrc) img.setAttribute('data-nsfw-real-src', safeSrc);
             img.alt = alt;
             if (seoTitle) img.title = seoTitle;
             img.className = 'nsfw-blur w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]';
@@ -1009,9 +1038,6 @@ function updateActiveFilters(filters) {
     const clearButton = $('#clear-filters');
     let activeFiltersHtml = '';
     let hasActiveFilters = false;
-    const escapeHtml = (s)=> String(s==null?'':s)
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/\"/g,'&quot;').replace(/'/g,'&#039;');
 
     const categoryNames = getSelectedCategoryNames();
     if (categoryNames.length > 0) {
@@ -1289,11 +1315,6 @@ function debounce(func, wait) {
 #galleries-grid.gsap-grid-animating .gallery-card {
     opacity: 0;
 }
-.gsap-intro-animating [data-gsap="filter-toggle"],
-.gsap-intro-animating [data-gsap="title"],
-.gsap-intro-animating [data-gsap="subtitle"] {
-    opacity: 0;
-}
 
 /* Ensure images in gallery cards are always visible */
 #galleries-grid .gallery-card img {
@@ -1476,6 +1497,7 @@ function confirmNsfwAge() {
         }
         safeLocalStorageSet('nsfw_confirmed', 'true');
         window.nsfwConsent = true;
+        if (window.applyNsfwConsentState) window.applyNsfwConsentState();
         hideNsfwModal();
 
         // Navigate to the pending URL if any
@@ -1544,6 +1566,7 @@ document.getElementById('nsfw-modal')?.addEventListener('click', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     if (hasConfirmedNsfw()) {
         safeLocalStorageSet('nsfw_confirmed', 'true');
+        if (window.applyNsfwConsentState) window.applyNsfwConsentState();
     }
 });
 </script>

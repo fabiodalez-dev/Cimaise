@@ -33,8 +33,14 @@ body {
 }
 
 .card {
-  height: 400px;
+  height: 500px;
   overflow: hidden;
+}
+
+@media (min-width: 1200px) {
+  .card {
+    height: 600px;
+  }
 }
 
 .card .card-image-wrapper {
@@ -60,27 +66,33 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 1rem;
-  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  padding: 1.5rem 1.25rem;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
   color: white;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .card:hover .card-overlay {
   opacity: 1;
+  transform: translateY(0);
 }
 
 .card-overlay h3 {
-  font-size: 0.875rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.35rem 0;
+  letter-spacing: -0.01em;
 }
 
 .card-overlay p {
-  font-size: 0.75rem;
-  opacity: 0.8;
+  font-size: 0.875rem;
+  opacity: 0.85;
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
 }
 
 @media (width < 800px) {

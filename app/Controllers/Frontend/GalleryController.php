@@ -52,6 +52,21 @@ class GalleryController extends BaseController
         return $value;
     }
 
+    /**
+     * Build alt text by combining image title/caption with album title.
+     */
+    private function buildAltText(string $altText, string $caption, string $albumTitle): string
+    {
+        // Use alt_text (title) first, then caption as fallback
+        $imageText = trim($altText) ?: trim($caption);
+
+        if ($imageText && $albumTitle) {
+            return $imageText . ' — ' . $albumTitle;
+        }
+
+        return $imageText ?: $albumTitle;
+    }
+
     private function applyTemplateOverrides(array $template, array $templateSettings): array
     {
         $templateSettings = $this->normalizeTemplateSettings($templateSettings);
@@ -211,10 +226,17 @@ class GalleryController extends BaseController
             if (!empty($album['custom_films'])) {
                 $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
             } else {
-                $filmStmt = $pdo->prepare('SELECT f.brand, f.name FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
+                $filmStmt = $pdo->prepare('SELECT f.brand, f.name, f.iso, f.format FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
                 $filmStmt->execute([':a' => $album['id']]);
                 $films = $filmStmt->fetchAll();
-                $equipment['film'] = array_map(fn($f) => trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? '')), $films);
+                $equipment['film'] = array_map(function($f) {
+                    $name = trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? ''));
+                    return [
+                        'name' => $name,
+                        'iso' => $f['iso'] ?? null,
+                        'format' => $f['format'] ?? null
+                    ];
+                }, $films);
             }
             
             if (!empty($album['custom_developers'])) {
@@ -254,6 +276,17 @@ class GalleryController extends BaseController
         // Enrich images with metadata from related tables
         \App\Services\ImagesService::enrichWithMetadata($pdo, $imagesRows, 'gallery');
 
+        // Enrich images with custom fields and load album-level custom fields
+        $albumCustomFields = [];
+        try {
+            $customFieldService = new \App\Services\CustomFieldService($pdo);
+            $imagesRows = $customFieldService->enrichImagesWithCustomFields($imagesRows, (int)$album['id']);
+            $albumCustomFields = $customFieldService->getAlbumMetadata((int)$album['id']);
+        } catch (\Throwable) {
+            // Custom fields tables may not exist yet
+            $albumCustomFields = [];
+        }
+
         // Build gallery items for the template, preferring public variants
         $images = [];
         foreach ($imagesRows as $img) {
@@ -267,7 +300,7 @@ class GalleryController extends BaseController
             $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
             try {
                 // Get best variant for gallery grid
-                $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND format = 'jpg' AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
+                $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
                 $v->execute([':id' => $img['id']]);
                 $vr = $v->fetch();
                 if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
@@ -314,7 +347,7 @@ class GalleryController extends BaseController
             // Ensure we never leak /storage/originals (not publicly served)
             if (str_starts_with((string)$bestUrl, '/storage/')) {
                 // If no public variants available, try to find any jpg variant
-                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format = 'jpg' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
+                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
                 $fallbackStmt->execute([':id' => $img['id']]);
                 $fallback = $fallbackStmt->fetchColumn();
                 $bestUrl = $fallback ?: '/media/placeholder.jpg'; // Use placeholder if no variants
@@ -366,7 +399,7 @@ class GalleryController extends BaseController
                 'id' => (int)$img['id'],
                 'url' => $bestUrl,
                 'lightbox_url' => $lightboxUrl, // High quality for lightbox
-                'alt' => $img['alt_text'] ?: $album['title'],
+                'alt' => $this->buildAltText($img['alt_text'] ?? '', $img['caption'] ?? '', $album['title'] ?? ''),
                 'alt_text' => $img['alt_text'] ?? '',
                 'width' => (int)($img['width'] ?? 1200),
                 'height' => (int)($img['height'] ?? 800),
@@ -408,6 +441,7 @@ class GalleryController extends BaseController
                 'date_original' => $img['date_original'] ?? null,
                 'artist' => $img['artist'] ?? null,
                 'copyright' => $img['copyright'] ?? null,
+                'custom_fields' => $img['custom_fields'] ?? [],
                 'settings' => '',
                 'sources' => $sources, // Add sources array with base_path prepended
                 'fallback_src' => $lightboxUrl ?: $bestUrl,
@@ -416,9 +450,9 @@ class GalleryController extends BaseController
         }
 
         // Fallback equipment aggregation from images if album-level empty
-        if (!$equipment['cameras']) { $equipment['cameras'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['custom_camera'] ?? null, $imagesRows)))); }
-        if (!$equipment['lenses']) { $equipment['lenses'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['custom_lens'] ?? null, $imagesRows)))); }
-        if (!$equipment['film'])   { $equipment['film'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['custom_film'] ?? ($r['film_name'] ?? null), $imagesRows)))); }
+        if (!$equipment['cameras']) { $equipment['cameras'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['camera_name'] ?? ($r['custom_camera'] ?? null), $imagesRows)))); }
+        if (!$equipment['lenses']) { $equipment['lenses'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['lens_name'] ?? ($r['custom_lens'] ?? null), $imagesRows)))); }
+        if (!$equipment['film'])   { $equipment['film'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['film_name'] ?? ($r['custom_film'] ?? null), $imagesRows)))); }
         if (!$equipment['developers']) { $equipment['developers'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['developer_name'] ?? null, $imagesRows)))); }
         if (!$equipment['labs']) { $equipment['labs'] = array_values(array_unique(array_filter(array_map(fn($r) => $r['lab_name'] ?? null, $imagesRows)))); }
 
@@ -462,7 +496,7 @@ class GalleryController extends BaseController
                 $stmt = $pdo->prepare("
                     SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
                     FROM images i
-                    LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'lg' AND iv.format = 'jpg'
+                    LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'lg'
                     WHERE i.id = :id
                 ");
                 $stmt->execute([':id' => $album['cover_image_id']]);
@@ -543,7 +577,8 @@ class GalleryController extends BaseController
             'is_admin' => $isAdmin,
             'current_album' => ['id' => (int)$album['id']],
             'nsfw_consent' => $this->hasNsfwConsent(),
-            'allow_downloads' => !empty($album['allow_downloads'])
+            'allow_downloads' => !empty($album['allow_downloads']),
+            'album_custom_fields' => $albumCustomFields
         ]);
     }
 
@@ -619,6 +654,14 @@ class GalleryController extends BaseController
             // Enrich images with metadata from related tables
             \App\Services\ImagesService::enrichWithMetadata($pdo, $imagesRows, 'gallery');
 
+            // Enrich images with custom fields for template rendering
+            try {
+                $customFieldService = new \App\Services\CustomFieldService($pdo);
+                $imagesRows = $customFieldService->enrichImagesWithCustomFields($imagesRows, (int)$album['id']);
+            } catch (\Throwable) {
+                // Custom fields tables may not exist yet
+            }
+
             // Build gallery items for the template, preferring public variants
             $images = [];
             foreach ($imagesRows as $img) {
@@ -676,7 +719,7 @@ class GalleryController extends BaseController
                 // Fallbacks - ensure we never serve /storage/ paths
                 if (str_starts_with((string)$bestUrl, '/storage/')) {
                     // Try to find any public variant
-                    $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format = 'jpg' AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
+                    $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
                     $fallbackStmt->execute([':id' => $img['id']]);
                     $fallback = $fallbackStmt->fetchColumn();
                     $bestUrl = $fallback ?: '/media/placeholder.jpg';
@@ -699,7 +742,7 @@ class GalleryController extends BaseController
                     'id' => (int)$img['id'],
                     'url' => $bestUrl,
                     'lightbox_url' => $lightboxUrl,
-                    'alt' => $img['alt_text'] ?: $album['title'],
+                    'alt' => $this->buildAltText($img['alt_text'] ?? '', $img['caption'] ?? '', $album['title'] ?? ''),
                     'alt_text' => $img['alt_text'] ?? '',
                     'width' => (int)($img['width'] ?? 1200),
                     'height' => (int)($img['height'] ?? 800),
@@ -718,6 +761,7 @@ class GalleryController extends BaseController
                     'shutter_speed' => $this->formatShutterSpeed($img['shutter_speed'] ?? null),
                     'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
                     'process' => $img['process'] ?? null,
+                    'custom_fields' => $img['custom_fields'] ?? [],
                     // Extended EXIF fields
                     'focal_length' => $img['focal_length'] ?? null,
                     'exif_make' => $img['exif_make'] ?? null,

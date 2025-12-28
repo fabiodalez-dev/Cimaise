@@ -325,12 +325,57 @@
   
   .masonry-veil-bottom {
     height: 60px !important;
-    background: linear-gradient(0deg, 
+    background: linear-gradient(0deg,
       rgba(255,255,255,1) 0%,
       rgba(255,255,255,0.95) 30%,
       rgba(255,255,255,0.8) 60%,
       rgba(255,255,255,0.4) 80%,
       rgba(255,255,255,0) 100%
+    );
+  }
+}
+
+/* Dark mode veil gradients - using #171717 background color */
+html.dark .masonry-veil-top {
+  background: linear-gradient(180deg,
+    rgba(23,23,23,0.98) 0%,
+    rgba(23,23,23,0.92) 25%,
+    rgba(23,23,23,0.75) 50%,
+    rgba(23,23,23,0.45) 75%,
+    rgba(23,23,23,0.15) 90%,
+    rgba(23,23,23,0) 100%
+  );
+}
+
+html.dark .masonry-veil-bottom {
+  background: linear-gradient(0deg,
+    rgba(23,23,23,0.98) 0%,
+    rgba(23,23,23,0.92) 25%,
+    rgba(23,23,23,0.75) 50%,
+    rgba(23,23,23,0.45) 75%,
+    rgba(23,23,23,0.15) 90%,
+    rgba(23,23,23,0) 100%
+  );
+}
+
+@media (max-width: 767px) {
+  html.dark .masonry-veil-top {
+    background: linear-gradient(180deg,
+      rgba(23,23,23,1) 0%,
+      rgba(23,23,23,0.95) 30%,
+      rgba(23,23,23,0.8) 60%,
+      rgba(23,23,23,0.4) 80%,
+      rgba(23,23,23,0) 100%
+    );
+  }
+
+  html.dark .masonry-veil-bottom {
+    background: linear-gradient(0deg,
+      rgba(23,23,23,1) 0%,
+      rgba(23,23,23,0.95) 30%,
+      rgba(23,23,23,0.8) 60%,
+      rgba(23,23,23,0.4) 80%,
+      rgba(23,23,23,0) 100%
     );
   }
 }

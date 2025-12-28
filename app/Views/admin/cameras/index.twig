@@ -32,23 +32,16 @@
               <div class="text-sm text-gray-900">{{ c.model }}</div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              {% set camera_type = c.make|lower %}
-              {% if 'leica' in camera_type or 'contax' in camera_type or 'hasselblad' in camera_type %}
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                  Premium
-                </span>
-              {% elseif 'canon' in camera_type or 'nikon' in camera_type or 'pentax' in camera_type %}
+              {% if c.type and camera_types[c.type] is defined %}
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                  SLR
+                  {{ camera_types[c.type] }}
                 </span>
-              {% elseif 'olympus' in camera_type or 'fuji' in camera_type %}
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                  Compact
+              {% elseif c.type %}
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                  {{ c.type }}
                 </span>
               {% else %}
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                  Camera
-                </span>
+                <span class="text-gray-400 text-sm">—</span>
               {% endif %}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

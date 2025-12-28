@@ -1,21 +1,24 @@
 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="media-grid">
   {% for it in items %}
     {% set src = it.preview_path starts with '/' ? base_path ~ it.preview_path : it.preview_path %}
-    <div class="group border rounded overflow-hidden cursor-pointer hover:border-blue-500 transition-colors" 
+    <div class="group border rounded overflow-hidden cursor-pointer hover:border-blue-500 transition-colors"
          data-media-id="{{ it.id }}"
          data-width="{{ it.width }}"
          data-height="{{ it.height }}"
-         data-alt-text="{{ it.alt_text }}"
+         data-alt_text="{{ it.alt_text }}"
          data-caption="{{ it.caption }}"
-         data-camera-id="{{ it.camera_id }}"
-         data-lens-id="{{ it.lens_id }}"
-         data-film-id="{{ it.film_id }}"
-         data-developer-id="{{ it.developer_id }}"
-         data-lab-id="{{ it.lab_id }}"
-         data-location-id="{{ it.location_id }}"
+         data-camera_id="{{ it.camera_id }}"
+         data-lens_id="{{ it.lens_id }}"
+         data-film_id="{{ it.film_id }}"
+         data-developer_id="{{ it.developer_id }}"
+         data-lab_id="{{ it.lab_id }}"
+         data-location_id="{{ it.location_id }}"
          data-iso="{{ it.iso }}"
-         data-shutter-speed="{{ it.shutter_speed }}"
-         data-aperture="{{ it.aperture }}">
+         data-shutter_speed="{{ it.shutter_speed }}"
+         data-aperture="{{ it.aperture }}"
+         data-custom_camera="{{ it.custom_camera }}"
+         data-custom_lens="{{ it.custom_lens }}"
+         data-custom_film="{{ it.custom_film }}">
       <div class="aspect-square bg-gray-100">
         <img src="{{ src }}" alt="{{ it.alt_text }}" class="w-full h-full object-cover">
       </div>

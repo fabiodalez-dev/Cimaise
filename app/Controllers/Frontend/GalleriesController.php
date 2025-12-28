@@ -543,7 +543,7 @@ class GalleriesController extends BaseController
                        COALESCE(iv.path, i.original_path) AS preview_path,
                        blur.path AS blur_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
                 LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
                 WHERE i.id = :id
             ");
@@ -564,7 +564,7 @@ class GalleriesController extends BaseController
                        COALESCE(iv.path, i.original_path) AS preview_path,
                        blur.path AS blur_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
                 LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
                 WHERE i.album_id = :album_id
                 ORDER BY i.sort_order ASC, i.id ASC

@@ -7,46 +7,19 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.brand') }}</label><input class="form-input" type="text" name="brand" value="{{ item.brand }}" required></div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.name') }}</label><input class="form-input" type="text" name="name" value="{{ item.name }}" required></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.iso') }}</label><input class="form-input" type="number" name="iso" value="{{ item.iso }}"></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.iso') }}</label><input class="form-input" type="number" step="1" name="iso" value="{{ item.iso }}"></div>
       <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.format') }}</label>
         <select name="format" class="form-input">
-          <option value="35mm" {% if item.format=='35mm' %}selected{% endif %}>{{ trans('admin.films.format_35mm') }}</option>
-          <option value="120" {% if item.format=='120' %}selected{% endif %}>{{ trans('admin.films.format_120') }}</option>
-          <option value="4x5" {% if item.format=='4x5' %}selected{% endif %}>{{ trans('admin.films.format_4x5') }}</option>
-          <option value="8x10" {% if item.format=='8x10' %}selected{% endif %}>{{ trans('admin.films.format_8x10') }}</option>
-          <option value="instant" {% if item.format=='instant' %}selected{% endif %}>{{ trans('admin.films.format_instant') }}</option>
-          <option value="instant_mini" {% if item.format=='instant_mini' %}selected{% endif %}>{{ trans('admin.films.format_instant_mini') }}</option>
-          <option value="instant_square" {% if item.format=='instant_square' %}selected{% endif %}>{{ trans('admin.films.format_instant_square') }}</option>
-          <option value="instant_wide" {% if item.format=='instant_wide' %}selected{% endif %}>{{ trans('admin.films.format_instant_wide') }}</option>
-          <option value="digital" {% if item.format=='digital' %}selected{% endif %}>{{ trans('admin.films.format_digital') }}</option>
-          <option value="other" {% if item.format=='other' %}selected{% endif %}>{{ trans('admin.films.format_other') }}</option>
+          {% for key, label in film_formats %}
+            <option value="{{ key }}"{% if item.format == key %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
         </select>
       </div>
       <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.films.type') }}</label>
         <select name="type" class="form-input">
-          <optgroup label="{{ trans('admin.films.group_bw') }}">
-            <option value="bw_negative" {% if item.type=='bw_negative' %}selected{% endif %}>{{ trans('admin.films.type_bw_traditional') }}</option>
-            <option value="bw_chromogenic" {% if item.type=='bw_chromogenic' %}selected{% endif %}>{{ trans('admin.films.type_bw_chromogenic') }}</option>
-            <option value="bw_reversal" {% if item.type=='bw_reversal' %}selected{% endif %}>{{ trans('admin.films.type_bw_reversal') }}</option>
-            <option value="bw_infrared" {% if item.type=='bw_infrared' %}selected{% endif %}>{{ trans('admin.films.type_bw_infrared') }}</option>
-            <option value="bw" {% if item.type=='bw' %}selected{% endif %}>{{ trans('admin.films.type_bw_legacy') }}</option>
-          </optgroup>
-          <optgroup label="{{ trans('admin.films.group_color') }}">
-            <option value="c41_color_negative" {% if item.type=='c41_color_negative' %}selected{% endif %}>{{ trans('admin.films.type_c41_color_negative') }}</option>
-            <option value="e6_slide" {% if item.type=='e6_slide' %}selected{% endif %}>{{ trans('admin.films.type_e6_slide') }}</option>
-            <option value="ecn2_cinema" {% if item.type=='ecn2_cinema' %}selected{% endif %}>{{ trans('admin.films.type_ecn2_cinema') }}</option>
-            <option value="color_negative" {% if item.type=='color_negative' %}selected{% endif %}>{{ trans('admin.films.type_c41_legacy') }}</option>
-            <option value="color_reversal" {% if item.type=='color_reversal' %}selected{% endif %}>{{ trans('admin.films.type_e6_legacy') }}</option>
-          </optgroup>
-          <optgroup label="{{ trans('admin.films.group_instant') }}">
-            <option value="instant_integral" {% if item.type=='instant_integral' %}selected{% endif %}>{{ trans('admin.films.type_instant_integral') }}</option>
-          </optgroup>
-          <optgroup label="{{ trans('admin.films.group_digital') }}">
-            <option value="digital" {% if item.type=='digital' %}selected{% endif %}>{{ trans('admin.films.type_digital') }}</option>
-          </optgroup>
-          <optgroup label="{{ trans('admin.films.group_other') }}">
-            <option value="other" {% if item.type=='other' %}selected{% endif %}>{{ trans('admin.films.type_other') }}</option>
-          </optgroup>
+          {% for key, label in film_types %}
+            <option value="{{ key }}"{% if item.type == key %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
         </select>
       </div>
     </div>

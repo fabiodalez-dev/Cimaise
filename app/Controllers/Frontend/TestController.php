@@ -125,7 +125,7 @@ class TestController extends BaseController
         }
         $images = [];
         foreach ($imagesRows as $img) {
-            $varStmt = $pdo->prepare("SELECT * FROM image_variants WHERE image_id = :id AND format='jpg' ORDER BY CASE variant WHEN 'md' THEN 1 WHEN 'lg' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
+            $varStmt = $pdo->prepare("SELECT * FROM image_variants WHERE image_id = :id ORDER BY CASE variant WHEN 'md' THEN 1 WHEN 'lg' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
             $varStmt->execute([':id' => $img['id']]);
             $var = $varStmt->fetch();
             $url = $var['path'] ?? $img['original_path'];

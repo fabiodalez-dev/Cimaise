@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS cameras (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   make TEXT NOT NULL,
   model TEXT NOT NULL,
+  type TEXT DEFAULT NULL,
   UNIQUE(make, model)
 );
 
@@ -99,8 +100,8 @@ CREATE TABLE IF NOT EXISTS films (
   brand TEXT NOT NULL,
   name TEXT NOT NULL,
   iso INTEGER,
-  format TEXT DEFAULT '35mm' CHECK(format IN ('35mm', '120', '4x5', '8x10', 'other')),
-  type TEXT NOT NULL DEFAULT 'color_negative' CHECK(type IN ('color_negative', 'color_reversal', 'bw')),
+  format TEXT DEFAULT '35mm',
+  type TEXT NOT NULL DEFAULT 'color_negative',
   UNIQUE(brand, name, iso, format)
 );
 
@@ -702,7 +703,10 @@ INSERT INTO settings (key, value, type) VALUES
 ('lightbox.show_exif', 'true', 'boolean'),
 ('recaptcha.enabled', 'false', 'boolean'),
 ('recaptcha.site_key', '', 'string'),
-('recaptcha.secret_key', '', 'string');
+('recaptcha.secret_key', '', 'string'),
+-- Frontend settings
+('frontend.dark_mode', 'false', 'boolean'),
+('frontend.custom_css', '', 'string');
 
 -- Default filter settings
 INSERT INTO filter_settings (setting_key, setting_value, description, sort_order) VALUES

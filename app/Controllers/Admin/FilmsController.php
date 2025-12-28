@@ -11,6 +11,41 @@ use Slim\Views\Twig;
 
 class FilmsController extends BaseController
 {
+    /**
+     * Film type options
+     */
+    public const FILM_TYPES = [
+        'bw_negative' => 'B&W Traditional',
+        'bw_chromogenic' => 'B&W Chromogenic (C-41)',
+        'bw_reversal' => 'B&W Reversal',
+        'bw_infrared' => 'B&W Infrared',
+        'bw' => 'B&W (Legacy)',
+        'c41_color_negative' => 'C-41 Color Negative',
+        'e6_slide' => 'E-6 Slide/Reversal',
+        'ecn2_cinema' => 'ECN-2 Cinema',
+        'color_negative' => 'Color Negative (Legacy)',
+        'color_reversal' => 'Color Reversal (Legacy)',
+        'instant_integral' => 'Instant/Integral',
+        'digital' => 'Digital',
+        'other' => 'Other',
+    ];
+
+    /**
+     * Film format options
+     */
+    public const FILM_FORMATS = [
+        '35mm' => '35mm',
+        '120' => '120 (Medium Format)',
+        '4x5' => '4x5 (Large Format)',
+        '8x10' => '8x10 (Large Format)',
+        'instant' => 'Instant',
+        'instant_mini' => 'Instant Mini',
+        'instant_square' => 'Instant Square',
+        'instant_wide' => 'Instant Wide',
+        'digital' => 'Digital',
+        'other' => 'Other',
+    ];
+
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
@@ -25,12 +60,22 @@ class FilmsController extends BaseController
         $st->bindValue(':l', $per, \PDO::PARAM_INT);
         $st->bindValue(':o', $off, \PDO::PARAM_INT);
         $st->execute();
-        return $this->view->render($response, 'admin/films/index.twig', ['items'=>$st->fetchAll(), 'page'=>$page, 'pages'=>(int)ceil(max(0,$total)/$per)]);
+        return $this->view->render($response, 'admin/films/index.twig', [
+            'items' => $st->fetchAll(),
+            'page' => $page,
+            'pages' => (int)ceil(max(0,$total)/$per),
+            'film_types' => self::FILM_TYPES,
+            'film_formats' => self::FILM_FORMATS
+        ]);
     }
 
     public function create(Request $r, Response $res): Response
     {
-        return $this->view->render($res, 'admin/films/create.twig', ['csrf'=>$_SESSION['csrf']??'']);
+        return $this->view->render($res, 'admin/films/create.twig', [
+            'csrf' => $_SESSION['csrf'] ?? '',
+            'film_types' => self::FILM_TYPES,
+            'film_formats' => self::FILM_FORMATS
+        ]);
     }
 
     public function store(Request $r, Response $res): Response
@@ -76,7 +121,12 @@ class FilmsController extends BaseController
         if (!$it) {
             return $res->withStatus(404);
         }
-        return $this->view->render($res, 'admin/films/edit.twig', ['item' => $it, 'csrf' => $_SESSION['csrf'] ?? '']);
+        return $this->view->render($res, 'admin/films/edit.twig', [
+            'item' => $it,
+            'csrf' => $_SESSION['csrf'] ?? '',
+            'film_types' => self::FILM_TYPES,
+            'film_formats' => self::FILM_FORMATS
+        ]);
     }
 
     public function update(Request $r, Response $res, array $args): Response

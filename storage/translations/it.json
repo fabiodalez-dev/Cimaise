@@ -245,6 +245,7 @@
     "general.ok": "OK",
     "general.cancel": "Annulla",
     "general.save": "Salva",
+    "general.image": "Immagine",
     "general.delete": "Elimina",
     "general.edit": "Modifica",
     "general.submit": "Invia",
@@ -351,5 +352,19 @@
     "frontend.nsfw_global.confirm": "Ho 18+ anni - Entra",
     "frontend.nsfw_global.decline": "Esci",
     "frontend.nsfw_global.remember": "La tua scelta verrà ricordata per questa sessione."
+  },
+  "category": {
+    "category.albums_in_category": "{count} album in questa categoria",
+    "category.album_in_category": "1 album in questa categoria",
+    "category.no_albums_title": "Nessun album in questa categoria",
+    "category.no_albums_text": "Sfoglia tutti gli album",
+    "category.other_categories": "Altre Categorie"
+  },
+  "tag": {
+    "tag.albums_tagged": "{count} album con questo tag",
+    "tag.album_tagged": "1 album con questo tag",
+    "tag.no_albums_title": "Nessun album con questo tag",
+    "tag.no_albums_text": "Sfoglia tutti gli album",
+    "tag.related_tags": "Tag Correlati"
   }
 }

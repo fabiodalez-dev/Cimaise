@@ -1,12 +1,10 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.cameras.new') }} — Cimaise{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.cameras.new') }}</h1>
-  </div>
-  <div class="card p-6">
-    <form method="post" action="{{ base_path }}/admin/cameras" class="space-y-4">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="flex items-center justify-between mb-4"><h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.cameras.new') }}</h1></div>
+  <form method="post" action="{{ base_path }}/admin/cameras">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.cameras.make') }}</label>
         <div class="autocomplete-wrapper relative">
@@ -21,12 +19,18 @@
           <div class="autocomplete-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"></div>
         </div>
       </div>
-      <div class="flex gap-3 pt-2">
-        <button class="btn-primary" type="submit">{{ trans('admin.common.save') }}</button>
-        <a class="btn-secondary" href="{{ base_path }}/admin/cameras">{{ trans('admin.common.cancel') }}</a>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.cameras.type') }}</label>
+        <select class="form-input" name="type" id="camera-type">
+          <option value="">— {{ trans('admin.common.select') }} —</option>
+          {% for key, label in camera_types %}
+            <option value="{{ key }}">{{ label }}</option>
+          {% endfor %}
+        </select>
       </div>
-    </form>
-  </div>
+    </div>
+    <div class="mt-3 flex gap-3"><button class="btn-primary">{{ trans('admin.common.save') }}</button> <a class="btn-secondary" href="{{ base_path }}/admin/cameras">{{ trans('admin.common.cancel') }}</a></div>
+  </form>
 
   <script nonce="{{ csp_nonce() }}">
   document.addEventListener('DOMContentLoaded', function() {

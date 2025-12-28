@@ -1,12 +1,10 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.cameras.edit') }} — Cimaise{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.cameras.edit') }}</h1>
-  </div>
-  <div class="card p-6">
-    <form method="post" action="{{ base_path }}/admin/cameras/{{ item.id }}" class="space-y-4">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="flex items-center justify-between mb-4"><h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.cameras.edit') }}</h1></div>
+  <form method="post" action="{{ base_path }}/admin/cameras/{{ item.id }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.cameras.make') }}</label>
         <div class="autocomplete-wrapper relative">
@@ -21,16 +19,22 @@
           <div class="autocomplete-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"></div>
         </div>
       </div>
-      <div class="flex gap-3 pt-2">
-        <button class="btn-primary" type="submit">{{ trans('admin.cameras.update') }}</button>
-        <a class="btn-secondary" href="{{ base_path }}/admin/cameras">{{ trans('admin.cameras.cancel') }}</a>
-        <form method="post" action="{{ base_path }}/admin/cameras/{{ item.id }}/delete" class="inline ml-auto" data-confirm="{{ trans('admin.cameras.delete_confirm')|e('html_attr') }}">
-          <input type="hidden" name="csrf" value="{{ csrf }}">
-          <button class="btn-secondary text-red-700">{{ trans('admin.common.delete') }}</button>
-        </form>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.cameras.type') }}</label>
+        <select class="form-input" name="type" id="camera-type">
+          <option value="">— {{ trans('admin.common.select') }} —</option>
+          {% for key, label in camera_types %}
+            <option value="{{ key }}"{% if item.type == key %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
       </div>
-    </form>
-  </div>
+    </div>
+    <div class="mt-3 flex gap-3"><button class="btn-primary">{{ trans('admin.cameras.update') }}</button> <a class="btn-secondary" href="{{ base_path }}/admin/cameras">{{ trans('admin.cameras.cancel') }}</a></div>
+  </form>
+  <form method="post" action="{{ base_path }}/admin/cameras/{{ item.id }}/delete" class="mt-3" data-confirm="{{ trans('admin.cameras.delete_confirm')|e('html_attr') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="btn-secondary text-red-700">{{ trans('admin.common.delete') }}</button>
+  </form>
 
   <script nonce="{{ csp_nonce() }}">
   document.addEventListener('DOMContentLoaded', function() {

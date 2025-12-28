@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="it"{% if dark_mode|default(false) %} class="dark"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,14 @@
   <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
   <link href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
   <link href="{{ base_path }}/fonts/typography.css" rel="stylesheet">
+
+  <!-- Custom CSS (Frontend Only) -->
+  {% if custom_css|default('') is not empty %}
+  <style nonce="{{ csp_nonce() }}">
+    /* ===== Custom CSS ===== */
+    {{ custom_css|raw }}
+  </style>
+  {% endif %}
 </head>
 <body class="bg-gray-50 min-h-screen flex items-center justify-center">
   <div class="max-w-md w-full space-y-8">

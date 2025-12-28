@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js">
+<html lang="{{ lang|default('it')|e('html_attr') }}" class="no-js{% if dark_mode|default(false) %} dark{% endif %}">
 <head>
     <!-- JS flag class on <html> for no-JS fallbacks -->
     <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.remove('no-js'); document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
@@ -303,6 +303,12 @@
             filter: blur(20px);
             transition: filter 0.3s ease;
         }
+        .nsfw-confirmed .nsfw-blur {
+            filter: none;
+        }
+        .nsfw-confirmed .nsfw-overlay {
+            display: none;
+        }
 
         /* Simple Lightbox fallback */
         #slb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.95); color:#fff; display:none; align-items:center; justify-content:center; z-index: 10000; }
@@ -331,23 +337,36 @@
             transform: translateX(-50%);
             bottom: 56px;
             max-width: 95vw;
-            color: #fff;
             text-align: center;
             font-size: 14px;
             line-height: 1.3;
-            z-index: 2;
-            background: rgba(0,0,0,0.7);
+            z-index: 28;
+            background: transparent;
             padding: 12px 20px;
             border-radius: 6px;
             transition: opacity 0.3s ease, transform 0.3s ease;
-            /* Hidden by default, shown via toggle button */
+            /* Hidden by default, shown via toggle button or when content exists */
             opacity: 0;
             pointer-events: none;
+            /* Light mode: dark text on light images */
+            color: #171717;
         }
 
         .pswp__custom-caption.visible {
-            opacity: 1;
+            opacity: 1 !important;
             pointer-events: auto;
+        }
+
+        /* Dark mode: light text */
+        html.dark .pswp__custom-caption {
+            color: #fafafa;
+        }
+
+        .pswp__custom-caption .caption-title {
+            font-weight: 600;
+        }
+        .pswp__custom-caption .caption-item i {
+            opacity: 0.7;
         }
 
         /* EXIF toggle button - icon turns gray when active */
@@ -951,16 +970,15 @@
             height: 24px !important;
         }
 
-        /* Caption styling */
+        /* Caption styling - inherit colors from parent for dark/light mode */
         .pswp__custom-caption {
             background: none;
-            color: #000;
             padding: 16px;
             text-align: center;
         }
-        
+
         .pswp__custom-caption .cc-item i {
-            color: #000 !important;
+            opacity: 0.7;
         }
 
         input[type="search"]::-webkit-search-cancel-button,
@@ -1117,10 +1135,23 @@
         .prose hr, .rich-text-content hr { border: 0; border-top: 1px solid #e5e7eb; margin: 2em 0; }
         .prose-neutral { color: #404040; }
     </style>
+
+    <!-- Custom CSS (Frontend Only) -->
+    {% if custom_css|default('') is not empty %}
+    <style nonce="{{ csp_nonce() }}">
+        /* ===== Custom CSS ===== */
+        {{ custom_css|raw }}
+    </style>
+    {% endif %}
+
     {% block styles %}{% endblock %}
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">
-    
+
+    {# Centralized category filtering logic - used in desktop mega-menu, mobile menu, and JS data #}
+    {# A category is visible if it has albums OR has children with albums #}
+    {% set filtered_parent_categories = parent_categories|default([])|filter(c => c.albums_count > 0 or c.children|filter(ch => ch.albums_count > 0)|length > 0) %}
+
     <!-- Header -->
     <header class="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-md z-50 transition-all duration-300" id="main-header">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1155,7 +1186,7 @@
                                 <div class="p-8">
                                     <!-- Parent Categories Grid -->
                                     <div class="grid grid-cols-3 gap-6" id="parent-categories-grid">
-                                        {% for category in parent_categories|default([]) %}
+                                        {% for category in filtered_parent_categories %}
                                         <div class="group cursor-pointer category-parent-item relative" data-category-id="{{ category.id }}" data-category-slug="{{ category.slug }}" data-category-name="{{ category.name|e }}">
                                             <a href="{{ base_path }}/category/{{ category.slug }}" class="block hover:no-underline">
                                                 <div class="relative aspect-[4/3] overflow-hidden rounded-lg mb-3 bg-gray-50 transition-all duration-300 group-hover:shadow-lg">
@@ -1174,19 +1205,20 @@
                                                     <h3 class="font-medium text-sm text-gray-900 group-hover:text-black transition-colors duration-200 mb-1">{{ category.name|e }}</h3>
                                                     
                                                     <!-- Subcategories shown as text on hover -->
-                                                    {% if category.children|length > 0 %}
+                                                    {% set visible_children = category.children|filter(ch => ch.albums_count > 0) %}
+                                                    {% if visible_children|length > 0 %}
                                                         <div class="subcategories-hover-text opacity-0 group-hover:opacity-100 transition-all duration-300 max-h-0 group-hover:max-h-32 overflow-hidden">
                                                             <div class="text-xs text-gray-600 mt-2 space-y-1">
-                                                                {% for child in category.children|slice(0, 4) %}
+                                                                {% for child in visible_children|slice(0, 4) %}
                                                                     <div class="hover:text-black transition-colors duration-150">{{ child.name|e }}</div>
                                                                 {% endfor %}
-                                                                {% if category.children|length > 4 %}
-                                                                    <div class="text-gray-400 text-xs">+{{ category.children|length - 4 }} more</div>
+                                                                {% if visible_children|length > 4 %}
+                                                                    <div class="text-gray-400 text-xs">+{{ visible_children|length - 4 }} more</div>
                                                                 {% endif %}
                                                             </div>
                                                         </div>
                                                         <p class="text-xs text-gray-500 group-hover:opacity-0 transition-opacity duration-200">
-                                                            {{ category.children|length }} {{ category.children|length == 1 ? 'subcategory' : 'subcategories' }}
+                                                            {{ visible_children|length }} {{ visible_children|length == 1 ? trans('filter.subcategory') : trans('filter.subcategories') }}
                                                         </p>
                                                     {% else %}
                                                         <p class="text-xs text-gray-500 group-hover:text-black transition-colors duration-200">{{ trans('album.view_all') }}</p>
@@ -1306,9 +1338,10 @@
                 <div class="border-t border-gray-200 pt-4">
                     <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 px-3">{{ trans('filter.categories') }}</div>
                     <div class="space-y-1">
-                        {% for category in parent_categories|default([]) %}
+                        {% for category in filtered_parent_categories %}
+                        {% set mobile_visible_children = category.children|filter(ch => ch.albums_count > 0) %}
                         <div class="mobile-category-group rounded-md overflow-hidden">
-                            {% if category.children|length > 0 %}
+                            {% if mobile_visible_children|length > 0 %}
                                 <div class="flex items-center justify-between w-full text-left font-medium bg-white hover:bg-gray-50 transition-colors duration-200">
                                     <a href="{{ base_path }}/category/{{ category.slug }}" class="flex-grow flex items-center gap-4 p-3 w-full">
                                         {% if category.image_path and category.image_path != '' %}
@@ -1326,11 +1359,11 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300"></i>
                                     </button>
                                 </div>
-                                
+
                                 <div class="mobile-subcategories hidden overflow-hidden transition-all duration-300 ease-in-out bg-gray-50/70">
                                     <div class="pt-2 pb-3 pl-8 pr-2">
                                         <div class="border-l-2 border-gray-200 pl-6 space-y-1">
-                                            {% for child in category.children %}
+                                            {% for child in mobile_visible_children %}
                                                 <a href="{{ base_path }}/category/{{ child.slug }}" class="flex items-center gap-3 text-sm text-gray-600 hover:text-black p-2 rounded-md hover:bg-gray-200/60 transition-colors duration-200">
                                                     <i class="fas fa-level-up-alt fa-xs text-gray-400 -rotate-90"></i>
                                                     <span>{{ child.name|e }}</span>
@@ -1535,13 +1568,13 @@
 
         
         
-        // Enhanced Desktop mega menu with category data and images
-        const megaMenuData = {{ parent_categories|default([])|map(c => {
+        // Enhanced Desktop mega menu with category data and images (only categories with albums)
+        const megaMenuData = {{ filtered_parent_categories|map(c => {
             id: c.id,
             name: c.name,
             slug: c.slug,
             image: c.image_path ?? '',
-            children: c.children|default([])|map(ch => { name: ch.name, slug: ch.slug })
+            children: c.children|default([])|filter(ch => ch.albums_count > 0)|map(ch => { name: ch.name, slug: ch.slug })
         })|reduce((acc, c) => acc|merge({ (c.id): c }), {})|json_encode|raw }};
         
         // Enhanced Desktop categories mega menu with animations
@@ -1953,13 +1986,47 @@
             gsap.registerPlugin(ScrollTrigger);
         }
 
+        // Handle bfcache (back-forward cache) restoration for album cards
+        // When user navigates with back/forward, page is restored from cache
+        // but JavaScript re-runs which can cause flickering
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Page was restored from bfcache - immediately show all album cards
+                const albumCards = document.querySelectorAll('main .album-card');
+                albumCards.forEach(function(card) {
+                    card.style.opacity = '1';
+                    card.style.transform = 'none';
+                    card.setAttribute('data-animated', '1');
+                });
+
+                // Also handle gallery items
+                const galleryItems = document.querySelectorAll('#images-gallery > .masonry-item, #images-gallery > .image-item, #images-gallery > .grid-minimal-item, #images-gallery > .polaroid-item, #images-gallery > .mosaic-item');
+                galleryItems.forEach(function(item) {
+                    item.style.opacity = '1';
+                    item.style.transform = 'none';
+                    item.setAttribute('data-animated', '1');
+                });
+
+                // Clear any GSAP inline styles
+                if (typeof gsap !== 'undefined') {
+                    if (albumCards.length > 0) {
+                        gsap.set(albumCards, { clearProps: 'all', opacity: 1 });
+                    }
+                    if (galleryItems.length > 0) {
+                        gsap.set(galleryItems, { clearProps: 'all', opacity: 1 });
+                    }
+                }
+            }
+        });
+
         // Animate album cards with explicit start/end values
         // CSS hides cards initially (opacity:0, translateY:20px)
         if (typeof gsap !== 'undefined') {
             const albumCards = gsap.utils.toArray('main .album-card:not([data-animated])');
             if (albumCards.length > 0) {
-                // Use fromTo with explicit values - set data-animated in onComplete
-                // This ensures GSAP reads the from values before CSS overrides them
+                // Mark as animated IMMEDIATELY to prevent CSS conflict during animation
+                albumCards.forEach(el => el.setAttribute('data-animated', '1'));
+                // Use fromTo with explicit values for smooth animation
                 gsap.fromTo(albumCards,
                     { opacity: 0, y: 20 },
                     {
@@ -1970,8 +2037,7 @@
                             amount: Math.min(0.4, albumCards.length * 0.05),
                             from: 'start'
                         },
-                        ease: "power2.out",
-                        onComplete: () => albumCards.forEach(el => el.setAttribute('data-animated', '1'))
+                        ease: "power2.out"
                     }
                 );
             }
@@ -1997,8 +2063,9 @@
                 .filter(n => !n.hasAttribute('data-animated'));
             if (!nodes.length) return;
 
-            // Use fromTo with explicit values - set data-animated in onComplete
-            // This ensures GSAP reads the from values before CSS overrides them
+            // Mark as animated IMMEDIATELY to prevent CSS conflict during animation
+            nodes.forEach(n => n.setAttribute('data-animated', '1'));
+            // Use fromTo with explicit values for smooth animation
             gsap.fromTo(nodes,
                 { opacity: 0, scale: 0.9 },
                 {
@@ -2009,8 +2076,7 @@
                         amount: Math.min(0.25, nodes.length * 0.02),
                         from: 'start'
                     },
-                    ease: 'power3.out',
-                    onComplete: () => nodes.forEach(n => n.setAttribute('data-animated', '1'))
+                    ease: 'power3.out'
                 }
             );
         };
@@ -2235,7 +2301,10 @@
                 const copyright = x.getAttribute('data-copyright') || '';
 
                 let html = '';
-                const esc = s => s.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const esc = (s) => String(s || '')
+                  .replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;');
 
                 // Add photo title if present
                 if (title.trim()) {
@@ -2824,12 +2893,12 @@
                             name: 'custom-caption', order: 9, isButton: false, appendTo: 'root',
                             onInit: (el, pswp) => {
                                 el.className = 'pswp__custom-caption pswp__hide-on-close';
+                                // Styles are defined in CSS, only set positioning here
                                 el.style.cssText = `
                                     position: absolute; left: 50%; transform: translateX(-50%);
                                     bottom: 56px; width: min(1100px, calc(100% - 24px));
-                                    background: transparent; color: #000; padding: 0 8px;
+                                    background: transparent; padding: 0 8px;
                                     font-size: 14px; line-height: 1.5; text-align: center;
-                                    pointer-events: none; opacity: 0; transition: opacity 0.2s ease;
                                 `;
                                 const renderCaption = () => {
                                   const curr = lb.pswp.currSlide && lb.pswp.currSlide.data && lb.pswp.currSlide.data.element;
@@ -2842,7 +2911,10 @@
                                   }
                                   const ds = curr.dataset || {};
                                   const esc = (s)=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                                  const head = esc(ds.title || ds.alt || '');
+                                  // Title: use alt text as the image title
+                                  const title = esc(ds.alt || '');
+                                  // Caption: use data-title which maps to image.caption
+                                  const caption = esc(ds.title || '');
                                   const piece = (icon, val) => {
                                     if (!val) return '';
                                     // Whitelist: FontAwesome safe classes (alphanumeric, spaces, hyphen, underscore)
@@ -2850,7 +2922,7 @@
                                     if (!safeIcon) safeIcon = 'fas fa-tag';
                                     return `<span class="inline-flex items-center"><i class="${safeIcon} mr-1"></i>${esc(val)}</span>`;
                                   };
-                                  // Equipment data (always shown)
+                                  // Custom assigned equipment (camera, lens, film, etc.) - NOT EXIF
                                   const equipment = [
                                     piece('fas fa-camera', ds.camera),
                                     piece('fas fa-dot-circle', ds.lens),
@@ -2859,13 +2931,7 @@
                                     piece('fas fa-industry', ds.lab),
                                     piece('fas fa-map-marker-alt', ds.location)
                                   ].filter(Boolean);
-                                  // EXIF data (only shown if setting enabled)
-                                  const exif = window.__showExifInLightbox ? [
-                                    piece('fas fa-signal', ds.iso ? ('ISO ' + ds.iso) : ''),
-                                    piece('far fa-clock', ds.shutter),
-                                    piece('fas fa-circle-half-stroke', ds.aperture ? ('f/' + ds.aperture) : '')
-                                  ].filter(Boolean) : [];
-                                  // Custom fields (from album/image with override logic)
+                                  // Album custom fields (from album/image with override logic)
                                   let customFieldsHtml = [];
                                   if (ds.customFields) {
                                     try {
@@ -2887,11 +2953,12 @@
                                       });
                                     } catch(e) { /* ignore parse errors */ }
                                   }
-                                  // Build all items including title on a single line
+                                  // Build caption: Title - Caption - Custom Fields (no EXIF)
                                   const allItems = [];
-                                  if (head) allItems.push(`<span class="font-medium">${head}</span>`);
-                                  allItems.push(...equipment, ...exif, ...customFieldsHtml);
-                                  const html = allItems.length ? `<div class="flex flex-wrap gap-x-3 gap-y-1 items-center justify-center text-sm text-black">${allItems.join(' ')}</div>` : '';
+                                  if (title) allItems.push(`<span class="caption-title font-semibold">${title}</span>`);
+                                  if (caption && caption !== title) allItems.push(`<span class="caption-text opacity-80">${caption}</span>`);
+                                  allItems.push(...equipment, ...customFieldsHtml);
+                                  const html = allItems.length ? `<div class="caption-content flex flex-wrap gap-x-3 gap-y-1 items-center justify-center text-sm">${allItems.join(' ')}</div>` : '';
                                   el.innerHTML = html;
                                   // If no content, reset visibility state
                                   if (!html.trim()) {
@@ -3304,11 +3371,12 @@
           .pswp__bullets-indicator { display:flex; gap:8px; position:absolute; bottom:24px; left:50%; transform:translateX(-50%); z-index:30; }
           .pswp__bullet { width:8px; height:8px; border-radius:50%; background:#C0C0C0; }
           .pswp__bullet--active { background:#000; }
+          html.dark .pswp__bullet--active { background:#fff; }
           .pswp__custom-caption { z-index: 28; }
           .pswp__custom-caption .cc-title { font-weight:600; margin-bottom:6px; }
           .pswp__custom-caption .cc-line { display:inline-flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-          .pswp__custom-caption .cc-item { display:inline-flex; gap:6px; align-items:center; color:#000; }
-          .pswp__custom-caption .cc-item i { color:#000; }
+          .pswp__custom-caption .cc-item { display:inline-flex; gap:6px; align-items:center; color:inherit; }
+          .pswp__custom-caption .cc-item i { color:inherit; opacity:0.7; }
           .pswp__custom-caption .cc-sep { opacity:.6; margin: 0 6px; }
         `;
         document.head.appendChild(pswpStyle);
@@ -3414,6 +3482,40 @@
         window.nsfwConsent = {{ nsfw_consent|default(false) ? 'true' : 'false' }};
         window.isAdmin = {{ is_admin|default(false) ? 'true' : 'false' }};
         window.allowDownloads = {{ allow_downloads|default(false) ? 'true' : 'false' }};
+
+        function safeLocalStorageGet(key) {
+            try {
+                return window.localStorage ? window.localStorage.getItem(key) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        window.applyNsfwConsentState = function() {
+            const localConfirmed = safeLocalStorageGet('nsfw_confirmed') === 'true'
+                || safeLocalStorageGet('nsfw_global_confirmed') === 'true';
+            const canShow = window.isAdmin || window.nsfwConsent === true || localConfirmed;
+            if (!canShow) return;
+
+            document.documentElement.classList.add('nsfw-confirmed');
+            document.body.classList.add('nsfw-confirmed');
+
+            document.querySelectorAll('img[data-nsfw-real-src]').forEach(function(img) {
+                const realSrc = img.getAttribute('data-nsfw-real-src');
+                if (realSrc && img.getAttribute('data-nsfw-swapped') !== '1') {
+                    img.setAttribute('data-nsfw-swapped', '1');
+                    img.src = realSrc;
+                }
+                img.classList.remove('nsfw-blur');
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            window.applyNsfwConsentState();
+        });
+        window.addEventListener('storage', function() {
+            window.applyNsfwConsentState();
+        });
         
         // Add meta tags for analytics
         {% if current_album %}

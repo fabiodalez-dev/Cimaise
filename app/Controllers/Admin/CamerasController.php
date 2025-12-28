@@ -11,6 +11,32 @@ use Slim\Views\Twig;
 
 class CamerasController extends BaseController
 {
+    /**
+     * Camera type options
+     */
+    public const CAMERA_TYPES = [
+        'dslr' => 'DSLR',
+        'mirrorless' => 'Mirrorless',
+        'rangefinder' => 'Rangefinder',
+        'compact' => 'Compact / Point & Shoot',
+        'bridge' => 'Bridge',
+        'medium_format' => 'Medium Format',
+        'large_format' => 'Large Format',
+        'instant' => 'Instant',
+        'film_slr' => 'Film SLR',
+        'film_rangefinder' => 'Film Rangefinder',
+        'film_compact' => 'Film Compact',
+        'film_tlr' => 'TLR (Twin Lens Reflex)',
+        'smartphone' => 'Smartphone',
+        'action_cam' => 'Action Camera',
+        'drone' => 'Drone',
+        'webcam' => 'Webcam',
+        'cinema' => 'Cinema Camera',
+        'camcorder' => 'Camcorder',
+        'security' => 'Security / IP Camera',
+        'other' => 'Other',
+    ];
+
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
@@ -21,15 +47,21 @@ class CamerasController extends BaseController
         $page = max(1, (int)($request->getQueryParams()['page'] ?? 1));
         $per = 10; $off = ($page-1)*$per; $pdo = $this->db->pdo();
         $total = (int)$pdo->query('SELECT COUNT(*) FROM cameras')->fetchColumn();
-        $stmt = $pdo->prepare('SELECT id, make, model FROM cameras ORDER BY make, model LIMIT :l OFFSET :o');
+        $stmt = $pdo->prepare('SELECT id, make, model, type FROM cameras ORDER BY make, model LIMIT :l OFFSET :o');
         $stmt->bindValue(':l', $per, \PDO::PARAM_INT); $stmt->bindValue(':o', $off, \PDO::PARAM_INT); $stmt->execute();
         return $this->view->render($response, 'admin/cameras/index.twig', [
-            'items' => $stmt->fetchAll(), 'page'=>$page, 'pages'=>(int)ceil(max(0,$total)/$per)
+            'items' => $stmt->fetchAll(), 'page'=>$page, 'pages'=>(int)ceil(max(0,$total)/$per),
+            'camera_types' => self::CAMERA_TYPES
         ]);
     }
 
     public function create(Request $request, Response $response): Response
-    { return $this->view->render($response, 'admin/cameras/create.twig', ['csrf'=>$_SESSION['csrf']??'']); }
+    {
+        return $this->view->render($response, 'admin/cameras/create.twig', [
+            'csrf' => $_SESSION['csrf'] ?? '',
+            'camera_types' => self::CAMERA_TYPES
+        ]);
+    }
 
     public function store(Request $request, Response $response): Response
     {
@@ -42,6 +74,8 @@ class CamerasController extends BaseController
         $d = (array)$request->getParsedBody();
         $make = trim((string)($d['make'] ?? ''));
         $model = trim((string)($d['model'] ?? ''));
+        $type = trim((string)($d['type'] ?? ''));
+        $type = $type !== '' && isset(self::CAMERA_TYPES[$type]) ? $type : null;
 
         if ($make === '' || $model === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.make_model_required')];
@@ -50,9 +84,9 @@ class CamerasController extends BaseController
 
         try {
             $pdo = $this->db->pdo();
-            $pdo->prepare('INSERT INTO cameras(make, model) VALUES(:a,:b)')->execute([':a'=>$make, ':b'=>$model]);
+            $pdo->prepare('INSERT INTO cameras(make, model, type) VALUES(:a,:b,:c)')->execute([':a'=>$make, ':b'=>$model, ':c'=>$type]);
             $id = (int)$pdo->lastInsertId();
-            Hooks::doAction('metadata_camera_created', $id, ['make' => $make, 'model' => $model]);
+            Hooks::doAction('metadata_camera_created', $id, ['make' => $make, 'model' => $model, 'type' => $type]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.camera_created')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
@@ -71,7 +105,11 @@ class CamerasController extends BaseController
         if (!$it) {
             return $response->withStatus(404);
         }
-        return $this->view->render($response, 'admin/cameras/edit.twig', ['item' => $it, 'csrf' => $_SESSION['csrf'] ?? '']);
+        return $this->view->render($response, 'admin/cameras/edit.twig', [
+            'item' => $it,
+            'csrf' => $_SESSION['csrf'] ?? '',
+            'camera_types' => self::CAMERA_TYPES
+        ]);
     }
 
     public function update(Request $request, Response $response, array $args): Response
@@ -87,6 +125,8 @@ class CamerasController extends BaseController
         $d = (array)$request->getParsedBody();
         $make = trim((string)($d['make'] ?? ''));
         $model = trim((string)($d['model'] ?? ''));
+        $type = trim((string)($d['type'] ?? ''));
+        $type = $type !== '' && isset(self::CAMERA_TYPES[$type]) ? $type : null;
 
         if ($make === '' || $model === '') {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.make_model_required')];
@@ -94,8 +134,8 @@ class CamerasController extends BaseController
         }
 
         try {
-            $this->db->pdo()->prepare('UPDATE cameras SET make=:a, model=:b WHERE id=:id')->execute([':a'=>$make, ':b'=>$model, ':id'=>$id]);
-            Hooks::doAction('metadata_camera_updated', $id, ['make' => $make, 'model' => $model]);
+            $this->db->pdo()->prepare('UPDATE cameras SET make=:a, model=:b, type=:c WHERE id=:id')->execute([':a'=>$make, ':b'=>$model, ':c'=>$type, ':id'=>$id]);
+            Hooks::doAction('metadata_camera_updated', $id, ['make' => $make, 'model' => $model, 'type' => $type]);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.camera_updated')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];

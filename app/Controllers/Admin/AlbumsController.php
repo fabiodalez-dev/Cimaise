@@ -40,7 +40,7 @@ class AlbumsController extends BaseController
                                COALESCE(iv.path, i.original_path) AS cover_path
                                FROM albums a JOIN categories c ON c.id = a.category_id
                                LEFT JOIN images i ON i.id = a.cover_image_id
-                               LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
+                               LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
                                ORDER BY {$orderBy}
                                LIMIT :limit OFFSET :offset");
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
@@ -440,7 +440,7 @@ class AlbumsController extends BaseController
                                    i.iso, i.shutter_speed, i.aperture,
                                    COALESCE(iv.path, i.original_path) AS preview_path
                                    FROM images i
-                                   LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
+                                   LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
                                    WHERE i.album_id=:a
                                    ORDER BY i.sort_order ASC, i.id ASC");
         $imgsStmt->execute([':a'=>$id]);
@@ -662,7 +662,13 @@ class AlbumsController extends BaseController
             }
             $pdo->prepare('UPDATE albums SET '.$set.' WHERE id=:id')->execute($params);
         } catch (\Throwable $e) {
-            // ignore if columns not present
+            // Fallback: update NSFW flag alone if other columns are missing
+            try {
+                $pdo->prepare('UPDATE albums SET is_nsfw = :nsfw WHERE id = :id')
+                    ->execute([':nsfw' => $is_nsfw, ':id' => $id]);
+            } catch (\Throwable) {
+                // ignore if column not present
+            }
         }
         try {
             // sync tags

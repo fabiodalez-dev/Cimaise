@@ -58,8 +58,8 @@
 .home-item:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 12px 32px rgba(0,0,0,.15); }
 .home-item img { backface-visibility: hidden; }
 
-/* Entry state: hide all items initially, reveal gradually */
-.entry-init .home-item { opacity: 0; filter: blur(4px); transform: scale(0.985); }
+/* Entry state: hide items only when JS sets the hidden class */
+.home-item--hidden { opacity: 0; filter: blur(4px); transform: scale(0.985); transition: opacity .6s ease, filter .6s ease, transform .6s ease; }
 .home-item.home-item--revealed { opacity: 1; filter: blur(0); transform: scale(1); transition: opacity .6s ease, filter .6s ease, transform .6s ease; }
 
 /* Albums Horizontal Infinite Carousel */
@@ -82,7 +82,7 @@
 @media (min-width: 768px) { .albums-arrow { width: 44px; height: 44px; } }
 
 /* performance optimizations */
-.home-track { backface-visibility: hidden; transform-style: preserve-3d; transform: translateZ(0); will-change: transform; contain: content; }
+.home-track { backface-visibility: hidden; transform-style: preserve-3d; transform: translateZ(0); will-change: transform; }
 
 @media (max-width: 767px) { .perspective { transform: none; } }
 

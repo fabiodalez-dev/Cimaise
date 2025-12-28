@@ -77,6 +77,8 @@ class SettingsService
             'cookie_banner.show_marketing' => false,
             'privacy.nsfw_global_warning' => false,
             'frontend.disable_right_click' => true,
+            'frontend.dark_mode' => false,
+            'frontend.custom_css' => '',
             'navigation.show_tags_in_header' => false,
         ];
     }

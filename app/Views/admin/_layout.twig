@@ -18,6 +18,7 @@
   <link href="{{ base_path }}/fonts/font-faces.css" rel="stylesheet">
   <style nonce="{{ csp_nonce() }}">
     body, .font-sans { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif !important; }
+    :root { --z-modal: 100000; }
   </style>
   <script nonce="{{ csp_nonce() }}">
     window.basePath = '{{ base_path|e('js') }}';
