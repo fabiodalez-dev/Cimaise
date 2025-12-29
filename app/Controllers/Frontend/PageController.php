@@ -382,6 +382,9 @@ class PageController extends BaseController
         // Normalize settings
         $templateSettings = $this->normalizeTemplateSettings($templateSettings);
         $templateId = $finalTemplateId;
+        if (($template['slug'] ?? '') === 'masonry-portfolio') {
+            $templateSettings['layout'] = 'grid';
+        }
 
         // Tags
         $tagsStmt = $pdo->prepare('SELECT t.* FROM tags t JOIN album_tag at ON at.tag_id = t.id WHERE at.album_id = :id ORDER BY t.name ASC');

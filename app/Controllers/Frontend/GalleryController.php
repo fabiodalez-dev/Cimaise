@@ -185,6 +185,9 @@ class GalleryController extends BaseController
         }
         // Normalize settings and align Magazine Split behavior with AJAX switcher
         $templateSettings = $this->applyTemplateOverrides($template, $templateSettings);
+        if (($template['slug'] ?? '') === 'masonry-portfolio') {
+            $templateSettings['layout'] = 'grid';
+        }
 
         // Tags
         $tagsStmt = $pdo->prepare('SELECT t.* FROM tags t JOIN album_tag at ON at.tag_id = t.id WHERE at.album_id = :id ORDER BY t.name ASC');
