@@ -843,10 +843,20 @@ class PageController extends BaseController
         $robotsFollow = $isNsfwAlbum ? 'nofollow' : (($album['robots_follow'] ?? 1) ? 'follow' : 'nofollow');
         $albumRobots = $robotsIndex . ',' . $robotsFollow;
 
+        $homeMasonry = [
+            'gap_h' => (int)($settingsServiceForPage->get('home.masonry_gap_h', 0) ?? 0),
+            'gap_v' => (int)($settingsServiceForPage->get('home.masonry_gap_v', 0) ?? 0),
+            'cols_desktop' => (int)($settingsServiceForPage->get('home.masonry_col_desktop', 5) ?? 5),
+            'cols_tablet' => (int)($settingsServiceForPage->get('home.masonry_col_tablet', 3) ?? 3),
+            'cols_mobile' => (int)($settingsServiceForPage->get('home.masonry_col_mobile', 2) ?? 2),
+            'layout_mode' => (string)($settingsServiceForPage->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'),
+        ];
+
         return $this->view->render($response, $twigTemplate, [
             'album' => $galleryMeta,
             'images' => $images,
             'template_name' => $template['name'],
+            'template_slug' => $template['slug'] ?? '',
             'template_settings' => $templateSettings,
             'available_templates' => $availableTemplates,
             'current_template_id' => $templateId,
@@ -868,7 +878,8 @@ class PageController extends BaseController
             'current_album' => ['id' => (int)$album['id']],
             'nsfw_consent' => $this->hasNsfwConsent(),
             'allow_downloads' => !empty($album['allow_downloads']),
-            'album_custom_fields' => $albumCustomFields
+            'album_custom_fields' => $albumCustomFields,
+            'home_masonry_settings' => $homeMasonry,
         ]);
     }
 

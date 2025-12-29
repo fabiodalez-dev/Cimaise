@@ -438,7 +438,73 @@ document.addEventListener('click', function(event) {
         {% set mobile_cols = desktop_cols > 2 ? 1 : desktop_cols %}
     {% endif %}
     
-    {% if layout == 'slideshow' %}
+    {% if template_slug|default('') == 'masonry-portfolio' and masonry %}
+        {% set m = home_masonry_settings|default({}) %}
+        <style nonce="{{ csp_nonce() }}">
+        .masonry-grid.masonry-portfolio {
+            display: grid;
+            grid-template-columns: repeat({{ m.cols_mobile|default(2) }}, 1fr);
+            gap: {{ m.gap_v|default(0) }}px {{ m.gap_h|default(0) }}px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        @media (min-width: 641px) {
+            .masonry-grid.masonry-portfolio {
+                grid-template-columns: repeat({{ m.cols_tablet|default(3) }}, 1fr);
+            }
+        }
+        @media (min-width: 1025px) {
+            .masonry-grid.masonry-portfolio {
+                grid-template-columns: repeat({{ m.cols_desktop|default(5) }}, 1fr);
+            }
+        }
+        .masonry-grid.masonry-portfolio.masonry-active {
+            display: block;
+            position: relative;
+        }
+        .masonry-grid.masonry-portfolio.masonry-ready {
+            opacity: 1;
+        }
+        .masonry-grid.masonry-portfolio .masonry-item {
+            overflow: hidden;
+        }
+        .masonry-grid.masonry-portfolio .masonry-item a {
+            display: block;
+        }
+        .masonry-grid.masonry-portfolio .masonry-item img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .masonry-grid.masonry-portfolio .masonry-item.fade-in {
+            animation: masonryFadeIn 0.35s ease-out forwards;
+        }
+        @keyframes masonryFadeIn {
+            from { opacity: 0; transform: translate3d(0, 12px, 0); }
+            to { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        .no-js .masonry-grid.masonry-portfolio {
+            opacity: 1 !important;
+        }
+        </style>
+
+        <div class="masonry-container{% if (m.layout_mode|default('fullwidth')) == 'boxed' %} masonry-boxed{% endif %}">
+        <div id="images-gallery"
+             class="masonry-grid masonry-portfolio pswp-gallery"
+             data-layout="masonry_portfolio"
+             data-gap-h="{{ m.gap_h|default(0) }}"
+             data-gap-v="{{ m.gap_v|default(0) }}"
+             data-cols-mobile="{{ m.cols_mobile|default(2) }}"
+             data-cols-tablet="{{ m.cols_tablet|default(3) }}"
+             data-cols-desktop="{{ m.cols_desktop|default(5) }}">
+            {% for image in images %}
+                <div class="masonry-item">
+                    {% include "frontend/_image_item.twig" %}
+                </div>
+            {% endfor %}
+        </div>
+        </div>
+    {% elseif layout == 'slideshow' %}
         <div id="images-gallery" class="max-w-4xl mx-auto">
             <div class="swiper gallery-swiper">
                 <div class="swiper-wrapper">
@@ -867,6 +933,78 @@ if (layout === 'masonry_fit') {
     }
 }
 
+// Masonry Portfolio (template 2) - reuse home masonry behavior without infinite cloning
+if (templateSettings?.layout === 'grid' && templateSettings?.masonry && '{{ template_slug|default('') }}' === 'masonry-portfolio') {
+    const grid = document.querySelector('#images-gallery.masonry-portfolio');
+    if (grid && typeof Masonry !== 'undefined') {
+        const config = {
+            gapH: parseInt(grid.dataset.gapH, 10) || 0,
+            gapV: parseInt(grid.dataset.gapV, 10) || 0,
+            colsMobile: parseInt(grid.dataset.colsMobile, 10) || 2,
+            colsTablet: parseInt(grid.dataset.colsTablet, 10) || 3,
+            colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5
+        };
+
+        function getColumnCount() {
+            const width = window.innerWidth;
+            if (width >= 1025) return config.colsDesktop;
+            if (width >= 641) return config.colsTablet;
+            return config.colsMobile;
+        }
+
+        function setItemWidths(itemsOverride) {
+            const cols = getColumnCount();
+            const containerWidth = grid.offsetWidth;
+            const totalGaps = config.gapH * (cols - 1);
+            const width = Math.floor((containerWidth - totalGaps) / cols);
+            const items = itemsOverride || grid.querySelectorAll('.masonry-item');
+            for (let i = 0; i < items.length; i += 1) {
+                items[i].style.width = width + 'px';
+                items[i].style.marginBottom = config.gapV + 'px';
+            }
+        }
+
+        function initMasonryPortfolio() {
+            grid.classList.add('masonry-active');
+            setItemWidths();
+            const msnry = new Masonry(grid, {
+                itemSelector: '.masonry-item',
+                columnWidth: '.masonry-item',
+                gutter: config.gapH,
+                percentPosition: false,
+                horizontalOrder: true,
+                transitionDuration: 0
+            });
+            msnry.layout();
+            requestAnimationFrame(() => {
+                msnry.layout();
+                grid.classList.add('masonry-ready');
+            });
+
+            const items = grid.querySelectorAll('.masonry-item');
+            for (let i = 0; i < items.length; i += 1) {
+                items[i].classList.add('fade-in');
+            }
+
+            window.addEventListener('resize', () => {
+                setItemWidths();
+                msnry.layout();
+            }, { passive: true });
+        }
+
+        if (typeof imagesLoaded !== 'undefined') {
+            imagesLoaded(grid, initMasonryPortfolio);
+            setTimeout(() => {
+                if (!grid.classList.contains('masonry-ready')) {
+                    initMasonryPortfolio();
+                }
+            }, 4000);
+        } else {
+            initMasonryPortfolio();
+        }
+    }
+}
+
 // Magazine Split autoscroll initializer
 function initMagazineAutoscroll() {
     try {
@@ -941,6 +1079,45 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
                 imagesLoaded(gallery, initFiltered);
             } else {
                 initFiltered();
+            }
+        } else if (templateSettings?.layout === 'grid' && templateSettings?.masonry && '{{ template_slug|default('') }}' === 'masonry-portfolio') {
+            const grid = document.querySelector('#images-gallery.masonry-portfolio');
+            if (grid && typeof Masonry !== 'undefined') {
+                if (grid._masonryInstance) {
+                    grid._masonryInstance.destroy();
+                    grid._masonryInstance = null;
+                }
+                const initMasonryPortfolio = function() {
+                    const gapH = parseInt(grid.dataset.gapH, 10) || 0;
+                    const gapV = parseInt(grid.dataset.gapV, 10) || 0;
+                    const colsDesktop = parseInt(grid.dataset.colsDesktop, 10) || 5;
+                    const colsTablet = parseInt(grid.dataset.colsTablet, 10) || 3;
+                    const colsMobile = parseInt(grid.dataset.colsMobile, 10) || 2;
+                    const cols = window.innerWidth >= 1025 ? colsDesktop : (window.innerWidth >= 641 ? colsTablet : colsMobile);
+                    const containerWidth = grid.offsetWidth;
+                    const totalGaps = gapH * (cols - 1);
+                    const itemWidth = Math.floor((containerWidth - totalGaps) / cols);
+                    grid.querySelectorAll('.masonry-item').forEach(function(item) {
+                        item.style.width = itemWidth + 'px';
+                        item.style.marginBottom = gapV + 'px';
+                    });
+                    const msnry = new Masonry(grid, {
+                        itemSelector: '.masonry-item',
+                        columnWidth: '.masonry-item',
+                        gutter: gapH,
+                        percentPosition: false,
+                        horizontalOrder: true,
+                        transitionDuration: 0
+                    });
+                    grid._masonryInstance = msnry;
+                    msnry.layout();
+                    grid.classList.add('masonry-ready');
+                };
+                if (typeof imagesLoaded !== 'undefined') {
+                    imagesLoaded(grid, initMasonryPortfolio);
+                } else {
+                    initMasonryPortfolio();
+                }
             }
         } else if (masonry && (layout === 'masonry' || templateSettings.masonry_js === true) && typeof Masonry !== 'undefined') {
             // Regular masonry layout - requires Masonry library

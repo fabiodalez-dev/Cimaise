@@ -234,7 +234,105 @@
   
 
 
-  {% if layout != 'magazine' %}
+{% if layout != 'magazine' %}
+  {% if template_slug|default('') == 'masonry-portfolio' and masonry %}
+    {% set m = home_masonry_settings|default({}) %}
+    <style nonce="{{ csp_nonce() }}">
+    .masonry-grid.masonry-portfolio {
+      display: grid;
+      grid-template-columns: repeat({{ m.cols_mobile|default(2) }}, 1fr);
+      gap: {{ m.gap_v|default(0) }}px {{ m.gap_h|default(0) }}px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    @media (min-width: 641px) {
+      .masonry-grid.masonry-portfolio {
+        grid-template-columns: repeat({{ m.cols_tablet|default(3) }}, 1fr);
+      }
+    }
+    @media (min-width: 1025px) {
+      .masonry-grid.masonry-portfolio {
+        grid-template-columns: repeat({{ m.cols_desktop|default(5) }}, 1fr);
+      }
+    }
+    .masonry-grid.masonry-portfolio.masonry-active {
+      display: block;
+      position: relative;
+    }
+    .masonry-grid.masonry-portfolio.masonry-ready {
+      opacity: 1;
+    }
+    .masonry-grid.masonry-portfolio .masonry-item {
+      overflow: hidden;
+    }
+    .masonry-grid.masonry-portfolio .masonry-item a {
+      display: block;
+    }
+    .masonry-grid.masonry-portfolio .masonry-item img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .masonry-grid.masonry-portfolio .masonry-item.fade-in {
+      animation: masonryFadeIn 0.35s ease-out forwards;
+    }
+    @keyframes masonryFadeIn {
+      from { opacity: 0; transform: translate3d(0, 12px, 0); }
+      to { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+    .no-js .masonry-grid.masonry-portfolio {
+      opacity: 1 !important;
+    }
+    </style>
+
+    <div class="masonry-container{% if (m.layout_mode|default('fullwidth')) == 'boxed' %} masonry-boxed{% endif %}">
+    <div id="images-gallery"
+         class="masonry-grid masonry-portfolio pswp-gallery"
+         data-layout="masonry_portfolio"
+         data-gap-h="{{ m.gap_h|default(0) }}"
+         data-gap-v="{{ m.gap_v|default(0) }}"
+         data-cols-mobile="{{ m.cols_mobile|default(2) }}"
+         data-cols-tablet="{{ m.cols_tablet|default(3) }}"
+         data-cols-desktop="{{ m.cols_desktop|default(5) }}">
+      {% for image in images %}
+      <div class="masonry-item">
+        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
+           class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
+           title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
+           data-pswp-width="{{ image.width|default(1600) }}"
+           data-pswp-height="{{ image.height|default(1067) }}"
+           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
+           data-title="{{ image.caption|default('')|e }}"
+           data-alt="{{ image.alt|default('')|e }}"
+           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
+           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
+           data-developer="{{ image.developer_name|default('')|e }}"
+           data-lab="{{ image.lab_name|default('')|e }}"
+           data-location="{{ image.location_name|default('')|e }}"
+           data-iso="{{ image.iso|default('') }}"
+           data-shutter="{{ image.shutter_speed|default('')|e }}"
+           data-aperture="{{ image.aperture|default('') }}"
+           data-focal-length="{{ image.focal_length|default('') }}"
+           data-exif-make="{{ image.exif_make|default('')|e }}"
+           data-exif-model="{{ image.exif_model|default('')|e }}"
+           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+           data-gps-lat="{{ image.gps_lat|default('') }}"
+           data-gps-lng="{{ image.gps_lng|default('') }}"
+           data-date-original="{{ image.date_original|default('')|e }}"
+           data-artist="{{ image.artist|default('')|e }}"
+           data-copyright="{{ image.copyright|default('')|e }}"
+           data-process="{{ image.process|default('')|e }}"
+           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-auto object-cover">
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    </div>
+  {% elseif layout == 'masonry_fit' or layout == 'masonry' %}
   {# 1. MASONRY FIT / MASONRY - Rispetta proporzioni originali con CSS columns #}
   {% if layout == 'masonry_fit' or layout == 'masonry' %}
     {% set gap_h = template_settings.gap.horizontal|default(16) %}
@@ -889,6 +987,7 @@ window.basePath = '{{ base_path }}';
 // Store template settings globally for AJAX reloads
 window.templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
 
+const templateSlug = '{{ template_slug|default('')|e('js') }}';
 const layout = window.templateSettings.layout || 'grid';
 const masonry = window.templateSettings.masonry || false;
 
@@ -930,6 +1029,73 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeGalleryLayout() {
   const layout = window.templateSettings?.layout || 'grid';
   const masonry = window.templateSettings?.masonry || false;
+
+  // Masonry Portfolio (template 2) - reuse home masonry behavior without infinite cloning
+  if (templateSlug === 'masonry-portfolio' && masonry && layout === 'grid') {
+    const grid = document.querySelector('#images-gallery.masonry-portfolio');
+    if (grid && typeof Masonry !== 'undefined') {
+      const config = {
+        gapH: parseInt(grid.dataset.gapH, 10) || 0,
+        gapV: parseInt(grid.dataset.gapV, 10) || 0,
+        colsMobile: parseInt(grid.dataset.colsMobile, 10) || 2,
+        colsTablet: parseInt(grid.dataset.colsTablet, 10) || 3,
+        colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5
+      };
+
+      const getColumnCount = () => {
+        const width = window.innerWidth;
+        if (width >= 1025) return config.colsDesktop;
+        if (width >= 641) return config.colsTablet;
+        return config.colsMobile;
+      };
+
+      const setItemWidths = () => {
+        const cols = getColumnCount();
+        const containerWidth = grid.offsetWidth;
+        const totalGaps = config.gapH * (cols - 1);
+        const width = Math.floor((containerWidth - totalGaps) / cols);
+        grid.querySelectorAll('.masonry-item').forEach((item) => {
+          item.style.width = `${width}px`;
+          item.style.marginBottom = `${config.gapV}px`;
+        });
+      };
+
+      const initMasonryPortfolio = () => {
+        grid.classList.add('masonry-active');
+        setItemWidths();
+        const msnry = new Masonry(grid, {
+          itemSelector: '.masonry-item',
+          columnWidth: '.masonry-item',
+          gutter: config.gapH,
+          percentPosition: false,
+          horizontalOrder: true,
+          transitionDuration: 0
+        });
+        msnry.layout();
+        requestAnimationFrame(() => {
+          msnry.layout();
+          grid.classList.add('masonry-ready');
+        });
+        grid.querySelectorAll('.masonry-item').forEach((item) => item.classList.add('fade-in'));
+        window.addEventListener('resize', () => {
+          setItemWidths();
+          msnry.layout();
+        }, { passive: true });
+      };
+
+      if (typeof imagesLoaded !== 'undefined') {
+        imagesLoaded(grid, initMasonryPortfolio);
+        setTimeout(() => {
+          if (!grid.classList.contains('masonry-ready')) {
+            initMasonryPortfolio();
+          }
+        }, 4000);
+      } else {
+        initMasonryPortfolio();
+      }
+    }
+    return;
+  }
   
   // 1. MASONRY FIT - No special JS needed, pure CSS Grid
 
