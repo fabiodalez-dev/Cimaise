@@ -334,7 +334,6 @@
     </div>
   {% elseif layout == 'masonry_fit' or layout == 'masonry' %}
   {# 1. MASONRY FIT / MASONRY - Rispetta proporzioni originali con CSS columns #}
-  {% if layout == 'masonry_fit' or layout == 'masonry' %}
     {% set gap_h = template_settings.gap.horizontal|default(16) %}
     {% set gap_v = template_settings.gap.vertical|default(16) %}
     <div id="images-gallery" class="masonry-fit-container pswp-gallery" data-layout="masonry_fit">
