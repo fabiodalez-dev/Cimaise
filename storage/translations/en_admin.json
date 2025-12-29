@@ -1272,6 +1272,8 @@
     "admin.templates.gap_horizontal_hint": "Space between columns",
     "admin.templates.gap_vertical_hint": "Space between photos in the same column",
     "admin.templates.masonry_full_info": "This layout uses CSS columns for a native masonry effect. Photos maintain their original proportions.",
+    "admin.templates.masonry_portfolio_settings": "Masonry Portfolio Settings",
+    "admin.templates.masonry_portfolio_description": "Same masonry gallery as home Pure Masonry. Configure gap, columns, and layout mode.",
     "admin.templates.css_columns": "CSS Columns",
     "admin.templates.dense_grid": "Dense Grid",
     "admin.templates.dense_grid_settings": "Dense Grid Settings",

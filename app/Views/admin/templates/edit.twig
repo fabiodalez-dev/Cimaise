@@ -34,6 +34,7 @@
           </div>
         </div>
 
+        {% if item.slug != 'masonry-portfolio' %}
         <div class="card p-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.layout_settings') }}</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -100,6 +101,108 @@
             </div>
           </div>
         </div>
+        {% endif %}
+
+        {% if item.slug == 'masonry-portfolio' %}
+        {# Masonry Portfolio Settings - same as home pure masonry #}
+        <div class="card p-6">
+          <h2 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-grip-vertical mr-3 text-gray-600"></i>
+            {{ trans('admin.templates.masonry_portfolio_settings') }}
+          </h2>
+          <p class="text-sm text-gray-600 mb-4">{{ trans('admin.templates.masonry_portfolio_description') }}</p>
+          {% set mp = item.settings.masonry_portfolio|default({}) %}
+          <div class="space-y-6">
+            <!-- Gap Settings -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.pages.home.masonry_gap') }}</label>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.pages.home.masonry_gap_h') }}</label>
+                  <div class="flex items-center gap-2">
+                    <input type="range" name="masonry_gap_h" min="0" max="40" value="{{ mp.gap_h|default(0) }}" class="flex-1" id="mp-gap-h-slider">
+                    <span class="text-sm text-gray-600 w-12 text-right" id="mp-gap-h-value">{{ mp.gap_h|default(0) }}px</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.pages.home.masonry_gap_v') }}</label>
+                  <div class="flex items-center gap-2">
+                    <input type="range" name="masonry_gap_v" min="0" max="40" value="{{ mp.gap_v|default(0) }}" class="flex-1" id="mp-gap-v-slider">
+                    <span class="text-sm text-gray-600 w-12 text-right" id="mp-gap-v-value">{{ mp.gap_v|default(0) }}px</span>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.home.masonry_gap_hint') }}</p>
+            </div>
+
+            <!-- Column Settings -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.pages.home.masonry_columns') }}</label>
+              <div class="grid grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">
+                    <i class="fas fa-desktop mr-1"></i>{{ trans('admin.pages.home.masonry_col_desktop') }}
+                  </label>
+                  <select name="masonry_col_desktop" class="form-select">
+                    {% for i in 2..8 %}
+                      <option value="{{ i }}" {{ mp.cols_desktop|default(5) == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.home.columns') }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">
+                    <i class="fas fa-tablet-alt mr-1"></i>{{ trans('admin.pages.home.masonry_col_tablet') }}
+                  </label>
+                  <select name="masonry_col_tablet" class="form-select">
+                    {% for i in 1..6 %}
+                      <option value="{{ i }}" {{ mp.cols_tablet|default(3) == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.home.columns') }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">
+                    <i class="fas fa-mobile-alt mr-1"></i>{{ trans('admin.pages.home.masonry_col_mobile') }}
+                  </label>
+                  <select name="masonry_col_mobile" class="form-select">
+                    {% for i in 1..4 %}
+                      <option value="{{ i }}" {{ mp.cols_mobile|default(2) == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.home.columns') }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.home.masonry_columns_hint') }}</p>
+            </div>
+
+            <!-- Layout Mode -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.pages.home.masonry_layout_mode') }}</label>
+              <div class="grid grid-cols-2 gap-4">
+                <label class="relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ mp.layout_mode|default('fullwidth') == 'fullwidth' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
+                  <input type="radio" name="masonry_layout_mode" value="fullwidth" class="sr-only" {{ mp.layout_mode|default('fullwidth') == 'fullwidth' ? 'checked' : '' }}>
+                  <div class="flex items-center">
+                    <i class="fas fa-arrows-alt-h text-lg text-gray-600 mr-3"></i>
+                    <div>
+                      <span class="block font-medium text-gray-900">{{ trans('admin.pages.home.masonry_fullwidth') }}</span>
+                      <span class="text-xs text-gray-500">{{ trans('admin.pages.home.masonry_fullwidth_desc') }}</span>
+                    </div>
+                  </div>
+                </label>
+                <label class="relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ mp.layout_mode|default('fullwidth') == 'boxed' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
+                  <input type="radio" name="masonry_layout_mode" value="boxed" class="sr-only" {{ mp.layout_mode|default('fullwidth') == 'boxed' ? 'checked' : '' }}>
+                  <div class="flex items-center">
+                    <i class="fas fa-compress-alt text-lg text-gray-600 mr-3"></i>
+                    <div>
+                      <span class="block font-medium text-gray-900">{{ trans('admin.pages.home.masonry_boxed') }}</span>
+                      <span class="text-xs text-gray-500">{{ trans('admin.pages.home.masonry_boxed_desc') }}</span>
+                    </div>
+                  </div>
+                </label>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.home.masonry_layout_mode_hint') }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
 
         {% if item.slug == 'magazine-split' %}
         <div class="card p-6">
@@ -376,6 +479,39 @@
     tabletSelect.addEventListener('change', updatePreview);
     mobileSelect.addEventListener('change', updatePreview);
     masonryCheck.addEventListener('change', updatePreview);
+
+    // Masonry Portfolio slider handlers
+    const mpGapHSlider = document.getElementById('mp-gap-h-slider');
+    const mpGapVSlider = document.getElementById('mp-gap-v-slider');
+    const mpGapHValue = document.getElementById('mp-gap-h-value');
+    const mpGapVValue = document.getElementById('mp-gap-v-value');
+
+    if (mpGapHSlider && mpGapHValue) {
+      mpGapHSlider.addEventListener('input', function() {
+        mpGapHValue.textContent = this.value + 'px';
+      });
+    }
+    if (mpGapVSlider && mpGapVValue) {
+      mpGapVSlider.addEventListener('input', function() {
+        mpGapVValue.textContent = this.value + 'px';
+      });
+    }
+
+    // Layout mode radio buttons
+    document.querySelectorAll('input[name="masonry_layout_mode"]').forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        document.querySelectorAll('input[name="masonry_layout_mode"]').forEach(function(r) {
+          const label = r.closest('label');
+          if (r.checked) {
+            label.classList.add('border-black', 'bg-gray-50');
+            label.classList.remove('border-gray-200');
+          } else {
+            label.classList.remove('border-black', 'bg-gray-50');
+            label.classList.add('border-gray-200');
+          }
+        });
+      });
+    });
 
   </script>
 {% endblock %}
