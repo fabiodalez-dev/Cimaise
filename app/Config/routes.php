@@ -670,6 +670,11 @@ $app->post('/admin/plugins/upload', function (Request $request, Response $respon
     return $controller->upload($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+// Custom Templates Pro Plugin Routes
+if (class_exists('CustomTemplatesProPlugin') && file_exists(__DIR__ . '/../../plugins/custom-templates-pro/plugin.php')) {
+    \CustomTemplatesProPlugin::registerRoutes($app, $container['db'], Twig::fromRequest($app->getContainer()->get('request')));
+}
+
 // Albums CRUD
 $app->get('/admin/albums', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));

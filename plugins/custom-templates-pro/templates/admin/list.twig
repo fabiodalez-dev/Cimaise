@@ -1,0 +1,126 @@
+{% extends "admin/_layout.twig" %}
+
+{% block title %}Templates {{ current_type|capitalize }} - Custom Templates Pro{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center space-x-4">
+      <a href="{{ base_path }}/admin/custom-templates" class="text-gray-600 hover:text-gray-900">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">
+          Templates
+          {% if current_type == 'gallery' %}Gallerie{% endif %}
+          {% if current_type == 'album_page' %}Pagina Album{% endif %}
+          {% if current_type == 'homepage' %}Homepage{% endif %}
+        </h1>
+        <p class="text-gray-600 mt-1">Gestisci i tuoi template personalizzati</p>
+      </div>
+    </div>
+    <a href="{{ base_path }}/admin/custom-templates/upload" class="btn btn-primary">
+      <i class="fas fa-upload mr-2"></i>Carica Nuovo
+    </a>
+  </div>
+</div>
+
+<!-- Type Filter Tabs -->
+<div class="mb-6">
+  <div class="border-b border-gray-200">
+    <nav class="-mb-px flex space-x-8">
+      <a href="{{ base_path }}/admin/custom-templates/list?type=gallery"
+         class="py-4 px-1 border-b-2 font-medium text-sm {{ current_type == 'gallery' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+        <i class="fas fa-th mr-2"></i>Gallerie
+      </a>
+      <a href="{{ base_path }}/admin/custom-templates/list?type=album_page"
+         class="py-4 px-1 border-b-2 font-medium text-sm {{ current_type == 'album_page' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+        <i class="fas fa-file-image mr-2"></i>Pagina Album
+      </a>
+      <a href="{{ base_path }}/admin/custom-templates/list?type=homepage"
+         class="py-4 px-1 border-b-2 font-medium text-sm {{ current_type == 'homepage' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+        <i class="fas fa-home mr-2"></i>Homepage
+      </a>
+    </nav>
+  </div>
+</div>
+
+<!-- Templates List -->
+{% if templates|length > 0 %}
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for template in templates %}
+      <div class="card hover:shadow-lg transition-shadow">
+        <!-- Preview Image -->
+        {% if template.preview_path %}
+          <div class="h-48 overflow-hidden bg-gray-100">
+            <img src="{{ base_path }}/plugins/custom-templates-pro/{{ template.preview_path }}"
+                 alt="{{ template.name }}"
+                 class="w-full h-full object-cover">
+          </div>
+        {% else %}
+          <div class="h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+            <i class="fas fa-image text-6xl text-gray-300"></i>
+          </div>
+        {% endif %}
+
+        <!-- Template Info -->
+        <div class="p-6">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ template.name }}</h3>
+              <p class="text-sm text-gray-600">v{{ template.version }}</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-medium {{ template.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }}">
+              {{ template.is_active ? 'Attivo' : 'Disattivo' }}
+            </span>
+          </div>
+
+          {% if template.description %}
+            <p class="text-sm text-gray-600 mb-4">{{ template.description }}</p>
+          {% endif %}
+
+          <div class="flex items-center text-xs text-gray-500 space-x-3 mb-4">
+            {% if template.author %}
+              <span><i class="fas fa-user mr-1"></i>{{ template.author }}</span>
+            {% endif %}
+            <span><i class="fas fa-calendar mr-1"></i>{{ template.installed_at|date('d/m/Y') }}</span>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex space-x-2">
+            <form method="POST" action="{{ base_path }}/admin/custom-templates/{{ template.id }}/toggle" class="flex-1">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <button type="submit" class="btn btn-sm btn-outline w-full justify-center">
+                <i class="fas {{ template.is_active ? 'fa-eye-slash' : 'fa-eye' }} mr-1"></i>
+                {{ template.is_active ? 'Disattiva' : 'Attiva' }}
+              </button>
+            </form>
+
+            <form method="POST" action="{{ base_path }}/admin/custom-templates/{{ template.id }}/delete"
+                  onsubmit="return confirm('Sei sicuro di voler eliminare questo template? Questa azione non può essere annullata.');">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <button type="submit" class="btn btn-sm btn-outline text-red-600 hover:bg-red-50">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card p-12 text-center">
+    <i class="fas fa-palette text-6xl text-gray-300 mb-4"></i>
+    <h3 class="text-xl font-semibold text-gray-900 mb-2">
+      Nessun Template
+      {% if current_type == 'gallery' %}Galleria{% endif %}
+      {% if current_type == 'album_page' %}Pagina Album{% endif %}
+      {% if current_type == 'homepage' %}Homepage{% endif %}
+    </h3>
+    <p class="text-gray-600 mb-6">Carica il tuo primo template personalizzato</p>
+    <a href="{{ base_path }}/admin/custom-templates/upload" class="btn btn-primary inline-flex items-center">
+      <i class="fas fa-upload mr-2"></i>Carica Template
+    </a>
+  </div>
+{% endif %}
+{% endblock %}
