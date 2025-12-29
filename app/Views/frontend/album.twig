@@ -439,23 +439,23 @@ document.addEventListener('click', function(event) {
     {% endif %}
     
     {% if template_slug|default('') == 'masonry-portfolio' and masonry %}
-        {% set m = home_masonry_settings|default({}) %}
+        {% set mp = template_settings.masonry_portfolio|default({}) %}
         <style nonce="{{ csp_nonce() }}">
         .masonry-grid.masonry-portfolio {
             display: grid;
-            grid-template-columns: repeat({{ m.cols_mobile|default(2) }}, 1fr);
-            gap: {{ m.gap_v|default(0) }}px {{ m.gap_h|default(0) }}px;
+            grid-template-columns: repeat({{ mp.cols_mobile|default(2) }}, 1fr);
+            gap: {{ mp.gap_v|default(0) }}px {{ mp.gap_h|default(0) }}px;
             opacity: 0;
             transition: opacity 0.3s ease;
         }
         @media (min-width: 641px) {
             .masonry-grid.masonry-portfolio {
-                grid-template-columns: repeat({{ m.cols_tablet|default(3) }}, 1fr);
+                grid-template-columns: repeat({{ mp.cols_tablet|default(3) }}, 1fr);
             }
         }
         @media (min-width: 1025px) {
             .masonry-grid.masonry-portfolio {
-                grid-template-columns: repeat({{ m.cols_desktop|default(5) }}, 1fr);
+                grid-template-columns: repeat({{ mp.cols_desktop|default(5) }}, 1fr);
             }
         }
         .masonry-grid.masonry-portfolio.masonry-active {
@@ -488,15 +488,15 @@ document.addEventListener('click', function(event) {
         }
         </style>
 
-        <div class="masonry-container{% if (m.layout_mode|default('fullwidth')) == 'boxed' %} masonry-boxed{% endif %}">
+        <div class="masonry-container{% if (mp.layout_mode|default('fullwidth')) == 'boxed' %} masonry-boxed{% endif %}">
         <div id="images-gallery"
              class="masonry-grid masonry-portfolio pswp-gallery"
              data-layout="masonry_portfolio"
-             data-gap-h="{{ m.gap_h|default(0) }}"
-             data-gap-v="{{ m.gap_v|default(0) }}"
-             data-cols-mobile="{{ m.cols_mobile|default(2) }}"
-             data-cols-tablet="{{ m.cols_tablet|default(3) }}"
-             data-cols-desktop="{{ m.cols_desktop|default(5) }}">
+             data-gap-h="{{ mp.gap_h|default(0) }}"
+             data-gap-v="{{ mp.gap_v|default(0) }}"
+             data-cols-mobile="{{ mp.cols_mobile|default(2) }}"
+             data-cols-tablet="{{ mp.cols_tablet|default(3) }}"
+             data-cols-desktop="{{ mp.cols_desktop|default(5) }}">
             {% for image in images %}
                 <div class="masonry-item">
                     {% include "frontend/_image_item.twig" %}
