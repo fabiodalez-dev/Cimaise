@@ -490,7 +490,7 @@ document.addEventListener('click', function(event) {
             {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
         </div>
     {% elseif masonry %}
-        <div id="images-gallery" class="masonry-grid" style="--cols-desktop: {{ desktop_cols }}; --cols-tablet: {{ tablet_cols }}; --cols-mobile: {{ mobile_cols }};">
+        <div id="images-gallery" class="masonry-grid">
             {% for image in images %}
                 <div class="masonry-item">
                     {% include "frontend/_image_item.twig" %}
