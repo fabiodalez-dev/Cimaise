@@ -787,6 +787,7 @@
     </div>
     <style nonce="{{ csp_nonce() }}">
     .masonry-grid {
+        display: block;
         column-gap: 1rem;
         column-fill: auto;
     }
@@ -1349,7 +1350,7 @@ document.addEventListener('click', function(event) {
         const masonryStyleEl = document.createElement('style');
         masonryStyleEl.id = 'masonry-grid-dynamic-style';
         masonryStyleEl.textContent = `
-          .masonry-grid { column-gap: 1rem; column-fill: auto; }
+          .masonry-grid { display: block; column-gap: 1rem; column-fill: auto; }
           .masonry-grid .masonry-item { break-inside: avoid; margin-bottom: 1rem; }
           @media (min-width: 1024px) { .masonry-grid { column-count: ${d}; } }
           @media (min-width: 768px) and (max-width: 1023px) { .masonry-grid { column-count: ${t}; } }
