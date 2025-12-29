@@ -786,12 +786,6 @@ class PageController extends BaseController
             'magazine' => 'frontend/gallery_magazine.twig',
             default => 'frontend/gallery.twig',
         };
-        // Template 2 (masonry-portfolio) must use classic gallery rendering
-        if (($template['slug'] ?? '') === 'masonry-portfolio') {
-            $twigTemplate = 'frontend/gallery.twig';
-            $templateSettings['layout'] = 'grid';
-            $templateSettings['masonry'] = true;
-        }
 
         // Get social sharing settings
         $settingsServiceForSocial = new \App\Services\SettingsService($this->db);
