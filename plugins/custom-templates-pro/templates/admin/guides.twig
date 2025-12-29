@@ -1,0 +1,214 @@
+{% extends "admin/_layout.twig" %}
+
+{% block title %}Guide LLM - Custom Templates Pro{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="flex items-center space-x-4 mb-4">
+    <a href="{{ base_path }}/admin/custom-templates" class="text-gray-600 hover:text-gray-900">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">
+        <i class="fas fa-book-reader text-purple-600 mr-3"></i>Guide per LLM
+      </h1>
+      <p class="text-gray-600 mt-1">Scarica le guide complete per creare template personalizzati con un LLM</p>
+    </div>
+  </div>
+</div>
+
+<!-- Introduction -->
+<div class="card mb-6">
+  <div class="p-6">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Come Usare Queste Guide</h2>
+    <div class="prose max-w-none text-gray-600">
+      <p class="mb-4">
+        Ogni guida contiene un <strong>prompt completo e ottimizzato</strong> da copiare e incollare
+        in un Large Language Model (come Claude, ChatGPT, o altri assistenti AI) per generare
+        template personalizzati per Cimaise.
+      </p>
+      <ol class="list-decimal list-inside space-y-2">
+        <li>Scarica la guida per il tipo di template che vuoi creare</li>
+        <li>Apri il file .txt e copia il prompt per LLM</li>
+        <li>Incolla il prompt nel tuo LLM preferito (Claude, ChatGPT, ecc.)</li>
+        <li>Descrivi al LLM che tipo di template vuoi (stile, layout, effetti, ecc.)</li>
+        <li>Il LLM genererà tutti i file necessari (metadata.json, template.twig, CSS, JS)</li>
+        <li>Comprimi i file in un ZIP e caricali tramite questa interfaccia</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<!-- Guide Download Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <!-- Gallery Guide -->
+  <div class="card">
+    <div class="p-6">
+      <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-3xl mb-4">
+        <i class="fas fa-th"></i>
+      </div>
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">Template Gallerie</h3>
+      <p class="text-gray-600 mb-4 text-sm">
+        Guida completa per creare template personalizzati per le gallerie fotografiche degli album.
+      </p>
+
+      <div class="space-y-2 mb-4 text-sm">
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Variabili Twig complete</span>
+        </div>
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Esempi template esistenti</span>
+        </div>
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Best practices CSS/JS</span>
+        </div>
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Integrazione PhotoSwipe</span>
+        </div>
+      </div>
+
+      <a href="{{ base_path }}/admin/custom-templates/guides/gallery/download"
+         class="btn btn-primary w-full justify-center">
+        <i class="fas fa-download mr-2"></i>Scarica Guida
+      </a>
+    </div>
+  </div>
+
+  <!-- Album Page Guide -->
+  <div class="card">
+    <div class="p-6">
+      <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-3xl mb-4">
+        <i class="fas fa-file-image"></i>
+      </div>
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">Template Pagina Album</h3>
+      <p class="text-gray-600 mb-4 text-sm">
+        Guida per creare template completi della pagina album (header, metadata, galleria integrata).
+      </p>
+
+      <div class="space-y-2 mb-4 text-sm">
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Layout pagina completo</span>
+        </div>
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Header e metadata album</span>
+        </div>
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Sezione equipment</span>
+        </div>
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Template switcher integrato</span>
+        </div>
+      </div>
+
+      <a href="{{ base_path }}/admin/custom-templates/guides/album_page/download"
+         class="btn btn-primary w-full justify-center">
+        <i class="fas fa-download mr-2"></i>Scarica Guida
+      </a>
+    </div>
+  </div>
+
+  <!-- Homepage Guide -->
+  <div class="card">
+    <div class="p-6">
+      <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center text-white text-3xl mb-4">
+        <i class="fas fa-home"></i>
+      </div>
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">Template Homepage</h3>
+      <p class="text-gray-600 mb-4 text-sm">
+        Guida per creare template personalizzati per la homepage del portfolio fotografico.
+      </p>
+
+      <div class="space-y-2 mb-4 text-sm">
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Hero section personalizzata</span>
+        </div>
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Griglia/Masonry album</span>
+        </div>
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Effetti scroll e animazioni</span>
+        </div>
+        <div class="flex items-start">
+          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+          <span>Schema.org SEO</span>
+        </div>
+      </div>
+
+      <a href="{{ base_path }}/admin/custom-templates/guides/homepage/download"
+         class="btn btn-primary w-full justify-center">
+        <i class="fas fa-download mr-2"></i>Scarica Guida
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- LLM Tips -->
+<div class="card mt-6">
+  <div class="p-6 border-b border-gray-200">
+    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+      <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+      Suggerimenti per Usare gli LLM
+    </h2>
+  </div>
+  <div class="p-6">
+    <div class="grid md:grid-cols-2 gap-6">
+      <div>
+        <h3 class="font-semibold text-gray-900 mb-3">LLM Consigliati</h3>
+        <ul class="space-y-2 text-sm text-gray-600">
+          <li class="flex items-start">
+            <i class="fas fa-robot text-blue-600 mr-2 mt-1"></i>
+            <div>
+              <strong>Claude (Anthropic)</strong> - Ottimo per codice Twig e CSS complesso
+            </div>
+          </li>
+          <li class="flex items-start">
+            <i class="fas fa-robot text-green-600 mr-2 mt-1"></i>
+            <div>
+              <strong>ChatGPT (OpenAI)</strong> - Buon bilanciamento tra creatività e precisione
+            </div>
+          </li>
+          <li class="flex items-start">
+            <i class="fas fa-robot text-purple-600 mr-2 mt-1"></i>
+            <div>
+              <strong>Gemini (Google)</strong> - Efficace per template responsive
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="font-semibold text-gray-900 mb-3">Best Practices</h3>
+        <ul class="space-y-2 text-sm text-gray-600">
+          <li class="flex items-start">
+            <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
+            <span>Sii specifico nella descrizione del design desiderato</span>
+          </li>
+          <li class="flex items-start">
+            <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
+            <span>Chiedi esempi e varianti per confrontare</span>
+          </li>
+          <li class="flex items-start">
+            <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
+            <span>Verifica il codice generato prima del caricamento</span>
+          </li>
+          <li class="flex items-start">
+            <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
+            <span>Itera: migliora il template passo dopo passo</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
