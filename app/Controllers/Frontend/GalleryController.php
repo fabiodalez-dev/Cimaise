@@ -561,10 +561,21 @@ class GalleryController extends BaseController
         
         $availableSocials = $this->getAvailableSocials();
 
+        $homeSvc = new SettingsService($this->db);
+        $homeMasonry = [
+            'gap_h' => (int)($homeSvc->get('home.masonry_gap_h', 0) ?? 0),
+            'gap_v' => (int)($homeSvc->get('home.masonry_gap_v', 0) ?? 0),
+            'cols_desktop' => (int)($homeSvc->get('home.masonry_col_desktop', 5) ?? 5),
+            'cols_tablet' => (int)($homeSvc->get('home.masonry_col_tablet', 3) ?? 3),
+            'cols_mobile' => (int)($homeSvc->get('home.masonry_col_mobile', 2) ?? 2),
+            'layout_mode' => (string)($homeSvc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'),
+        ];
+
         return $this->view->render($response, 'frontend/gallery.twig', [
             'album' => $galleryMeta,
             'images' => $images,
             'template_name' => $template['name'],
+            'template_slug' => $template['slug'] ?? '',
             'template_settings' => $templateSettings,
             'available_templates' => $list,
             'current_template_id' => $templateId,
@@ -581,7 +592,8 @@ class GalleryController extends BaseController
             'current_album' => ['id' => (int)$album['id']],
             'nsfw_consent' => $this->hasNsfwConsent(),
             'allow_downloads' => !empty($album['allow_downloads']),
-            'album_custom_fields' => $albumCustomFields
+            'album_custom_fields' => $albumCustomFields,
+            'home_masonry_settings' => $homeMasonry,
         ]);
     }
 
