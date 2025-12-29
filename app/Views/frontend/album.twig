@@ -790,8 +790,8 @@ if (layout === 'slideshow') {
         });
     }
 }
-// Masonry.js initialization - only for old masonry layout (masonry_fit uses Masonry.js with horizontalOrder)
-if (masonry && layout !== 'masonry_fit' && typeof Masonry !== 'undefined') {
+// Masonry.js initialization - only for explicit JS masonry layouts (not CSS columns)
+if (masonry && (layout === 'masonry' || templateSettings.masonry_js === true) && typeof Masonry !== 'undefined') {
     const container = document.getElementById('images-gallery');
     if (container) {
         const gap = parseInt(container.dataset.masonryGap) || 16;
@@ -941,7 +941,7 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
             } else {
                 initFiltered();
             }
-        } else if (masonry && typeof Masonry !== 'undefined') {
+        } else if (masonry && (layout === 'masonry' || templateSettings.masonry_js === true) && typeof Masonry !== 'undefined') {
             // Regular masonry layout - requires Masonry library
             // Destroy existing instance before reinit
             if (gallery._masonryInstance) {
