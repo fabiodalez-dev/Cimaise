@@ -147,6 +147,29 @@ class TemplatesController extends BaseController
             ];
         }
 
+        // Masonry Portfolio settings (same as home pure masonry)
+        if ($templateSlug === 'masonry-portfolio') {
+            $gapH = (int)($data['masonry_gap_h'] ?? 0);
+            $gapV = (int)($data['masonry_gap_v'] ?? 0);
+            $colsDesktop = (int)($data['masonry_col_desktop'] ?? 5);
+            $colsTablet = (int)($data['masonry_col_tablet'] ?? 3);
+            $colsMobile = (int)($data['masonry_col_mobile'] ?? 2);
+            $layoutMode = in_array($data['masonry_layout_mode'] ?? 'fullwidth', ['fullwidth', 'boxed'], true)
+                ? ($data['masonry_layout_mode'] ?? 'fullwidth')
+                : 'fullwidth';
+
+            $settings['masonry'] = true;
+            $settings['layout'] = 'masonry_portfolio';
+            $settings['masonry_portfolio'] = [
+                'gap_h' => max(0, min(40, $gapH)),
+                'gap_v' => max(0, min(40, $gapV)),
+                'cols_desktop' => max(2, min(8, $colsDesktop)),
+                'cols_tablet' => max(1, min(6, $colsTablet)),
+                'cols_mobile' => max(1, min(4, $colsMobile)),
+                'layout_mode' => $layoutMode,
+            ];
+        }
+
         // Dense Grid layout settings
         if (($settings['layout'] ?? '') === 'dense_grid') {
             $minDesktop = (int)($data['dense_min_desktop'] ?? 250);
