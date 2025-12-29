@@ -242,7 +242,8 @@
     <div class="pointer-events-none absolute inset-x-0 top-0 h-28 z-20 masonry-veil-top"></div>
     <div class="pointer-events-none absolute inset-x-0 bottom-0 h-28 z-20 masonry-veil-bottom"></div>
 
-    <div id="images-gallery" class="relative pswp-gallery">
+    {% set style = template_settings.style|default({hover_fade: true}) %}
+    <div id="images-gallery" class="relative pswp-gallery" data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
       <div class="m-mobile-wrap">
         <div class="m-mobile">
           {% for image in images %}

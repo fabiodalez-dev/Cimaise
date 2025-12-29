@@ -423,194 +423,452 @@ document.addEventListener('click', function(event) {
     {{ do_action('frontend_album_gallery_before', {album: album, images: images, base_path: base_path}) }}
 
     <!-- Images gallery -->
+    {% import 'frontend/_seo_macros.twig' as Seo %}
+    {% import 'frontend/_caption.twig' as Caption %}
+
+    {% set tpl_slug = template_settings.template_slug|default('') %}
     {% set layout = template_settings.layout|default('grid') %}
-    {% set masonry = template_settings.masonry|default(false) %}
-    
-    {# Handle both old integer format and new responsive object format #}
-    {% set cols = template_settings.columns is defined ? template_settings.columns : 3 %}
-    {% if cols is iterable %}
-        {% set desktop_cols = cols.desktop is defined ? cols.desktop : 3 %}
-        {% set tablet_cols = cols.tablet is defined ? cols.tablet : (desktop_cols > 2 ? 2 : desktop_cols) %}
-        {% set mobile_cols = cols.mobile is defined ? cols.mobile : (desktop_cols > 2 ? 1 : desktop_cols) %}
-    {% else %}
-        {% set desktop_cols = cols %}
-        {% set tablet_cols = desktop_cols > 2 ? 2 : desktop_cols %}
-        {% set mobile_cols = desktop_cols > 2 ? 1 : desktop_cols %}
+    {% set cols = template_settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
+    {% set gap = template_settings.gap|default({horizontal: 16, vertical: 16}) %}
+    {% set aspect_ratio = template_settings.aspect_ratio|default('1:1') %}
+    {% set style = template_settings.style|default({rounded: false, shadow: false, hover_scale: true}) %}
+
+    {# Normalize column values #}
+    {% set desktop_cols = cols.desktop|default(3)|round %}
+    {% set tablet_cols = cols.tablet|default(2)|round %}
+    {% set mobile_cols = cols.mobile|default(1)|round %}
+    {% set gap_h = gap.horizontal|default(16)|round %}
+    {% set gap_v = gap.vertical|default(16)|round %}
+
+    {# Aspect ratio class for grid layout #}
+    {% set aspect_class = 'aspect-square' %}
+    {% if aspect_ratio == '4:3' %}
+        {% set aspect_class = 'aspect-[4/3]' %}
+    {% elseif aspect_ratio == '16:9' %}
+        {% set aspect_class = 'aspect-video' %}
+    {% elseif aspect_ratio == '3:2' %}
+        {% set aspect_class = 'aspect-[3/2]' %}
     {% endif %}
-    
-    {% if template_slug|default('') == 'masonry-portfolio' and masonry %}
-        {% set mp = template_settings.masonry_portfolio|default({}) %}
+
+    {# Style classes #}
+    {% set rounded_class = style.rounded ? 'rounded-lg' : '' %}
+    {% set shadow_class = style.shadow ? 'shadow-md hover:shadow-xl' : '' %}
+    {% set hover_class = style.hover_scale ? 'group-hover:scale-105' : '' %}
+
+    {# Creative Layout (template 6) #}
+    {% if tpl_slug == 'grid-ampia' %}
+        {% include 'frontend/_gallery_creative_layout.twig' with { images: images, template_settings: template_settings, album: album, base_path: base_path, site_title: site_title } %}
+
+    {# Gallery Wall Scroll layout #}
+    {% elseif tpl_slug == 'gallery-wall-scroll' %}
+        {% include 'frontend/_gallery_wall_scroll.twig' with { images: images, template_settings: template_settings, album: album, base_path: base_path, site_title: site_title } %}
+
+    {# Masonry Portfolio layout (template 2) - dedicated Masonry setup #}
+    {% elseif tpl_slug == 'masonry-portfolio' %}
+        {% include 'frontend/_gallery_masonry_portfolio.twig' with { images: images, template_settings: template_settings, album: album, base_path: base_path, site_title: site_title } %}
+
+    {# Magazine layout - special handling, NOT unified #}
+    {% elseif layout == 'magazine' %}
+        <div id="images-gallery" class="mt-6" data-layout="magazine" data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
+            {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
+        </div>
+
+    {# Dense Grid layout - CSS Grid with auto-flow dense (fills gaps automatically) #}
+    {% elseif layout == 'dense_grid' %}
+        {% set dense = template_settings.dense_grid|default({}) %}
+        {% set minCell = dense.minCellDesktop|default(250) %}
+        {% set rowHeight = dense.rowHeight|default(200) %}
+        {% set gridGap = dense.gap|default(10) %}
+
         <style nonce="{{ csp_nonce() }}">
-        .masonry-grid.masonry-portfolio {
+        /* Dense Grid - CSS Grid with auto-flow dense */
+        .dense-grid {
             display: grid;
-            grid-template-columns: repeat({{ mp.cols_mobile|default(2) }}, 1fr);
-            gap: {{ mp.gap_v|default(0) }}px {{ mp.gap_h|default(0) }}px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            grid-gap: {{ gridGap }}px;
+            grid-template-columns: repeat(auto-fit, minmax({{ minCell }}px, 1fr));
+            grid-auto-rows: {{ rowHeight }}px;
+            grid-auto-flow: dense;
+            padding: {{ gridGap }}px;
         }
-        @media (min-width: 641px) {
-            .masonry-grid.masonry-portfolio {
-                grid-template-columns: repeat({{ mp.cols_tablet|default(3) }}, 1fr);
-            }
-        }
-        @media (min-width: 1025px) {
-            .masonry-grid.masonry-portfolio {
-                grid-template-columns: repeat({{ mp.cols_desktop|default(5) }}, 1fr);
-            }
-        }
-        .masonry-grid.masonry-portfolio.masonry-active {
-            display: block;
+        .dense-grid > div {
+            display: flex;
+            justify-content: center;
+            align-items: center;
             position: relative;
-        }
-        .masonry-grid.masonry-portfolio.masonry-ready {
-            opacity: 1;
-        }
-        .masonry-grid.masonry-portfolio .masonry-item {
             overflow: hidden;
         }
-        .masonry-grid.masonry-portfolio .masonry-item a {
-            display: block;
-        }
-        .masonry-grid.masonry-portfolio .masonry-item img {
+        .dense-grid > div > a {
             display: block;
             width: 100%;
-            height: auto;
+            height: 100%;
         }
-        .masonry-grid.masonry-portfolio .masonry-item.fade-in {
-            animation: masonryFadeIn 0.35s ease-out forwards;
+        .dense-grid > div > a > picture {
+            display: block;
+            width: 100%;
+            height: 100%;
         }
-        @keyframes masonryFadeIn {
-            from { opacity: 0; transform: translate3d(0, 12px, 0); }
-            to { opacity: 1; transform: translate3d(0, 0, 0); }
+        .dense-grid > div > a > picture > img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 5px;
+            transition: transform 0.3s ease;
         }
-        .no-js .masonry-grid.masonry-portfolio {
-            opacity: 1 !important;
+        .dense-grid > div:hover > a > picture > img {
+            transform: scale(1.03);
         }
-        /* Boxed mode: add max-width and padding on desktop only */
-        @media (min-width: 1025px) {
-            .masonry-boxed {
-                max-width: 1400px;
-                margin-left: auto;
-                margin-right: auto;
-                padding-left: 2rem;
-                padding-right: 2rem;
-            }
-        }
-        .masonry-grid.masonry-portfolio.masonry-active .masonry-item {
-            float: left;
+        /* Spanning classes based on aspect ratio */
+        .dense-grid .wide { grid-column: span 2; }
+        .dense-grid .tall { grid-row: span 2; }
+        .dense-grid .big { grid-column: span 2; grid-row: span 2; }
+        /* Mobile - disable spanning */
+        @media (max-width: 640px) {
+            .dense-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; }
+            .dense-grid .wide, .dense-grid .tall, .dense-grid .big { grid-column: span 1; grid-row: span 1; }
         }
         </style>
 
-        <div class="masonry-container{% if (mp.layout_mode|default('fullwidth')) == 'boxed' %} masonry-boxed{% endif %}">
-        <div id="images-gallery"
-             class="masonry-grid masonry-portfolio pswp-gallery"
-             data-layout="masonry_portfolio"
-             data-gap-h="{{ mp.gap_h|default(0) }}"
-             data-gap-v="{{ mp.gap_v|default(0) }}"
-             data-cols-mobile="{{ mp.cols_mobile|default(2) }}"
-             data-cols-tablet="{{ mp.cols_tablet|default(3) }}"
-             data-cols-desktop="{{ mp.cols_desktop|default(5) }}">
+        <div id="images-gallery" class="dense-grid pswp-gallery" data-layout="dense_grid" data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
             {% for image in images %}
-                <div class="masonry-item">
-                    {% include "frontend/_image_item.twig" %}
-                </div>
-            {% endfor %}
-        </div>
-        </div>
-    {% elseif layout == 'slideshow' %}
-        <div id="images-gallery" class="max-w-4xl mx-auto">
-            <div class="swiper gallery-swiper">
-                <div class="swiper-wrapper">
-                    {% for image in images %}
-                        <div class="swiper-slide">
-                            {% include "frontend/_image_item.twig" %}
-                        </div>
-                    {% endfor %}
-                </div>
-                <div class="swiper-button-next"></div>
-                <div class="swiper-button-prev"></div>
-                <div class="swiper-pagination"></div>
+            {# Calculate aspect ratio and assign class server-side #}
+            {% set w = image.width|default(1) %}
+            {% set h = image.height|default(1) %}
+            {% set ratio = w / h %}
+            {% set sizeClass = '' %}
+            {# wide: landscape > 1.5, tall: portrait < 0.67, big: every 7th large image #}
+            {% if ratio > 1.6 %}
+                {% set sizeClass = 'wide' %}
+            {% elseif ratio < 0.625 %}
+                {% set sizeClass = 'tall' %}
+            {% elseif loop.index % 7 == 0 and w > 1500 %}
+                {% set sizeClass = 'big' %}
+            {% endif %}
+            <div class="{{ sizeClass }}">
+                {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+                <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+                   class="pswp-link"
+                   title="{{ seo_title|e('html_attr') }}"
+                   data-image-id="{{ image.id }}"
+                   data-pswp-width="{{ image.width }}"
+                   data-pswp-height="{{ image.height }}"
+                   data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+                   data-title="{{ image.caption|default('')|e }}"
+                   data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                   data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+                   data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+                   data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+                   data-developer="{{ image.developer_name|default('')|e }}"
+                   data-lab="{{ image.lab_name|default('')|e }}"
+                   data-location="{{ image.location_name|default('')|e }}"
+                   data-iso="{{ image.iso|default('') }}"
+                   data-shutter="{{ image.shutter_speed|default('')|e }}"
+                   data-aperture="{{ image.aperture|default('') }}"
+                   data-focal-length="{{ image.focal_length|default('') }}"
+                   {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+                    <picture>
+                        {% set variants_avif = [] %}
+                        {% set variants_webp = [] %}
+                        {% set variants_jpg = [] %}
+                        {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                        {% set best_jpg_w = 0 %}
+                        {% for variant in image.variants %}
+                            {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+                            {% if variant.format == 'avif' %}
+                                {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                            {% elseif variant.format == 'webp' %}
+                                {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                            {% elseif variant.format == 'jpg' %}
+                                {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                {% if variant.width > best_jpg_w %}
+                                    {% set best_jpg_path = variant_url %}
+                                    {% set best_jpg_w = variant.width %}
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if variants_avif %}
+                            <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                        {% endif %}
+                        {% if variants_webp %}
+                            <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                        {% endif %}
+
+                        <img src="{{ best_jpg_path }}"
+                             alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                             title="{{ seo_title|e('html_attr') }}"
+                             loading="lazy"
+                             decoding="async"
+                             data-fallback="hide">
+                    </picture>
+                </a>
             </div>
-        </div>
-    {% elseif layout == 'fullscreen' %}
-        <div id="images-gallery" class="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            {% for image in images %}
-                {% include "frontend/_image_item.twig" %}
             {% endfor %}
         </div>
-    {% elseif layout == 'masonry_fit' %}
-        {# Modern Masonry layout using CSS columns - full images, no cropping #}
-        {% set gap_h = template_settings.gap.horizontal|default(16) %}
-        {% set gap_v = template_settings.gap.vertical|default(16) %}
-        <div id="images-gallery" class="masonry-fit-container pswp-gallery" data-layout="masonry_fit">
-            {% for image in images %}
-                {% include "frontend/_image_item_masonry.twig" %}
-            {% endfor %}
-        </div>
+
+    {# Masonry layout - uses @masonry-grid/vanilla for Pinterest-style waterfall #}
+    {% elseif layout == 'masonry' %}
         <style nonce="{{ csp_nonce() }}">
-        .masonry-fit-container {
-            column-gap: {{ gap_h }}px;
+        /* Modern Masonry Grid using @masonry-grid/vanilla */
+        /* The library uses translateY(%) for positioning - margin doesn't work! */
+        /* Gaps are created via inset on the inner container per library docs */
+        .gallery-masonry {
+            --masonry-gap-v: {{ gap_v }}px;
+            --masonry-gap-h: {{ gap_h }}px;
+            display: grid;
+            column-gap: var(--masonry-gap-h);
+            grid-template-columns: repeat({{ mobile_cols }}, 1fr);
+            align-items: start; /* Required: items need natural height for masonry transforms */
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
         }
-        .masonry-fit-container > .masonry-item {
-            break-inside: avoid;
-            margin-bottom: {{ gap_v }}px;
+        .gallery-masonry.masonry-ready {
+            opacity: 1;
         }
-        .masonry-fit-container .masonry-item img {
+        @media (min-width: 768px) {
+            .gallery-masonry {
+                grid-template-columns: repeat({{ tablet_cols }}, 1fr);
+            }
+        }
+        @media (min-width: 1024px) {
+            .gallery-masonry {
+                grid-template-columns: repeat({{ desktop_cols }}, 1fr);
+            }
+        }
+        /* Frame: NO overflow:hidden per library docs (breaks aspect-ratio calc) */
+        .gallery-masonry .masonry-frame {
+            position: relative;
+            aspect-ratio: var(--width) / var(--height);
+            /* No margin-bottom - translateY% ignores margins */
+        }
+        /* Inner container uses inset to create vertical gaps */
+        /* Each item has gap/2 on top and bottom = gap between items */
+        .gallery-masonry .masonry-frame > .frame-content {
+            position: absolute;
+            inset: calc(var(--masonry-gap-v) / 2) 0;
+            overflow: hidden;
+        }
+        .gallery-masonry .masonry-frame img {
             display: block;
             width: 100%;
-            height: auto;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
         }
-        @media (min-width: 1024px) {
-            .masonry-fit-container { column-count: {{ desktop_cols }}; }
+        .gallery-masonry .masonry-frame:hover img {
+            transform: scale(1.03);
         }
-        @media (min-width: 768px) and (max-width: 1023px) {
-            .masonry-fit-container { column-count: {{ tablet_cols }}; }
+        .no-js .gallery-masonry {
+            opacity: 1 !important;
         }
-        @media (max-width: 767px) {
-            .masonry-fit-container { column-count: {{ mobile_cols }}; }
+        @media (prefers-reduced-motion: reduce) {
+            .gallery-masonry { opacity: 1 !important; transition: none !important; }
+            .gallery-masonry .masonry-frame img { transition: none !important; }
         }
         </style>
-    {% elseif layout == 'magazine' %}
-        <div id="images-gallery" class="mt-6">
-            {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
-        </div>
-    {% elseif masonry %}
-        <div id="images-gallery" class="masonry-grid">
+
+        <div id="images-gallery"
+             class="gallery-masonry pswp-gallery"
+             data-layout="masonry"
+             data-gap-h="{{ gap_h }}"
+             data-gap-v="{{ gap_v }}"
+             data-cols-desktop="{{ desktop_cols }}"
+             data-cols-tablet="{{ tablet_cols }}"
+             data-cols-mobile="{{ mobile_cols }}"
+             data-rounded="{{ style.rounded ? '1' : '0' }}"
+             data-shadow="{{ style.shadow ? '1' : '0' }}"
+             data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
             {% for image in images %}
-                <div class="masonry-item">
-                    {% include "frontend/_image_item.twig" %}
+                {# Calculate aspect ratio for CSS variable #}
+                {% set imgW = image.width|default(4) %}
+                {% set imgH = image.height|default(3) %}
+                <div class="masonry-frame" style="--width: {{ imgW }}; --height: {{ imgH }};">
+                    <div class="frame-content group {{ rounded_class }} {{ shadow_class }}">
+                        {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+                        <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+                           class="pswp-link gallery-link block w-full h-full overflow-hidden bg-neutral-100 cursor-pointer {{ rounded_class }}"
+                           title="{{ seo_title|e('html_attr') }}"
+                           data-image-id="{{ image.id }}"
+                           data-pswp-width="{{ image.width }}"
+                           data-pswp-height="{{ image.height }}"
+                           data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+                           data-title="{{ image.caption|default('')|e }}"
+                           data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                           data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+                           data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+                           data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+                           data-developer="{{ image.developer_name|default('')|e }}"
+                           data-lab="{{ image.lab_name|default('')|e }}"
+                           data-location="{{ image.location_name|default('')|e }}"
+                           data-iso="{{ image.iso|default('') }}"
+                           data-shutter="{{ image.shutter_speed|default('')|e }}"
+                           data-aperture="{{ image.aperture|default('') }}"
+                           data-focal-length="{{ image.focal_length|default('') }}"
+                           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+                            <picture>
+                                {% set variants_avif = [] %}
+                                {% set variants_webp = [] %}
+                                {% set variants_jpg = [] %}
+                                {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                                {% set best_jpg_w = 0 %}
+                                {% for variant in image.variants %}
+                                    {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+                                    {% if variant.format == 'avif' %}
+                                        {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                    {% elseif variant.format == 'webp' %}
+                                        {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                    {% elseif variant.format == 'jpg' %}
+                                        {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                        {% if variant.width > best_jpg_w %}
+                                            {% set best_jpg_path = variant_url %}
+                                            {% set best_jpg_w = variant.width %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if variants_avif %}
+                                    <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                {% endif %}
+                                {% if variants_webp %}
+                                    <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                {% endif %}
+
+                                <img src="{{ best_jpg_path }}"
+                                     alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                                     title="{{ seo_title|e('html_attr') }}"
+                                     loading="lazy"
+                                     decoding="async"
+                                     data-fallback="hide">
+                            </picture>
+                            {% if album.allow_downloads %}
+                                <button type="button"
+                                        class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
+                                        title="{{ trans('image.download') }}"
+                                        data-action="download-image"
+                                        data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+                                    <i class="fa-solid fa-arrow-down text-sm"></i>
+                                </button>
+                            {% endif %}
+                            {% if image.caption %}
+                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm p-4 pt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                    {{ image.caption|e }}
+                                </div>
+                            {% endif %}
+                        </a>
+                    </div>
                 </div>
             {% endfor %}
+            {# Empty div for masonry-grid internal calculations #}
+            <div></div>
         </div>
+
+    {# Grid layout - CSS Grid with fixed aspect ratios #}
+    {% else %}
         <style nonce="{{ csp_nonce() }}">
-        #images-gallery.masonry-grid {
-            display: block;
-            column-gap: 1rem;
-            column-fill: auto;
-        }
-        #images-gallery.masonry-grid .masonry-item {
-            break-inside: avoid;
-            margin-bottom: 1rem;
+        .gallery-grid {
+            display: grid;
+            gap: {{ gap_v }}px {{ gap_h }}px;
         }
         @media (min-width: 1024px) {
-            #images-gallery.masonry-grid { column-count: {{ desktop_cols }}; }
+            .gallery-grid { grid-template-columns: repeat({{ desktop_cols }}, 1fr); }
         }
         @media (min-width: 768px) and (max-width: 1023px) {
-            #images-gallery.masonry-grid { column-count: {{ tablet_cols }}; }
+            .gallery-grid { grid-template-columns: repeat({{ tablet_cols }}, 1fr); }
         }
         @media (max-width: 767px) {
-            #images-gallery.masonry-grid { column-count: {{ mobile_cols }}; }
+            .gallery-grid { grid-template-columns: repeat({{ mobile_cols }}, 1fr); }
         }
         </style>
-    {% else %}
-        {# Generate responsive grid classes #}
-        {% set mobile_class = 'grid-cols-' ~ mobile_cols %}
-        {% set tablet_class = 'md:grid-cols-' ~ tablet_cols %}  
-        {% set desktop_class = 'lg:grid-cols-' ~ desktop_cols %}
-        
-        <div id="images-gallery" class="grid {{ mobile_class }} {{ tablet_class }} {{ desktop_class }} gap-4">
+
+        <div id="images-gallery"
+             class="gallery-grid pswp-gallery"
+             data-layout="grid"
+             data-gap-h="{{ gap_h }}"
+             data-gap-v="{{ gap_v }}"
+             data-cols-desktop="{{ desktop_cols }}"
+             data-cols-tablet="{{ tablet_cols }}"
+             data-cols-mobile="{{ mobile_cols }}"
+             data-aspect-ratio="{{ aspect_ratio }}"
+             data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
             {% for image in images %}
-                {% include "frontend/_image_item.twig" %}
+                <div class="gallery-item">
+                    {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                    {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+                    <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+                       class="pswp-link gallery-link group block overflow-hidden bg-neutral-100 cursor-pointer {{ aspect_class }} {{ rounded_class }} {{ shadow_class }}"
+                       title="{{ seo_title|e('html_attr') }}"
+                       data-image-id="{{ image.id }}"
+                       data-pswp-width="{{ image.width }}"
+                       data-pswp-height="{{ image.height }}"
+                       data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+                       data-title="{{ image.caption|default('')|e }}"
+                       data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                       data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+                       data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+                       data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+                       data-developer="{{ image.developer_name|default('')|e }}"
+                       data-lab="{{ image.lab_name|default('')|e }}"
+                       data-location="{{ image.location_name|default('')|e }}"
+                       data-iso="{{ image.iso|default('') }}"
+                       data-shutter="{{ image.shutter_speed|default('')|e }}"
+                       data-aperture="{{ image.aperture|default('') }}"
+                       data-focal-length="{{ image.focal_length|default('') }}"
+                       {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+                        <picture>
+                            {% set variants_avif = [] %}
+                            {% set variants_webp = [] %}
+                            {% set variants_jpg = [] %}
+                            {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                            {% set best_jpg_w = 0 %}
+                            {% for variant in image.variants %}
+                                {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+                                {% if variant.format == 'avif' %}
+                                    {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                {% elseif variant.format == 'webp' %}
+                                    {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                {% elseif variant.format == 'jpg' %}
+                                    {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                    {% if variant.width > best_jpg_w %}
+                                        {% set best_jpg_path = variant_url %}
+                                        {% set best_jpg_w = variant.width %}
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if variants_avif %}
+                                <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                            {% endif %}
+                            {% if variants_webp %}
+                                <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                            {% endif %}
+
+                            <img src="{{ best_jpg_path }}"
+                                 alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                                 title="{{ seo_title|e('html_attr') }}"
+                                 width="{{ image.width }}"
+                                 height="{{ image.height }}"
+                                 loading="lazy"
+                                 decoding="async"
+                                 data-fallback="hide"
+                                 class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">
+                        </picture>
+                        {% if album.allow_downloads %}
+                            <button type="button"
+                                    class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
+                                    title="{{ trans('image.download') }}"
+                                    data-action="download-image"
+                                    data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+                                <i class="fa-solid fa-arrow-down text-sm"></i>
+                            </button>
+                        {% endif %}
+                        {% if image.caption %}
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm p-4 pt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                {{ image.caption|e }}
+                            </div>
+                        {% endif %}
+                    </a>
+                </div>
             {% endfor %}
         </div>
     {% endif %}
@@ -696,138 +954,384 @@ document.addEventListener('click', function(event) {
 // Global base path for API calls
 window.basePath = '{{ base_path }}';
 
-// Template settings
-const templateSettings = JSON.parse('{{ template_settings ? template_settings|json_encode|e('js') : '{}' }}');
+// Template settings (also expose globally for template switcher)
+const templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
+window.templateSettings = templateSettings;
 const layout = templateSettings.layout || 'grid';
-const masonry = templateSettings.masonry || false;
+const templateSlug = templateSettings.template_slug || '';
 
-// Initialize layout-specific features
-if (layout === 'slideshow') {
-    // Initialize Swiper if available
-    if (typeof Swiper !== 'undefined') {
-        new Swiper('.gallery-swiper', {
-            navigation: {
-                nextEl: '.swiper-button-next',
-                prevEl: '.swiper-button-prev',
-            },
-            pagination: {
-                el: '.swiper-pagination',
-                clickable: true,
-            },
-            loop: templateSettings.photoswipe?.loop || true,
-            autoplay: {
-                delay: 5000,
-                disableOnInteraction: false,
-            },
-            effect: 'fade',
-            fadeEffect: {
-                crossFade: true
-            },
+/**
+ * Masonry Portfolio initialization using Masonry + imagesLoaded
+ */
+function initMasonryPortfolio(containerOrSelector) {
+    const grid = typeof containerOrSelector === 'string'
+        ? document.querySelector(containerOrSelector)
+        : containerOrSelector || document.querySelector('.masonry-portfolio-grid');
+
+    if (!grid || typeof Masonry === 'undefined' || typeof imagesLoaded === 'undefined') return null;
+    if (grid._masonryPortfolioInitialized) return grid._masonryPortfolioInstance;
+
+    const gapH = parseInt(grid.dataset.gapH || '16', 10);
+    const mpType = (window.templateSettings?.masonry_portfolio?.type || 'balanced');
+    const horizontalOrder = mpType === 'regular';
+
+    if (grid._masonryPortfolioInstance) {
+        grid._masonryPortfolioInstance.destroy();
+        grid._masonryPortfolioInstance = null;
+    }
+
+    grid._masonryPortfolioInitialized = true;
+    grid._masonryPortfolioInstance = new Masonry(grid, {
+        itemSelector: '.photo-item',
+        columnWidth: '.grid-sizer',
+        gutter: gapH,
+        percentPosition: true,
+        horizontalOrder: horizontalOrder,
+        transitionDuration: '0.3s'
+    });
+
+    imagesLoaded(grid).on('progress', function(instance, image) {
+        const img = image.img || null;
+        if (img) {
+            img.classList.add('is-loaded');
+            const item = img.closest('.photo-item');
+            if (item) item.classList.add('is-loaded');
+        }
+        grid._masonryPortfolioInstance.layout();
+    });
+
+    if (!grid._masonryPortfolioResizeHandler) {
+        grid._masonryPortfolioResizeHandler = function() {
+            clearTimeout(grid._masonryPortfolioResizeTimer);
+            grid._masonryPortfolioResizeTimer = setTimeout(() => {
+                if (grid._masonryPortfolioInstance) {
+                    grid._masonryPortfolioInstance.layout();
+                }
+            }, 200);
+        };
+        window.addEventListener('resize', grid._masonryPortfolioResizeHandler);
+    }
+
+    return grid._masonryPortfolioInstance;
+}
+
+window.initMasonryPortfolio = initMasonryPortfolio;
+
+function initCreativeLayout(containerOrSelector) {
+    const container = typeof containerOrSelector === 'string'
+        ? document.querySelector(containerOrSelector)
+        : containerOrSelector || document.querySelector('.creative-gallery');
+
+    if (!container) return;
+    const images = container.querySelectorAll('img');
+    images.forEach((img) => {
+        if (img.complete) {
+            img.classList.add('loaded');
+            const loading = img.closest('.img-container')?.querySelector('.loading');
+            if (loading) loading.remove();
+        } else {
+            img.addEventListener('load', function() {
+                img.classList.add('loaded');
+                const loading = img.closest('.img-container')?.querySelector('.loading');
+                if (loading) loading.remove();
+            }, { once: true });
+        }
+    });
+
+    if (!container._creativeHoverBound) {
+        container._creativeHoverBound = true;
+        document.addEventListener('mousemove', function(e) {
+            const hovers = container.querySelectorAll('.img-content-hover');
+            hovers.forEach(function(element) {
+                if (element.style.display === 'block' || window.getComputedStyle(element).display === 'block') {
+                    const x = e.pageX + 20;
+                    const y = e.pageY + 20;
+                    element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+                }
+            });
         });
     }
 }
-// Masonry.js initialization - only for explicit JS masonry layouts (not CSS columns)
-if (masonry && (layout === 'masonry' || templateSettings.masonry_js === true) && typeof Masonry !== 'undefined') {
-    const container = document.getElementById('images-gallery');
-    if (container) {
-        const gap = parseInt(container.dataset.masonryGap) || 16;
-        const masonryOptions = {
-            itemSelector: '.masonry-item',
-            percentPosition: true,
-            gutter: gap,
-            transitionDuration: '0.3s'
-        };
 
-        const initMasonry = () => {
-            if (typeof imagesLoaded !== 'undefined') {
-                imagesLoaded(container, function(){
-                    new Masonry(container, masonryOptions);
-                    if (window.lenisResize) window.lenisResize();
-                });
-            } else {
-                new Masonry(container, masonryOptions);
-                if (window.lenisResize) window.lenisResize();
-            }
-        };
-        if (document.readyState === 'complete') {
-            initMasonry();
-        } else {
-            window.addEventListener('load', initMasonry);
-        }
+window.initCreativeLayout = initCreativeLayout;
+
+function initGalleryWallScroll(containerOrSelector) {
+    const container = typeof containerOrSelector === 'string'
+        ? document.querySelector(containerOrSelector)
+        : containerOrSelector || document.querySelector('.gallery-wall');
+
+    if (!container) return;
+
+    document.body.classList.add('gallery-wall-page');
+
+    const section = container.querySelector('#galleryWallSection') || container.querySelector('.gallery-wall-section');
+    const track = container.querySelector('#galleryWallTrack') || container.querySelector('.gallery-wall-track');
+    if (!section || !track) return;
+
+    if (container._wallScrollCleanup) {
+        container._wallScrollCleanup();
     }
+
+    let maxScroll = 0;
+    const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
+    function updateMetrics() {
+        const trackWidth = track.scrollWidth;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        maxScroll = Math.max(0, trackWidth - windowWidth);
+        const sectionHeight = maxScroll + windowHeight;
+        section.style.height = sectionHeight + 'px';
+    }
+
+    function updateTrack() {
+        if (isMobile()) {
+            track.style.transform = 'translateX(0px)';
+            return;
+        }
+        const rect = section.getBoundingClientRect();
+        const sectionScrollHeight = section.offsetHeight - window.innerHeight;
+        const scrollInSection = Math.max(0, -rect.top);
+        const progress = sectionScrollHeight > 0 ? Math.min(1, scrollInSection / sectionScrollHeight) : 0;
+        track.style.transform = `translateX(${-progress * maxScroll}px)`;
+    }
+
+    const onScroll = () => requestAnimationFrame(updateTrack);
+    const onResize = () => {
+        updateMetrics();
+        updateTrack();
+        if (window.lenisResize) setTimeout(window.lenisResize, 100);
+    };
+    let dragActive = false;
+    let dragStartX = 0;
+    let dragStartScroll = 0;
+    let dragSectionStart = 0;
+    const startDrag = (clientX) => {
+        if (isMobile() || maxScroll === 0) return;
+        dragActive = true;
+        dragStartX = clientX;
+        dragSectionStart = window.scrollY + section.getBoundingClientRect().top;
+        dragStartScroll = Math.max(0, window.scrollY - dragSectionStart);
+        section.style.cursor = 'grabbing';
+    };
+    const moveDrag = (clientX, evt) => {
+        if (!dragActive || isMobile() || maxScroll === 0) return;
+        const dx = clientX - dragStartX;
+        const nextScroll = Math.max(0, Math.min(maxScroll, dragStartScroll - dx));
+        if (nextScroll !== dragStartScroll) {
+            if (evt) evt.preventDefault();
+            window.scrollTo({ top: dragSectionStart + nextScroll, left: 0, behavior: 'auto' });
+            updateTrack();
+        }
+    };
+    const endDrag = () => {
+        if (!dragActive) return;
+        dragActive = false;
+        section.style.cursor = '';
+    };
+    const onMouseDown = (e) => {
+        if (e.button !== 0) return;
+        startDrag(e.clientX);
+    };
+    const onMouseMove = (e) => {
+        if (!dragActive) return;
+        moveDrag(e.clientX, e);
+    };
+    const onMouseUp = () => endDrag();
+    const onTouchStart = (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        startDrag(e.touches[0].clientX);
+    };
+    const onTouchMove = (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        moveDrag(e.touches[0].clientX, e);
+    };
+    const onTouchEnd = () => endDrag();
+
+    updateMetrics();
+    updateTrack();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+    section.addEventListener('mousedown', onMouseDown);
+    section.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    section.addEventListener('touchstart', onTouchStart, { passive: true });
+    section.addEventListener('touchmove', onTouchMove, { passive: false });
+    section.addEventListener('touchend', onTouchEnd);
+    section.addEventListener('touchcancel', onTouchEnd);
+
+    container._wallScrollCleanup = () => {
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onResize);
+        section.removeEventListener('mousedown', onMouseDown);
+        section.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+        section.removeEventListener('touchstart', onTouchStart);
+        section.removeEventListener('touchmove', onTouchMove);
+        section.removeEventListener('touchend', onTouchEnd);
+        section.removeEventListener('touchcancel', onTouchEnd);
+    };
 }
 
-// masonry_fit uses pure CSS columns - no JavaScript initialization needed
+window.initGalleryWallScroll = initGalleryWallScroll;
 
-// Masonry Portfolio (template 2) - reuse home masonry behavior without infinite cloning
-if ('{{ template_slug|default('') }}' === 'masonry-portfolio' && (templateSettings?.layout === 'masonry_portfolio' || templateSettings?.masonry)) {
-    const grid = document.querySelector('#images-gallery.masonry-portfolio');
-    if (grid && typeof Masonry !== 'undefined') {
-        const config = {
-            gapH: parseInt(grid.dataset.gapH, 10) || 0,
-            gapV: parseInt(grid.dataset.gapV, 10) || 0,
-            colsMobile: parseInt(grid.dataset.colsMobile, 10) || 2,
-            colsTablet: parseInt(grid.dataset.colsTablet, 10) || 3,
-            colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5
-        };
+/**
+ * Modern Masonry initialization using @masonry-grid/vanilla
+ * Uses CSS Grid + percentage-based transforms for efficient layout
+ * No pixel calculations needed - browser handles responsiveness natively
+ */
+function initGalleryMasonry(containerOrSelector) {
+    const grid = typeof containerOrSelector === 'string'
+        ? document.querySelector(containerOrSelector)
+        : containerOrSelector || document.querySelector('.gallery-masonry');
 
-        function getColumnCount() {
-            const width = window.innerWidth;
-            if (width >= 1025) return config.colsDesktop;
-            if (width >= 641) return config.colsTablet;
-            return config.colsMobile;
-        }
+    if (!grid) return null;
+    if (grid._masonryInitialized) return grid._masonryInstance;
 
-        function setItemWidths(itemsOverride) {
-            const cols = getColumnCount();
-            const containerWidth = grid.offsetWidth;
-            const totalGaps = config.gapH * (cols - 1);
-            const width = Math.floor((containerWidth - totalGaps) / cols);
-            const items = itemsOverride || grid.querySelectorAll('.masonry-item');
-            for (let i = 0; i < items.length; i += 1) {
-                items[i].style.width = width + 'px';
-                items[i].style.marginBottom = config.gapV + 'px';
+    // Check if masonry classes are available
+    if (typeof BalancedMasonryGrid === 'undefined' && typeof RegularMasonryGrid === 'undefined') {
+        console.warn('Masonry classes not loaded, using CSS Grid fallback');
+        grid.classList.add('masonry-ready');
+        return null;
+    }
+
+    grid._masonryInitialized = true;
+
+    // Destroy existing instance if any
+    if (grid._masonryInstance) {
+        grid._masonryInstance.destroy();
+        grid._masonryInstance = null;
+    }
+
+    // Choose masonry class based on template settings
+    // 'balanced' = BalancedMasonryGrid (reorders items to minimize height)
+    // 'regular' = RegularMasonryGrid (maintains DOM order, uses translateY)
+    const masonryType = window.templateSettings?.masonry?.type || 'balanced';
+    const MasonryClass = masonryType === 'regular' ? RegularMasonryGrid : BalancedMasonryGrid;
+
+    // Create masonry instance - it handles everything!
+    // The library uses ResizeObserver and MutationObserver internally
+    grid._masonryInstance = new MasonryClass(grid);
+
+    // Show the grid with smooth fade-in
+    requestAnimationFrame(() => {
+        grid.classList.add('masonry-ready');
+        if (window.lenisResize) setTimeout(window.lenisResize, 100);
+    });
+
+    return grid._masonryInstance;
+}
+
+// Make initGalleryMasonry globally available for template switcher
+window.initGalleryMasonry = initGalleryMasonry;
+
+/**
+ * Dense Grid initialization - CSS Grid with auto-flow dense
+ * Handles adaptive sizing based on image aspect ratios
+ */
+function initDenseGrid(containerOrSelector) {
+    const grid = typeof containerOrSelector === 'string'
+        ? document.querySelector(containerOrSelector)
+        : containerOrSelector || document.querySelector('.dense-grid');
+
+    if (!grid) return;
+    if (grid._denseGridInitialized) return;
+    grid._denseGridInitialized = true;
+
+    const adaptive = grid.dataset.adaptive === 'true';
+
+    // Process all items and apply adaptive sizing classes
+    const items = grid.querySelectorAll('.dense-grid-item');
+    items.forEach(item => {
+        const w = parseInt(item.dataset.width, 10) || 0;
+        const h = parseInt(item.dataset.height, 10) || 0;
+
+        if (w > 0 && h > 0 && adaptive) {
+            const ratio = w / h;
+            // Remove existing classes
+            item.classList.remove('landscape', 'portrait-tall', 'square-large');
+
+            if (ratio > 1.5) {
+                // Wide landscape - span 2 columns
+                item.classList.add('landscape');
+            } else if (ratio < 0.6) {
+                // Tall portrait - span 2 rows
+                item.classList.add('portrait-tall');
+            } else if (w > 2000 && h > 2000) {
+                // Large square-ish - span 2x2
+                item.classList.add('square-large');
             }
         }
 
-        function initMasonryPortfolio() {
-            grid.classList.add('masonry-active');
-            setItemWidths();
-            const msnry = new Masonry(grid, {
-                itemSelector: '.masonry-item',
-                columnWidth: '.masonry-item',
-                gutter: config.gapH,
-                percentPosition: false,
-                horizontalOrder: true,
-                transitionDuration: 0
-            });
-            msnry.layout();
-            requestAnimationFrame(() => {
-                msnry.layout();
-                grid.classList.add('masonry-ready');
-            });
-
-            const items = grid.querySelectorAll('.masonry-item');
-            for (let i = 0; i < items.length; i += 1) {
-                items[i].classList.add('fade-in');
+        // Handle image load event
+        const img = item.querySelector('.dense-grid-img');
+        if (img) {
+            const spinner = item.querySelector('.dense-loading');
+            if (img.complete) {
+                img.classList.add('loaded');
+                if (spinner) spinner.style.display = 'none';
+            } else {
+                img.addEventListener('load', function() {
+                    img.classList.add('loaded');
+                    if (spinner) spinner.style.display = 'none';
+                });
+                img.addEventListener('error', function() {
+                    if (spinner) spinner.style.display = 'none';
+                });
             }
-
-            window.addEventListener('resize', () => {
-                setItemWidths();
-                msnry.layout();
-            }, { passive: true });
         }
+    });
 
-        if (typeof imagesLoaded !== 'undefined') {
-            imagesLoaded(grid, initMasonryPortfolio);
+    // Staggered fade-in animation
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!prefersReducedMotion) {
+        items.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(20px)';
             setTimeout(() => {
-                if (!grid.classList.contains('masonry-ready')) {
-                    initMasonryPortfolio();
-                }
-            }, 4000);
-        } else {
-            initMasonryPortfolio();
-        }
+                item.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                item.style.opacity = '1';
+                item.style.transform = 'translateY(0)';
+            }, index * 30);
+        });
+    }
+
+    if (window.lenisResize) setTimeout(window.lenisResize, 100);
+}
+
+// Make initDenseGrid globally available
+window.initDenseGrid = initDenseGrid;
+
+// Initialize layout on page load
+if (templateSlug === 'grid-ampia') {
+    if (document.readyState === 'complete') {
+        initCreativeLayout();
+    } else {
+        window.addEventListener('load', () => initCreativeLayout());
+    }
+} else if (templateSlug === 'gallery-wall-scroll') {
+    if (document.readyState === 'complete') {
+        initGalleryWallScroll();
+    } else {
+        window.addEventListener('load', () => initGalleryWallScroll());
+    }
+} else if (templateSlug === 'masonry-portfolio') {
+    if (document.readyState === 'complete') {
+        initMasonryPortfolio();
+    } else {
+        window.addEventListener('load', () => initMasonryPortfolio());
+    }
+} else if (layout === 'masonry') {
+    if (document.readyState === 'complete') {
+        initGalleryMasonry();
+    } else {
+        window.addEventListener('load', () => initGalleryMasonry());
+    }
+} else if (layout === 'dense_grid') {
+    if (document.readyState === 'complete') {
+        initDenseGrid();
+    } else {
+        window.addEventListener('load', () => initDenseGrid());
     }
 }
 
@@ -847,16 +1351,175 @@ function initMagazineAutoscroll() {
         if (tablet) tablet.style.display = isTablet ? 'flex' : 'none';
         if (desk) desk.style.display = isDesktop ? 'flex' : 'none';
 
+        var activeWrap = isMobile ? mob : (isTablet ? tablet : desk);
+        if (activeWrap) {
+            activeWrap.querySelectorAll('source[data-srcset]').forEach(function(source) {
+                source.setAttribute('srcset', source.getAttribute('data-srcset'));
+                source.removeAttribute('data-srcset');
+            });
+            activeWrap.querySelectorAll('img[data-src]').forEach(function(img) {
+                img.setAttribute('src', img.getAttribute('data-src'));
+                img.removeAttribute('data-src');
+            });
+        }
+
+        var trackOriginals = new WeakMap();
+        var ensureTrackFill = function(track, colHeight) {
+            if (!track || !colHeight) return;
+            var originals = trackOriginals.get(track);
+            if (!originals) {
+                originals = Array.from(track.children);
+                trackOriginals.set(track, originals);
+            }
+            if (!originals.length) return;
+            var minHeight = colHeight * 2;
+            var loops = 0;
+            while (track.scrollHeight < minHeight && loops < 12) {
+                var frag = document.createDocumentFragment();
+                originals.forEach(function(node) {
+                    var clone = node.cloneNode(true);
+                    var link = clone.querySelector && clone.querySelector('a.pswp-link');
+                    if (link) link.classList.add('pswp-is-duplicate');
+                    frag.appendChild(clone);
+                });
+                track.appendChild(frag);
+                loops += 1;
+            }
+        };
+        var forceEager = function(scope) {
+            if (!scope) return;
+            scope.querySelectorAll('img[loading="lazy"]').forEach(function(img) {
+                img.setAttribute('loading', 'eager');
+            });
+        };
+
         container.querySelectorAll('.m-col').forEach(function(col) {
             var track = col.querySelector('.m-track'); if (!track) return;
+            ensureTrackFill(track, col.clientHeight || window.innerHeight);
+            forceEager(track);
             track.style.animation = 'none';
             track.offsetHeight;
             var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
             var dur = (getComputedStyle(col).getPropertyValue('--m-duration') || '60s').trim() || '60s';
             var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
             track.style.animation = anim;
-            track.style.animationPlayState = 'running';
+            track.style.animationPlayState = '';
         });
+
+        var mobileTrack = container.querySelector('.m-mobile-track');
+        if (mobileTrack) {
+            var mobWrap = mobileTrack.closest('.m-mobile') || mobileTrack.parentElement;
+            ensureTrackFill(mobileTrack, (mobWrap && mobWrap.clientHeight) || window.innerHeight);
+            forceEager(mobileTrack);
+        }
+
+        var rerun = function() {
+            container.querySelectorAll('.m-col').forEach(function(col) {
+                var track = col.querySelector('.m-track'); if (!track) return;
+                ensureTrackFill(track, col.clientHeight || window.innerHeight);
+            });
+            var mobTrack = container.querySelector('.m-mobile-track');
+            if (mobTrack) {
+                var wrap = mobTrack.closest('.m-mobile') || mobTrack.parentElement;
+                ensureTrackFill(mobTrack, (wrap && wrap.clientHeight) || window.innerHeight);
+            }
+        };
+        setTimeout(rerun, 200);
+        setTimeout(rerun, 800);
+
+        if (!container._magazineDragBound) {
+            container._magazineDragBound = true;
+            var dragState = { active: false, moved: false, startX: 0, startY: 0, startScroll: 0, sectionTop: 0, col: null };
+            var startDrag = function(clientX, clientY, target) {
+                dragState.active = true;
+                dragState.moved = false;
+                dragState.col = target;
+                dragState.sectionTop = container.getBoundingClientRect().top + window.scrollY;
+                dragState.startX = clientX;
+                dragState.startY = clientY;
+                dragState.startScroll = window.scrollY;
+                target.style.cursor = 'grabbing';
+            };
+            var moveDrag = function(clientX, clientY, ev) {
+                if (!dragState.active) return;
+                var dx = clientX - dragState.startX;
+                var dy = clientY - dragState.startY;
+                if (Math.abs(dy) > Math.abs(dx)) return;
+                if (Math.abs(dx) <= 8) return;
+                if (!dragState.moved) {
+                    dragState.moved = true;
+                    document.body.classList.add('magazine-dragging');
+                }
+                if (ev) ev.preventDefault();
+                var nextTop = dragState.startScroll - dx;
+                var maxTop = dragState.sectionTop + Math.max(0, container.offsetHeight - window.innerHeight);
+                if (nextTop < dragState.sectionTop) nextTop = dragState.sectionTop;
+                if (nextTop > maxTop) nextTop = maxTop;
+                window.scrollTo({ top: nextTop, left: 0, behavior: 'auto' });
+            };
+            var endDrag = function() {
+                if (!dragState.active) return;
+                dragState.active = false;
+                if (dragState.col) dragState.col.style.cursor = '';
+                dragState.col = null;
+                document.body.classList.remove('magazine-dragging');
+                if (dragState.moved) {
+                    var guard = function(clickEv) {
+                        if (container.contains(clickEv.target)) {
+                            clickEv.preventDefault();
+                            clickEv.stopPropagation();
+                        }
+                        container.removeEventListener('click', guard, true);
+                    };
+                    container.addEventListener('click', guard, true);
+                }
+            };
+            var onMouseDown = function(ev) {
+                if (ev.button !== 0) return;
+                var target = ev.target.closest ? ev.target.closest('.m-col') : null;
+                if (!target) return;
+                ev.preventDefault();
+                startDrag(ev.clientX, ev.clientY, target);
+            };
+            var onMouseMove = function(ev) { moveDrag(ev.clientX, ev.clientY, ev); };
+            var onMouseUp = function() { endDrag(); };
+            var onTouchStart = function(ev) {
+                if (!ev.touches || ev.touches.length !== 1) return;
+                var target = ev.target.closest ? ev.target.closest('.m-col') : null;
+                if (!target) return;
+                startDrag(ev.touches[0].clientX, ev.touches[0].clientY, target);
+            };
+            var onTouchMove = function(ev) {
+                if (!ev.touches || ev.touches.length !== 1) return;
+                moveDrag(ev.touches[0].clientX, ev.touches[0].clientY, ev);
+            };
+            var onTouchEnd = function() { endDrag(); };
+            var onDragStart = function(ev) { ev.preventDefault(); };
+            var onWindowBlur = function() { endDrag(); };
+            var onVisibility = function() { if (document.hidden) endDrag(); };
+            container.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+            container.addEventListener('touchstart', onTouchStart, { passive: true });
+            window.addEventListener('touchmove', onTouchMove, { passive: false });
+            window.addEventListener('touchend', onTouchEnd);
+            window.addEventListener('touchcancel', onTouchEnd);
+            container.addEventListener('dragstart', onDragStart);
+            window.addEventListener('blur', onWindowBlur);
+            document.addEventListener('visibilitychange', onVisibility);
+            container._magazineDragCleanup = function() {
+                container.removeEventListener('mousedown', onMouseDown);
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+                container.removeEventListener('touchstart', onTouchStart);
+                window.removeEventListener('touchmove', onTouchMove);
+                window.removeEventListener('touchend', onTouchEnd);
+                window.removeEventListener('touchcancel', onTouchEnd);
+                container.removeEventListener('dragstart', onDragStart);
+                window.removeEventListener('blur', onWindowBlur);
+                document.removeEventListener('visibilitychange', onVisibility);
+            };
+        }
     } catch(e) {
         console.error('initMagazineAutoscroll error:', e);
     }
@@ -874,86 +1537,33 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
     const albumId = {{ album.id }};
     const process = document.getElementById('image-filter-process')?.value || '';
     const camera = document.getElementById('image-filter-camera')?.value || '';
-    
+
     const params = new URLSearchParams();
     if (process) params.set('process', process);
     if (camera) params.set('camera', camera);
-    
+
     try {
         const response = await fetch(`${window.basePath}/api/album/${albumId}/images?${params}`);
         const data = await response.json();
-        
+
         const gallery = document.getElementById('images-gallery');
         gallery.innerHTML = data.itemsHtml;
 
-        // Re-initialize layout after filter
-        if (layout === 'masonry_fit') {
-            // masonry_fit: uses pure CSS columns - no JavaScript reinitialization needed
-            if (window.lenisResize) window.lenisResize();
-        } else if ('{{ template_slug|default('') }}' === 'masonry-portfolio' && (templateSettings?.layout === 'masonry_portfolio' || templateSettings?.masonry)) {
-            const grid = document.querySelector('#images-gallery.masonry-portfolio');
-            if (grid && typeof Masonry !== 'undefined') {
-                if (grid._masonryInstance) {
-                    grid._masonryInstance.destroy();
-                    grid._masonryInstance = null;
-                }
-                const initMasonryPortfolio = function() {
-                    const gapH = parseInt(grid.dataset.gapH, 10) || 0;
-                    const gapV = parseInt(grid.dataset.gapV, 10) || 0;
-                    const colsDesktop = parseInt(grid.dataset.colsDesktop, 10) || 5;
-                    const colsTablet = parseInt(grid.dataset.colsTablet, 10) || 3;
-                    const colsMobile = parseInt(grid.dataset.colsMobile, 10) || 2;
-                    const cols = window.innerWidth >= 1025 ? colsDesktop : (window.innerWidth >= 641 ? colsTablet : colsMobile);
-                    const containerWidth = grid.offsetWidth;
-                    const totalGaps = gapH * (cols - 1);
-                    const itemWidth = Math.floor((containerWidth - totalGaps) / cols);
-                    grid.querySelectorAll('.masonry-item').forEach(function(item) {
-                        item.style.width = itemWidth + 'px';
-                        item.style.marginBottom = gapV + 'px';
-                    });
-                    const msnry = new Masonry(grid, {
-                        itemSelector: '.masonry-item',
-                        columnWidth: '.masonry-item',
-                        gutter: gapH,
-                        percentPosition: false,
-                        horizontalOrder: true,
-                        transitionDuration: 0
-                    });
-                    grid._masonryInstance = msnry;
-                    msnry.layout();
-                    grid.classList.add('masonry-ready');
-                };
-                if (typeof imagesLoaded !== 'undefined') {
-                    imagesLoaded(grid, initMasonryPortfolio);
-                } else {
-                    initMasonryPortfolio();
-                }
-            }
-        } else if (masonry && (layout === 'masonry' || templateSettings.masonry_js === true) && typeof Masonry !== 'undefined') {
-            // Regular masonry layout - requires Masonry library
-            // Destroy existing instance before reinit
-            if (gallery._masonryInstance) {
-                gallery._masonryInstance.destroy();
-                gallery._masonryInstance = null;
-            }
-
-            const initMasonry = function() {
-                const msnry = new Masonry(gallery, { itemSelector: '.masonry-item', percentPosition: true });
-                gallery._masonryInstance = msnry;
-            };
-
-            if (typeof imagesLoaded !== 'undefined') {
-                imagesLoaded(gallery, initMasonry);
-            } else {
-                initMasonry();
-            }
+        // Re-initialize masonry layout after filter if needed
+        if (templateSlug === 'grid-ampia') {
+            initCreativeLayout(gallery);
+        } else if (templateSlug === 'gallery-wall-scroll') {
+            initGalleryWallScroll(gallery);
+        } else if (templateSlug === 'masonry-portfolio') {
+            initMasonryPortfolio(gallery);
+        } else if (layout === 'masonry') {
+            initGalleryMasonry(gallery);
         }
-        
-        // Animate filtered results - use direct children only
+
+        // Animate filtered results
         if (typeof gsap !== 'undefined') {
-            const newItems = Array.from(gallery.children).filter(n => !n.hasAttribute('data-animated'));
+            const newItems = Array.from(gallery.querySelectorAll('.gallery-item, .photo-item')).filter(n => !n.hasAttribute('data-animated'));
             if (newItems.length > 0) {
-                // Use fromTo with explicit values - set data-animated in onComplete
                 gsap.fromTo(newItems,
                     { opacity: 0, scale: 0.9 },
                     {
@@ -967,7 +1577,9 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
                 );
             }
         }
-        
+
+        if (window.lenisResize) window.lenisResize();
+
     } catch (error) {
         console.error('Failed to filter images:', error);
     }
@@ -1102,5 +1714,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+{# Load masonry-grid library for masonry layout #}
+{% if layout == 'masonry' and tpl_slug != 'masonry-portfolio' %}
+<script type="module" nonce="{{ csp_nonce() }}">
+import { BalancedMasonryGrid, RegularMasonryGrid } from '{{ base_path }}/assets/vendor/masonry-grid/index.js';
+window.BalancedMasonryGrid = BalancedMasonryGrid;
+window.RegularMasonryGrid = RegularMasonryGrid;
+window._masonryGridReady = true;
+window.dispatchEvent(new CustomEvent('masonry-grid-ready'));
+
+// Re-initialize masonry now that library is loaded
+if (document.readyState === 'complete') {
+    window.initGalleryMasonry && window.initGalleryMasonry();
+} else {
+    window.addEventListener('load', () => window.initGalleryMasonry && window.initGalleryMasonry());
+}
+</script>
+{% endif %}
 
 {% endblock %}

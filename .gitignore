@@ -104,3 +104,4 @@ reports/
 public/assets/vendor/**/*.md
 bin/dev/seed_full_demo.php
 storage/database.db
+screenshot/rabbit-pinterest.png
