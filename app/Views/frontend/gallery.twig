@@ -283,6 +283,19 @@
     .no-js .masonry-grid.masonry-portfolio {
       opacity: 1 !important;
     }
+    /* Boxed mode: add max-width and padding on desktop only */
+    @media (min-width: 1025px) {
+      .masonry-boxed {
+        max-width: 1400px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 2rem;
+        padding-right: 2rem;
+      }
+    }
+    .masonry-grid.masonry-portfolio.masonry-active .masonry-item {
+      float: left;
+    }
     </style>
 
     <div class="masonry-container{% if (mp.layout_mode|default('fullwidth')) == 'boxed' %} masonry-boxed{% endif %}">
@@ -1020,7 +1033,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   } catch(e){}
-  
+
   // Gallery animation handled by animateGalleryOnce in _layout.twig
   // DO NOT manually set opacity here to avoid double animation
 });
@@ -1030,7 +1043,7 @@ function initializeGalleryLayout() {
   const masonry = window.templateSettings?.masonry || false;
 
   // Masonry Portfolio (template 2) - reuse home masonry behavior without infinite cloning
-  if (templateSlug === 'masonry-portfolio' && masonry && layout === 'grid') {
+  if (templateSlug === 'masonry-portfolio' && (layout === 'masonry_portfolio' || masonry)) {
     const grid = document.querySelector('#images-gallery.masonry-portfolio');
     if (grid && typeof Masonry !== 'undefined') {
       const config = {

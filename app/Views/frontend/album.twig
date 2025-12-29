@@ -486,6 +486,19 @@ document.addEventListener('click', function(event) {
         .no-js .masonry-grid.masonry-portfolio {
             opacity: 1 !important;
         }
+        /* Boxed mode: add max-width and padding on desktop only */
+        @media (min-width: 1025px) {
+            .masonry-boxed {
+                max-width: 1400px;
+                margin-left: auto;
+                margin-right: auto;
+                padding-left: 2rem;
+                padding-right: 2rem;
+            }
+        }
+        .masonry-grid.masonry-portfolio.masonry-active .masonry-item {
+            float: left;
+        }
         </style>
 
         <div class="masonry-container{% if (mp.layout_mode|default('fullwidth')) == 'boxed' %} masonry-boxed{% endif %}">
@@ -526,29 +539,35 @@ document.addEventListener('click', function(event) {
             {% endfor %}
         </div>
     {% elseif layout == 'masonry_fit' %}
-        {# Modern Masonry layout using Masonry.js - full images, no cropping, left-to-right fill #}
+        {# Modern Masonry layout using CSS columns - full images, no cropping #}
         {% set gap_h = template_settings.gap.horizontal|default(16) %}
         {% set gap_v = template_settings.gap.vertical|default(16) %}
-        <div id="images-gallery" class="masonry-fit-grid pswp-gallery" data-layout="masonry_fit" data-gap="{{ gap_h }}" data-gap-v="{{ gap_v }}" data-cols-desktop="{{ desktop_cols }}" data-cols-tablet="{{ tablet_cols }}" data-cols-mobile="{{ mobile_cols }}">
+        <div id="images-gallery" class="masonry-fit-container pswp-gallery" data-layout="masonry_fit">
             {% for image in images %}
                 {% include "frontend/_image_item_masonry.twig" %}
             {% endfor %}
         </div>
         <style nonce="{{ csp_nonce() }}">
-        .masonry-fit-grid {
-            width: 100%;
+        .masonry-fit-container {
+            column-gap: {{ gap_h }}px;
         }
-        .masonry-fit-grid .masonry-column {
-            flex: 1;
-            min-width: 0;
+        .masonry-fit-container > .masonry-item {
+            break-inside: avoid;
+            margin-bottom: {{ gap_v }}px;
         }
-        .masonry-fit-grid .masonry-item {
-            width: 100%;
-        }
-        .masonry-fit-grid .masonry-item img {
+        .masonry-fit-container .masonry-item img {
             display: block;
             width: 100%;
             height: auto;
+        }
+        @media (min-width: 1024px) {
+            .masonry-fit-container { column-count: {{ desktop_cols }}; }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .masonry-fit-container { column-count: {{ tablet_cols }}; }
+        }
+        @media (max-width: 767px) {
+            .masonry-fit-container { column-count: {{ mobile_cols }}; }
         }
         </style>
     {% elseif layout == 'magazine' %}
@@ -677,156 +696,6 @@ document.addEventListener('click', function(event) {
 // Global base path for API calls
 window.basePath = '{{ base_path }}';
 
-// Reusable masonry_fit initialization helper - Balanced Flexbox Columns approach
-// Distributes items across columns to minimize height differences while filling left-to-right
-window.initAlbumMasonryFit = function(container, options) {
-    if (!container) return null;
-
-    // Cleanup existing instance if present
-    if (container._masonryFitInstance && container._masonryFitInstance.destroy) {
-        container._masonryFitInstance.destroy();
-    }
-
-    const gap = options.gap || 16;
-    const colsDesktop = options.colsDesktop || 5;
-    const colsTablet = options.colsTablet || 3;
-    const colsMobile = options.colsMobile || 2;
-
-    let columnWrappers = [];
-    const originalItems = Array.from(container.querySelectorAll('.masonry-item'));
-
-    function getColumnCount() {
-        const width = window.innerWidth;
-        if (width >= 1024) return colsDesktop;
-        if (width >= 768) return colsTablet;
-        return colsMobile;
-    }
-
-    function createColumnStructure(numCols) {
-        // Clear existing column wrappers
-        columnWrappers.forEach(w => w.remove());
-        columnWrappers = [];
-
-        // Create flex container
-        container.style.display = 'flex';
-        container.style.flexWrap = 'nowrap';
-        container.style.gap = gap + 'px';
-        container.style.alignItems = 'flex-start';
-
-        // Create column wrappers
-        for (let i = 0; i < numCols; i++) {
-            const col = document.createElement('div');
-            col.className = 'masonry-column';
-            col.style.flex = '1';
-            col.style.display = 'flex';
-            col.style.flexDirection = 'column';
-            col.style.gap = gap + 'px';
-            col.style.minWidth = '0'; // Allow flex shrink
-            columnWrappers.push(col);
-            container.appendChild(col);
-        }
-    }
-
-    function distributeItems() {
-        const numCols = getColumnCount();
-        createColumnStructure(numCols);
-
-        // Track column heights
-        const columnHeights = new Array(numCols).fill(0);
-
-        // Pre-calculate all item heights for smarter distribution
-        const colWidth = container.offsetWidth / numCols - gap * (numCols - 1) / numCols;
-        const itemHeights = originalItems.map(item => {
-            const img = item.querySelector('img');
-            if (img && img.dataset.aspectRatio) {
-                return colWidth * parseFloat(img.dataset.aspectRatio);
-            }
-            return item.offsetHeight || colWidth * 0.75;
-        });
-
-        // Distribute items using balanced greedy algorithm
-        // Prefers leftmost column among those within threshold of shortest
-        const heightThreshold = colWidth * 0.15; // Allow 15% tolerance
-
-        originalItems.forEach((item, idx) => {
-            // Find shortest column height
-            const shortestHeight = Math.min(...columnHeights);
-
-            // Find leftmost column within threshold of shortest
-            let targetIdx = 0;
-            for (let i = 0; i < numCols; i++) {
-                if (columnHeights[i] <= shortestHeight + heightThreshold) {
-                    targetIdx = i;
-                    break;
-                }
-            }
-
-            // Move item to target column
-            item.style.width = '100%';
-            item.style.marginBottom = '0'; // Gap handled by flex container
-            columnWrappers[targetIdx].appendChild(item);
-
-            // Update column height
-            columnHeights[targetIdx] += itemHeights[idx] + gap;
-        });
-    }
-
-    // Setup IntersectionObserver for viewport visibility
-    const preloadedItems = new WeakSet();
-    let viewportObserver = null;
-
-    if ('IntersectionObserver' in window) {
-        viewportObserver = new IntersectionObserver(function(entries) {
-            entries.forEach(function(entry) {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('in-viewport');
-                    const img = entry.target.querySelector('img');
-                    if (img && !preloadedItems.has(entry.target)) {
-                        preloadedItems.add(entry.target);
-                        img.loading = 'eager';
-                    }
-                } else {
-                    entry.target.classList.remove('in-viewport');
-                }
-            });
-        }, { rootMargin: '200% 0px 200% 0px', threshold: 0 });
-    }
-
-    distributeItems();
-
-    // Observe all items
-    if (viewportObserver) {
-        originalItems.forEach(function(item) {
-            viewportObserver.observe(item);
-        });
-    }
-
-    // Cleanup function to prevent memory leaks
-    function destroy() {
-        if (viewportObserver) {
-            viewportObserver.disconnect();
-            viewportObserver = null;
-        }
-        columnWrappers.forEach(w => w.remove());
-        columnWrappers = [];
-    }
-
-    // Return object with update function for resize handling
-    const instance = {
-        distributeItems,
-        viewportObserver,
-        destroy,
-        // Compatibility with existing code expecting msnry
-        msnry: { layout: distributeItems },
-        updateItemWidths: distributeItems
-    };
-
-    // Store reference on container for cleanup
-    container._masonryFitInstance = instance;
-
-    return instance;
-};
-
 // Template settings
 const templateSettings = JSON.parse('{{ template_settings ? template_settings|json_encode|e('js') : '{}' }}');
 const layout = templateSettings.layout || 'grid';
@@ -888,53 +757,10 @@ if (masonry && (layout === 'masonry' || templateSettings.masonry_js === true) &&
     }
 }
 
-// masonry_fit uses a custom flexbox column approach for balanced distribution
-if (layout === 'masonry_fit') {
-    const container = document.getElementById('images-gallery');
-    if (container) {
-        const options = {
-            gap: parseInt(container.dataset.gap) || 16,
-            colsDesktop: parseInt(container.dataset.colsDesktop) || 5,
-            colsTablet: parseInt(container.dataset.colsTablet) || 3,
-            colsMobile: parseInt(container.dataset.colsMobile) || 2
-        };
-
-        // Single resize handler that always uses container._masonryFitInstance
-        // This ensures it works correctly even after filter re-initialization
-        let resizeTimer = null;
-        const resizeHandler = function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const instance = container._masonryFitInstance;
-                if (instance) {
-                    instance.updateItemWidths();
-                    instance.msnry.layout();
-                }
-            }, 150);
-        };
-
-        // Store handler reference on container for cleanup
-        if (container._masonryFitResizeHandler) {
-            window.removeEventListener('resize', container._masonryFitResizeHandler);
-        }
-        container._masonryFitResizeHandler = resizeHandler;
-        window.addEventListener('resize', resizeHandler);
-
-        const initMasonryFit = () => {
-            window.initAlbumMasonryFit(container, options);
-            if (window.lenisResize) window.lenisResize();
-        };
-
-        if (typeof imagesLoaded !== 'undefined') {
-            imagesLoaded(container, initMasonryFit);
-        } else {
-            initMasonryFit();
-        }
-    }
-}
+// masonry_fit uses pure CSS columns - no JavaScript initialization needed
 
 // Masonry Portfolio (template 2) - reuse home masonry behavior without infinite cloning
-if (templateSettings?.layout === 'grid' && templateSettings?.masonry && '{{ template_slug|default('') }}' === 'masonry-portfolio') {
+if ('{{ template_slug|default('') }}' === 'masonry-portfolio' && (templateSettings?.layout === 'masonry_portfolio' || templateSettings?.masonry)) {
     const grid = document.querySelector('#images-gallery.masonry-portfolio');
     if (grid && typeof Masonry !== 'undefined') {
         const config = {
@@ -1062,25 +888,9 @@ document.getElementById('apply-image-filters')?.addEventListener('click', async 
 
         // Re-initialize layout after filter
         if (layout === 'masonry_fit') {
-            // masonry_fit: use reusable helper (doesn't require Masonry library)
-            const options = {
-                gap: parseInt(gallery.dataset.gap) || 16,
-                colsDesktop: parseInt(gallery.dataset.colsDesktop) || 5,
-                colsTablet: parseInt(gallery.dataset.colsTablet) || 3,
-                colsMobile: parseInt(gallery.dataset.colsMobile) || 2
-            };
-
-            const initFiltered = () => {
-                window.initAlbumMasonryFit(gallery, options);
-                if (window.lenisResize) window.lenisResize();
-            };
-
-            if (typeof imagesLoaded !== 'undefined') {
-                imagesLoaded(gallery, initFiltered);
-            } else {
-                initFiltered();
-            }
-        } else if (templateSettings?.layout === 'grid' && templateSettings?.masonry && '{{ template_slug|default('') }}' === 'masonry-portfolio') {
+            // masonry_fit: uses pure CSS columns - no JavaScript reinitialization needed
+            if (window.lenisResize) window.lenisResize();
+        } else if ('{{ template_slug|default('') }}' === 'masonry-portfolio' && (templateSettings?.layout === 'masonry_portfolio' || templateSettings?.masonry)) {
             const grid = document.querySelector('#images-gallery.masonry-portfolio');
             if (grid && typeof Masonry !== 'undefined') {
                 if (grid._masonryInstance) {
