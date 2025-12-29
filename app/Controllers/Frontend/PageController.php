@@ -102,6 +102,38 @@ class PageController extends BaseController
             }
             $templateSettings['columns'] = $normalizedColumns;
         }
+        if (isset($templateSettings['creative_layout']) && is_array($templateSettings['creative_layout'])) {
+            $creative = $templateSettings['creative_layout'];
+            $gap = isset($creative['gap']) ? (int)$creative['gap'] : 15;
+            $gap = max(0, min(40, $gap));
+            $templateSettings['creative_layout'] = [
+                'gap' => $gap,
+                'hover_tooltip' => array_key_exists('hover_tooltip', $creative) ? (bool)$creative['hover_tooltip'] : true
+            ];
+        }
+        if (isset($templateSettings['gallery_wall']) && is_array($templateSettings['gallery_wall'])) {
+            $wall = $templateSettings['gallery_wall'];
+            $desktop = $wall['desktop'] ?? [];
+            $tablet = $wall['tablet'] ?? [];
+            $mobile = $wall['mobile'] ?? [];
+
+            $templateSettings['gallery_wall'] = [
+                'desktop' => [
+                    'horizontal_ratio' => max(0.8, min(3.0, (float)($desktop['horizontal_ratio'] ?? 1.5))),
+                    'vertical_ratio' => max(0.4, min(1.5, (float)($desktop['vertical_ratio'] ?? 0.67))),
+                ],
+                'tablet' => [
+                    'horizontal_ratio' => max(0.8, min(3.0, (float)($tablet['horizontal_ratio'] ?? 1.3))),
+                    'vertical_ratio' => max(0.4, min(1.5, (float)($tablet['vertical_ratio'] ?? 0.6))),
+                ],
+                'divider' => max(0, min(10, (int)($wall['divider'] ?? 2))),
+                'mobile' => [
+                    'columns' => max(1, min(4, (int)($mobile['columns'] ?? 2))),
+                    'gap' => max(0, min(40, (int)($mobile['gap'] ?? 8))),
+                    'wide_every' => max(0, min(10, (int)($mobile['wide_every'] ?? 5))),
+                ],
+            ];
+        }
         return $templateSettings;
     }
 
@@ -378,13 +410,12 @@ class PageController extends BaseController
             ];
             $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
         }
+        $templateSettings = $this->normalizeTemplateSettings($templateSettings);
+        $templateSettings['template_slug'] = $template['slug'] ?? '';
 
         // Normalize settings
         $templateSettings = $this->normalizeTemplateSettings($templateSettings);
         $templateId = $finalTemplateId;
-        if (($template['slug'] ?? '') === 'masonry-portfolio') {
-            $templateSettings['layout'] = 'grid';
-        }
 
         // Tags
         $tagsStmt = $pdo->prepare('SELECT t.* FROM tags t JOIN album_tag at ON at.tag_id = t.id WHERE at.album_id = :id ORDER BY t.name ASC');
@@ -1079,6 +1110,62 @@ class PageController extends BaseController
             if (($template['slug'] ?? '') === 'magazine-split') {
                 $templateSettings['layout'] = 'magazine';
             }
+            $templateSettings['template_slug'] = $template['slug'] ?? '';
+
+            $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
+            try {
+                if (!empty($album['custom_cameras'])) {
+                    $equipment['cameras'] = array_filter(array_map('trim', explode("\n", $album['custom_cameras'])));
+                } else {
+                    $cameraStmt = $pdo->prepare('SELECT c.make, c.model FROM cameras c JOIN album_camera ac ON c.id = ac.camera_id WHERE ac.album_id = :a');
+                    $cameraStmt->execute([':a' => $album['id']]);
+                    $cameras = $cameraStmt->fetchAll();
+                    $equipment['cameras'] = array_map(fn($c) => trim(($c['make'] ?? '') . ' ' . ($c['model'] ?? '')), $cameras);
+                }
+
+                if (!empty($album['custom_lenses'])) {
+                    $equipment['lenses'] = array_filter(array_map('trim', explode("\n", $album['custom_lenses'])));
+                } else {
+                    $lensStmt = $pdo->prepare('SELECT l.brand, l.model FROM lenses l JOIN album_lens al ON l.id = al.lens_id WHERE al.album_id = :a');
+                    $lensStmt->execute([':a' => $album['id']]);
+                    $lenses = $lensStmt->fetchAll();
+                    $equipment['lenses'] = array_map(fn($l) => trim(($l['brand'] ?? '') . ' ' . ($l['model'] ?? '')), $lenses);
+                }
+
+                if (!empty($album['custom_films'])) {
+                    $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
+                } else {
+                    $filmStmt = $pdo->prepare('SELECT f.brand, f.name FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
+                    $filmStmt->execute([':a' => $album['id']]);
+                    $films = $filmStmt->fetchAll();
+                    $equipment['film'] = array_map(fn($f) => trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? '')), $films);
+                }
+
+                if (!empty($album['custom_developers'])) {
+                    $equipment['developers'] = array_filter(array_map('trim', explode("\n", $album['custom_developers'])));
+                } else {
+                    $devStmt = $pdo->prepare('SELECT d.name FROM developers d JOIN album_developer ad ON d.id = ad.developer_id WHERE ad.album_id = :a');
+                    $devStmt->execute([':a' => $album['id']]);
+                    $developers = $devStmt->fetchAll();
+                    $equipment['developers'] = array_map(fn($d) => $d['name'], $developers);
+                }
+
+                if (!empty($album['custom_labs'])) {
+                    $equipment['labs'] = array_filter(array_map('trim', explode("\n", $album['custom_labs'])));
+                } else {
+                    $labStmt = $pdo->prepare('SELECT l.name FROM labs l JOIN album_lab al ON l.id = al.lab_id WHERE al.album_id = :a');
+                    $labStmt->execute([':a' => $album['id']]);
+                    $labs = $labStmt->fetchAll();
+                    $equipment['labs'] = array_map(fn($l) => $l['name'], $labs);
+                }
+
+                $locStmt = $pdo->prepare('SELECT l.name FROM locations l JOIN album_location al ON l.id = al.location_id WHERE al.album_id = :a ORDER BY l.name');
+                $locStmt->execute([':a' => $album['id']]);
+                $locations = $locStmt->fetchAll();
+                $equipment['locations'] = array_map(fn($l) => $l['name'], $locations);
+            } catch (\Throwable) {
+                // Optional tables may be missing in early setups.
+            }
 
             // Images with per-photo metadata
             $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
@@ -1087,6 +1174,13 @@ class PageController extends BaseController
 
             // Enrich images with metadata from related tables
             \App\Services\ImagesService::enrichWithMetadata($pdo, $imagesRows, 'frontend');
+
+            try {
+                $customFieldService = new \App\Services\CustomFieldService($pdo);
+                $imagesRows = $customFieldService->enrichImagesWithCustomFields($imagesRows, (int)$album['id']);
+            } catch (\Throwable) {
+                // Custom fields tables may not exist yet
+            }
 
             // Determine if album is protected (password or NSFW)
             $isProtectedAlbum = !empty($album['password_hash']) || $isNsfw;
@@ -1155,6 +1249,32 @@ class PageController extends BaseController
                     $lightboxUrl = $bestUrl;
                 }
 
+                $cameraDisp = $img['camera_name'] ?? ($img['custom_camera'] ?? null);
+                $lensDisp = $img['lens_name'] ?? ($img['custom_lens'] ?? null);
+                $filmDisp = $img['film_name'] ?? ($img['custom_film'] ?? null);
+                $developerDisp = $img['developer_name'] ?? null;
+                $labDisp = $img['lab_name'] ?? null;
+                $locationDisp = $img['location_name'] ?? null;
+
+                if (empty($cameraDisp) && !empty($equipment['cameras'])) {
+                    $cameraDisp = $equipment['cameras'][0] ?? null;
+                }
+                if (empty($lensDisp) && !empty($equipment['lenses'])) {
+                    $lensDisp = $equipment['lenses'][0] ?? null;
+                }
+                if (empty($filmDisp) && !empty($equipment['film'])) {
+                    $filmDisp = $equipment['film'][0] ?? null;
+                }
+                if (empty($developerDisp) && !empty($equipment['developers'])) {
+                    $developerDisp = $equipment['developers'][0] ?? null;
+                }
+                if (empty($labDisp) && !empty($equipment['labs'])) {
+                    $labDisp = $equipment['labs'][0] ?? null;
+                }
+                if (empty($locationDisp) && !empty($equipment['locations'])) {
+                    $locationDisp = $equipment['locations'][0] ?? null;
+                }
+
                 $images[] = [
                     'id' => (int)$img['id'],
                     'url' => $bestUrl,
@@ -1166,19 +1286,20 @@ class PageController extends BaseController
                     'caption' => $img['caption'] ?? '',
                     'original_path' => $img['original_path'] ?? '',
                     'custom_camera' => $img['custom_camera'] ?? '',
-                    'camera_name' => $img['camera_name'] ?? '',
+                    'camera_name' => $cameraDisp ?? '',
                     'custom_lens' => $img['custom_lens'] ?? '',
-                    'lens_name' => $img['lens_name'] ?? '',
+                    'lens_name' => $lensDisp ?? '',
                     'custom_film' => $img['custom_film'] ?? '',
-                    'film_name' => $img['film_name'] ?? '',
+                    'film_name' => $filmDisp ?? '',
                     'film_display' => $img['film_display'] ?? ($img['film_name'] ?? ''),
-                    'developer_name' => $img['developer_name'] ?? '',
-                    'lab_name' => $img['lab_name'] ?? '',
-                    'location_name' => $img['location_name'] ?? '',
+                    'developer_name' => $developerDisp ?? '',
+                    'lab_name' => $labDisp ?? '',
+                    'location_name' => $locationDisp ?? '',
                     'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
                     'shutter_speed' => $this->formatShutterSpeed($img['shutter_speed'] ?? null),
                     'aperture' => isset($img['aperture']) && is_numeric($img['aperture']) ? (float)$img['aperture'] : null,
                     'process' => $img['process'] ?? null,
+                    'custom_fields' => $img['custom_fields'] ?? [],
                     // Extended EXIF fields
                     'focal_length' => $img['focal_length'] ?? null,
                     'exif_make' => $img['exif_make'] ?? null,

@@ -1,81 +1,70 @@
-{% macro build(image) %}
-  {# First line: optional caption/title #}
-  {% set head = image.caption ? '<div class="mb-1 text-black">' ~ image.caption|e ~ '</div>' : '' %}
-  {# Equipment line: black icons + black text #}
-  {% set bits = [] %}
-  {# Camera: prefer custom, then camera_name, then EXIF make+model #}
-  {% set cam = image.custom_camera|default(image.camera_name|default(image.camera)) %}
-  {% if not cam and (image.exif_make or image.exif_model) %}
-    {% set cam = ((image.exif_make|default('')) ~ ' ' ~ (image.exif_model|default('')))|trim %}
-  {% endif %}
-  {% if cam %}
-    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-camera mr-1"></i>' ~ cam|e ~ '</span>']) %}
-  {% endif %}
-  {# Lens: prefer custom, then lens_name, then EXIF lens_model #}
-  {% set ln = image.custom_lens|default(image.lens_name|default(image.lens)) %}
-  {% if not ln and image.exif_lens_model %}
-    {% set ln = image.exif_lens_model %}
-  {% endif %}
-  {% if ln %}
-    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-dot-circle mr-1"></i>' ~ ln|e ~ '</span>']) %}
-  {% endif %}
-  {% if image.custom_film or image.film_name %}
-    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-film mr-1"></i>' ~ (image.custom_film|default(image.film_name))|e ~ '</span>']) %}
-  {% endif %}
-  {% if image.location_name %}
-    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-map-marker-alt mr-1"></i>' ~ image.location_name|e ~ '</span>']) %}
-  {% endif %}
-  {% if image.developer_name %}
-    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-flask mr-1"></i>' ~ image.developer_name|e ~ '</span>']) %}
-  {% endif %}
-  {% if image.lab_name %}
-    {% set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-industry mr-1"></i>' ~ image.lab_name|e ~ '</span>']) %}
-  {% endif %}
-  {% set line = bits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">' ~ bits|join(' ') ~ '</div>') : '' %}
-
-  {# EXIF exposure data #}
-  {% set exifBits = [] %}
-  {% if image.focal_length %}
-    {% set exifBits = exifBits|merge(['<span class="inline-flex items-center"><i class="fas fa-arrows-alt-h mr-1"></i>' ~ image.focal_length|e ~ 'mm</span>']) %}
-  {% endif %}
-  {% if image.aperture %}
-    {% set exifBits = exifBits|merge(['<span class="inline-flex items-center"><i class="fas fa-dot-circle mr-1"></i>f/' ~ image.aperture|e ~ '</span>']) %}
-  {% endif %}
-  {% if image.shutter_speed %}
-    {% set exifBits = exifBits|merge(['<span class="inline-flex items-center"><i class="far fa-clock mr-1"></i>' ~ image.shutter_speed|e ~ '</span>']) %}
-  {% endif %}
-  {% if image.iso %}
-    {% set exifBits = exifBits|merge(['<span class="inline-flex items-center"><i class="fas fa-signal mr-1"></i>ISO ' ~ image.iso|e ~ '</span>']) %}
-  {% endif %}
-  {% set exifLine = exifBits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-xs text-gray-600">' ~ exifBits|join(' ') ~ '</div>') : '' %}
-
-  {# Additional info: date, GPS, artist, copyright #}
-  {% set infoBits = [] %}
-  {% if image.date_original %}
-    {% set infoBits = infoBits|merge(['<span class="inline-flex items-center"><i class="far fa-calendar mr-1"></i>' ~ image.date_original|date('d/m/Y')|e ~ '</span>']) %}
-  {% endif %}
-  {% if image.gps_lat and image.gps_lng %}
-    {% set infoBits = infoBits|merge(['<span class="inline-flex items-center"><i class="fas fa-globe mr-1"></i>' ~ image.gps_lat|round(4) ~ ', ' ~ image.gps_lng|round(4) ~ '</span>']) %}
-  {% endif %}
-  {% if image.artist %}
-    {% set infoBits = infoBits|merge(['<span class="inline-flex items-center"><i class="fas fa-user mr-1"></i>' ~ image.artist|e ~ '</span>']) %}
-  {% endif %}
-  {% if image.copyright %}
-    {% set infoBits = infoBits|merge(['<span class="inline-flex items-center"><i class="far fa-copyright mr-1"></i>' ~ image.copyright|e ~ '</span>']) %}
-  {% endif %}
-  {% set infoLine = infoBits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-xs text-gray-400">' ~ infoBits|join(' ') ~ '</div>') : '' %}
-
-  {# Custom fields with show_in_lightbox=1 #}
-  {% set customBits = [] %}
-  {% if image.custom_fields is defined %}
-    {% for typeId, field in image.custom_fields %}
-      {% if field.show_in_lightbox and field.values|length > 0 %}
-        {% set valuesStr = field.values|join(', ') %}
-        {% set customBits = customBits|merge(['<span class="inline-flex items-center"><i class="fas ' ~ field.icon|default('fa-tag')|e ~ ' mr-1"></i>' ~ valuesStr|e ~ '</span>']) %}
-      {% endif %}
-    {% endfor %}
-  {% endif %}
-  {% set customLine = customBits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">' ~ customBits|join(' ') ~ '</div>') : '' %}
-
-  {{ (head ~ line ~ exifLine ~ infoLine ~ customLine)|raw }}
-{% endmacro %}
+{% macro build(image) -%}
+{%- set head = image.caption ? '<div class="mb-1 text-black">' ~ image.caption|e ~ '</div>' : '' -%}
+{%- set bits = [] -%}
+{%- set cam = image.custom_camera|default(image.camera_name|default(image.camera)) -%}
+{%- if not cam and (image.exif_make or image.exif_model) -%}
+    {%- set cam = ((image.exif_make|default('')) ~ ' ' ~ (image.exif_model|default('')))|trim -%}
+{%- endif -%}
+{%- if cam -%}
+    {%- set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-camera mr-1"></i>' ~ cam|e ~ '</span>']) -%}
+{%- endif -%}
+{%- set ln = image.custom_lens|default(image.lens_name|default(image.lens)) -%}
+{%- if not ln and image.exif_lens_model -%}
+    {%- set ln = image.exif_lens_model -%}
+{%- endif -%}
+{%- if ln -%}
+    {%- set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-dot-circle mr-1"></i>' ~ ln|e ~ '</span>']) -%}
+{%- endif -%}
+{%- if image.custom_film or image.film_name -%}
+    {%- set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-film mr-1"></i>' ~ (image.custom_film|default(image.film_name))|e ~ '</span>']) -%}
+{%- endif -%}
+{%- if image.location_name -%}
+    {%- set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-map-marker-alt mr-1"></i>' ~ image.location_name|e ~ '</span>']) -%}
+{%- endif -%}
+{%- if image.developer_name -%}
+    {%- set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-flask mr-1"></i>' ~ image.developer_name|e ~ '</span>']) -%}
+{%- endif -%}
+{%- if image.lab_name -%}
+    {%- set bits = bits|merge(['<span class="inline-flex items-center"><i class="fas fa-industry mr-1"></i>' ~ image.lab_name|e ~ '</span>']) -%}
+{%- endif -%}
+{%- set line = bits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">' ~ bits|join(' ') ~ '</div>') : '' -%}
+{%- set exifBits = [] -%}
+{%- if image.focal_length -%}
+    {%- set exifBits = exifBits|merge(['<span class="inline-flex items-center"><i class="fas fa-arrows-alt-h mr-1"></i>' ~ image.focal_length|e ~ 'mm</span>']) -%}
+{%- endif -%}
+{%- if image.aperture -%}
+    {%- set exifBits = exifBits|merge(['<span class="inline-flex items-center"><i class="fas fa-dot-circle mr-1"></i>f/' ~ image.aperture|e ~ '</span>']) -%}
+{%- endif -%}
+{%- if image.shutter_speed -%}
+    {%- set exifBits = exifBits|merge(['<span class="inline-flex items-center"><i class="far fa-clock mr-1"></i>' ~ image.shutter_speed|e ~ '</span>']) -%}
+{%- endif -%}
+{%- if image.iso -%}
+    {%- set exifBits = exifBits|merge(['<span class="inline-flex items-center"><i class="fas fa-signal mr-1"></i>ISO ' ~ image.iso|e ~ '</span>']) -%}
+{%- endif -%}
+{%- set exifLine = exifBits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-xs text-gray-600">' ~ exifBits|join(' ') ~ '</div>') : '' -%}
+{%- set infoBits = [] -%}
+{%- if image.date_original -%}
+    {%- set infoBits = infoBits|merge(['<span class="inline-flex items-center"><i class="far fa-calendar mr-1"></i>' ~ image.date_original|date('d/m/Y')|e ~ '</span>']) -%}
+{%- endif -%}
+{%- if image.gps_lat and image.gps_lng -%}
+    {%- set infoBits = infoBits|merge(['<span class="inline-flex items-center"><i class="fas fa-globe mr-1"></i>' ~ image.gps_lat|round(4) ~ ', ' ~ image.gps_lng|round(4) ~ '</span>']) -%}
+{%- endif -%}
+{%- if image.artist -%}
+    {%- set infoBits = infoBits|merge(['<span class="inline-flex items-center"><i class="fas fa-user mr-1"></i>' ~ image.artist|e ~ '</span>']) -%}
+{%- endif -%}
+{%- if image.copyright -%}
+    {%- set infoBits = infoBits|merge(['<span class="inline-flex items-center"><i class="far fa-copyright mr-1"></i>' ~ image.copyright|e ~ '</span>']) -%}
+{%- endif -%}
+{%- set infoLine = infoBits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-xs text-gray-400">' ~ infoBits|join(' ') ~ '</div>') : '' -%}
+{%- set customBits = [] -%}
+{%- if image.custom_fields is defined -%}
+    {%- for typeId, field in image.custom_fields -%}
+        {%- if field.show_in_lightbox and field.values|length > 0 -%}
+            {%- set valuesStr = field.values|join(', ') -%}
+            {%- set customBits = customBits|merge(['<span class="inline-flex items-center"><i class="fas ' ~ field.icon|default('fa-tag')|e ~ ' mr-1"></i>' ~ valuesStr|e ~ '</span>']) -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endif -%}
+{%- set customLine = customBits|length ? ('<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-black">' ~ customBits|join(' ') ~ '</div>') : '' -%}
+{{- (head ~ line ~ exifLine ~ infoLine ~ customLine)|raw -}}
+{%- endmacro %}

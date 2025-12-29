@@ -251,18 +251,34 @@
             transform: none !important;
         }
 
-        /* Focus hover effect - fade other images when hovering one */
-        #images-gallery.gallery-animate {
-            pointer-events: none; /* Empty space doesn't trigger hover */
+        /* Focus hover effect - fade/desaturate other images when hovering one */
+        /* Hover fade effect - only when data-hover-fade="1" */
+        /* Common gallery item selectors for hover effect */
+        #images-gallery[data-hover-fade="1"] > .gallery-item,
+        #images-gallery[data-hover-fade="1"] > .masonry-frame,
+        #images-gallery[data-hover-fade="1"] > .masonry-item,
+        #images-gallery[data-hover-fade="1"] > .image-item,
+        #images-gallery[data-hover-fade="1"].dense-grid > div {
+            transition: filter 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        #images-gallery.gallery-animate > [data-animated] {
-            pointer-events: auto; /* Only images receive hover */
+        /* When hovering on any gallery item, fade/desaturate the others */
+        #images-gallery[data-hover-fade="1"]:has(> .gallery-item:hover) > .gallery-item:not(:hover),
+        #images-gallery[data-hover-fade="1"]:has(> .masonry-frame:hover) > .masonry-frame:not(:hover),
+        #images-gallery[data-hover-fade="1"]:has(> .masonry-item:hover) > .masonry-item:not(:hover),
+        #images-gallery[data-hover-fade="1"]:has(> .image-item:hover) > .image-item:not(:hover),
+        #images-gallery[data-hover-fade="1"].dense-grid:has(> div:hover) > div:not(:hover) {
+            filter: saturate(0.15) brightness(0.7);
+            opacity: 0.5;
         }
-        #images-gallery > [data-animated] {
-            transition: filter 0.5s ease-out, opacity 0.5s ease-out, transform 0.3s ease;
-        }
-        #images-gallery:has(> [data-animated]:hover) > [data-animated]:not(:hover) {
-            filter: saturate(0.1) opacity(0.35);
+        /* Reduced motion: disable hover effect transitions */
+        @media (prefers-reduced-motion: reduce) {
+            #images-gallery[data-hover-fade="1"] > .gallery-item,
+            #images-gallery[data-hover-fade="1"] > .masonry-frame,
+            #images-gallery[data-hover-fade="1"] > .masonry-item,
+            #images-gallery[data-hover-fade="1"] > .image-item,
+            #images-gallery[data-hover-fade="1"].dense-grid > div {
+                transition: none !important;
+            }
         }
 
         
@@ -935,6 +951,22 @@
             opacity: 0.97 !important;
         }
 
+        #pswp-open-overlay {
+            position: fixed;
+            inset: 0;
+            background: #fff;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 9998;
+        }
+        #pswp-open-overlay.is-visible {
+            opacity: 0.95;
+        }
+        html.dark #pswp-open-overlay {
+            background: #fff;
+        }
+
         /* Minimal buttons: no background or shadow */
         .pswp__button {
             background: none !important;
@@ -1147,6 +1179,7 @@
     {% block styles %}{% endblock %}
 </head>
 <body class="min-h-full bg-white text-black font-sans antialiased">
+    <div id="pswp-open-overlay" aria-hidden="true"></div>
 
     {# Centralized category filtering logic - used in desktop mega-menu, mobile menu, and JS data #}
     {# A category is visible if it has albums OR has children with albums #}
@@ -2629,6 +2662,7 @@
                     };
 
                     lb.on('openingAnimationStart', () => {
+                        showPswpOverlay();
                         lockScroll();
                         document.querySelectorAll('.pswp__img--placeholder, .pswp__img--initial').forEach(el => {
                             el.style.display = 'none';
@@ -2637,7 +2671,12 @@
                         });
                     });
 
+                    lb.on('openingAnimationEnd', () => {
+                        hidePswpOverlay();
+                    });
+
                     lb.on('closingAnimationEnd', () => {
+                        hidePswpOverlay();
                         unlockScroll();
                     });
 
@@ -2896,7 +2935,7 @@
                                 // Styles are defined in CSS, only set positioning here
                                 el.style.cssText = `
                                     position: absolute; left: 50%; transform: translateX(-50%);
-                                    bottom: 56px; width: min(1100px, calc(100% - 24px));
+                                    bottom: 40px; width: min(1100px, calc(100% - 24px));
                                     background: transparent; padding: 0 8px;
                                     font-size: 14px; line-height: 1.5; text-align: center;
                                 `;
@@ -2958,7 +2997,7 @@
                                   if (title) allItems.push(`<span class="caption-title font-semibold">${title}</span>`);
                                   if (caption && caption !== title) allItems.push(`<span class="caption-text opacity-80">${caption}</span>`);
                                   allItems.push(...equipment, ...customFieldsHtml);
-                                  const html = allItems.length ? `<div class="caption-content flex flex-wrap gap-x-3 gap-y-1 items-center justify-center text-sm">${allItems.join(' ')}</div>` : '';
+                                  const html = allItems.length ? `<div class="caption-content flex flex-wrap gap-x-3 gap-y-1 items-center justify-center text-sm mt-2">${allItems.join(' ')}</div>` : '';
                                   el.innerHTML = html;
                                   // If no content, reset visibility state
                                   if (!html.trim()) {
@@ -3118,6 +3157,8 @@
         function openLightboxAt(index) {
             const items = buildItemsFromAnchors();
             const startIndex = Math.max(0, Math.min(index, items.length-1));
+            showPswpOverlay();
+            schedulePswpOverlayFailSafe();
 
             loadPhotoSwipe().then(() => {
                 const psCfg = (window.templateSettings && window.templateSettings.photoswipe) || {};
@@ -3214,7 +3255,7 @@
                       pswpSetupTapZoom(pswp, toggleZoomCentered);
                     }
                     psCaptionEl = document.createElement('div');
-                    psCaptionEl.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
+                    psCaptionEl.style.cssText = 'position:fixed; bottom:40px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
                     pswp.on('change', () => {
                       const it = items[pswp.currIndex];
                       if (!it) return;
@@ -3239,6 +3280,7 @@
                   let fbPrevBodyPadding = '';
                   let fbScrollLocked = false;
                   lb.on('openingAnimationStart', () => {
+                      showPswpOverlay();
                       if (!fbScrollLocked) {
                           fbScrollLocked = true;
                           fbPrevHtmlOverflow = document.documentElement.style.overflow;
@@ -3259,7 +3301,11 @@
                           window.lenisInstance.stop();
                       }
                   });
+                  lb.on('openingAnimationEnd', () => {
+                      hidePswpOverlay();
+                  });
                   lb.on('closingAnimationEnd', () => {
+                      hidePswpOverlay();
                       document.documentElement.classList.remove('pswp-open');
                       document.body.classList.remove('pswp-open');
                       document.documentElement.style.overflow = fbPrevHtmlOverflow;
@@ -3287,7 +3333,7 @@
                   });
                   // Custom caption overlay for PhotoSwipe
                   let psCaptionEl = document.createElement('div');
-                  psCaptionEl.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
+                  psCaptionEl.style.cssText = 'position:fixed; bottom:40px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 15px; border-radius:5px; z-index:10001; text-align:center; font-size:14px; max-width:80%;';
                   function updatePsCaption(){
                     const it = items[lightbox.currIndex];
                     if (!it) return;
@@ -3306,13 +3352,18 @@
                   lightbox.on('close', ()=>{ if (psCaptionEl.parentNode) psCaptionEl.parentNode.removeChild(psCaptionEl); });
                   // Prevent background scroll when lightbox is open
                   lightbox.on('openingAnimationStart', () => {
+                      showPswpOverlay();
                       document.documentElement.classList.add('pswp-open');
                       document.body.classList.add('pswp-open');
                       if (window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
                           window.lenisInstance.stop();
                       }
                   });
+                  lightbox.on('openingAnimationEnd', () => {
+                      hidePswpOverlay();
+                  });
                   lightbox.on('closingAnimationEnd', () => {
+                      hidePswpOverlay();
                       document.documentElement.classList.remove('pswp-open');
                       document.body.classList.remove('pswp-open');
                       if (window.lenisInstance && typeof window.lenisInstance.start === 'function') {
@@ -3358,6 +3409,7 @@
                         setTimeout(fitToContainer, 100); // Initial sizing
                 }
             }).catch((err) => {
+                hidePswpOverlay();
                 if (!__psWarned) {
                   console.warn('PhotoSwipe not available:', err);
                   __psWarned = true;
@@ -3381,11 +3433,50 @@
         `;
         document.head.appendChild(pswpStyle);
 
+        const PSWP_OVERLAY_ID = 'pswp-open-overlay';
+        const ensurePswpOverlay = () => {
+            let el = document.getElementById(PSWP_OVERLAY_ID);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = PSWP_OVERLAY_ID;
+                el.setAttribute('aria-hidden', 'true');
+                document.body.appendChild(el);
+            }
+            return el;
+        };
+        let pswpOverlayFailSafeTimer = null;
+        const showPswpOverlay = () => {
+            const el = ensurePswpOverlay();
+            el.classList.add('is-visible');
+        };
+        const hidePswpOverlay = () => {
+            const el = document.getElementById(PSWP_OVERLAY_ID);
+            if (el) el.classList.remove('is-visible');
+        };
+        const schedulePswpOverlayFailSafe = () => {
+            if (pswpOverlayFailSafeTimer) {
+                clearTimeout(pswpOverlayFailSafeTimer);
+            }
+            pswpOverlayFailSafeTimer = setTimeout(() => {
+                if (!document.documentElement.classList.contains('pswp-open')) {
+                    hidePswpOverlay();
+                }
+            }, 600);
+        };
+
         // Delegated click for anchors: open PhotoSwipe
         document.addEventListener('click', (e) => {
             const a = e.target.closest('a.pswp-link');
             if (!a) return;
             e.preventDefault();
+            const scrollY = window.scrollY || window.pageYOffset || 0;
+            showPswpOverlay();
+            schedulePswpOverlayFailSafe();
+            window.requestAnimationFrame(() => {
+                if (!document.documentElement.classList.contains('pswp-open')) {
+                    window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' });
+                }
+            });
             // Pick the container based on clicked anchor context to ensure correct indexing
             const wrap = a.closest('.m-desktop-wrap, .m-tablet-wrap, .m-mobile-wrap');
             const containerEl = wrap || document.getElementById('images-gallery');

@@ -1,0 +1,213 @@
+{% import 'frontend/_seo_macros.twig' as Seo %}
+{% import 'frontend/_caption.twig' as Caption %}
+
+{% set mp = template_settings.masonry_portfolio|default({}) %}
+{% set mp_cols = mp.columns|default({desktop: 4, tablet: 3, mobile: 1}) %}
+{% set mp_gap_h = mp.gap_h|default(template_settings.gap.horizontal|default(16))|round %}
+{% set mp_gap_v = mp.gap_v|default(template_settings.gap.vertical|default(16))|round %}
+{% set layout_mode = mp.layout_mode|default('fullwidth') %}
+{% set style = template_settings.style|default({rounded: false, shadow: false, hover_scale: true}) %}
+
+<style nonce="{{ csp_nonce() }}">
+  .masonry-portfolio-grid {
+    --mp-gap-h: {{ mp_gap_h }}px;
+    --mp-gap-v: {{ mp_gap_v }}px;
+    --mp-cols-desktop: {{ mp_cols.desktop|default(4)|round }};
+    --mp-cols-tablet: {{ mp_cols.tablet|default(3)|round }};
+    --mp-cols-mobile: {{ mp_cols.mobile|default(1)|round }};
+    width: 100%;
+    margin: 0 auto;
+    position: relative;
+  }
+  .masonry-portfolio-grid.is-boxed {
+    max-width: 1400px;
+    padding: 0 20px;
+  }
+  .masonry-portfolio-grid .grid-sizer,
+  .masonry-portfolio-grid .photo-item {
+    width: calc((100% - (var(--mp-cols-mobile) - 1) * var(--mp-gap-h)) / var(--mp-cols-mobile));
+  }
+  .masonry-portfolio-grid .photo-item.landscape {
+    width: calc((2 * ((100% - (var(--mp-cols-mobile) - 1) * var(--mp-gap-h)) / var(--mp-cols-mobile))) + var(--mp-gap-h));
+  }
+  .masonry-portfolio-grid .photo-item {
+    position: relative;
+    margin-bottom: var(--mp-gap-v);
+    background: #f5f5f5;
+    overflow: hidden;
+    cursor: pointer;
+    transition: opacity 0.3s ease, box-shadow 0.3s ease;
+    opacity: 0;
+  }
+  .masonry-portfolio-grid .photo-item.is-loaded {
+    opacity: 1;
+  }
+  .masonry-portfolio-grid[data-rounded="1"] .photo-item,
+  .masonry-portfolio-grid[data-rounded="1"] .photo-item img {
+    border-radius: 12px;
+  }
+  .masonry-portfolio-grid[data-shadow="1"] .photo-item {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  }
+  .masonry-portfolio-grid .photo-item img {
+    display: block;
+    width: 100%;
+    height: auto;
+    opacity: 0;
+    transform: scale(1);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .masonry-portfolio-grid[data-hover-scale="1"] .photo-item:hover {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    z-index: 2;
+  }
+  .masonry-portfolio-grid[data-hover-scale="1"] .photo-item:hover img {
+    transform: scale(1.02);
+  }
+  .masonry-portfolio-grid .photo-item.is-loaded img {
+    opacity: 1;
+  }
+  .masonry-portfolio-grid .photo-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 36px;
+    height: 36px;
+    margin: -18px 0 0 -18px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #333;
+    border-radius: 50%;
+    animation: mp-spin 1s linear infinite;
+  }
+  .masonry-portfolio-grid .photo-item.is-loaded .photo-loading {
+    display: none;
+  }
+  @keyframes mp-spin {
+    to { transform: rotate(360deg); }
+  }
+  @media (min-width: 768px) {
+    .masonry-portfolio-grid .grid-sizer,
+    .masonry-portfolio-grid .photo-item {
+      width: calc((100% - (var(--mp-cols-tablet) - 1) * var(--mp-gap-h)) / var(--mp-cols-tablet));
+    }
+    .masonry-portfolio-grid .photo-item.landscape {
+      width: calc((2 * ((100% - (var(--mp-cols-tablet) - 1) * var(--mp-gap-h)) / var(--mp-cols-tablet))) + var(--mp-gap-h));
+    }
+  }
+  @media (min-width: 1200px) {
+    .masonry-portfolio-grid .grid-sizer,
+    .masonry-portfolio-grid .photo-item {
+      width: calc((100% - (var(--mp-cols-desktop) - 1) * var(--mp-gap-h)) / var(--mp-cols-desktop));
+    }
+    .masonry-portfolio-grid .photo-item.landscape {
+      width: calc((2 * ((100% - (var(--mp-cols-desktop) - 1) * var(--mp-gap-h)) / var(--mp-cols-desktop))) + var(--mp-gap-h));
+    }
+  }
+  @media (max-width: 480px) {
+    .masonry-portfolio-grid.is-boxed {
+      padding: 0 10px;
+    }
+    .masonry-portfolio-grid[data-hover-scale="1"] .photo-item:hover {
+      box-shadow: none;
+    }
+    .masonry-portfolio-grid[data-hover-scale="1"] .photo-item:hover img {
+      transform: scale(1);
+    }
+  }
+</style>
+
+<div id="images-gallery"
+     class="masonry-portfolio-grid pswp-gallery {{ layout_mode == 'boxed' ? 'is-boxed' : '' }}"
+     data-layout="masonry_portfolio"
+     data-gap-h="{{ mp_gap_h }}"
+     data-gap-v="{{ mp_gap_v }}"
+     data-cols-desktop="{{ mp_cols.desktop|default(4)|round }}"
+     data-cols-tablet="{{ mp_cols.tablet|default(3)|round }}"
+     data-cols-mobile="{{ mp_cols.mobile|default(1)|round }}"
+     data-rounded="{{ style.rounded ? '1' : '0' }}"
+     data-shadow="{{ style.shadow ? '1' : '0' }}"
+     data-hover-scale="{{ style.hover_scale is not defined or style.hover_scale ? '1' : '0' }}"
+     data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
+  <div class="grid-sizer"></div>
+  {% for image in images %}
+    {% set imgW = image.width|default(0) %}
+    {% set imgH = image.height|default(0) %}
+    {% set is_landscape = imgW > 0 and imgH > 0 and (imgW / imgH) > 1.3 %}
+    {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+    {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+    <div class="photo-item{{ is_landscape ? ' landscape' : '' }}">
+      <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+         class="pswp-link gallery-link image-item block w-full h-full"
+         title="{{ seo_title|e('html_attr') }}"
+         data-image-id="{{ image.id }}"
+         data-pswp-width="{{ image.width }}"
+         data-pswp-height="{{ image.height }}"
+         data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+         data-title="{{ image.caption|default('')|e }}"
+         data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+         data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+         data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+         data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+         data-developer="{{ image.developer_name|default('')|e }}"
+         data-lab="{{ image.lab_name|default('')|e }}"
+         data-location="{{ image.location_name|default('')|e }}"
+         data-iso="{{ image.iso|default('') }}"
+         data-shutter="{{ image.shutter_speed|default('')|e }}"
+         data-aperture="{{ image.aperture|default('') }}"
+         data-focal-length="{{ image.focal_length|default('') }}"
+         {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+        <div class="photo-loading" aria-hidden="true"></div>
+        <picture>
+          {% set variants_avif = [] %}
+          {% set variants_webp = [] %}
+          {% set variants_jpg = [] %}
+          {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+          {% set best_jpg_w = 0 %}
+          {% for variant in image.variants %}
+            {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+            {% if variant.format == 'avif' %}
+              {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+            {% elseif variant.format == 'webp' %}
+              {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+            {% elseif variant.format == 'jpg' %}
+              {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+              {% if variant.width > best_jpg_w %}
+                {% set best_jpg_path = variant_url %}
+                {% set best_jpg_w = variant.width %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+
+          {% if variants_avif %}
+            <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+          {% endif %}
+          {% if variants_webp %}
+            <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+          {% endif %}
+
+          <img src="{{ best_jpg_path }}"
+               alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+               title="{{ seo_title|e('html_attr') }}"
+               {% if image.width and image.height %}width="{{ image.width }}" height="{{ image.height }}"{% endif %}
+               loading="lazy"
+               decoding="async"
+               data-fallback="hide">
+        </picture>
+        {% if album.allow_downloads %}
+          <button type="button"
+                  class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer"
+                  title="{{ trans('image.download') }}"
+                  data-action="download-image"
+                  data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+            <i class="fa-solid fa-arrow-down text-sm"></i>
+          </button>
+        {% endif %}
+        {% if image.caption %}
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm p-4 pt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            {{ image.caption|e }}
+          </div>
+        {% endif %}
+      </a>
+    </div>
+  {% endfor %}
+</div>

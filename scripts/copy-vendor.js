@@ -66,11 +66,17 @@ const copies = [
     to: 'jquery',
     files: ['jquery.min.js']
   },
-  // Masonry
+  // Masonry (old library - kept for backwards compatibility in some areas)
   {
     from: 'masonry-layout/dist',
     to: 'masonry',
     files: ['masonry.pkgd.min.js']
+  },
+  // Masonry Grid (modern library - 1.4kB, uses CSS Grid + transforms)
+  {
+    from: '@masonry-grid/vanilla/dist',
+    to: 'masonry-grid',
+    files: ['index.js']
   },
   // Select2
   {

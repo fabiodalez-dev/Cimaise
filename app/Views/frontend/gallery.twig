@@ -1,6 +1,7 @@
 {% extends "frontend/_layout.twig" %}
 
 {% import 'frontend/_seo_macros.twig' as Seo %}
+{% import 'frontend/_caption.twig' as Caption %}
 
 {% block content %}
 <style nonce="{{ csp_nonce() }}">
@@ -50,7 +51,7 @@
           <time datetime="{{ album.shoot_date }}">{{ album.shoot_date|date_format }}</time>
         </div>
       {% endif %}
-      
+
       {% if album.equipment.locations|length > 0 %}
         <div class="flex items-center gap-2">
           <i class="fas fa-map-marker-alt text-neutral-500"></i>
@@ -66,7 +67,7 @@
   {% if album.body %}
     <div class="max-w-3xl mx-auto prose prose-neutral mb-12" data-gsap="body">{{ album.body|safe_html }}</div>
   {% endif %}
-  
+
   {# Social Sharing #}
   {% include 'frontend/_social_sharing.twig' %}
 
@@ -81,30 +82,6 @@
   {% endif %}
 
   {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 or album.equipment.developers|length > 0 or album.equipment.labs|length > 0 or custom_fields_for_gallery|length > 0 %}
-  {% set equipment_items = [] %}
-  {% if album.equipment.cameras is defined and album.equipment.cameras|length > 0 %}
-    {% set equipment_items = equipment_items|merge([1]) %}
-  {% endif %}
-  {% if album.equipment.lenses is defined and album.equipment.lenses|length > 0 %}
-    {% set equipment_items = equipment_items|merge([1]) %}
-  {% endif %}
-  {% if album.equipment.film is defined and album.equipment.film|length > 0 %}
-    {% set equipment_items = equipment_items|merge([1]) %}
-  {% endif %}
-  {% if album.equipment.developers is defined and album.equipment.developers|length > 0 %}
-    {% set equipment_items = equipment_items|merge([1]) %}
-  {% endif %}
-  {% if album.equipment.labs is defined and album.equipment.labs|length > 0 %}
-    {% set equipment_items = equipment_items|merge([1]) %}
-  {% endif %}
-  {# Add custom fields count to equipment items #}
-  {% for cf in custom_fields_for_gallery %}
-    {% set equipment_items = equipment_items|merge([1]) %}
-  {% endfor %}
-  
-  {% set equipment_count = equipment_items|length %}
-  {% set grid_cols = equipment_count <= 3 ? equipment_count : 3 %}
-
   <div class="max-w-5xl mx-auto mb-8 p-6 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-transparent dark:border-neutral-700" data-gsap="equipment">
     <h3 class="text-sm font-medium mb-3 text-left">{{ trans('album.equipment') }}</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-2 text-xs text-neutral-600">
@@ -160,6 +137,7 @@
     </div>
   </div>
   {% endif %}
+
   {# --- Template switcher: show ABOVE the gallery content --- #}
   {% if available_templates|length > 0 %}
   <div class="max-w-7xl mx-auto mb-2">
@@ -167,42 +145,27 @@
       <div id="template-switcher" class="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-md p-1 shadow-sm max-md:hidden">
         {% for template in available_templates %}
         <button type="button" class="tpl-switch px-2 py-1 rounded {{ template.id == current_template_id ? 'bg-black text-white' : 'text-neutral-700 hover:bg-neutral-100' }}" data-template-id="{{ template.id }}" data-album-ref="{{ album_ref }}" title="{{ template.name }}" aria-label="{{ template.name }}">
-          {% if template.settings.layout == 'dense_grid' %}
-            <i class="fas fa-th-large"></i>
-          {% elseif template.settings.layout == 'masonry_fit' %}
-            <i class="fas fa-expand-arrows-alt"></i>
-          {% elseif template.settings.layout == 'slideshow' and 'swiper' in template.libs %}
-            <i class="fas fa-play-circle"></i>
-          {% elseif template.settings.layout == 'slideshow' %}
-            <i class="fas fa-images"></i>
-          {% elseif template.settings.layout == 'grid' and template.settings.spacing == 'large' %}
-            <i class="fas fa-border-none"></i>
-          {% elseif template.settings.layout == 'mosaic' %}
-            <i class="fas fa-puzzle-piece"></i>
-          {% elseif template.settings.layout == 'carousel' %}
-            <i class="fas fa-arrows-alt-h"></i>
-          {% elseif template.settings.layout == 'polaroid' %}
-            <i class="fas fa-camera-retro"></i>
-          {% elseif template.settings.layout == 'fullscreen' %}
-            <i class="fas fa-expand"></i>
-          {% elseif template.settings.layout == 'grid' %}
-            {% if template.settings.masonry %}
-              <i class="fas fa-grip-vertical"></i>
-            {% else %}
-              {% set tpl_desktop_cols = template.settings.columns.desktop|default(3) %}
-              {% if tpl_desktop_cols <= 2 %}
-                <i class="fas fa-pause"></i>
-              {% elseif tpl_desktop_cols == 3 %}
-                <i class="fas fa-th"></i>
-              {% elseif tpl_desktop_cols >= 5 %}
-                <i class="fas fa-grip-horizontal"></i>
-              {% else %}
-                <i class="fas fa-th"></i>
-              {% endif %}
-            {% endif %}
-          {% else %}
-            <i class="fas fa-th"></i>
-          {% endif %}
+          {% set tpl_layout = template.settings.layout|default('grid') %}
+          {% set tpl_slug = template.slug|default('') %}
+  {% if tpl_layout == 'magazine' %}
+    <i class="fas fa-newspaper"></i>
+  {% elseif tpl_layout == 'dense_grid' %}
+    <i class="fas fa-th-large"></i>
+  {% elseif tpl_layout == 'masonry' or tpl_slug == 'masonry-full' %}
+    <i class="fas fa-columns"></i>
+  {% elseif tpl_slug == 'masonry-portfolio' %}
+    <i class="fas fa-border-all"></i>
+  {% elseif tpl_slug == 'grid-ampia' %}
+    <i class="fas fa-puzzle-piece"></i>
+  {% elseif tpl_slug == 'gallery-wall-scroll' %}
+    <i class="fas fa-arrows-left-right"></i>
+  {% elseif tpl_slug == 'grid-compatta' or (tpl_layout == 'grid' and template.settings.columns.desktop|default(3) >= 5) %}
+    <i class="fas fa-grip-horizontal"></i>
+  {% elseif tpl_layout == 'grid' and template.settings.columns.desktop|default(3) <= 2 %}
+    <i class="fas fa-square"></i>
+  {% else %}
+    <i class="fas fa-th"></i>
+  {% endif %}
         </button>
         {% endfor %}
       </div>
@@ -210,1491 +173,1579 @@
   </div>
   {% endif %}
 
+  {# Extract unified template settings #}
+  {% set tpl_slug = template_settings.template_slug|default('') %}
   {% set layout = template_settings.layout|default('grid') %}
+  {% set cols = template_settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
+  {% set gap = template_settings.gap|default({horizontal: 16, vertical: 16}) %}
+  {% set aspect_ratio = template_settings.aspect_ratio|default('1:1') %}
+  {% set style = template_settings.style|default({rounded: false, shadow: false, hover_scale: true}) %}
 
-  {% if layout == 'magazine' %}
-    <div id="images-gallery" class="mt-6">
-      {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
-    </div>
+  {# Normalize column values #}
+  {% set desktop_cols = cols.desktop|default(3)|round %}
+  {% set tablet_cols = cols.tablet|default(2)|round %}
+  {% set mobile_cols = cols.mobile|default(1)|round %}
+  {% set gap_h = gap.horizontal|default(16)|round %}
+  {% set gap_v = gap.vertical|default(16)|round %}
+
+  {# Aspect ratio class for grid layout #}
+  {% set aspect_class = 'aspect-square' %}
+  {% if aspect_ratio == '4:3' %}
+      {% set aspect_class = 'aspect-[4/3]' %}
+  {% elseif aspect_ratio == '16:9' %}
+      {% set aspect_class = 'aspect-video' %}
+  {% elseif aspect_ratio == '3:2' %}
+      {% set aspect_class = 'aspect-[3/2]' %}
   {% endif %}
-  {% set masonry = template_settings.masonry|default(false) %}
-  
-  {# Usa direttamente la struttura semplificata #}
-  {% set cols = template_settings.columns is defined ? template_settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
-  
-  {# Estrai direttamente i valori #}
-  {% set desktop_cols = cols.desktop %}
-  {% set tablet_cols = cols.tablet %}
-  {% set mobile_cols = cols.mobile %}
-  
-  {# Assicurati che siano numeri #}
-  {% set desktop_cols = desktop_cols|round %}
-  {% set tablet_cols = tablet_cols|round %}
-  {% set mobile_cols = mobile_cols|round %}
-  
 
+  {# Style classes #}
+  {% set rounded_class = style.rounded ? 'rounded-lg' : '' %}
+  {% set shadow_class = style.shadow ? 'shadow-md hover:shadow-xl' : '' %}
+  {% set hover_class = style.hover_scale ? 'group-hover:scale-105' : '' %}
 
-{% if layout != 'magazine' %}
-  {% if template_slug|default('') == 'masonry-portfolio' and masonry %}
-    {% set mp = template_settings.masonry_portfolio|default({}) %}
-    <style nonce="{{ csp_nonce() }}">
-    .masonry-grid.masonry-portfolio {
-      display: grid;
-      grid-template-columns: repeat({{ mp.cols_mobile|default(2) }}, 1fr);
-      gap: {{ mp.gap_v|default(0) }}px {{ mp.gap_h|default(0) }}px;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    @media (min-width: 641px) {
-      .masonry-grid.masonry-portfolio {
-        grid-template-columns: repeat({{ mp.cols_tablet|default(3) }}, 1fr);
-      }
-    }
-    @media (min-width: 1025px) {
-      .masonry-grid.masonry-portfolio {
-        grid-template-columns: repeat({{ mp.cols_desktop|default(5) }}, 1fr);
-      }
-    }
-    .masonry-grid.masonry-portfolio.masonry-active {
-      display: block;
-      position: relative;
-    }
-    .masonry-grid.masonry-portfolio.masonry-ready {
-      opacity: 1;
-    }
-    .masonry-grid.masonry-portfolio .masonry-item {
-      overflow: hidden;
-    }
-    .masonry-grid.masonry-portfolio .masonry-item a {
-      display: block;
-    }
-    .masonry-grid.masonry-portfolio .masonry-item img {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-    .masonry-grid.masonry-portfolio .masonry-item.fade-in {
-      animation: masonryFadeIn 0.35s ease-out forwards;
-    }
-    @keyframes masonryFadeIn {
-      from { opacity: 0; transform: translate3d(0, 12px, 0); }
-      to { opacity: 1; transform: translate3d(0, 0, 0); }
-    }
-    .no-js .masonry-grid.masonry-portfolio {
-      opacity: 1 !important;
-    }
-    /* Boxed mode: add max-width and padding on desktop only */
-    @media (min-width: 1025px) {
-      .masonry-boxed {
-        max-width: 1400px;
-        margin-left: auto;
-        margin-right: auto;
-        padding-left: 2rem;
-        padding-right: 2rem;
-      }
-    }
-    .masonry-grid.masonry-portfolio.masonry-active .masonry-item {
-      float: left;
-    }
-    </style>
+  {# Creative Layout (template 6) #}
+  {% if tpl_slug == 'grid-ampia' %}
+      {% include 'frontend/_gallery_creative_layout.twig' with { images: images, template_settings: template_settings, album: album, base_path: base_path, site_title: site_title } %}
 
-    <div class="masonry-container{% if (mp.layout_mode|default('fullwidth')) == 'boxed' %} masonry-boxed{% endif %}">
-    <div id="images-gallery"
-         class="masonry-grid masonry-portfolio pswp-gallery"
-         data-layout="masonry_portfolio"
-         data-gap-h="{{ mp.gap_h|default(0) }}"
-         data-gap-v="{{ mp.gap_v|default(0) }}"
-         data-cols-mobile="{{ mp.cols_mobile|default(2) }}"
-         data-cols-tablet="{{ mp.cols_tablet|default(3) }}"
-         data-cols-desktop="{{ mp.cols_desktop|default(5) }}">
-      {% for image in images %}
-      <div class="masonry-item">
-        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-           class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
-           title="{{ seo_title|e('html_attr') }}"
-           data-image-id="{{ image.id }}"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-           data-title="{{ image.caption|default('')|e }}"
-           data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
-           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
-           data-developer="{{ image.developer_name|default('')|e }}"
-           data-lab="{{ image.lab_name|default('')|e }}"
-           data-location="{{ image.location_name|default('')|e }}"
-           data-iso="{{ image.iso|default('') }}"
-           data-shutter="{{ image.shutter_speed|default('')|e }}"
-           data-aperture="{{ image.aperture|default('') }}"
-           data-focal-length="{{ image.focal_length|default('') }}"
-           data-exif-make="{{ image.exif_make|default('')|e }}"
-           data-exif-model="{{ image.exif_model|default('')|e }}"
-           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
-           data-gps-lat="{{ image.gps_lat|default('') }}"
-           data-gps-lng="{{ image.gps_lng|default('') }}"
-           data-date-original="{{ image.date_original|default('')|e }}"
-           data-artist="{{ image.artist|default('')|e }}"
-           data-copyright="{{ image.copyright|default('')|e }}"
-           data-process="{{ image.process|default('')|e }}"
-           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
-          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-auto object-cover">
-        </a>
+  {# Gallery Wall Scroll layout #}
+  {% elseif tpl_slug == 'gallery-wall-scroll' %}
+      {% include 'frontend/_gallery_wall_scroll.twig' with { images: images, template_settings: template_settings, album: album, base_path: base_path, site_title: site_title } %}
+
+  {# Masonry Portfolio layout (template 2) - dedicated Masonry setup #}
+  {% elseif tpl_slug == 'masonry-portfolio' %}
+      {% include 'frontend/_gallery_masonry_portfolio.twig' with { images: images, template_settings: template_settings, album: album, base_path: base_path, site_title: site_title } %}
+
+  {# Magazine layout - special handling, NOT unified #}
+  {% elseif layout == 'magazine' %}
+      <div id="images-gallery" class="mt-6" data-layout="magazine" data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
+          {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
       </div>
-      {% endfor %}
-    </div>
-    </div>
-  {% elseif layout == 'masonry_fit' or layout == 'masonry' %}
-  {# 1. MASONRY FIT / MASONRY - Rispetta proporzioni originali con CSS columns #}
-    {% set gap_h = template_settings.gap.horizontal|default(16) %}
-    {% set gap_v = template_settings.gap.vertical|default(16) %}
-    <div id="images-gallery" class="masonry-fit-container pswp-gallery" data-layout="masonry_fit">
-      {% for image in images %}
-      <div class="masonry-fit-item">
-        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-           class="pswp-link image-item block overflow-hidden bg-neutral-50 cursor-pointer"
-           title="{{ seo_title|e('html_attr') }}"
-           data-image-id="{{ image.id }}"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-           data-title="{{ image.caption|default('')|e }}"
-           data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
-           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
-           data-developer="{{ image.developer_name|default('')|e }}"
-           data-lab="{{ image.lab_name|default('')|e }}"
-           data-location="{{ image.location_name|default('')|e }}"
-           data-iso="{{ image.iso|default('') }}"
-           data-shutter="{{ image.shutter_speed|default('')|e }}"
-           data-aperture="{{ image.aperture|default('') }}"
-           data-focal-length="{{ image.focal_length|default('') }}"
-           data-exif-make="{{ image.exif_make|default('')|e }}"
-           data-exif-model="{{ image.exif_model|default('')|e }}"
-           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
-           data-gps-lat="{{ image.gps_lat|default('') }}"
-           data-gps-lng="{{ image.gps_lng|default('') }}"
-           data-date-original="{{ image.date_original|default('')|e }}"
-           data-artist="{{ image.artist|default('')|e }}"
-           data-copyright="{{ image.copyright|default('')|e }}"
-           data-process="{{ image.process|default('')|e }}"
-           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
-        >
-          <picture>
-            {% if image.sources and image.sources.avif|length %}
-              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
-            {% endif %}
-            {% if image.sources and image.sources.webp|length %}
-              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
-            {% endif %}
-            {% if image.sources and image.sources.jpg|length %}
-              <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
-            {% endif %}
-            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-auto block" loading="lazy" decoding="async">
-          </picture>
-        </a>
-      </div>
-      {% endfor %}
-    </div>
-    <style nonce="{{ csp_nonce() }}">
-    .masonry-fit-container {
-        column-gap: {{ gap_h }}px;
-    }
-    .masonry-fit-container .masonry-fit-item {
-        margin-bottom: {{ gap_v }}px;
-    }
-    @media (min-width: 1024px) {
-        .masonry-fit-container { column-count: {{ desktop_cols }}; }
-    }
-    @media (min-width: 768px) and (max-width: 1023px) {
-        .masonry-fit-container { column-count: {{ tablet_cols }}; }
-    }
-    @media (max-width: 767px) {
-        .masonry-fit-container { column-count: {{ mobile_cols }}; }
-    }
-    </style>
 
-  {# 2. SLIDESHOW PRO - Con controlli avanzati #}
-  {% elseif layout == 'slideshow' %}
-    <div id="images-gallery" class="max-w-6xl mx-auto">
-      <div class="swiper slideshow-pro" data-autoplay="{{ template_settings.slideshow.autoplay|default(true) }}" data-delay="{{ template_settings.slideshow.delay|default(5000) }}">
-        <div class="swiper-wrapper">
-          {% for image in images %}
-          <div class="swiper-slide relative">
-            {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-            <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
-               class="pswp-link image-item block h-[70vh] bg-neutral-100 rounded-xl overflow-hidden flex items-center justify-center"
-               title="{{ seo_title|e('html_attr') }}"
-               data-image-id="{{ image.id }}"
-               data-pswp-width="{{ image.width|default(1600) }}"
-               data-pswp-height="{{ image.height|default(1067) }}"
-               data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-               data-title="{{ image.caption|default('')|e }}"
-               data-alt="{{ image.alt|default('')|e }}"
-               data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
-               data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
-               data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
-               data-developer="{{ image.developer_name|default('')|e }}"
-               data-lab="{{ image.lab_name|default('')|e }}"
-               data-location="{{ image.location_name|default('')|e }}"
-               data-iso="{{ image.iso|default('') }}"
-               data-shutter="{{ image.shutter_speed|default('')|e }}"
-               data-aperture="{{ image.aperture|default('') }}"
-               data-focal-length="{{ image.focal_length|default('') }}"
-               data-exif-make="{{ image.exif_make|default('')|e }}"
-               data-exif-model="{{ image.exif_model|default('')|e }}"
-               data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
-               data-gps-lat="{{ image.gps_lat|default('') }}"
-               data-gps-lng="{{ image.gps_lng|default('') }}"
-               data-date-original="{{ image.date_original|default('')|e }}"
-               data-artist="{{ image.artist|default('')|e }}"
-               data-copyright="{{ image.copyright|default('')|e }}"
-               data-process="{{ image.process|default('')|e }}"
-            >
-              <picture>
-                {% if image.sources and image.sources.avif|length %}
-                  <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
-                {% endif %}
-                {% if image.sources and image.sources.webp|length %}
-                  <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
-                {% endif %}
-                {% if image.sources and image.sources.jpg|length %}
-                  <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
-                {% endif %}
-                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|default('Image')|e }}" title="{{ seo_title|e('html_attr') }}" class="max-w-full max-h-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};" loading="lazy" decoding="async">
-              </picture>
-            </a>
-            {% if image.caption %}
-            <div class="absolute bottom-4 left-4 right-4 bg-black/70 text-white p-4 rounded-lg backdrop-blur-sm">
-              <p class="text-sm">{{ image.caption|e }}</p>
-            </div>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
-        <div class="swiper-button-next !text-white !bg-black/30 !rounded-full !w-12 !h-12"></div>
-        <div class="swiper-button-prev !text-white !bg-black/30 !rounded-full !w-12 !h-12"></div>
-        <div class="swiper-pagination !bottom-2"></div>
-        {% if template_settings.slideshow.showProgress|default(true) %}
-        <div class="swiper-scrollbar !bg-white/20"></div>
-        {% endif %}
-      </div>
-      {% if template_settings.slideshow.showThumbs|default(true) %}
-      <div class="swiper slideshow-thumbs mt-4">
-        <div class="swiper-wrapper">
-          {% for image in images %}
-          <div class="swiper-slide !w-20 !h-16 cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
-            <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="" class="w-full h-full object-contain rounded">
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-    </div>
-
-  {# 3. GRID MINIMAL - Design pulito #}
-  {% elseif layout == 'grid' and template_settings.spacing == 'large' %}
-    <div id="images-gallery" class="grid {{ mobile_class|default('grid-cols-1') }} {{ tablet_class|default('md:grid-cols-2') }} {{ desktop_class|default('lg:grid-cols-3') }} gap-8">
-      {% for image in images %}
-      <div class="grid-minimal-item group">
-        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}" 
-           class="pswp-link image-item block aspect-square bg-neutral-50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-out"
-           title="{{ seo_title|e('html_attr') }}"
-           data-image-id="{{ image.id }}"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-           data-title="{{ image.caption|default('')|e }}"
-           data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
-           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
-           data-developer="{{ image.developer_name|default('')|e }}"
-           data-lab="{{ image.lab_name|default('')|e }}"
-           data-location="{{ image.location_name|default('')|e }}"
-           data-iso="{{ image.iso|default('') }}"
-           data-shutter="{{ image.shutter_speed|default('')|e }}"
-           data-aperture="{{ image.aperture|default('') }}"
-           data-focal-length="{{ image.focal_length|default('') }}"
-           data-exif-make="{{ image.exif_make|default('')|e }}"
-           data-exif-model="{{ image.exif_model|default('')|e }}"
-           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
-           data-gps-lat="{{ image.gps_lat|default('') }}"
-           data-gps-lng="{{ image.gps_lng|default('') }}"
-           data-date-original="{{ image.date_original|default('')|e }}"
-           data-artist="{{ image.artist|default('')|e }}"
-           data-copyright="{{ image.copyright|default('')|e }}"
-           data-process="{{ image.process|default('')|e }}"
-           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
-        >
-          <div class="relative w-full h-full">
-            <picture>
-              {% if image.sources and image.sources.avif|length %}
-                <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
-              {% endif %}
-              {% if image.sources and image.sources.webp|length %}
-                <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
-              {% endif %}
-              {% if image.sources and image.sources.jpg|length %}
-                <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
-              {% endif %}
-              <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300 ease-out" loading="lazy" decoding="async">
-            </picture>
-            <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          </div>
-        </a>
-      </div>
-      {% endfor %}
-    </div>
-
-  {# 4. MOSAIC PRO - Dimensioni variabili #}
-  {% elseif layout == 'mosaic' %}
-    <div id="images-gallery" class="mosaic-container">
-      {% for image in images %}
-      {% set featured = loop.index0 % 6 == 0 or loop.index0 % 6 == 3 %}
-      <div class="mosaic-item {{ featured ? 'mosaic-featured' : 'mosaic-normal' }}" data-index="{{ loop.index0 }}">
-        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-           class="pswp-link image-item block w-full h-full bg-neutral-100 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 ease-out hover:z-10 {{ featured ? 'flex items-center justify-center' : '' }}"
-           title="{{ seo_title|e('html_attr') }}"
-           data-image-id="{{ image.id }}"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-           data-title="{{ image.caption|default('')|e }}"
-           data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
-           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
-           data-developer="{{ image.developer_name|default('')|e }}"
-           data-lab="{{ image.lab_name|default('')|e }}"
-           data-location="{{ image.location_name|default('')|e }}"
-           data-iso="{{ image.iso|default('') }}"
-           data-shutter="{{ image.shutter_speed|default('')|e }}"
-           data-aperture="{{ image.aperture|default('') }}"
-           data-focal-length="{{ image.focal_length|default('') }}"
-           data-exif-make="{{ image.exif_make|default('')|e }}"
-           data-exif-model="{{ image.exif_model|default('')|e }}"
-           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
-           data-gps-lat="{{ image.gps_lat|default('') }}"
-           data-gps-lng="{{ image.gps_lng|default('') }}"
-           data-date-original="{{ image.date_original|default('')|e }}"
-           data-artist="{{ image.artist|default('')|e }}"
-           data-copyright="{{ image.copyright|default('')|e }}"
-           data-process="{{ image.process|default('')|e }}"
-           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
-          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full {{ featured ? 'object-contain max-w-full max-h-full' : 'object-cover' }}">
-        </a>
-      </div>
-      {% endfor %}
-    </div>
-
-  {# 5. CAROUSEL FLOW - Scroll orizzontale #}
-  {% elseif layout == 'carousel' %}
-    <div id="images-gallery" class="carousel-flow-container overflow-hidden">
-      <div class="swiper carousel-flow" data-centered="true" data-free-mode="true">
-        <div class="swiper-wrapper">
-          {% for image in images %}
-          <div class="swiper-slide !w-auto !h-[80vh] px-2">
-            {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-            <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-               class="pswp-link image-item block h-full bg-neutral-100 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-out relative flex items-center justify-center"
-               title="{{ seo_title|e('html_attr') }}"
-               data-image-id="{{ image.id }}"
-               data-pswp-width="{{ image.width|default(1600) }}"
-               data-pswp-height="{{ image.height|default(1067) }}"
-               data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-               data-title="{{ image.caption|default('')|e }}"
-               data-alt="{{ image.alt|default('')|e }}"
-               data-camera="{{ image.camera|default(image.camera_name)|default(image.custom_camera)|default('')|e }}"
-               data-lens="{{ image.lens|default(image.lens_name)|default(image.custom_lens)|default('')|e }}"
-               data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
-               data-developer="{{ image.developer_name|default('')|e }}"
-               data-lab="{{ image.lab_name|default('')|e }}"
-               data-location="{{ image.location_name|default('')|e }}"
-               data-iso="{{ image.iso|default('') }}"
-               data-shutter="{{ image.shutter_speed|default('')|e }}"
-               data-aperture="{{ image.aperture|default('') }}"
-               data-focal-length="{{ image.focal_length|default('') }}"
-               data-exif-make="{{ image.exif_make|default('')|e }}"
-               data-exif-model="{{ image.exif_model|default('')|e }}"
-               data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
-               data-gps-lat="{{ image.gps_lat|default('') }}"
-               data-gps-lng="{{ image.gps_lng|default('') }}"
-               data-date-original="{{ image.date_original|default('')|e }}"
-               data-artist="{{ image.artist|default('')|e }}"
-               data-copyright="{{ image.copyright|default('')|e }}"
-               data-process="{{ image.process|default('')|e }}">
-              <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="max-h-full max-w-full object-contain" style="aspect-ratio: {{ image.width|default(4) }} / {{ image.height|default(3) }};">
-            </a>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-
-  {# 6. POLAROID VINTAGE - Stile retrò #}
-  {% elseif layout == 'polaroid' %}
-    <div id="images-gallery" class="polaroid-container relative p-8" style="background: linear-gradient(45deg, #8b4513, #a0522d); min-height: 60vh;">
-      {% for image in images %}
-      {% set rotation_values = [-8, -6, -4, -2, 0, 2, 4, 6, 8] %}
-      {% set rotation = rotation_values[loop.index0 % 9] %}
-      <div class="polaroid-item absolute"
-           style="--rotation: {{ rotation }}deg; transform: rotate(var(--rotation)); top: {{ (loop.index0 * 15) % 60 + 10 }}%; left: {{ (loop.index0 * 20) % 80 + 5 }}%;">
-        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-           class="pswp-link image-item block bg-white p-3 pb-12 shadow-2xl hover:shadow-3xl transition-shadow duration-300 ease-out hover:z-50 relative"
-           title="{{ seo_title|e('html_attr') }}"
-           data-image-id="{{ image.id }}"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-           data-title="{{ image.caption|default('')|e }}"
-           data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
-           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
-           data-developer="{{ image.developer_name|default('')|e }}"
-           data-lab="{{ image.lab_name|default('')|e }}"
-           data-location="{{ image.location_name|default('')|e }}"
-           data-iso="{{ image.iso|default('') }}"
-           data-shutter="{{ image.shutter_speed|default('')|e }}"
-           data-aperture="{{ image.aperture|default('') }}"
-           data-focal-length="{{ image.focal_length|default('') }}"
-           data-exif-make="{{ image.exif_make|default('')|e }}"
-           data-exif-model="{{ image.exif_model|default('')|e }}"
-           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
-           data-gps-lat="{{ image.gps_lat|default('') }}"
-           data-gps-lng="{{ image.gps_lng|default('') }}"
-           data-date-original="{{ image.date_original|default('')|e }}"
-           data-artist="{{ image.artist|default('')|e }}"
-           data-copyright="{{ image.copyright|default('')|e }}"
-           data-process="{{ image.process|default('')|e }}"
-           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
-           style="width: 200px; filter: sepia(0.2) contrast(1.1) brightness(1.05);">
-          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full aspect-square object-cover">
-          {% if image.caption %}
-          <div class="absolute bottom-2 left-3 right-3 text-center text-xs font-handwriting text-gray-700">
-            {{ image.caption|e|slice(0, 40) }}{% if image.caption|length > 40 %}...{% endif %}
-          </div>
-          {% endif %}
-          <div class="absolute -top-2 left-1/2 transform -translate-x-1/2 w-8 h-4 bg-yellow-100/80 rounded-sm shadow-sm"></div>
-        </a>
-      </div>
-      {% endfor %}
-    </div>
-
-  {# 7. DENSE GRID - Responsive CSS Grid with auto-flow dense and adaptive image sizing #}
+  {# Dense Grid layout - CSS Grid with auto-flow dense (fills gaps automatically) #}
   {% elseif layout == 'dense_grid' %}
-    {% set dense = template_settings.dense_grid|default({}) %}
-    {% set columnMode = dense.columnMode|default('auto') %}
-    {% set minDesktop = dense.minCellDesktop|default(250) %}
-    {% set minTablet = dense.minCellTablet|default(150) %}
-    {% set cellMobile = dense.cellHeightMobile|default(300) %}
-    {% set colsDesktop = dense.colsDesktop|default(3) %}
-    {% set colsTablet = dense.colsTablet|default(2) %}
-    {% set colsMobile = dense.colsMobile|default(1) %}
-    {% set gridGap = dense.gap|default(15) %}
-    {% set maxWidth = dense.maxWidth|default(1400) %}
-    {% set adaptive = dense.adaptiveSizing|default(true) %}
-    <div id="images-gallery" class="dense-grid pswp-gallery" data-layout="dense_grid" data-adaptive="{{ adaptive ? 'true' : 'false' }}">
-      {% for image in images %}
-      <div class="dense-grid-item" data-image-id="{{ image.id }}" data-width="{{ image.width|default(0) }}" data-height="{{ image.height|default(0) }}">
-        <div class="dense-loading"></div>
-        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-           class="pswp-link dense-grid-link"
-           title="{{ seo_title|e('html_attr') }}"
-           data-image-id="{{ image.id }}"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-           data-title="{{ image.caption|default('')|e }}"
-           data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
-           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
-           data-developer="{{ image.developer_name|default('')|e }}"
-           data-lab="{{ image.lab_name|default('')|e }}"
-           data-location="{{ image.location_name|default('')|e }}"
-           data-iso="{{ image.iso|default('') }}"
-           data-shutter="{{ image.shutter_speed|default('')|e }}"
-           data-aperture="{{ image.aperture|default('') }}"
-           data-focal-length="{{ image.focal_length|default('') }}"
-           data-exif-make="{{ image.exif_make|default('')|e }}"
-           data-exif-model="{{ image.exif_model|default('')|e }}"
-           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
-           data-gps-lat="{{ image.gps_lat|default('') }}"
-           data-gps-lng="{{ image.gps_lng|default('') }}"
-           data-date-original="{{ image.date_original|default('')|e }}"
-           data-artist="{{ image.artist|default('')|e }}"
-           data-copyright="{{ image.copyright|default('')|e }}"
-           data-process="{{ image.process|default('')|e }}"
-           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}
-        >
-          <picture>
-            {% if image.sources and image.sources.avif|length %}
-              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
-            {% endif %}
-            {% if image.sources and image.sources.webp|length %}
-              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
-            {% endif %}
-            {% if image.sources and image.sources.jpg|length %}
-              <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
-            {% endif %}
-            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="dense-grid-img" loading="lazy" decoding="async" data-fallback="hide">
-          </picture>
-        </a>
-      </div>
-      {% endfor %}
-    </div>
-    {% set rowHeight = dense.rowHeight|default(250) %}
-    {% set rowHeightTablet = dense.rowHeightTablet|default(150) %}
-    {% set rowHeightMobile = dense.rowHeightMobile|default(300) %}
-    <style nonce="{{ csp_nonce() }}">
-    /* Dense Grid Layout - CSS Grid with auto-flow dense (like photo-gallery-white.html) */
-    .dense-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax({{ minDesktop }}px, 1fr));
-      grid-auto-rows: {{ rowHeight }}px;
-      gap: {{ gridGap }}px;
-      grid-auto-flow: dense;
-      max-width: {{ maxWidth }}px;
-      margin: 0 auto;
-      padding: 0 {{ gridGap }}px;
-    }
-    .dense-grid-item {
-      position: relative;
-      overflow: hidden;
-      background: #f5f5f5;
-      cursor: pointer;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .dense-grid-item:hover {
-      transform: scale(1.02);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-      z-index: 10;
-    }
-    .dense-grid-link {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-    .dense-grid-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: opacity 0.3s ease;
-    }
-    .dense-grid-img:not(.loaded) {
-      opacity: 0;
-    }
-    .dense-grid-img.loaded {
-      opacity: 1;
-    }
-    /* Adaptive sizing classes - images span based on aspect ratio */
-    .dense-grid-item.landscape {
-      grid-column: span 2;
-    }
-    .dense-grid-item.portrait-tall {
-      grid-row: span 2;
-    }
-    .dense-grid-item.square-large {
-      grid-column: span 2;
-      grid-row: span 2;
-    }
-    /* Loading spinner */
-    .dense-loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 40px;
-      height: 40px;
-      border: 3px solid #e0e0e0;
-      border-top-color: #333;
-      border-radius: 50%;
-      animation: dense-spin 1s linear infinite;
-      z-index: 1;
-    }
-    @keyframes dense-spin {
-      to { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-    /* Tablet responsive */
-    @media (max-width: 768px) {
+      {% set dense = template_settings.dense_grid|default({}) %}
+      {% set minDesktop = dense.minCellDesktop|default(250) %}
+      {% set minTablet = dense.minCellTablet|default(150) %}
+      {% set rowHeight = dense.rowHeight|default(250) %}
+      {% set rowHeightTablet = dense.rowHeightTablet|default(180) %}
+      {% set rowHeightMobile = dense.rowHeightMobile|default(300) %}
+      {% set gridGap = dense.gap|default(8) %}
+      {% set maxWidth = dense.maxWidth|default(1600) %}
+      {% set adaptive = dense.adaptiveSizing|default(true) %}
+
+      <style nonce="{{ csp_nonce() }}">
+      /* Dense Grid Layout - CSS Grid with auto-flow dense */
       .dense-grid {
-        grid-template-columns: repeat(auto-fill, minmax({{ minTablet }}px, 1fr));
-        grid-auto-rows: {{ rowHeightTablet }}px;
-        gap: 10px;
-        padding: 0 10px;
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax({{ minDesktop }}px, 1fr));
+          grid-auto-rows: {{ rowHeight }}px;
+          gap: {{ gridGap }}px;
+          grid-auto-flow: dense;
+          max-width: {{ maxWidth }}px;
+          margin: 0 auto;
+          padding: 0 {{ gridGap }}px;
+          /* Establish stacking context to contain hover z-index */
+          position: relative;
+          z-index: 1;
+          isolation: isolate;
       }
-    }
-    /* Mobile - single column, no adaptive spans */
-    @media (max-width: 480px) {
-      .dense-grid {
-        grid-template-columns: 1fr;
-        grid-auto-rows: {{ rowHeightMobile }}px;
-        gap: 10px;
-        padding: 0 10px;
-      }
-      .dense-grid-item.landscape,
-      .dense-grid-item.portrait-tall,
-      .dense-grid-item.square-large {
-        grid-column: span 1;
-        grid-row: span 1;
+      .dense-grid-item {
+          position: relative;
+          overflow: hidden;
+          background: #f5f5f5;
+          cursor: pointer;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          z-index: 1;
       }
       .dense-grid-item:hover {
-        transform: none;
-        box-shadow: none;
+          transform: scale(1.02);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+          z-index: 2;
       }
-    }
-    </style>
+      .dense-grid-link {
+          display: block;
+          width: 100%;
+          height: 100%;
+      }
+      .dense-grid-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          transition: opacity 0.3s ease;
+      }
+      .dense-grid-img:not(.loaded) {
+          opacity: 0;
+      }
+      .dense-grid-img.loaded {
+          opacity: 1;
+      }
+      /* Adaptive sizing classes - images span based on aspect ratio */
+      .dense-grid-item.landscape {
+          grid-column: span 2;
+      }
+      .dense-grid-item.portrait-tall {
+          grid-row: span 2;
+      }
+      .dense-grid-item.square-large {
+          grid-column: span 2;
+          grid-row: span 2;
+      }
+      /* Loading spinner */
+      .dense-loading {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 32px;
+          height: 32px;
+          border: 3px solid #e0e0e0;
+          border-top-color: #333;
+          border-radius: 50%;
+          animation: dense-spin 1s linear infinite;
+          z-index: 1;
+      }
+      @keyframes dense-spin {
+          to { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+      /* Tablet responsive */
+      @media (max-width: 1023px) {
+          .dense-grid {
+              grid-template-columns: repeat(auto-fill, minmax({{ minTablet }}px, 1fr));
+              grid-auto-rows: {{ rowHeightTablet }}px;
+              gap: 6px;
+              padding: 0 6px;
+          }
+      }
+      /* Mobile - single/double column, no adaptive spans */
+      @media (max-width: 640px) {
+          .dense-grid {
+              grid-template-columns: repeat(2, 1fr);
+              grid-auto-rows: {{ rowHeightMobile }}px;
+              gap: 4px;
+              padding: 0 4px;
+          }
+          .dense-grid-item.landscape,
+          .dense-grid-item.portrait-tall,
+          .dense-grid-item.square-large {
+              grid-column: span 1;
+              grid-row: span 1;
+          }
+          .dense-grid-item:hover {
+              transform: none;
+              box-shadow: none;
+          }
+      }
+      </style>
 
-  {# DEFAULT: Standard masonry with CSS columns #}
-  {% elseif masonry %}
-    <div id="images-gallery" class="masonry-grid pswp-gallery" data-layout="masonry">
-      {% for image in images %}
-      <div class="masonry-item">
-        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-           class="pswp-link image-item bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer mb-4 group relative block"
-           title="{{ seo_title|e('html_attr') }}"
-           data-image-id="{{ image.id }}"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-           data-title="{{ image.caption|default('')|e }}"
-           data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
-           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
-           data-developer="{{ image.developer_name|default('')|e }}"
-           data-lab="{{ image.lab_name|default('')|e }}"
-           data-location="{{ image.location_name|default('')|e }}"
-           data-iso="{{ image.iso|default('') }}"
-           data-shutter="{{ image.shutter_speed|default('')|e }}"
-           data-aperture="{{ image.aperture|default('') }}"
-           data-focal-length="{{ image.focal_length|default('') }}"
-           data-exif-make="{{ image.exif_make|default('')|e }}"
-           data-exif-model="{{ image.exif_model|default('')|e }}"
-           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
-           data-gps-lat="{{ image.gps_lat|default('') }}"
-           data-gps-lng="{{ image.gps_lng|default('') }}"
-           data-date-original="{{ image.date_original|default('')|e }}"
-           data-artist="{{ image.artist|default('')|e }}"
-           data-copyright="{{ image.copyright|default('')|e }}"
-           data-process="{{ image.process|default('')|e }}"
-           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
-          <img src="{% if image.url starts with '/' %}{{ base_path }}{{ image.url }}{% else %}{{ image.url }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-auto object-cover">
-        </a>
+      <div id="images-gallery" class="dense-grid pswp-gallery" data-layout="dense_grid" data-adaptive="{{ adaptive ? 'true' : 'false' }}" data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
+          {% for image in images %}
+          <div class="dense-grid-item" data-image-id="{{ image.id }}" data-width="{{ image.width|default(0) }}" data-height="{{ image.height|default(0) }}">
+              <div class="dense-loading"></div>
+              {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+              {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+              <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+                 class="pswp-link dense-grid-link"
+                 title="{{ seo_title|e('html_attr') }}"
+                 data-image-id="{{ image.id }}"
+                 data-pswp-width="{{ image.width }}"
+                 data-pswp-height="{{ image.height }}"
+                 data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+                 data-title="{{ image.caption|default('')|e }}"
+                 data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                 data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+                 data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+                 data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+                 data-developer="{{ image.developer_name|default('')|e }}"
+                 data-lab="{{ image.lab_name|default('')|e }}"
+                 data-location="{{ image.location_name|default('')|e }}"
+                 data-iso="{{ image.iso|default('') }}"
+                 data-shutter="{{ image.shutter_speed|default('')|e }}"
+                 data-aperture="{{ image.aperture|default('') }}"
+                 data-focal-length="{{ image.focal_length|default('') }}"
+                 {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+                  <picture>
+                      {% set variants_avif = [] %}
+                      {% set variants_webp = [] %}
+                      {% set variants_jpg = [] %}
+                      {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                      {% set best_jpg_w = 0 %}
+                      {% for variant in image.variants %}
+                          {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+                          {% if variant.format == 'avif' %}
+                              {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                          {% elseif variant.format == 'webp' %}
+                              {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                          {% elseif variant.format == 'jpg' %}
+                              {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                              {% if variant.width > best_jpg_w %}
+                                  {% set best_jpg_path = variant_url %}
+                                  {% set best_jpg_w = variant.width %}
+                              {% endif %}
+                          {% endif %}
+                      {% endfor %}
+
+                      {% if variants_avif %}
+                          <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                      {% endif %}
+                      {% if variants_webp %}
+                          <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                      {% endif %}
+
+                      <img src="{{ best_jpg_path }}"
+                           alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                           title="{{ seo_title|e('html_attr') }}"
+                           class="dense-grid-img"
+                           loading="lazy"
+                           decoding="async"
+                           data-fallback="hide">
+                  </picture>
+              </a>
+          </div>
+          {% endfor %}
       </div>
-      {% endfor %}
-    </div>
-    <style nonce="{{ csp_nonce() }}">
-    .masonry-grid {
-        display: block;
-        column-gap: 1rem;
-        column-fill: auto;
-    }
-    .masonry-grid .masonry-item {
-        break-inside: avoid;
-        margin-bottom: 1rem;
-    }
-    @media (min-width: 1024px) {
-        .masonry-grid { column-count: {{ desktop_cols }}; }
-    }
-    @media (min-width: 768px) and (max-width: 1023px) {
-        .masonry-grid { column-count: {{ tablet_cols }}; }
-    }
-    @media (max-width: 767px) {
-        .masonry-grid { column-count: {{ mobile_cols }}; }
-    }
-    </style>
+
+  {# Masonry layout - uses @masonry-grid/vanilla for Pinterest-style waterfall #}
+  {% elseif layout == 'masonry' %}
+      <style nonce="{{ csp_nonce() }}">
+      /* Modern Masonry Grid using @masonry-grid/vanilla */
+      /* The library uses translateY(%) for positioning - margin doesn't work! */
+      /* Gaps are created via inset on the inner container per library docs */
+      .gallery-masonry {
+          --masonry-gap-v: {{ gap_v }}px;
+          --masonry-gap-h: {{ gap_h }}px;
+          display: grid;
+          column-gap: var(--masonry-gap-h);
+          grid-template-columns: repeat({{ mobile_cols }}, 1fr);
+          align-items: start; /* Required: items need natural height for masonry transforms */
+          width: 100%;
+          max-width: 100%;
+          opacity: 0;
+          transition: opacity 0.3s ease-in-out;
+      }
+      .gallery-masonry.masonry-ready {
+          opacity: 1;
+      }
+      @media (min-width: 768px) {
+          .gallery-masonry {
+              grid-template-columns: repeat({{ tablet_cols }}, 1fr);
+          }
+      }
+      @media (min-width: 1024px) {
+          .gallery-masonry {
+              grid-template-columns: repeat({{ desktop_cols }}, 1fr);
+          }
+      }
+      /* Frame: NO overflow:hidden per library docs (breaks aspect-ratio calc) */
+      .gallery-masonry .masonry-frame {
+          position: relative;
+          aspect-ratio: var(--width) / var(--height);
+          min-width: 0; /* Prevent grid blowout */
+          /* No margin-bottom - translateY% ignores margins */
+      }
+      /* Inner container uses inset to create vertical gaps */
+      /* Each item has gap/2 on top and bottom = gap between items */
+      .gallery-masonry .masonry-frame > .frame-content {
+          position: absolute;
+          inset: calc(var(--masonry-gap-v) / 2) 0;
+          overflow: hidden;
+      }
+      .gallery-masonry .masonry-frame img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.3s ease;
+      }
+      .gallery-masonry .masonry-frame:hover img {
+          transform: scale(1.03);
+      }
+      .no-js .gallery-masonry {
+          opacity: 1 !important;
+      }
+      @media (prefers-reduced-motion: reduce) {
+          .gallery-masonry { opacity: 1 !important; transition: none !important; }
+          .gallery-masonry .masonry-frame img { transition: none !important; }
+      }
+      </style>
+
+      <div id="images-gallery"
+           class="gallery-masonry pswp-gallery"
+           data-layout="masonry"
+           data-gap-h="{{ gap_h }}"
+           data-gap-v="{{ gap_v }}"
+           data-cols-desktop="{{ desktop_cols }}"
+           data-cols-tablet="{{ tablet_cols }}"
+           data-cols-mobile="{{ mobile_cols }}"
+           data-rounded="{{ style.rounded ? '1' : '0' }}"
+           data-shadow="{{ style.shadow ? '1' : '0' }}"
+           data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
+          {% for image in images %}
+              {# Calculate aspect ratio for CSS variable #}
+              {% set imgW = image.width|default(4) %}
+              {% set imgH = image.height|default(3) %}
+              <div class="masonry-frame" style="--width: {{ imgW }}; --height: {{ imgH }};">
+                  <div class="frame-content group {{ rounded_class }} {{ shadow_class }}">
+                      {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                      {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+                      <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+                         class="pswp-link gallery-link block w-full h-full overflow-hidden bg-neutral-100 cursor-pointer {{ rounded_class }}"
+                         title="{{ seo_title|e('html_attr') }}"
+                         data-image-id="{{ image.id }}"
+                         data-pswp-width="{{ image.width }}"
+                         data-pswp-height="{{ image.height }}"
+                         data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+                         data-title="{{ image.caption|default('')|e }}"
+                         data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                         data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+                         data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+                         data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+                         data-developer="{{ image.developer_name|default('')|e }}"
+                         data-lab="{{ image.lab_name|default('')|e }}"
+                         data-location="{{ image.location_name|default('')|e }}"
+                         data-iso="{{ image.iso|default('') }}"
+                         data-shutter="{{ image.shutter_speed|default('')|e }}"
+                         data-aperture="{{ image.aperture|default('') }}"
+                         data-focal-length="{{ image.focal_length|default('') }}"
+                         {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+                          <picture>
+                              {% set variants_avif = [] %}
+                              {% set variants_webp = [] %}
+                              {% set variants_jpg = [] %}
+                              {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                              {% set best_jpg_w = 0 %}
+                              {% for variant in image.variants %}
+                                  {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+                                  {% if variant.format == 'avif' %}
+                                      {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                  {% elseif variant.format == 'webp' %}
+                                      {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                  {% elseif variant.format == 'jpg' %}
+                                      {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                      {% if variant.width > best_jpg_w %}
+                                          {% set best_jpg_path = variant_url %}
+                                          {% set best_jpg_w = variant.width %}
+                                      {% endif %}
+                                  {% endif %}
+                              {% endfor %}
+
+                              {% if variants_avif %}
+                                  <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                              {% endif %}
+                              {% if variants_webp %}
+                                  <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                              {% endif %}
+
+                              <img src="{{ best_jpg_path }}"
+                                   alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                                   title="{{ seo_title|e('html_attr') }}"
+                                   loading="lazy"
+                                   decoding="async"
+                                   data-fallback="hide">
+                          </picture>
+                          {% if album.allow_downloads %}
+                              <button type="button"
+                                      class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
+                                      title="{{ trans('image.download') }}"
+                                      data-action="download-image"
+                                      data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+                                  <i class="fa-solid fa-arrow-down text-sm"></i>
+                              </button>
+                          {% endif %}
+                          {% if image.caption %}
+                              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm p-4 pt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                  {{ image.caption|e }}
+                              </div>
+                          {% endif %}
+                      </a>
+                  </div>
+              </div>
+          {% endfor %}
+      </div>
+
+  {# Grid layout - CSS Grid with fixed aspect ratios #}
   {% else %}
-    {% if mobile_cols == 1 %}{% set mobile_class = 'grid-cols-1' %}
-    {% elseif mobile_cols == 2 %}{% set mobile_class = 'grid-cols-2' %}
-    {% elseif mobile_cols == 3 %}{% set mobile_class = 'grid-cols-3' %}
-    {% elseif mobile_cols == 4 %}{% set mobile_class = 'grid-cols-4' %}
-    {% elseif mobile_cols == 5 %}{% set mobile_class = 'grid-cols-5' %}
-    {% else %}{% set mobile_class = 'grid-cols-6' %}{% endif %}
-    
-    {% if tablet_cols == 1 %}{% set tablet_class = 'md:grid-cols-1' %}
-    {% elseif tablet_cols == 2 %}{% set tablet_class = 'md:grid-cols-2' %}
-    {% elseif tablet_cols == 3 %}{% set tablet_class = 'md:grid-cols-3' %}
-    {% elseif tablet_cols == 4 %}{% set tablet_class = 'md:grid-cols-4' %}
-    {% elseif tablet_cols == 5 %}{% set tablet_class = 'md:grid-cols-5' %}
-    {% else %}{% set tablet_class = 'md:grid-cols-6' %}{% endif %}
-    
-    {% if desktop_cols == 1 %}{% set desktop_class = 'lg:grid-cols-1' %}
-    {% elseif desktop_cols == 2 %}{% set desktop_class = 'lg:grid-cols-2' %}
-    {% elseif desktop_cols == 3 %}{% set desktop_class = 'lg:grid-cols-3' %}
-    {% elseif desktop_cols == 4 %}{% set desktop_class = 'lg:grid-cols-4' %}
-    {% elseif desktop_cols == 5 %}{% set desktop_class = 'lg:grid-cols-5' %}
-    {% else %}{% set desktop_class = 'lg:grid-cols-6' %}{% endif %}
-    <div id="images-gallery" class="grid {{ mobile_class }} {{ tablet_class }} {{ desktop_class }} gap-4">
-      {% for image in images %}
-      <div class="masonry-item">
-        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-        <a href="{% set href_src = image.lightbox_url|default(image.url) %}{% if href_src starts with '/' %}{{ base_path }}{{ href_src }}{% else %}{{ href_src }}{% endif %}"
-           class="pswp-link image-item aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group relative block"
-           title="{{ seo_title|e('html_attr') }}"
-           data-image-id="{{ image.id }}"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption_html|default(image.caption)|e('html_attr') }}"
-           data-title="{{ image.caption|default('')|e }}"
-           data-alt="{{ image.alt|default('')|e }}"
-           data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
-           data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}"
-           data-film="{{ image.film_name|default(image.custom_film)|default('')|e }}"
-           data-developer="{{ image.developer_name|default('')|e }}"
-           data-lab="{{ image.lab_name|default('')|e }}"
-           data-location="{{ image.location_name|default('')|e }}"
-           data-iso="{{ image.iso|default('') }}"
-           data-shutter="{{ image.shutter_speed|default('')|e }}"
-           data-aperture="{{ image.aperture|default('') }}"
-           data-focal-length="{{ image.focal_length|default('') }}"
-           data-exif-make="{{ image.exif_make|default('')|e }}"
-           data-exif-model="{{ image.exif_model|default('')|e }}"
-           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
-           data-gps-lat="{{ image.gps_lat|default('') }}"
-           data-gps-lng="{{ image.gps_lng|default('') }}"
-           data-date-original="{{ image.date_original|default('')|e }}"
-           data-artist="{{ image.artist|default('')|e }}"
-           data-copyright="{{ image.copyright|default('')|e }}"
-           data-process="{{ image.process|default('')|e }}"
-           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
-          <picture>
-            {% if image.sources and image.sources.avif|length %}
-              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
-            {% endif %}
-            {% if image.sources and image.sources.webp|length %}
-              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
-            {% endif %}
-               {% if image.sources and image.sources.jpg|length %}
-                 <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')[0] %}{{ base_path }}{{ src_url }} {{ src|split(' ')[1] }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
-               {% endif %}
-                <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover" loading="lazy" decoding="async">
-          </picture>
-        </a>
+      <style nonce="{{ csp_nonce() }}">
+      .gallery-grid {
+          display: grid;
+          gap: {{ gap_v }}px {{ gap_h }}px;
+      }
+      @media (min-width: 1024px) {
+          .gallery-grid { grid-template-columns: repeat({{ desktop_cols }}, 1fr); }
+      }
+      @media (min-width: 768px) and (max-width: 1023px) {
+          .gallery-grid { grid-template-columns: repeat({{ tablet_cols }}, 1fr); }
+      }
+      @media (max-width: 767px) {
+          .gallery-grid { grid-template-columns: repeat({{ mobile_cols }}, 1fr); }
+      }
+      </style>
+
+      <div id="images-gallery"
+           class="gallery-grid pswp-gallery"
+           data-layout="grid"
+           data-gap-h="{{ gap_h }}"
+           data-gap-v="{{ gap_v }}"
+           data-cols-desktop="{{ desktop_cols }}"
+           data-cols-tablet="{{ tablet_cols }}"
+           data-cols-mobile="{{ mobile_cols }}"
+           data-aspect-ratio="{{ aspect_ratio }}"
+           data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
+          {% for image in images %}
+              <div class="gallery-item">
+                  {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                  {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+                  <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+                     class="pswp-link gallery-link group block overflow-hidden bg-neutral-100 cursor-pointer {{ aspect_class }} {{ rounded_class }} {{ shadow_class }}"
+                     title="{{ seo_title|e('html_attr') }}"
+                     data-image-id="{{ image.id }}"
+                     data-pswp-width="{{ image.width }}"
+                     data-pswp-height="{{ image.height }}"
+                     data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+                     data-title="{{ image.caption|default('')|e }}"
+                     data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                     data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+                     data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+                     data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+                     data-developer="{{ image.developer_name|default('')|e }}"
+                     data-lab="{{ image.lab_name|default('')|e }}"
+                     data-location="{{ image.location_name|default('')|e }}"
+                     data-iso="{{ image.iso|default('') }}"
+                     data-shutter="{{ image.shutter_speed|default('')|e }}"
+                     data-aperture="{{ image.aperture|default('') }}"
+                     data-focal-length="{{ image.focal_length|default('') }}"
+                     {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+                      <picture>
+                          {% set variants_avif = [] %}
+                          {% set variants_webp = [] %}
+                          {% set variants_jpg = [] %}
+                          {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                          {% set best_jpg_w = 0 %}
+                          {% for variant in image.variants %}
+                              {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+                              {% if variant.format == 'avif' %}
+                                  {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                              {% elseif variant.format == 'webp' %}
+                                  {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                              {% elseif variant.format == 'jpg' %}
+                                  {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                                  {% if variant.width > best_jpg_w %}
+                                      {% set best_jpg_path = variant_url %}
+                                      {% set best_jpg_w = variant.width %}
+                                  {% endif %}
+                              {% endif %}
+                          {% endfor %}
+
+                          {% if variants_avif %}
+                              <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                          {% endif %}
+                          {% if variants_webp %}
+                              <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+                          {% endif %}
+
+                          <img src="{{ best_jpg_path }}"
+                               alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                               title="{{ seo_title|e('html_attr') }}"
+                               width="{{ image.width }}"
+                               height="{{ image.height }}"
+                               loading="lazy"
+                               decoding="async"
+                               data-fallback="hide"
+                               class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">
+                      </picture>
+                      {% if album.allow_downloads %}
+                          <button type="button"
+                                  class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
+                                  title="{{ trans('image.download') }}"
+                                  data-action="download-image"
+                                  data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+                              <i class="fa-solid fa-arrow-down text-sm"></i>
+                          </button>
+                      {% endif %}
+                      {% if image.caption %}
+                          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm p-4 pt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              {{ image.caption|e }}
+                          </div>
+                      {% endif %}
+                  </a>
+              </div>
+          {% endfor %}
       </div>
-      {% endfor %}
-    </div>
   {% endif %}
+
+  {% if images|length == 0 %}
+  <div class="text-center py-20">
+      <h2 class="text-2xl font-light text-neutral-600 mb-4">{{ trans('album.empty') }}</h2>
+      <p class="text-neutral-500">{{ trans('album.empty_message') }}</p>
+  </div>
   {% endif %}
 
 </div>
 {% endblock %}
 
 {% block scripts %}
+{# Load @masonry-grid/vanilla as ES module and expose globally #}
+{% if layout == 'masonry' and tpl_slug != 'masonry-portfolio' %}
+<script type="module" nonce="{{ csp_nonce() }}">
+import { BalancedMasonryGrid, RegularMasonryGrid } from '{{ base_path }}/assets/vendor/masonry-grid/index.js';
+window.BalancedMasonryGrid = BalancedMasonryGrid;
+window.RegularMasonryGrid = RegularMasonryGrid;
+window._masonryGridReady = true; // Flag for sync check
+// Dispatch event when library is ready
+window.dispatchEvent(new CustomEvent('masonry-grid-ready'));
+console.log('masonry-grid module loaded and exposed globally');
+</script>
+{% endif %}
 <script nonce="{{ csp_nonce() }}">
 // Global base path for API calls
 window.basePath = '{{ base_path }}';
 
-// Store template settings globally for AJAX reloads
-window.templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
+// Template settings (also expose globally for template switcher)
+const templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
+window.templateSettings = templateSettings;
+const layout = templateSettings.layout || 'grid';
+const templateSlug = templateSettings.template_slug || '';
 
-const templateSlug = '{{ template_slug|default('')|e('js') }}';
-const layout = window.templateSettings.layout || 'grid';
-const masonry = window.templateSettings.masonry || false;
+/**
+ * Masonry Portfolio initialization using Masonry + imagesLoaded
+ */
+function initMasonryPortfolio(containerOrSelector) {
+    const grid = typeof containerOrSelector === 'string'
+        ? document.querySelector(containerOrSelector)
+        : containerOrSelector || document.querySelector('.masonry-portfolio-grid');
 
-// Initialize layouts based on template settings
-document.addEventListener('DOMContentLoaded', function() {
-  initializeGalleryLayout();
-  // If magazine is active on first render, ensure autoscroll
-  try {
-    if (window.templateSettings?.layout === 'magazine') {
-      if (typeof initMagazineAutoscroll === 'function') {
-        setTimeout(() => { initMagazineAutoscroll(); }, 100);
-      } else {
-        // Inline fallback
-        (function(){
-          try {
-            document.querySelectorAll('.m-col').forEach(function(col){
-              var track = col.querySelector('.m-track'); if (!track) return;
-              var dir = (col.getAttribute('data-direction')||'down').toLowerCase();
-              var dur = (getComputedStyle(col).getPropertyValue('--m-duration')||'60s').trim() || '60s';
-              track.style.animation = (dir==='up'?'mScrollUp':'mScrollDown') + ' ' + dur + ' linear infinite';
-              track.style.animationPlayState = 'running';
-            });
-            document.querySelectorAll('.m-mobile-wrap').forEach(function(mwrap){
-              var track = mwrap.querySelector('.m-mobile-track'); if (!track) return;
-              var dur = (getComputedStyle(mwrap).getPropertyValue('--m-duration')||'60s').trim() || '60s';
-              track.style.animation = 'mScrollDown ' + dur + ' linear infinite';
-              track.style.animationPlayState = 'running';
-            });
-          } catch(e) { console.error(e); }
-        })();
-      }
+    if (!grid || typeof Masonry === 'undefined' || typeof imagesLoaded === 'undefined') return null;
+    if (grid._masonryPortfolioInitialized) return grid._masonryPortfolioInstance;
+
+    const gapH = parseInt(grid.dataset.gapH || '16', 10);
+    const mpType = (window.templateSettings?.masonry_portfolio?.type || 'balanced');
+    const horizontalOrder = mpType === 'regular';
+
+    if (grid._masonryPortfolioInstance) {
+        grid._masonryPortfolioInstance.destroy();
+        grid._masonryPortfolioInstance = null;
     }
-  } catch(e){}
 
-  // Gallery animation handled by animateGalleryOnce in _layout.twig
-  // DO NOT manually set opacity here to avoid double animation
-});
-
-function initializeGalleryLayout() {
-  const layout = window.templateSettings?.layout || 'grid';
-  const masonry = window.templateSettings?.masonry || false;
-
-  // Masonry Portfolio (template 2) - reuse home masonry behavior without infinite cloning
-  if (templateSlug === 'masonry-portfolio' && (layout === 'masonry_portfolio' || masonry)) {
-    const grid = document.querySelector('#images-gallery.masonry-portfolio');
-    if (grid && typeof Masonry !== 'undefined') {
-      const config = {
-        gapH: parseInt(grid.dataset.gapH, 10) || 0,
-        gapV: parseInt(grid.dataset.gapV, 10) || 0,
-        colsMobile: parseInt(grid.dataset.colsMobile, 10) || 2,
-        colsTablet: parseInt(grid.dataset.colsTablet, 10) || 3,
-        colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5
-      };
-
-      const getColumnCount = () => {
-        const width = window.innerWidth;
-        if (width >= 1025) return config.colsDesktop;
-        if (width >= 641) return config.colsTablet;
-        return config.colsMobile;
-      };
-
-      const setItemWidths = () => {
-        const cols = getColumnCount();
-        const containerWidth = grid.offsetWidth;
-        const totalGaps = config.gapH * (cols - 1);
-        const width = Math.floor((containerWidth - totalGaps) / cols);
-        grid.querySelectorAll('.masonry-item').forEach((item) => {
-          item.style.width = `${width}px`;
-          item.style.marginBottom = `${config.gapV}px`;
-        });
-      };
-
-      const initMasonryPortfolio = () => {
-        grid.classList.add('masonry-active');
-        setItemWidths();
-        const msnry = new Masonry(grid, {
-          itemSelector: '.masonry-item',
-          columnWidth: '.masonry-item',
-          gutter: config.gapH,
-          percentPosition: false,
-          horizontalOrder: true,
-          transitionDuration: 0
-        });
-        msnry.layout();
-        requestAnimationFrame(() => {
-          msnry.layout();
-          grid.classList.add('masonry-ready');
-        });
-        grid.querySelectorAll('.masonry-item').forEach((item) => item.classList.add('fade-in'));
-        window.addEventListener('resize', () => {
-          setItemWidths();
-          msnry.layout();
-        }, { passive: true });
-      };
-
-      if (typeof imagesLoaded !== 'undefined') {
-        imagesLoaded(grid, initMasonryPortfolio);
-        setTimeout(() => {
-          if (!grid.classList.contains('masonry-ready')) {
-            initMasonryPortfolio();
-          }
-        }, 4000);
-      } else {
-        initMasonryPortfolio();
-      }
-    }
-    return;
-  }
-  
-  // 1. MASONRY FIT - No special JS needed, pure CSS Grid
-
-  // 1b. DENSE GRID - Initialize adaptive sizing based on image aspect ratios
-  if (layout === 'dense_grid') {
-    initDenseGrid();
-  }
-
-  // 2. SLIDESHOW PRO - Enhanced slideshow with thumbnails
-  if (layout === 'slideshow' && typeof Swiper !== 'undefined') {
-    const slideshowThumbs = new Swiper('.slideshow-thumbs', {
-      spaceBetween: 10,
-      slidesPerView: 'auto',
-      freeMode: true,
-      watchSlidesProgress: true,
+    grid._masonryPortfolioInitialized = true;
+    grid._masonryPortfolioInstance = new Masonry(grid, {
+        itemSelector: '.photo-item',
+        columnWidth: '.grid-sizer',
+        gutter: gapH,
+        percentPosition: true,
+        horizontalOrder: horizontalOrder,
+        transitionDuration: '0.3s'
     });
-    
-    window.gallerySwiper = new Swiper('.slideshow-pro', {
-      spaceBetween: 10,
-      navigation: {
-        nextEl: '.swiper-button-next',
-        prevEl: '.swiper-button-prev',
-      },
-      pagination: {
-        el: '.swiper-pagination',
-        clickable: true,
-      },
-      thumbs: {
-        swiper: slideshowThumbs,
-      },
-      loop: true,
-      autoplay: window.templateSettings?.slideshow?.autoplay ? {
-        delay: window.templateSettings?.slideshow?.delay || 5000,
-        disableOnInteraction: false,
-      } : false,
-      effect: 'fade',
-      fadeEffect: {
-        crossFade: true
-      }
+
+    imagesLoaded(grid).on('progress', function(instance, image) {
+        const img = image.img || null;
+        if (img) {
+            img.classList.add('is-loaded');
+            const item = img.closest('.photo-item');
+            if (item) item.classList.add('is-loaded');
+        }
+        grid._masonryPortfolioInstance.layout();
     });
-  }
-  
-  // 3. GRID MINIMAL - No special JS needed, pure CSS with hover effects
-  
-  // 4. MOSAIC PRO - No special JS needed, pure CSS Grid
-  
-  // 5. CAROUSEL FLOW - Horizontal scrolling carousel
-  else if (layout === 'carousel' && typeof Swiper !== 'undefined') {
-    window.gallerySwiper = new Swiper('.carousel-flow', {
-      slidesPerView: 'auto',
-      spaceBetween: 20,
-      centeredSlides: true,
-      freeMode: true,
-      grabCursor: true,
-      mousewheel: {
-        thresholdDelta: 70,
-        forceToAxis: true,
-      },
-      breakpoints: {
-        640: {
-          spaceBetween: 30,
-        },
-        1024: {
-          spaceBetween: 40,
-        },
-      }
-    });
-  }
-  
-  // 6. POLAROID VINTAGE - Add random positioning for desktop
-  else if (layout === 'polaroid') {
-    const polaroidItems = document.querySelectorAll('.polaroid-item');
-    
-    // Only apply random positioning on desktop
-    if (window.innerWidth > 768) {
-      polaroidItems.forEach((item, index) => {
-        const randomX = Math.random() * 80 + 5; // 5-85%
-        const randomY = Math.random() * 60 + 10; // 10-70%
-        const randomRotation = (Math.random() - 0.5) * 16; // -8 to +8 degrees
-        
-        item.style.left = randomX + '%';
-        item.style.top = randomY + '%';
-        item.style.transform = `rotate(${randomRotation}deg)`;
-        item.style.zIndex = Math.floor(Math.random() * 10) + 1;
-      });
+
+    if (!grid._masonryPortfolioResizeHandler) {
+        grid._masonryPortfolioResizeHandler = function() {
+            clearTimeout(grid._masonryPortfolioResizeTimer);
+            grid._masonryPortfolioResizeTimer = setTimeout(() => {
+                if (grid._masonryPortfolioInstance) {
+                    grid._masonryPortfolioInstance.layout();
+                }
+            }, 200);
+        };
+        window.addEventListener('resize', grid._masonryPortfolioResizeHandler);
     }
-  }
-  
-  // DEFAULT: Standard masonry for backward compatibility
-  // Only use Masonry JS when layout explicitly needs JS masonry (not grid+columns)
-  else if (masonry && (layout === 'masonry' || window.templateSettings?.masonry_js === true) && typeof Masonry !== 'undefined') {
-    const container = document.getElementById('images-gallery');
-    if (container) {
-      imagesLoaded(container, function(){
-        window.galleryMasonry = new Masonry(container, {
-          itemSelector: '.masonry-item',
-          percentPosition: true
-        });
-        // Animation handled by animateGalleryOnce in _layout.twig
-      });
-    }
-  }
-  // Animation handled by animateGalleryOnce in _layout.twig - DO NOT set opacity here
+
+    return grid._masonryPortfolioInstance;
 }
 
-// Magazine Split autoscroll initializer - Enhanced responsive version
-function initMagazineAutoscroll() {
-  try {
-    console.log('initMagazineAutoscroll called - Enhanced responsive version');
-    var container = document.getElementById('images-gallery') || document;
-    
-    // Responsive display management
-    var isMobile = window.matchMedia('(max-width: 767px)').matches;
-    var isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
-    var isDesktop = window.matchMedia('(min-width: 1200px)').matches;
-    
-    var mob = container.querySelector('.m-mobile-wrap');
-    var tablet = container.querySelector('.m-tablet-wrap');
-    var desk = container.querySelector('.m-desktop-wrap');
-    
-    console.log('Found wrappers - Mobile:', !!mob, 'Tablet:', !!tablet, 'Desktop:', !!desk);
-    console.log('Screen size - Mobile:', isMobile, 'Tablet:', isTablet, 'Desktop:', isDesktop);
-    
-    // Set appropriate display for each wrapper
-    if (mob) mob.style.display = isMobile ? 'block' : 'none';
-    if (tablet) tablet.style.display = isTablet ? 'flex' : 'none';
-    if (desk) desk.style.display = isDesktop ? 'flex' : 'none';
-    
-    // Force setup column styles for all columns
-    container.querySelectorAll('.m-col').forEach(function(col){
-      if (!col.style.height) {
-        if (col.classList.contains('m-tablet-col')) {
-          col.style.height = '130vh';
+window.initMasonryPortfolio = initMasonryPortfolio;
+
+function initCreativeLayout(containerOrSelector) {
+    const container = typeof containerOrSelector === 'string'
+        ? document.querySelector(containerOrSelector)
+        : containerOrSelector || document.querySelector('.creative-gallery');
+
+    if (!container) return;
+    const images = container.querySelectorAll('img');
+    images.forEach((img) => {
+        if (img.complete) {
+            img.classList.add('loaded');
+            const loading = img.closest('.img-container')?.querySelector('.loading');
+            if (loading) loading.remove();
         } else {
-          col.style.height = '140vh';
+            img.addEventListener('load', function() {
+                img.classList.add('loaded');
+                const loading = img.closest('.img-container')?.querySelector('.loading');
+                if (loading) loading.remove();
+            }, { once: true });
         }
-      }
-      col.style.overflow = 'hidden';
-      col.style.position = 'relative';
     });
-    
-    // Reset and restart mobile track animation
-    var mobileTrack = container.querySelector('.m-mobile-track');
-    if (mobileTrack) {
-      mobileTrack.style.animation = 'none';
-      mobileTrack.offsetHeight; // Force reflow
-      
-      var mobileDur = getComputedStyle(mobileTrack.closest('.m-mobile-wrap')).getPropertyValue('--m-duration').trim() || '45s';
-      mobileTrack.style.animation = 'mScrollDown ' + mobileDur + ' linear infinite';
-      mobileTrack.style.animationPlayState = 'running';
-      console.log('Mobile track animated:', mobileDur);
+
+    if (!container._creativeHoverBound) {
+        container._creativeHoverBound = true;
+        document.addEventListener('mousemove', function(e) {
+            const hovers = container.querySelectorAll('.img-content-hover');
+            hovers.forEach(function(element) {
+                if (element.style.display === 'block' || window.getComputedStyle(element).display === 'block') {
+                    const x = e.pageX + 20;
+                    const y = e.pageY + 20;
+                    element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+                }
+            });
+        });
     }
-    
-    // Reset and restart all column animations (tablet + desktop)
-    container.querySelectorAll('.m-col .m-track').forEach(function(track){
-      var col = track.closest('.m-col');
-      if (!col) return;
-      
-      // Clear existing animation first
-      track.style.animation = 'none';
-      track.offsetHeight; // Force reflow
-      
-      var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
-      var dur = (getComputedStyle(col).getPropertyValue('--m-duration') || '60s').trim();
-      if (!dur) dur = '60s';
-      
-      var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
-      track.style.animation = anim;
-      track.style.animationPlayState = 'running';
-      
-      var colType = col.classList.contains('m-tablet-col') ? 'Tablet' : 'Desktop';
-      console.log(colType + ' column animated:', dir, dur);
-    });
-    
-    console.log('Enhanced Magazine autoscroll initialization complete');
-  } catch(e) { 
-    console.error('initMagazineAutoscroll error:', e); 
-  }
 }
 
-// Dense Grid initialization - adaptive sizing based on image aspect ratios
-function initDenseGrid() {
-  const container = document.querySelector('.dense-grid');
-  if (!container) return;
+window.initCreativeLayout = initCreativeLayout;
 
-  const isAdaptive = container.getAttribute('data-adaptive') === 'true';
-  const items = container.querySelectorAll('.dense-grid-item');
+function initGalleryWallScroll(containerOrSelector) {
+    const container = typeof containerOrSelector === 'string'
+        ? document.querySelector(containerOrSelector)
+        : containerOrSelector || document.querySelector('.gallery-wall');
 
-  items.forEach((item, index) => {
-    const img = item.querySelector('.dense-grid-img');
-    const loading = item.querySelector('.dense-loading');
+    if (!container) return;
 
-    if (!img) return;
+    document.body.classList.add('gallery-wall-page');
 
-    // Get dimensions from data attributes first (faster)
-    const dataWidth = parseInt(item.getAttribute('data-width') || '0');
-    const dataHeight = parseInt(item.getAttribute('data-height') || '0');
+    const section = container.querySelector('#galleryWallSection') || container.querySelector('.gallery-wall-section');
+    const track = container.querySelector('#galleryWallTrack') || container.querySelector('.gallery-wall-track');
+    if (!section || !track) return;
 
-    function applyAdaptiveSizing(width, height, itemIndex) {
-      if (!isAdaptive || window.innerWidth <= 480) return;
-
-      const ratio = width / height;
-
-      // Remove previous classes
-      item.classList.remove('landscape', 'portrait-tall', 'square-large');
-
-      // Smart distribution: only apply landscape to ~40% of horizontal images
-      // This ensures the grid fills properly when most images are horizontal
-      // Use item index for consistent distribution (not random on each render)
-      const shouldSpanWide = (itemIndex % 5) < 2; // 40% of images span wide
-      const shouldSpanTall = (itemIndex % 4) < 1; // 25% of portrait images span tall
-      const shouldBeLarge = (itemIndex % 7) === 0; // ~14% of squares go large
-
-      if (ratio > 1.4) {
-        // Landscape - only some span 2 columns
-        if (shouldSpanWide) {
-          item.classList.add('landscape');
-        }
-      } else if (ratio < 0.7) {
-        // Portrait - only some span 2 rows
-        if (shouldSpanTall) {
-          item.classList.add('portrait-tall');
-        }
-      } else if (ratio >= 0.9 && ratio <= 1.1) {
-        // Square - occasionally larger
-        if (shouldBeLarge) {
-          item.classList.add('square-large');
-        }
-      } else if (ratio > 1.1 && ratio <= 1.4) {
-        // Slightly landscape - only some span 2 columns
-        if (shouldSpanWide) {
-          item.classList.add('landscape');
-        }
-      }
+    if (container._wallScrollCleanup) {
+        container._wallScrollCleanup();
     }
 
-    // If we have data attributes, use them immediately
-    if (dataWidth > 0 && dataHeight > 0) {
-      applyAdaptiveSizing(dataWidth, dataHeight, index);
-      if (loading) loading.style.display = 'none';
-      img.classList.add('loaded');
-    } else {
-      // Fallback to onload detection
-      img.onload = function() {
-        if (loading) loading.remove();
-        img.classList.add('loaded');
-        applyAdaptiveSizing(this.naturalWidth, this.naturalHeight, index);
-      };
+    let maxScroll = 0;
+    const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
-      // If image already loaded
-      if (img.complete && img.naturalWidth > 0) {
-        if (loading) loading.remove();
-        img.classList.add('loaded');
-        applyAdaptiveSizing(img.naturalWidth, img.naturalHeight, index);
-      }
+    function updateMetrics() {
+        const trackWidth = track.scrollWidth;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        maxScroll = Math.max(0, trackWidth - windowWidth);
+        const sectionHeight = maxScroll + windowHeight;
+        section.style.height = sectionHeight + 'px';
     }
 
-    // Handle image load errors
-    img.onerror = function() {
-      if (loading) loading.remove();
-      item.style.display = 'none';
+    function updateTrack() {
+        if (isMobile()) {
+            track.style.transform = 'translateX(0px)';
+            return;
+        }
+        const rect = section.getBoundingClientRect();
+        const sectionScrollHeight = section.offsetHeight - window.innerHeight;
+        const scrollInSection = Math.max(0, -rect.top);
+        const progress = sectionScrollHeight > 0 ? Math.min(1, scrollInSection / sectionScrollHeight) : 0;
+        track.style.transform = `translateX(${-progress * maxScroll}px)`;
+    }
+
+    const onScroll = () => requestAnimationFrame(updateTrack);
+    const onResize = () => {
+        updateMetrics();
+        updateTrack();
+        if (window.lenisResize) setTimeout(window.lenisResize, 100);
     };
-  });
-
-  // Recalculate on resize (debounced)
-  let resizeTimeout;
-  window.addEventListener('resize', function() {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(function() {
-      items.forEach((item, idx) => {
-        const dataWidth = parseInt(item.getAttribute('data-width') || '0');
-        const dataHeight = parseInt(item.getAttribute('data-height') || '0');
-
-        if (window.innerWidth <= 480) {
-          // Mobile: remove all span classes
-          item.classList.remove('landscape', 'portrait-tall', 'square-large');
-        } else if (dataWidth > 0 && dataHeight > 0 && isAdaptive) {
-          // Reapply using existing adaptive sizing logic
-          item.classList.remove('landscape', 'portrait-tall', 'square-large');
-          applyAdaptiveSizing(dataWidth, dataHeight, idx);
+    let dragActive = false;
+    let dragStartX = 0;
+    let dragStartScroll = 0;
+    let dragSectionStart = 0;
+    const startDrag = (clientX) => {
+        if (isMobile() || maxScroll === 0) return;
+        dragActive = true;
+        dragStartX = clientX;
+        dragSectionStart = window.scrollY + section.getBoundingClientRect().top;
+        dragStartScroll = Math.max(0, window.scrollY - dragSectionStart);
+        section.style.cursor = 'grabbing';
+    };
+    const moveDrag = (clientX, evt) => {
+        if (!dragActive || isMobile() || maxScroll === 0) return;
+        const dx = clientX - dragStartX;
+        const nextScroll = Math.max(0, Math.min(maxScroll, dragStartScroll - dx));
+        if (nextScroll !== dragStartScroll) {
+            if (evt) evt.preventDefault();
+            window.scrollTo({ top: dragSectionStart + nextScroll, left: 0, behavior: 'auto' });
+            updateTrack();
         }
-      });
-    }, 150);
-  });
+    };
+    const endDrag = () => {
+        if (!dragActive) return;
+        dragActive = false;
+        section.style.cursor = '';
+    };
+    const onMouseDown = (e) => {
+        if (e.button !== 0) return;
+        startDrag(e.clientX);
+    };
+    const onMouseMove = (e) => {
+        if (!dragActive) return;
+        moveDrag(e.clientX, e);
+    };
+    const onMouseUp = () => endDrag();
+    const onTouchStart = (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        startDrag(e.touches[0].clientX);
+    };
+    const onTouchMove = (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        moveDrag(e.touches[0].clientX, e);
+    };
+    const onTouchEnd = () => endDrag();
+
+    updateMetrics();
+    updateTrack();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+    section.addEventListener('mousedown', onMouseDown);
+    section.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    section.addEventListener('touchstart', onTouchStart, { passive: true });
+    section.addEventListener('touchmove', onTouchMove, { passive: false });
+    section.addEventListener('touchend', onTouchEnd);
+    section.addEventListener('touchcancel', onTouchEnd);
+
+    container._wallScrollCleanup = () => {
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onResize);
+        section.removeEventListener('mousedown', onMouseDown);
+        section.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+        section.removeEventListener('touchstart', onTouchStart);
+        section.removeEventListener('touchmove', onTouchMove);
+        section.removeEventListener('touchend', onTouchEnd);
+        section.removeEventListener('touchcancel', onTouchEnd);
+    };
 }
 
-// Template switcher functionality removed - using delegated handler below
+window.initGalleryWallScroll = initGalleryWallScroll;
 
-// Fallback: delegated handler to intercept clicks even if buttons are re-rendered
-// HARD INTERCEPT: handle both <button.tpl-switch> and <a.tpl-switch>
-document.addEventListener('click', function(event) {
-  const el = event.target.closest('.tpl-switch');
-  if (!el) return;
-  // Block native navigation for anchors
-  if (el.tagName === 'A') event.preventDefault();
-  if (el.dataset.switchInProgress === '1') return;
-  el.dataset.switchInProgress = '1';
+/**
+ * Modern Masonry initialization using @masonry-grid/vanilla
+ * Uses CSS Grid + percentage-based transforms for efficient layout
+ * No pixel calculations needed - browser handles responsiveness natively
+ */
+function initGalleryMasonry(containerOrSelector) {
+    const grid = typeof containerOrSelector === 'string'
+        ? document.querySelector(containerOrSelector)
+        : containerOrSelector || document.querySelector('.gallery-masonry');
 
-  const galleryContainer = document.getElementById('images-gallery');
-  const templateId = el.getAttribute('data-template-id') || (el.tagName === 'A' ? (new URL(el.href, window.location.origin)).searchParams.get('template') : '');
-  const albumRef = el.getAttribute('data-album-ref') || window.location.pathname.split('/').pop();
-  if (!galleryContainer || !templateId || !albumRef) { delete el.dataset.switchInProgress; return; }
+    if (!grid) {
+        console.warn('Masonry: No grid container found');
+        return null;
+    }
+    if (grid._masonryInitialized) return grid._masonryInstance;
 
-  const originalContent = galleryContainer.innerHTML;
-  galleryContainer.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div></div>';
+    // Check if masonry classes are available
+    if (typeof BalancedMasonryGrid === 'undefined' && typeof RegularMasonryGrid === 'undefined') {
+        console.warn('Masonry library not loaded, using CSS Grid fallback');
+        grid.classList.add('masonry-ready');
+        return null;
+    }
 
-  document.querySelectorAll('.tpl-switch').forEach(btn => {
-    btn.classList.remove('bg-black', 'text-white');
-    btn.classList.add('text-neutral-700', 'hover:bg-neutral-100');
-  });
-  el.classList.remove('text-neutral-700', 'hover:bg-neutral-100');
-  el.classList.add('bg-black', 'text-white');
+    // Determine which masonry class to use based on settings
+    const masonryType = window.templateSettings?.masonry?.type || 'balanced';
+    const MasonryClass = masonryType === 'regular' ? RegularMasonryGrid : BalancedMasonryGrid;
+    const className = masonryType === 'regular' ? 'RegularMasonryGrid' : 'BalancedMasonryGrid';
 
-  const fetchUrl = `${window.basePath}/api/gallery/template?album=${encodeURIComponent(albumRef)}&template=${encodeURIComponent(templateId)}`;
-  fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-    .then(html => {
-      galleryContainer.style.opacity = '0';
-      galleryContainer.innerHTML = html;
-      // Match direct object assignment from _gallery_content.twig
-      const m = html.match(/window\.templateSettings\s*=\s*(\{[\s\S]*?\});/);
-      if (m) { try { window.templateSettings = JSON.parse(m[1]); } catch(e) { console.error('Failed to parse templateSettings:', e); } }
-      const newLayout = window.templateSettings?.layout || 'grid';
-      const newMasonry = !!window.templateSettings?.masonry;
-      const idKeep = galleryContainer.id;
-      galleryContainer.className = '';
-      // Remove any previous dynamic styles
-      const prevMasonryFitStyle = document.getElementById('masonry-fit-dynamic-style');
-      if (prevMasonryFitStyle) prevMasonryFitStyle.remove();
-      const prevMasonryGridStyle = document.getElementById('masonry-grid-dynamic-style');
-      if (prevMasonryGridStyle) prevMasonryGridStyle.remove();
-      if (newLayout === 'magazine') {
-        galleryContainer.className = 'mt-6';
-      } else if (newLayout === 'slideshow') {
-        galleryContainer.className = 'swiper slideshow-pro max-w-6xl mx-auto';
-      } else if (newLayout === 'fullscreen') {
-        galleryContainer.className = 'grid grid-cols-1 lg:grid-cols-2 gap-2';
-      } else if (newLayout === 'dense_grid') {
-        // Dense Grid layout with CSS Grid auto-flow dense (like photo-gallery-white.html)
-        galleryContainer.className = 'dense-grid pswp-gallery';
-        galleryContainer.setAttribute('data-layout', 'dense_grid');
-        const dense = window.templateSettings?.dense_grid || {};
-        const adaptive = dense.adaptiveSizing !== false;
-        galleryContainer.setAttribute('data-adaptive', adaptive ? 'true' : 'false');
-        // Inject dynamic CSS for dense grid
-        const prevDenseStyle = document.getElementById('dense-grid-dynamic-style');
-        if (prevDenseStyle) prevDenseStyle.remove();
-        const minDesktop = dense.minCellDesktop || 250;
-        const minTablet = dense.minCellTablet || 150;
-        const rowHeight = dense.rowHeight || 250;
-        const rowHeightTablet = dense.rowHeightTablet || 150;
-        const rowHeightMobile = dense.rowHeightMobile || 300;
-        const gridGap = dense.gap || 15;
-        const maxWidth = dense.maxWidth || 1400;
-        const denseStyleEl = document.createElement('style');
-        denseStyleEl.id = 'dense-grid-dynamic-style';
-        denseStyleEl.textContent = `
-          .dense-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(${minDesktop}px, 1fr));
-            grid-auto-rows: ${rowHeight}px;
-            gap: ${gridGap}px;
-            grid-auto-flow: dense;
-            max-width: ${maxWidth}px;
-            margin: 0 auto;
-            padding: 0 ${gridGap}px;
-          }
-          .dense-grid-item { position: relative; overflow: hidden; background: #f5f5f5; cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; }
-          .dense-grid-item:hover { transform: scale(1.02); box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 10; }
-          .dense-grid-link { display: block; width: 100%; height: 100%; }
-          .dense-grid-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.3s ease; }
-          .dense-grid-img:not(.loaded) { opacity: 0; }
-          .dense-grid-img.loaded { opacity: 1; }
-          .dense-grid-item.landscape { grid-column: span 2; }
-          .dense-grid-item.portrait-tall { grid-row: span 2; }
-          .dense-grid-item.square-large { grid-column: span 2; grid-row: span 2; }
-          .dense-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #333; border-radius: 50%; animation: dense-spin 1s linear infinite; z-index: 1; }
-          @keyframes dense-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-          @media (max-width: 768px) {
-            .dense-grid { grid-template-columns: repeat(auto-fill, minmax(${minTablet}px, 1fr)); grid-auto-rows: ${rowHeightTablet}px; gap: 10px; padding: 0 10px; }
-          }
-          @media (max-width: 480px) {
-            .dense-grid { grid-template-columns: 1fr; grid-auto-rows: ${rowHeightMobile}px; gap: 10px; padding: 0 10px; }
-            .dense-grid-item.landscape, .dense-grid-item.portrait-tall, .dense-grid-item.square-large { grid-column: span 1; grid-row: span 1; }
-            .dense-grid-item:hover { transform: none; box-shadow: none; }
-          }
-        `;
-        document.head.appendChild(denseStyleEl);
-      } else if (newLayout === 'masonry_portfolio') {
-        // Masonry Portfolio layout - uses Masonry.js like home Pure Masonry
-        const mp = window.templateSettings?.masonry_portfolio || {};
-        const layoutMode = mp.layout_mode || 'fullwidth';
-        // Remove previous dynamic styles
-        const prevMpStyle = document.getElementById('masonry-portfolio-dynamic-style');
-        if (prevMpStyle) prevMpStyle.remove();
-        // Create wrapper structure if needed
-        const existingWrapper = galleryContainer.closest('.masonry-container');
-        if (!existingWrapper) {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'masonry-container' + (layoutMode === 'boxed' ? ' masonry-boxed' : '');
-          galleryContainer.parentNode.insertBefore(wrapper, galleryContainer);
-          wrapper.appendChild(galleryContainer);
-        } else {
-          existingWrapper.className = 'masonry-container' + (layoutMode === 'boxed' ? ' masonry-boxed' : '');
-        }
-        galleryContainer.className = 'masonry-grid masonry-portfolio pswp-gallery';
-        galleryContainer.setAttribute('data-layout', 'masonry_portfolio');
-        galleryContainer.setAttribute('data-gap-h', mp.gap_h || 0);
-        galleryContainer.setAttribute('data-gap-v', mp.gap_v || 0);
-        galleryContainer.setAttribute('data-cols-desktop', mp.cols_desktop || 5);
-        galleryContainer.setAttribute('data-cols-tablet', mp.cols_tablet || 3);
-        galleryContainer.setAttribute('data-cols-mobile', mp.cols_mobile || 2);
-        // Inject dynamic CSS
-        const mpStyleEl = document.createElement('style');
-        mpStyleEl.id = 'masonry-portfolio-dynamic-style';
-        mpStyleEl.textContent = `
-          .masonry-grid.masonry-portfolio { display: grid; grid-template-columns: repeat(${mp.cols_mobile||2}, 1fr); gap: ${mp.gap_v||0}px ${mp.gap_h||0}px; opacity: 0; transition: opacity 0.3s ease; }
-          @media (min-width: 641px) { .masonry-grid.masonry-portfolio { grid-template-columns: repeat(${mp.cols_tablet||3}, 1fr); } }
-          @media (min-width: 1025px) { .masonry-grid.masonry-portfolio { grid-template-columns: repeat(${mp.cols_desktop||5}, 1fr); } }
-          .masonry-grid.masonry-portfolio.masonry-active { display: block; position: relative; }
-          .masonry-grid.masonry-portfolio.masonry-ready { opacity: 1; }
-          .masonry-grid.masonry-portfolio .masonry-item { overflow: hidden; }
-          .masonry-grid.masonry-portfolio .masonry-item a { display: block; }
-          .masonry-grid.masonry-portfolio .masonry-item img { display: block; width: 100%; height: auto; }
-          .masonry-grid.masonry-portfolio .masonry-item.fade-in { animation: masonryFadeIn 0.35s ease-out forwards; }
-          .masonry-grid.masonry-portfolio.masonry-active .masonry-item { float: left; }
-          @media (min-width: 1025px) { .masonry-boxed { max-width: 1400px; margin-left: auto; margin-right: auto; padding-left: 2rem; padding-right: 2rem; } }
-        `;
-        document.head.appendChild(mpStyleEl);
-      } else if (newLayout === 'masonry_fit' || newLayout === 'masonry') {
-        // Masonry Full layout with CSS columns (full images)
-        galleryContainer.className = 'masonry-fit-container pswp-gallery';
-        galleryContainer.setAttribute('data-layout', newLayout);
-        const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
-        const gap = window.templateSettings?.gap || {horizontal:16, vertical:16};
-        const d = Math.round(cols.desktop || 3), t = Math.round(cols.tablet || 2), mob = Math.round(cols.mobile || 1);
-        const gH = gap.horizontal || 16, gV = gap.vertical || 16;
-        // Inject dynamic CSS for masonry_fit columns
-        const styleEl = document.createElement('style');
-        styleEl.id = 'masonry-fit-dynamic-style';
-        styleEl.textContent = `
-          .masonry-fit-container { column-gap: ${gH}px; }
-          .masonry-fit-container > .masonry-item { break-inside: avoid; margin-bottom: ${gV}px; }
-          .masonry-fit-container .masonry-item img { display: block; width: 100%; height: auto; }
-          @media (min-width: 1024px) { .masonry-fit-container { column-count: ${d}; } }
-          @media (min-width: 768px) and (max-width: 1023px) { .masonry-fit-container { column-count: ${t}; } }
-          @media (max-width: 767px) { .masonry-fit-container { column-count: ${mob}; } }
-        `;
-        document.head.appendChild(styleEl);
-      } else if (newMasonry) {
-        // Standard masonry with CSS columns
-        galleryContainer.className = 'masonry-grid pswp-gallery';
-        galleryContainer.setAttribute('data-layout', 'masonry');
-        const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
-        const d = Math.round(cols.desktop || 3), t = Math.round(cols.tablet || 2), mob = Math.round(cols.mobile || 1);
-        // Remove previous masonry-grid dynamic style if exists
-        const prevMasonryGridStyle = document.getElementById('masonry-grid-dynamic-style');
-        if (prevMasonryGridStyle) prevMasonryGridStyle.remove();
-        // Inject dynamic CSS for masonry columns
-        const masonryStyleEl = document.createElement('style');
-        masonryStyleEl.id = 'masonry-grid-dynamic-style';
-        masonryStyleEl.textContent = `
-          .masonry-grid { display: block; column-gap: 1rem; column-fill: auto; }
-          .masonry-grid .masonry-item { break-inside: avoid; margin-bottom: 1rem; }
-          @media (min-width: 1024px) { .masonry-grid { column-count: ${d}; } }
-          @media (min-width: 768px) and (max-width: 1023px) { .masonry-grid { column-count: ${t}; } }
-          @media (max-width: 767px) { .masonry-grid { column-count: ${mob}; } }
-        `;
-        document.head.appendChild(masonryStyleEl);
-      } else {
-        const cols = window.templateSettings?.columns || {desktop:3, tablet:2, mobile:1};
-        let d = Math.round(cols.desktop || 3), t = Math.round(cols.tablet || 2), m = Math.round(cols.mobile || 1);
-        const mc = m>=6?'grid-cols-6':m==5?'grid-cols-5':m==4?'grid-cols-4':m==3?'grid-cols-3':m==2?'grid-cols-2':'grid-cols-1';
-        const tc = t>=6?'md:grid-cols-6':t==5?'md:grid-cols-5':t==4?'md:grid-cols-4':t==3?'md:grid-cols-3':t==2?'md:grid-cols-2':'md:grid-cols-1';
-        const dc = d>=6?'lg:grid-cols-6':d==5?'lg:grid-cols-5':d==4?'lg:grid-cols-4':d==3?'lg:grid-cols-3':d==2?'lg:grid-cols-2':'lg:grid-cols-1';
-        galleryContainer.className = `grid ${mc} ${tc} ${dc} gap-4`;
-      }
-      galleryContainer.id = idKeep;
-      const newUrl = `${window.basePath}/album/${albumRef}?template=${templateId}`;
-      history.pushState(null, '', newUrl);
-      setTimeout(() => {
-        if (typeof initLightbox === 'function') initLightbox();
-        if (window.gallerySwiper?.destroy) { window.gallerySwiper.destroy(true, true); window.gallerySwiper = null; }
-        if (window.galleryMasonry?.destroy) { window.galleryMasonry.destroy(); window.galleryMasonry = null; }
-        if (newLayout === 'magazine') {
-          console.log('Initializing Magazine Split in delegated handler');
-          setTimeout(() => { try { initMagazineAutoscroll(); } catch(e){ console.error('Magazine init error in delegated handler:', e); } }, 100);
-        } else if (newLayout === 'dense_grid') {
-          console.log('Initializing Dense Grid in delegated handler');
-          setTimeout(() => { try { initDenseGrid(); } catch(e){ console.error('Dense Grid init error:', e); } }, 100);
-        } else if (newLayout === 'masonry_portfolio') {
-          // Initialize Masonry.js for masonry_portfolio layout
-          const grid = document.querySelector('#images-gallery.masonry-portfolio');
-          if (grid && typeof Masonry !== 'undefined') {
-            const config = {
-              gapH: parseInt(grid.dataset.gapH, 10) || 0,
-              gapV: parseInt(grid.dataset.gapV, 10) || 0,
-              colsMobile: parseInt(grid.dataset.colsMobile, 10) || 2,
-              colsTablet: parseInt(grid.dataset.colsTablet, 10) || 3,
-              colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5
-            };
-            const getColumnCount = () => {
-              const width = window.innerWidth;
-              if (width >= 1025) return config.colsDesktop;
-              if (width >= 641) return config.colsTablet;
-              return config.colsMobile;
-            };
-            const setItemWidths = () => {
-              const cols = getColumnCount();
-              const containerWidth = grid.offsetWidth;
-              const totalGaps = config.gapH * (cols - 1);
-              const itemWidth = Math.floor((containerWidth - totalGaps) / cols);
-              grid.querySelectorAll('.masonry-item').forEach(item => {
-                item.style.width = `${itemWidth}px`;
-                item.style.marginBottom = `${config.gapV}px`;
-              });
-            };
-            const initMasonryInstance = () => {
-              grid.classList.add('masonry-active');
-              setItemWidths();
-              // Destroy existing Masonry instance if any
-              if (window.galleryMasonry?.destroy) {
-                window.galleryMasonry.destroy();
-              }
-              window.galleryMasonry = new Masonry(grid, {
-                itemSelector: '.masonry-item',
-                columnWidth: '.masonry-item',
-                gutter: config.gapH,
-                percentPosition: false,
-                horizontalOrder: true,
-                transitionDuration: 0
-              });
-              window.galleryMasonry.layout();
-              requestAnimationFrame(() => {
-                window.galleryMasonry.layout();
-                grid.classList.add('masonry-ready');
-              });
-              grid.querySelectorAll('.masonry-item').forEach(item => item.classList.add('fade-in'));
-              // Handle resize
-              const resizeHandler = () => { setItemWidths(); window.galleryMasonry.layout(); };
-              window.removeEventListener('resize', window._masonryPortfolioResizeHandler);
-              window._masonryPortfolioResizeHandler = resizeHandler;
-              window.addEventListener('resize', resizeHandler, { passive: true });
-            };
-            // Wait for images to load before initializing
-            if (typeof imagesLoaded !== 'undefined') {
-              imagesLoaded(grid, initMasonryInstance);
-              setTimeout(() => { if (!grid.classList.contains('masonry-ready')) initMasonryInstance(); }, 4000);
-            } else {
-              initMasonryInstance();
-            }
-          }
-        } else {
-          initializeGalleryLayout();
-        }
-        // Trigger entrance animation for new gallery items (run before container shows)
-        if (typeof window.animateGalleryOnce === 'function') {
-          window.animateGalleryOnce();
-        }
-        // Show container after animation starts
+    console.log(`Masonry: Using ${className} on grid with ${grid.children.length} children`);
+
+    // Debug: Check item dimensions
+    const items = grid.querySelectorAll('.masonry-frame');
+    console.log(`Masonry: Found ${items.length} .masonry-frame items`);
+    if (items.length > 0) {
+        const firstItem = items[0];
+        const rect = firstItem.getBoundingClientRect();
+        const style = getComputedStyle(firstItem);
+        console.log(`Masonry: First item dimensions: ${rect.width}x${rect.height}, aspect-ratio: ${style.aspectRatio}`);
+    }
+
+    grid._masonryInitialized = true;
+
+    // Destroy existing instance if any
+    if (grid._masonryInstance) {
+        grid._masonryInstance.destroy();
+        grid._masonryInstance = null;
+    }
+
+    // Create masonry instance
+    try {
+        grid._masonryInstance = new MasonryClass(grid);
+        console.log(`Masonry: ${className} instance created successfully`);
+
+        // Debug: Check if transforms are applied after a short delay
         setTimeout(() => {
-          galleryContainer.style.opacity = '1';
-          galleryContainer.style.transition = 'none';
-          // Fallback: force items visible if animation failed
-          galleryContainer.querySelectorAll('.masonry-item, .image-item').forEach(el => {
-            if (!el.hasAttribute('data-animated')) {
-              el.style.opacity = '1';
-              el.style.transform = 'scale(1)';
+            const transformedItems = Array.from(items).filter(item => item.style.transform);
+            console.log(`Masonry: ${transformedItems.length}/${items.length} items have transforms`);
+            if (transformedItems.length > 0) {
+                console.log('Masonry: First transform:', transformedItems[0].style.transform);
             }
-          });
-        }, 80);
-      }, 50);
-    })
-    .catch(err => {
-      console.error('Template switch failed', err);
-      galleryContainer.innerHTML = originalContent;
-      galleryContainer.style.opacity = '1';
-    })
-    .finally(() => { delete el.dataset.switchInProgress; });
+        }, 100);
+    } catch (e) {
+        console.error(`Masonry: Failed to create ${className}:`, e);
+        grid.classList.add('masonry-ready');
+        return null;
+    }
+
+    // Show the grid with smooth fade-in
+    requestAnimationFrame(() => {
+        grid.classList.add('masonry-ready');
+        if (window.lenisResize) setTimeout(window.lenisResize, 100);
+    });
+
+    return grid._masonryInstance;
+}
+
+// Make initGalleryMasonry globally available for template switcher
+window.initGalleryMasonry = initGalleryMasonry;
+
+// Dense Grid is now CSS-only - no JavaScript initialization needed
+// Classes (.wide, .tall, .big) are calculated server-side in Twig
+
+/**
+ * Cleanup function - destroys all layout instances before reinitializing
+ */
+function cleanupGalleryInstances() {
+    // Destroy masonry-grid instance
+    const masonryGrid = document.querySelector('.gallery-masonry');
+    if (masonryGrid && masonryGrid._masonryInstance) {
+        try {
+            masonryGrid._masonryInstance.destroy();
+        } catch(e) {}
+        masonryGrid._masonryInstance = null;
+        masonryGrid._masonryInitialized = false;
+    }
+
+    // Destroy masonry-portfolio instance
+    const portfolioGrid = document.querySelector('.masonry-portfolio-grid');
+    if (portfolioGrid && portfolioGrid._masonryPortfolioInstance) {
+        try {
+            portfolioGrid._masonryPortfolioInstance.destroy();
+        } catch(e) {}
+        portfolioGrid._masonryPortfolioInstance = null;
+        portfolioGrid._masonryPortfolioInitialized = false;
+        if (portfolioGrid._masonryPortfolioResizeHandler) {
+            window.removeEventListener('resize', portfolioGrid._masonryPortfolioResizeHandler);
+            portfolioGrid._masonryPortfolioResizeHandler = null;
+        }
+    }
+
+    // Dense grid is CSS-only, no cleanup needed
+
+    // Cleanup gallery wall scroll handlers
+    const wallContainer = document.querySelector('.gallery-wall');
+    if (wallContainer && wallContainer._wallScrollCleanup) {
+        wallContainer._wallScrollCleanup();
+        wallContainer._wallScrollCleanup = null;
+    }
+
+    // Remove dynamic styles
+    document.querySelectorAll('[id$="-dynamic-style"]').forEach(el => el.remove());
+}
+
+// Make cleanup globally available
+window.cleanupGalleryInstances = cleanupGalleryInstances;
+
+// Initialize layout on page load
+if (templateSlug === 'grid-ampia') {
+    if (document.readyState === 'complete') {
+        initCreativeLayout();
+    } else {
+        window.addEventListener('load', () => initCreativeLayout());
+    }
+} else if (templateSlug === 'gallery-wall-scroll') {
+    if (document.readyState === 'complete') {
+        initGalleryWallScroll();
+    } else {
+        window.addEventListener('load', () => initGalleryWallScroll());
+    }
+} else if (templateSlug === 'masonry-portfolio') {
+    if (document.readyState === 'complete') {
+        initMasonryPortfolio();
+    } else {
+        window.addEventListener('load', () => initMasonryPortfolio());
+    }
+} else if (layout === 'masonry') {
+    // Wait for ES module to load and expose BalancedMasonryGrid
+    function tryInitMasonry() {
+        if (typeof BalancedMasonryGrid !== 'undefined') {
+            console.log('BalancedMasonryGrid available, initializing masonry');
+            initGalleryMasonry();
+        } else if (window._masonryGridReady) {
+            // Module fired event but we missed it, try again
+            console.log('Module ready flag set, retrying...');
+            setTimeout(tryInitMasonry, 10);
+        } else {
+            // Library not ready yet, wait for the event
+            console.log('Waiting for masonry-grid module...');
+            window.addEventListener('masonry-grid-ready', () => {
+                console.log('masonry-grid-ready event received');
+                initGalleryMasonry();
+            }, { once: true });
+        }
+    }
+    if (document.readyState === 'complete') {
+        tryInitMasonry();
+    } else {
+        window.addEventListener('load', tryInitMasonry);
+    }
+}
+// dense_grid is CSS-only, no JS initialization needed
+
+// Magazine Split autoscroll initializer
+function initMagazineAutoscroll() {
+    try {
+        var container = document.getElementById('images-gallery') || document;
+        var isMobile = window.matchMedia('(max-width: 767px)').matches;
+        var isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
+        var isDesktop = window.matchMedia('(min-width: 1200px)').matches;
+
+        var mob = container.querySelector('.m-mobile-wrap');
+        var tablet = container.querySelector('.m-tablet-wrap');
+        var desk = container.querySelector('.m-desktop-wrap');
+
+        if (mob) mob.style.display = isMobile ? 'block' : 'none';
+        if (tablet) tablet.style.display = isTablet ? 'flex' : 'none';
+        if (desk) desk.style.display = isDesktop ? 'flex' : 'none';
+
+        var trackOriginals = new WeakMap();
+        var ensureTrackFill = function(track, colHeight) {
+            if (!track || !colHeight) return;
+            var originals = trackOriginals.get(track);
+            if (!originals) {
+                originals = Array.from(track.children);
+                trackOriginals.set(track, originals);
+            }
+            if (!originals.length) return;
+            var minHeight = colHeight * 2;
+            var loops = 0;
+            while (track.scrollHeight < minHeight && loops < 12) {
+                var frag = document.createDocumentFragment();
+                originals.forEach(function(node) {
+                    var clone = node.cloneNode(true);
+                    var link = clone.querySelector && clone.querySelector('a.pswp-link');
+                    if (link) link.classList.add('pswp-is-duplicate');
+                    frag.appendChild(clone);
+                });
+                track.appendChild(frag);
+                loops += 1;
+            }
+        };
+        var forceEager = function(scope) {
+            if (!scope) return;
+            scope.querySelectorAll('img[loading="lazy"]').forEach(function(img) {
+                img.setAttribute('loading', 'eager');
+            });
+        };
+
+        var activeWrap = isMobile ? mob : (isTablet ? tablet : desk);
+        if (activeWrap) {
+            activeWrap.querySelectorAll('source[data-srcset]').forEach(function(source) {
+                source.setAttribute('srcset', source.getAttribute('data-srcset'));
+                source.removeAttribute('data-srcset');
+            });
+            activeWrap.querySelectorAll('img[data-src]').forEach(function(img) {
+                img.setAttribute('src', img.getAttribute('data-src'));
+                img.removeAttribute('data-src');
+            });
+        }
+
+        container.querySelectorAll('.m-col').forEach(function(col) {
+            var track = col.querySelector('.m-track'); if (!track) return;
+            ensureTrackFill(track, col.clientHeight || window.innerHeight);
+            forceEager(track);
+            track.style.animation = 'none';
+            track.offsetHeight;
+            var dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
+            var dur = (getComputedStyle(col).getPropertyValue('--m-duration') || '60s').trim() || '60s';
+            var anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
+            track.style.transform = dir === 'up' ? 'translateY(-50%)' : 'translateY(0)';
+            track.style.animation = anim;
+            track.style.animationPlayState = '';
+        });
+
+        var mobileTrack = container.querySelector('.m-mobile-track');
+        if (mobileTrack) {
+            var mobWrap = mobileTrack.closest('.m-mobile') || mobileTrack.parentElement;
+            ensureTrackFill(mobileTrack, (mobWrap && mobWrap.clientHeight) || window.innerHeight);
+            forceEager(mobileTrack);
+        }
+        var rerun = function() {
+            container.querySelectorAll('.m-col').forEach(function(col) {
+                var track = col.querySelector('.m-track'); if (!track) return;
+                ensureTrackFill(track, col.clientHeight || window.innerHeight);
+            });
+            var mobTrack = container.querySelector('.m-mobile-track');
+            if (mobTrack) {
+                var wrap = mobTrack.closest('.m-mobile') || mobTrack.parentElement;
+                ensureTrackFill(mobTrack, (wrap && wrap.clientHeight) || window.innerHeight);
+            }
+        };
+        setTimeout(rerun, 200);
+        setTimeout(rerun, 800);
+
+        if (!container._magazineDragBound) {
+            container._magazineDragBound = true;
+            var dragState = { active: false, moved: false, startX: 0, startY: 0, startScroll: 0, sectionTop: 0, col: null };
+            var startDrag = function(clientX, clientY, target) {
+                dragState.active = true;
+                dragState.moved = false;
+                dragState.col = target;
+                dragState.sectionTop = container.getBoundingClientRect().top + window.scrollY;
+                dragState.startX = clientX;
+                dragState.startY = clientY;
+                dragState.startScroll = window.scrollY;
+                target.style.cursor = 'grabbing';
+            };
+            var moveDrag = function(clientX, clientY, ev) {
+                if (!dragState.active) return;
+                var dx = clientX - dragState.startX;
+                var dy = clientY - dragState.startY;
+                if (Math.abs(dy) > Math.abs(dx)) return;
+                if (Math.abs(dx) <= 8) return;
+                if (!dragState.moved) {
+                    dragState.moved = true;
+                    document.body.classList.add('magazine-dragging');
+                }
+                if (ev) ev.preventDefault();
+                var nextTop = dragState.startScroll - dx;
+                var maxTop = dragState.sectionTop + Math.max(0, container.offsetHeight - window.innerHeight);
+                if (nextTop < dragState.sectionTop) nextTop = dragState.sectionTop;
+                if (nextTop > maxTop) nextTop = maxTop;
+                window.scrollTo({ top: nextTop, left: 0, behavior: 'auto' });
+            };
+            var endDrag = function() {
+                if (!dragState.active) return;
+                dragState.active = false;
+                if (dragState.col) dragState.col.style.cursor = '';
+                dragState.col = null;
+                document.body.classList.remove('magazine-dragging');
+                if (dragState.moved) {
+                    var guard = function(clickEv) {
+                        if (container.contains(clickEv.target)) {
+                            clickEv.preventDefault();
+                            clickEv.stopPropagation();
+                        }
+                        container.removeEventListener('click', guard, true);
+                    };
+                    container.addEventListener('click', guard, true);
+                }
+            };
+            var onMouseDown = function(ev) {
+                if (ev.button !== 0) return;
+                var target = ev.target.closest ? ev.target.closest('.m-col') : null;
+                if (!target) return;
+                ev.preventDefault();
+                startDrag(ev.clientX, ev.clientY, target);
+            };
+            var onMouseMove = function(ev) { moveDrag(ev.clientX, ev.clientY, ev); };
+            var onMouseUp = function() { endDrag(); };
+            var onTouchStart = function(ev) {
+                if (!ev.touches || ev.touches.length !== 1) return;
+                var target = ev.target.closest ? ev.target.closest('.m-col') : null;
+                if (!target) return;
+                startDrag(ev.touches[0].clientX, ev.touches[0].clientY, target);
+            };
+            var onTouchMove = function(ev) {
+                if (!ev.touches || ev.touches.length !== 1) return;
+                moveDrag(ev.touches[0].clientX, ev.touches[0].clientY, ev);
+            };
+            var onTouchEnd = function() { endDrag(); };
+            var onDragStart = function(ev) { ev.preventDefault(); };
+            var onWindowBlur = function() { endDrag(); };
+            var onVisibility = function() { if (document.hidden) endDrag(); };
+            container.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+            container.addEventListener('touchstart', onTouchStart, { passive: true });
+            window.addEventListener('touchmove', onTouchMove, { passive: false });
+            window.addEventListener('touchend', onTouchEnd);
+            window.addEventListener('touchcancel', onTouchEnd);
+            container.addEventListener('dragstart', onDragStart);
+            window.addEventListener('blur', onWindowBlur);
+            document.addEventListener('visibilitychange', onVisibility);
+            container._magazineDragCleanup = function() {
+                container.removeEventListener('mousedown', onMouseDown);
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+                container.removeEventListener('touchstart', onTouchStart);
+                window.removeEventListener('touchmove', onTouchMove);
+                window.removeEventListener('touchend', onTouchEnd);
+                window.removeEventListener('touchcancel', onTouchEnd);
+                container.removeEventListener('dragstart', onDragStart);
+                window.removeEventListener('blur', onWindowBlur);
+                document.removeEventListener('visibilitychange', onVisibility);
+            };
+        }
+    } catch(e) {
+        console.error('initMagazineAutoscroll error:', e);
+    }
+}
+
+// Initialize magazine if active
+if (layout === 'magazine') {
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(initMagazineAutoscroll, 100);
+    });
+}
+
+// Template switcher - aggressive reinitialization handler
+document.addEventListener('click', function(event) {
+    const el = event.target.closest('.tpl-switch');
+    if (!el) return;
+    if (el.tagName === 'A') event.preventDefault();
+    if (el.dataset.switchInProgress === '1') return;
+    el.dataset.switchInProgress = '1';
+
+    const galleryContainer = document.getElementById('images-gallery');
+    const scrollY = window.scrollY;
+    const templateId = el.getAttribute('data-template-id');
+    const albumRef = el.getAttribute('data-album-ref') || window.location.pathname.split('/').pop();
+    if (!galleryContainer || !templateId || !albumRef) {
+        delete el.dataset.switchInProgress;
+        return;
+    }
+
+    // STEP 1: Full cleanup before switching
+    if (typeof cleanupGalleryInstances === 'function') {
+        cleanupGalleryInstances();
+    }
+
+    const originalContent = galleryContainer.innerHTML;
+    const originalClasses = galleryContainer.className;
+
+    // Show loading state
+    galleryContainer.style.opacity = '0.5';
+    galleryContainer.style.pointerEvents = 'none';
+
+    // Update button states immediately
+    document.querySelectorAll('.tpl-switch').forEach(btn => {
+        btn.classList.remove('bg-black', 'text-white');
+        btn.classList.add('text-neutral-700', 'hover:bg-neutral-100');
+    });
+    el.classList.remove('text-neutral-700', 'hover:bg-neutral-100');
+    el.classList.add('bg-black', 'text-white');
+
+    const fetchUrl = `${window.basePath}/api/gallery/template?album=${encodeURIComponent(albumRef)}&template=${encodeURIComponent(templateId)}`;
+
+    fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+        .then(html => {
+            // STEP 2: Parse settings and strip script tag from response HTML
+            let parsedHtml = html;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const settingsScript = doc.querySelector('script');
+            if (settingsScript && settingsScript.textContent) {
+                const match = settingsScript.textContent.match(/window\.templateSettings\s*=\s*(\{[\s\S]*?\});/);
+                if (match) {
+                    try {
+                        window.templateSettings = JSON.parse(match[1]);
+                    } catch(e) {
+                        console.error('Failed to parse templateSettings:', e);
+                        window.templateSettings = {};
+                    }
+                }
+                settingsScript.remove();
+            }
+            parsedHtml = doc.body ? doc.body.innerHTML : html;
+
+            const rawLayout = window.templateSettings?.layout || 'grid';
+            const templateSlug = window.templateSettings?.template_slug || '';
+            const newLayout = templateSlug === 'masonry-portfolio'
+                ? 'masonry_portfolio'
+                : (templateSlug === 'grid-ampia'
+                    ? 'creative_layout'
+                    : (templateSlug === 'gallery-wall-scroll'
+                        ? 'gallery_wall'
+                        : (rawLayout === 'masonry_fit' ? 'masonry' : rawLayout)));
+            const cols = window.templateSettings?.columns || {desktop: 3, tablet: 2, mobile: 1};
+            const gap = window.templateSettings?.gap || {horizontal: 16, vertical: 16};
+            const dense = window.templateSettings?.dense_grid || {};
+
+            // STEP 3: Remove all dynamic styles first
+            document.querySelectorAll('[id$="-dynamic-style"]').forEach(s => s.remove());
+
+            // STEP 4: Completely reset the container
+            const containerId = galleryContainer.id;
+            galleryContainer.className = '';
+            galleryContainer.removeAttribute('style');
+            galleryContainer.innerHTML = '';
+
+            // STEP 5: Inject new layout-specific styles
+            const styleEl = document.createElement('style');
+            styleEl.id = `gallery-${newLayout}-dynamic-style`;
+
+            if (newLayout !== 'gallery_wall') {
+                document.body.classList.remove('gallery-wall-page');
+            }
+
+            if (newLayout === 'dense_grid') {
+                const minCell = dense.minCellDesktop || 250;
+                const rowHeight = dense.rowHeight || 200;
+                const gridGap = dense.gap || 10;
+
+                styleEl.textContent = `
+                    .dense-grid { display: grid; grid-gap: ${gridGap}px; grid-template-columns: repeat(auto-fit, minmax(${minCell}px, 1fr)); grid-auto-rows: ${rowHeight}px; grid-auto-flow: dense; padding: ${gridGap}px; }
+                    .dense-grid > div { display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+                    .dense-grid > div > a { display: block; width: 100%; height: 100%; }
+                    .dense-grid > div > a > picture { display: block; width: 100%; height: 100%; }
+                    .dense-grid > div > a > picture > img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; transition: transform 0.3s ease; }
+                    .dense-grid > div:hover > a > picture > img { transform: scale(1.03); }
+                    .dense-grid .wide { grid-column: span 2; }
+                    .dense-grid .tall { grid-row: span 2; }
+                    .dense-grid .big { grid-column: span 2; grid-row: span 2; }
+                    @media (max-width: 640px) { .dense-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; } .dense-grid .wide, .dense-grid .tall, .dense-grid .big { grid-column: span 1; grid-row: span 1; } }
+                `;
+                galleryContainer.className = 'dense-grid pswp-gallery';
+                galleryContainer.setAttribute('data-layout', 'dense_grid');
+
+            } else if (newLayout === 'magazine') {
+                styleEl.textContent = ''; // Magazine has its own embedded styles
+                galleryContainer.className = 'mt-6';
+                galleryContainer.setAttribute('data-layout', 'magazine');
+
+            } else if (newLayout === 'gallery_wall') {
+                const wall = window.templateSettings?.gallery_wall || {};
+                const wallDesktop = wall.desktop || {};
+                const wallTablet = wall.tablet || {};
+                const wallMobile = wall.mobile || {};
+                const hRatio = wallDesktop.horizontal_ratio ?? 1.5;
+                const vRatio = wallDesktop.vertical_ratio ?? 0.67;
+                const hRatioT = wallTablet.horizontal_ratio ?? 1.3;
+                const vRatioT = wallTablet.vertical_ratio ?? 0.6;
+                const divider = wall.divider ?? 2;
+                const mobileCols = wallMobile.columns ?? 2;
+                const mobileGap = wallMobile.gap ?? 8;
+                const mobileWideEvery = wallMobile.wide_every ?? 5;
+
+                styleEl.textContent = `
+                    .gallery-wall, .gallery-wall * { margin: 0; padding: 0; box-sizing: border-box; }
+                    .gallery-wall-section { position: relative; }
+                    .gallery-wall-container { position: sticky; top: var(--header-height, 80px); height: calc(100vh - var(--header-height, 80px)); display: flex; align-items: center; overflow: hidden; background: #ffffff; z-index: 10; }
+                    html.dark .gallery-wall-container { background: #0a0a0a; }
+                    .gallery-wall-track { display: flex; gap: 0; will-change: transform; }
+                    .gallery-wall-item { flex-shrink: 0; height: calc(100vh - var(--header-height, 80px)); position: relative; }
+                    .gallery-wall-item.horizontal { width: calc((100vh - var(--header-height, 80px)) * var(--wall-h-ratio, 1.5)); }
+                    .gallery-wall-item.vertical { width: calc((100vh - var(--header-height, 80px)) * var(--wall-v-ratio, 0.67)); }
+                    .gallery-wall-item a { display: block; width: 100%; height: 100%; }
+                    .gallery-wall-item picture, .gallery-wall-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+                    .gallery-wall-item::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: var(--wall-divider, 2px); background: #fff; }
+                    html.dark .gallery-wall-item::after { background: #171717; }
+                    .gallery-wall-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 1.5rem; background: linear-gradient(transparent, rgba(0,0,0,0.7)); color: white; opacity: 0; transition: opacity 0.3s ease; }
+                    .gallery-wall-item:hover .gallery-wall-overlay { opacity: 1; }
+                    .gallery-wall-overlay h3 { font-size: 1rem; font-weight: 500; margin: 0 0 0.25rem 0; }
+                    .gallery-wall-overlay p { font-size: 0.85rem; opacity: 0.8; margin: 0; }
+                    .gallery-mobile-grid { display: none; }
+                    @media (max-width: 1024px) {
+                        .gallery-wall-item.horizontal { width: calc((100vh - var(--header-height, 80px)) * var(--wall-h-ratio-tablet, 1.3)); }
+                        .gallery-wall-item.vertical { width: calc((100vh - var(--header-height, 80px)) * var(--wall-v-ratio-tablet, 0.6)); }
+                    }
+                    @media (max-width: 768px) {
+                        .gallery-wall-section { display: none; }
+                        .gallery-mobile-grid { display: block; padding: var(--wall-mobile-gap, 8px); }
+                        .gallery-mobile-grid-inner { display: grid; grid-template-columns: repeat(var(--wall-mobile-cols, 2), minmax(0, 1fr)); gap: var(--wall-mobile-gap, 8px); }
+                        .gallery-mobile-item { aspect-ratio: 1; overflow: hidden; position: relative; background: #f5f5f5; }
+                        .gallery-mobile-item.wide { grid-column: span 2; aspect-ratio: 16/9; }
+                        .gallery-mobile-item a, .gallery-mobile-item picture, .gallery-mobile-item img { display: block; width: 100%; height: 100%; object-fit: cover; }
+                    }
+                    @media (max-width: 480px) { .gallery-mobile-grid { padding: 0.5rem; } }
+                `;
+                galleryContainer.className = 'gallery-wall pswp-gallery';
+                galleryContainer.setAttribute('data-layout', 'gallery_wall');
+                galleryContainer.setAttribute('data-wall-init', '1');
+                galleryContainer.style.setProperty('--wall-h-ratio', hRatio);
+                galleryContainer.style.setProperty('--wall-v-ratio', vRatio);
+                galleryContainer.style.setProperty('--wall-h-ratio-tablet', hRatioT);
+                galleryContainer.style.setProperty('--wall-v-ratio-tablet', vRatioT);
+                galleryContainer.style.setProperty('--wall-divider', `${divider}px`);
+                galleryContainer.style.setProperty('--wall-mobile-cols', mobileCols);
+                galleryContainer.style.setProperty('--wall-mobile-gap', `${mobileGap}px`);
+                galleryContainer.style.setProperty('--wall-mobile-wide-every', mobileWideEvery);
+
+            } else if (newLayout === 'masonry_portfolio') {
+                const mp = window.templateSettings?.masonry_portfolio || {};
+                const mpCols = mp.columns || window.templateSettings?.columns || {desktop: 4, tablet: 3, mobile: 1};
+                const mpGapH = mp.gap_h ?? window.templateSettings?.gap?.horizontal ?? 16;
+                const mpGapV = mp.gap_v ?? window.templateSettings?.gap?.vertical ?? 16;
+                const layoutMode = mp.layout_mode || 'fullwidth';
+                const mpStyle = window.templateSettings?.style || {};
+                const d = Math.round(mpCols.desktop || 4);
+                const t = Math.round(mpCols.tablet || 3);
+                const m = Math.round(mpCols.mobile || 1);
+
+                styleEl.textContent = `
+                    .masonry-portfolio-grid { --mp-gap-h: ${mpGapH}px; --mp-gap-v: ${mpGapV}px; --mp-cols-desktop: ${d}; --mp-cols-tablet: ${t}; --mp-cols-mobile: ${m}; width: 100%; margin: 0 auto; position: relative; }
+                    .masonry-portfolio-grid.is-boxed { max-width: 1400px; padding: 0 20px; }
+                    .masonry-portfolio-grid .grid-sizer,
+                    .masonry-portfolio-grid .photo-item { width: calc((100% - (var(--mp-cols-mobile) - 1) * var(--mp-gap-h)) / var(--mp-cols-mobile)); }
+                    .masonry-portfolio-grid .photo-item.landscape { width: calc((2 * ((100% - (var(--mp-cols-mobile) - 1) * var(--mp-gap-h)) / var(--mp-cols-mobile))) + var(--mp-gap-h)); }
+                    .masonry-portfolio-grid .photo-item { position: relative; margin-bottom: var(--mp-gap-v); background: #f5f5f5; overflow: hidden; cursor: pointer; transition: opacity 0.3s ease, box-shadow 0.3s ease; opacity: 0; }
+                    .masonry-portfolio-grid .photo-item.is-loaded { opacity: 1; }
+                    .masonry-portfolio-grid[data-rounded=\"1\"] .photo-item,
+                    .masonry-portfolio-grid[data-rounded=\"1\"] .photo-item img { border-radius: 12px; }
+                    .masonry-portfolio-grid[data-shadow=\"1\"] .photo-item { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); }
+                    .masonry-portfolio-grid[data-hover-scale=\"1\"] .photo-item:hover { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); z-index: 2; }
+                    .masonry-portfolio-grid .photo-item img { display: block; width: 100%; height: auto; opacity: 0; transform: scale(1); transition: opacity 0.3s ease, transform 0.3s ease; }
+                    .masonry-portfolio-grid[data-hover-scale=\"1\"] .photo-item:hover img { transform: scale(1.02); }
+                    .masonry-portfolio-grid .photo-item.is-loaded img { opacity: 1; }
+                    .masonry-portfolio-grid .photo-loading { position: absolute; top: 50%; left: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; border: 3px solid rgba(0, 0, 0, 0.1); border-top-color: #333; border-radius: 50%; animation: mp-spin 1s linear infinite; }
+                    .masonry-portfolio-grid .photo-item.is-loaded .photo-loading { display: none; }
+                    @keyframes mp-spin { to { transform: rotate(360deg); } }
+                    @media (min-width: 768px) {
+                        .masonry-portfolio-grid .grid-sizer,
+                        .masonry-portfolio-grid .photo-item { width: calc((100% - (var(--mp-cols-tablet) - 1) * var(--mp-gap-h)) / var(--mp-cols-tablet)); }
+                        .masonry-portfolio-grid .photo-item.landscape { width: calc((2 * ((100% - (var(--mp-cols-tablet) - 1) * var(--mp-gap-h)) / var(--mp-cols-tablet))) + var(--mp-gap-h)); }
+                    }
+                    @media (min-width: 1200px) {
+                        .masonry-portfolio-grid .grid-sizer,
+                        .masonry-portfolio-grid .photo-item { width: calc((100% - (var(--mp-cols-desktop) - 1) * var(--mp-gap-h)) / var(--mp-cols-desktop)); }
+                        .masonry-portfolio-grid .photo-item.landscape { width: calc((2 * ((100% - (var(--mp-cols-desktop) - 1) * var(--mp-gap-h)) / var(--mp-cols-desktop))) + var(--mp-gap-h)); }
+                    }
+                    @media (max-width: 480px) {
+                        .masonry-portfolio-grid.is-boxed { padding: 0 10px; }
+                        .masonry-portfolio-grid[data-hover-scale=\"1\"] .photo-item:hover { box-shadow: none; }
+                        .masonry-portfolio-grid[data-hover-scale=\"1\"] .photo-item:hover img { transform: scale(1); }
+                    }
+                `;
+
+                galleryContainer.className = `masonry-portfolio-grid pswp-gallery${layoutMode === 'boxed' ? ' is-boxed' : ''}`;
+                galleryContainer.setAttribute('data-layout', 'masonry_portfolio');
+                galleryContainer.setAttribute('data-gap-h', mpGapH);
+                galleryContainer.setAttribute('data-gap-v', mpGapV);
+                galleryContainer.setAttribute('data-cols-desktop', d);
+                galleryContainer.setAttribute('data-cols-tablet', t);
+                galleryContainer.setAttribute('data-cols-mobile', m);
+                galleryContainer.setAttribute('data-rounded', mpStyle.rounded ? '1' : '0');
+                galleryContainer.setAttribute('data-shadow', mpStyle.shadow ? '1' : '0');
+                galleryContainer.setAttribute('data-hover-scale', mpStyle.hover_scale === false ? '0' : '1');
+
+            } else if (newLayout === 'creative_layout') {
+                const creative = window.templateSettings?.creative_layout || {};
+                const gap = Math.round(creative.gap ?? 15);
+                const hoverTooltip = creative.hover_tooltip === false ? '0' : '1';
+                const hoverScale = window.templateSettings?.style?.hover_scale === false ? '0' : '1';
+
+                styleEl.textContent = `
+                    .creative-gallery { padding: 0 0 4rem 0; }
+                    .creative-gallery .photo-grid { display: flex; flex-wrap: wrap; gap: ${gap}px; }
+                    .creative-gallery .img-container { position: relative; overflow: hidden; cursor: pointer; background: #f5f5f5; flex-shrink: 0; }
+                    .creative-gallery .img-container img { width: 100%; height: 100%; object-fit: cover; transform: scale(1); transition: transform 0.3s ease-in-out, opacity 0.3s ease; display: block; opacity: 0; }
+                    .creative-gallery[data-hover-scale=\"1\"] .img-container:hover img { transform: scale(1.05); }
+                    .creative-gallery .img-container img.loaded { opacity: 1; }
+                    .creative-gallery .img-content { display: none; }
+                    .creative-gallery[data-hover-tooltip=\"1\"] .img-content-hover { z-index: 1000; position: fixed; pointer-events: none; white-space: nowrap; display: none; padding: 1rem; background: #fff; font-weight: 400; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+                    .creative-gallery[data-hover-tooltip=\"1\"] .img-container:hover .img-content-hover { display: block; }
+                    .creative-gallery .title { color: #2e2e2e; font-size: 1.5rem; font-weight: 700; margin: 0; }
+                    .creative-gallery .category { font-size: 1rem; color: #787878; margin: 0; }
+                    .creative-gallery .loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #333; border-radius: 50%; animation: creative-spin 1s linear infinite; }
+                    @keyframes creative-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+                    .creative-gallery .w-25 { width: calc(25% - 12px); }
+                    .creative-gallery .w-33 { width: calc(33.333% - 11px); }
+                    .creative-gallery .w-50 { width: calc(50% - 8px); }
+                    .creative-gallery .w-66 { width: calc(66.666% - 6px); }
+                    .creative-gallery .w-100 { width: 100%; }
+                    .creative-gallery .h-300 { height: 300px; }
+                    .creative-gallery .h-400 { height: 400px; }
+                    .creative-gallery .h-500 { height: 500px; }
+                    .creative-gallery .h-600 { height: 600px; }
+                    .creative-gallery .h-700 { height: 700px; }
+                    @media (max-width: 768px) {
+                        .creative-gallery .w-25 { width: calc(50% - 8px); }
+                        .creative-gallery .w-33 { width: calc(50% - 8px); }
+                        .creative-gallery .w-50 { width: calc(50% - 8px); }
+                        .creative-gallery .w-66 { width: 100%; }
+                        .creative-gallery .w-100 { width: 100%; }
+                        .creative-gallery .h-600, .creative-gallery .h-700 { height: 500px; }
+                    }
+                    @media (max-width: 1024px) {
+                        .creative-gallery[data-hover-scale=\"1\"] .img-container:hover img { transform: none; }
+                        .creative-gallery[data-hover-tooltip=\"1\"] .img-container:hover .img-content-hover { display: none; }
+                        .creative-gallery .img-content { display: block; padding: 1rem 0; }
+                    }
+                    @media (max-width: 480px) {
+                        .creative-gallery .photo-grid { gap: 10px; }
+                        .creative-gallery .w-25, .creative-gallery .w-33, .creative-gallery .w-50, .creative-gallery .w-66, .creative-gallery .w-100 { width: 100%; }
+                        .creative-gallery .h-300, .creative-gallery .h-400, .creative-gallery .h-500, .creative-gallery .h-600, .creative-gallery .h-700 { height: 300px; }
+                    }
+                `;
+
+                galleryContainer.className = 'creative-gallery pswp-gallery';
+                galleryContainer.setAttribute('data-layout', 'creative_layout');
+                galleryContainer.setAttribute('data-hover-tooltip', hoverTooltip);
+                galleryContainer.setAttribute('data-hover-scale', hoverScale);
+                galleryContainer.setAttribute('data-gap', String(gap));
+
+            } else if (newLayout === 'masonry') {
+                const gH = gap.horizontal || 16;
+                const gV = gap.vertical || 16;
+                const d = Math.round(cols.desktop || 3);
+                const t = Math.round(cols.tablet || 2);
+                const m = Math.round(cols.mobile || 1);
+
+                // Using CSS variables and inset for gaps per @masonry-grid/vanilla docs
+                // translateY% ignores margins, so we use inset on inner container instead
+                styleEl.textContent = `
+                    .gallery-masonry { --masonry-gap-v: ${gV}px; --masonry-gap-h: ${gH}px; display: grid; column-gap: var(--masonry-gap-h); grid-template-columns: repeat(${m}, 1fr); align-items: start; opacity: 0; transition: opacity 0.3s ease-in-out; }
+                    .gallery-masonry.masonry-ready { opacity: 1; }
+                    @media (min-width: 768px) { .gallery-masonry { grid-template-columns: repeat(${t}, 1fr); } }
+                    @media (min-width: 1024px) { .gallery-masonry { grid-template-columns: repeat(${d}, 1fr); } }
+                    .gallery-masonry .masonry-frame { position: relative; aspect-ratio: var(--width) / var(--height); min-width: 0; }
+                    .gallery-masonry .masonry-frame > .frame-content { position: absolute; inset: calc(var(--masonry-gap-v) / 2) 0; overflow: hidden; }
+                    .gallery-masonry .masonry-frame img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+                    .gallery-masonry .masonry-frame:hover img { transform: scale(1.03); }
+                `;
+                galleryContainer.className = 'gallery-masonry pswp-gallery';
+                galleryContainer.setAttribute('data-layout', 'masonry');
+                galleryContainer.setAttribute('data-gap-h', gH);
+                galleryContainer.setAttribute('data-gap-v', gV);
+                galleryContainer.setAttribute('data-cols-desktop', d);
+                galleryContainer.setAttribute('data-cols-tablet', t);
+                galleryContainer.setAttribute('data-cols-mobile', m);
+
+            } else {
+                // Grid layout
+                const d = Math.round(cols.desktop || 3);
+                const t = Math.round(cols.tablet || 2);
+                const m = Math.round(cols.mobile || 1);
+                const gH = gap.horizontal || 16;
+                const gV = gap.vertical || 16;
+
+                styleEl.textContent = `
+                    .gallery-grid { display: grid; gap: ${gV}px ${gH}px; }
+                    @media (min-width: 1024px) { .gallery-grid { grid-template-columns: repeat(${d}, 1fr); } }
+                    @media (min-width: 768px) and (max-width: 1023px) { .gallery-grid { grid-template-columns: repeat(${t}, 1fr); } }
+                    @media (max-width: 767px) { .gallery-grid { grid-template-columns: repeat(${m}, 1fr); } }
+                `;
+                galleryContainer.className = 'gallery-grid pswp-gallery';
+                galleryContainer.setAttribute('data-layout', 'grid');
+                galleryContainer.setAttribute('data-gap-h', gH);
+                galleryContainer.setAttribute('data-gap-v', gV);
+                galleryContainer.setAttribute('data-cols-desktop', d);
+                galleryContainer.setAttribute('data-cols-tablet', t);
+                galleryContainer.setAttribute('data-cols-mobile', m);
+            }
+
+            // Set hover-fade attribute based on template style settings
+            const hoverFade = window.templateSettings?.style?.hover_fade !== false ? '1' : '0';
+            galleryContainer.setAttribute('data-hover-fade', hoverFade);
+
+            document.head.appendChild(styleEl);
+            galleryContainer.id = containerId;
+
+            // STEP 6: Inject the new HTML content
+            galleryContainer.innerHTML = parsedHtml;
+
+            // STEP 7: Update URL without scrolling
+            const newUrl = `${window.basePath}/album/${albumRef}?template=${templateId}`;
+            history.replaceState(null, '', newUrl);
+
+            // STEP 8: Force layout recalculation
+            galleryContainer.offsetHeight; // Force reflow
+
+            // STEP 9: Initialize the new layout with aggressive timing
+            requestAnimationFrame(() => {
+                // Re-initialize lightbox first
+                if (typeof initLightbox === 'function') {
+                    try { initLightbox(); } catch(e) {}
+                }
+
+                // Initialize layout-specific code (dense_grid is CSS-only, no JS needed)
+                if (newLayout === 'magazine') {
+                    setTimeout(() => {
+                        if (typeof initMagazineAutoscroll === 'function') {
+                            try { initMagazineAutoscroll(); } catch(e) { console.error('Magazine init:', e); }
+                        }
+                    }, 50);
+                } else if (newLayout === 'gallery_wall') {
+                    initGalleryWallScroll(galleryContainer);
+                } else if (newLayout === 'creative_layout') {
+                    initCreativeLayout(galleryContainer);
+                } else if (newLayout === 'masonry_portfolio') {
+                    initMasonryPortfolio(galleryContainer);
+                } else if (newLayout === 'masonry') {
+                    // Reset initialized flag and reinit
+                    galleryContainer._masonryInitialized = false;
+                    // Use dynamic import if module not loaded yet
+                    if (typeof window.BalancedMasonryGrid !== 'undefined') {
+                        window.galleryMasonry = initGalleryMasonry(galleryContainer);
+                    } else {
+                        // Dynamic import the module
+                        import(`${window.basePath}/assets/vendor/masonry-grid/index.js`)
+                            .then(module => {
+                                window.BalancedMasonryGrid = module.BalancedMasonryGrid;
+                                window.RegularMasonryGrid = module.RegularMasonryGrid;
+                                window._masonryGridReady = true;
+                                window.galleryMasonry = initGalleryMasonry(galleryContainer);
+                            })
+                            .catch(err => console.error('Failed to load masonry module:', err));
+                    }
+                }
+
+            // STEP 10: Make visible and animate items
+            setTimeout(() => {
+                galleryContainer.style.opacity = '1';
+                galleryContainer.style.pointerEvents = '';
+
+                    // Force visibility on all items as fallback
+                    // But DON'T touch masonry-frame transforms - the masonry library manages those!
+                    const allItems = galleryContainer.querySelectorAll('.gallery-item, .masonry-frame, .dense-grid-item, .photo-item');
+                    allItems.forEach((item, idx) => {
+                        if (!item.hasAttribute('data-animated')) {
+                            item.style.opacity = '1';
+                            // Only reset transform for non-masonry items
+                            // Masonry library uses translateY(%) for positioning
+                            if (!item.classList.contains('masonry-frame') && !item.classList.contains('photo-item')) {
+                                item.style.transform = 'none';
+                            }
+                        }
+                    });
+
+                    // Trigger gallery animation if available
+                    if (typeof window.animateGalleryOnce === 'function') {
+                        window.animateGalleryOnce();
+                    }
+
+                    // Update Lenis scroll
+                    if (window.lenisResize) {
+                        setTimeout(window.lenisResize, 100);
+                    }
+                    // Restore scroll position (template 2 was jumping to top)
+                    window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' });
+                }, 50);
+            });
+        })
+        .catch(err => {
+            console.error('Template switch failed:', err);
+            galleryContainer.className = originalClasses;
+            galleryContainer.innerHTML = originalContent;
+            galleryContainer.style.opacity = '1';
+            galleryContainer.style.pointerEvents = '';
+        })
+        .finally(() => { delete el.dataset.switchInProgress; });
 });
 
-// Elegant GSAP Animations for Gallery
+// Download button handler
+document.addEventListener('click', function(event) {
+    const downloadBtn = event.target.closest('[data-action="download-image"]');
+    if (downloadBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        const url = downloadBtn.dataset.downloadUrl;
+        if (url) {
+            window.location.href = url;
+        }
+    }
+});
+
+// GSAP Animations
 document.addEventListener('DOMContentLoaded', function() {
     if (document.body.dataset.gsapGalleryIntroDone === '1') {
         return;
     }
     document.body.dataset.gsapGalleryIntroDone = '1';
+
     const allHeaderEls = document.querySelectorAll('[data-gsap="categories"], [data-gsap="title"], [data-gsap="meta"], [data-gsap="excerpt"], [data-gsap="body"], [data-gsap="equipment"]');
     allHeaderEls.forEach(el => {
         el.setAttribute('data-animated', '1');
@@ -1705,9 +1756,9 @@ document.addEventListener('DOMContentLoaded', function() {
         gsap.set(allHeaderEls, { clearProps: 'all', opacity: 1 });
     }
 
-    // Template switcher buttons (hidden initially, animate to visible)
+    // Template switcher fade in
     const templateSwitcher = document.getElementById('template-switcher');
-    if (templateSwitcher) {
+    if (templateSwitcher && typeof gsap !== 'undefined') {
         gsap.to(templateSwitcher, {
             opacity: 1,
             x: 0,
@@ -1717,14 +1768,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Gallery animation handled by animateGalleryOnce in _layout.twig
-    // DO NOT add duplicate animation here
-
-    // Subtle hover enhancement for image items (GPU-accelerated)
-    const allImageItems = document.querySelectorAll('.image-item, .pswp-link');
+    // Subtle hover enhancement for image items
+    const allImageItems = document.querySelectorAll('.gallery-link');
     allImageItems.forEach(item => {
         item.addEventListener('mouseenter', function() {
-            if (!this.classList.contains('polaroid-item')) {
+            if (typeof gsap !== 'undefined') {
                 gsap.to(this, {
                     scale: 1.015,
                     duration: 0.3,
@@ -1732,50 +1780,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         });
-
         item.addEventListener('mouseleave', function() {
-            gsap.to(this, {
-                scale: 1,
-                duration: 0.3,
-                ease: 'power2.out'
-            });
+            if (typeof gsap !== 'undefined') {
+                gsap.to(this, {
+                    scale: 1,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            }
         });
     });
 });
 
-// JSON-LD will be appended below
-</script>
-<script type="application/ld+json" nonce="{{ csp_nonce() }}">
-{
-  "@context": "https://schema.org",
-  "@type": "ImageGallery",
-  "name": {{ album.title|json_encode|raw }},
-  {% if album.excerpt %}"about": {{ album.excerpt|striptags|json_encode|raw }},{% endif %}
-  "url": {{ (canonical_url|default(current_url))|json_encode|raw }},
-  "image": [
-    {% for image in images|slice(0,10) %}
-      {% set src = image.fallback_src|default(image.url) %}
-      {% if src starts with 'http' %}
-        {{ src|json_encode|raw }}
-      {% else %}
-        {{ ((canonical_base|default('')) ~ (src starts with '/' ? src : '/' ~ src))|json_encode|raw }}
-      {% endif %}{% if not loop.last %},{% endif %}
-    {% endfor %}
-  ]
-}
-</script>
-<script type="application/ld+json" nonce="{{ csp_nonce() }}">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {"@type":"ListItem","position":1,"name":"Home","item": {{ (canonical_base|default('') ~ '/')|json_encode|raw }} }{% if album.category is defined and album.category.slug is defined %},
-    {"@type":"ListItem","position":2,"name": {{ album.category.name|json_encode|raw }}, "item": {{ (canonical_base|default('') ~ '/category/' ~ album.category.slug)|json_encode|raw }} },
-    {"@type":"ListItem","position":3,"name": {{ album.title|json_encode|raw }}, "item": {{ (canonical_url|default(current_url))|json_encode|raw }} }
-    {% else %},
-    {"@type":"ListItem","position":2,"name": {{ album.title|json_encode|raw }}, "item": {{ (canonical_url|default(current_url))|json_encode|raw }} }
-    {% endif %}
-  ]
-}
+// Handle bfcache restoration
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        const animatedElements = document.querySelectorAll('[data-gsap]');
+        animatedElements.forEach(function(el) {
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+            el.setAttribute('data-animated', '1');
+        });
+        if (typeof gsap !== 'undefined') {
+            gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
+        }
+    }
+});
 </script>
 {% endblock %}

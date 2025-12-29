@@ -185,9 +185,7 @@ class GalleryController extends BaseController
         }
         // Normalize settings and align Magazine Split behavior with AJAX switcher
         $templateSettings = $this->applyTemplateOverrides($template, $templateSettings);
-        if (($template['slug'] ?? '') === 'masonry-portfolio') {
-            $templateSettings['layout'] = 'grid';
-        }
+        $templateSettings['template_slug'] = $template['slug'] ?? '';
 
         // Tags
         $tagsStmt = $pdo->prepare('SELECT t.* FROM tags t JOIN album_tag at ON at.tag_id = t.id WHERE at.album_id = :id ORDER BY t.name ASC');
@@ -660,6 +658,78 @@ class GalleryController extends BaseController
             
             $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
             $templateSettings = $this->applyTemplateOverrides($template, $templateSettings);
+            $templateSettings['template_slug'] = $template['slug'] ?? '';
+
+            // Load album-level equipment for fallback when images don't have per-image metadata
+            $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
+
+            // 1. Cameras
+            try {
+                if (!empty($album['custom_cameras'])) {
+                    $equipment['cameras'] = array_filter(array_map('trim', explode("\n", $album['custom_cameras'])));
+                } else {
+                    $cameraStmt = $pdo->prepare('SELECT c.make, c.model FROM cameras c JOIN album_camera ac ON c.id = ac.camera_id WHERE ac.album_id = :a');
+                    $cameraStmt->execute([':a' => $album['id']]);
+                    $cameras = $cameraStmt->fetchAll();
+                    $equipment['cameras'] = array_map(fn($c) => trim(($c['make'] ?? '') . ' ' . ($c['model'] ?? '')), $cameras);
+                }
+            } catch (\Throwable) {}
+
+            // 2. Lenses
+            try {
+                if (!empty($album['custom_lenses'])) {
+                    $equipment['lenses'] = array_filter(array_map('trim', explode("\n", $album['custom_lenses'])));
+                } else {
+                    $lensStmt = $pdo->prepare('SELECT l.brand, l.model FROM lenses l JOIN album_lens al ON l.id = al.lens_id WHERE al.album_id = :a');
+                    $lensStmt->execute([':a' => $album['id']]);
+                    $lenses = $lensStmt->fetchAll();
+                    $equipment['lenses'] = array_map(fn($l) => trim(($l['brand'] ?? '') . ' ' . ($l['model'] ?? '')), $lenses);
+                }
+            } catch (\Throwable) {}
+
+            // 3. Films
+            try {
+                if (!empty($album['custom_films'])) {
+                    $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
+                } else {
+                    $filmStmt = $pdo->prepare('SELECT f.brand, f.name FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
+                    $filmStmt->execute([':a' => $album['id']]);
+                    $films = $filmStmt->fetchAll();
+                    $equipment['film'] = array_map(fn($f) => trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? '')), $films);
+                }
+            } catch (\Throwable) {}
+
+            // 4. Developers
+            try {
+                if (!empty($album['custom_developers'])) {
+                    $equipment['developers'] = array_filter(array_map('trim', explode("\n", $album['custom_developers'])));
+                } else {
+                    $devStmt = $pdo->prepare('SELECT d.name FROM developers d JOIN album_developer ad ON d.id = ad.developer_id WHERE ad.album_id = :a');
+                    $devStmt->execute([':a' => $album['id']]);
+                    $developers = $devStmt->fetchAll();
+                    $equipment['developers'] = array_map(fn($d) => $d['name'], $developers);
+                }
+            } catch (\Throwable) {}
+
+            // 5. Labs
+            try {
+                if (!empty($album['custom_labs'])) {
+                    $equipment['labs'] = array_filter(array_map('trim', explode("\n", $album['custom_labs'])));
+                } else {
+                    $labStmt = $pdo->prepare('SELECT l.name FROM labs l JOIN album_lab al ON l.id = al.lab_id WHERE al.album_id = :a');
+                    $labStmt->execute([':a' => $album['id']]);
+                    $labs = $labStmt->fetchAll();
+                    $equipment['labs'] = array_map(fn($l) => $l['name'], $labs);
+                }
+            } catch (\Throwable) {}
+
+            // 6. Locations
+            try {
+                $locStmt = $pdo->prepare('SELECT l.name FROM locations l JOIN album_location al ON l.id = al.location_id WHERE al.album_id = :a ORDER BY l.name');
+                $locStmt->execute([':a' => $album['id']]);
+                $locations = $locStmt->fetchAll();
+                $equipment['locations'] = array_map(fn($l) => $l['name'], $locations);
+            } catch (\Throwable) {}
 
             // Images with per-photo metadata
             $imgStmt = $pdo->prepare('SELECT * FROM images WHERE album_id = :id ORDER BY sort_order ASC, id ASC');
@@ -751,7 +821,46 @@ class GalleryController extends BaseController
                         $lightboxUrl = $fallbackPath ?: $bestUrl;
                     }
                 }
-                
+
+                // Apply album-level equipment fallback for per-image metadata
+                $cameraDisp = $img['camera_name'] ?? ($img['custom_camera'] ?? null);
+                $lensDisp = $img['lens_name'] ?? ($img['custom_lens'] ?? null);
+                $filmDisp = $img['film_name'] ?? ($img['custom_film'] ?? null);
+                $developerDisp = $img['developer_name'] ?? null;
+                $labDisp = $img['lab_name'] ?? null;
+                $locationDisp = $img['location_name'] ?? null;
+
+                // Fallback to album-level equipment if per-image is empty
+                if (empty($cameraDisp) && !empty($equipment['cameras'])) {
+                    $cameraDisp = is_array($equipment['cameras'][0] ?? null)
+                        ? ($equipment['cameras'][0]['name'] ?? $equipment['cameras'][0])
+                        : ($equipment['cameras'][0] ?? null);
+                }
+                if (empty($lensDisp) && !empty($equipment['lenses'])) {
+                    $lensDisp = is_array($equipment['lenses'][0] ?? null)
+                        ? ($equipment['lenses'][0]['name'] ?? $equipment['lenses'][0])
+                        : ($equipment['lenses'][0] ?? null);
+                }
+                if (empty($filmDisp) && !empty($equipment['film'])) {
+                    $filmDisp = is_array($equipment['film'][0] ?? null)
+                        ? ($equipment['film'][0]['name'] ?? $equipment['film'][0])
+                        : ($equipment['film'][0] ?? null);
+                }
+                if (empty($developerDisp) && !empty($equipment['developers'])) {
+                    $developerDisp = is_array($equipment['developers'][0] ?? null)
+                        ? ($equipment['developers'][0]['name'] ?? $equipment['developers'][0])
+                        : ($equipment['developers'][0] ?? null);
+                }
+                if (empty($labDisp) && !empty($equipment['labs'])) {
+                    $labDisp = is_array($equipment['labs'][0] ?? null)
+                        ? ($equipment['labs'][0]['name'] ?? $equipment['labs'][0])
+                        : ($equipment['labs'][0] ?? null);
+                }
+                if (empty($locationDisp) && !empty($equipment['locations'])) {
+                    $locationDisp = is_array($equipment['locations'][0] ?? null)
+                        ? ($equipment['locations'][0]['name'] ?? $equipment['locations'][0])
+                        : ($equipment['locations'][0] ?? null);
+                }
 
                 $images[] = [
                     'id' => (int)$img['id'],
@@ -764,14 +873,14 @@ class GalleryController extends BaseController
                     'caption' => $img['caption'] ?? '',
                     'original_path' => $img['original_path'] ?? '',
                     'custom_camera' => $img['custom_camera'] ?? '',
-                    'camera_name' => $img['camera_name'] ?? '',
+                    'camera_name' => $cameraDisp ?? '',
                     'custom_lens' => $img['custom_lens'] ?? '',
-                    'lens_name' => $img['lens_name'] ?? '',
+                    'lens_name' => $lensDisp ?? '',
                     'custom_film' => $img['custom_film'] ?? '',
-                    'film_name' => $img['film_name'] ?? '',
-                    'developer_name' => $img['developer_name'] ?? '',
-                    'lab_name' => $img['lab_name'] ?? '',
-                    'location_name' => $img['location_name'] ?? '',
+                    'film_name' => $filmDisp ?? '',
+                    'developer_name' => $developerDisp ?? '',
+                    'lab_name' => $labDisp ?? '',
+                    'location_name' => $locationDisp ?? '',
                     'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
                     'shutter_speed' => $this->formatShutterSpeed($img['shutter_speed'] ?? null),
                     'aperture' => isset($img['aperture']) ? (float)$img['aperture'] : null,
@@ -807,8 +916,17 @@ class GalleryController extends BaseController
                 $templateFile = 'frontend/_gallery_magazine_content.twig';
                 $templateData['album'] = $album; // Magazine template needs album data
             }
-            
-            return $this->view->render($response, $templateFile, $templateData);
+
+            // Render the template
+            $renderedHtml = $this->view->fetch($templateFile, $templateData);
+
+            // Prepend template settings as script tag for client-side parsing
+            // The template switcher parses this to update window.templateSettings
+            $settingsJson = json_encode($templateSettings, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $settingsScript = "<script>window.templateSettings = {$settingsJson};</script>\n";
+
+            $response->getBody()->write($settingsScript . $renderedHtml);
+            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
             
         } catch (\Throwable $e) {
             // Log the actual error for debugging
@@ -861,7 +979,41 @@ class GalleryController extends BaseController
             
             $templateSettings['columns'] = $normalizedColumns;
         }
-        
+
+        // Normalize creative layout settings
+        if (isset($templateSettings['creative_layout']) && is_array($templateSettings['creative_layout'])) {
+            $creative = $templateSettings['creative_layout'];
+            $gap = isset($creative['gap']) ? (int)$creative['gap'] : 15;
+            $gap = max(0, min(40, $gap));
+            $templateSettings['creative_layout'] = [
+                'gap' => $gap,
+                'hover_tooltip' => array_key_exists('hover_tooltip', $creative) ? (bool)$creative['hover_tooltip'] : true
+            ];
+        }
+        if (isset($templateSettings['gallery_wall']) && is_array($templateSettings['gallery_wall'])) {
+            $wall = $templateSettings['gallery_wall'];
+            $desktop = $wall['desktop'] ?? [];
+            $tablet = $wall['tablet'] ?? [];
+            $mobile = $wall['mobile'] ?? [];
+
+            $templateSettings['gallery_wall'] = [
+                'desktop' => [
+                    'horizontal_ratio' => max(0.8, min(3.0, (float)($desktop['horizontal_ratio'] ?? 1.5))),
+                    'vertical_ratio' => max(0.4, min(1.5, (float)($desktop['vertical_ratio'] ?? 0.67))),
+                ],
+                'tablet' => [
+                    'horizontal_ratio' => max(0.8, min(3.0, (float)($tablet['horizontal_ratio'] ?? 1.3))),
+                    'vertical_ratio' => max(0.4, min(1.5, (float)($tablet['vertical_ratio'] ?? 0.6))),
+                ],
+                'divider' => max(0, min(10, (int)($wall['divider'] ?? 2))),
+                'mobile' => [
+                    'columns' => max(1, min(4, (int)($mobile['columns'] ?? 2))),
+                    'gap' => max(0, min(40, (int)($mobile['gap'] ?? 8))),
+                    'wide_every' => max(0, min(10, (int)($mobile['wide_every'] ?? 5))),
+                ],
+            ];
+        }
+
         return $templateSettings;
     }
 
