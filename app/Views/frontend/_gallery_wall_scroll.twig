@@ -1,0 +1,299 @@
+{% import 'frontend/_seo_macros.twig' as Seo %}
+{% import 'frontend/_caption.twig' as Caption %}
+
+{% set wall = template_settings.gallery_wall|default({}) %}
+{% set wall_desktop = wall.desktop|default({}) %}
+{% set wall_tablet = wall.tablet|default({}) %}
+{% set wall_mobile = wall.mobile|default({}) %}
+
+{% set wall_h_ratio = wall_desktop.horizontal_ratio|default(1.5) %}
+{% set wall_v_ratio = wall_desktop.vertical_ratio|default(0.67) %}
+{% set wall_h_ratio_t = wall_tablet.horizontal_ratio|default(1.3) %}
+{% set wall_v_ratio_t = wall_tablet.vertical_ratio|default(0.6) %}
+{% set wall_divider = wall.divider|default(2) %}
+{% set mobile_cols = wall_mobile.columns|default(2) %}
+{% set mobile_gap = wall_mobile.gap|default(8) %}
+{% set mobile_wide_every = wall_mobile.wide_every|default(5) %}
+
+{% set include_wrapper = include_wrapper is defined ? include_wrapper : true %}
+
+{% if include_wrapper %}
+<div id="images-gallery"
+     class="gallery-wall pswp-gallery"
+     data-layout="gallery_wall"
+     data-wall-init="1"
+     style="--wall-h-ratio: {{ wall_h_ratio }}; --wall-v-ratio: {{ wall_v_ratio }}; --wall-h-ratio-tablet: {{ wall_h_ratio_t }}; --wall-v-ratio-tablet: {{ wall_v_ratio_t }}; --wall-divider: {{ wall_divider }}px; --wall-mobile-cols: {{ mobile_cols }}; --wall-mobile-gap: {{ mobile_gap }}px; --wall-mobile-wide-every: {{ mobile_wide_every }};">
+{% endif %}
+
+<style nonce="{{ csp_nonce() }}">
+  .gallery-wall, .gallery-wall * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  .gallery-wall-section {
+    position: relative;
+  }
+  .gallery-wall-container {
+    position: sticky;
+    top: var(--header-height, 80px);
+    height: calc(100vh - var(--header-height, 80px));
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    background: #ffffff;
+    z-index: 10;
+  }
+  html.dark .gallery-wall-container {
+    background: #0a0a0a;
+  }
+  .gallery-wall-track {
+    display: flex;
+    gap: 0;
+    will-change: transform;
+  }
+  .gallery-wall-item {
+    flex-shrink: 0;
+    height: calc(100vh - var(--header-height, 80px));
+    position: relative;
+  }
+  .gallery-wall-item.horizontal {
+    width: calc((100vh - var(--header-height, 80px)) * var(--wall-h-ratio, 1.5));
+  }
+  .gallery-wall-item.vertical {
+    width: calc((100vh - var(--header-height, 80px)) * var(--wall-v-ratio, 0.67));
+  }
+  .gallery-wall-item a {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .gallery-wall-item picture,
+  .gallery-wall-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .gallery-wall-item::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--wall-divider, 2px);
+    background: #fff;
+  }
+  html.dark .gallery-wall-item::after {
+    background: #171717;
+  }
+  .gallery-wall-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1.5rem;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+    color: white;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .gallery-wall-item:hover .gallery-wall-overlay {
+    opacity: 1;
+  }
+  .gallery-wall-overlay h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 0 0 0.25rem 0;
+  }
+  .gallery-wall-overlay p {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    margin: 0;
+  }
+  .gallery-mobile-grid {
+    display: none;
+  }
+  @media (max-width: 1024px) {
+    .gallery-wall-item.horizontal {
+      width: calc((100vh - var(--header-height, 80px)) * var(--wall-h-ratio-tablet, 1.3));
+    }
+    .gallery-wall-item.vertical {
+      width: calc((100vh - var(--header-height, 80px)) * var(--wall-v-ratio-tablet, 0.6));
+    }
+  }
+  @media (max-width: 768px) {
+    .gallery-wall-section {
+      display: none;
+    }
+    .gallery-mobile-grid {
+      display: block;
+      padding: var(--wall-mobile-gap, 8px);
+    }
+    .gallery-mobile-grid-inner {
+      display: grid;
+      grid-template-columns: repeat(var(--wall-mobile-cols, 2), minmax(0, 1fr));
+      gap: var(--wall-mobile-gap, 8px);
+    }
+    .gallery-mobile-item {
+      aspect-ratio: 1;
+      overflow: hidden;
+      position: relative;
+      background: #f5f5f5;
+    }
+    .gallery-mobile-item.wide {
+      grid-column: span 2;
+      aspect-ratio: 16/9;
+    }
+    .gallery-mobile-item a,
+    .gallery-mobile-item picture,
+    .gallery-mobile-item img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+  @media (max-width: 480px) {
+    .gallery-mobile-grid {
+      padding: 0.5rem;
+    }
+  }
+</style>
+
+<section class="gallery-wall-section" id="galleryWallSection">
+  <div class="gallery-wall-container">
+    <div class="gallery-wall-track" id="galleryWallTrack">
+      {% for image in images %}
+      {% set img_w = image.width|default(1600) %}
+      {% set img_h = image.height|default(1000) %}
+      {% set is_horizontal = img_w > 0 and img_h > 0 and (img_w / img_h) > 1.2 %}
+      {% set lightbox_href = image.lightbox_url|default(image.url) %}
+      {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+      <div class="gallery-wall-item {{ is_horizontal ? 'horizontal' : 'vertical' }}">
+        <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+           class="pswp-link gallery-link image-item block w-full h-full"
+           title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
+           data-pswp-width="{{ image.width|default(1600) }}"
+           data-pswp-height="{{ image.height|default(1067) }}"
+           data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+           data-title="{{ image.caption|default('')|e }}"
+           data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+           data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+           data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+           data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+           data-developer="{{ image.developer_name|default('')|e }}"
+           data-lab="{{ image.lab_name|default('')|e }}"
+           data-location="{{ image.location_name|default('')|e }}"
+           data-iso="{{ image.iso|default('') }}"
+           data-shutter="{{ image.shutter_speed|default('')|e }}"
+           data-aperture="{{ image.aperture|default('') }}"
+           data-focal-length="{{ image.focal_length|default('') }}"
+           data-exif-make="{{ image.exif_make|default('')|e }}"
+           data-exif-model="{{ image.exif_model|default('')|e }}"
+           data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+           data-gps-lat="{{ image.gps_lat|default('') }}"
+           data-gps-lng="{{ image.gps_lng|default('') }}"
+           data-date-original="{{ image.date_original|default('')|e }}"
+           data-artist="{{ image.artist|default('')|e }}"
+           data-copyright="{{ image.copyright|default('')|e }}"
+           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+          <picture>
+            {% if image.sources.avif|length %}
+              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1200px) 50vw, 100vw">
+            {% endif %}
+            {% if image.sources.webp|length %}
+              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1200px) 50vw, 100vw">
+            {% endif %}
+            {% if image.sources.jpg|length %}
+              <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1200px) 50vw, 100vw">
+            {% endif %}
+            {% set img_src = image.fallback_src|default(image.url) %}
+            <img src="{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+                 alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                 title="{{ seo_title|e('html_attr') }}"
+                 loading="lazy"
+                 decoding="async"
+                 data-fallback="hide">
+          </picture>
+          {% set overlay_title = image.caption|default(image.alt_text|default(image.alt|default(''))) %}
+          {% set overlay_meta = album.category_name|default('') %}
+          {% if overlay_title or overlay_meta %}
+          <div class="gallery-wall-overlay">
+            {% if overlay_title %}<h3>{{ overlay_title|e }}</h3>{% endif %}
+            {% if overlay_meta %}<p>{{ overlay_meta|e }}</p>{% endif %}
+          </div>
+          {% endif %}
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<div class="gallery-mobile-grid">
+  <div class="gallery-mobile-grid-inner">
+    {% for image in images %}
+    {% set img_w = image.width|default(1600) %}
+    {% set img_h = image.height|default(1000) %}
+    {% set is_horizontal = img_w > 0 and img_h > 0 and (img_w / img_h) > 1.2 %}
+    {% set is_wide = is_horizontal and mobile_wide_every > 0 and (loop.index % mobile_wide_every == 1) %}
+    {% set lightbox_href = image.lightbox_url|default(image.url) %}
+    {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+    <div class="gallery-mobile-item {{ is_wide ? 'wide' : '' }}">
+      <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+         class="pswp-link gallery-link image-item block w-full h-full"
+         title="{{ seo_title|e('html_attr') }}"
+         data-image-id="{{ image.id }}"
+         data-pswp-width="{{ image.width|default(1600) }}"
+         data-pswp-height="{{ image.height|default(1067) }}"
+         data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+         data-title="{{ image.caption|default('')|e }}"
+         data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+         data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+         data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+         data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+         data-developer="{{ image.developer_name|default('')|e }}"
+         data-lab="{{ image.lab_name|default('')|e }}"
+         data-location="{{ image.location_name|default('')|e }}"
+         data-iso="{{ image.iso|default('') }}"
+         data-shutter="{{ image.shutter_speed|default('')|e }}"
+         data-aperture="{{ image.aperture|default('') }}"
+         data-focal-length="{{ image.focal_length|default('') }}"
+         data-exif-make="{{ image.exif_make|default('')|e }}"
+         data-exif-model="{{ image.exif_model|default('')|e }}"
+         data-exif-lens="{{ image.exif_lens_model|default('')|e }}"
+         data-gps-lat="{{ image.gps_lat|default('') }}"
+         data-gps-lng="{{ image.gps_lng|default('') }}"
+         data-date-original="{{ image.date_original|default('')|e }}"
+         data-artist="{{ image.artist|default('')|e }}"
+         data-copyright="{{ image.copyright|default('')|e }}"
+         {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+        <picture>
+          {% if image.sources.avif|length %}
+            <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
+          {% endif %}
+          {% if image.sources.webp|length %}
+            <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
+          {% endif %}
+          {% if image.sources.jpg|length %}
+            <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="100vw">
+          {% endif %}
+          {% set img_src = image.fallback_src|default(image.url) %}
+          <img src="{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+               alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+               title="{{ seo_title|e('html_attr') }}"
+               loading="lazy"
+               decoding="async"
+               data-fallback="hide">
+        </picture>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if include_wrapper %}
+</div>
+{% endif %}

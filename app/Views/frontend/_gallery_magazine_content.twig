@@ -1,17 +1,26 @@
 {# Magazine Split gallery content (partial) - Improved Responsive Version #}
-{% macro pic(image, base_path, album, seo_title) %}
+{% macro pic(image, base_path, album, seo_title, defer_sources) %}
+  {% set use_defer = defer_sources ? true : false %}
+  {% set placeholder = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' %}
   <picture class="block w-full h-full">
     {% if image.sources is defined and image.sources.avif is defined and image.sources.avif|length %}
-      <source type="image/avif" srcset="{% for s in image.sources.avif %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw">
+      <source type="image/avif" {% if use_defer %}data-srcset{% else %}srcset{% endif %}="{% for s in image.sources.avif %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw">
     {% endif %}
     {% if image.sources is defined and image.sources.webp is defined and image.sources.webp|length %}
-      <source type="image/webp" srcset="{% for s in image.sources.webp %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw">
+      <source type="image/webp" {% if use_defer %}data-srcset{% else %}srcset{% endif %}="{% for s in image.sources.webp %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw">
     {% endif %}
     {% if image.sources is defined and image.sources.jpg is defined and image.sources.jpg|length %}
-      <source type="image/jpeg" srcset="{% for s in image.sources.jpg %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw">
+      <source type="image/jpeg" {% if use_defer %}data-srcset{% else %}srcset{% endif %}="{% for s in image.sources.jpg %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw">
     {% endif %}
     {% set img_src = image.fallback_src|default(image.url) %}
-    <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}" alt="{{ image.alt|e }}" title="{{ seo_title|e('html_attr') }}" class="w-full h-full object-cover" loading="lazy" decoding="async" data-fallback="hide">
+    <img {% if use_defer %}data-src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"{% else %}src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"{% endif %}
+         src="{{ use_defer ? placeholder : (img_src starts with('/') ? (base_path ~ img_src) : img_src) }}"
+         alt="{{ image.alt|e }}"
+         title="{{ seo_title|e('html_attr') }}"
+         class="w-full h-full object-cover"
+         loading="lazy"
+         decoding="async"
+         data-fallback="hide">
   </picture>
 {% endmacro %}
 
@@ -79,53 +88,53 @@
 
 <div class="relative pswp-gallery" style="touch-action: pan-y;">
   {# Mobile: Una colonna con tutte le immagini #}
-  <div class="m-mobile-wrap" style="--m-duration: {{ durs[0]|default(90) }}s">
+  <div class="m-mobile-wrap" style="--m-duration: {{ durs[0]|default(90) }}s; --m-gap: {{ gap }}px;">
     <div class="m-mobile">
       <div class="m-mobile-track">
-        {% for image in images %}
-          <div class="m-cell">
+        {% set mobile_count = images|length %}
+        {% set mobile_min = 18 %}
+        {% set mobile_repeat = mobile_count > 0 ? (mobile_min / mobile_count)|round(0, 'ceil') : 1 %}
+        {% set mobile_repeat = mobile_repeat < 2 ? 2 : (mobile_repeat > 10 ? 10 : mobile_repeat) %}
+        {% for r in 1..mobile_repeat %}
+          {% for image in images %}
+          {% set img_w = image.width|default(1600) %}
+          {% set img_h = image.height|default(1067) %}
+          <div class="m-cell" style="aspect-ratio: {{ img_w }}/{{ img_h }};">
             {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
             <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ loop.index0 }}">
-              {{ G.pic(image, base_path, album, seo_title) }}
+              {{ G.pic(image, base_path, album, seo_title, false) }}
             </a>
           </div>
-        {% endfor %}
-        {% for image in images %}
-          <div class="m-cell">
-            {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-            <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ loop.index0 }}">
-              {{ G.pic(image, base_path, album, seo_title) }}
-            </a>
-          </div>
+          {% endfor %}
         {% endfor %}
       </div>
     </div>
   </div>
 
   {# Tablet: Due colonne #}
-  <div class="m-tablet-wrap gap-4 perspective-tablet" style="gap: {{ gap * 0.7 }}px">
+  <div class="m-tablet-wrap gap-4 perspective-tablet" style="gap: {{ gap * 0.7 }}px; --m-gap: {{ (gap * 0.7)|round }}px;">
     {% set tablet_cols = [tablet_col1, tablet_col2] %}
     {% for col in tablet_cols %}
       {% set idx = loop.index0 %}
       {% set dur = (durs[idx]|default(50) + 5) ~ 's' %}
       {% set dir = idx == 1 ? 'up' : 'down' %}
+      {% set col_count = col|length %}
+      {% set tablet_min = 20 %}
+      {% set repeat_times = col_count > 0 ? (tablet_min / col_count)|round(0, 'ceil') : 1 %}
+      {% set repeat_times = repeat_times < 2 ? 2 : (repeat_times > 10 ? 10 : repeat_times) %}
       <div class="m-col m-tablet-col" data-direction="{{ dir }}" style="--m-duration: {{ dur }}; --m-delay: 0s;">
         <div class="m-track">
-          {% for image in col %}
-            <div class="m-cell">
-              {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ image.original_index|default(loop.index0) }}">
-                {{ G.pic(image, base_path, album, seo_title) }}
-              </a>
-            </div>
-          {% endfor %}
-          {% for image in col %}
-            <div class="m-cell">
-              {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ image.original_index|default(loop.index0) }}">
-                {{ G.pic(image, base_path, album, seo_title) }}
-              </a>
-            </div>
+          {% for r in 1..repeat_times %}
+            {% for image in col %}
+              {% set img_w = image.width|default(1600) %}
+              {% set img_h = image.height|default(1067) %}
+              <div class="m-cell" style="aspect-ratio: {{ img_w }}/{{ img_h }};">
+                {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+                <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item{% if r > 1 %} pswp-is-duplicate{% endif %} block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+                  {{ G.pic(image, base_path, album, seo_title, true) }}
+                </a>
+              </div>
+            {% endfor %}
           {% endfor %}
         </div>
       </div>
@@ -133,30 +142,30 @@
   </div>
 
   {# Desktop: Tre colonne #}
-  <div class="m-desktop-wrap gap-6 perspective" style="gap: {{ gap }}px">
+  <div class="m-desktop-wrap gap-6 perspective" style="gap: {{ gap }}px; --m-gap: {{ gap }}px;">
     {% set cols = [col1, col2, col3] %}
     {% for col in cols %}
       {% set idx = loop.index0 %}
       {% set dur = durs[idx]|default(60) ~ 's' %}
       {% set dir = idx == 1 ? 'up' : 'down' %}
+      {% set col_count = col|length %}
+      {% set desk_min = 24 %}
+      {% set repeat_times = col_count > 0 ? (desk_min / col_count)|round(0, 'ceil') : 1 %}
+      {% set repeat_times = repeat_times < 2 ? 2 : (repeat_times > 10 ? 10 : repeat_times) %}
       <div class="m-col m-desktop-col" data-direction="{{ dir }}" style="--m-duration: {{ dur }}; --m-delay: 0s;">
         <div class="m-track">
-          {% for image in col %}
-            <div class="m-cell">
-              {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ image.original_index|default(loop.index0) }}">
-                {{ G.pic(image, base_path, album, seo_title) }}
-                <div class="hidden-caption-content">{{ G.caption(image) }}</div>
-              </a>
-            </div>
-          {% endfor %}
-          {% for image in col %}
-            <div class="m-cell">
-              {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
-              <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item pswp-is-duplicate block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ image.original_index|default(loop.index0) }}">
-                {{ G.pic(image, base_path, album, seo_title) }}
-              </a>
-            </div>
+          {% for r in 1..repeat_times %}
+            {% for image in col %}
+              {% set img_w = image.width|default(1600) %}
+              {% set img_h = image.height|default(1067) %}
+              <div class="m-cell" style="aspect-ratio: {{ img_w }}/{{ img_h }};">
+                {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+                <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item{% if r > 1 %} pswp-is-duplicate{% endif %} block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ image.alt|default('')|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ image.original_index|default(loop.index0) }}">
+                  {{ G.pic(image, base_path, album, seo_title, true) }}
+                  {% if r == 1 %}<div class="hidden-caption-content">{{ G.caption(image) }}</div>{% endif %}
+                </a>
+              </div>
+            {% endfor %}
           {% endfor %}
         </div>
       </div>
@@ -165,7 +174,7 @@
   
   {# Veli migliorati per fade effect - positioning più preciso #}
   <div class="pointer-events-none absolute inset-x-0 -top-1 h-40 z-20 masonry-veil-top"></div>
-  <div class="pointer-events-none absolute inset-x-0 -bottom-1 h-40 z-20 masonry-veil-bottom"></div>
+  <div class="pointer-events-none absolute z-20 masonry-veil-bottom" style="left:-4px; right:-4px; bottom:-4px; height:80px;"></div>
 </div>
 
 <style nonce="{{ csp_nonce() }}">
@@ -210,7 +219,7 @@
 .perspective-tablet { transform: perspective(1000px) rotateX(0.6deg); }
 
 /* Mobile: singola colonna con tutte le immagini */
-.m-mobile { overflow: hidden; height: 200vh; position: relative; }
+.m-mobile { overflow: hidden; height: 220vh; position: relative; }
 .m-mobile-track { 
   will-change: transform; 
   animation: mScrollDown var(--m-duration) linear infinite;
@@ -218,20 +227,25 @@
   position: absolute;
   top: 0;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-gap);
 }
 
 /* Base styles per tutte le colonne */
 .m-cell { 
   break-inside: avoid; 
-  margin-bottom: 1.25rem; 
+  margin-bottom: 0;
   position: relative;
+  width: 100%;
 }
 
 .m-col {
   position: relative;
   flex: 1 1 0;
-  height: 140vh;
+  height: 150vh;
   overflow: hidden;
+  cursor: grab;
 }
 
 .m-track { 
@@ -240,6 +254,9 @@
   left: 0; 
   right: 0; 
   will-change: transform;
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-gap);
 }
 
 /* Item styles migliorati */
@@ -249,11 +266,37 @@
   transition: transform .3s cubic-bezier(.25,.8,.25,1), box-shadow .3s ease;
   border-radius: 12px;
   overflow: hidden;
+  cursor: grab;
+}
+
+.m-item * {
+  cursor: inherit;
+}
+
+.m-item picture,
+.m-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .m-item:hover { 
   transform: translateZ(0) scale(1.015); 
   box-shadow: 0 20px 40px rgba(0,0,0,.15);
+}
+
+.m-col:hover .m-track {
+  animation-play-state: paused !important;
+}
+
+.magazine-dragging .m-col,
+.magazine-dragging .m-item {
+  cursor: grabbing !important;
+}
+.magazine-dragging .m-item,
+.magazine-dragging .m-item * {
+  pointer-events: none !important;
 }
 
 .m-item img { 
@@ -270,6 +313,7 @@
 }
 
 .m-col[data-direction="up"] .m-track { 
+  transform: translateY(-50%);
   animation: mScrollUp var(--m-duration) linear infinite;
   animation-delay: 0s; /* Partenza immediata */
   animation-play-state: running;
@@ -380,27 +424,22 @@ html.dark .masonry-veil-bottom {
   }
 }
 
-/* Hover effects */
-.pswp-gallery:hover .m-track { 
-  animation-play-state: paused; 
-}
-
 /* Performance optimizations */
 .m-track { 
   backface-visibility: hidden; 
   transform-style: preserve-3d; 
+  transform: translateZ(0);
 }
 
 /* Mobile adjustments */
 @media (max-width: 767px) {
   .perspective, .perspective-tablet { transform: none; }
   .m-mobile { height: 100vh; }
-  .m-cell { margin-bottom: 1rem; }
 }
 
 /* Tablet specific adjustments */
 @media (min-width: 768px) and (max-width: 1199px) {
-  .m-col { height: 130vh; }
+  .m-col { height: 140vh; }
 }
 
 /* Accessibility: respect reduced motion */
@@ -410,89 +449,3 @@ html.dark .masonry-veil-bottom {
   }
 }
 </style>
-
-<script nonce="{{ csp_nonce() }}">
-window.templateSettings = {{ template_settings|json_encode|raw }};
-
-// Responsive Magazine Initialization
-document.addEventListener('DOMContentLoaded', function(){
-  console.log('Magazine Split: Initializing responsive layout');
-  
-  // Force immediate animation start for all tracks
-  function startAnimations() {
-    // Mobile track
-    const mobileTrack = document.querySelector('.m-mobile-track');
-    if (mobileTrack) {
-      const mobileDur = getComputedStyle(mobileTrack.closest('.m-mobile-wrap')).getPropertyValue('--m-duration').trim() || '45s';
-      mobileTrack.style.animation = `mScrollDown ${mobileDur} linear infinite`;
-      mobileTrack.style.animationPlayState = 'running';
-      console.log('Mobile track animated:', mobileDur);
-    }
-    
-    // All column tracks (tablet + desktop)
-    document.querySelectorAll('.m-col .m-track').forEach(function(track){
-      const col = track.closest('.m-col');
-      if (!col) return;
-      
-      const dir = (col.getAttribute('data-direction') || 'down').toLowerCase();
-      const dur = getComputedStyle(col).getPropertyValue('--m-duration').trim() || '60s';
-      const anim = (dir === 'up' ? 'mScrollUp' : 'mScrollDown') + ' ' + dur + ' linear infinite';
-      
-      track.style.animation = anim;
-      track.style.animationPlayState = 'running';
-      console.log(`${col.classList.contains('m-tablet-col') ? 'Tablet' : 'Desktop'} track animated:`, dir, dur);
-    });
-  }
-  
-  // Start animations immediately
-  startAnimations();
-  
-  // Responsive visibility management
-  function updateResponsiveDisplay() {
-    const isMobile = window.matchMedia('(max-width: 767px)').matches;
-    const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches;
-    const isDesktop = window.matchMedia('(min-width: 1200px)').matches;
-    
-    const mobile = document.querySelector('.m-mobile-wrap');
-    const tablet = document.querySelector('.m-tablet-wrap');
-    const desktop = document.querySelector('.m-desktop-wrap');
-    
-    if (mobile) mobile.style.display = isMobile ? 'block' : 'none';
-    if (tablet) tablet.style.display = isTablet ? 'flex' : 'none';
-    if (desktop) desktop.style.display = isDesktop ? 'flex' : 'none';
-    
-    console.log('Magazine Split responsive update:', {isMobile, isTablet, isDesktop});
-  }
-  
-  // Initialize responsive display
-  updateResponsiveDisplay();
-  
-  // Listen for resize events
-  let resizeTimeout;
-  window.addEventListener('resize', function() {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-      updateResponsiveDisplay();
-      startAnimations(); // Restart animations after resize
-    }, 250);
-  });
-  
-  // Performance optimizations: pause when out of viewport
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const tracks = entry.target.querySelectorAll('.m-track, .m-mobile-track');
-        tracks.forEach(track => {
-          track.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
-        });
-      });
-    }, { threshold: 0.1 });
-    
-    const gallery = document.querySelector('.pswp-gallery');
-    if (gallery) observer.observe(gallery);
-  }
-  
-  // No lightbox - just magazine animation
-  console.log('Magazine Split: Gallery without lightbox initialized');
-});
-</script>

@@ -16,6 +16,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 space-y-6">
+        {# General Info Card #}
         <div class="card p-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.general_info') }}</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -34,108 +35,131 @@
           </div>
         </div>
 
-        {% if item.slug != 'masonry-portfolio' %}
+        {# Layout Settings Card - Not shown for magazine-split (id 3) #}
+        {% if item.slug != 'magazine-split' %}
         <div class="card p-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.layout_settings') }}</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.templates.layout_type') }}</label>
-              <select class="form-input" name="layout" id="layout-select">
-                <option value="grid"{% if item.settings.layout == 'grid' %} selected{% endif %}>{{ trans('admin.templates.grid') }}</option>
-                <option value="dense_grid"{% if item.settings.layout == 'dense_grid' %} selected{% endif %}>{{ trans('admin.templates.dense_grid') }}</option>
-                <option value="masonry"{% if item.settings.layout == 'masonry' %} selected{% endif %}>{{ trans('admin.templates.masonry') }}</option>
-                <option value="masonry_fit"{% if item.settings.layout == 'masonry_fit' %} selected{% endif %}>{{ trans('admin.templates.masonry_full') }}</option>
-                <option value="slideshow"{% if item.settings.layout == 'slideshow' %} selected{% endif %}>{{ trans('admin.templates.slideshow') }}</option>
-                <option value="fullscreen"{% if item.settings.layout == 'fullscreen' %} selected{% endif %}>{{ trans('admin.templates.fullscreen') }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="flex items-center">
-                <input type="checkbox" name="masonry" class="form-checkbox"{% if item.settings.masonry %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.enable_masonry') }}</span>
-              </label>
-            </div>
-          </div>
 
-          <div class="border-t pt-4" id="columns-per-device-section" style="{% if item.settings.layout == 'dense_grid' %}display: none;{% endif %}">
-            <h3 class="text-md font-medium text-gray-800 mb-3">{{ trans('admin.templates.columns_per_device') }}</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {% set cols = item.settings.columns is defined ? item.settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
-              {% set desktop_cols = cols.desktop %}
-              {% set tablet_cols = cols.tablet %}
-              {% set mobile_cols = cols.mobile %}
+          {% if item.slug == 'grid-ampia' %}
+          <input type="hidden" name="layout" value="grid">
+          {% set creative = item.settings.creative_layout|default({}) %}
+          {% set creative_gap = creative.gap|default(15) %}
+          {% set creative_hover_tooltip = creative.hover_tooltip is not defined or creative.hover_tooltip %}
 
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  <i class="fas fa-desktop text-gray-500 mr-1"></i>Desktop
-                </label>
-                <select class="form-input" name="columns_desktop">
-                  <option value="1"{% if desktop_cols == 1 %} selected{% endif %}>1 {{ trans('admin.templates.column') }}</option>
-                  <option value="2"{% if desktop_cols == 2 %} selected{% endif %}>2 {{ trans('admin.templates.columns') }}</option>
-                  <option value="3"{% if desktop_cols == 3 %} selected{% endif %}>3 {{ trans('admin.templates.columns') }}</option>
-                  <option value="4"{% if desktop_cols == 4 %} selected{% endif %}>4 {{ trans('admin.templates.columns') }}</option>
-                  <option value="5"{% if desktop_cols == 5 %} selected{% endif %}>5 {{ trans('admin.templates.columns') }}</option>
-                  <option value="6"{% if desktop_cols == 6 %} selected{% endif %}>6 {{ trans('admin.templates.columns') }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  <i class="fas fa-tablet-alt text-gray-500 mr-1"></i>Tablet
-                </label>
-                <select class="form-input" name="columns_tablet">
-                  <option value="1"{% if tablet_cols == 1 %} selected{% endif %}>1 {{ trans('admin.templates.column') }}</option>
-                  <option value="2"{% if tablet_cols == 2 %} selected{% endif %}>2 {{ trans('admin.templates.columns') }}</option>
-                  <option value="3"{% if tablet_cols == 3 %} selected{% endif %}>3 {{ trans('admin.templates.columns') }}</option>
-                  <option value="4"{% if tablet_cols == 4 %} selected{% endif %}>4 {{ trans('admin.templates.columns') }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  <i class="fas fa-mobile-alt text-gray-500 mr-1"></i>Mobile
-                </label>
-                <select class="form-input" name="columns_mobile">
-                  <option value="1"{% if mobile_cols == 1 %} selected{% endif %}>1 {{ trans('admin.templates.column') }}</option>
-                  <option value="2"{% if mobile_cols == 2 %} selected{% endif %}>2 {{ trans('admin.templates.columns') }}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
-        {% if item.slug == 'masonry-portfolio' %}
-        {# Masonry Portfolio Settings - same as home pure masonry #}
-        <div class="card p-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-            <i class="fas fa-grip-vertical mr-3 text-gray-600"></i>
-            {{ trans('admin.templates.masonry_portfolio_settings') }}
-          </h2>
-          <p class="text-sm text-gray-600 mb-4">{{ trans('admin.templates.masonry_portfolio_description') }}</p>
-          {% set mp = item.settings.masonry_portfolio|default({}) %}
           <div class="space-y-6">
-            <!-- Gap Settings -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">Creative Layout</label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">Gap</label>
+                  <div class="flex items-center gap-2">
+                    <input type="range" name="creative_gap" min="0" max="40" value="{{ creative_gap }}" class="flex-1" id="creative-gap-slider">
+                    <span class="text-sm text-gray-600 w-12 text-right" id="creative-gap-value">{{ creative_gap }}px</span>
+                  </div>
+                </div>
+                <div class="flex items-center">
+                  <label class="flex items-center mt-6">
+                    <input type="checkbox" name="creative_hover_tooltip" class="form-checkbox"{% if creative_hover_tooltip %} checked{% endif %}>
+                    <span class="ml-2 text-sm text-gray-700">Hover tooltip (desktop)</span>
+                  </label>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">Pattern fisso con moduli larghezza/altezza, ottimizzato per layout creativo.</p>
+            </div>
+          </div>
+
+          {% elseif item.slug == 'gallery-wall-scroll' %}
+          <input type="hidden" name="layout" value="gallery_wall">
+          {% set wall = item.settings.gallery_wall|default({}) %}
+          {% set wall_desktop = wall.desktop|default({}) %}
+          {% set wall_tablet = wall.tablet|default({}) %}
+          {% set wall_mobile = wall.mobile|default({}) %}
+
+          <div class="space-y-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.templates.wall_desktop_settings') }}</label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.templates.wall_horizontal_ratio') }}</label>
+                  <input class="form-input" type="number" step="0.01" min="0.8" max="3" name="wall_desktop_h_ratio" value="{{ wall_desktop.horizontal_ratio|default(1.5) }}">
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.templates.wall_vertical_ratio') }}</label>
+                  <input class="form-input" type="number" step="0.01" min="0.4" max="1.5" name="wall_desktop_v_ratio" value="{{ wall_desktop.vertical_ratio|default(0.67) }}">
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.templates.wall_tablet_settings') }}</label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.templates.wall_horizontal_ratio') }}</label>
+                  <input class="form-input" type="number" step="0.01" min="0.8" max="3" name="wall_tablet_h_ratio" value="{{ wall_tablet.horizontal_ratio|default(1.3) }}">
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.templates.wall_vertical_ratio') }}</label>
+                  <input class="form-input" type="number" step="0.01" min="0.4" max="1.5" name="wall_tablet_v_ratio" value="{{ wall_tablet.vertical_ratio|default(0.6) }}">
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.templates.wall_mobile_settings') }}</label>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.templates.wall_mobile_columns') }}</label>
+                  <input class="form-input" type="number" min="1" max="4" name="wall_mobile_cols" value="{{ wall_mobile.columns|default(2) }}">
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.templates.wall_mobile_gap') }}</label>
+                  <input class="form-input" type="number" min="0" max="40" name="wall_mobile_gap" value="{{ wall_mobile.gap|default(8) }}">
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.templates.wall_mobile_wide_every') }}</label>
+                  <input class="form-input" type="number" min="0" max="10" name="wall_mobile_wide_every" value="{{ wall_mobile.wide_every|default(5) }}">
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.templates.wall_divider_width') }}</label>
+              <input class="form-input" type="number" min="0" max="10" name="wall_divider" value="{{ wall.divider|default(2) }}">
+              <p class="text-xs text-gray-500 mt-2">{{ trans('admin.templates.wall_divider_hint') }}</p>
+            </div>
+          </div>
+
+          {% elseif item.slug == 'masonry-portfolio' %}
+          <input type="hidden" name="layout" value="masonry">
+          {% set mp = item.settings.masonry_portfolio|default({}) %}
+          {% set mp_cols = mp.columns|default({desktop: 4, tablet: 3, mobile: 1}) %}
+          {% set mp_gap_h = mp.gap_h|default(16) %}
+          {% set mp_gap_v = mp.gap_v|default(16) %}
+          {% set mp_layout_mode = mp.layout_mode|default('fullwidth') %}
+          {% set mp_type = mp.type|default('balanced') %}
+
+          <div class="space-y-6">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.pages.home.masonry_gap') }}</label>
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.pages.home.masonry_gap_h') }}</label>
                   <div class="flex items-center gap-2">
-                    <input type="range" name="masonry_gap_h" min="0" max="40" value="{{ mp.gap_h|default(0) }}" class="flex-1" id="mp-gap-h-slider">
-                    <span class="text-sm text-gray-600 w-12 text-right" id="mp-gap-h-value">{{ mp.gap_h|default(0) }}px</span>
+                    <input type="range" name="masonry_gap_h" min="0" max="40" value="{{ mp_gap_h }}" class="flex-1" id="masonry-gap-h-slider">
+                    <span class="text-sm text-gray-600 w-12 text-right" id="masonry-gap-h-value">{{ mp_gap_h }}px</span>
                   </div>
                 </div>
                 <div>
                   <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.pages.home.masonry_gap_v') }}</label>
                   <div class="flex items-center gap-2">
-                    <input type="range" name="masonry_gap_v" min="0" max="40" value="{{ mp.gap_v|default(0) }}" class="flex-1" id="mp-gap-v-slider">
-                    <span class="text-sm text-gray-600 w-12 text-right" id="mp-gap-v-value">{{ mp.gap_v|default(0) }}px</span>
+                    <input type="range" name="masonry_gap_v" min="0" max="40" value="{{ mp_gap_v }}" class="flex-1" id="masonry-gap-v-slider">
+                    <span class="text-sm text-gray-600 w-12 text-right" id="masonry-gap-v-value">{{ mp_gap_v }}px</span>
                   </div>
                 </div>
               </div>
               <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.home.masonry_gap_hint') }}</p>
             </div>
 
-            <!-- Column Settings -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.pages.home.masonry_columns') }}</label>
               <div class="grid grid-cols-3 gap-4">
@@ -145,7 +169,7 @@
                   </label>
                   <select name="masonry_col_desktop" class="form-select">
                     {% for i in 2..8 %}
-                      <option value="{{ i }}" {{ mp.cols_desktop|default(5) == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.home.columns') }}</option>
+                      <option value="{{ i }}" {{ mp_cols.desktop|default(4) == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.home.columns') }}</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -155,7 +179,7 @@
                   </label>
                   <select name="masonry_col_tablet" class="form-select">
                     {% for i in 1..6 %}
-                      <option value="{{ i }}" {{ mp.cols_tablet|default(3) == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.home.columns') }}</option>
+                      <option value="{{ i }}" {{ mp_cols.tablet|default(3) == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.home.columns') }}</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -165,7 +189,7 @@
                   </label>
                   <select name="masonry_col_mobile" class="form-select">
                     {% for i in 1..4 %}
-                      <option value="{{ i }}" {{ mp.cols_mobile|default(2) == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.home.columns') }}</option>
+                      <option value="{{ i }}" {{ mp_cols.mobile|default(1) == i ? 'selected' : '' }}>{{ i }} {{ trans('admin.pages.home.columns') }}</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -173,12 +197,11 @@
               <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.home.masonry_columns_hint') }}</p>
             </div>
 
-            <!-- Layout Mode -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.pages.home.masonry_layout_mode') }}</label>
               <div class="grid grid-cols-2 gap-4">
-                <label class="relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ mp.layout_mode|default('fullwidth') == 'fullwidth' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
-                  <input type="radio" name="masonry_layout_mode" value="fullwidth" class="sr-only" {{ mp.layout_mode|default('fullwidth') == 'fullwidth' ? 'checked' : '' }}>
+                <label class="relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ mp_layout_mode == 'fullwidth' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
+                  <input type="radio" name="masonry_layout_mode" value="fullwidth" class="sr-only" {{ mp_layout_mode == 'fullwidth' ? 'checked' : '' }}>
                   <div class="flex items-center">
                     <i class="fas fa-arrows-alt-h text-lg text-gray-600 mr-3"></i>
                     <div>
@@ -187,8 +210,8 @@
                     </div>
                   </div>
                 </label>
-                <label class="relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ mp.layout_mode|default('fullwidth') == 'boxed' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
-                  <input type="radio" name="masonry_layout_mode" value="boxed" class="sr-only" {{ mp.layout_mode|default('fullwidth') == 'boxed' ? 'checked' : '' }}>
+                <label class="relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ mp_layout_mode == 'boxed' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
+                  <input type="radio" name="masonry_layout_mode" value="boxed" class="sr-only" {{ mp_layout_mode == 'boxed' ? 'checked' : '' }}>
                   <div class="flex items-center">
                     <i class="fas fa-compress-alt text-lg text-gray-600 mr-3"></i>
                     <div>
@@ -200,10 +223,242 @@
               </div>
               <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.home.masonry_layout_mode_hint') }}</p>
             </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.templates.masonry_algorithm') }}</label>
+              <div class="grid grid-cols-2 gap-4">
+                <label class="relative flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ mp_type == 'balanced' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
+                  <input type="radio" name="masonry_type" value="balanced" class="sr-only" {{ mp_type == 'balanced' ? 'checked' : '' }}>
+                  <div>
+                    <div class="flex items-center mb-1">
+                      <i class="fas fa-balance-scale text-gray-600 mr-2"></i>
+                      <span class="font-medium text-gray-900">{{ trans('admin.templates.masonry_balanced') }}</span>
+                    </div>
+                    <span class="text-xs text-gray-500">{{ trans('admin.templates.masonry_balanced_desc') }}</span>
+                  </div>
+                </label>
+                <label class="relative flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ mp_type == 'regular' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
+                  <input type="radio" name="masonry_type" value="regular" class="sr-only" {{ mp_type == 'regular' ? 'checked' : '' }}>
+                  <div>
+                    <div class="flex items-center mb-1">
+                      <i class="fas fa-stream text-gray-600 mr-2"></i>
+                      <span class="font-medium text-gray-900">{{ trans('admin.templates.masonry_regular') }}</span>
+                    </div>
+                    <span class="text-xs text-gray-500">{{ trans('admin.templates.masonry_regular_desc') }}</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="border-t pt-4">
+              <h3 class="text-md font-medium text-gray-800 mb-3">{{ trans('admin.templates.style_options') }}</h3>
+              {% set style = item.settings.style|default({rounded: false, shadow: false, hover_scale: true, hover_fade: true}) %}
+              <div class="space-y-3">
+                <label class="flex items-center">
+                  <input type="checkbox" name="style_rounded" class="form-checkbox"{% if style.rounded %} checked{% endif %}>
+                  <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.rounded_corners') }}</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="checkbox" name="style_shadow" class="form-checkbox"{% if style.shadow %} checked{% endif %}>
+                  <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.shadow_effect') }}</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="hidden" name="style_hover_scale_submitted" value="1">
+                  <input type="checkbox" name="style_hover_scale" class="form-checkbox"{% if style.hover_scale is not defined or style.hover_scale %} checked{% endif %}>
+                  <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.hover_scale') }}</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="hidden" name="style_hover_fade_submitted" value="1">
+                  <input type="checkbox" name="style_hover_fade" class="form-checkbox"{% if style.hover_fade is not defined or style.hover_fade %} checked{% endif %}>
+                  <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.hover_fade') }}</span>
+                </label>
+              </div>
+            </div>
           </div>
+
+          {% else %}
+          {# Layout Type Selection #}
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.templates.layout_type') }}</label>
+            <div class="grid grid-cols-2 gap-4">
+              <label class="relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ item.settings.layout|default('grid') == 'grid' ? 'border-black bg-gray-50' : 'border-gray-200' }}" id="layout-grid-label">
+                <input type="radio" name="layout" value="grid" class="sr-only" {{ item.settings.layout|default('grid') == 'grid' ? 'checked' : '' }}>
+                <div class="flex items-center">
+                  <i class="fas fa-th text-lg text-gray-600 mr-3"></i>
+                  <div>
+                    <span class="block font-medium text-gray-900">{{ trans('admin.templates.grid') }}</span>
+                    <span class="text-xs text-gray-500">{{ trans('admin.templates.grid_description') }}</span>
+                  </div>
+                </div>
+              </label>
+              <label class="relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ item.settings.layout == 'masonry' ? 'border-black bg-gray-50' : 'border-gray-200' }}" id="layout-masonry-label">
+                <input type="radio" name="layout" value="masonry" class="sr-only" {{ item.settings.layout == 'masonry' ? 'checked' : '' }}>
+                <div class="flex items-center">
+                  <i class="fas fa-th-large text-lg text-gray-600 mr-3"></i>
+                  <div>
+                    <span class="block font-medium text-gray-900">{{ trans('admin.templates.masonry') }}</span>
+                    <span class="text-xs text-gray-500">{{ trans('admin.templates.masonry_description') }}</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {# Masonry Algorithm Type - Only visible when masonry layout is selected #}
+          {% set masonrySettings = item.settings.masonry|default({type: 'balanced'}) %}
+          <div class="mb-6" id="masonry-type-section" style="{{ item.settings.layout != 'masonry' ? 'display: none;' : '' }}">
+            <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.templates.masonry_algorithm') }}</label>
+            <div class="grid grid-cols-2 gap-4">
+              <label class="relative flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ masonrySettings.type|default('balanced') == 'balanced' ? 'border-black bg-gray-50' : 'border-gray-200' }}" id="masonry-balanced-label">
+                <input type="radio" name="masonry_type" value="balanced" class="sr-only" {{ masonrySettings.type|default('balanced') == 'balanced' ? 'checked' : '' }}>
+                <div>
+                  <div class="flex items-center mb-1">
+                    <i class="fas fa-balance-scale text-gray-600 mr-2"></i>
+                    <span class="font-medium text-gray-900">{{ trans('admin.templates.masonry_balanced') }}</span>
+                  </div>
+                  <span class="text-xs text-gray-500">{{ trans('admin.templates.masonry_balanced_desc') }}</span>
+                </div>
+              </label>
+              <label class="relative flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ masonrySettings.type == 'regular' ? 'border-black bg-gray-50' : 'border-gray-200' }}" id="masonry-regular-label">
+                <input type="radio" name="masonry_type" value="regular" class="sr-only" {{ masonrySettings.type == 'regular' ? 'checked' : '' }}>
+                <div>
+                  <div class="flex items-center mb-1">
+                    <i class="fas fa-stream text-gray-600 mr-2"></i>
+                    <span class="font-medium text-gray-900">{{ trans('admin.templates.masonry_regular') }}</span>
+                  </div>
+                  <span class="text-xs text-gray-500">{{ trans('admin.templates.masonry_regular_desc') }}</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {# Columns Per Device #}
+          <div class="border-t pt-4 mb-6">
+            <h3 class="text-md font-medium text-gray-800 mb-3">{{ trans('admin.templates.columns_per_device') }}</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {% set cols = item.settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
+              {% set desktop_cols = cols.desktop|default(3) %}
+              {% set tablet_cols = cols.tablet|default(2) %}
+              {% set mobile_cols = cols.mobile|default(1) %}
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <i class="fas fa-desktop text-gray-500 mr-1"></i>Desktop
+                </label>
+                <select class="form-input" name="columns_desktop">
+                  {% for i in 1..6 %}
+                    <option value="{{ i }}"{% if desktop_cols == i %} selected{% endif %}>{{ i }} {{ i == 1 ? trans('admin.templates.column') : trans('admin.templates.columns') }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <i class="fas fa-tablet-alt text-gray-500 mr-1"></i>Tablet
+                </label>
+                <select class="form-input" name="columns_tablet">
+                  {% for i in 1..4 %}
+                    <option value="{{ i }}"{% if tablet_cols == i %} selected{% endif %}>{{ i }} {{ i == 1 ? trans('admin.templates.column') : trans('admin.templates.columns') }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <i class="fas fa-mobile-alt text-gray-500 mr-1"></i>Mobile
+                </label>
+                <select class="form-input" name="columns_mobile">
+                  {% for i in 1..2 %}
+                    <option value="{{ i }}"{% if mobile_cols == i %} selected{% endif %}>{{ i }} {{ i == 1 ? trans('admin.templates.column') : trans('admin.templates.columns') }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {# Gap Settings #}
+          <div class="border-t pt-4 mb-6">
+            <h3 class="text-md font-medium text-gray-800 mb-3">{{ trans('admin.templates.gap_settings') }}</h3>
+            {% set gap = item.settings.gap|default({horizontal: 16, vertical: 16}) %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <i class="fas fa-arrows-alt-h text-gray-400 mr-1"></i>{{ trans('admin.templates.gap_horizontal') }}
+                </label>
+                <div class="flex items-center gap-3">
+                  <input type="range" name="gap_horizontal" min="0" max="100" value="{{ gap.horizontal|default(16) }}" class="flex-1" id="gap-h-slider">
+                  <span class="text-sm text-gray-600 w-14 text-right" id="gap-h-value">{{ gap.horizontal|default(16) }}px</span>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <i class="fas fa-arrows-alt-v text-gray-400 mr-1"></i>{{ trans('admin.templates.gap_vertical') }}
+                </label>
+                <div class="flex items-center gap-3">
+                  <input type="range" name="gap_vertical" min="0" max="100" value="{{ gap.vertical|default(16) }}" class="flex-1" id="gap-v-slider">
+                  <span class="text-sm text-gray-600 w-14 text-right" id="gap-v-value">{{ gap.vertical|default(16) }}px</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {# Aspect Ratio - Grid only #}
+          <div class="border-t pt-4 mb-6" id="aspect-ratio-section">
+            <h3 class="text-md font-medium text-gray-800 mb-3">{{ trans('admin.templates.aspect_ratio') }}</h3>
+            <p class="text-xs text-gray-500 mb-3">{{ trans('admin.templates.aspect_ratio_hint') }}</p>
+            {% set aspect = item.settings.aspect_ratio|default('1:1') %}
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <label class="relative flex flex-col items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ aspect == '1:1' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
+                <input type="radio" name="aspect_ratio" value="1:1" class="sr-only" {{ aspect == '1:1' ? 'checked' : '' }}>
+                <div class="w-10 h-10 border-2 border-gray-400 rounded mb-2"></div>
+                <span class="text-xs font-medium">1:1</span>
+              </label>
+              <label class="relative flex flex-col items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ aspect == '4:3' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
+                <input type="radio" name="aspect_ratio" value="4:3" class="sr-only" {{ aspect == '4:3' ? 'checked' : '' }}>
+                <div class="w-12 h-9 border-2 border-gray-400 rounded mb-2"></div>
+                <span class="text-xs font-medium">4:3</span>
+              </label>
+              <label class="relative flex flex-col items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ aspect == '3:2' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
+                <input type="radio" name="aspect_ratio" value="3:2" class="sr-only" {{ aspect == '3:2' ? 'checked' : '' }}>
+                <div class="w-12 h-8 border-2 border-gray-400 rounded mb-2"></div>
+                <span class="text-xs font-medium">3:2</span>
+              </label>
+              <label class="relative flex flex-col items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors {{ aspect == '16:9' ? 'border-black bg-gray-50' : 'border-gray-200' }}">
+                <input type="radio" name="aspect_ratio" value="16:9" class="sr-only" {{ aspect == '16:9' ? 'checked' : '' }}>
+                <div class="w-14 h-8 border-2 border-gray-400 rounded mb-2"></div>
+                <span class="text-xs font-medium">16:9</span>
+              </label>
+            </div>
+          </div>
+
+          {# Style Options #}
+          <div class="border-t pt-4">
+            <h3 class="text-md font-medium text-gray-800 mb-3">{{ trans('admin.templates.style_options') }}</h3>
+            {% set style = item.settings.style|default({rounded: false, shadow: false, hover_scale: true, hover_fade: true}) %}
+            <div class="space-y-3">
+              <label class="flex items-center">
+                <input type="checkbox" name="style_rounded" class="form-checkbox"{% if style.rounded %} checked{% endif %}>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.rounded_corners') }}</span>
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" name="style_shadow" class="form-checkbox"{% if style.shadow %} checked{% endif %}>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.shadow_effect') }}</span>
+              </label>
+              <label class="flex items-center">
+                <input type="hidden" name="style_hover_scale_submitted" value="1">
+                <input type="checkbox" name="style_hover_scale" class="form-checkbox"{% if style.hover_scale is not defined or style.hover_scale %} checked{% endif %}>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.hover_scale') }}</span>
+              </label>
+              <label class="flex items-center">
+                <input type="hidden" name="style_hover_fade_submitted" value="1">
+                <input type="checkbox" name="style_hover_fade" class="form-checkbox"{% if style.hover_fade is not defined or style.hover_fade %} checked{% endif %}>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.hover_fade') }}</span>
+              </label>
+            </div>
+          </div>
+          {% endif %}
         </div>
         {% endif %}
 
+        {# Magazine Settings - Only for magazine-split template #}
         {% if item.slug == 'magazine-split' %}
         <div class="card p-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.magazine_settings') }}</h2>
@@ -231,142 +486,17 @@
         </div>
         {% endif %}
 
-        <div class="card p-6" id="masonry-gap-settings" style="{% if item.settings.layout != 'masonry_fit' %}display: none;{% endif %}">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">
-            <i class="fas fa-th text-indigo-500 mr-2"></i>{{ trans('admin.templates.masonry_full_settings') }}
-          </h2>
-          <p class="text-sm text-gray-600 mb-4">
-            {{ trans('admin.templates.masonry_full_description') }}
-          </p>
-          {% set gap = item.settings.gap|default({}) %}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <i class="fas fa-arrows-alt-h text-gray-400 mr-1"></i>{{ trans('admin.templates.gap_horizontal') }}
-              </label>
-              <input class="form-input" type="number" name="masonry_gap_h" min="0" max="100" step="1" value="{{ gap.horizontal|default(16) }}">
-              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.gap_horizontal_hint') }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <i class="fas fa-arrows-alt-v text-gray-400 mr-1"></i>{{ trans('admin.templates.gap_vertical') }}
-              </label>
-              <input class="form-input" type="number" name="masonry_gap_v" min="0" max="100" step="1" value="{{ gap.vertical|default(16) }}">
-              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.templates.gap_vertical_hint') }}</p>
-            </div>
-          </div>
-          <div class="mt-4 p-3 bg-indigo-50 rounded-lg">
-            <p class="text-xs text-indigo-700">
-              <i class="fas fa-info-circle mr-1"></i>
-              {{ trans('admin.templates.masonry_full_info') }}
-            </p>
-          </div>
-        </div>
-
-        <div class="card p-6" id="dense-grid-settings" style="{% if item.settings.layout != 'dense_grid' %}display: none;{% endif %}">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">
-            <i class="fas fa-th-large text-indigo-500 mr-2"></i>{{ trans('admin.templates.dense_grid_settings') }}
-          </h2>
-          <p class="text-sm text-gray-600 mb-4">
-            Griglia densa con riempimento automatico e dimensionamento adattivo delle immagini (landscape, portrait, square).
-          </p>
-          {% set dense = item.settings.dense_grid|default({}) %}
-
-          {# Minimum Cell Width (determines how many columns fit) #}
-          <div class="border-b pb-4 mb-4">
-            <h3 class="text-md font-medium text-gray-800 mb-3">
-              <i class="fas fa-arrows-alt-h text-gray-400 mr-1"></i>Larghezza minima cella
-            </h3>
-            <p class="text-xs text-gray-500 mb-3">Determina quante colonne entrano in ogni riga. Più piccolo = più colonne.</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  <i class="fas fa-desktop text-gray-400 mr-1"></i>Desktop (px)
-                </label>
-                <input class="form-input" type="number" name="dense_min_desktop" min="100" max="500" step="10" value="{{ dense.minCellDesktop|default(250) }}">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  <i class="fas fa-tablet-alt text-gray-400 mr-1"></i>Tablet (px)
-                </label>
-                <input class="form-input" type="number" name="dense_min_tablet" min="80" max="300" step="10" value="{{ dense.minCellTablet|default(150) }}">
-              </div>
-            </div>
-          </div>
-
-          {# Row Heights #}
-          <div class="border-b pb-4 mb-4">
-            <h3 class="text-md font-medium text-gray-800 mb-3">
-              <i class="fas fa-arrows-alt-v text-gray-400 mr-1"></i>Altezza righe
-            </h3>
-            <p class="text-xs text-gray-500 mb-3">Altezza fissa delle righe. Le immagini landscape/portrait spanneranno più righe/colonne.</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  <i class="fas fa-desktop text-gray-400 mr-1"></i>Desktop (px)
-                </label>
-                <input class="form-input" type="number" name="dense_row_height" min="100" max="500" step="10" value="{{ dense.rowHeight|default(250) }}">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  <i class="fas fa-tablet-alt text-gray-400 mr-1"></i>Tablet (px)
-                </label>
-                <input class="form-input" type="number" name="dense_row_height_tablet" min="80" max="300" step="10" value="{{ dense.rowHeightTablet|default(150) }}">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  <i class="fas fa-mobile-alt text-gray-400 mr-1"></i>Mobile (px)
-                </label>
-                <input class="form-input" type="number" name="dense_row_height_mobile" min="150" max="500" step="10" value="{{ dense.rowHeightMobile|default(300) }}">
-              </div>
-            </div>
-          </div>
-
-          {# Other Settings #}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <i class="fas fa-arrows-alt text-gray-400 mr-1"></i>Gap (px)
-              </label>
-              <input class="form-input" type="number" name="dense_gap" min="0" max="50" step="1" value="{{ dense.gap|default(15) }}">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <i class="fas fa-expand-arrows-alt text-gray-400 mr-1"></i>Larghezza massima (px)
-              </label>
-              <input class="form-input" type="number" name="dense_max_width" min="800" max="2400" step="100" value="{{ dense.maxWidth|default(1400) }}">
-            </div>
-          </div>
-
-          {# Adaptive Sizing #}
-          <div class="border-t pt-4">
-            <h3 class="text-md font-medium text-gray-800 mb-3">Dimensionamento adattivo</h3>
-            <div class="space-y-3">
-              <label class="flex items-center">
-                <input type="checkbox" name="dense_adaptive" class="form-checkbox"{% if dense.adaptiveSizing is not defined or dense.adaptiveSizing %} checked{% endif %}>
-                <span class="ml-2 text-sm text-gray-700">Abilita span adattivo</span>
-              </label>
-              <p class="text-xs text-gray-500 ml-6">Le immagini landscape spannano 2 colonne, portrait 2 righe. Disattiva per celle uniformi.</p>
-            </div>
-          </div>
-          <div class="mt-4 p-3 bg-indigo-50 rounded-lg">
-            <p class="text-xs text-indigo-700">
-              <i class="fas fa-info-circle mr-1"></i>
-              Questa griglia usa CSS Grid con auto-fill e flow dense. Le immagini riempiono automaticamente gli spazi vuoti.
-            </p>
-          </div>
-        </div>
-
+        {# PhotoSwipe Settings Card #}
         <div class="card p-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.photoswipe_settings') }}</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-3">
               <label class="flex items-center">
-                <input type="checkbox" name="photoswipe_loop" class="form-checkbox"{% if item.settings.photoswipe.loop is defined and item.settings.photoswipe.loop %} checked{% elseif item.settings.photoswipe.loop is not defined %} checked{% endif %}>
+                <input type="checkbox" name="photoswipe_loop" class="form-checkbox"{% if item.settings.photoswipe.loop is not defined or item.settings.photoswipe.loop %} checked{% endif %}>
                 <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.infinite_loop') }}</span>
               </label>
               <label class="flex items-center">
-                <input type="checkbox" name="photoswipe_zoom" class="form-checkbox"{% if item.settings.photoswipe.zoom is defined and item.settings.photoswipe.zoom %} checked{% elseif item.settings.photoswipe.zoom is not defined %} checked{% endif %}>
+                <input type="checkbox" name="photoswipe_zoom" class="form-checkbox"{% if item.settings.photoswipe.zoom is not defined or item.settings.photoswipe.zoom %} checked{% endif %}>
                 <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.enable_zoom') }}</span>
               </label>
               <label class="flex items-center">
@@ -374,17 +504,17 @@
                 <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.share_button') }}</span>
               </label>
               <label class="flex items-center">
-                <input type="checkbox" name="photoswipe_counter" class="form-checkbox"{% if item.settings.photoswipe.counter is defined and item.settings.photoswipe.counter %} checked{% elseif item.settings.photoswipe.counter is not defined %} checked{% endif %}>
+                <input type="checkbox" name="photoswipe_counter" class="form-checkbox"{% if item.settings.photoswipe.counter is not defined or item.settings.photoswipe.counter %} checked{% endif %}>
                 <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.image_counter') }}</span>
               </label>
             </div>
             <div class="space-y-3">
               <label class="flex items-center">
-                <input type="checkbox" name="photoswipe_arrowkeys" class="form-checkbox"{% if item.settings.photoswipe.arrowKeys is defined and item.settings.photoswipe.arrowKeys %} checked{% elseif item.settings.photoswipe.arrowKeys is not defined %} checked{% endif %}>
+                <input type="checkbox" name="photoswipe_arrowkeys" class="form-checkbox"{% if item.settings.photoswipe.arrowKeys is not defined or item.settings.photoswipe.arrowKeys %} checked{% endif %}>
                 <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.arrow_navigation') }}</span>
               </label>
               <label class="flex items-center">
-                <input type="checkbox" name="photoswipe_esckey" class="form-checkbox"{% if item.settings.photoswipe.escKey is defined and item.settings.photoswipe.escKey %} checked{% elseif item.settings.photoswipe.escKey is not defined %} checked{% endif %}>
+                <input type="checkbox" name="photoswipe_esckey" class="form-checkbox"{% if item.settings.photoswipe.escKey is not defined or item.settings.photoswipe.escKey %} checked{% endif %}>
                 <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.esc_close') }}</span>
               </label>
               <label class="flex items-center">
@@ -406,24 +536,66 @@
         </div>
       </div>
 
+      {# Sidebar #}
       <div class="space-y-6">
+        {# Preview Card #}
         <div class="card p-6">
           <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.templates.preview') }}</h2>
           <div class="text-sm text-gray-600 space-y-2">
-            <p><strong>{{ trans('admin.templates.layout') }}:</strong> <span id="preview-layout">{{ item.settings.layout|default('grid')|title }}</span></p>
-            <p><strong>{{ trans('admin.templates.masonry') }}:</strong> <span id="preview-masonry">{% if item.settings.masonry %}{{ trans('admin.templates.yes') }}{% else %}{{ trans('admin.templates.no') }}{% endif %}</span></p>
-            <div class="mt-3">
-              <p class="font-medium">{{ trans('admin.templates.columns_label') }}</p>
-              <ul class="ml-4 space-y-1">
-                <li><i class="fas fa-desktop text-gray-400 mr-1"></i>Desktop: <span id="preview-desktop">{{ desktop_cols|default(3) }}</span></li>
-                <li><i class="fas fa-tablet-alt text-gray-400 mr-1"></i>Tablet: <span id="preview-tablet">{{ tablet_cols|default(2) }}</span></li>
-                <li><i class="fas fa-mobile-alt text-gray-400 mr-1"></i>Mobile: <span id="preview-mobile">{{ mobile_cols|default(1) }}</span></li>
-              </ul>
-            </div>
-            <p><strong>PhotoSwipe:</strong> {{ trans('admin.templates.photoswipe_enabled') }}</p>
+            {% if item.slug == 'gallery-wall-scroll' %}
+              {% set wall = item.settings.gallery_wall|default({}) %}
+              {% set wall_desktop = wall.desktop|default({}) %}
+              {% set wall_tablet = wall.tablet|default({}) %}
+              {% set wall_mobile = wall.mobile|default({}) %}
+              <p><strong>{{ trans('admin.templates.layout') }}:</strong> {{ trans('admin.templates.wall_layout_label') }}</p>
+              <div class="mt-3">
+                <p class="font-medium">{{ trans('admin.templates.wall_desktop_settings') }}</p>
+                <ul class="ml-4 space-y-1">
+                  <li>{{ trans('admin.templates.wall_horizontal_ratio') }}: {{ wall_desktop.horizontal_ratio|default(1.5) }}</li>
+                  <li>{{ trans('admin.templates.wall_vertical_ratio') }}: {{ wall_desktop.vertical_ratio|default(0.67) }}</li>
+                </ul>
+              </div>
+              <div class="mt-3">
+                <p class="font-medium">{{ trans('admin.templates.wall_tablet_settings') }}</p>
+                <ul class="ml-4 space-y-1">
+                  <li>{{ trans('admin.templates.wall_horizontal_ratio') }}: {{ wall_tablet.horizontal_ratio|default(1.3) }}</li>
+                  <li>{{ trans('admin.templates.wall_vertical_ratio') }}: {{ wall_tablet.vertical_ratio|default(0.6) }}</li>
+                </ul>
+              </div>
+              <div class="mt-3">
+                <p class="font-medium">{{ trans('admin.templates.wall_mobile_settings') }}</p>
+                <ul class="ml-4 space-y-1">
+                  <li>{{ trans('admin.templates.wall_mobile_columns') }}: {{ wall_mobile.columns|default(2) }}</li>
+                  <li>{{ trans('admin.templates.wall_mobile_gap') }}: {{ wall_mobile.gap|default(8) }}px</li>
+                  <li>{{ trans('admin.templates.wall_mobile_wide_every') }}: {{ wall_mobile.wide_every|default(5) }}</li>
+                </ul>
+              </div>
+              <p class="mt-3"><strong>{{ trans('admin.templates.wall_divider_width') }}:</strong> {{ wall.divider|default(2) }}px</p>
+            {% else %}
+              {% set cols = item.settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
+              <p><strong>{{ trans('admin.templates.layout') }}:</strong> <span id="preview-layout">{{ item.settings.layout|default('grid') == 'masonry' ? trans('admin.templates.masonry') : trans('admin.templates.grid') }}</span></p>
+              <div class="mt-3">
+                <p class="font-medium">{{ trans('admin.templates.columns_label') }}</p>
+                <ul class="ml-4 space-y-1">
+                  <li><i class="fas fa-desktop text-gray-400 mr-1"></i>Desktop: <span id="preview-desktop">{{ cols.desktop|default(3) }}</span></li>
+                  <li><i class="fas fa-tablet-alt text-gray-400 mr-1"></i>Tablet: <span id="preview-tablet">{{ cols.tablet|default(2) }}</span></li>
+                  <li><i class="fas fa-mobile-alt text-gray-400 mr-1"></i>Mobile: <span id="preview-mobile">{{ cols.mobile|default(1) }}</span></li>
+                </ul>
+              </div>
+              <div class="mt-3">
+                <p class="font-medium">{{ trans('admin.templates.gap_settings') }}</p>
+                <ul class="ml-4 space-y-1">
+                  <li>{{ trans('admin.templates.gap_horizontal') }}: <span id="preview-gap-h">{{ item.settings.gap.horizontal|default(16) }}px</span></li>
+                  <li>{{ trans('admin.templates.gap_vertical') }}: <span id="preview-gap-v">{{ item.settings.gap.vertical|default(16) }}px</span></li>
+                </ul>
+              </div>
+              <p id="preview-aspect" class="mt-3"><strong>{{ trans('admin.templates.aspect_ratio') }}:</strong> {{ item.settings.aspect_ratio|default('1:1') }}</p>
+              <p><strong>PhotoSwipe:</strong> {{ trans('admin.templates.photoswipe_enabled') }}</p>
+            {% endif %}
           </div>
         </div>
 
+        {# Actions Card #}
         <div class="card p-6">
           <div class="flex gap-2">
             <button type="submit" class="btn-primary">{{ trans('admin.templates.save_changes') }}</button>
@@ -435,74 +607,97 @@
   </form>
 
   <script nonce="{{ csp_nonce() }}">
-    // Live preview updates
-    const layoutSelect = document.querySelector('select[name="layout"]');
-    const desktopSelect = document.querySelector('select[name="columns_desktop"]');
-    const tabletSelect = document.querySelector('select[name="columns_tablet"]');
-    const mobileSelect = document.querySelector('select[name="columns_mobile"]');
-    const masonryCheck = document.querySelector('input[name="masonry"]');
-    const gapSettings = document.getElementById('masonry-gap-settings');
-    const denseSettings = document.getElementById('dense-grid-settings');
-    const columnsSection = document.getElementById('columns-per-device-section');
+    (function() {
+      // Layout radio buttons
+      const layoutRadios = document.querySelectorAll('input[name="layout"]');
+      const layoutGridLabel = document.getElementById('layout-grid-label');
+      const layoutMasonryLabel = document.getElementById('layout-masonry-label');
+      const aspectRatioSection = document.getElementById('aspect-ratio-section');
+      const masonryTypeSection = document.getElementById('masonry-type-section');
 
-    function updatePreview() {
-      document.getElementById('preview-layout').textContent = layoutSelect.options[layoutSelect.selectedIndex].text;
-      document.getElementById('preview-desktop').textContent = desktopSelect.value;
-      document.getElementById('preview-tablet').textContent = tabletSelect.value;
-      document.getElementById('preview-mobile').textContent = mobileSelect.value;
-      document.getElementById('preview-masonry').textContent = masonryCheck.checked ? '{{ trans('admin.templates.yes')|e('js') }}' : '{{ trans('admin.templates.no')|e('js') }}';
-    }
+      // Masonry type radio buttons
+      const masonryTypeRadios = document.querySelectorAll('input[name="masonry_type"]');
+      const masonryBalancedLabel = document.getElementById('masonry-balanced-label');
+      const masonryRegularLabel = document.getElementById('masonry-regular-label');
 
-    function updateLayoutDependentFields() {
-      const layout = layoutSelect.value;
-      // Show/hide masonry gap settings based on layout
-      if (gapSettings) {
-        gapSettings.style.display = (layout === 'masonry_fit') ? 'block' : 'none';
+      // Column selects
+      const desktopSelect = document.querySelector('select[name="columns_desktop"]');
+      const tabletSelect = document.querySelector('select[name="columns_tablet"]');
+      const mobileSelect = document.querySelector('select[name="columns_mobile"]');
+
+      // Gap sliders
+      const gapHSlider = document.getElementById('gap-h-slider');
+      const gapVSlider = document.getElementById('gap-v-slider');
+      const gapHValue = document.getElementById('gap-h-value');
+      const gapVValue = document.getElementById('gap-v-value');
+      const masonryGapHSlider = document.getElementById('masonry-gap-h-slider');
+      const masonryGapVSlider = document.getElementById('masonry-gap-v-slider');
+      const masonryGapHValue = document.getElementById('masonry-gap-h-value');
+      const masonryGapVValue = document.getElementById('masonry-gap-v-value');
+      const creativeGapSlider = document.getElementById('creative-gap-slider');
+      const creativeGapValue = document.getElementById('creative-gap-value');
+
+      // Aspect ratio radios
+      const aspectRadios = document.querySelectorAll('input[name="aspect_ratio"]');
+
+      // Preview elements
+      const previewLayout = document.getElementById('preview-layout');
+      const previewDesktop = document.getElementById('preview-desktop');
+      const previewTablet = document.getElementById('preview-tablet');
+      const previewMobile = document.getElementById('preview-mobile');
+      const previewGapH = document.getElementById('preview-gap-h');
+      const previewGapV = document.getElementById('preview-gap-v');
+      const previewAspect = document.getElementById('preview-aspect');
+
+      // Translation strings
+      const gridLabel = '{{ trans('admin.templates.grid')|e('js') }}';
+      const masonryLabel = '{{ trans('admin.templates.masonry')|e('js') }}';
+
+      function updateLayoutUI() {
+        const selectedLayout = document.querySelector('input[name="layout"]:checked');
+        if (!selectedLayout) return;
+
+        const isGrid = selectedLayout.value === 'grid';
+        const isMasonry = selectedLayout.value === 'masonry';
+
+        // Update labels
+        if (layoutGridLabel && layoutMasonryLabel) {
+          if (isGrid) {
+            layoutGridLabel.classList.add('border-black', 'bg-gray-50');
+            layoutGridLabel.classList.remove('border-gray-200');
+            layoutMasonryLabel.classList.remove('border-black', 'bg-gray-50');
+            layoutMasonryLabel.classList.add('border-gray-200');
+          } else {
+            layoutMasonryLabel.classList.add('border-black', 'bg-gray-50');
+            layoutMasonryLabel.classList.remove('border-gray-200');
+            layoutGridLabel.classList.remove('border-black', 'bg-gray-50');
+            layoutGridLabel.classList.add('border-gray-200');
+          }
+        }
+
+        // Show/hide aspect ratio section (only for grid)
+        if (aspectRatioSection) {
+          aspectRatioSection.style.display = isGrid ? 'block' : 'none';
+        }
+
+        // Show/hide masonry type section (only for masonry)
+        if (masonryTypeSection) {
+          masonryTypeSection.style.display = isMasonry ? 'block' : 'none';
+        }
+
+        // Update preview
+        if (previewLayout) {
+          previewLayout.textContent = isGrid ? gridLabel : masonryLabel;
+        }
+        if (previewAspect) {
+          previewAspect.style.display = isGrid ? 'block' : 'none';
+        }
       }
-      // Show/hide dense grid settings based on layout
-      if (denseSettings) {
-        denseSettings.style.display = (layout === 'dense_grid') ? 'block' : 'none';
-      }
-      // Show/hide columns section (not applicable to dense_grid which uses auto-fill)
-      if (columnsSection) {
-        columnsSection.style.display = (layout === 'dense_grid') ? 'none' : 'block';
-      }
-      // Auto-check masonry checkbox for masonry layouts
-      if (layout === 'masonry_fit' || layout === 'masonry') {
-        masonryCheck.checked = true;
-      }
-      updatePreview();
-    }
 
-    layoutSelect.addEventListener('change', updateLayoutDependentFields);
-    desktopSelect.addEventListener('change', updatePreview);
-    tabletSelect.addEventListener('change', updatePreview);
-    mobileSelect.addEventListener('change', updatePreview);
-    masonryCheck.addEventListener('change', updatePreview);
-
-    // Masonry Portfolio slider handlers
-    const mpGapHSlider = document.getElementById('mp-gap-h-slider');
-    const mpGapVSlider = document.getElementById('mp-gap-v-slider');
-    const mpGapHValue = document.getElementById('mp-gap-h-value');
-    const mpGapVValue = document.getElementById('mp-gap-v-value');
-
-    if (mpGapHSlider && mpGapHValue) {
-      mpGapHSlider.addEventListener('input', function() {
-        mpGapHValue.textContent = this.value + 'px';
-      });
-    }
-    if (mpGapVSlider && mpGapVValue) {
-      mpGapVSlider.addEventListener('input', function() {
-        mpGapVValue.textContent = this.value + 'px';
-      });
-    }
-
-    // Layout mode radio buttons
-    document.querySelectorAll('input[name="masonry_layout_mode"]').forEach(function(radio) {
-      radio.addEventListener('change', function() {
-        document.querySelectorAll('input[name="masonry_layout_mode"]').forEach(function(r) {
-          const label = r.closest('label');
-          if (r.checked) {
+      function updateMasonryTypeUI() {
+        masonryTypeRadios.forEach(function(radio) {
+          const label = radio.closest('label');
+          if (radio.checked) {
             label.classList.add('border-black', 'bg-gray-50');
             label.classList.remove('border-gray-200');
           } else {
@@ -510,8 +705,83 @@
             label.classList.add('border-gray-200');
           }
         });
-      });
-    });
+      }
 
+      function updateAspectUI() {
+        aspectRadios.forEach(function(radio) {
+          const label = radio.closest('label');
+          if (radio.checked) {
+            label.classList.add('border-black', 'bg-gray-50');
+            label.classList.remove('border-gray-200');
+          } else {
+            label.classList.remove('border-black', 'bg-gray-50');
+            label.classList.add('border-gray-200');
+          }
+        });
+
+        // Update preview
+        const selectedAspect = document.querySelector('input[name="aspect_ratio"]:checked');
+        if (selectedAspect && previewAspect) {
+          previewAspect.innerHTML = '<strong>{{ trans('admin.templates.aspect_ratio')|e('js') }}:</strong> ' + selectedAspect.value;
+        }
+      }
+
+      function updatePreview() {
+        if (previewDesktop && desktopSelect) previewDesktop.textContent = desktopSelect.value;
+        if (previewTablet && tabletSelect) previewTablet.textContent = tabletSelect.value;
+        if (previewMobile && mobileSelect) previewMobile.textContent = mobileSelect.value;
+      }
+
+      // Event listeners
+      layoutRadios.forEach(function(radio) {
+        radio.addEventListener('change', updateLayoutUI);
+      });
+
+      aspectRadios.forEach(function(radio) {
+        radio.addEventListener('change', updateAspectUI);
+      });
+
+      masonryTypeRadios.forEach(function(radio) {
+        radio.addEventListener('change', updateMasonryTypeUI);
+      });
+
+      if (desktopSelect) desktopSelect.addEventListener('change', updatePreview);
+      if (tabletSelect) tabletSelect.addEventListener('change', updatePreview);
+      if (mobileSelect) mobileSelect.addEventListener('change', updatePreview);
+
+      // Gap slider handlers
+      if (gapHSlider && gapHValue) {
+        gapHSlider.addEventListener('input', function() {
+          gapHValue.textContent = this.value + 'px';
+          if (previewGapH) previewGapH.textContent = this.value + 'px';
+        });
+      }
+      if (gapVSlider && gapVValue) {
+        gapVSlider.addEventListener('input', function() {
+          gapVValue.textContent = this.value + 'px';
+          if (previewGapV) previewGapV.textContent = this.value + 'px';
+        });
+      }
+      if (masonryGapHSlider && masonryGapHValue) {
+        masonryGapHSlider.addEventListener('input', function() {
+          masonryGapHValue.textContent = this.value + 'px';
+        });
+      }
+      if (masonryGapVSlider && masonryGapVValue) {
+        masonryGapVSlider.addEventListener('input', function() {
+          masonryGapVValue.textContent = this.value + 'px';
+        });
+      }
+      if (creativeGapSlider && creativeGapValue) {
+        creativeGapSlider.addEventListener('input', function() {
+          creativeGapValue.textContent = this.value + 'px';
+        });
+      }
+
+      // Initial UI state
+      updateLayoutUI();
+      updateAspectUI();
+      updateMasonryTypeUI();
+    })();
   </script>
 {% endblock %}
