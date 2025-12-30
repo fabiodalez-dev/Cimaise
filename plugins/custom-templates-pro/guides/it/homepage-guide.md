@@ -25,15 +25,13 @@ STRUTTURA FILE ZIP:
 
 1. metadata.json - Configurazione (⚠️ OBBLIGATORIO - senza questo l'upload fallisce!)
 2. home.twig - Template homepage (OBBLIGATORIO)
-3. partials/ - Partials riutilizzabili (opzionale)
-   - hero.twig
-   - albums-grid.twig
+3. partials/ - Partials riutilizzabili (opzionale). Esempio file: hero.twig, albums-grid.twig
 4. styles.css - CSS (opzionale)
 5. script.js - JavaScript (opzionale)
 6. preview.jpg - Anteprima (opzionale)
 
 STRUTTURA CORRETTA del file ZIP:
-```
+```text
 my-homepage.zip
 └── my-homepage/
     ├── metadata.json    ← OBBLIGATORIO! L'upload fallisce senza questo file
@@ -43,6 +41,7 @@ my-homepage.zip
 ```
 
 FORMATO metadata.json (⚠️ TUTTI I CAMPI type, name, slug, version SONO OBBLIGATORI):
+```json
 {
   "type": "homepage",
   "name": "Modern Hero Homepage",
@@ -61,6 +60,7 @@ FORMATO metadata.json (⚠️ TUTTI I CAMPI type, name, slug, version SONO OBBLI
     "js": ["script.js"]
   }
 }
+```
 
 VARIABILI DISPONIBILI:
 
@@ -72,51 +72,51 @@ VARIABILI DISPONIBILI:
 {{ base_path }} - Base URL
 
 {{ albums }} - Array di album, ogni album ha:
-  - album.id
-  - album.title
-  - album.slug
-  - album.excerpt
-  - album.shoot_date
-  - album.cover_image:
-      - album.cover_image.url
-      - album.cover_image.sources (avif, webp, jpg)
-      - album.cover_image.width
-      - album.cover_image.height
-  - album.categories
-  - album.tags
-  - album.image_count
-  - album.is_nsfw
+- album.id
+- album.title
+- album.slug
+- album.excerpt
+- album.shoot_date
+- album.cover_image.url
+- album.cover_image.sources (avif, webp, jpg)
+- album.cover_image.width
+- album.cover_image.height
+- album.categories
+- album.tags
+- album.image_count
+- album.is_nsfw
 
 {{ categories }} - Array categorie disponibili
 {{ featured_albums }} - Album in evidenza (se configurato)
 
 {{ home_settings }} - Settings homepage da admin:
-  - home_settings.hero_title
-  - home_settings.hero_subtitle
-  - home_settings.hero_image
-  - home_settings.show_latest_albums
-  - home_settings.albums_count
+- home_settings.hero_title
+- home_settings.hero_subtitle
+- home_settings.hero_image
+- home_settings.show_latest_albums
+- home_settings.albums_count
 
 LAYOUT TIPICI:
 
 1. HERO + GRID:
-   - Hero section con immagine/video
-   - Griglia album sotto
+- Hero section con immagine/video
+- Griglia album sotto
 
 2. MASONRY INFINITO:
-   - Masonry scroll infinito
-   - Lazy loading immagini
+- Masonry scroll infinito
+- Lazy loading immagini
 
 3. CAROUSEL:
-   - Carousel orizzontale album
-   - Navigazione frecce
+- Carousel orizzontale album
+- Navigazione frecce
 
 4. FULLSCREEN GALLERY:
-   - Galleria fullscreen
-   - Navigazione minimale
+- Galleria fullscreen
+- Navigazione minimale
 
 STRUTTURA HTML RACCOMANDATA:
 
+```twig
 <!-- Hero Section -->
 <section class="hero min-h-screen flex items-center justify-center bg-black text-white">
   <div class="text-center">
@@ -160,24 +160,25 @@ STRUTTURA HTML RACCOMANDATA:
 <script nonce="{{ csp_nonce() }}">
 // Animazioni, scroll effects, etc.
 </script>
+```
 
 ESEMPI DI EFFETTI:
 
 1. PARALLAX SCROLL:
-   - Background images con parallax
-   - Usa IntersectionObserver
+- Background images con parallax
+- Usa IntersectionObserver
 
 2. FADE-IN ON SCROLL:
-   - Album appaiono scrollando
-   - Animazioni GSAP o CSS
+- Album appaiono scrollando
+- Animazioni GSAP o CSS
 
 3. INFINITE SCROLL:
-   - Caricamento dinamico album
-   - AJAX pagination
+- Caricamento dinamico album
+- AJAX pagination
 
 4. VIDEO BACKGROUND:
-   - Video hero background
-   - Autoplay muted loop
+- Video hero background
+- Autoplay muted loop
 
 BEST PRACTICES:
 - Performance: lazy loading, image optimization

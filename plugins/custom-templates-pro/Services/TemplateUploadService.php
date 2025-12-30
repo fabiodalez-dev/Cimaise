@@ -18,7 +18,7 @@ class TemplateUploadService
     }
 
     /**
-     * Processa upload di un template ZIP
+     * Processa upload di un template ZIP (singolo o multiplo)
      */
     public function processUpload(array $uploadedFile, string $type): array
     {
@@ -32,7 +32,7 @@ class TemplateUploadService
 
         $tmpPath = $uploadedFile['tmp_name'];
 
-        // Validazione ZIP
+        // Validazione ZIP base
         if (!$this->validator->validateZip($tmpPath, $type)) {
             return [
                 'success' => false,
@@ -40,6 +40,158 @@ class TemplateUploadService
             ];
         }
 
+        // Controlla se è un ZIP multi-template
+        $templateFolders = $this->detectTemplateFolders($tmpPath);
+
+        if (count($templateFolders) > 1) {
+            // Multi-template ZIP
+            return $this->processMultiTemplateZip($tmpPath, $type, $templateFolders);
+        }
+
+        // Single template ZIP (comportamento originale)
+        return $this->processSingleTemplate($tmpPath, $type);
+    }
+
+    /**
+     * Rileva le cartelle template nel ZIP
+     * Cerca cartelle che contengono metadata.json
+     */
+    private function detectTemplateFolders(string $zipPath): array
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath) !== true) {
+            return [];
+        }
+
+        $folders = [];
+        $hasRootMetadata = false;
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+
+            // metadata.json alla root = singolo template
+            if ($name === 'metadata.json') {
+                $hasRootMetadata = true;
+                break;
+            }
+
+            // metadata.json in una sottocartella
+            if (preg_match('#^([^/]+)/metadata\.json$#', $name, $matches)) {
+                $folders[] = $matches[1];
+            }
+        }
+
+        $zip->close();
+
+        // Se c'è metadata alla root, è un singolo template
+        if ($hasRootMetadata) {
+            return [''];
+        }
+
+        return $folders;
+    }
+
+    /**
+     * Processa ZIP con template multipli
+     */
+    private function processMultiTemplateZip(string $zipPath, string $type, array $folders): array
+    {
+        $results = [
+            'success' => true,
+            'templates' => [],
+            'errors' => [],
+            'total' => count($folders),
+            'installed' => 0
+        ];
+
+        // Estrai ZIP in una directory temporanea
+        $tempDir = sys_get_temp_dir() . '/ctp_multi_' . uniqid();
+        if (!mkdir($tempDir, 0755, true)) {
+            return ['success' => false, 'error' => 'Impossibile creare directory temporanea'];
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath) !== true) {
+            rmdir($tempDir);
+            return ['success' => false, 'error' => 'Impossibile aprire il file ZIP'];
+        }
+        $zip->extractTo($tempDir);
+        $zip->close();
+
+        // Processa ogni cartella template
+        foreach ($folders as $folder) {
+            $folderPath = $tempDir . '/' . $folder;
+            $metadataPath = $folderPath . '/metadata.json';
+
+            if (!file_exists($metadataPath)) {
+                $results['errors'][] = "Template '{$folder}': metadata.json non trovato";
+                continue;
+            }
+
+            try {
+                $metadata = json_decode(file_get_contents($metadataPath), true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException $e) {
+                $results['errors'][] = "Template '{$folder}': metadata.json non valido";
+                continue;
+            }
+            if (!$metadata || !isset($metadata['slug'])) {
+                $results['errors'][] = "Template '{$folder}': metadata.json non valido";
+                continue;
+            }
+
+            // Verifica slug univoco
+            if ($this->slugExists($metadata['slug'])) {
+                $results['errors'][] = "Template '{$metadata['slug']}': slug già esistente, saltato";
+                continue;
+            }
+
+            // Copia nella directory di destinazione
+            $extractPath = $this->getExtractPath($type, $metadata['slug']);
+            if (!$this->copyDirectory($folderPath, $extractPath)) {
+                $results['errors'][] = "Template '{$metadata['slug']}': errore durante la copia";
+                continue;
+            }
+
+            // Valida contenuti
+            if (!$this->validateExtractedContent($extractPath, $metadata, $type)) {
+                $this->cleanup($extractPath);
+                $results['errors'][] = "Template '{$metadata['slug']}': " . $this->validator->getFirstError();
+                continue;
+            }
+
+            // Salva nel database
+            $templateId = $this->saveTemplateWithTransaction($metadata, $type, $extractPath);
+            if (!$templateId) {
+                $this->cleanup($extractPath);
+                $results['errors'][] = "Template '{$metadata['slug']}': errore salvataggio database";
+                continue;
+            }
+
+            $results['templates'][] = [
+                'id' => $templateId,
+                'name' => $metadata['name'],
+                'slug' => $metadata['slug']
+            ];
+            $results['installed']++;
+        }
+
+        // Pulizia directory temporanea
+        $this->cleanup($tempDir);
+
+        // Se nessun template installato, segnala errore
+        if ($results['installed'] === 0) {
+            $results['success'] = false;
+            $results['error'] = 'Nessun template installato. ' . implode('; ', $results['errors']);
+        }
+
+        return $results;
+    }
+
+    /**
+     * Processa singolo template (comportamento originale)
+     */
+    private function processSingleTemplate(string $tmpPath, string $type): array
+    {
         // Estrai metadata
         $metadata = $this->extractMetadata($tmpPath);
         if (!$metadata) {
@@ -53,7 +205,8 @@ class TemplateUploadService
         if ($this->slugExists($metadata['slug'])) {
             return [
                 'success' => false,
-                'error' => "Un template con slug '{$metadata['slug']}' esiste già"
+                'error_code' => 'slug_exists',
+                'slug' => $metadata['slug']
             ];
         }
 
@@ -76,7 +229,7 @@ class TemplateUploadService
         }
 
         // Salva nel database
-        $templateId = $this->saveToDatabase($metadata, $type, $extractPath);
+        $templateId = $this->saveTemplateWithTransaction($metadata, $type, $extractPath);
         if (!$templateId) {
             $this->cleanup($extractPath);
             return [
@@ -90,6 +243,47 @@ class TemplateUploadService
             'template_id' => $templateId,
             'metadata' => $metadata
         ];
+    }
+
+    /**
+     * Copia una directory ricorsivamente
+     */
+    private function copyDirectory(string $source, string $dest): bool
+    {
+        if (!is_dir($source)) {
+            return false;
+        }
+
+        if (!is_dir($dest)) {
+            if (!mkdir($dest, 0755, true)) {
+                return false;
+            }
+        }
+
+        $dir = opendir($source);
+        while (($file = readdir($dir)) !== false) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+
+            $srcPath = $source . '/' . $file;
+            $destPath = $dest . '/' . $file;
+
+            if (is_dir($srcPath)) {
+                if (!$this->copyDirectory($srcPath, $destPath)) {
+                    closedir($dir);
+                    return false;
+                }
+            } else {
+                if (!copy($srcPath, $destPath)) {
+                    closedir($dir);
+                    return false;
+                }
+            }
+        }
+        closedir($dir);
+
+        return true;
     }
 
     /**
@@ -121,7 +315,11 @@ class TemplateUploadService
             return null;
         }
 
-        return json_decode($metadataContent, true);
+        try {
+            return json_decode($metadataContent, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            return null;
+        }
     }
 
     /**
@@ -297,6 +495,41 @@ class TemplateUploadService
     }
 
     /**
+     * Salva il template con transazione DB per evitare stati inconsistenti
+     */
+    private function saveTemplateWithTransaction(array $metadata, string $type, string $extractPath): ?int
+    {
+        $pdo = $this->db->pdo();
+        $started = false;
+
+        if (method_exists($pdo, 'inTransaction') && !$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $started = true;
+        }
+
+        try {
+            $templateId = $this->saveToDatabase($metadata, $type, $extractPath);
+            if (!$templateId) {
+                if ($started && $pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                return null;
+            }
+
+            if ($started && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
+            return $templateId;
+        } catch (\Throwable $e) {
+            if ($started && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
      * Ottiene tutti i template per tipo
      */
     public function getTemplatesByType(string $type): array
@@ -373,6 +606,22 @@ class TemplateUploadService
     private function cleanup(string $dir): void
     {
         if (!is_dir($dir)) {
+            return;
+        }
+
+        $realDir = realpath($dir);
+        $uploadsDir = realpath($this->pluginDir . '/uploads');
+        $tempDir = realpath(sys_get_temp_dir());
+
+        $allowed = false;
+        if ($realDir && $uploadsDir && str_starts_with($realDir, $uploadsDir)) {
+            $allowed = true;
+        }
+        if ($realDir && $tempDir && str_starts_with($realDir, $tempDir)) {
+            $allowed = true;
+        }
+
+        if (!$allowed) {
             return;
         }
 

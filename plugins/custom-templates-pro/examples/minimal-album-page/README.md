@@ -6,7 +6,7 @@ Template completo per pagina album con design minimalista e pulito.
 
 Il file ZIP deve contenere una **cartella** con il nome del template:
 
-```
+```text
 minimal-album-page.zip
 └── minimal-album-page/
     ├── metadata.json    ← OBBLIGATORIO!

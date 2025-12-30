@@ -27,6 +27,8 @@ class TemplateValidationService
         '/file_get_contents\s*\(/i',
         '/file_put_contents\s*\(/i',
         '/fopen\s*\(/i',
+        '/preg_replace\s*\(.*\/e/i',
+        '/\bassert\s*\(/i',
         '/curl_exec/i',
         '/\.\.\//', // Path traversal
     ];

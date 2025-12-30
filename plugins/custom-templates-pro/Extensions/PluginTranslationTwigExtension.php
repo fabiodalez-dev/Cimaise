@@ -26,8 +26,12 @@ class PluginTranslationTwigExtension extends AbstractExtension
         ];
     }
 
-    public function translate(string $key, array $params = []): string
+    public function translate(string $key, array $params = []): mixed
     {
-        return $this->translator->get($key, $params);
+        try {
+            return $this->translator->get($key, $params);
+        } catch (\Throwable $e) {
+            return '[' . $key . ']';
+        }
     }
 }

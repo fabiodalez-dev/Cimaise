@@ -80,6 +80,7 @@
     "album.location": "Location",
     "album.camera": "Camera",
     "album.lens": "Lens",
+    "album.film": "Film",
     "album.settings": "Settings",
     "album.empty": "This gallery is empty",
     "album.empty_message": "Images will appear here once uploaded.",
@@ -366,5 +367,8 @@
     "tag.no_albums_title": "No albums with this tag yet",
     "tag.no_albums_text": "Browse all albums",
     "tag.related_tags": "Related Tags"
+  },
+  "home": {
+    "home.scroll_to_explore": "Scroll to explore"
   }
 }

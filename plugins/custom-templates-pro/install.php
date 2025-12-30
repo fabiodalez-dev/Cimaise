@@ -72,7 +72,7 @@ SQL;
             'message' => 'Custom Templates Pro installato con successo! Le guide LLM sono state generate.'
         ];
 
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         error_log('Custom Templates Pro installation error: ' . $e->getMessage());
 
         return [

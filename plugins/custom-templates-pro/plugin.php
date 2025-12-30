@@ -45,6 +45,7 @@ class CustomTemplatesProPlugin
 {
     private const PLUGIN_NAME = 'custom-templates-pro';
     private const VERSION = '1.0.0';
+    public const DEBUG = false;
 
     private ?Database $db = null;
     private ?TemplateIntegrationService $integrationService = null;
@@ -83,7 +84,7 @@ class CustomTemplatesProPlugin
         // Template rendering
         Hooks::addFilter('gallery_template_path', [$this, 'resolveGalleryTemplatePath'], 10, self::PLUGIN_NAME);
 
-        error_log("Custom Templates Pro plugin initialized v" . self::VERSION);
+        $this->log("Custom Templates Pro plugin initialized v" . self::VERSION);
     }
 
     /**
@@ -94,7 +95,7 @@ class CustomTemplatesProPlugin
         $this->db = $db;
         $this->integrationService = new TemplateIntegrationService($db);
 
-        error_log("Custom Templates Pro: Integration service initialized");
+        $this->log("Custom Templates Pro: Integration service initialized");
     }
 
     /**
@@ -221,7 +222,14 @@ HTML;
         $app->get('/admin/custom-templates/guides', [$controller, 'guides']);
         $app->get('/admin/custom-templates/guides/{type}/download', [$controller, 'downloadGuide']);
 
-        error_log("Custom Templates Pro: Routes registered");
+        $this->log("Custom Templates Pro: Routes registered");
+    }
+
+    private function log(string $message): void
+    {
+        if (self::DEBUG) {
+            error_log($message);
+        }
     }
 }
 
@@ -257,6 +265,8 @@ if (isset($GLOBALS['twig'])) {
             new \CustomTemplatesPro\Extensions\PluginTranslationTwigExtension($pluginTranslator)
         );
     } catch (\Exception $e) {
-        error_log("Custom Templates Pro: Could not register Twig extension: " . $e->getMessage());
+        if (CustomTemplatesProPlugin::DEBUG) {
+            error_log("Custom Templates Pro: Could not register Twig extension: " . $e->getMessage());
+        }
     }
 }

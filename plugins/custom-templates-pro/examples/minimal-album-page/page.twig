@@ -42,11 +42,11 @@
   <!-- Equipment -->
   {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 %}
   <div class="minimal-container minimal-equipment">
-    <h3 class="minimal-equipment-title">Equipment</h3>
+    <h3 class="minimal-equipment-title">{{ trans('album.equipment')|default('Equipment') }}</h3>
     <div class="minimal-equipment-grid">
       {% if album.equipment.cameras|length > 0 %}
       <div class="minimal-equipment-item">
-        <div class="minimal-equipment-label">Camera</div>
+        <div class="minimal-equipment-label">{{ trans('album.camera')|default('Camera') }}</div>
         <div class="minimal-equipment-values">
           {% for camera in album.equipment.cameras %}
           <div>{{ camera }}</div>
@@ -57,7 +57,7 @@
 
       {% if album.equipment.lenses|length > 0 %}
       <div class="minimal-equipment-item">
-        <div class="minimal-equipment-label">Lens</div>
+        <div class="minimal-equipment-label">{{ trans('album.lens')|default('Lens') }}</div>
         <div class="minimal-equipment-values">
           {% for lens in album.equipment.lenses %}
           <div>{{ lens }}</div>
@@ -68,7 +68,7 @@
 
       {% if album.equipment.film|length > 0 %}
       <div class="minimal-equipment-item">
-        <div class="minimal-equipment-label">Film</div>
+        <div class="minimal-equipment-label">{{ trans('album.film')|default('Film') }}</div>
         <div class="minimal-equipment-values">
           {% for film in album.equipment.film %}
           <div>

@@ -6,7 +6,7 @@ Questa guida descrive in dettaglio la struttura richiesta per i template persona
 
 Ogni template deve essere compresso in un file ZIP con la seguente struttura:
 
-```
+```text
 my-custom-template.zip
 ├── metadata.json          # Configurazione template (OBBLIGATORIO)
 ├── template.twig          # Template principale (OBBLIGATORIO)
@@ -395,20 +395,20 @@ Il plugin valida automaticamente:
 
 ### Errori Comuni
 
-**"File obbligatorio mancante: metadata.json"**
+#### "File obbligatorio mancante: metadata.json"
 - Assicurati che `metadata.json` sia nella root del ZIP
 
-**"Tipo template non corretto"**
+#### "Tipo template non corretto"
 - Verifica che `type` in metadata.json corrisponda al tipo selezionato
 
-**"Slug deve contenere solo lettere minuscole"**
+#### "Slug deve contenere solo lettere minuscole"
 - Usa solo `a-z`, `0-9`, `-` nello slug
 
-**"Tag Twig non bilanciati"**
+#### "Tag Twig non bilanciati"
 - Controlla che ogni `{{` abbia un `}}`
 - Controlla che ogni `{%` abbia un `%}`
 
-**"Pattern sospetto rilevato"**
+#### "Pattern sospetto rilevato"
 - Rimuovi codice potenzialmente pericoloso (eval, exec, ecc.)
 
 ## 📚 Risorse

@@ -32,7 +32,7 @@ STRUTTURA FILE ZIP:
 6. preview.jpg - Anteprima (opzionale)
 
 STRUTTURA CORRETTA del file ZIP:
-```
+```text
 my-album-page.zip
 └── my-album-page/
     ├── metadata.json    ← OBBLIGATORIO! L'upload fallisce senza questo file
@@ -42,6 +42,7 @@ my-album-page.zip
 ```
 
 FORMATO metadata.json (⚠️ TUTTI I CAMPI type, name, slug, version SONO OBBLIGATORI):
+```json
 {
   "type": "album_page",
   "name": "Modern Album Page",
@@ -60,6 +61,7 @@ FORMATO metadata.json (⚠️ TUTTI I CAMPI type, name, slug, version SONO OBBLI
     "js": ["script.js"]
   }
 }
+```
 
 VARIABILI DISPONIBILI:
 Vedi guida template galleria per lista completa variabili {{ album }} e {{ images }}.
@@ -81,6 +83,7 @@ FUNZIONI E MACRO:
 
 STRUTTURA HTML RACCOMANDATA:
 
+```twig
 <div class="max-w-7xl mx-auto px-4 py-8">
   <!-- Breadcrumbs -->
   <nav class="mb-6">
@@ -194,5 +197,6 @@ STRUTTURA HTML RACCOMANDATA:
 <script nonce="{{ csp_nonce() }}">
 // Inizializzazione template
 </script>
+```
 
 ESEMPIO COMPLETO disponibile nella documentazione del plugin.

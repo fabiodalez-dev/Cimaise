@@ -7,7 +7,7 @@
       <p class="hero-subtitle">{{ site_description|e }}</p>
       {% endif %}
       <div class="hero-scroll">
-        <span class="hero-scroll-text">Scroll to explore</span>
+        <span class="hero-scroll-text">{{ trans('home.scroll_to_explore')|default('Scroll to explore') }}</span>
         <svg class="hero-scroll-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 5v14M19 12l-7 7-7-7"/>
         </svg>
@@ -85,12 +85,21 @@ document.querySelector('.hero-scroll')?.addEventListener('click', function(e) {
 });
 
 // Parallax effect per hero
+let scrollTicking = false;
 window.addEventListener('scroll', function() {
-  const hero = document.querySelector('.hero-section');
-  if (hero) {
-    const scrolled = window.pageYOffset;
-    hero.style.transform = 'translateY(' + (scrolled * 0.5) + 'px)';
-    hero.style.opacity = 1 - (scrolled / 600);
+  if (scrollTicking) {
+    return;
   }
+
+  scrollTicking = true;
+  window.requestAnimationFrame(function() {
+    const hero = document.querySelector('.hero-section');
+    if (hero) {
+      const scrolled = window.pageYOffset;
+      hero.style.transform = 'translateY(' + (scrolled * 0.5) + 'px)';
+      hero.style.opacity = 1 - (scrolled / 600);
+    }
+    scrollTicking = false;
+  });
 });
 </script>

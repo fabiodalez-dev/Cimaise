@@ -690,7 +690,8 @@ if (class_exists('CustomTemplatesProPlugin') && file_exists(__DIR__ . '/../../pl
     $app->post('/admin/custom-templates/upload', function (Request $request, Response $response) use ($container) {
         $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
         return $controller->upload($request, $response);
-    })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+    })->add(new RateLimitMiddleware(10, 600)) // 10 uploads per 10 minutes
+      ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
     $app->post('/admin/custom-templates/{id}/toggle', function (Request $request, Response $response, array $args) use ($container) {
         $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));

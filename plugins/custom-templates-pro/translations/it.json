@@ -62,7 +62,16 @@
     "ctp.upload.submit": "Carica Template",
     "ctp.upload.instructions": "Istruzioni",
     "ctp.upload.structure": "Struttura ZIP Richiesta",
-    "ctp.upload.structure_items": "metadata.json (obbligatorio)|template.twig o page.twig o home.twig|styles.css (opzionale)|script.js (opzionale)|preview.jpg (opzionale)",
+    "ctp.upload.structure_items": [
+      "metadata.json (obbligatorio)",
+      "template.twig o page.twig o home.twig",
+      "styles.css (opzionale)",
+      "script.js (opzionale)",
+      "preview.jpg (opzionale)"
+    ],
+    "ctp.upload.multi_support": "Supporto Multi-Template",
+    "ctp.upload.multi_desc": "Puoi anche caricare uno ZIP con più template in cartelle separate:",
+    "ctp.upload.multi_example": "templates.zip → template1/ (con metadata.json) → template2/ (con metadata.json)",
     "ctp.upload.validations": "Validazioni",
     "ctp.upload.validation_size": "Dimensione max: 10 MB",
     "ctp.upload.validation_twig": "Sintassi Twig valida",
@@ -72,6 +81,12 @@
     "ctp.upload.help_desc": "Scarica le guide complete con prompt per LLM per creare i tuoi template personalizzati.",
     "ctp.upload.error_size": "Il file supera la dimensione massima di 10 MB",
     "ctp.upload.error_type": "Solo file ZIP sono consentiti",
+    "ctp.upload.validation_size_ok": "Validazione dimensione: OK",
+    "ctp.upload.validation_full": "Il file verrà validato completamente durante l'upload (sintassi Twig, malware scan, ecc.)",
+    "ctp.upload.uploading": "Caricamento...",
+    "ctp.upload.error_slug_exists": "Un template con slug '{slug}' esiste già. Ogni template deve avere uno slug univoco nel metadata.json",
+    "ctp.upload.multi_templates_note": "Puoi caricare più template dello stesso tipo. Ogni template necessita di uno 'slug' univoco nel suo file metadata.json.",
+    "ctp.upload.existing_count": "{count} template già caricati per questo tipo",
 
     "ctp.guides.title": "Guide per LLM",
     "ctp.guides.subtitle": "Scarica le guide complete per creare template personalizzati con un LLM",
@@ -125,11 +140,15 @@
     "ctp.flash.type_invalid": "Tipo di template non valido",
     "ctp.flash.upload_error": "Errore durante l'upload del file",
     "ctp.flash.upload_success": "Template '{name}' caricato con successo!",
+    "ctp.flash.upload_multi_success": "{count} template installati: {names}",
     "ctp.flash.toggle_success": "Stato template aggiornato",
     "ctp.flash.toggle_error": "Errore durante l'aggiornamento del template",
     "ctp.flash.delete_success": "Template eliminato con successo",
     "ctp.flash.delete_error": "Errore durante l'eliminazione del template",
     "ctp.flash.guide_type_invalid": "Tipo di guida non valido",
-    "ctp.flash.guide_download_error": "Errore durante il download della guida: {error}"
+    "ctp.flash.guide_download_error": "Errore durante il download della guida: {error}",
+    "ctp.uninstall.success": "Custom Templates Pro disinstallato con successo. Tutti i dati sono stati rimossi.",
+    "ctp.uninstall.error": "Errore durante la disinstallazione: {error}",
+    "ctp.date_format": "d/m/Y"
   }
 }

@@ -62,7 +62,16 @@
     "ctp.upload.submit": "Upload Template",
     "ctp.upload.instructions": "Instructions",
     "ctp.upload.structure": "Required ZIP Structure",
-    "ctp.upload.structure_items": "metadata.json (required)|template.twig or page.twig or home.twig|styles.css (optional)|script.js (optional)|preview.jpg (optional)",
+    "ctp.upload.structure_items": [
+      "metadata.json (required)",
+      "template.twig or page.twig or home.twig",
+      "styles.css (optional)",
+      "script.js (optional)",
+      "preview.jpg (optional)"
+    ],
+    "ctp.upload.multi_support": "Multi-template Support",
+    "ctp.upload.multi_desc": "You can also upload a ZIP with multiple templates in separate folders:",
+    "ctp.upload.multi_example": "templates.zip → template1/ (with metadata.json) → template2/ (with metadata.json)",
     "ctp.upload.validations": "Validations",
     "ctp.upload.validation_size": "Max size: 10 MB",
     "ctp.upload.validation_twig": "Valid Twig syntax",
@@ -72,6 +81,12 @@
     "ctp.upload.help_desc": "Download complete guides with LLM prompts to create your custom templates.",
     "ctp.upload.error_size": "File exceeds maximum size of 10 MB",
     "ctp.upload.error_type": "Only ZIP files are allowed",
+    "ctp.upload.validation_size_ok": "Size validation: OK",
+    "ctp.upload.validation_full": "The file will be fully validated during upload (Twig syntax, malware scan, etc.)",
+    "ctp.upload.uploading": "Uploading...",
+    "ctp.upload.error_slug_exists": "A template with slug '{slug}' already exists. Each template must have a unique slug in metadata.json",
+    "ctp.upload.multi_templates_note": "You can upload multiple templates of the same type. Each template needs a unique 'slug' in its metadata.json file.",
+    "ctp.upload.existing_count": "{count} template(s) already uploaded for this type",
 
     "ctp.guides.title": "LLM Guides",
     "ctp.guides.subtitle": "Download complete guides to create custom templates with an LLM",
@@ -125,11 +140,15 @@
     "ctp.flash.type_invalid": "Invalid template type",
     "ctp.flash.upload_error": "Error during file upload",
     "ctp.flash.upload_success": "Template '{name}' uploaded successfully!",
+    "ctp.flash.upload_multi_success": "{count} templates installed: {names}",
     "ctp.flash.toggle_success": "Template status updated",
     "ctp.flash.toggle_error": "Error updating template",
     "ctp.flash.delete_success": "Template deleted successfully",
     "ctp.flash.delete_error": "Error deleting template",
     "ctp.flash.guide_type_invalid": "Invalid guide type",
-    "ctp.flash.guide_download_error": "Error downloading guide: {error}"
+    "ctp.flash.guide_download_error": "Error downloading guide: {error}",
+    "ctp.uninstall.success": "Custom Templates Pro uninstalled successfully. All data has been removed.",
+    "ctp.uninstall.error": "Error during uninstall: {error}",
+    "ctp.date_format": "m/d/Y"
   }
 }
