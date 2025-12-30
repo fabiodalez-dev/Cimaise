@@ -1,6 +1,9 @@
 /**
  * Polaroid Gallery Template
  * Effetto foto istantanea con rotazioni casuali e ombra
+ *
+ * Variabili CSS definite inline da template.twig:
+ * --cols-mobile, --cols-tablet, --cols-desktop, --gap, --rotation
  */
 
 .polaroid-gallery {

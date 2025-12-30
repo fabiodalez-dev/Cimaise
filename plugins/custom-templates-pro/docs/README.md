@@ -238,7 +238,7 @@ Vedi `docs/VARIABLES_REFERENCE.md` per la lista completa.
 
 ### Struttura Plugin
 
-```
+```text
 plugins/custom-templates-pro/
 ├── plugin.php                     # File principale
 ├── install.php                    # Script installazione

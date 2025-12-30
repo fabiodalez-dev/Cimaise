@@ -43,6 +43,11 @@ class TemplateValidationService
 
     public array $errors = [];
 
+    public function addError(string $message): void
+    {
+        $this->errors[] = $message;
+    }
+
     /**
      * Valida un file ZIP caricato
      */
@@ -302,7 +307,7 @@ class TemplateValidationService
     public function validateCSS(string $cssContent): bool
     {
         // Verifica @import non consentiti
-        if (preg_match('/@import\s+url\s*\(/i', $cssContent)) {
+        if (preg_match('/@import\s+(url\s*\()?/i', $cssContent)) {
             $this->errors[] = 'Import di URL esterni non consentiti in CSS';
             return false;
         }

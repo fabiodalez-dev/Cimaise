@@ -383,7 +383,7 @@ class TemplateUploadService
         $templatePath = $extractPath . '/' . $templateFile;
 
         if (!file_exists($templatePath)) {
-            $this->validator->errors[] = "File template principale non trovato: {$templateFile}";
+            $this->validator->addError("File template principale non trovato: {$templateFile}");
             return false;
         }
 
@@ -590,7 +590,14 @@ class TemplateUploadService
 
         // Elimina file fisici
         $extractPath = $this->pluginDir . '/' . dirname($template['twig_path']);
-        $this->cleanup($extractPath);
+        $realExtractPath = realpath($extractPath);
+        $uploadsDir = realpath($this->pluginDir . '/uploads');
+
+        if (!$realExtractPath || !$uploadsDir || !str_starts_with($realExtractPath, $uploadsDir)) {
+            return false;
+        }
+
+        $this->cleanup($realExtractPath);
 
         // Elimina dal database
         $stmt = $this->db->pdo()->prepare(
