@@ -8,6 +8,25 @@
     // Configuration
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
     const ALLOWED_EXTENSIONS = ['.zip'];
+    const configEl = document.getElementById('upload-config');
+
+    function parseConfig(value, fallback) {
+        if (!value) {
+            return fallback;
+        }
+        try {
+            return JSON.parse(value);
+        } catch (error) {
+            return fallback;
+        }
+    }
+
+    const config = {
+        typeDescriptions: parseConfig(configEl?.dataset.typeDescriptions, {}),
+        errors: parseConfig(configEl?.dataset.errors, {}),
+        messages: parseConfig(configEl?.dataset.messages, {}),
+        existingCountTemplate: configEl?.dataset.existingCountTemplate || '{count}'
+    };
 
     /**
      * Format file size to human readable format
@@ -28,12 +47,13 @@
 
         // Check file type
         if (!file.name.toLowerCase().endsWith('.zip')) {
-            errors.push('Il file deve essere un archivio ZIP');
+            errors.push(config.errors.type || 'Only ZIP files are allowed');
         }
 
         // Check file size
         if (file.size > MAX_FILE_SIZE) {
-            errors.push(`Il file supera la dimensione massima di ${formatFileSize(MAX_FILE_SIZE)}`);
+            const defaultMessage = `File exceeds maximum size of ${formatFileSize(MAX_FILE_SIZE)}`;
+            errors.push(config.errors.size || defaultMessage);
         }
 
         return {
@@ -49,16 +69,23 @@
         const container = document.getElementById('validation-results');
         if (!container) return;
 
-        const html = errors.map(error => `
-            <div class="validation-item error">
-                <i class="fas fa-exclamation-circle"></i>
-                <span>${error}</span>
-            </div>
-        `).join('');
-
         const content = document.getElementById('validation-content');
         if (content) {
-            content.innerHTML = html;
+            content.textContent = '';
+            errors.forEach((error) => {
+                const item = document.createElement('div');
+                item.className = 'validation-item error';
+
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-exclamation-circle';
+
+                const text = document.createElement('span');
+                text.textContent = error;
+
+                item.appendChild(icon);
+                item.appendChild(text);
+                content.appendChild(item);
+            });
             container.classList.remove('hidden');
         }
     }
@@ -79,22 +106,49 @@
         const content = document.getElementById('validation-content');
 
         if (container && content) {
-            content.innerHTML = `
-                <div class="validation-item success">
-                    <i class="fas fa-check-circle"></i>
-                    <div class="flex-1">
-                        <div class="font-medium">${file.name}</div>
-                        <div class="text-xs mt-1">${formatFileSize(file.size)}</div>
-                    </div>
-                </div>
-                <div class="validation-item success">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>Validazione dimensione: OK</span>
-                </div>
-                <div class="text-xs text-gray-500 mt-2">
-                    Il file verrà validato completamente durante l'upload (sintassi Twig, malware scan, ecc.)
-                </div>
-            `;
+            content.textContent = '';
+
+            const successItem = document.createElement('div');
+            successItem.className = 'validation-item success';
+
+            const successIcon = document.createElement('i');
+            successIcon.className = 'fas fa-check-circle';
+
+            const info = document.createElement('div');
+            info.className = 'flex-1';
+
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'font-medium';
+            nameDiv.textContent = file.name;
+
+            const sizeDiv = document.createElement('div');
+            sizeDiv.className = 'text-xs mt-1';
+            sizeDiv.textContent = formatFileSize(file.size);
+
+            info.appendChild(nameDiv);
+            info.appendChild(sizeDiv);
+            successItem.appendChild(successIcon);
+            successItem.appendChild(info);
+
+            const sizeItem = document.createElement('div');
+            sizeItem.className = 'validation-item success';
+
+            const sizeIcon = document.createElement('i');
+            sizeIcon.className = 'fas fa-shield-alt';
+
+            const sizeText = document.createElement('span');
+            sizeText.textContent = config.messages.size_ok || 'Size validation: OK';
+
+            sizeItem.appendChild(sizeIcon);
+            sizeItem.appendChild(sizeText);
+
+            const note = document.createElement('div');
+            note.className = 'text-xs text-gray-500 mt-2';
+            note.textContent = config.messages.full_validation || 'File will be fully validated during upload.';
+
+            content.appendChild(successItem);
+            content.appendChild(sizeItem);
+            content.appendChild(note);
             container.classList.remove('hidden');
         }
 
@@ -164,10 +218,11 @@
         // Form submission
         const form = document.getElementById('upload-form');
         if (form) {
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', function() {
                 if (submitBtn) {
                     submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Caricamento...';
+                    const uploadingText = config.messages.uploading || 'Uploading...';
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>' + uploadingText;
                 }
             });
         }
@@ -182,15 +237,20 @@
 
         if (!typeSelect || !typeDescription) return;
 
-        const descriptions = {
-            'gallery': 'Template per la griglia/masonry delle immagini negli album',
-            'album_page': 'Template completo della pagina album (header + galleria + footer)',
-            'homepage': 'Template per la homepage del portfolio'
-        };
+        const countText = document.getElementById('count-text');
 
-        typeSelect.addEventListener('change', function() {
-            typeDescription.textContent = descriptions[this.value] || '';
-        });
+        function updateTypeInfo() {
+            const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+            typeDescription.textContent = config.typeDescriptions[typeSelect.value] || '';
+
+            if (countText) {
+                const count = selectedOption?.dataset?.count || 0;
+                countText.textContent = config.existingCountTemplate.replace('{count}', count);
+            }
+        }
+
+        typeSelect.addEventListener('change', updateTypeInfo);
+        updateTypeInfo();
     }
 
     /**

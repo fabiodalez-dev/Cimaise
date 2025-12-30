@@ -149,7 +149,7 @@
               {% if template.author %}
               <span class="text-sm text-gray-500">• {{ template.author }}</span>
               {% endif %}
-              <span class="text-sm text-gray-500">• {{ template.installed_at|date('d/m/Y') }}</span>
+              <span class="text-sm text-gray-500">• {{ template.installed_at|date(plugin_trans('ctp.date_format')|default('d/m/Y')) }}</span>
             </div>
           </div>
         </div>

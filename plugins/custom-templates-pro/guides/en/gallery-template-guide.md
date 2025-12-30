@@ -36,7 +36,7 @@ Create the following files for the template:
 6. README.md - Documentation (optional)
 
 CORRECT ZIP structure:
-```
+```text
 my-gallery.zip
 └── my-gallery/
     ├── metadata.json    ← REQUIRED! Upload fails without this file
@@ -48,6 +48,7 @@ my-gallery.zip
 ```
 
 metadata.json FORMAT (⚠️ ALL FIELDS type, name, slug, version ARE REQUIRED):
+```json
 {
   "type": "gallery",
   "name": "Template Name",
@@ -74,83 +75,84 @@ metadata.json FORMAT (⚠️ ALL FIELDS type, name, slug, version ARE REQUIRED):
     "js": ["script.js"]
   }
 }
+```
 
 AVAILABLE TWIG VARIABLES:
 
 {{ album }} - Album object with:
-  - album.id (int)
-  - album.title (string)
-  - album.slug (string)
-  - album.excerpt (string) - Short description
-  - album.body (string) - Full HTML description
-  - album.shoot_date (string) - Date in YYYY-MM-DD format
-  - album.categories (array) - Array of categories
-  - album.tags (array) - Array of tags
-  - album.cover_image (object)
-  - album.is_nsfw (bool)
-  - album.allow_downloads (bool)
-  - album.allow_template_switch (bool)
-  - album.custom_cameras (string)
-  - album.custom_lenses (string)
-  - album.custom_films (string)
-  - album.equipment (object):
-      - album.equipment.cameras (array)
-      - album.equipment.lenses (array)
-      - album.equipment.film (array)
-      - album.equipment.developers (array)
-      - album.equipment.labs (array)
-      - album.equipment.locations (array)
+- album.id (int)
+- album.title (string)
+- album.slug (string)
+- album.excerpt (string) - Short description
+- album.body (string) - Full HTML description
+- album.shoot_date (string) - Date in YYYY-MM-DD format
+- album.categories (array) - Array of categories
+- album.tags (array) - Array of tags
+- album.cover_image (object)
+- album.is_nsfw (bool)
+- album.allow_downloads (bool)
+- album.allow_template_switch (bool)
+- album.custom_cameras (string)
+- album.custom_lenses (string)
+- album.custom_films (string)
+- album.equipment (object):
+- album.equipment.cameras (array)
+- album.equipment.lenses (array)
+- album.equipment.film (array)
+- album.equipment.developers (array)
+- album.equipment.labs (array)
+- album.equipment.locations (array)
 
 {{ images }} - Array of images, each image has:
-  - image.id (int)
-  - image.url (string) - Image URL
-  - image.lightbox_url (string) - URL for lightbox
-  - image.fallback_src (string) - JPG fallback
-  - image.width (int) - Original width
-  - image.height (int) - Original height
-  - image.caption (string) - Caption
-  - image.alt (string) - Alt text
-  - image.sort_order (int)
+- image.id (int)
+- image.url (string) - Image URL
+- image.lightbox_url (string) - URL for lightbox
+- image.fallback_src (string) - JPG fallback
+- image.width (int) - Original width
+- image.height (int) - Original height
+- image.caption (string) - Caption
+- image.alt (string) - Alt text
+- image.sort_order (int)
 
-  - image.sources (object) - Srcset for formats:
-      - image.sources.avif (array)
-      - image.sources.webp (array)
-      - image.sources.jpg (array)
+- image.sources (object) - Srcset for formats:
+- image.sources.avif (array)
+- image.sources.webp (array)
+- image.sources.jpg (array)
 
-  - image.camera_name (string)
-  - image.custom_camera (string)
-  - image.lens_name (string)
-  - image.custom_lens (string)
-  - image.film_name (string)
-  - image.film_display (string)
-  - image.custom_film (string)
-  - image.developer_name (string)
-  - image.lab_name (string)
-  - image.location_name (string)
+- image.camera_name (string)
+- image.custom_camera (string)
+- image.lens_name (string)
+- image.custom_lens (string)
+- image.film_name (string)
+- image.film_display (string)
+- image.custom_film (string)
+- image.developer_name (string)
+- image.lab_name (string)
+- image.location_name (string)
 
-  - image.iso (int)
-  - image.shutter_speed (string)
-  - image.aperture (string)
-  - image.focal_length (string)
+- image.iso (int)
+- image.shutter_speed (string)
+- image.aperture (string)
+- image.focal_length (string)
 
-  - image.exif_make (string)
-  - image.exif_model (string)
-  - image.exif_lens_model (string)
-  - image.gps_lat (float)
-  - image.gps_lng (float)
-  - image.date_original (string)
-  - image.artist (string)
-  - image.copyright (string)
+- image.exif_make (string)
+- image.exif_model (string)
+- image.exif_lens_model (string)
+- image.gps_lat (float)
+- image.gps_lng (float)
+- image.date_original (string)
+- image.artist (string)
+- image.copyright (string)
 
-  - image.custom_fields (array) - Custom fields
+- image.custom_fields (array) - Custom fields
 
 {{ template_settings }} - Template JSON settings:
-  - template_settings.template_slug (string)
-  - template_settings.layout (string)
-  - template_settings.columns (object)
-  - template_settings.gap (object)
-  - template_settings.aspect_ratio (string)
-  - template_settings.style (object)
+- template_settings.template_slug (string)
+- template_settings.layout (string)
+- template_settings.columns (object)
+- template_settings.gap (object)
+- template_settings.aspect_ratio (string)
+- template_settings.style (object)
 
 {{ base_path }} - Application base path
 {{ site_title }} - Site title
@@ -223,24 +225,24 @@ BEST PRACTICES:
 LAYOUT EXAMPLES:
 
 1. CLASSIC GRID:
-   - CSS Grid with fixed columns
-   - Uniform aspect ratio
-   - Customizable gap
+- CSS Grid with fixed columns
+- Uniform aspect ratio
+- Customizable gap
 
 2. MASONRY:
-   - Pinterest-style cascade layout
-   - Variable heights
-   - Uses Masonry.js library (already included)
+- Pinterest-style cascade layout
+- Variable heights
+- Uses Masonry.js library (already included)
 
 3. MAGAZINE:
-   - Editorial layout
-   - Mix of image sizes
-   - Parallax effects
+- Editorial layout
+- Mix of image sizes
+- Parallax effects
 
 4. POLAROID:
-   - Instant photo effect
-   - Random rotation
-   - Shadow and border
+- Instant photo effect
+- Random rotation
+- Shadow and border
 
 CREATE A COMPLETE TEMPLATE with all necessary files.
 
@@ -345,8 +347,8 @@ FINAL INSTRUCTIONS
 2. Compress into a ZIP file with the correct structure
 3. Upload the ZIP through the Custom Templates Pro plugin
 4. The template will be immediately available in:
-   - Album create/edit page
-   - General settings (default template)
-   - Template switcher on album page
+- Album create/edit page
+- General settings (default template)
+- Template switcher on album page
 
 For questions or support, consult the Cimaise documentation.

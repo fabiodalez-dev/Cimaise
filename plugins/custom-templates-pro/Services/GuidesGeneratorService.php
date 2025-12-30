@@ -136,9 +136,10 @@ class GuidesGeneratorService
         $languages = [];
         $guidesDir = $this->pluginDir . '/guides';
 
-        foreach (['en', 'it'] as $lang) {
-            $langDir = $guidesDir . '/' . $lang;
-            if (is_dir($langDir) && file_exists($langDir . '/gallery-template-guide.md')) {
+        $dirs = glob($guidesDir . '/*', GLOB_ONLYDIR);
+        foreach ($dirs ?: [] as $langDir) {
+            $lang = basename($langDir);
+            if (file_exists($langDir . '/gallery-template-guide.md')) {
                 $languages[] = $lang;
             }
         }

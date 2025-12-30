@@ -32,13 +32,27 @@
               {{ plugin_trans('ctp.upload.type_label') }}
             </label>
             <select name="template_type" id="template-type" required class="form-select w-full">
-              <option value="gallery">{{ plugin_trans('ctp.upload.type.gallery') }}</option>
-              <option value="album_page">{{ plugin_trans('ctp.upload.type.album_page') }}</option>
-              <option value="homepage">{{ plugin_trans('ctp.upload.type.homepage') }}</option>
+              <option value="gallery" data-count="{{ template_counts.gallery ?? 0 }}">{{ plugin_trans('ctp.upload.type.gallery') }}</option>
+              <option value="album_page" data-count="{{ template_counts.album_page ?? 0 }}">{{ plugin_trans('ctp.upload.type.album_page') }}</option>
+              <option value="homepage" data-count="{{ template_counts.homepage ?? 0 }}">{{ plugin_trans('ctp.upload.type.homepage') }}</option>
             </select>
             <p class="mt-1 text-sm text-gray-500" id="type-description">
               {{ plugin_trans('ctp.upload.type_desc.gallery') }}
             </p>
+            <p class="mt-1 text-sm text-blue-600" id="existing-count">
+              <i class="fas fa-info-circle mr-1"></i>
+              <span id="count-text"></span>
+            </p>
+          </div>
+
+          <!-- Multi-template note -->
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+              <i class="fas fa-lightbulb text-blue-600 mt-0.5 mr-3"></i>
+              <p class="text-sm text-blue-800">
+                {{ plugin_trans('ctp.upload.multi_templates_note') }}
+              </p>
+            </div>
           </div>
 
           <!-- File Upload -->
@@ -101,11 +115,24 @@
       <div class="p-6 space-y-4 text-sm">
         <div>
           <h3 class="font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.upload.structure') }}</h3>
+          {% set structure_items = plugin_trans('ctp.upload.structure_items') %}
+          {% if structure_items is not iterable %}
+            {% set structure_items = structure_items|split('|') %}
+          {% endif %}
           <ul class="list-disc list-inside space-y-1 text-gray-600">
-            {% for item in plugin_trans('ctp.upload.structure_items')|split('|') %}
+            {% for item in structure_items %}
             <li>{{ item }}</li>
             {% endfor %}
           </ul>
+        </div>
+
+        <div class="border-t pt-4">
+          <h3 class="font-semibold text-gray-900 mb-2">
+            <i class="fas fa-layer-group text-purple-600 mr-1"></i>
+            {{ plugin_trans('ctp.upload.multi_support') }}
+          </h3>
+          <p class="text-gray-600 mb-2">{{ plugin_trans('ctp.upload.multi_desc') }}</p>
+          <code class="text-xs bg-gray-100 p-2 rounded block text-gray-700 leading-relaxed">{{ plugin_trans('ctp.upload.multi_example') }}</code>
         </div>
 
         <div class="border-t pt-4">
@@ -144,99 +171,24 @@
   </div>
 </div>
 
-<script nonce="{{ csp_nonce() }}">
-// Type descriptions
-const typeDescriptions = {
-  'gallery': '{{ plugin_trans('ctp.upload.type_desc.gallery')|e('js') }}',
-  'album_page': '{{ plugin_trans('ctp.upload.type_desc.album_page')|e('js') }}',
-  'homepage': '{{ plugin_trans('ctp.upload.type_desc.homepage')|e('js') }}'
-};
+<div
+  id="upload-config"
+  data-type-descriptions='{{ {
+    gallery: plugin_trans('ctp.upload.type_desc.gallery'),
+    album_page: plugin_trans('ctp.upload.type_desc.album_page'),
+    homepage: plugin_trans('ctp.upload.type_desc.homepage')
+  }|json_encode|e('html_attr') }}'
+  data-errors='{{ {
+    size: plugin_trans('ctp.upload.error_size'),
+    type: plugin_trans('ctp.upload.error_type')
+  }|json_encode|e('html_attr') }}'
+  data-messages='{{ {
+    size_ok: plugin_trans('ctp.upload.validation_size_ok'),
+    full_validation: plugin_trans('ctp.upload.validation_full'),
+    uploading: plugin_trans('ctp.upload.uploading')
+  }|json_encode|e('html_attr') }}'
+  data-existing-count-template="{{ plugin_trans('ctp.upload.existing_count')|e('html_attr') }}"
+></div>
 
-// Error messages
-const errorMessages = {
-  'size': '{{ plugin_trans('ctp.upload.error_size')|e('js') }}',
-  'type': '{{ plugin_trans('ctp.upload.error_type')|e('js') }}'
-};
-
-// Update description on type change
-document.getElementById('template-type').addEventListener('change', function() {
-  document.getElementById('type-description').textContent = typeDescriptions[this.value];
-});
-
-// File upload handling
-const fileInput = document.getElementById('template-zip');
-const dropZone = document.getElementById('drop-zone');
-const fileInfo = document.getElementById('file-info');
-const fileName = document.getElementById('file-name');
-const fileSize = document.getElementById('file-size');
-const submitBtn = document.getElementById('submit-btn');
-
-fileInput.addEventListener('change', function(e) {
-  if (this.files.length > 0) {
-    const file = this.files[0];
-    displayFileInfo(file);
-  }
-});
-
-// Drag and drop
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-  dropZone.addEventListener(eventName, preventDefaults, false);
-});
-
-function preventDefaults(e) {
-  e.preventDefault();
-  e.stopPropagation();
-}
-
-['dragenter', 'dragover'].forEach(eventName => {
-  dropZone.addEventListener(eventName, () => {
-    dropZone.classList.add('border-blue-500', 'bg-blue-50');
-  }, false);
-});
-
-['dragleave', 'drop'].forEach(eventName => {
-  dropZone.addEventListener(eventName, () => {
-    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
-  }, false);
-});
-
-dropZone.addEventListener('drop', function(e) {
-  const dt = e.dataTransfer;
-  const files = dt.files;
-
-  if (files.length > 0) {
-    fileInput.files = files;
-    displayFileInfo(files[0]);
-  }
-}, false);
-
-function displayFileInfo(file) {
-  fileName.textContent = file.name;
-  fileSize.textContent = formatFileSize(file.size);
-  fileInfo.classList.remove('hidden');
-
-  // Validate size
-  if (file.size > 10 * 1024 * 1024) {
-    alert(errorMessages.size);
-    submitBtn.disabled = true;
-    return;
-  }
-
-  if (!file.name.endsWith('.zip')) {
-    alert(errorMessages.type);
-    submitBtn.disabled = true;
-    return;
-  }
-
-  submitBtn.disabled = false;
-}
-
-function formatFileSize(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-}
-</script>
+<script src="{{ base_path }}/plugins/custom-templates-pro/assets/js/upload.js" nonce="{{ csp_nonce() }}"></script>
 {% endblock %}
