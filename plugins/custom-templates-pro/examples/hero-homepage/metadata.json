@@ -1,0 +1,26 @@
+{
+  "type": "homepage",
+  "name": "Hero Homepage",
+  "slug": "hero-homepage",
+  "description": "Homepage con grande hero section e griglia album",
+  "version": "1.0.0",
+  "author": "Cimaise Team",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "layout": "hero_grid",
+    "show_hero": true,
+    "hero_height": "full",
+    "albums_per_page": 12,
+    "grid_columns": {
+      "desktop": 3,
+      "tablet": 2,
+      "mobile": 1
+    }
+  },
+  "assets": {
+    "css": ["styles.css"],
+    "js": ["script.js"]
+  }
+}

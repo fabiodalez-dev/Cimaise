@@ -1,0 +1,21 @@
+{
+  "type": "album_page",
+  "name": "Minimal Album Page",
+  "slug": "minimal-album-page",
+  "description": "Pagina album completa con design minimalista e pulito",
+  "version": "1.0.0",
+  "author": "Cimaise Team",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "gallery_layout": "grid",
+    "show_breadcrumbs": false,
+    "show_social_sharing": false,
+    "show_equipment": true,
+    "header_style": "centered"
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}
