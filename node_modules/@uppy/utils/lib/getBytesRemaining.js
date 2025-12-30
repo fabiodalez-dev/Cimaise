@@ -1,5 +1,0 @@
-export default function getBytesRemaining(fileProgress) {
-    if (fileProgress.bytesTotal == null)
-        return 0;
-    return fileProgress.bytesTotal - fileProgress.bytesUploaded;
-}
