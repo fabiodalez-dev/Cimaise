@@ -222,10 +222,10 @@ HTML;
         $app->get('/admin/custom-templates/guides', [$controller, 'guides']);
         $app->get('/admin/custom-templates/guides/{type}/download', [$controller, 'downloadGuide']);
 
-        $this->log("Custom Templates Pro: Routes registered");
+        self::log("Custom Templates Pro: Routes registered");
     }
 
-    private function log(string $message): void
+    private static function log(string $message): void
     {
         if (self::DEBUG) {
             error_log($message);

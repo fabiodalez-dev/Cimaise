@@ -166,6 +166,7 @@ FUNZIONI TWIG DISPONIBILI:
 
 STRUTTURA HTML RACCOMANDATA per template.twig:
 
+```twig
 {% for image in images %}
 <div class="gallery-item">
   <a href="{{ image.lightbox_url }}"
@@ -210,6 +211,7 @@ STRUTTURA HTML RACCOMANDATA per template.twig:
 // JavaScript personalizzato
 window.templateSettings = {{ template_settings|json_encode|raw }};
 </script>
+```
 
 BEST PRACTICES:
 
@@ -251,6 +253,7 @@ ESEMPIO COMPLETO: TEMPLATE GRID CLASSICA
 ================================================================================
 
 --- metadata.json ---
+```text
 {
   "type": "gallery",
   "name": "Classic Grid Gallery",
@@ -338,6 +341,7 @@ window.templateSettings = {{ template_settings|json_encode|raw }};
 .gallery-item {
   position: relative;
 }
+```
 
 ================================================================================
 ISTRUZIONI FINALI

@@ -125,7 +125,7 @@ class TemplateIntegrationService
     /**
      * Carica assets CSS di un template
      */
-    public function loadTemplateCSS(int $templateId): string
+    public function loadTemplateCSS(int $templateId, string $basePath = ''): string
     {
         $customId = $templateId >= 1000 ? $templateId - 1000 : $templateId;
 
@@ -145,7 +145,7 @@ class TemplateIntegrationService
         foreach ($paths as $path) {
             $fullPath = $this->pluginDir . '/' . $path;
             if (file_exists($fullPath)) {
-                $output .= '<link rel="stylesheet" href="{{ base_path }}/plugins/custom-templates-pro/' . $path . '">' . "\n";
+                $output .= '<link rel="stylesheet" href="' . rtrim($basePath, '/') . '/plugins/custom-templates-pro/' . $path . '">' . "\n";
             }
         }
 
@@ -155,7 +155,7 @@ class TemplateIntegrationService
     /**
      * Carica assets JS di un template
      */
-    public function loadTemplateJS(int $templateId, string $nonce = ''): string
+    public function loadTemplateJS(int $templateId, string $basePath = '', string $nonce = ''): string
     {
         $customId = $templateId >= 1000 ? $templateId - 1000 : $templateId;
 
@@ -176,7 +176,7 @@ class TemplateIntegrationService
             $fullPath = $this->pluginDir . '/' . $path;
             if (file_exists($fullPath)) {
                 $nonceAttr = $nonce ? ' nonce="' . $nonce . '"' : '';
-                $output .= '<script src="{{ base_path }}/plugins/custom-templates-pro/' . $path . '"' . $nonceAttr . '></script>' . "\n";
+                $output .= '<script src="' . rtrim($basePath, '/') . '/plugins/custom-templates-pro/' . $path . '"' . $nonceAttr . '></script>' . "\n";
             }
         }
 
