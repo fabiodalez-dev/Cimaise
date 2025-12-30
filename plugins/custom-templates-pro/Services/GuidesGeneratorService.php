@@ -28,7 +28,7 @@ class GuidesGeneratorService
     public function generateGalleryGuide(): void
     {
         $content = $this->getGalleryGuideContent();
-        file_put_contents($this->pluginDir . '/guides/gallery-template-guide.txt', $content);
+        file_put_contents($this->pluginDir . '/guides/gallery-template-guide.md', $content);
     }
 
     /**
@@ -37,7 +37,7 @@ class GuidesGeneratorService
     public function generateAlbumPageGuide(): void
     {
         $content = $this->getAlbumPageGuideContent();
-        file_put_contents($this->pluginDir . '/guides/album-page-guide.txt', $content);
+        file_put_contents($this->pluginDir . '/guides/album-page-guide.md', $content);
     }
 
     /**
@@ -46,7 +46,7 @@ class GuidesGeneratorService
     public function generateHomepageGuide(): void
     {
         $content = $this->getHomepageGuideContent();
-        file_put_contents($this->pluginDir . '/guides/homepage-guide.txt', $content);
+        file_put_contents($this->pluginDir . '/guides/homepage-guide.md', $content);
     }
 
     /**
@@ -781,9 +781,9 @@ GUIDE
     public function getGuidePath(string $type): string
     {
         $filename = match ($type) {
-            'gallery' => 'gallery-template-guide.txt',
-            'album_page' => 'album-page-guide.txt',
-            'homepage' => 'homepage-guide.txt',
+            'gallery' => 'gallery-template-guide.md',
+            'album_page' => 'album-page-guide.md',
+            'homepage' => 'homepage-guide.md',
             default => throw new \InvalidArgumentException("Invalid guide type: {$type}")
         };
 
