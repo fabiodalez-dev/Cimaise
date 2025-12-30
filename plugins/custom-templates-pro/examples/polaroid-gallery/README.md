@@ -2,6 +2,30 @@
 
 Template per galleria fotografica con effetto foto istantanea polaroid.
 
+## ⚠️ Struttura del Template (IMPORTANTE)
+
+Il file ZIP deve contenere una **cartella** con il nome del template:
+
+```
+polaroid-gallery.zip
+└── polaroid-gallery/
+    ├── metadata.json    ← OBBLIGATORIO!
+    ├── template.twig    ← OBBLIGATORIO!
+    ├── styles.css
+    └── README.md
+```
+
+### Campi obbligatori in metadata.json
+
+| Campo | Descrizione | Esempio |
+|-------|-------------|---------|
+| `type` | Tipo template | `"gallery"` |
+| `name` | Nome visualizzato | `"Polaroid Gallery"` |
+| `slug` | Identificatore URL | `"polaroid-gallery"` |
+| `version` | Versione semver | `"1.0.0"` |
+
+**Senza questi campi l'upload fallirà!**
+
 ## Caratteristiche
 
 - ✅ Griglia responsive (4 colonne desktop, 3 tablet, 2 mobile)

@@ -63,7 +63,7 @@ class CustomTemplatesProPlugin
         Hooks::addAction('cimaise_init', [$this, 'onAppInit'], 10, self::PLUGIN_NAME);
 
         // Sidebar menu
-        Hooks::addFilter('admin_sidebar_advanced', [$this, 'addSidebarMenu'], 10, self::PLUGIN_NAME);
+        Hooks::addAction('admin_sidebar_navigation', [$this, 'addSidebarMenu'], 10, self::PLUGIN_NAME);
 
         // Template hooks - Gallerie
         Hooks::addFilter('available_gallery_templates', [$this, 'addCustomGalleryTemplates'], 10, self::PLUGIN_NAME);
@@ -98,20 +98,17 @@ class CustomTemplatesProPlugin
     }
 
     /**
-     * Hook: admin_sidebar_advanced
+     * Hook: admin_sidebar_navigation
      * Aggiunge voce al menu sidebar
      */
-    public function addSidebarMenu(string $html): string
+    public function addSidebarMenu(array $context): void
     {
-        $menuItem = <<<HTML
-        <a href="{{ base_path }}/admin/custom-templates"
-           class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700 {{ request.uri.path starts with '/admin/custom-templates' ? 'bg-neutral-100 dark:bg-neutral-700 text-black dark:text-white' : 'text-neutral-600 dark:text-neutral-300' }}">
-            <i class="fas fa-palette w-5 text-center"></i>
-            <span>Custom Templates</span>
-        </a>
+        $basePath = $context['base_path'] ?? '';
+        echo <<<HTML
+            <a href="{$basePath}/admin/custom-templates" class="sidebar-link" data-spa-link>
+                <i class="fas fa-palette"></i>Custom Templates
+            </a>
 HTML;
-
-        return $html . $menuItem;
     }
 
     /**
@@ -231,14 +228,35 @@ HTML;
 // Initialize plugin
 $customTemplatesPlugin = new CustomTemplatesProPlugin();
 
-// Register Twig namespace for plugin templates
+// Register Twig namespace and extension for plugin templates
 if (isset($GLOBALS['twig'])) {
     try {
         $loader = $GLOBALS['twig']->getLoader();
         if (method_exists($loader, 'addPath')) {
             $loader->addPath(__DIR__ . '/templates', 'custom-templates-pro');
         }
+
+        // Register plugin translation extension
+        require_once __DIR__ . '/Extensions/PluginTranslationTwigExtension.php';
+        require_once __DIR__ . '/Services/PluginTranslationService.php';
+
+        $pluginTranslator = new \CustomTemplatesPro\Services\PluginTranslationService();
+
+        // Try to get admin language from settings
+        if (isset($GLOBALS['container']['db']) && $GLOBALS['container']['db'] !== null) {
+            try {
+                $settings = new \App\Services\SettingsService($GLOBALS['container']['db']);
+                $adminLang = $settings->get('admin.language', 'en');
+                $pluginTranslator->setLanguage($adminLang);
+            } catch (\Throwable $e) {
+                // Fallback to English
+            }
+        }
+
+        $GLOBALS['twig']->getEnvironment()->addExtension(
+            new \CustomTemplatesPro\Extensions\PluginTranslationTwigExtension($pluginTranslator)
+        );
     } catch (\Exception $e) {
-        error_log("Custom Templates Pro: Could not register Twig namespace: " . $e->getMessage());
+        error_log("Custom Templates Pro: Could not register Twig extension: " . $e->getMessage());
     }
 }

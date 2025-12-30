@@ -66,8 +66,8 @@ class TemplateUploadService
             ];
         }
 
-        // Valida contenuti estratti
-        if (!$this->validateExtractedContent($extractPath, $metadata)) {
+        // Valida contenuti estratti (usa il tipo dal form, non dal metadata)
+        if (!$this->validateExtractedContent($extractPath, $metadata, $type)) {
             $this->cleanup($extractPath);
             return [
                 'success' => false,
@@ -102,7 +102,19 @@ class TemplateUploadService
             return null;
         }
 
+        // Cerca metadata.json alla root o dentro una cartella
         $metadataContent = $zip->getFromName('metadata.json');
+
+        if ($metadataContent === false) {
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $name = $zip->getNameIndex($i);
+                if (preg_match('#^[^/]+/metadata\.json$#', $name)) {
+                    $metadataContent = $zip->getFromName($name);
+                    break;
+                }
+            }
+        }
+
         $zip->close();
 
         if ($metadataContent === false) {
@@ -166,10 +178,10 @@ class TemplateUploadService
     /**
      * Valida il contenuto estratto
      */
-    private function validateExtractedContent(string $extractPath, array $metadata): bool
+    private function validateExtractedContent(string $extractPath, array $metadata, string $type): bool
     {
-        // Determina file template principale
-        $templateFile = $this->getMainTemplateFile($metadata);
+        // Determina file template principale in base al tipo selezionato nel form
+        $templateFile = $this->getMainTemplateFile($type);
         $templatePath = $extractPath . '/' . $templateFile;
 
         if (!file_exists($templatePath)) {
@@ -213,11 +225,11 @@ class TemplateUploadService
     }
 
     /**
-     * Ottiene il nome del file template principale dal metadata
+     * Ottiene il nome del file template principale in base al tipo
      */
-    private function getMainTemplateFile(array $metadata): string
+    private function getMainTemplateFile(string $type): string
     {
-        return match ($metadata['type']) {
+        return match ($type) {
             'gallery' => 'template.twig',
             'album_page' => 'page.twig',
             'homepage' => 'home.twig',
@@ -230,7 +242,7 @@ class TemplateUploadService
      */
     private function saveToDatabase(array $metadata, string $type, string $extractPath): ?int
     {
-        $templateFile = $this->getMainTemplateFile($metadata);
+        $templateFile = $this->getMainTemplateFile($type);
         $relativePath = str_replace($this->pluginDir . '/', '', $extractPath);
 
         $cssPaths = isset($metadata['assets']['css'])

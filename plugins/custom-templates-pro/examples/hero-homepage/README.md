@@ -2,6 +2,31 @@
 
 Homepage con grande hero section fullscreen e griglia album moderna.
 
+## ⚠️ Struttura del Template (IMPORTANTE)
+
+Il file ZIP deve contenere una **cartella** con il nome del template:
+
+```
+hero-homepage.zip
+└── hero-homepage/
+    ├── metadata.json    ← OBBLIGATORIO!
+    ├── home.twig        ← OBBLIGATORIO!
+    ├── styles.css
+    ├── script.js
+    └── README.md
+```
+
+### Campi obbligatori in metadata.json
+
+| Campo | Descrizione | Esempio |
+|-------|-------------|---------|
+| `type` | Tipo template | `"homepage"` |
+| `name` | Nome visualizzato | `"Hero Homepage"` |
+| `slug` | Identificatore URL | `"hero-homepage"` |
+| `version` | Versione semver | `"1.0.0"` |
+
+**Senza questi campi l'upload fallirà!**
+
 ## Caratteristiche
 
 - ✅ Hero section fullscreen con gradiente

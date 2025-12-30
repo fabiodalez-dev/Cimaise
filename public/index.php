@@ -168,6 +168,15 @@ $twig->getEnvironment()->addExtension(new \App\Extensions\AnalyticsTwigExtension
 $twig->getEnvironment()->addExtension(new \App\Extensions\SecurityTwigExtension());
 $twig->getEnvironment()->addExtension(new \App\Extensions\HooksTwigExtension());
 
+// Register plugin Twig namespaces
+$pluginTemplatesDir = __DIR__ . '/../plugins/custom-templates-pro/templates';
+if (is_dir($pluginTemplatesDir)) {
+    $loader = $twig->getLoader();
+    if ($loader instanceof \Twig\Loader\FilesystemLoader) {
+        $loader->addPath($pluginTemplatesDir, 'custom-templates-pro');
+    }
+}
+
 // Add translation extension (only if database is available)
 $translationService = null;
 if ($container['db'] !== null) {

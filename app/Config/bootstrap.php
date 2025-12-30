@@ -6,6 +6,11 @@ use App\Support\Logger;
 use App\Support\PluginManager;
 use Dotenv\Dotenv;
 
+// Define core version constant (required by plugins)
+if (!defined('CIMAISE_VERSION')) {
+    define('CIMAISE_VERSION', '1.0.0');
+}
+
 if (!function_exists('envv')) {
     function envv(string $key, $default = null) {
         if (array_key_exists($key, $_ENV)) return $_ENV[$key];
@@ -49,6 +54,7 @@ if ($connection === 'sqlite') {
 // Initialize Plugin Manager and load plugins
 $pluginManager = PluginManager::getInstance();
 $pluginManager->setDatabase($db);
+$pluginManager->loadPlugins($root . '/plugins');
 
 // Initialize Logger and connect to database (for database channel)
 $logger = Logger::getInstance();

@@ -1,6 +1,6 @@
 {% extends "admin/_layout.twig" %}
 
-{% block title %}Guide LLM - Custom Templates Pro{% endblock %}
+{% block title %}{{ plugin_trans('ctp.guides.title') }} - {{ plugin_trans('ctp.title') }}{% endblock %}
 
 {% block content %}
 <div class="mb-6">
@@ -10,9 +10,9 @@
     </a>
     <div>
       <h1 class="text-3xl font-bold text-gray-900">
-        <i class="fas fa-book-reader text-purple-600 mr-3"></i>Guide per LLM
+        <i class="fas fa-book-reader text-purple-600 mr-3"></i>{{ plugin_trans('ctp.guides.title') }}
       </h1>
-      <p class="text-gray-600 mt-1">Scarica le guide complete per creare template personalizzati con un LLM</p>
+      <p class="text-gray-600 mt-1">{{ plugin_trans('ctp.guides.subtitle') }}</p>
     </div>
   </div>
 </div>
@@ -20,20 +20,18 @@
 <!-- Introduction -->
 <div class="card mb-6">
   <div class="p-6">
-    <h2 class="text-xl font-semibold text-gray-900 mb-4">Come Usare Queste Guide</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ plugin_trans('ctp.guides.how_to') }}</h2>
     <div class="prose max-w-none text-gray-600">
       <p class="mb-4">
-        Ogni guida contiene un <strong>prompt completo e ottimizzato</strong> da copiare e incollare
-        in un Large Language Model (come Claude, ChatGPT, o altri assistenti AI) per generare
-        template personalizzati per Cimaise.
+        {{ plugin_trans('ctp.guides.intro')|raw }}
       </p>
       <ol class="list-decimal list-inside space-y-2">
-        <li>Scarica la guida per il tipo di template che vuoi creare</li>
-        <li>Apri il file .txt e copia il prompt per LLM</li>
-        <li>Incolla il prompt nel tuo LLM preferito (Claude, ChatGPT, ecc.)</li>
-        <li>Descrivi al LLM che tipo di template vuoi (stile, layout, effetti, ecc.)</li>
-        <li>Il LLM genererà tutti i file necessari (metadata.json, template.twig, CSS, JS)</li>
-        <li>Comprimi i file in un ZIP e caricali tramite questa interfaccia</li>
+        <li>{{ plugin_trans('ctp.guides.step1') }}</li>
+        <li>{{ plugin_trans('ctp.guides.step2') }}</li>
+        <li>{{ plugin_trans('ctp.guides.step3') }}</li>
+        <li>{{ plugin_trans('ctp.guides.step4') }}</li>
+        <li>{{ plugin_trans('ctp.guides.step5') }}</li>
+        <li>{{ plugin_trans('ctp.guides.step6') }}</li>
       </ol>
     </div>
   </div>
@@ -47,33 +45,33 @@
       <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-3xl mb-4">
         <i class="fas fa-th"></i>
       </div>
-      <h3 class="text-xl font-semibold text-gray-900 mb-2">Template Gallerie</h3>
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.guides.gallery.title') }}</h3>
       <p class="text-gray-600 mb-4 text-sm">
-        Guida completa per creare template personalizzati per le gallerie fotografiche degli album.
+        {{ plugin_trans('ctp.guides.gallery.desc') }}
       </p>
 
       <div class="space-y-2 mb-4 text-sm">
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Variabili Twig complete</span>
+          <span>{{ plugin_trans('ctp.guides.gallery.feature1') }}</span>
         </div>
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Esempi template esistenti</span>
+          <span>{{ plugin_trans('ctp.guides.gallery.feature2') }}</span>
         </div>
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Best practices CSS/JS</span>
+          <span>{{ plugin_trans('ctp.guides.gallery.feature3') }}</span>
         </div>
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Integrazione PhotoSwipe</span>
+          <span>{{ plugin_trans('ctp.guides.gallery.feature4') }}</span>
         </div>
       </div>
 
       <a href="{{ base_path }}/admin/custom-templates/guides/gallery/download"
          class="btn btn-primary w-full justify-center">
-        <i class="fas fa-download mr-2"></i>Scarica Guida
+        <i class="fas fa-download mr-2"></i>{{ plugin_trans('ctp.guides.download') }}
       </a>
     </div>
   </div>
@@ -84,33 +82,33 @@
       <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-3xl mb-4">
         <i class="fas fa-file-image"></i>
       </div>
-      <h3 class="text-xl font-semibold text-gray-900 mb-2">Template Pagina Album</h3>
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.guides.album_page.title') }}</h3>
       <p class="text-gray-600 mb-4 text-sm">
-        Guida per creare template completi della pagina album (header, metadata, galleria integrata).
+        {{ plugin_trans('ctp.guides.album_page.desc') }}
       </p>
 
       <div class="space-y-2 mb-4 text-sm">
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Layout pagina completo</span>
+          <span>{{ plugin_trans('ctp.guides.album_page.feature1') }}</span>
         </div>
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Header e metadata album</span>
+          <span>{{ plugin_trans('ctp.guides.album_page.feature2') }}</span>
         </div>
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Sezione equipment</span>
+          <span>{{ plugin_trans('ctp.guides.album_page.feature3') }}</span>
         </div>
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Template switcher integrato</span>
+          <span>{{ plugin_trans('ctp.guides.album_page.feature4') }}</span>
         </div>
       </div>
 
       <a href="{{ base_path }}/admin/custom-templates/guides/album_page/download"
          class="btn btn-primary w-full justify-center">
-        <i class="fas fa-download mr-2"></i>Scarica Guida
+        <i class="fas fa-download mr-2"></i>{{ plugin_trans('ctp.guides.download') }}
       </a>
     </div>
   </div>
@@ -121,33 +119,33 @@
       <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center text-white text-3xl mb-4">
         <i class="fas fa-home"></i>
       </div>
-      <h3 class="text-xl font-semibold text-gray-900 mb-2">Template Homepage</h3>
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.guides.homepage.title') }}</h3>
       <p class="text-gray-600 mb-4 text-sm">
-        Guida per creare template personalizzati per la homepage del portfolio fotografico.
+        {{ plugin_trans('ctp.guides.homepage.desc') }}
       </p>
 
       <div class="space-y-2 mb-4 text-sm">
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Hero section personalizzata</span>
+          <span>{{ plugin_trans('ctp.guides.homepage.feature1') }}</span>
         </div>
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Griglia/Masonry album</span>
+          <span>{{ plugin_trans('ctp.guides.homepage.feature2') }}</span>
         </div>
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Effetti scroll e animazioni</span>
+          <span>{{ plugin_trans('ctp.guides.homepage.feature3') }}</span>
         </div>
         <div class="flex items-start">
           <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>Schema.org SEO</span>
+          <span>{{ plugin_trans('ctp.guides.homepage.feature4') }}</span>
         </div>
       </div>
 
       <a href="{{ base_path }}/admin/custom-templates/guides/homepage/download"
          class="btn btn-primary w-full justify-center">
-        <i class="fas fa-download mr-2"></i>Scarica Guida
+        <i class="fas fa-download mr-2"></i>{{ plugin_trans('ctp.guides.download') }}
       </a>
     </div>
   </div>
@@ -158,53 +156,53 @@
   <div class="p-6 border-b border-gray-200">
     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
       <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
-      Suggerimenti per Usare gli LLM
+      {{ plugin_trans('ctp.guides.tips') }}
     </h2>
   </div>
   <div class="p-6">
     <div class="grid md:grid-cols-2 gap-6">
       <div>
-        <h3 class="font-semibold text-gray-900 mb-3">LLM Consigliati</h3>
+        <h3 class="font-semibold text-gray-900 mb-3">{{ plugin_trans('ctp.guides.recommended') }}</h3>
         <ul class="space-y-2 text-sm text-gray-600">
           <li class="flex items-start">
             <i class="fas fa-robot text-blue-600 mr-2 mt-1"></i>
             <div>
-              <strong>Claude (Anthropic)</strong> - Ottimo per codice Twig e CSS complesso
+              <strong>{{ plugin_trans('ctp.guides.llm.claude') }}</strong> - {{ plugin_trans('ctp.guides.llm.claude_desc') }}
             </div>
           </li>
           <li class="flex items-start">
             <i class="fas fa-robot text-green-600 mr-2 mt-1"></i>
             <div>
-              <strong>ChatGPT (OpenAI)</strong> - Buon bilanciamento tra creatività e precisione
+              <strong>{{ plugin_trans('ctp.guides.llm.chatgpt') }}</strong> - {{ plugin_trans('ctp.guides.llm.chatgpt_desc') }}
             </div>
           </li>
           <li class="flex items-start">
             <i class="fas fa-robot text-purple-600 mr-2 mt-1"></i>
             <div>
-              <strong>Gemini (Google)</strong> - Efficace per template responsive
+              <strong>{{ plugin_trans('ctp.guides.llm.gemini') }}</strong> - {{ plugin_trans('ctp.guides.llm.gemini_desc') }}
             </div>
           </li>
         </ul>
       </div>
 
       <div>
-        <h3 class="font-semibold text-gray-900 mb-3">Best Practices</h3>
+        <h3 class="font-semibold text-gray-900 mb-3">{{ plugin_trans('ctp.guides.best_practices') }}</h3>
         <ul class="space-y-2 text-sm text-gray-600">
           <li class="flex items-start">
             <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
-            <span>Sii specifico nella descrizione del design desiderato</span>
+            <span>{{ plugin_trans('ctp.guides.practice1') }}</span>
           </li>
           <li class="flex items-start">
             <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
-            <span>Chiedi esempi e varianti per confrontare</span>
+            <span>{{ plugin_trans('ctp.guides.practice2') }}</span>
           </li>
           <li class="flex items-start">
             <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
-            <span>Verifica il codice generato prima del caricamento</span>
+            <span>{{ plugin_trans('ctp.guides.practice3') }}</span>
           </li>
           <li class="flex items-start">
             <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
-            <span>Itera: migliora il template passo dopo passo</span>
+            <span>{{ plugin_trans('ctp.guides.practice4') }}</span>
           </li>
         </ul>
       </div>

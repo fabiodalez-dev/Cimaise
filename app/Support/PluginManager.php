@@ -299,9 +299,23 @@ class PluginManager
                 // Leggi metadata plugin
                 $metadata = $this->parsePluginMetadata($pluginFile);
 
-                // Verifica se il plugin è attivo nel database
-                if ($this->db && !$this->isPluginActive($slug)) {
-                    continue; // Skip plugin non attivi
+                // Auto-install plugin if not in database yet
+                if ($this->db) {
+                    $status = $this->getPluginStatus($slug);
+                    if ($status === null) {
+                        // Plugin exists in filesystem but not in database - auto-install it
+                        $installResult = $this->installPlugin($slug, $pluginsDir);
+                        if (!$installResult['success']) {
+                            Logger::error("PluginManager: Auto-install failed for plugin", ['slug' => $slug, 'error' => $installResult['message']], 'plugin');
+                            continue;
+                        }
+                        Logger::info("PluginManager: Auto-installed plugin", ['slug' => $slug], 'plugin');
+                    }
+
+                    // Verifica se il plugin è attivo nel database
+                    if (!$this->isPluginActive($slug)) {
+                        continue; // Skip plugin non attivi
+                    }
                 }
 
                 $this->registerPlugin(
@@ -466,7 +480,13 @@ class PluginManager
             // Execute install hook if present
             $installHook = $pluginPath . '/install.php';
             if (file_exists($installHook)) {
-                require_once $installHook;
+                $installer = require $installHook;
+                if (is_callable($installer)) {
+                    $installResult = $installer($this->db);
+                    if (isset($installResult['success']) && !$installResult['success']) {
+                        return $installResult;
+                    }
+                }
             }
 
             // Save to database (MySQL compatible)
