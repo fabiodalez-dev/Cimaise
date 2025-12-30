@@ -6,7 +6,7 @@ Homepage con grande hero section fullscreen e griglia album moderna.
 
 Il file ZIP deve contenere una **cartella** con il nome del template:
 
-```
+```text
 hero-homepage.zip
 └── hero-homepage/
     ├── metadata.json    ← OBBLIGATORIO!

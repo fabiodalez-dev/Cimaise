@@ -21,8 +21,9 @@
     });
 
     // Osserva le card album
-    document.querySelectorAll('.hero-album-card').forEach(card => {
-      observer.observe(card);
-    });
+    const cards = document.querySelectorAll('.hero-album-card');
+    if (cards.length > 0) {
+      cards.forEach(card => observer.observe(card));
+    }
   }
 })();

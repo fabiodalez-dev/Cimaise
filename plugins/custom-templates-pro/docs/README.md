@@ -53,7 +53,7 @@ Plugin per Cimaise che permette di caricare template personalizzati per gallerie
 
 Crea un file ZIP con questa struttura:
 
-```
+```text
 my-template.zip
 ├── metadata.json          # Obbligatorio
 ├── template.twig          # Obbligatorio (o page.twig / home.twig)

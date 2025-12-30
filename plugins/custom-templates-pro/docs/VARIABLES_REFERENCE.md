@@ -176,7 +176,7 @@ Contiene le impostazioni del template corrente.
 
 Variabili disponibili in `page.twig` per template di tipo `album_page`.
 
-Tutte le variabili di **Template Gallerie** +plus:
+Tutte le variabili di **Template Gallerie** più:
 
 ### Variabili Aggiuntive
 
@@ -390,6 +390,8 @@ Usa invece:
 ---
 
 ## 📚 Macro Utility
+
+> ⚠️ **Nota**: Le macro sono disponibili solo nei template di sistema, non nei template personalizzati caricati tramite Custom Templates Pro.
 
 ### Import Macro SEO
 
