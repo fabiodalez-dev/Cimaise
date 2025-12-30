@@ -331,7 +331,7 @@ Il file `styles.css` può contenere CSS personalizzato.
 }
 
 /* NO @import URL esterni (bloccato per sicurezza) */
-/* @import url('https://...'); ❌ */
+/* @import url('https://example.com'); ❌ */
 ```
 
 ## 📜 JavaScript Personalizzato
