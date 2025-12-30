@@ -2,6 +2,30 @@
 
 Template completo per pagina album con design minimalista e pulito.
 
+## ⚠️ Struttura del Template (IMPORTANTE)
+
+Il file ZIP deve contenere una **cartella** con il nome del template:
+
+```
+minimal-album-page.zip
+└── minimal-album-page/
+    ├── metadata.json    ← OBBLIGATORIO!
+    ├── page.twig        ← OBBLIGATORIO!
+    ├── styles.css
+    └── README.md
+```
+
+### Campi obbligatori in metadata.json
+
+| Campo | Descrizione | Esempio |
+|-------|-------------|---------|
+| `type` | Tipo template | `"album_page"` |
+| `name` | Nome visualizzato | `"Minimal Album Page"` |
+| `slug` | Identificatore URL | `"minimal-album-page"` |
+| `version` | Versione semver | `"1.0.0"` |
+
+**Senza questi campi l'upload fallirà!**
+
 ## Caratteristiche
 
 - ✅ Design minimale e pulito

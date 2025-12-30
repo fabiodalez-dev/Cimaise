@@ -1,43 +1,60 @@
 ================================================================================
-GUIDA CREAZIONE TEMPLATE GALLERIA PER CIMAISE
+CIMAISE GALLERY TEMPLATE CREATION GUIDE
 ================================================================================
 
-Questa guida ti aiuterà a creare un template personalizzato per le gallerie
-degli album in Cimaise usando un LLM (Large Language Model) come Claude,
-ChatGPT o altri assistenti AI.
+This guide will help you create a custom template for album galleries
+in Cimaise using an LLM (Large Language Model) like Claude, ChatGPT,
+or other AI assistants.
 
 ================================================================================
-PROMPT PER LLM - COPIA E INCOLLA QUESTO TESTO
+PROMPT FOR LLM - COPY AND PASTE THIS TEXT
 ================================================================================
 
-Crea un template Twig personalizzato per una galleria fotografica in Cimaise CMS.
+Create a custom Twig template for a photo gallery in Cimaise CMS.
 
-REQUISITI TECNICI:
+TECHNICAL REQUIREMENTS:
 - Template engine: Twig
-- Framework CSS: Tailwind CSS 3.x (già incluso)
-- Lightbox: PhotoSwipe 5 (già incluso, inizializzato automaticamente)
+- CSS Framework: Tailwind CSS 3.x (already included)
+- Lightbox: PhotoSwipe 5 (already included, automatically initialized)
 - Responsive: mobile-first
-- Formato immagini: AVIF, WebP, JPG (con fallback automatico)
-- CSP: tutti gli script inline devono usare nonce="{{ csp_nonce() }}"
+- Image formats: AVIF, WebP, JPG (with automatic fallback)
+- CSP: all inline scripts must use nonce="{{ csp_nonce() }}"
 
-STRUTTURA FILE ZIP RICHIESTA:
-Crea i seguenti file per il template:
+REQUIRED ZIP FILE STRUCTURE:
 
-1. metadata.json - Configurazione template (OBBLIGATORIO)
-2. template.twig - Template principale (OBBLIGATORIO)
-3. styles.css - CSS personalizzato (opzionale)
-4. script.js - JavaScript personalizzato (opzionale)
-5. preview.jpg - Anteprima 800x600px (opzionale)
-6. README.md - Documentazione (opzionale)
+⚠️  IMPORTANT: The ZIP file must contain a folder with the template name.
+    Example: for a template "my-gallery", the file my-gallery.zip must contain
+    a my-gallery/ folder with all files inside.
 
-FORMATO metadata.json:
+Create the following files for the template:
+
+1. metadata.json - Template configuration (⚠️ REQUIRED - upload fails without this!)
+2. template.twig - Main template (REQUIRED)
+3. styles.css - Custom CSS (optional)
+4. script.js - Custom JavaScript (optional)
+5. preview.jpg - Preview 800x600px (optional)
+6. README.md - Documentation (optional)
+
+CORRECT ZIP structure:
+```
+my-gallery.zip
+└── my-gallery/
+    ├── metadata.json    ← REQUIRED! Upload fails without this file
+    ├── template.twig    ← REQUIRED!
+    ├── styles.css       (optional)
+    ├── script.js        (optional)
+    ├── preview.jpg      (optional)
+    └── README.md        (optional)
+```
+
+metadata.json FORMAT (⚠️ ALL FIELDS type, name, slug, version ARE REQUIRED):
 {
   "type": "gallery",
-  "name": "Nome Template",
-  "slug": "nome-template",
-  "description": "Descrizione del template",
+  "name": "Template Name",
+  "slug": "template-name",
+  "description": "Template description",
   "version": "1.0.0",
-  "author": "Il tuo nome",
+  "author": "Your name",
   "requires": {
     "cimaise": ">=1.0.0"
   },
@@ -58,17 +75,17 @@ FORMATO metadata.json:
   }
 }
 
-VARIABILI TWIG DISPONIBILI:
+AVAILABLE TWIG VARIABLES:
 
-{{ album }} - Oggetto album con:
+{{ album }} - Album object with:
   - album.id (int)
   - album.title (string)
   - album.slug (string)
-  - album.excerpt (string) - Breve descrizione
-  - album.body (string) - Descrizione HTML completa
-  - album.shoot_date (string) - Data formato YYYY-MM-DD
-  - album.categories (array) - Array di categorie
-  - album.tags (array) - Array di tag
+  - album.excerpt (string) - Short description
+  - album.body (string) - Full HTML description
+  - album.shoot_date (string) - Date in YYYY-MM-DD format
+  - album.categories (array) - Array of categories
+  - album.tags (array) - Array of tags
   - album.cover_image (object)
   - album.is_nsfw (bool)
   - album.allow_downloads (bool)
@@ -84,18 +101,18 @@ VARIABILI TWIG DISPONIBILI:
       - album.equipment.labs (array)
       - album.equipment.locations (array)
 
-{{ images }} - Array di immagini, ogni immagine ha:
+{{ images }} - Array of images, each image has:
   - image.id (int)
-  - image.url (string) - URL immagine
-  - image.lightbox_url (string) - URL per lightbox
-  - image.fallback_src (string) - Fallback JPG
-  - image.width (int) - Larghezza originale
-  - image.height (int) - Altezza originale
-  - image.caption (string) - Didascalia
-  - image.alt (string) - Testo alternativo
+  - image.url (string) - Image URL
+  - image.lightbox_url (string) - URL for lightbox
+  - image.fallback_src (string) - JPG fallback
+  - image.width (int) - Original width
+  - image.height (int) - Original height
+  - image.caption (string) - Caption
+  - image.alt (string) - Alt text
   - image.sort_order (int)
 
-  - image.sources (object) - Srcset per formati:
+  - image.sources (object) - Srcset for formats:
       - image.sources.avif (array)
       - image.sources.webp (array)
       - image.sources.jpg (array)
@@ -125,9 +142,9 @@ VARIABILI TWIG DISPONIBILI:
   - image.artist (string)
   - image.copyright (string)
 
-  - image.custom_fields (array) - Campi personalizzati
+  - image.custom_fields (array) - Custom fields
 
-{{ template_settings }} - Settings JSON del template:
+{{ template_settings }} - Template JSON settings:
   - template_settings.template_slug (string)
   - template_settings.layout (string)
   - template_settings.columns (object)
@@ -135,17 +152,17 @@ VARIABILI TWIG DISPONIBILI:
   - template_settings.aspect_ratio (string)
   - template_settings.style (object)
 
-{{ base_path }} - Base path dell'applicazione
-{{ site_title }} - Titolo del sito
-{{ csp_nonce() }} - Funzione per generare nonce CSP
+{{ base_path }} - Application base path
+{{ site_title }} - Site title
+{{ csp_nonce() }} - Function to generate CSP nonce
 
-FUNZIONI TWIG DISPONIBILI:
-- {{ trans('chiave') }} - Traduzione i18n
-- {{ image.caption|e }} - Escape HTML
-- {{ content|safe_html }} - HTML sanitizzato
-- {{ date|date_format }} - Formattazione data
+AVAILABLE TWIG FUNCTIONS:
+- {{ trans('key') }} - i18n translation
+- {{ image.caption|e }} - HTML escape
+- {{ content|safe_html }} - Sanitized HTML
+- {{ date|date_format }} - Date formatting
 
-STRUTTURA HTML RACCOMANDATA per template.twig:
+RECOMMENDED HTML STRUCTURE for template.twig:
 
 {% for image in images %}
 <div class="gallery-item">
@@ -188,47 +205,47 @@ STRUTTURA HTML RACCOMANDATA per template.twig:
 {% endfor %}
 
 <script nonce="{{ csp_nonce() }}">
-// JavaScript personalizzato
+// Custom JavaScript
 window.templateSettings = {{ template_settings|json_encode|raw }};
 </script>
 
 BEST PRACTICES:
 
-1. RESPONSIVE: Usa Tailwind breakpoints (sm:, md:, lg:, xl:, 2xl:)
-2. PERFORMANCE: Usa lazy loading per immagini
-3. ACCESSIBILITY: Includi alt text e attributi ARIA
-4. LIGHTBOX: Usa classe .pswp-link e attributi data-pswp-*
-5. CSP: SEMPRE usa nonce="{{ csp_nonce() }}" per script inline
-6. DOWNLOAD: Controlla album.allow_downloads prima di mostrare pulsante
-7. CSS: Preferisci Tailwind CSS, usa CSS custom solo se necessario
-8. JS: Evita librerie esterne pesanti, usa vanilla JS
+1. RESPONSIVE: Use Tailwind breakpoints (sm:, md:, lg:, xl:, 2xl:)
+2. PERFORMANCE: Use lazy loading for images
+3. ACCESSIBILITY: Include alt text and ARIA attributes
+4. LIGHTBOX: Use .pswp-link class and data-pswp-* attributes
+5. CSP: ALWAYS use nonce="{{ csp_nonce() }}" for inline scripts
+6. DOWNLOAD: Check album.allow_downloads before showing download button
+7. CSS: Prefer Tailwind CSS, use custom CSS only if necessary
+8. JS: Avoid heavy external libraries, use vanilla JS
 
-ESEMPI DI LAYOUT:
+LAYOUT EXAMPLES:
 
-1. GRID CLASSICA:
-   - CSS Grid con colonne fisse
-   - Aspect ratio uniforme
-   - Gap personalizzabile
+1. CLASSIC GRID:
+   - CSS Grid with fixed columns
+   - Uniform aspect ratio
+   - Customizable gap
 
 2. MASONRY:
-   - Layout a cascata tipo Pinterest
-   - Altezze variabili
-   - Usa libreria Masonry.js (già inclusa)
+   - Pinterest-style cascade layout
+   - Variable heights
+   - Uses Masonry.js library (already included)
 
 3. MAGAZINE:
-   - Layout editoriale
-   - Mix di dimensioni immagini
-   - Effetti parallax
+   - Editorial layout
+   - Mix of image sizes
+   - Parallax effects
 
 4. POLAROID:
-   - Effetto foto istantanea
-   - Rotazione casuale
-   - Ombra e bordo
+   - Instant photo effect
+   - Random rotation
+   - Shadow and border
 
-CREA UN TEMPLATE COMPLETO con tutti i file necessari.
+CREATE A COMPLETE TEMPLATE with all necessary files.
 
 ================================================================================
-ESEMPIO COMPLETO: TEMPLATE GRID CLASSICA
+COMPLETE EXAMPLE: CLASSIC GRID TEMPLATE
 ================================================================================
 
 --- metadata.json ---
@@ -236,7 +253,7 @@ ESEMPIO COMPLETO: TEMPLATE GRID CLASSICA
   "type": "gallery",
   "name": "Classic Grid Gallery",
   "slug": "classic-grid",
-  "description": "Griglia fotografica classica con aspect ratio uniforme",
+  "description": "Classic photo grid with uniform aspect ratio",
   "version": "1.0.0",
   "author": "Cimaise",
   "settings": {
@@ -321,15 +338,15 @@ window.templateSettings = {{ template_settings|json_encode|raw }};
 }
 
 ================================================================================
-ISTRUZIONI FINALI
+FINAL INSTRUCTIONS
 ================================================================================
 
-1. Crea tutti i file richiesti
-2. Comprimi in un file ZIP con la struttura corretta
-3. Carica il ZIP tramite il plugin Custom Templates Pro
-4. Il template sarà disponibile immediatamente in:
-   - Pagina creazione/modifica album
-   - Impostazioni generali (template predefinito)
-   - Template switcher nella pagina album
+1. Create all required files
+2. Compress into a ZIP file with the correct structure
+3. Upload the ZIP through the Custom Templates Pro plugin
+4. The template will be immediately available in:
+   - Album create/edit page
+   - General settings (default template)
+   - Template switcher on album page
 
-Per domande o supporto, consulta la documentazione di Cimaise.
+For questions or support, consult the Cimaise documentation.

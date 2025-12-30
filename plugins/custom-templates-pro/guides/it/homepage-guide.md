@@ -19,7 +19,11 @@ REQUISITI TECNICI:
 - SEO: Schema.org CollectionPage
 
 STRUTTURA FILE ZIP:
-1. metadata.json - Configurazione (OBBLIGATORIO)
+
+⚠️  IMPORTANTE: Il file ZIP deve contenere una cartella con il nome del template.
+    Esempio: my-homepage.zip deve contenere my-homepage/metadata.json, ecc.
+
+1. metadata.json - Configurazione (⚠️ OBBLIGATORIO - senza questo l'upload fallisce!)
 2. home.twig - Template homepage (OBBLIGATORIO)
 3. partials/ - Partials riutilizzabili (opzionale)
    - hero.twig
@@ -28,7 +32,17 @@ STRUTTURA FILE ZIP:
 5. script.js - JavaScript (opzionale)
 6. preview.jpg - Anteprima (opzionale)
 
-FORMATO metadata.json:
+STRUTTURA CORRETTA del file ZIP:
+```
+my-homepage.zip
+└── my-homepage/
+    ├── metadata.json    ← OBBLIGATORIO! L'upload fallisce senza questo file
+    ├── home.twig        ← OBBLIGATORIO!
+    ├── styles.css       (opzionale)
+    └── README.md        (opzionale)
+```
+
+FORMATO metadata.json (⚠️ TUTTI I CAMPI type, name, slug, version SONO OBBLIGATORI):
 {
   "type": "homepage",
   "name": "Modern Hero Homepage",

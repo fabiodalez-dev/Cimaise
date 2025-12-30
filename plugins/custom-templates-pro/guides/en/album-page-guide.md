@@ -1,40 +1,54 @@
 ================================================================================
-GUIDA CREAZIONE TEMPLATE PAGINA ALBUM COMPLETA PER CIMAISE
+CIMAISE FULL ALBUM PAGE TEMPLATE CREATION GUIDE
 ================================================================================
 
-Questa guida ti aiuterà a creare un template completo per la pagina album
-(header, metadata, galleria e footer) in Cimaise usando un LLM.
+This guide will help you create a complete template for the album page
+(header, metadata, gallery and footer) in Cimaise using an LLM.
 
 ================================================================================
-PROMPT PER LLM - COPIA E INCOLLA QUESTO TESTO
+PROMPT FOR LLM - COPY AND PASTE THIS TEXT
 ================================================================================
 
-Crea un template Twig completo per la pagina album in Cimaise CMS, includendo
-header, metadata, corpo testo, equipment e galleria fotografica integrata.
+Create a complete Twig template for the album page in Cimaise CMS, including
+header, metadata, body text, equipment and integrated photo gallery.
 
-REQUISITI TECNICI:
+TECHNICAL REQUIREMENTS:
 - Template engine: Twig
-- Framework CSS: Tailwind CSS 3.x
+- CSS Framework: Tailwind CSS 3.x
 - Lightbox: PhotoSwipe 5
 - SEO: Schema.org, Open Graph
-- CSP: script con nonce="{{ csp_nonce() }}"
+- CSP: scripts with nonce="{{ csp_nonce() }}"
 
-STRUTTURA FILE ZIP:
-1. metadata.json - Configurazione (OBBLIGATORIO)
-2. page.twig - Template pagina completa (OBBLIGATORIO)
-3. gallery.twig - Template galleria (opzionale, se separato)
-4. styles.css - CSS personalizzato (opzionale)
-5. script.js - JavaScript (opzionale)
-6. preview.jpg - Anteprima (opzionale)
+ZIP FILE STRUCTURE:
 
-FORMATO metadata.json:
+⚠️  IMPORTANT: The ZIP file must contain a folder with the template name.
+    Example: my-album-page.zip must contain my-album-page/metadata.json, etc.
+
+1. metadata.json - Configuration (⚠️ REQUIRED - upload fails without this!)
+2. page.twig - Complete page template (REQUIRED)
+3. gallery.twig - Gallery template (optional, if separate)
+4. styles.css - Custom CSS (optional)
+5. script.js - JavaScript (optional)
+6. preview.jpg - Preview (optional)
+
+CORRECT ZIP structure:
+```
+my-album-page.zip
+└── my-album-page/
+    ├── metadata.json    ← REQUIRED! Upload fails without this file
+    ├── page.twig        ← REQUIRED!
+    ├── styles.css       (optional)
+    └── README.md        (optional)
+```
+
+metadata.json FORMAT (⚠️ ALL FIELDS type, name, slug, version ARE REQUIRED):
 {
   "type": "album_page",
   "name": "Modern Album Page",
   "slug": "modern-album-page",
-  "description": "Pagina album con design moderno",
+  "description": "Album page with modern design",
   "version": "1.0.0",
-  "author": "Il tuo nome",
+  "author": "Your name",
   "settings": {
     "gallery_layout": "masonry",
     "show_breadcrumbs": true,
@@ -47,25 +61,25 @@ FORMATO metadata.json:
   }
 }
 
-VARIABILI DISPONIBILI:
-Vedi guida template galleria per lista completa variabili {{ album }} e {{ images }}.
+AVAILABLE VARIABLES:
+See the gallery template guide for the complete list of {{ album }} and {{ images }} variables.
 
-Variabili aggiuntive per pagina completa:
-- {{ site_title }} - Titolo sito
-- {{ site_logo }} - URL logo
-- {{ logo_type }} - 'text' o 'image'
+Additional variables for complete page:
+- {{ site_title }} - Site title
+- {{ site_logo }} - Logo URL
+- {{ logo_type }} - 'text' or 'image'
 - {{ base_path }} - Base URL
-- {{ available_templates }} - Template gallerie disponibili per switcher
-- {{ current_template_id }} - ID template corrente
-- {{ album_ref }} - Reference album per AJAX
+- {{ available_templates }} - Available gallery templates for switcher
+- {{ current_template_id }} - Current template ID
+- {{ album_ref }} - Album reference for AJAX
 
-FUNZIONI E MACRO:
+FUNCTIONS AND MACROS:
 - {% import 'frontend/_seo_macros.twig' as Seo %}
 - {% import 'frontend/_caption.twig' as Caption %}
-- {{ trans('chiave') }} - Traduzione
-- {{ csp_nonce() }} - Nonce CSP
+- {{ trans('key') }} - Translation
+- {{ csp_nonce() }} - CSP nonce
 
-STRUTTURA HTML RACCOMANDATA:
+RECOMMENDED HTML STRUCTURE:
 
 <div class="max-w-7xl mx-auto px-4 py-8">
   <!-- Breadcrumbs -->
@@ -74,9 +88,9 @@ STRUTTURA HTML RACCOMANDATA:
     <span>{{ album.title }}</span>
   </nav>
 
-  <!-- Header Album -->
+  <!-- Album Header -->
   <header class="text-center mb-12">
-    <!-- Categorie e Tag -->
+    <!-- Categories and Tags -->
     {% if album.categories|length > 0 %}
     <div class="flex gap-2 justify-center mb-4">
       {% for cat in album.categories %}
@@ -87,10 +101,10 @@ STRUTTURA HTML RACCOMANDATA:
     </div>
     {% endif %}
 
-    <!-- Titolo -->
+    <!-- Title -->
     <h1 class="text-4xl font-light mb-6">{{ album.title|e }}</h1>
 
-    <!-- Metadata: Data e Location -->
+    <!-- Metadata: Date and Location -->
     {% if album.shoot_date or album.equipment.locations|length > 0 %}
     <div class="flex gap-6 justify-center text-neutral-600">
       {% if album.shoot_date %}
@@ -154,16 +168,16 @@ STRUTTURA HTML RACCOMANDATA:
       <button class="tpl-switch px-2 py-1 {{ template.id == current_template_id ? 'bg-black text-white' : '' }}"
               data-template-id="{{ template.id }}"
               data-album-ref="{{ album_ref }}">
-        <!-- Icona template -->
+        <!-- Template icon -->
       </button>
       {% endfor %}
     </div>
   </div>
   {% endif %}
 
-  <!-- Galleria -->
+  <!-- Gallery -->
   <div id="gallery-container">
-    <!-- Includi template galleria o inline -->
+    <!-- Include gallery template or inline -->
     {% for image in images %}
     <div class="gallery-item">
       <a href="{{ base_path }}{{ image.lightbox_url }}"
@@ -178,7 +192,7 @@ STRUTTURA HTML RACCOMANDATA:
 </div>
 
 <script nonce="{{ csp_nonce() }}">
-// Inizializzazione template
+// Template initialization
 </script>
 
-ESEMPIO COMPLETO disponibile nella documentazione del plugin.
+Complete example available in the plugin documentation.

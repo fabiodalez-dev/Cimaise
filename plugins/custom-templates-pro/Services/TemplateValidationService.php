@@ -93,8 +93,20 @@ class TemplateValidationService
             return false;
         }
 
-        // Leggi e valida metadata.json
+        // Leggi e valida metadata.json (cerca alla root o dentro una cartella)
         $metadataContent = $zip->getFromName('metadata.json');
+
+        // Se non trovato alla root, cerca dentro una cartella
+        if ($metadataContent === false) {
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $name = $zip->getNameIndex($i);
+                if (preg_match('#^[^/]+/metadata\.json$#', $name)) {
+                    $metadataContent = $zip->getFromName($name);
+                    break;
+                }
+            }
+        }
+
         $zip->close();
 
         if ($metadataContent === false) {
@@ -111,11 +123,23 @@ class TemplateValidationService
 
     /**
      * Valida i file richiesti
+     * Cerca i file sia alla root che dentro una singola cartella
      */
     private function validateRequiredFiles(array $files): bool
     {
         foreach (self::REQUIRED_FILES as $required) {
-            if (!in_array($required, $files)) {
+            $found = false;
+
+            // Cerca il file direttamente o dentro una cartella
+            foreach ($files as $file) {
+                // Match esatto o match con prefisso cartella (es. "template-name/metadata.json")
+                if ($file === $required || preg_match('#^[^/]+/' . preg_quote($required, '#') . '$#', $file)) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
                 $this->errors[] = "File obbligatorio mancante: {$required}";
                 return false;
             }
