@@ -1,0 +1,29 @@
+{
+  "type": "gallery",
+  "name": "Polaroid Gallery",
+  "slug": "polaroid-gallery",
+  "description": "Griglia fotografica con effetto polaroid e rotazioni casuali",
+  "version": "1.0.0",
+  "author": "Cimaise Team",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "layout": "grid",
+    "columns": {
+      "desktop": 4,
+      "tablet": 3,
+      "mobile": 2
+    },
+    "gap": 30,
+    "aspect_ratio": "1:1",
+    "style": ["shadow", "hover_scale"]
+  },
+  "libraries": {
+    "masonry": false,
+    "photoswipe": true
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}
