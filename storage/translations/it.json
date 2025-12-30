@@ -80,6 +80,7 @@
     "album.location": "Luogo",
     "album.camera": "Fotocamera",
     "album.lens": "Obiettivo",
+    "album.film": "Pellicola",
     "album.settings": "Impostazioni",
     "album.empty": "Questa galleria è vuota",
     "album.empty_message": "Le immagini appariranno qui una volta caricate.",
@@ -366,5 +367,8 @@
     "tag.no_albums_title": "Nessun album con questo tag",
     "tag.no_albums_text": "Sfoglia tutti gli album",
     "tag.related_tags": "Tag Correlati"
+  },
+  "home": {
+    "home.scroll_to_explore": "Scorri per esplorare"
   }
 }

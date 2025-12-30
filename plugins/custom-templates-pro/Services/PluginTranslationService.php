@@ -53,13 +53,28 @@ class PluginTranslationService
      * @param string $key The translation key (e.g., 'ctp.title')
      * @param array $params Parameters to interpolate (e.g., ['name' => 'value'])
      * @param string|null $default Default value if key not found
-     * @return string The translated string
+     * @return mixed The translated value
      */
-    public function get(string $key, array $params = [], ?string $default = null): string
+    public function get(string $key, array $params = [], ?string $default = null): mixed
     {
         $this->loadTranslations();
 
         $value = $this->translations[$key] ?? $default ?? $key;
+
+        if (\is_array($value)) {
+            if (!empty($params)) {
+                $value = array_map(static function ($item) use ($params) {
+                    if (!\is_string($item)) {
+                        return $item;
+                    }
+                    foreach ($params as $name => $val) {
+                        $item = str_replace('{' . $name . '}', (string) $val, $item);
+                    }
+                    return $item;
+                }, $value);
+            }
+            return $value;
+        }
 
         // Parameter interpolation: {param} -> value
         if (!empty($params)) {
@@ -117,7 +132,14 @@ class PluginTranslationService
             return;
         }
 
-        $data = json_decode($content, true);
+        try {
+            $data = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            error_log('PluginTranslationService: Invalid JSON in ' . $filePath . ': ' . $e->getMessage());
+            $this->loaded = true;
+            return;
+        }
+
         if (!\is_array($data)) {
             $this->loaded = true;
             return;
@@ -140,7 +162,8 @@ class PluginTranslationService
     {
         $languages = [];
 
-        foreach (glob($this->translationsDir . '/*.json') as $file) {
+        $files = glob($this->translationsDir . '/*.json');
+        foreach ($files ?: [] as $file) {
             $content = @file_get_contents($file);
             if (!$content) {
                 continue;

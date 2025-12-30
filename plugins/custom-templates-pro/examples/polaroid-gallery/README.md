@@ -6,7 +6,7 @@ Template per galleria fotografica con effetto foto istantanea polaroid.
 
 Il file ZIP deve contenere una **cartella** con il nome del template:
 
-```
+```text
 polaroid-gallery.zip
 └── polaroid-gallery/
     ├── metadata.json    ← OBBLIGATORIO!

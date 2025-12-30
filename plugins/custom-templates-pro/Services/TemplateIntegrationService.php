@@ -27,7 +27,7 @@ class TemplateIntegrationService
 
         // Decodifica metadata JSON
         foreach ($templates as &$template) {
-            $template['metadata'] = json_decode($template['metadata'], true);
+            $template['metadata'] = $this->decodeJson($template['metadata'] ?? null, []);
         }
 
         return $templates;
@@ -54,8 +54,8 @@ class TemplateIntegrationService
                 'is_custom' => true,
                 'custom_id' => $template['id'],
                 'twig_path' => $template['twig_path'],
-                'css_paths' => json_decode($template['css_paths'] ?? '[]', true),
-                'js_paths' => json_decode($template['js_paths'] ?? '[]', true),
+                'css_paths' => $this->decodeJson($template['css_paths'] ?? '[]', []),
+                'js_paths' => $this->decodeJson($template['js_paths'] ?? '[]', []),
                 'preview_path' => $template['preview_path']
             ];
         }
@@ -139,7 +139,7 @@ class TemplateIntegrationService
             return '';
         }
 
-        $paths = json_decode($cssPaths, true);
+        $paths = $this->decodeJson($cssPaths, []);
         $output = '';
 
         foreach ($paths as $path) {
@@ -169,7 +169,7 @@ class TemplateIntegrationService
             return '';
         }
 
-        $paths = json_decode($jsPaths, true);
+        $paths = $this->decodeJson($jsPaths, []);
         $output = '';
 
         foreach ($paths as $path) {
@@ -218,10 +218,25 @@ class TemplateIntegrationService
             return null;
         }
 
-        $template['metadata'] = json_decode($template['metadata'], true);
-        $template['css_paths'] = json_decode($template['css_paths'] ?? '[]', true);
-        $template['js_paths'] = json_decode($template['js_paths'] ?? '[]', true);
+        $template['metadata'] = $this->decodeJson($template['metadata'] ?? null, []);
+        $template['css_paths'] = $this->decodeJson($template['css_paths'] ?? '[]', []);
+        $template['js_paths'] = $this->decodeJson($template['js_paths'] ?? '[]', []);
 
         return $template;
+    }
+
+    private function decodeJson(?string $json, array $default): array
+    {
+        if ($json === null || $json === '') {
+            return $default;
+        }
+
+        try {
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            return $default;
+        }
+
+        return is_array($decoded) ? $decoded : $default;
     }
 }

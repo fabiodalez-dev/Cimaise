@@ -8,8 +8,32 @@
 declare(strict_types=1);
 
 use App\Support\Database;
+use CustomTemplatesPro\Services\PluginTranslationService;
 
 return function (Database $db): array {
+    $translator = null;
+    $trans = static function (string $key, string $fallback) use (&$translator): string {
+        if ($translator instanceof PluginTranslationService) {
+            return $translator->get($key, [], $fallback);
+        }
+        return $fallback;
+    };
+
+    if (file_exists(__DIR__ . '/Services/PluginTranslationService.php')) {
+        require_once __DIR__ . '/Services/PluginTranslationService.php';
+        $translator = new PluginTranslationService();
+
+        if (class_exists(\App\Services\SettingsService::class)) {
+            try {
+                $settings = new \App\Services\SettingsService($db);
+                $adminLang = $settings->get('admin.language', 'en');
+                $translator->setLanguage($adminLang);
+            } catch (\Throwable $e) {
+                // Fallback to default language
+            }
+        }
+    }
+
     try {
         // 1. Elimina tabella custom_templates
         $db->pdo()->exec('DROP TABLE IF EXISTS custom_templates');
@@ -63,15 +87,21 @@ return function (Database $db): array {
 
         return [
             'success' => true,
-            'message' => 'Custom Templates Pro disinstallato con successo. Tutti i dati sono stati rimossi.'
+            'message' => $trans(
+                'ctp.uninstall.success',
+                'Custom Templates Pro disinstallato con successo. Tutti i dati sono stati rimossi.'
+            )
         ];
 
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         error_log('Custom Templates Pro uninstallation error: ' . $e->getMessage());
 
         return [
             'success' => false,
-            'message' => 'Errore durante la disinstallazione: ' . $e->getMessage()
+            'message' => $trans(
+                'ctp.uninstall.error',
+                'Errore durante la disinstallazione: ' . $e->getMessage()
+            )
         ];
     }
 };

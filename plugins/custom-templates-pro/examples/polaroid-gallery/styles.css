@@ -99,12 +99,20 @@
   z-index: 10;
 }
 
-.polaroid-frame:hover .polaroid-download {
+.polaroid-frame:hover .polaroid-download,
+.polaroid-frame:focus-within .polaroid-download,
+.polaroid-download:focus {
   opacity: 1;
 }
 
 .polaroid-download:hover {
   background: rgba(0, 0, 0, 0.8);
+}
+
+@media (hover: none) {
+  .polaroid-download {
+    opacity: 0.8;
+  }
 }
 
 .polaroid-download i {

@@ -138,7 +138,16 @@ class CustomTemplatesController extends BaseController
      */
     public function uploadForm(Request $request, Response $response): Response
     {
-        return $this->view->render($response, '@custom-templates-pro/admin/upload.twig', $this->getTemplateVars());
+        // Get existing template counts per type
+        $stats = $this->uploadService->getStats();
+
+        return $this->view->render($response, '@custom-templates-pro/admin/upload.twig', $this->getTemplateVars([
+            'template_counts' => [
+                'gallery' => $stats['gallery']['total'],
+                'album_page' => $stats['album_page']['total'],
+                'homepage' => $stats['homepage']['total'],
+            ],
+        ]));
     }
 
     /**
@@ -181,28 +190,59 @@ class CustomTemplatesController extends BaseController
         $tmpPath = sys_get_temp_dir() . '/' . uniqid('template_') . '.zip';
         $zipFile->moveTo($tmpPath);
 
-        // Process upload
-        $result = $this->uploadService->processUpload([
-            'tmp_name' => $tmpPath,
-            'error' => UPLOAD_ERR_OK,
-            'name' => $zipFile->getClientFilename()
-        ], $type);
-
-        // Remove temporary file
-        if (file_exists($tmpPath)) {
-            unlink($tmpPath);
+        try {
+            // Process upload
+            $result = $this->uploadService->processUpload([
+                'tmp_name' => $tmpPath,
+                'error' => UPLOAD_ERR_OK,
+                'name' => $zipFile->getClientFilename()
+            ], $type);
+        } finally {
+            // Remove temporary file
+            if (file_exists($tmpPath)) {
+                unlink($tmpPath);
+            }
         }
 
         if ($result['success']) {
-            $_SESSION['flash'][] = [
-                'type' => 'success',
-                'message' => $this->trans('ctp.flash.upload_success', ['name' => $result['metadata']['name']])
-            ];
+            // Multi-template upload
+            if (isset($result['templates']) && count($result['templates']) > 0) {
+                $names = array_column($result['templates'], 'name');
+                $_SESSION['flash'][] = [
+                    'type' => 'success',
+                    'message' => $this->trans('ctp.flash.upload_multi_success', [
+                        'count' => $result['installed'],
+                        'names' => implode(', ', $names)
+                    ])
+                ];
+
+                // Aggiungi eventuali errori parziali come warning
+                if (!empty($result['errors'])) {
+                    $_SESSION['flash'][] = [
+                        'type' => 'warning',
+                        'message' => implode('; ', $result['errors'])
+                    ];
+                }
+            } else {
+                // Single template upload
+                $_SESSION['flash'][] = [
+                    'type' => 'success',
+                    'message' => $this->trans('ctp.flash.upload_success', ['name' => $result['metadata']['name']])
+                ];
+            }
             return $response->withHeader('Location', $this->redirect('/admin/custom-templates'))->withStatus(302);
         } else {
+            // Handle error with translation support
+            $errorMessage = $result['error'] ?? '';
+
+            // Check for specific error codes
+            if (isset($result['error_code']) && $result['error_code'] === 'slug_exists') {
+                $errorMessage = $this->trans('ctp.upload.error_slug_exists', ['slug' => $result['slug'] ?? '']);
+            }
+
             $_SESSION['flash'][] = [
                 'type' => 'error',
-                'message' => $result['error']
+                'message' => $errorMessage
             ];
             return $response->withHeader('Location', $this->redirect('/admin/custom-templates/upload'))->withStatus(302);
         }
@@ -300,14 +340,21 @@ class CustomTemplatesController extends BaseController
             $content = file_get_contents($guidePath);
             $filename = $this->guidesService->getDownloadFilename($type);
 
+            if ($content === false) {
+                throw new \RuntimeException('Unable to read guide file.');
+            }
+
+            $safeFilename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $filename ?? 'guide.txt');
+            $encodedFilename = rawurlencode($filename ?? 'guide.txt');
+
             $response->getBody()->write($content);
 
             return $response
                 ->withHeader('Content-Type', 'text/plain; charset=utf-8')
-                ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->withHeader('Content-Disposition', 'attachment; filename="' . $safeFilename . '"; filename*=UTF-8\'\'' . $encodedFilename)
                 ->withHeader('Content-Length', (string)strlen($content));
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $_SESSION['flash'][] = [
                 'type' => 'error',
                 'message' => $this->trans('ctp.flash.guide_download_error', ['error' => $e->getMessage()])
