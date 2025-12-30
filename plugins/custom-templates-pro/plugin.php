@@ -90,7 +90,7 @@ class CustomTemplatesProPlugin
     /**
      * Hook: cimaise_init
      */
-    public function onAppInit($db, $pluginManager): void
+    public function onAppInit($db, $_pluginManager): void
     {
         $this->db = $db;
         $this->integrationService = new TemplateIntegrationService($db);
