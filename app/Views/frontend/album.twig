@@ -1266,17 +1266,14 @@ function initDenseGrid(containerOrSelector) {
         // Handle image load event
         const img = item.querySelector('.dense-grid-img');
         if (img) {
-            const spinner = item.querySelector('.dense-loading');
             if (img.complete) {
                 img.classList.add('loaded');
-                if (spinner) spinner.style.display = 'none';
             } else {
                 img.addEventListener('load', function() {
                     img.classList.add('loaded');
-                    if (spinner) spinner.style.display = 'none';
                 });
                 img.addEventListener('error', function() {
-                    if (spinner) spinner.style.display = 'none';
+                    // No-op: allow broken images to settle without spinner
                 });
             }
         }
