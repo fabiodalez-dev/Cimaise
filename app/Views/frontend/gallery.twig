@@ -174,6 +174,7 @@
   {% endif %}
 
   {# Extract unified template settings #}
+  {% set custom_template_twig = template_custom_twig|default('') %}
   {% set tpl_slug = template_settings.template_slug|default('') %}
   {% set layout = template_settings.layout|default('grid') %}
   {% set cols = template_settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
@@ -203,8 +204,14 @@
   {% set shadow_class = style.shadow ? 'shadow-md hover:shadow-xl' : '' %}
   {% set hover_class = style.hover_scale ? 'group-hover:scale-105' : '' %}
 
+  {# Custom gallery template (uploaded) #}
+  {% if custom_template_twig %}
+      <div id="images-gallery" class="pswp-gallery" data-layout="custom">
+          {% include custom_template_twig %}
+      </div>
+
   {# Creative Layout (template 6) #}
-  {% if tpl_slug == 'grid-ampia' %}
+  {% elseif tpl_slug == 'grid-ampia' %}
       {% include 'frontend/_gallery_creative_layout.twig' with { images: images, template_settings: template_settings, album: album, base_path: base_path, site_title: site_title } %}
 
   {# Gallery Wall Scroll layout #}
@@ -673,7 +680,7 @@
       </div>
   {% endif %}
 
-  {% if images|length == 0 %}
+{% if images|length == 0 %}
   <div class="text-center py-20">
       <h2 class="text-2xl font-light text-neutral-600 mb-4">{{ trans('album.empty') }}</h2>
       <p class="text-neutral-500">{{ trans('album.empty_message') }}</p>
@@ -681,6 +688,13 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block styles %}
+{{ parent() }}
+{% if template_custom_css is defined and template_custom_css %}
+{{ template_custom_css|raw }}
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -1291,6 +1305,30 @@ if (layout === 'magazine') {
 }
 
 // Template switcher - aggressive reinitialization handler
+function loadTemplateAssets(assets) {
+    if (!assets) return;
+    const cssList = Array.isArray(assets.css) ? assets.css : [];
+    const jsList = Array.isArray(assets.js) ? assets.js : [];
+
+    cssList.forEach(href => {
+        if (!href || document.querySelector(`link[data-template-asset="${href}"]`)) return;
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        link.setAttribute('data-template-asset', href);
+        document.head.appendChild(link);
+    });
+
+    jsList.forEach(src => {
+        if (!src || document.querySelector(`script[data-template-asset="${src}"]`)) return;
+        const script = document.createElement('script');
+        script.src = src;
+        script.defer = true;
+        script.setAttribute('data-template-asset', src);
+        document.body.appendChild(script);
+    });
+}
+
 document.addEventListener('click', function(event) {
     const el = event.target.closest('.tpl-switch');
     if (!el) return;
@@ -1347,12 +1385,24 @@ document.addEventListener('click', function(event) {
                         window.templateSettings = {};
                     }
                 }
+                const assetsMatch = settingsScript.textContent.match(/window\.templateAssets\s*=\s*(\{[\s\S]*?\});/);
+                if (assetsMatch) {
+                    try {
+                        window.templateAssets = JSON.parse(assetsMatch[1]);
+                    } catch (e) {
+                        console.error('Failed to parse templateAssets:', e);
+                        window.templateAssets = { css: [], js: [] };
+                    }
+                }
                 settingsScript.remove();
             }
             parsedHtml = doc.body ? doc.body.innerHTML : html;
 
+            loadTemplateAssets(window.templateAssets);
+
             const rawLayout = window.templateSettings?.layout || 'grid';
             const templateSlug = window.templateSettings?.template_slug || '';
+            const isCustomTemplate = window.templateSettings?.layout === 'custom';
             const newLayout = templateSlug === 'masonry-portfolio'
                 ? 'masonry_portfolio'
                 : (templateSlug === 'grid-ampia'
@@ -1381,7 +1431,11 @@ document.addEventListener('click', function(event) {
                 document.body.classList.remove('gallery-wall-page');
             }
 
-            if (newLayout === 'dense_grid') {
+            if (isCustomTemplate) {
+                styleEl.textContent = '';
+                galleryContainer.className = 'pswp-gallery';
+                galleryContainer.setAttribute('data-layout', 'custom');
+            } else if (newLayout === 'dense_grid') {
                 const minCell = dense.minCellDesktop || 250;
                 const rowHeight = dense.rowHeight || 200;
                 const gridGap = dense.gap || 10;
@@ -1807,4 +1861,7 @@ window.addEventListener('pageshow', function(event) {
     }
 });
 </script>
+{% if template_custom_js is defined and template_custom_js %}
+{{ template_custom_js|raw }}
+{% endif %}
 {% endblock %}

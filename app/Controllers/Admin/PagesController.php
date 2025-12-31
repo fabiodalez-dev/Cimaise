@@ -285,10 +285,10 @@ class PagesController extends BaseController
             // Default gallery template id (DB-driven layout)
             'gallery.default_template_id' => $svc->get('gallery.default_template_id'),
         ];
-        // Load templates for dropdown (DB)
+        // Load templates for dropdown (core + custom)
         $templates = [];
         try {
-            $templates = $this->db->pdo()->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
+            $templates = (new \App\Services\TemplateService($this->db))->getGalleryTemplatesForDropdown();
         } catch (\Throwable) {
             $templates = [];
         }

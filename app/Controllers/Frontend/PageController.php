@@ -140,6 +140,7 @@ class PageController extends BaseController
     public function home(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
+        $templateService = new \App\Services\TemplateService($this->db);
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
 
@@ -289,6 +290,7 @@ class PageController extends BaseController
         $params = $request->getQueryParams();
         $templateId = isset($params['template']) ? (int)$params['template'] : null;
         $pdo = $this->db->pdo();
+        $templateService = new \App\Services\TemplateService($this->db);
         
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug,
@@ -358,9 +360,7 @@ class PageController extends BaseController
 
         // 1. Check for a valid template ID from the URL
         if ($templateIdFromUrl > 0) {
-            $stmt = $pdo->prepare('SELECT * FROM templates WHERE id = ?');
-            $stmt->execute([$templateIdFromUrl]);
-            $templateFromUrl = $stmt->fetch() ?: null;
+            $templateFromUrl = $templateService->getGalleryTemplateById($templateIdFromUrl);
             if ($templateFromUrl) {
                 $template = $templateFromUrl;
                 $finalTemplateId = $templateIdFromUrl;
@@ -370,16 +370,6 @@ class PageController extends BaseController
         // 2. If no valid URL template, use the one assigned to the album
         if ($finalTemplateId === null && !empty($album['template_id'])) {
             $finalTemplateId = (int)$album['template_id'];
-            // The template data might already be joined in the main album query
-            if (!empty($album['template_name'])) {
-                $template = [
-                    'id' => $album['template_id'],
-                    'name' => $album['template_name'],
-                    'slug' => $album['template_slug'],
-                    'settings' => $album['template_settings'],
-                    'libs' => $album['template_libs'],
-                ];
-            }
         }
 
         // 3. If still no template, use the site-wide default
@@ -393,14 +383,14 @@ class PageController extends BaseController
 
         // 4. Fetch the template data if we have an ID but no data yet
         if ($finalTemplateId > 0 && $template === null) {
-            $stmt = $pdo->prepare('SELECT * FROM templates WHERE id = ?');
-            $stmt->execute([$finalTemplateId]);
-            $template = $stmt->fetch() ?: null;
+            $template = $templateService->getGalleryTemplateById($finalTemplateId);
         }
 
         // 5. Decode settings or use a fallback
         if ($template && !empty($template['settings'])) {
-            $templateSettings = json_decode($template['settings'], true) ?: [];
+            $templateSettings = is_array($template['settings'])
+                ? $template['settings']
+                : (json_decode($template['settings'], true) ?: []);
         } else {
             // Final fallback to a basic grid if no template could be resolved at all
             $template = [
@@ -412,6 +402,9 @@ class PageController extends BaseController
         }
         $templateSettings = $this->normalizeTemplateSettings($templateSettings);
         $templateSettings['template_slug'] = $template['slug'] ?? '';
+        if (!empty($template['is_custom'])) {
+            $templateSettings['layout'] = 'custom';
+        }
 
         // Normalize settings
         $templateSettings = $this->normalizeTemplateSettings($templateSettings);
@@ -610,7 +603,14 @@ class PageController extends BaseController
         // Get template libraries from the resolved template
         $templateLibs = [];
         if ($template && !empty($template['libs'])) {
-            $templateLibs = json_decode($template['libs'], true) ?: [];
+            $rawLibs = $template['libs'];
+            if (is_array($rawLibs)) {
+                $templateLibs = $rawLibs;
+            } elseif ($rawLibs instanceof \Traversable) {
+                $templateLibs = iterator_to_array($rawLibs, false);
+            } elseif (is_string($rawLibs)) {
+                $templateLibs = json_decode($rawLibs, true) ?: [];
+            }
         }
         
         // Categories for header menu
@@ -801,10 +801,22 @@ class PageController extends BaseController
         $availableTemplates = [];
         if (!empty($album['allow_template_switch'])) {
             try {
-                $list = $pdo->query('SELECT id, name, slug, settings FROM templates ORDER BY name ASC')->fetchAll() ?: [];
-                foreach ($list as &$tpl) { $tpl['settings'] = json_decode($tpl['settings'] ?? '{}', true) ?: []; }
-                $availableTemplates = $list;
+                $availableTemplates = $templateService->getGalleryTemplates();
             } catch (\Throwable) { $availableTemplates = []; }
+        }
+
+        $templateCustomCss = '';
+        $templateCustomJs = '';
+        $templateCustomTwig = '';
+        if (!empty($template['is_custom']) && !empty($template['custom_id'])) {
+            $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
+            $templateCustomCss = $integration->loadTemplateCSS((int)$template['id'], $this->basePath);
+            $templateCustomJs = $integration->loadTemplateJS((int)$template['id'], $this->basePath);
+            $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
+            if ($metadata && !empty($metadata['twig_path'])) {
+                $twigPath = preg_replace('~^uploads/galleries/+~', '', (string)$metadata['twig_path']);
+                $templateCustomTwig = ltrim((string)$twigPath, '/');
+            }
         }
 
         // Choose page template (classic, hero, magazine)
@@ -911,6 +923,9 @@ class PageController extends BaseController
             'allow_downloads' => !empty($album['allow_downloads']),
             'album_custom_fields' => $albumCustomFields,
             'home_masonry_settings' => $homeMasonry,
+            'template_custom_css' => $templateCustomCss,
+            'template_custom_js' => $templateCustomJs,
+            'template_custom_twig' => $templateCustomTwig,
         ]);
     }
 

@@ -4,14 +4,17 @@ declare(strict_types=1);
 namespace CustomTemplatesPro\Services;
 
 use App\Support\Database;
+use PDO;
 
 class TemplateIntegrationService
 {
     private string $pluginDir;
+    private PDO $pdo;
 
-    public function __construct(private Database $db)
+    public function __construct(Database|PDO $db)
     {
         $this->pluginDir = dirname(__DIR__);
+        $this->pdo = $db instanceof Database ? $db->pdo() : $db;
     }
 
     /**
@@ -19,7 +22,7 @@ class TemplateIntegrationService
      */
     public function getActiveTemplatesByType(string $type): array
     {
-        $stmt = $this->db->pdo()->prepare(
+        $stmt = $this->pdo->prepare(
             'SELECT * FROM custom_templates WHERE type = :type AND is_active = 1 ORDER BY name ASC'
         );
         $stmt->execute([':type' => $type]);
@@ -113,7 +116,7 @@ class TemplateIntegrationService
         // Rimuovi offset se presente
         $customId = $templateId >= 1000 ? $templateId - 1000 : $templateId;
 
-        $stmt = $this->db->pdo()->prepare(
+        $stmt = $this->pdo->prepare(
             'SELECT twig_path FROM custom_templates WHERE id = :id AND type = :type AND is_active = 1'
         );
         $stmt->execute([':id' => $customId, ':type' => 'gallery']);
@@ -129,7 +132,7 @@ class TemplateIntegrationService
     {
         $customId = $templateId >= 1000 ? $templateId - 1000 : $templateId;
 
-        $stmt = $this->db->pdo()->prepare(
+        $stmt = $this->pdo->prepare(
             'SELECT css_paths FROM custom_templates WHERE id = :id AND is_active = 1'
         );
         $stmt->execute([':id' => $customId]);
@@ -159,7 +162,7 @@ class TemplateIntegrationService
     {
         $customId = $templateId >= 1000 ? $templateId - 1000 : $templateId;
 
-        $stmt = $this->db->pdo()->prepare(
+        $stmt = $this->pdo->prepare(
             'SELECT js_paths FROM custom_templates WHERE id = :id AND is_active = 1'
         );
         $stmt->execute([':id' => $customId]);
@@ -208,7 +211,7 @@ class TemplateIntegrationService
      */
     public function getTemplateMetadata(int $customId): ?array
     {
-        $stmt = $this->db->pdo()->prepare(
+        $stmt = $this->pdo->prepare(
             'SELECT * FROM custom_templates WHERE id = :id'
         );
         $stmt->execute([':id' => $customId]);

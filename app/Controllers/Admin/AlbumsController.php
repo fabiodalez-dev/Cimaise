@@ -73,10 +73,10 @@ class AlbumsController extends BaseController
         $cats = $pdo->query('SELECT id, name, slug FROM categories ORDER BY COALESCE(parent_id, 0), sort_order, name')->fetchAll();
         $tags = $pdo->query('SELECT id, name FROM tags ORDER BY name')->fetchAll();
         
-        // Load templates if table exists
+        // Load templates if table exists (core + custom)
         $templates = [];
         try {
-            $templates = $pdo->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
+            $templates = (new \App\Services\TemplateService($this->db))->getGalleryTemplatesForDropdown();
         } catch (\Throwable $e) {
             // Templates table doesn't exist yet, continue without templates
         }
@@ -347,10 +347,10 @@ class AlbumsController extends BaseController
         $cats = $pdo->query('SELECT id, name FROM categories ORDER BY COALESCE(parent_id, 0), sort_order, name')->fetchAll();
         $tags = $pdo->query('SELECT id, name FROM tags ORDER BY name')->fetchAll();
         
-        // Load templates if table exists
+        // Load templates if table exists (core + custom)
         $templates = [];
         try {
-            $templates = $pdo->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
+            $templates = (new \App\Services\TemplateService($this->db))->getGalleryTemplatesForDropdown();
         } catch (\Throwable $e) {
             // Templates table doesn't exist yet, continue without templates
         }

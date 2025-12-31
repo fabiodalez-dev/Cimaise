@@ -6,23 +6,23 @@
 
 declare(strict_types=1);
 
-echo "Installing Cimaise Analytics Pro...\n";
+use App\Support\Database;
 
-// Le tabelle vengono create automaticamente dalla classe AnalyticsPro
-// al primo utilizzo tramite il metodo ensureTables()
+return function (Database $db): array {
+    try {
+        if (!$db->pdo()) {
+            return [
+                'success' => false,
+                'message' => 'Database connection not available'
+            ];
+        }
 
-// Qui possiamo aggiungere dati iniziali o configurazioni
+        // Default funnels (compatible with both SQLite and MySQL)
+        $insertSql = $db->isSqlite()
+            ? 'INSERT OR IGNORE INTO analytics_pro_funnels (name, description, steps, is_active) VALUES (?, ?, ?, 1)'
+            : 'INSERT IGNORE INTO analytics_pro_funnels (name, description, steps, is_active) VALUES (?, ?, ?, 1)';
 
-try {
-    // Esempio: Crea un funnel predefinito
-    $db = \App\Support\Database::getInstance();
-
-    if ($db && $db->pdo()) {
-        // Crea funnel di esempio
-        $stmt = $db->pdo()->prepare("
-            INSERT OR IGNORE INTO analytics_pro_funnels (name, description, steps, is_active)
-            VALUES (?, ?, ?, 1)
-        ");
+        $stmt = $db->pdo()->prepare($insertSql);
 
         $defaultFunnels = [
             [
@@ -45,14 +45,15 @@ try {
         foreach ($defaultFunnels as $funnel) {
             $stmt->execute([$funnel['name'], $funnel['description'], $funnel['steps']]);
         }
+
+        return [
+            'success' => true,
+            'message' => 'Cimaise Analytics Pro installed successfully'
+        ];
+    } catch (\Throwable $e) {
+        return [
+            'success' => false,
+            'message' => 'Installation warning: ' . $e->getMessage()
+        ];
     }
-
-    echo "✓ Cimaise Analytics Pro installed successfully!\n";
-    echo "  - Database tables created\n";
-    echo "  - Default funnels configured\n";
-    echo "  - Plugin ready to use\n";
-
-} catch (\Throwable $e) {
-    echo "⚠ Warning during installation: " . $e->getMessage() . "\n";
-    echo "  Plugin will still work, but some features may need manual setup.\n";
-}
+};
