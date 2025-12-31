@@ -85,6 +85,7 @@ class GalleryController extends BaseController
         $templateId = isset($params['template']) ? (int)$params['template'] : null;
 
         $pdo = $this->db->pdo();
+        $templateService = new \App\Services\TemplateService($this->db);
 
         // Resolve album (published only)
         if ($albumParam !== null) {
@@ -155,16 +156,9 @@ class GalleryController extends BaseController
             if ($defaultTemplateId) {
                 // Use the predefined template from settings
                 $templateId = (int)$defaultTemplateId;
-                $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
-                $tplStmt->execute([':id' => $templateId]);
-                $template = $tplStmt->fetch();
-                
+                $template = $templateService->getGalleryTemplateById($templateId);
                 if ($template) {
-                    $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
-                } else {
-                    // No template found, use basic grid fallback
-                    $template = ['name' => 'Simple Grid', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
-                    $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
+                    $templateSettings = $template['settings'] ?? [];
                 }
             } else {
                 // No default template set, use basic grid fallback
@@ -172,20 +166,25 @@ class GalleryController extends BaseController
                 $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
             }
         } else {
-            $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
-            $tplStmt->execute([':id' => $templateId]);
-            $template = $tplStmt->fetch();
+            $template = $templateService->getGalleryTemplateById($templateId);
             if (!$template) {
                 // Fallback to basic grid
                 $template = ['name' => 'Simple Grid', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
                 $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
             } else {
-                $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+                $templateSettings = $template['settings'] ?? [];
             }
+        }
+        if (!$template) {
+            $template = ['name' => 'Simple Grid', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
+            $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
         }
         // Normalize settings and align Magazine Split behavior with AJAX switcher
         $templateSettings = $this->applyTemplateOverrides($template, $templateSettings);
         $templateSettings['template_slug'] = $template['slug'] ?? '';
+        if (!empty($template['is_custom'])) {
+            $templateSettings['layout'] = 'custom';
+        }
 
         // Tags
         $tagsStmt = $pdo->prepare('SELECT t.* FROM tags t JOIN album_tag at ON at.tag_id = t.id WHERE at.album_id = :id ORDER BY t.name ASC');
@@ -475,11 +474,7 @@ class GalleryController extends BaseController
         $list = [];
         if (!empty($album['allow_template_switch'])) {
             try {
-                $list = $pdo->query('SELECT id, name, slug, settings, libs FROM templates ORDER BY name ASC')->fetchAll() ?: [];
-                foreach ($list as &$tpl) {
-                    $tpl['settings'] = json_decode($tpl['settings'] ?? '{}', true) ?: [];
-                    $tpl['libs'] = json_decode($tpl['libs'] ?? '[]', true) ?: [];
-                }
+                $list = $templateService->getGalleryTemplates();
             } catch (\Throwable) { $list = []; }
         }
 
@@ -569,6 +564,20 @@ class GalleryController extends BaseController
             'layout_mode' => (string)($homeSvc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'),
         ];
 
+        $templateCustomCss = '';
+        $templateCustomJs = '';
+        $templateCustomTwig = '';
+        if (!empty($template['is_custom']) && !empty($template['custom_id'])) {
+            $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
+            $templateCustomCss = $integration->loadTemplateCSS((int)$template['id'], $this->basePath);
+            $templateCustomJs = $integration->loadTemplateJS((int)$template['id'], $this->basePath);
+            $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
+            if ($metadata && !empty($metadata['twig_path'])) {
+                $twigPath = preg_replace('~^uploads/galleries/+~', '', (string)$metadata['twig_path']);
+                $templateCustomTwig = ltrim((string)$twigPath, '/');
+            }
+        }
+
         return $this->view->render($response, 'frontend/gallery.twig', [
             'album' => $galleryMeta,
             'images' => $images,
@@ -592,6 +601,9 @@ class GalleryController extends BaseController
             'allow_downloads' => !empty($album['allow_downloads']),
             'album_custom_fields' => $albumCustomFields,
             'home_masonry_settings' => $homeMasonry,
+            'template_custom_css' => $templateCustomCss,
+            'template_custom_js' => $templateCustomJs,
+            'template_custom_twig' => $templateCustomTwig,
         ]);
     }
 
@@ -647,18 +659,20 @@ class GalleryController extends BaseController
                 return $response->withStatus(403);
             }
 
-            // Load template
-            $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
-            $tplStmt->execute([':id' => $templateId]);
-            $template = $tplStmt->fetch();
+            // Load template (core or custom)
+            $templateService = new \App\Services\TemplateService($this->db);
+            $template = $templateService->getGalleryTemplateById($templateId);
             if (!$template) {
                 $response->getBody()->write('Template not found');
                 return $response->withStatus(404);
             }
-            
-            $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+
+            $templateSettings = $template['settings'] ?? [];
             $templateSettings = $this->applyTemplateOverrides($template, $templateSettings);
             $templateSettings['template_slug'] = $template['slug'] ?? '';
+            if (!empty($template['is_custom'])) {
+                $templateSettings['layout'] = 'custom';
+            }
 
             // Load album-level equipment for fallback when images don't have per-image metadata
             $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
@@ -911,10 +925,35 @@ class GalleryController extends BaseController
                 'album' => $album
             ];
 
-            // Use Magazine template for magazine-split slug or layout 'magazine'
-            if (($template['slug'] ?? '') === 'magazine-split' || ($templateSettings['layout'] ?? '') === 'magazine') {
-                $templateFile = 'frontend/_gallery_magazine_content.twig';
-                $templateData['album'] = $album; // Magazine template needs album data
+            $templateAssets = [
+                'css' => [],
+                'js' => [],
+            ];
+
+            // Custom gallery templates: render uploaded twig and expose assets
+            if (!empty($template['is_custom']) && !empty($template['custom_id'])) {
+                $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
+                $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
+                if ($metadata) {
+                    $twigPath = (string)($metadata['twig_path'] ?? '');
+                    $twigPath = preg_replace('~^uploads/galleries/+~', '', $twigPath);
+                    $templateFile = ltrim($twigPath, '/');
+
+                    $templateAssets['css'] = array_map(
+                        fn($path) => rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/'),
+                        (array)($metadata['css_paths'] ?? [])
+                    );
+                    $templateAssets['js'] = array_map(
+                        fn($path) => rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/'),
+                        (array)($metadata['js_paths'] ?? [])
+                    );
+                }
+            } else {
+                // Use Magazine template for magazine-split slug or layout 'magazine'
+                if (($template['slug'] ?? '') === 'magazine-split' || ($templateSettings['layout'] ?? '') === 'magazine') {
+                    $templateFile = 'frontend/_gallery_magazine_content.twig';
+                    $templateData['album'] = $album; // Magazine template needs album data
+                }
             }
 
             // Render the template
@@ -923,7 +962,8 @@ class GalleryController extends BaseController
             // Prepend template settings as script tag for client-side parsing
             // The template switcher parses this to update window.templateSettings
             $settingsJson = json_encode($templateSettings, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            $settingsScript = "<script>window.templateSettings = {$settingsJson};</script>\n";
+            $assetsJson = json_encode($templateAssets, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $settingsScript = "<script>window.templateSettings = {$settingsJson}; window.templateAssets = {$assetsJson};</script>\n";
 
             $response->getBody()->write($settingsScript . $renderedHtml);
             return $response->withHeader('Content-Type', 'text/html; charset=utf-8');

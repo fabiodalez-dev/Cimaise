@@ -494,6 +494,32 @@ CREATE TABLE IF NOT EXISTS `analytics_settings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
+-- CUSTOM TEMPLATES (Plugin)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `custom_templates` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `type` VARCHAR(50) NOT NULL,
+  `name` VARCHAR(190) NOT NULL,
+  `slug` VARCHAR(190) NOT NULL,
+  `description` TEXT NULL,
+  `version` VARCHAR(50) NOT NULL,
+  `author` VARCHAR(190) NULL,
+  `metadata` LONGTEXT NULL,
+  `twig_path` VARCHAR(255) NOT NULL,
+  `css_paths` LONGTEXT NULL,
+  `js_paths` LONGTEXT NULL,
+  `preview_path` VARCHAR(255) NULL,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `installed_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_custom_templates_slug` (`slug`),
+  KEY `idx_custom_templates_type` (`type`),
+  KEY `idx_custom_templates_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- PLUGIN STATUS TABLE
 -- ============================================
 
@@ -512,6 +538,111 @@ CREATE TABLE IF NOT EXISTS `plugin_status` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_plugin_status_slug` (`slug`),
   KEY `idx_plugin_status_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- PLUGIN TABLES
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `plugin_analytics_custom_events` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `session_id` VARCHAR(64) NULL,
+  `event_type` VARCHAR(50) NOT NULL,
+  `event_category` VARCHAR(100) NULL,
+  `event_action` VARCHAR(100) NULL,
+  `event_label` VARCHAR(255) NULL,
+  `event_value` INT NULL,
+  `user_id` BIGINT UNSIGNED NULL,
+  `metadata` TEXT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_plugin_analytics_session` (`session_id`),
+  KEY `idx_plugin_analytics_type` (`event_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `plugin_image_ratings` (
+  `image_id` BIGINT UNSIGNED NOT NULL,
+  `rating` TINYINT UNSIGNED NOT NULL,
+  `rated_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `rated_by` BIGINT UNSIGNED NULL,
+  PRIMARY KEY (`image_id`),
+  CONSTRAINT `fk_plugin_image_ratings_image`
+    FOREIGN KEY (`image_id`) REFERENCES `images`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- ANALYTICS PRO TABLES (Plugin)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `analytics_pro_events` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `event_name` VARCHAR(120) NOT NULL,
+  `category` VARCHAR(120) NULL,
+  `action` VARCHAR(120) NULL,
+  `label` VARCHAR(255) NULL,
+  `value` INT NULL,
+  `user_id` BIGINT UNSIGNED NULL,
+  `session_id` VARCHAR(64) NULL,
+  `ip_address` VARCHAR(45) NULL,
+  `user_agent` TEXT NULL,
+  `referrer` TEXT NULL,
+  `device_type` VARCHAR(50) NULL,
+  `browser` VARCHAR(50) NULL,
+  `country` VARCHAR(80) NULL,
+  `metadata` TEXT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_analytics_pro_event_name` (`event_name`),
+  KEY `idx_analytics_pro_category` (`category`),
+  KEY `idx_analytics_pro_created_at` (`created_at`),
+  KEY `idx_analytics_pro_user_id` (`user_id`),
+  KEY `idx_analytics_pro_session_id` (`session_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `analytics_pro_sessions` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `session_id` VARCHAR(64) NOT NULL,
+  `user_id` BIGINT UNSIGNED NULL,
+  `ip_address` VARCHAR(45) NULL,
+  `user_agent` TEXT NULL,
+  `device_type` VARCHAR(50) NULL,
+  `browser` VARCHAR(50) NULL,
+  `country` VARCHAR(80) NULL,
+  `started_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `last_activity` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `ended_at` DATETIME NULL,
+  `duration` INT DEFAULT 0,
+  `pageviews` INT DEFAULT 0,
+  `events_count` INT DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_analytics_pro_session_id` (`session_id`),
+  KEY `idx_analytics_pro_user_id` (`user_id`),
+  KEY `idx_analytics_pro_started_at` (`started_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `analytics_pro_funnels` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(190) NOT NULL,
+  `description` TEXT NULL,
+  `steps` TEXT NOT NULL,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `analytics_pro_dimensions` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `event_id` INT UNSIGNED NOT NULL,
+  `dimension_name` VARCHAR(120) NOT NULL,
+  `dimension_value` TEXT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_analytics_pro_event_id` (`event_id`),
+  KEY `idx_analytics_pro_dimension_name` (`dimension_name`),
+  CONSTRAINT `fk_analytics_pro_dimensions_event`
+    FOREIGN KEY (`event_id`) REFERENCES `analytics_pro_events` (`id`)
+    ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -696,6 +827,11 @@ INSERT INTO `settings` (`key`, `value`, `type`) VALUES
 ('seo.lazy_load_images', 'true', 'boolean'),
 ('seo.structured_data_format', 'json-ld', 'string'),
 ('lightbox.show_exif', 'true', 'boolean'),
+('maintenance.enabled', 'false', 'boolean'),
+('maintenance.title', '', 'string'),
+('maintenance.message', 'We are currently working on some improvements. Please check back soon!', 'string'),
+('maintenance.show_logo', 'true', 'boolean'),
+('maintenance.show_countdown', 'true', 'boolean'),
 ('recaptcha.enabled', 'false', 'boolean'),
 ('recaptcha.site_key', '', 'string'),
 ('recaptcha.secret_key', '', 'string'),
@@ -732,6 +868,28 @@ INSERT INTO `analytics_settings` (`setting_key`, `setting_value`, `description`)
 ('bot_detection_enabled', 'true', 'Filter out bot traffic'),
 ('session_timeout_minutes', '30', 'Session timeout in minutes'),
 ('export_enabled', 'true', 'Allow data export functionality');
+
+-- Default plugin status (pre-installed plugins)
+INSERT IGNORE INTO `plugin_status` (`slug`, `name`, `version`, `description`, `author`, `path`, `is_active`, `is_installed`)
+VALUES
+('analytics-logger', 'Analytics Logger', '1.0.0', 'Advanced analytics logging with custom events and detailed tracking', 'Cimaise Team', 'plugins/analytics-logger', 1, 1),
+('cimaise-analytics-pro', 'Cimaise Analytics Pro', '1.0.0', 'Sistema di analytics professionale con tracking avanzato, dashboard interattiva, report personalizzabili, funnel analysis, heatmap, export dati e real-time monitoring per Cimaise', 'Cimaise Team', 'plugins/cimaise-analytics-pro', 1, 1),
+('custom-templates-pro', 'Custom Templates Pro', '1.0.0', 'Carica template personalizzati per gallerie, album e homepage con guide complete per LLM', 'Cimaise Team', 'plugins/custom-templates-pro', 1, 1),
+('hello-cimaise', 'Hello Cimaise', '1.0.0', 'Simple example plugin demonstrating the hooks system', 'Cimaise Team', 'plugins/hello-cimaise', 1, 1),
+('image-rating', 'Image Rating', '1.0.0', 'Add star rating system to images (1-5 stars) with sorting and filtering', 'Cimaise Team', 'plugins/image-rating', 1, 1),
+('maintenance-mode', 'Maintenance Mode', '1.0.0', 'Put your site under construction with a beautiful maintenance page. Only admins can access the site.', 'Cimaise Team', 'plugins/maintenance-mode', 1, 1);
+
+-- Default custom templates (plugin)
+INSERT IGNORE INTO `custom_templates`
+(`id`, `type`, `name`, `slug`, `description`, `version`, `author`, `metadata`, `twig_path`, `css_paths`, `js_paths`, `preview_path`, `is_active`)
+VALUES
+(1, 'gallery', 'Polaroid Gallery', 'polaroid-gallery', 'Griglia fotografica con effetto polaroid e rotazioni casuali', '1.0.0', 'Cimaise Team',
+ '{"type":"gallery","name":"Polaroid Gallery","slug":"polaroid-gallery","description":"Griglia fotografica con effetto polaroid e rotazioni casuali","version":"1.0.0","author":"Cimaise Team","requires":{"cimaise":">=1.0.0"},"settings":{"layout":"grid","columns":{"desktop":4,"tablet":3,"mobile":2},"gap":30,"aspect_ratio":"1:1","style":["shadow","hover_scale"]},"libraries":{"masonry":false,"photoswipe":true},"assets":{"css":["styles.css"]}}',
+ 'uploads/galleries/polaroid-gallery/template.twig',
+ '["uploads/galleries/polaroid-gallery/styles.css"]',
+ NULL,
+ NULL,
+ 1);
 
 -- ============================================
 -- FRONTEND TEXTS TABLE (Translation System)

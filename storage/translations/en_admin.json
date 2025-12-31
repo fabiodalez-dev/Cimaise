@@ -1041,6 +1041,7 @@
     "admin.flash.template_created": "Template created",
     "admin.flash.template_deleted": "Template deleted",
     "admin.flash.template_not_found": "Template not found",
+    "admin.flash.templates_custom_edit": "Custom templates are managed in the Custom Templates section.",
     "admin.flash.template_updated": "Template updated",
     "admin.flash.templates_disabled": "Creating new templates is disabled. You can only edit existing templates.",
     "admin.flash.text_created": "Text created successfully",
