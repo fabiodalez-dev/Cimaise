@@ -17,6 +17,7 @@ REQUISITI TECNICI:
 - JavaScript: Vanilla JS o librerie leggere
 - CSP: script con nonce="{{ csp_nonce() }}"
 - SEO: Schema.org CollectionPage
+- Dark mode: includi override per html.dark oppure dichiara in README che il template è solo light
 
 STRUTTURA FILE ZIP:
 
