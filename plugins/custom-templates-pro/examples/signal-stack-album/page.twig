@@ -3,7 +3,7 @@
 
 <article class="ss-album" style="--ss-gap: {{ gap }}px; --ss-cols-mobile: {{ cols.mobile }}; --ss-cols-tablet: {{ cols.tablet }}; --ss-cols-desktop: {{ cols.desktop }};">
   <header class="ss-hero">
-    <p class="ss-kicker">{{ album.category_name|default('Album')|e }}</p>
+    <p class="ss-kicker">{{ album.category_name|default(plugin_trans('template.default_category'))|e }}</p>
     <h1 class="ss-title">{{ album.title|e }}</h1>
     {% if album.excerpt %}
     <p class="ss-excerpt">{{ album.excerpt|e }}</p>
@@ -14,7 +14,7 @@
       {% endif %}
       {% if images|length %}
       {% if album.shoot_date %}<span class="ss-dot">•</span>{% endif %}
-      <span>{{ images|length }} photos</span>
+      <span>{{ images|length }} {{ plugin_trans('template.photos') }}</span>
       {% endif %}
     </div>
   </header>

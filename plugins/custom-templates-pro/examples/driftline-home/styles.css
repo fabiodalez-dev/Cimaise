@@ -1,6 +1,6 @@
 :root {
   --dl-ink: #0e0f12;
-  --dl-muted: #666a74;
+  --dl-muted: #5b5f69;
   --dl-paper: #f8f7f5;
   --dl-glow: rgba(14, 15, 18, 0.08);
 }
@@ -70,19 +70,22 @@
   }
 }
 
-.dl-chip {
-  background: #fff;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 10px 22px var(--dl-glow);
+.dl-reveal {
   opacity: 0;
   transform: translateY(18px);
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
-.dl-chip.is-visible {
+.dl-reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+.dl-chip {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 22px var(--dl-glow);
 }
 
 .dl-chip img {
@@ -123,14 +126,6 @@
   border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 12px 26px var(--dl-glow);
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-}
-
-.dl-card.is-visible {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .dl-card img {

@@ -149,6 +149,9 @@
     "ctp.flash.guide_download_error": "Errore durante il download della guida: {error}",
     "ctp.uninstall.success": "Custom Templates Pro disinstallato con successo. Tutti i dati sono stati rimossi.",
     "ctp.uninstall.error": "Errore durante la disinstallazione: {error}",
-    "ctp.date_format": "d/m/Y"
+    "ctp.date_format": "d/m/Y",
+    "template.default_category": "Album",
+    "template.photos": "foto",
+    "templates.driftline_home.albums_title": "Ultimi album"
   }
 }
