@@ -19,6 +19,7 @@ REQUISITI TECNICI:
 - Responsive: mobile-first
 - Formato immagini: AVIF, WebP, JPG (con fallback automatico)
 - CSP: tutti gli script inline devono usare nonce="{{ csp_nonce() }}"
+- Dark mode: includi override per html.dark oppure dichiara in README che il template è solo light
 
 STRUTTURA FILE ZIP RICHIESTA:
 
