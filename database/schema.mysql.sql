@@ -128,6 +128,32 @@ CREATE TABLE IF NOT EXISTS `labs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
+-- CUSTOM TEMPLATES (Plugin)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `custom_templates` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `type` VARCHAR(50) NOT NULL,
+  `name` VARCHAR(190) NOT NULL,
+  `slug` VARCHAR(190) NOT NULL,
+  `description` TEXT NULL,
+  `version` VARCHAR(50) NOT NULL,
+  `author` VARCHAR(190) NULL,
+  `metadata` LONGTEXT NULL,
+  `twig_path` VARCHAR(255) NOT NULL,
+  `css_paths` LONGTEXT NULL,
+  `js_paths` LONGTEXT NULL,
+  `preview_path` VARCHAR(255) NULL,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `installed_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_custom_templates_slug` (`slug`),
+  KEY `idx_custom_templates_type` (`type`),
+  KEY `idx_custom_templates_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- ALBUMS TABLE
 -- ============================================
 
@@ -499,32 +525,6 @@ CREATE TABLE IF NOT EXISTS `analytics_settings` (
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_analytics_settings_key` (`setting_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- CUSTOM TEMPLATES (Plugin)
--- ============================================
-
-CREATE TABLE IF NOT EXISTS `custom_templates` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `type` VARCHAR(50) NOT NULL,
-  `name` VARCHAR(190) NOT NULL,
-  `slug` VARCHAR(190) NOT NULL,
-  `description` TEXT NULL,
-  `version` VARCHAR(50) NOT NULL,
-  `author` VARCHAR(190) NULL,
-  `metadata` LONGTEXT NULL,
-  `twig_path` VARCHAR(255) NOT NULL,
-  `css_paths` LONGTEXT NULL,
-  `js_paths` LONGTEXT NULL,
-  `preview_path` VARCHAR(255) NULL,
-  `is_active` TINYINT(1) DEFAULT 1,
-  `installed_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_custom_templates_slug` (`slug`),
-  KEY `idx_custom_templates_type` (`type`),
-  KEY `idx_custom_templates_active` (`is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
