@@ -19,6 +19,7 @@ TECHNICAL REQUIREMENTS:
 - SEO: Schema.org, Open Graph
 - CSP: scripts with nonce="{{ csp_nonce() }}"
 - Dark mode: include html.dark overrides or explicitly mark the template as light-only in README
+- Backgrounds: keep gallery/page backgrounds transparent so the site theme controls them
 
 ZIP FILE STRUCTURE:
 

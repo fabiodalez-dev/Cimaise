@@ -74,6 +74,32 @@ CREATE TABLE IF NOT EXISTS templates (
 CREATE INDEX IF NOT EXISTS idx_templates_slug ON templates(slug);
 
 -- ============================================
+-- CUSTOM TEMPLATES (Plugin)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS custom_templates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  description TEXT,
+  version TEXT NOT NULL,
+  author TEXT,
+  metadata TEXT,
+  twig_path TEXT NOT NULL,
+  css_paths TEXT,
+  js_paths TEXT,
+  preview_path TEXT,
+  is_active INTEGER DEFAULT 1,
+  installed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_custom_templates_type ON custom_templates(type);
+CREATE INDEX IF NOT EXISTS idx_custom_templates_slug ON custom_templates(slug);
+CREATE INDEX IF NOT EXISTS idx_custom_templates_active ON custom_templates(is_active);
+
+-- ============================================
 -- EQUIPMENT LOOKUP TABLES
 -- ============================================
 
@@ -511,32 +537,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_frontend_texts_key ON frontend_texts(text_
 CREATE INDEX IF NOT EXISTS idx_frontend_texts_context ON frontend_texts(context);
 
 -- ============================================
--- CUSTOM TEMPLATES (Plugin)
--- ============================================
-
-CREATE TABLE IF NOT EXISTS custom_templates (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  type TEXT NOT NULL,
-  name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  description TEXT,
-  version TEXT NOT NULL,
-  author TEXT,
-  metadata TEXT,
-  twig_path TEXT NOT NULL,
-  css_paths TEXT,
-  js_paths TEXT,
-  preview_path TEXT,
-  is_active INTEGER DEFAULT 1,
-  installed_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_custom_templates_type ON custom_templates(type);
-CREATE INDEX IF NOT EXISTS idx_custom_templates_slug ON custom_templates(slug);
-CREATE INDEX IF NOT EXISTS idx_custom_templates_active ON custom_templates(is_active);
-
--- ============================================
 -- PLUGIN STATUS TABLE
 -- ============================================
 
@@ -837,7 +837,7 @@ INSERT INTO settings (key, value, type) VALUES
 ('lightbox.show_exif', 'true', 'boolean'),
 ('maintenance.enabled', 'false', 'boolean'),
 ('maintenance.title', '', 'string'),
-('maintenance.message', 'We are currently working on some improvements. Please check back soon!', 'string'),
+('maintenance.message', 'Stiamo lavorando ad alcuni miglioramenti. Torna a trovarci presto!', 'string'),
 ('maintenance.show_logo', 'true', 'boolean'),
 ('maintenance.show_countdown', 'true', 'boolean'),
 ('recaptcha.enabled', 'false', 'boolean'),

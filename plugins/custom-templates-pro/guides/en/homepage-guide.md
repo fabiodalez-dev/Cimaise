@@ -18,6 +18,7 @@ TECHNICAL REQUIREMENTS:
 - CSP: scripts with nonce="{{ csp_nonce() }}"
 - SEO: Schema.org CollectionPage
 - Dark mode: include html.dark overrides or explicitly mark the template as light-only in README
+- Backgrounds: keep sections transparent so the site theme controls page backgrounds
 
 ZIP FILE STRUCTURE:
 

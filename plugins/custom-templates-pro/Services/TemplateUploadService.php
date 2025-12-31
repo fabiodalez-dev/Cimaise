@@ -522,13 +522,18 @@ class TemplateUploadService
         $templateFile = $this->getMainTemplateFile($type);
         $relativePath = str_replace($this->pluginDir . '/', '', $extractPath);
 
-        $cssPaths = isset($metadata['assets']['css'])
-            ? json_encode(array_map(fn($f) => $relativePath . '/' . $f, $metadata['assets']['css']))
-            : null;
+        try {
+            $cssPaths = isset($metadata['assets']['css'])
+                ? json_encode(array_map(fn($f) => $relativePath . '/' . $f, $metadata['assets']['css']), JSON_THROW_ON_ERROR)
+                : null;
 
-        $jsPaths = isset($metadata['assets']['js'])
-            ? json_encode(array_map(fn($f) => $relativePath . '/' . $f, $metadata['assets']['js']))
-            : null;
+            $jsPaths = isset($metadata['assets']['js'])
+                ? json_encode(array_map(fn($f) => $relativePath . '/' . $f, $metadata['assets']['js']), JSON_THROW_ON_ERROR)
+                : null;
+        } catch (\JsonException) {
+            $this->validator->addError('Errore encoding metadata template');
+            return null;
+        }
 
         $previewPath = null;
         if (file_exists($extractPath . '/preview.jpg')) {
@@ -550,6 +555,13 @@ class TemplateUploadService
 
         $stmt = $this->db->pdo()->prepare($sql);
 
+        try {
+            $encodedMetadata = json_encode($metadata, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            $this->validator->addError('Errore encoding metadata template');
+            return null;
+        }
+
         $result = $stmt->execute([
             ':type' => $type,
             ':name' => $metadata['name'],
@@ -557,7 +569,7 @@ class TemplateUploadService
             ':description' => $metadata['description'] ?? null,
             ':version' => $metadata['version'],
             ':author' => $metadata['author'] ?? null,
-            ':metadata' => json_encode($metadata),
+            ':metadata' => $encodedMetadata,
             ':twig_path' => $relativePath . '/' . $templateFile,
             ':css_paths' => $cssPaths,
             ':js_paths' => $jsPaths,
