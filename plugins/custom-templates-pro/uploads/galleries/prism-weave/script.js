@@ -1,3 +1,4 @@
+// NOTE: Keep this file in sync with examples/prism-weave-gallery/script.js.
 (function() {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const tiles = document.querySelectorAll('.pw-tile[data-reveal]');
