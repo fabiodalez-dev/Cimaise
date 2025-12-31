@@ -17,6 +17,7 @@ TECHNICAL REQUIREMENTS:
 - JavaScript: Vanilla JS or lightweight libraries
 - CSP: scripts with nonce="{{ csp_nonce() }}"
 - SEO: Schema.org CollectionPage
+- Dark mode: include html.dark overrides or explicitly mark the template as light-only in README
 
 ZIP FILE STRUCTURE:
 

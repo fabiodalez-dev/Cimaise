@@ -1,0 +1,54 @@
+{% set cols = template_settings.columns|default({desktop: 4, tablet: 3, mobile: 1}) %}
+{% set gap = template_settings.gap|default(18) %}
+{% set rounded = template_settings.style.rounded|default(true) %}
+{% set hover_scale = template_settings.style.hover_scale|default(true) %}
+
+<section class="pw-gallery" style="--pw-gap: {{ gap }}px; --pw-cols-mobile: {{ cols.mobile }}; --pw-cols-tablet: {{ cols.tablet }}; --pw-cols-desktop: {{ cols.desktop }};">
+  <header class="pw-head">
+    <p class="pw-kicker">{{ album.category_name|default('Gallery')|e }}</p>
+    <h2 class="pw-title">{{ album.title|default(site_title)|e }}</h2>
+    {% if album.excerpt %}
+    <p class="pw-subtitle">{{ album.excerpt|e }}</p>
+    {% endif %}
+  </header>
+
+  <div class="pw-columns">
+    {% for image in images %}
+      {% set lightbox_href = image.lightbox_url|default(image.url) %}
+      <figure class="pw-tile {% if rounded %}pw-rounded{% endif %} {% if hover_scale %}pw-hover{% endif %}" data-reveal>
+        <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+           class="pswp-link pw-link"
+           data-image-id="{{ image.id }}"
+           data-pswp-width="{{ image.width|default(1600) }}"
+           data-pswp-height="{{ image.height|default(1067) }}"
+           data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
+           data-title="{{ image.caption|default('')|e }}"
+           data-alt="{{ image.alt|default('')|e }}">
+          <picture>
+            {% if image.sources.avif|length %}
+            <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            {% endif %}
+            {% if image.sources.webp|length %}
+            <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            {% endif %}
+            {% if image.sources.jpg|length %}
+            <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            {% endif %}
+            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+                 alt="{{ image.alt|e }}"
+                 loading="lazy"
+                 decoding="async"
+                 class="pw-img">
+          </picture>
+          {% if image.caption %}
+          <figcaption class="pw-cap">{{ image.caption|e }}</figcaption>
+          {% endif %}
+        </a>
+      </figure>
+    {% endfor %}
+  </div>
+</section>
+
+<script nonce="{{ csp_nonce() }}">
+window.templateSettings = {{ template_settings|json_encode|raw }};
+</script>

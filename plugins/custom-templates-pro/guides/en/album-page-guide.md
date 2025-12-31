@@ -18,6 +18,7 @@ TECHNICAL REQUIREMENTS:
 - Lightbox: PhotoSwipe 5
 - SEO: Schema.org, Open Graph
 - CSP: scripts with nonce="{{ csp_nonce() }}"
+- Dark mode: include html.dark overrides or explicitly mark the template as light-only in README
 
 ZIP FILE STRUCTURE:
 
