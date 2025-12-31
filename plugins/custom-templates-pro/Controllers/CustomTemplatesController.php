@@ -37,14 +37,14 @@ class CustomTemplatesController extends BaseController
         }
 
         // Initialize services with language
+        $this->translator = new PluginTranslationService();
+        $this->translator->setLanguage($this->language);
+
         $validator = new TemplateValidationService();
-        $this->uploadService = new TemplateUploadService($db, $validator);
+        $this->uploadService = new TemplateUploadService($db, $validator, $this->translator);
 
         $this->guidesService = new GuidesGeneratorService();
         $this->guidesService->setLanguage($this->language);
-
-        $this->translator = new PluginTranslationService();
-        $this->translator->setLanguage($this->language);
 
         // Register plugin translation Twig extension on this view instance
         $this->registerTwigExtension();

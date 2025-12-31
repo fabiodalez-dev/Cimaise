@@ -1,3 +1,10 @@
+{% macro srcset(items, base_path) %}
+  {% for src in items %}
+    {% set src_url = src|split(' ')|first %}
+    {% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}
+  {% endfor %}
+{% endmacro %}
+
 {% set cols = template_settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
 {% set gap = template_settings.gap|default(20) %}
 
@@ -29,17 +36,17 @@
            data-pswp-width="{{ image.width|default(1600) }}"
            data-pswp-height="{{ image.height|default(1067) }}"
            data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
-           data-title="{{ image.caption|default('')|e }}"
-           data-alt="{{ image.alt|default('')|e }}">
+           data-title="{{ image.caption|default('')|e('html_attr') }}"
+           data-alt="{{ image.alt|default('')|e('html_attr') }}">
           <picture>
             {% if image.sources.avif|length %}
-            <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            <source type="image/avif" srcset="{{ _self.srcset(image.sources.avif, base_path) }}">
             {% endif %}
             {% if image.sources.webp|length %}
-            <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            <source type="image/webp" srcset="{{ _self.srcset(image.sources.webp, base_path) }}">
             {% endif %}
             {% if image.sources.jpg|length %}
-            <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            <source type="image/jpeg" srcset="{{ _self.srcset(image.sources.jpg, base_path) }}">
             {% endif %}
             <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                  alt="{{ image.alt|e }}"
@@ -57,5 +64,5 @@
 </article>
 
 <script nonce="{{ csp_nonce() }}">
-window.templateSettings = {{ template_settings|json_encode|raw }};
+window.templateSettings = {{ template_settings|json_encode(constant('JSON_HEX_TAG'))|raw }};
 </script>
