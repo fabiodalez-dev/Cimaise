@@ -89,7 +89,6 @@ VARIABILI DISPONIBILI:
 - album.is_nsfw
 
 {{ categories }} - Array categorie disponibili
-{{ featured_albums }} - Album in evidenza (se configurato)
 
 {{ home_settings }} - Settings homepage da admin:
 - home_settings.hero_title

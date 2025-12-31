@@ -1288,6 +1288,18 @@ function loadTemplateAssets(assets) {
     const basePath = (window.basePath || '').replace(/\/$/, '');
     const allowedPrefix = `${basePath}/plugins/custom-templates-pro/`;
     const cspNonce = document.querySelector('script[nonce]')?.getAttribute('nonce');
+    const isValidAssetPath = (path) => {
+        try {
+            const url = new URL(path, window.location.origin);
+            const normalized = url.pathname;
+            if (normalized.includes('/../')) return false;
+            if (normalized.startsWith('/plugins/custom-templates-pro/')) return true;
+            if (basePath && normalized.startsWith(`${basePath}/plugins/custom-templates-pro/`)) return true;
+            return false;
+        } catch {
+            return false;
+        }
+    };
 
     document.querySelectorAll('[data-template-asset]').forEach((node) => {
         node.parentNode?.removeChild(node);
@@ -1295,7 +1307,7 @@ function loadTemplateAssets(assets) {
 
     cssList.forEach(href => {
         if (!href || document.querySelector(`link[data-template-asset="${href}"]`)) return;
-        if (!href.startsWith(allowedPrefix) && !href.startsWith('/plugins/custom-templates-pro/')) {
+        if (!isValidAssetPath(href) || (!href.startsWith(allowedPrefix) && !href.startsWith('/plugins/custom-templates-pro/'))) {
             console.warn('Asset CSS bloccato: percorso non valido', href);
             return;
         }
@@ -1309,7 +1321,7 @@ function loadTemplateAssets(assets) {
 
     jsList.forEach(src => {
         if (!src || document.querySelector(`script[data-template-asset="${src}"]`)) return;
-        if (!src.startsWith(allowedPrefix) && !src.startsWith('/plugins/custom-templates-pro/')) {
+        if (!isValidAssetPath(src) || (!src.startsWith(allowedPrefix) && !src.startsWith('/plugins/custom-templates-pro/'))) {
             console.warn('Asset JS bloccato: percorso non valido', src);
             return;
         }

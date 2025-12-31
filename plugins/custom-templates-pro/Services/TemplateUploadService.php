@@ -5,6 +5,7 @@ namespace CustomTemplatesPro\Services;
 
 use App\Support\Database;
 use ZipArchive;
+use CustomTemplatesPro\Services\PluginTranslationService;
 
 class TemplateUploadService
 {
@@ -12,9 +13,15 @@ class TemplateUploadService
 
     public function __construct(
         private Database $db,
-        private TemplateValidationService $validator
+        private TemplateValidationService $validator,
+        private PluginTranslationService $translator
     ) {
         $this->pluginDir = dirname(__DIR__);
+    }
+
+    private function t(string $key, array $params = []): string
+    {
+        return (string) $this->translator->get($key, $params);
     }
 
     /**
@@ -111,13 +118,13 @@ class TemplateUploadService
         // Estrai ZIP in una directory temporanea
         $tempDir = sys_get_temp_dir() . '/ctp_multi_' . bin2hex(random_bytes(16));
         if (!mkdir($tempDir, 0700, true)) {
-            return ['success' => false, 'error' => 'Impossibile creare directory temporanea'];
+            return ['success' => false, 'error' => $this->t('ctp.upload.error_temp_dir')];
         }
 
         $zip = new ZipArchive();
         if ($zip->open($zipPath) !== true) {
             rmdir($tempDir);
-            return ['success' => false, 'error' => 'Impossibile aprire il file ZIP'];
+            return ['success' => false, 'error' => $this->t('ctp.upload.error_open_zip')];
         }
         $zip->extractTo($tempDir);
         $zip->close();
@@ -128,38 +135,41 @@ class TemplateUploadService
             $metadataPath = $folderPath . '/metadata.json';
 
             if (!file_exists($metadataPath)) {
-                $results['errors'][] = "Template '{$folder}': metadata.json non trovato";
+                $results['errors'][] = $this->t('ctp.upload.error_metadata_not_found', ['folder' => $folder]);
                 continue;
             }
 
             try {
                 $metadata = json_decode(file_get_contents($metadataPath), true, 512, JSON_THROW_ON_ERROR);
             } catch (\JsonException $e) {
-                $results['errors'][] = "Template '{$folder}': metadata.json non valido";
+                $results['errors'][] = $this->t('ctp.upload.error_metadata_invalid', ['folder' => $folder]);
                 continue;
             }
             if (!$metadata || !isset($metadata['slug'])) {
-                $results['errors'][] = "Template '{$folder}': metadata.json non valido";
+                $results['errors'][] = $this->t('ctp.upload.error_metadata_invalid', ['folder' => $folder]);
                 continue;
             }
 
             // Verifica slug univoco
             if ($this->slugExists($metadata['slug'])) {
-                $results['errors'][] = "Template '{$metadata['slug']}': slug già esistente, saltato";
+                $results['errors'][] = $this->t('ctp.upload.error_slug_exists_skip', ['slug' => $metadata['slug']]);
                 continue;
             }
 
             // Copia nella directory di destinazione
             $extractPath = $this->getExtractPath($type, $metadata['slug']);
             if (!$this->copyDirectory($folderPath, $extractPath)) {
-                $results['errors'][] = "Template '{$metadata['slug']}': errore durante la copia";
+                $results['errors'][] = $this->t('ctp.upload.error_copy_failed', ['slug' => $metadata['slug']]);
                 continue;
             }
 
             // Valida contenuti
             if (!$this->validateExtractedContent($extractPath, $metadata, $type)) {
                 $this->cleanup($extractPath);
-                $results['errors'][] = "Template '{$metadata['slug']}': " . $this->validator->getFirstError();
+                $results['errors'][] = $this->t('ctp.upload.error_validation_failed', [
+                    'slug' => $metadata['slug'],
+                    'error' => $this->validator->getFirstError()
+                ]);
                 continue;
             }
 
@@ -167,7 +177,7 @@ class TemplateUploadService
             $templateId = $this->saveTemplateWithTransaction($metadata, $type, $extractPath);
             if (!$templateId) {
                 $this->cleanup($extractPath);
-                $results['errors'][] = "Template '{$metadata['slug']}': errore salvataggio database";
+                $results['errors'][] = $this->t('ctp.upload.error_db_save_failed', ['slug' => $metadata['slug']]);
                 continue;
             }
 
@@ -185,7 +195,9 @@ class TemplateUploadService
         // Se nessun template installato, segnala errore
         if ($results['installed'] === 0) {
             $results['success'] = false;
-            $results['error'] = 'Nessun template installato. ' . implode('; ', $results['errors']);
+            $results['error'] = $this->t('ctp.upload.error_none_installed', [
+                'errors' => implode('; ', $results['errors'])
+            ]);
         }
 
         return $results;
@@ -198,13 +210,13 @@ class TemplateUploadService
     {
         $tempDir = sys_get_temp_dir() . '/ctp_single_' . bin2hex(random_bytes(16));
         if (!mkdir($tempDir, 0700, true)) {
-            return ['success' => false, 'error' => 'Impossibile creare directory temporanea'];
+            return ['success' => false, 'error' => $this->t('ctp.upload.error_temp_dir')];
         }
 
         $zip = new ZipArchive();
         if ($zip->open($zipPath) !== true) {
             $this->cleanup($tempDir);
-            return ['success' => false, 'error' => 'Impossibile aprire il file ZIP'];
+            return ['success' => false, 'error' => $this->t('ctp.upload.error_open_zip')];
         }
         $zip->extractTo($tempDir);
         $zip->close();
@@ -212,7 +224,7 @@ class TemplateUploadService
         $metadata = $this->extractMetadata($zipPath);
         if (!$metadata) {
             $this->cleanup($tempDir);
-            return ['success' => false, 'error' => 'metadata.json non trovato o non valido'];
+            return ['success' => false, 'error' => $this->t('ctp.upload.error_metadata_missing_invalid')];
         }
 
         $metadataJson = json_encode($metadata);
@@ -233,14 +245,14 @@ class TemplateUploadService
         $folderPath = $tempDir . '/' . $folder;
         if (!is_dir($folderPath)) {
             $this->cleanup($tempDir);
-            return ['success' => false, 'error' => 'Cartella template non trovata nel ZIP'];
+            return ['success' => false, 'error' => $this->t('ctp.upload.error_template_folder_missing')];
         }
 
         $extractPath = $this->getExtractPath($type, $metadata['slug']);
         if (!$this->copyDirectory($folderPath, $extractPath)) {
             $this->cleanup($tempDir);
             $this->cleanup($extractPath);
-            return ['success' => false, 'error' => 'Errore durante la copia dei file template'];
+            return ['success' => false, 'error' => $this->t('ctp.upload.error_template_copy_failed')];
         }
 
         if (!$this->validateExtractedContent($extractPath, $metadata, $type)) {
@@ -253,7 +265,7 @@ class TemplateUploadService
         if (!$templateId) {
             $this->cleanup($tempDir);
             $this->cleanup($extractPath);
-            return ['success' => false, 'error' => 'Errore nel salvataggio del template nel database'];
+            return ['success' => false, 'error' => $this->t('ctp.upload.error_db_save_failed_single')];
         }
 
         $this->cleanup($tempDir);
@@ -275,7 +287,7 @@ class TemplateUploadService
         if (!$metadata) {
             return [
                 'success' => false,
-                'error' => 'Impossibile estrarre metadata dal ZIP'
+                'error' => $this->t('ctp.upload.error_extract_metadata_failed')
             ];
         }
 
@@ -293,7 +305,7 @@ class TemplateUploadService
         if (!$this->extractZip($tmpPath, $extractPath)) {
             return [
                 'success' => false,
-                'error' => 'Errore durante l\'estrazione del ZIP'
+                'error' => $this->t('ctp.upload.error_extract_zip_failed')
             ];
         }
 
@@ -312,7 +324,7 @@ class TemplateUploadService
             $this->cleanup($extractPath);
             return [
                 'success' => false,
-                'error' => 'Errore nel salvataggio del template nel database'
+                'error' => $this->t('ctp.upload.error_db_save_failed_single')
             ];
         }
 
@@ -462,7 +474,9 @@ class TemplateUploadService
         $templatePath = $extractPath . '/' . $templateFile;
 
         if (!file_exists($templatePath)) {
-            $this->validator->addError("File template principale non trovato: {$templateFile}");
+            $this->validator->addError($this->t('ctp.upload.error_main_template_missing', [
+                'file' => $templateFile
+            ]));
             return false;
         }
 
@@ -531,7 +545,7 @@ class TemplateUploadService
                 ? json_encode(array_map(fn($f) => $relativePath . '/' . $f, $metadata['assets']['js']), JSON_THROW_ON_ERROR)
                 : null;
         } catch (\JsonException) {
-            $this->validator->addError('Errore encoding metadata template');
+            $this->validator->addError($this->t('ctp.upload.error_metadata_encode'));
             return null;
         }
 
@@ -558,7 +572,7 @@ class TemplateUploadService
         try {
             $encodedMetadata = json_encode($metadata, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
-            $this->validator->addError('Errore encoding metadata template');
+            $this->validator->addError($this->t('ctp.upload.error_metadata_encode'));
             return null;
         }
 
@@ -737,13 +751,13 @@ class TemplateUploadService
     private function getUploadErrorMessage(int $error): string
     {
         return match ($error) {
-            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Il file supera la dimensione massima consentita',
-            UPLOAD_ERR_PARTIAL => 'Il file è stato caricato solo parzialmente',
-            UPLOAD_ERR_NO_FILE => 'Nessun file è stato caricato',
-            UPLOAD_ERR_NO_TMP_DIR => 'Directory temporanea mancante',
-            UPLOAD_ERR_CANT_WRITE => 'Impossibile scrivere il file sul disco',
-            UPLOAD_ERR_EXTENSION => 'Upload bloccato da un\'estensione PHP',
-            default => 'Errore sconosciuto durante l\'upload'
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => $this->t('ctp.upload.error_file_too_large'),
+            UPLOAD_ERR_PARTIAL => $this->t('ctp.upload.error_partial_upload'),
+            UPLOAD_ERR_NO_FILE => $this->t('ctp.upload.error_no_file'),
+            UPLOAD_ERR_NO_TMP_DIR => $this->t('ctp.upload.error_no_tmp_dir'),
+            UPLOAD_ERR_CANT_WRITE => $this->t('ctp.upload.error_cant_write'),
+            UPLOAD_ERR_EXTENSION => $this->t('ctp.upload.error_extension'),
+            default => $this->t('ctp.upload.error_unknown')
         };
     }
 

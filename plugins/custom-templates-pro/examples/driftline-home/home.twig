@@ -55,5 +55,5 @@
 </main>
 
 <script nonce="{{ csp_nonce() }}">
-window.templateSettings = {{ template_settings|json_encode|raw }};
+window.templateSettings = {{ template_settings|json_encode(constant('JSON_HEX_TAG'))|raw }};
 </script>
