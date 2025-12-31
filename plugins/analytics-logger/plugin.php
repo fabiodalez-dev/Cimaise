@@ -55,9 +55,9 @@ class AnalyticsLoggerPlugin
         Logger::info('Analytics Logger plugin initialized', [], 'plugin');
     }
 
-    public function setDatabase(\PDO $db, mixed $pluginManager): void
+    public function setDatabase($db, mixed $pluginManager): void
     {
-        $this->db = $db;
+        $this->db = $db instanceof \App\Support\Database ? $db->pdo() : $db;
         $this->createTables();
     }
 

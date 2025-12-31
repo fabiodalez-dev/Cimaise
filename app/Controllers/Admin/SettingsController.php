@@ -22,10 +22,10 @@ class SettingsController extends BaseController
         $svc = new SettingsService($this->db);
         $settings = $svc->all();
         
-        // Load templates for dropdown
+        // Load templates for dropdown (core + custom)
         $templates = [];
         try {
-            $templates = $this->db->pdo()->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
+            $templates = (new \App\Services\TemplateService($this->db))->getGalleryTemplatesForDropdown();
         } catch (\Throwable $e) {
             // Templates table doesn't exist yet
         }

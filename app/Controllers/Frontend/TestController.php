@@ -22,6 +22,7 @@ class TestController extends BaseController
         $templateId = isset($params['template']) ? (int)$params['template'] : null;
 
         $pdo = $this->db->pdo();
+        $templateService = new \App\Services\TemplateService($this->db);
 
         // Resolve album
         if ($albumParam !== null) {
@@ -50,10 +51,9 @@ class TestController extends BaseController
             $templateId = (int)$album['template_id'];
         }
         if (!$templateId) { $templateId = 1; }
-        $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
-        $tplStmt->execute([':id' => $templateId]);
-        $template = $tplStmt->fetch() ?: ['name' => 'Classic Grid', 'settings' => '{"layout":"grid","columns":{"desktop":3,"tablet":2,"mobile":1},"masonry":false}'];
-        $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+        $template = $templateService->getGalleryTemplateById($templateId)
+            ?: ['name' => 'Classic Grid', 'settings' => ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1], 'masonry' => false]];
+        $templateSettings = $template['settings'] ?? [];
 
         // Tags
         $tagsStmt = $pdo->prepare('SELECT t.* FROM tags t JOIN album_tag at ON at.tag_id = t.id WHERE at.album_id = :id ORDER BY t.name ASC');
@@ -174,8 +174,7 @@ class TestController extends BaseController
 
         // Available templates for icon switcher
         try {
-            $list = $pdo->query('SELECT id, name, settings FROM templates ORDER BY name ASC')->fetchAll() ?: [];
-            foreach ($list as &$tpl) { $tpl['settings'] = json_decode($tpl['settings'] ?? '{}', true) ?: []; }
+            $list = $templateService->getGalleryTemplates();
         } catch (\Throwable) { $list = []; }
 
         // Nav categories for header
