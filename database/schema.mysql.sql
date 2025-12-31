@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS `albums` (
   `category_id` INT UNSIGNED NOT NULL,
   `location_id` INT UNSIGNED NULL,
   `template_id` INT UNSIGNED NULL,
+  `custom_template_id` INT UNSIGNED NULL,
   `excerpt` TEXT NULL,
   `body` MEDIUMTEXT NULL,
   `cover_image_id` INT UNSIGNED NULL,
@@ -148,6 +149,11 @@ CREATE TABLE IF NOT EXISTS `albums` (
   `sort_order` INT DEFAULT 0,
   `password_hash` VARCHAR(255) NULL,
   `allow_downloads` TINYINT(1) NOT NULL DEFAULT 0,
+  `custom_cameras` TEXT NULL,
+  `custom_lenses` TEXT NULL,
+  `custom_films` TEXT NULL,
+  `custom_developers` TEXT NULL,
+  `custom_labs` TEXT NULL,
   `is_nsfw` TINYINT(1) NOT NULL DEFAULT 0,
   `seo_title` VARCHAR(255) NULL,
   `seo_description` TEXT NULL,
@@ -168,6 +174,7 @@ CREATE TABLE IF NOT EXISTS `albums` (
   KEY `idx_albums_category` (`category_id`),
   KEY `idx_albums_location` (`location_id`),
   KEY `idx_albums_template` (`template_id`),
+  KEY `idx_albums_custom_template` (`custom_template_id`),
   KEY `idx_albums_published` (`is_published`),
   KEY `idx_albums_published_at` (`published_at`),
   KEY `idx_albums_sort` (`sort_order`),
@@ -178,7 +185,8 @@ CREATE TABLE IF NOT EXISTS `albums` (
   KEY `idx_albums_published_nsfw` (`is_published`, `is_nsfw`),
   CONSTRAINT `fk_albums_category` FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_albums_location` FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_albums_template` FOREIGN KEY (`template_id`) REFERENCES `templates`(`id`) ON DELETE SET NULL
+  CONSTRAINT `fk_albums_template` FOREIGN KEY (`template_id`) REFERENCES `templates`(`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_albums_custom_template` FOREIGN KEY (`custom_template_id`) REFERENCES `custom_templates`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -561,7 +569,7 @@ CREATE TABLE IF NOT EXISTS `plugin_analytics_custom_events` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `plugin_image_ratings` (
-  `image_id` BIGINT UNSIGNED NOT NULL,
+  `image_id` INT UNSIGNED NOT NULL,
   `rating` TINYINT UNSIGNED NOT NULL,
   `rated_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `rated_by` BIGINT UNSIGNED NULL,

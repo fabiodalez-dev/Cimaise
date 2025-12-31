@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS albums (
   category_id INTEGER NOT NULL,
   location_id INTEGER,
   template_id INTEGER,
+  custom_template_id INTEGER,
   excerpt TEXT,
   body TEXT,
   cover_image_id INTEGER,
@@ -142,6 +143,11 @@ CREATE TABLE IF NOT EXISTS albums (
   sort_order INTEGER DEFAULT 0,
   password_hash TEXT,
   allow_downloads INTEGER NOT NULL DEFAULT 0,
+  custom_cameras TEXT,
+  custom_lenses TEXT,
+  custom_films TEXT,
+  custom_developers TEXT,
+  custom_labs TEXT,
   seo_title TEXT,
   seo_description TEXT,
   seo_keywords TEXT,
@@ -159,13 +165,15 @@ CREATE TABLE IF NOT EXISTS albums (
   updated_at TEXT,
   FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
   FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
-  FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE SET NULL
+  FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE SET NULL,
+  FOREIGN KEY (custom_template_id) REFERENCES custom_templates(id) ON DELETE SET NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_albums_slug ON albums(slug);
 CREATE INDEX IF NOT EXISTS idx_albums_category ON albums(category_id);
 CREATE INDEX IF NOT EXISTS idx_albums_location ON albums(location_id);
 CREATE INDEX IF NOT EXISTS idx_albums_template ON albums(template_id);
+CREATE INDEX IF NOT EXISTS idx_albums_custom_template ON albums(custom_template_id);
 CREATE INDEX IF NOT EXISTS idx_albums_published ON albums(is_published);
 CREATE INDEX IF NOT EXISTS idx_albums_published_at ON albums(published_at);
 CREATE INDEX IF NOT EXISTS idx_albums_sort ON albums(sort_order);

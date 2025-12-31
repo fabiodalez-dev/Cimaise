@@ -109,8 +109,8 @@ class TemplateUploadService
         ];
 
         // Estrai ZIP in una directory temporanea
-        $tempDir = sys_get_temp_dir() . '/ctp_multi_' . uniqid();
-        if (!mkdir($tempDir, 0755, true)) {
+        $tempDir = sys_get_temp_dir() . '/ctp_multi_' . bin2hex(random_bytes(16));
+        if (!mkdir($tempDir, 0700, true)) {
             return ['success' => false, 'error' => 'Impossibile creare directory temporanea'];
         }
 
@@ -196,8 +196,8 @@ class TemplateUploadService
      */
     private function processSingleTemplateFromFolder(string $zipPath, string $type, string $folder): array
     {
-        $tempDir = sys_get_temp_dir() . '/ctp_single_' . uniqid();
-        if (!mkdir($tempDir, 0755, true)) {
+        $tempDir = sys_get_temp_dir() . '/ctp_single_' . bin2hex(random_bytes(16));
+        if (!mkdir($tempDir, 0700, true)) {
             return ['success' => false, 'error' => 'Impossibile creare directory temporanea'];
         }
 
@@ -338,8 +338,8 @@ class TemplateUploadService
             }
         }
 
-        $dir = opendir($source);
-        while (($file = readdir($dir)) !== false) {
+        $items = scandir($source);
+        foreach ($items as $file) {
             if ($file === '.' || $file === '..') {
                 continue;
             }
@@ -347,19 +347,20 @@ class TemplateUploadService
             $srcPath = $source . '/' . $file;
             $destPath = $dest . '/' . $file;
 
+            if (is_link($srcPath)) {
+                return false;
+            }
+
             if (is_dir($srcPath)) {
                 if (!$this->copyDirectory($srcPath, $destPath)) {
-                    closedir($dir);
                     return false;
                 }
             } else {
                 if (!copy($srcPath, $destPath)) {
-                    closedir($dir);
                     return false;
                 }
             }
         }
-        closedir($dir);
 
         return true;
     }

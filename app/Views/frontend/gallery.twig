@@ -281,12 +281,6 @@
           display: block;
           transition: opacity 0.3s ease;
       }
-      .dense-grid-img:not(.loaded) {
-          opacity: 0;
-      }
-      .dense-grid-img.loaded {
-          opacity: 1;
-      }
       /* Adaptive sizing classes - images span based on aspect ratio */
       .dense-grid-item.landscape {
           grid-column: span 2;
@@ -1373,8 +1367,12 @@ document.addEventListener('click', function(event) {
                         window.templateAssets = JSON.parse(assetsMatch[1]);
                     } catch (e) {
                         console.error('Failed to parse templateAssets:', e);
+                        console.warn('templateAssets JSON malformato, uso default:', assetsMatch[1].substring(0, 100));
                         window.templateAssets = { css: [], js: [] };
                     }
+                } else {
+                    console.debug('templateAssets non trovato nella risposta, uso default');
+                    window.templateAssets = { css: [], js: [] };
                 }
                 settingsScript.remove();
             }

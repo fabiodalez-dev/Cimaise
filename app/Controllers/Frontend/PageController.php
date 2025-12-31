@@ -140,7 +140,6 @@ class PageController extends BaseController
     public function home(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
-        $templateService = new \App\Services\TemplateService($this->db);
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
 
@@ -368,8 +367,12 @@ class PageController extends BaseController
         }
 
         // 2. If no valid URL template, use the one assigned to the album
-        if ($finalTemplateId === null && !empty($album['template_id'])) {
-            $finalTemplateId = (int)$album['template_id'];
+        if ($finalTemplateId === null) {
+            if (!empty($album['custom_template_id'])) {
+                $finalTemplateId = 1000 + (int)$album['custom_template_id'];
+            } elseif (!empty($album['template_id'])) {
+                $finalTemplateId = (int)$album['template_id'];
+            }
         }
 
         // 3. If still no template, use the site-wide default
@@ -519,8 +522,10 @@ class PageController extends BaseController
             $image['variants'] = $variantsStmt->fetchAll();
 
             // Format EXIF for display
-            if ($image['exif']) {
-                $exif = json_decode($image['exif'], true) ?: [];
+            if (!empty($image['exif'])) {
+                $exif = is_array($image['exif'])
+                    ? $image['exif']
+                    : (json_decode((string)$image['exif'], true) ?: []);
                 $image['exif_display'] = $this->formatExifForDisplay($exif, $image);
             }
         }
@@ -1073,6 +1078,7 @@ class PageController extends BaseController
             $slug = $args['slug'] ?? '';
             $params = $request->getQueryParams();
             $templateId = isset($params['template']) ? (int)$params['template'] : null;
+            $templateService = new \App\Services\TemplateService($this->db);
 
             if (!$templateId || !$slug) {
                 $response->getBody()->write('Template or album parameter missing');
@@ -1112,20 +1118,27 @@ class PageController extends BaseController
                 }
             }
 
-            // Load template
-            $tplStmt = $pdo->prepare('SELECT * FROM templates WHERE id = :id');
-            $tplStmt->execute([':id' => $templateId]);
-            $template = $tplStmt->fetch();
+            // Load template (core or custom)
+            $template = $templateService->getGalleryTemplateById($templateId);
             if (!$template) {
                 $response->getBody()->write('Template not found');
                 return $response->withStatus(404);
             }
             
-            $templateSettings = json_decode($template['settings'] ?? '{}', true) ?: [];
+            $rawSettings = $template['settings'] ?? [];
+            if (is_array($rawSettings)) {
+                $templateSettings = $rawSettings;
+            } else {
+                $templateSettings = json_decode((string)$rawSettings, true) ?: [];
+            }
             if (($template['slug'] ?? '') === 'magazine-split') {
                 $templateSettings['layout'] = 'magazine';
             }
             $templateSettings['template_slug'] = $template['slug'] ?? '';
+            if (!empty($template['is_custom'])) {
+                $templateSettings['layout'] = 'custom';
+            }
+            $templateSettings = $this->normalizeTemplateSettings($templateSettings);
 
             $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
             try {
@@ -1331,16 +1344,39 @@ class PageController extends BaseController
                 ];
             }
 
+            $templateAssets = ['css' => [], 'js' => []];
+            $templateCustomTwig = '';
+            if (!empty($template['is_custom']) && !empty($template['custom_id'])) {
+                $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
+                $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
+                if ($metadata) {
+                    foreach ($metadata['css_paths'] ?? [] as $path) {
+                        $templateAssets['css'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
+                    }
+                    foreach ($metadata['js_paths'] ?? [] as $path) {
+                        $templateAssets['js'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
+                    }
+                    if (!empty($metadata['twig_path'])) {
+                        $twigPath = preg_replace('~^uploads/galleries/+~', '', (string)$metadata['twig_path']);
+                        $templateCustomTwig = ltrim((string)$twigPath, '/');
+                    }
+                }
+            }
+
             // Render only the gallery part (not the full page)
             $partial = 'frontend/_gallery_content.twig';
             try {
-                if (($template['slug'] ?? '') === 'magazine-split') {
+                if ($templateCustomTwig) {
+                    $partial = 'frontend/_gallery_custom_content.twig';
+                } elseif (($template['slug'] ?? '') === 'magazine-split') {
                     $partial = 'frontend/_gallery_magazine_content.twig';
                 }
             } catch (\Throwable) {}
             return $this->view->render($response, $partial, [
                 'images' => $images,
                 'template_settings' => $templateSettings,
+                'template_custom_twig' => $templateCustomTwig,
+                'template_assets' => $templateAssets,
                 'album' => [
                     'title' => $album['title'] ?? '',
                     'excerpt' => $album['excerpt'] ?? '',
