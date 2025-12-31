@@ -62,7 +62,7 @@ class CimaiseAnalyticsProPlugin
     /**
      * Inizializzazione plugin
      */
-    public function initialize(Database $db): void
+    public function initialize(Database $db, $pdo = null, $pluginManager = null): void
     {
         $this->db = $db;
         $this->analytics = new \CimaiseAnalyticsPro\AnalyticsPro($db);

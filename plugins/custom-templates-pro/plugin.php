@@ -14,6 +14,8 @@ use App\Support\Hooks;
 use App\Support\Database;
 use CustomTemplatesPro\Services\TemplateIntegrationService;
 use CustomTemplatesPro\Controllers\CustomTemplatesController;
+use CustomTemplatesPro\Services\PluginTranslationService;
+use CustomTemplatesPro\Extensions\PluginTranslationTwigExtension;
 
 // Prevent direct access
 if (!defined('CIMAISE_VERSION')) {
@@ -26,7 +28,7 @@ spl_autoload_register(function ($class) {
     $base_dir = __DIR__ . '/';
 
     $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
+    if (strncmp($class, $prefix, $len) !== 0) {
         return;
     }
 
@@ -78,6 +80,9 @@ class CustomTemplatesProPlugin
         // Twig paths
         Hooks::addFilter('twig_loader_paths', [$this, 'addTwigPaths'], 10, self::PLUGIN_NAME);
 
+        // Twig extensions
+        Hooks::addAction('twig_environment', [$this, 'registerTwigExtension'], 10, self::PLUGIN_NAME);
+
         // Frontend assets
         Hooks::addAction('frontend_head', [$this, 'addFrontendAssets'], 10, self::PLUGIN_NAME);
 
@@ -90,7 +95,7 @@ class CustomTemplatesProPlugin
     /**
      * Hook: cimaise_init
      */
-    public function onAppInit($db, $_pluginManager): void
+    public function onAppInit(Database $db, $pluginManager = null): void
     {
         $this->db = $db;
         $this->integrationService = new TemplateIntegrationService($db);
@@ -169,6 +174,39 @@ HTML;
     }
 
     /**
+     * Hook: twig_environment
+     * Registra namespace e estensione di traduzione plugin
+     */
+    public function registerTwigExtension($twig): void
+    {
+        if (!$twig || !method_exists($twig, 'getEnvironment')) {
+            return;
+        }
+
+        try {
+            $loader = $twig->getLoader();
+            if (method_exists($loader, 'addPath')) {
+                $loader->addPath(__DIR__ . '/templates', 'custom-templates-pro');
+            }
+
+            $pluginTranslator = new PluginTranslationService();
+            if ($this->db !== null) {
+                $settings = new \App\Services\SettingsService($this->db);
+                $adminLang = $settings->get('admin.language', 'en');
+                $pluginTranslator->setLanguage($adminLang);
+            }
+
+            $twig->getEnvironment()->addExtension(
+                new PluginTranslationTwigExtension($pluginTranslator)
+            );
+        } catch (\Throwable $e) {
+            if (self::DEBUG) {
+                error_log("Custom Templates Pro: Could not register Twig extension: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
      * Hook: frontend_head
      * Aggiunge assets CSS/JS dei template custom
      */
@@ -235,38 +273,3 @@ HTML;
 
 // Initialize plugin
 $customTemplatesPlugin = new CustomTemplatesProPlugin();
-
-// Register Twig namespace and extension for plugin templates
-if (isset($GLOBALS['twig'])) {
-    try {
-        $loader = $GLOBALS['twig']->getLoader();
-        if (method_exists($loader, 'addPath')) {
-            $loader->addPath(__DIR__ . '/templates', 'custom-templates-pro');
-        }
-
-        // Register plugin translation extension
-        require_once __DIR__ . '/Extensions/PluginTranslationTwigExtension.php';
-        require_once __DIR__ . '/Services/PluginTranslationService.php';
-
-        $pluginTranslator = new \CustomTemplatesPro\Services\PluginTranslationService();
-
-        // Try to get admin language from settings
-        if (isset($GLOBALS['container']['db']) && $GLOBALS['container']['db'] !== null) {
-            try {
-                $settings = new \App\Services\SettingsService($GLOBALS['container']['db']);
-                $adminLang = $settings->get('admin.language', 'en');
-                $pluginTranslator->setLanguage($adminLang);
-            } catch (\Throwable $e) {
-                // Fallback to English
-            }
-        }
-
-        $GLOBALS['twig']->getEnvironment()->addExtension(
-            new \CustomTemplatesPro\Extensions\PluginTranslationTwigExtension($pluginTranslator)
-        );
-    } catch (\Exception $e) {
-        if (CustomTemplatesProPlugin::DEBUG) {
-            error_log("Custom Templates Pro: Could not register Twig extension: " . $e->getMessage());
-        }
-    }
-}

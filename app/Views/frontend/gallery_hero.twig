@@ -260,6 +260,7 @@
 
   {# Gallery container. We reuse the same dynamic partial and JS contract #}
   {# Hero cover defaults to masonry_fit layout for better presentation #}
+  {% set custom_template_twig = template_custom_twig|default('') %}
   {% set layout = template_settings.layout|default('masonry_fit') %}
   {% set masonry = template_settings.masonry|default(false) %}
   {% set cols = template_settings.columns is defined ? template_settings.columns : {'desktop':3,'tablet':2,'mobile':1} %}
@@ -275,7 +276,11 @@
 
   {% set style = template_settings.style|default({rounded: false, shadow: false, hover_scale: true, hover_fade: true}) %}
 
-  {% if layout == 'magazine' %}
+  {% if custom_template_twig %}
+    <div id="images-gallery" class="pswp-gallery" data-layout="custom">
+      {% include custom_template_twig %}
+    </div>
+  {% elseif layout == 'magazine' %}
     <div id="images-gallery" class="mt-10" data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
       {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
     </div>
@@ -950,6 +955,29 @@
       // Silently fail - magazine layout will show without animation
     }
   }
+  function loadTemplateAssets(assets) {
+    if (!assets) return;
+    const cssList = Array.isArray(assets.css) ? assets.css : [];
+    const jsList = Array.isArray(assets.js) ? assets.js : [];
+
+    cssList.forEach(href => {
+      if (!href || document.querySelector(`link[data-template-asset="${href}"]`)) return;
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      link.setAttribute('data-template-asset', href);
+      document.head.appendChild(link);
+    });
+
+    jsList.forEach(src => {
+      if (!src || document.querySelector(`script[data-template-asset="${src}"]`)) return;
+      const script = document.createElement('script');
+      script.src = src;
+      script.defer = true;
+      script.setAttribute('data-template-asset', src);
+      document.body.appendChild(script);
+    });
+  }
   // Delegated handler for template switches (AJAX) with class update
   document.addEventListener('click', function(event) {
     const el = event.target.closest('.tpl-switch');
@@ -980,13 +1008,20 @@
             try { window.templateSettings = JSON.parse(match[1]); }
             catch(e) { console.error('Failed to parse templateSettings:', e); }
           }
+          const assetsMatch = settingsScript.textContent.match(/window\.templateAssets\s*=\s*(\{[\s\S]*?\});/);
+          if (assetsMatch) {
+            try { window.templateAssets = JSON.parse(assetsMatch[1]); }
+            catch(e) { console.error('Failed to parse templateAssets:', e); window.templateAssets = { css: [], js: [] }; }
+          }
           settingsScript.remove();
         }
         parsedHtml = doc.body ? doc.body.innerHTML : html;
+        loadTemplateAssets(window.templateAssets);
         galleryContainer.innerHTML = parsedHtml;
         // Match direct object assignment from _gallery_content.twig
         // Update container classes based on new template settings
         const templateSlug = window.templateSettings?.template_slug || '';
+        const isCustomTemplate = window.templateSettings?.layout === 'custom';
         const newLayout = templateSlug === 'masonry-portfolio'
           ? 'masonry_portfolio'
           : (templateSlug === 'grid-ampia'
@@ -1001,7 +1036,10 @@
           document.body.classList.remove('gallery-wall-page');
         }
 
-        if (newLayout === 'magazine') {
+        if (isCustomTemplate) {
+          galleryContainer.className = 'pswp-gallery';
+          galleryContainer.dataset.layout = 'custom';
+        } else if (newLayout === 'magazine') {
           galleryContainer.className = 'mt-10';
         } else if (newLayout === 'gallery_wall') {
           const wall = window.templateSettings?.gallery_wall || {};
@@ -1209,7 +1247,17 @@
   </script>
 {% endblock %}
 
+{% block styles %}
+{{ parent() }}
+{% if template_custom_css is defined and template_custom_css %}
+{{ template_custom_css|raw }}
+{% endif %}
+{% endblock %}
+
 {% block scripts %}
   {{ parent() }}
   <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/hero.js"></script>
+  {% if template_custom_js is defined and template_custom_js %}
+  {{ template_custom_js|raw }}
+  {% endif %}
 {% endblock %}

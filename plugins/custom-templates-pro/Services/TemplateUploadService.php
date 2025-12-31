@@ -48,6 +48,10 @@ class TemplateUploadService
             return $this->processMultiTemplateZip($tmpPath, $type, $templateFolders);
         }
 
+        if (count($templateFolders) === 1 && $templateFolders[0] !== '') {
+            return $this->processSingleTemplateFromFolder($tmpPath, $type, $templateFolders[0]);
+        }
+
         // Single template ZIP (comportamento originale)
         return $this->processSingleTemplate($tmpPath, $type);
     }
@@ -185,6 +189,80 @@ class TemplateUploadService
         }
 
         return $results;
+    }
+
+    /**
+     * Processa ZIP singolo con cartella root
+     */
+    private function processSingleTemplateFromFolder(string $zipPath, string $type, string $folder): array
+    {
+        $tempDir = sys_get_temp_dir() . '/ctp_single_' . uniqid();
+        if (!mkdir($tempDir, 0755, true)) {
+            return ['success' => false, 'error' => 'Impossibile creare directory temporanea'];
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath) !== true) {
+            $this->cleanup($tempDir);
+            return ['success' => false, 'error' => 'Impossibile aprire il file ZIP'];
+        }
+        $zip->extractTo($tempDir);
+        $zip->close();
+
+        $metadata = $this->extractMetadata($zipPath);
+        if (!$metadata) {
+            $this->cleanup($tempDir);
+            return ['success' => false, 'error' => 'metadata.json non trovato o non valido'];
+        }
+
+        $metadataJson = json_encode($metadata);
+        if ($metadataJson === false || !$this->validator->validateMetadata($metadataJson, $type)) {
+            $this->cleanup($tempDir);
+            return ['success' => false, 'error' => $this->validator->getFirstError()];
+        }
+
+        if ($this->slugExists($metadata['slug'])) {
+            $this->cleanup($tempDir);
+            return [
+                'success' => false,
+                'error_code' => 'slug_exists',
+                'slug' => $metadata['slug']
+            ];
+        }
+
+        $folderPath = $tempDir . '/' . $folder;
+        if (!is_dir($folderPath)) {
+            $this->cleanup($tempDir);
+            return ['success' => false, 'error' => 'Cartella template non trovata nel ZIP'];
+        }
+
+        $extractPath = $this->getExtractPath($type, $metadata['slug']);
+        if (!$this->copyDirectory($folderPath, $extractPath)) {
+            $this->cleanup($tempDir);
+            $this->cleanup($extractPath);
+            return ['success' => false, 'error' => 'Errore durante la copia dei file template'];
+        }
+
+        if (!$this->validateExtractedContent($extractPath, $metadata, $type)) {
+            $this->cleanup($tempDir);
+            $this->cleanup($extractPath);
+            return ['success' => false, 'error' => $this->validator->getFirstError()];
+        }
+
+        $templateId = $this->saveTemplateWithTransaction($metadata, $type, $extractPath);
+        if (!$templateId) {
+            $this->cleanup($tempDir);
+            $this->cleanup($extractPath);
+            return ['success' => false, 'error' => 'Errore nel salvataggio del template nel database'];
+        }
+
+        $this->cleanup($tempDir);
+
+        return [
+            'success' => true,
+            'metadata' => $metadata,
+            'template_id' => $templateId
+        ];
     }
 
     /**

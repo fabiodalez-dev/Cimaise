@@ -17,14 +17,7 @@ class TemplatesController extends BaseController
 
     public function index(Request $request, Response $response): Response
     {
-        $stmt = $this->db->pdo()->query('SELECT * FROM templates ORDER BY name ASC');
-        $templates = $stmt->fetchAll() ?: [];
-
-        // Decode JSON fields for display
-        foreach ($templates as &$template) {
-            $template['settings'] = json_decode($template['settings'] ?? '{}', true) ?: [];
-            $template['libs'] = json_decode($template['libs'] ?? '[]', true) ?: [];
-        }
+        $templates = (new \App\Services\TemplateService($this->db))->getGalleryTemplates();
 
         return $this->view->render($response, 'admin/templates/index.twig', [
             'templates' => $templates,
@@ -49,6 +42,10 @@ class TemplatesController extends BaseController
     public function edit(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);
+        if ($id >= 1000) {
+            $_SESSION['flash'][] = ['type' => 'warning', 'message' => trans('admin.flash.templates_custom_edit')];
+            return $response->withHeader('Location', $this->redirect('/admin/custom-templates'))->withStatus(302);
+        }
         $stmt = $this->db->pdo()->prepare('SELECT * FROM templates WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $template = $stmt->fetch();
