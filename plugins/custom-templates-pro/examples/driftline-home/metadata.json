@@ -2,7 +2,7 @@
   "type": "homepage",
   "name": "Driftline Home",
   "slug": "driftline-home",
-  "description": "Homepage minimale con hero tipografico e mosaico animato",
+  "description": "Minimal homepage with a typographic hero and animated mosaic",
   "version": "1.0.0",
   "author": "Cimaise Team",
   "requires": {
