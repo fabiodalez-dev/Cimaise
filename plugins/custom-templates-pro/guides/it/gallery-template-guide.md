@@ -20,6 +20,7 @@ REQUISITI TECNICI:
 - Formato immagini: AVIF, WebP, JPG (con fallback automatico)
 - CSP: tutti gli script inline devono usare nonce="{{ csp_nonce() }}"
 - Dark mode: includi override per html.dark oppure dichiara in README che il template è solo light
+- Background: lascia trasparente lo sfondo della galleria, il colore lo decide la pagina
 
 STRUTTURA FILE ZIP RICHIESTA:
 

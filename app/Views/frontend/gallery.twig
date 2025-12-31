@@ -1285,22 +1285,40 @@ function loadTemplateAssets(assets) {
     if (!assets) return;
     const cssList = Array.isArray(assets.css) ? assets.css : [];
     const jsList = Array.isArray(assets.js) ? assets.js : [];
+    const basePath = (window.basePath || '').replace(/\/$/, '');
+    const allowedPrefix = `${basePath}/plugins/custom-templates-pro/`;
+    const cspNonce = document.querySelector('script[nonce]')?.getAttribute('nonce');
+
+    document.querySelectorAll('[data-template-asset]').forEach((node) => {
+        node.parentNode?.removeChild(node);
+    });
 
     cssList.forEach(href => {
         if (!href || document.querySelector(`link[data-template-asset="${href}"]`)) return;
+        if (!href.startsWith(allowedPrefix) && !href.startsWith('/plugins/custom-templates-pro/')) {
+            console.warn('Asset CSS bloccato: percorso non valido', href);
+            return;
+        }
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = href;
         link.setAttribute('data-template-asset', href);
+        link.onerror = () => console.error('Errore caricamento CSS:', href);
         document.head.appendChild(link);
     });
 
     jsList.forEach(src => {
         if (!src || document.querySelector(`script[data-template-asset="${src}"]`)) return;
+        if (!src.startsWith(allowedPrefix) && !src.startsWith('/plugins/custom-templates-pro/')) {
+            console.warn('Asset JS bloccato: percorso non valido', src);
+            return;
+        }
         const script = document.createElement('script');
         script.src = src;
         script.defer = true;
+        if (cspNonce) script.setAttribute('nonce', cspNonce);
         script.setAttribute('data-template-asset', src);
+        script.onerror = () => console.error('Errore caricamento JS:', src);
         document.body.appendChild(script);
     });
 }
