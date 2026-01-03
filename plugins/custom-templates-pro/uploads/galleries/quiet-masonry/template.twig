@@ -1,7 +1,13 @@
-<div class="quiet-masonry">
+{% set cols = template_settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
+{% set gap_settings = template_settings.gap|default({horizontal: 18, vertical: 18}) %}
+{% set gap_h = gap_settings.horizontal|default(gap_settings) %}
+{% set gap_v = gap_settings.vertical|default(gap_settings) %}
+<section class="quiet-masonry" style="--qm-gap-h: {{ gap_h }}px; --qm-gap-v: {{ gap_v }}px;">
+  <div class="gallery-masonry pswp-gallery" style="--masonry-gap-h: {{ gap_h }}px; --masonry-gap-v: {{ gap_v }}px; --masonry-cols-mobile: {{ cols.mobile }}; --masonry-cols-tablet: {{ cols.tablet }}; --masonry-cols-desktop: {{ cols.desktop }};">
   {% for image in images %}
     {% set href = image.lightbox_url|default(image.url) %}
-    <div class="quiet-masonry-item" style="--w: {{ image.width|default(4)|e('html_attr') }}; --h: {{ image.height|default(3)|e('html_attr') }};">
+    <div class="masonry-frame quiet-masonry-item" style="--width: {{ image.width|default(4)|e('html_attr') }}; --height: {{ image.height|default(3)|e('html_attr') }};">
+      <div class="frame-content">
       <a href="{% if href starts with '/' %}{{ base_path }}{{ href }}{% else %}{{ href }}{% endif %}"
          class="pswp-link"
          data-image-id="{{ image.id|e('html_attr') }}"
@@ -13,6 +19,12 @@
              loading="lazy"
              decoding="async">
       </a>
+      </div>
     </div>
   {% endfor %}
-</div>
+  </div>
+</section>
+
+<script nonce="{{ csp_nonce() }}">
+window.templateSettings = {{ template_settings|json_encode|raw }};
+</script>

@@ -1,5 +1,6 @@
 {% set cols = template_settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
 {% set gap = template_settings.gap|default(20) %}
+{% set show_captions = template_settings.show_captions|default(false) %}
 
 <article class="ss-album" style="--ss-gap: {{ gap }}px; --ss-cols-mobile: {{ cols.mobile }}; --ss-cols-tablet: {{ cols.tablet }}; --ss-cols-desktop: {{ cols.desktop }};">
   <header class="ss-hero">
@@ -50,7 +51,7 @@
                  decoding="async"
                  class="ss-img">
           </picture>
-          {% if image.caption %}
+          {% if show_captions and image.caption %}
           <figcaption class="ss-caption">{{ image.caption|e }}</figcaption>
           {% endif %}
         </a>

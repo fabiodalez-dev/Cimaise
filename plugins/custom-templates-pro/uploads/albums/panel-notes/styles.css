@@ -37,7 +37,7 @@ html.dark .panel-notes {
 .panel-notes .pn-card {
   border: 1px solid var(--pn-border);
   padding: 18px 20px;
-  border-radius: 14px;
+  border-radius: 0;
 }
 .panel-notes .pn-card h3 {
   text-transform: uppercase;
