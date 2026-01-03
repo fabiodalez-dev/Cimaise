@@ -24,3 +24,11 @@
 .quiet-masonry-item:hover img {
   transform: scale(1.02);
 }
+@media (prefers-reduced-motion: reduce) {
+  .quiet-masonry-item img {
+    transition: none;
+  }
+  .quiet-masonry-item:hover img {
+    transform: none;
+  }
+}
