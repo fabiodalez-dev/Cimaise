@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS albums (
   location_id INTEGER,
   template_id INTEGER,
   custom_template_id INTEGER,
+  album_page_template TEXT,
   excerpt TEXT,
   body TEXT,
   cover_image_id INTEGER,
@@ -571,23 +572,50 @@ CREATE TABLE IF NOT EXISTS plugin_analytics_custom_events (
   event_value INTEGER,
   user_id INTEGER,
   metadata TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (session_id) REFERENCES analytics_sessions(session_id) ON DELETE SET NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_plugin_analytics_session ON plugin_analytics_custom_events(session_id);
 CREATE INDEX IF NOT EXISTS idx_plugin_analytics_type ON plugin_analytics_custom_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_plugin_analytics_user ON plugin_analytics_custom_events(user_id);
 
 CREATE TABLE IF NOT EXISTS plugin_image_ratings (
   image_id INTEGER PRIMARY KEY,
   rating INTEGER NOT NULL CHECK(rating >= 0 AND rating <= 5),
   rated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   rated_by INTEGER NULL,
-  FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE
+  FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE,
+  FOREIGN KEY (rated_by) REFERENCES users(id) ON DELETE SET NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_plugin_image_ratings_rated_by ON plugin_image_ratings(rated_by);
 
 -- ============================================
 -- ANALYTICS PRO TABLES (Plugin)
 -- ============================================
+
+CREATE TABLE IF NOT EXISTS analytics_pro_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id TEXT NOT NULL UNIQUE,
+  user_id INTEGER,
+  ip_address TEXT,
+  user_agent TEXT,
+  device_type TEXT,
+  browser TEXT,
+  country TEXT,
+  started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  last_activity TEXT DEFAULT CURRENT_TIMESTAMP,
+  ended_at TEXT,
+  duration INTEGER DEFAULT 0,
+  pageviews INTEGER DEFAULT 0,
+  events_count INTEGER DEFAULT 0,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_pro_sessions_user_id ON analytics_pro_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_pro_sessions_started_at ON analytics_pro_sessions(started_at);
 
 CREATE TABLE IF NOT EXISTS analytics_pro_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -605,7 +633,9 @@ CREATE TABLE IF NOT EXISTS analytics_pro_events (
   browser TEXT,
   country TEXT,
   metadata TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (session_id) REFERENCES analytics_pro_sessions(session_id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_analytics_pro_event_name ON analytics_pro_events(event_name);
@@ -613,26 +643,6 @@ CREATE INDEX IF NOT EXISTS idx_analytics_pro_category ON analytics_pro_events(ca
 CREATE INDEX IF NOT EXISTS idx_analytics_pro_created_at ON analytics_pro_events(created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_pro_user_id ON analytics_pro_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_pro_session_id ON analytics_pro_events(session_id);
-
-CREATE TABLE IF NOT EXISTS analytics_pro_sessions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  session_id TEXT NOT NULL UNIQUE,
-  user_id INTEGER,
-  ip_address TEXT,
-  user_agent TEXT,
-  device_type TEXT,
-  browser TEXT,
-  country TEXT,
-  started_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  last_activity TEXT DEFAULT CURRENT_TIMESTAMP,
-  ended_at TEXT,
-  duration INTEGER DEFAULT 0,
-  pageviews INTEGER DEFAULT 0,
-  events_count INTEGER DEFAULT 0
-);
-
-CREATE INDEX IF NOT EXISTS idx_analytics_pro_sessions_user_id ON analytics_pro_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_analytics_pro_sessions_started_at ON analytics_pro_sessions(started_at);
 
 CREATE TABLE IF NOT EXISTS analytics_pro_funnels (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

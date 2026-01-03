@@ -1,0 +1,19 @@
+{
+  "type": "album_page",
+  "name": "Panel Notes",
+  "slug": "panel-notes",
+  "description": "Blocky panels with notes and a clean gallery.",
+  "version": "1.0.0",
+  "author": "Cimaise",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "gallery_layout": "grid",
+    "show_equipment": true,
+    "header_style": "blocks"
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}

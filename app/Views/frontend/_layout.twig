@@ -219,6 +219,33 @@
             opacity: 1;
             transform: scale(1);
         }
+        /* Masonry container fallback if JS failed before adding masonry-ready */
+        #images-gallery.gsap-failed {
+            opacity: 1;
+        }
+        #images-gallery.gsap-failed.gallery-masonry {
+            opacity: 1;
+        }
+        /* Template switcher transitions (album page) */
+        #images-gallery {
+            transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), filter 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        #images-gallery.tpl-switching {
+            opacity: 0;
+            transform: translateY(14px);
+            filter: blur(2px);
+            pointer-events: none;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #images-gallery {
+                transition: none !important;
+            }
+            #images-gallery.tpl-switching {
+                opacity: 1;
+                transform: none;
+                filter: none;
+            }
+        }
         /* Prevent FOUC: hide album cards initially for entrance animation */
         main .album-card:not([data-animated]) {
             opacity: 0;
@@ -948,7 +975,8 @@
 
         .pswp__bg {
             background: var(--pswp-bg) !important;
-            opacity: 0.97 !important;
+            opacity: 0.94 !important;
+            transition: opacity 0.5s ease;
         }
 
         #pswp-open-overlay {
@@ -957,11 +985,11 @@
             background: #fff;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.55s ease;
             z-index: 9998;
         }
         #pswp-open-overlay.is-visible {
-            opacity: 0.95;
+            opacity: 0.92;
         }
         html.dark #pswp-open-overlay {
             background: #fff;
@@ -1174,6 +1202,14 @@
         /* ===== Custom CSS ===== */
         {{ custom_css|raw }}
     </style>
+    {% endif %}
+
+    {% if page_custom_css is defined and page_custom_css %}
+    {{ page_custom_css|raw }}
+    {% endif %}
+
+    {% if template_custom_css is defined and template_custom_css %}
+    {{ template_custom_css|raw }}
     {% endif %}
 
     {% block styles %}{% endblock %}
@@ -2550,7 +2586,7 @@
                         pswpModule: PhotoSwipe,
                         
                         // Modern image sizing and layout
-                        bgOpacity: 0.97,
+                        bgOpacity: 0.95,
                         spacing: (typeof psCfg.spacing === 'number') ? psCfg.spacing : 0.12,
                         // Prevent accidental swipes while zooming
                         allowPanToNext: false,
@@ -2564,10 +2600,10 @@
                         
                         // Modern smooth animations
                         showHideAnimationType: 'fade',
-                        hideAnimationDuration: 200,
-                        showAnimationDuration: 300,
-                        zoomAnimationDuration: 250,
-                        easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                        hideAnimationDuration: 420,
+                        showAnimationDuration: 520,
+                        zoomAnimationDuration: 420,
+                        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
                         
                         // Click/tap interactions (handled manually for centered zoom)
                         imageClickAction: false,
@@ -2606,9 +2642,6 @@
                         escKey: true,
                         mouseUsed: false,
                         
-                        // Custom zoom animations
-                        zoomAnimationDuration: 333,
-                        easing: 'cubic-bezier(0.4, 0, 0.22, 1)'
                     });
 
                     // Hide placeholder images when content is appended
@@ -3328,8 +3361,12 @@
                       index: startIndex,
                       showHideAnimationType: 'fade',
                       allowPanToNext: !!psCfg.allowPanToNext,
-                      bgOpacity: 0.97,
-                      loop: !!psCfg.loop
+                      bgOpacity: 0.94,
+                      loop: !!psCfg.loop,
+                      showAnimationDuration: 420,
+                      hideAnimationDuration: 320,
+                      zoomAnimationDuration: 360,
+                      easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
                   });
                   // Custom caption overlay for PhotoSwipe
                   let psCaptionEl = document.createElement('div');
@@ -3630,7 +3667,15 @@
     });
     </script>
 
+    {% if page_custom_js is defined and page_custom_js %}
+    {{ page_custom_js|raw }}
+    {% endif %}
+
     {% block scripts %}{% endblock %}
+
+    {% if template_custom_js is defined and template_custom_js %}
+    {{ template_custom_js|raw }}
+    {% endif %}
 
     {# Essential JavaScript - Always loaded (no consent required) #}
     {% if custom_js_essential %}

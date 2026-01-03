@@ -5,6 +5,8 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
 use App\Services\CustomFieldService;
+use App\Services\SettingsService;
+use App\Support\Hooks;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -80,6 +82,9 @@ class AlbumsController extends BaseController
         } catch (\Throwable $e) {
             // Templates table doesn't exist yet, continue without templates
         }
+        $settingsService = new SettingsService($this->db);
+        $defaultAlbumPageTemplate = (string)($settingsService->get('gallery.page_template', 'classic') ?? 'classic');
+        $albumPageTemplates = $this->getAlbumPageTemplates();
         
         // Load equipment data
         $cameras = $pdo->query('SELECT id, make, model FROM cameras ORDER BY make, model')->fetchAll();
@@ -109,10 +114,16 @@ class AlbumsController extends BaseController
             }
         }
 
+        $settingsService = new SettingsService($this->db);
+        $defaultAlbumPageTemplate = (string)($settingsService->get('gallery.page_template', 'classic') ?? 'classic');
+        $albumPageTemplates = $this->getAlbumPageTemplates();
+
         return $this->view->render($response, 'admin/albums/create.twig', [
             'categories' => $cats,
             'tags' => $tags,
             'templates' => $templates,
+            'album_page_templates' => $albumPageTemplates,
+            'default_album_page_template' => $defaultAlbumPageTemplate,
             'cameras' => $cameras,
             'lenses' => $lenses,
             'films' => $films,
@@ -152,6 +163,7 @@ class AlbumsController extends BaseController
         $templateSelection = $this->normalizeTemplateSelection($d['template_id'] ?? null);
         $template_id = $templateSelection['template_id'];
         $custom_template_id = $templateSelection['custom_template_id'];
+        $albumPageTemplate = $this->normalizeAlbumPageTemplate((string)($d['album_page_template'] ?? ''));
         $tagIds = array_map('intval', (array)($d['tags'] ?? []));
         $allow_downloads = isset($d['allow_downloads']) ? 1 : 0;
         $is_nsfw = isset($d['is_nsfw']) ? 1 : 0;
@@ -205,9 +217,9 @@ class AlbumsController extends BaseController
 
         // Try with template_id/custom_template_id, custom equipment fields, and SEO fields
         try {
-            $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_template_id, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, is_nsfw, allow_template_switch, password_hash, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_path, schema_type, schema_data, canonical_url, robots_index, robots_follow) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:cti,:cc,:cl,:cf,:cd,:clab,:dl,:nsfw,:ats,:ph,:seo_title,:seo_desc,:seo_kw,:og_title,:og_desc,:og_img,:schema_type,:schema_data,:canonical_url,:robots_index,:robots_follow)');
+            $stmt = $pdo->prepare('INSERT INTO albums(title, slug, category_id, excerpt, body, shoot_date, show_date, is_published, published_at, sort_order, template_id, custom_template_id, album_page_template, custom_cameras, custom_lenses, custom_films, custom_developers, custom_labs, allow_downloads, is_nsfw, allow_template_switch, password_hash, seo_title, seo_description, seo_keywords, og_title, og_description, og_image_path, schema_type, schema_data, canonical_url, robots_index, robots_follow) VALUES(:t,:s,:c,:e,:b,:sd,:sh,:p,:pa,:o,:ti,:cti,:apt,:cc,:cl,:cf,:cd,:clab,:dl,:nsfw,:ats,:ph,:seo_title,:seo_desc,:seo_kw,:og_title,:og_desc,:og_img,:schema_type,:schema_data,:canonical_url,:robots_index,:robots_follow)');
             $stmt->execute([
-                ':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':cti'=>$custom_template_id,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':dl'=>$allow_downloads, ':nsfw'=>$is_nsfw, ':ats'=>$allow_template_switch, ':ph'=>$password_hash,
+                ':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':cti'=>$custom_template_id, ':apt'=>$albumPageTemplate,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':dl'=>$allow_downloads, ':nsfw'=>$is_nsfw, ':ats'=>$allow_template_switch, ':ph'=>$password_hash,
                 ':seo_title'=>$seoTitle, ':seo_desc'=>$seoDescription, ':seo_kw'=>$seoKeywords,
                 ':og_title'=>$ogTitle, ':og_desc'=>$ogDescription, ':og_img'=>$ogImagePath,
                 ':schema_type'=>$schemaType, ':schema_data'=>$schemaData, ':canonical_url'=>$canonicalUrl,
@@ -466,6 +478,8 @@ class AlbumsController extends BaseController
             'categories' => $cats,
             'tags' => $tags,
             'templates' => $templates,
+            'album_page_templates' => $albumPageTemplates,
+            'default_album_page_template' => $defaultAlbumPageTemplate,
             'cameras' => $cameras,
             'lenses' => $lenses,
             'films' => $films,
@@ -573,6 +587,7 @@ class AlbumsController extends BaseController
         $templateSelection = $this->normalizeTemplateSelection($d['template_id'] ?? null);
         $template_id = $templateSelection['template_id'];
         $custom_template_id = $templateSelection['custom_template_id'];
+        $albumPageTemplate = $this->normalizeAlbumPageTemplate((string)($d['album_page_template'] ?? ''));
         $allow_downloads = isset($d['allow_downloads']) ? 1 : 0;
         $is_nsfw = isset($d['is_nsfw']) ? 1 : 0;
         $allow_template_switch = isset($d['allow_template_switch']) ? 1 : 0;
@@ -626,9 +641,9 @@ class AlbumsController extends BaseController
 
         // Try with template_id/custom_template_id, custom equipment fields, and SEO fields
         try {
-            $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, custom_template_id=:cti, allow_template_switch=:ats, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab, seo_title=:seo_title, seo_description=:seo_desc, seo_keywords=:seo_kw, og_title=:og_title, og_description=:og_desc, og_image_path=:og_img, schema_type=:schema_type, schema_data=:schema_data, canonical_url=:canonical_url, robots_index=:robots_index, robots_follow=:robots_follow WHERE id=:id');
+            $stmt = $pdo->prepare('UPDATE albums SET title=:t, slug=:s, category_id=:c, excerpt=:e, body=:b, shoot_date=:sd, show_date=:sh, is_published=:p, published_at=:pa, sort_order=:o, template_id=:ti, custom_template_id=:cti, album_page_template=:apt, allow_template_switch=:ats, custom_cameras=:cc, custom_lenses=:cl, custom_films=:cf, custom_developers=:cd, custom_labs=:clab, seo_title=:seo_title, seo_description=:seo_desc, seo_keywords=:seo_kw, og_title=:og_title, og_description=:og_desc, og_image_path=:og_img, schema_type=:schema_type, schema_data=:schema_data, canonical_url=:canonical_url, robots_index=:robots_index, robots_follow=:robots_follow WHERE id=:id');
             $stmt->execute([
-                ':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':cti'=>$custom_template_id,':ats'=>$allow_template_switch,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':id'=>$id,
+                ':t'=>$title,':s'=>$slug,':c'=>$category_id,':e'=>$excerpt,':b'=>$body,':sd'=>$shoot_date,':sh'=>$show_date,':p'=>$is_published,':pa'=>$published_at,':o'=>$sort_order,':ti'=>$template_id, ':cti'=>$custom_template_id, ':apt'=>$albumPageTemplate,':ats'=>$allow_template_switch,':cc'=>$customCameras,':cl'=>$customLenses,':cf'=>$customFilms,':cd'=>$customDevelopers,':clab'=>$customLabs, ':id'=>$id,
                 ':seo_title'=>$seoTitle, ':seo_desc'=>$seoDescription, ':seo_kw'=>$seoKeywords,
                 ':og_title'=>$ogTitle, ':og_desc'=>$ogDescription, ':og_img'=>$ogImagePath,
                 ':schema_type'=>$schemaType, ':schema_data'=>$schemaData, ':canonical_url'=>$canonicalUrl,
@@ -1210,5 +1225,32 @@ class AlbumsController extends BaseController
 
         $templateId = (int)($templateId ?? 0);
         return $templateId > 0 ? $templateId : null;
+    }
+
+    private function getAlbumPageTemplates(): array
+    {
+        try {
+            return Hooks::applyFilter('available_album_page_templates', []);
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    private function normalizeAlbumPageTemplate(string $value): ?string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        $allowed = ['classic', 'hero', 'magazine'];
+        foreach ($this->getAlbumPageTemplates() as $template) {
+            $opt = $template['value'] ?? null;
+            if (is_string($opt) && $opt !== '') {
+                $allowed[] = $opt;
+            }
+        }
+
+        return in_array($value, $allowed, true) ? $value : null;
     }
 }

@@ -7,6 +7,7 @@ use App\Services\AnalyticsService;
 use App\Services\ImagesService;
 use App\Services\NavigationService;
 use App\Support\Database;
+use App\Support\Hooks;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -824,19 +825,71 @@ class PageController extends BaseController
             }
         }
 
-        // Choose page template (classic, hero, magazine)
+        // Choose page template (classic, hero, magazine, custom)
         $settingsServiceForPage = new \App\Services\SettingsService($this->db);
-        $pageTemplate = (string)($settingsServiceForPage->get('gallery.page_template', 'classic') ?? 'classic');
-        $pageTemplate = in_array($pageTemplate, ['classic','hero','magazine'], true) ? $pageTemplate : 'classic';
+        $pageTemplate = (string)($album['album_page_template'] ?? '');
+        if ($pageTemplate === '') {
+            $pageTemplate = (string)($settingsServiceForPage->get('gallery.page_template', 'classic') ?? 'classic');
+        }
+        $allowedPageTemplates = ['classic', 'hero', 'magazine'];
+        try {
+            $customTemplates = Hooks::applyFilter('available_album_page_templates', []);
+            foreach ($customTemplates as $template) {
+                $value = $template['value'] ?? null;
+                if (is_string($value) && $value !== '') {
+                    $allowedPageTemplates[] = $value;
+                }
+            }
+        } catch (\Throwable) {
+            // Ignore plugin errors; fallback to core templates.
+        }
+        if (!in_array($pageTemplate, $allowedPageTemplates, true)) {
+            $pageTemplate = 'classic';
+        }
+
+        $customPageTemplate = null;
+        $customPageTemplateId = null;
+        if (str_starts_with($pageTemplate, 'custom_')) {
+            $slug = substr($pageTemplate, 7);
+            if ($slug !== '' && class_exists(\CustomTemplatesPro\Services\TemplateIntegrationService::class)) {
+                try {
+                    $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
+                    foreach ($integration->getAlbumPageTemplatesForCore() as $tpl) {
+                        if (($tpl['value'] ?? '') === $pageTemplate && !empty($tpl['twig_path'])) {
+                            $twigPath = preg_replace('~^uploads/albums/+~', '', (string)$tpl['twig_path']);
+                            $customPageTemplate = ltrim((string)$twigPath, '/');
+                            $customPageTemplateId = (int)($tpl['custom_id'] ?? 0);
+                            break;
+                        }
+                    }
+                } catch (\Throwable) {
+                    $customPageTemplate = null;
+                    $customPageTemplateId = null;
+                }
+            }
+        }
         // If the selected template is magazine-split, force layout settings to magazine.
         if (($template['slug'] ?? '') === 'magazine-split') {
             $templateSettings['layout'] = 'magazine';
         }
-        $twigTemplate = match ($pageTemplate) {
+        $twigTemplate = $customPageTemplate ? 'frontend/_album_page_custom_wrapper.twig' : match ($pageTemplate) {
             'hero' => 'frontend/gallery_hero.twig',
             'magazine' => 'frontend/gallery_magazine.twig',
             default => 'frontend/gallery.twig',
         };
+
+        $pageCustomCss = '';
+        $pageCustomJs = '';
+        if ($customPageTemplateId) {
+            try {
+                $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
+                $pageCustomCss = $integration->loadTemplateCSS(1000 + $customPageTemplateId, $this->basePath);
+                $pageCustomJs = $integration->loadTemplateJS(1000 + $customPageTemplateId, $this->basePath);
+            } catch (\Throwable) {
+                $pageCustomCss = '';
+                $pageCustomJs = '';
+            }
+        }
 
         // Get social sharing settings
         $settingsServiceForSocial = new \App\Services\SettingsService($this->db);
@@ -903,7 +956,7 @@ class PageController extends BaseController
         return $this->view->render($response, $twigTemplate, [
             'album' => $galleryMeta,
             'images' => $images,
-            'template_name' => $template['name'],
+            'template_name' => $template['name'] ?? '',
             'template_slug' => $template['slug'] ?? '',
             'template_settings' => $templateSettings,
             'available_templates' => $availableTemplates,
@@ -931,6 +984,10 @@ class PageController extends BaseController
             'template_custom_css' => $templateCustomCss,
             'template_custom_js' => $templateCustomJs,
             'template_custom_twig' => $templateCustomTwig,
+            'custom_page_template' => $customPageTemplate,
+            'page_custom_template_active' => (bool)$customPageTemplate,
+            'page_custom_css' => $pageCustomCss,
+            'page_custom_js' => $pageCustomJs,
         ]);
     }
 
