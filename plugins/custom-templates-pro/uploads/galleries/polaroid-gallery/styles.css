@@ -78,7 +78,7 @@
   left: 12px;
   right: 12px;
   text-align: center;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-captions), system-ui, sans-serif;
   font-size: 0.875rem;
   color: #333;
   overflow: hidden;

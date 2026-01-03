@@ -193,7 +193,7 @@ class AlbumsController extends BaseController
         $customDevelopers = trim((string)($d['custom_developers'] ?? '')) ?: null;
         $customLabs = trim((string)($d['custom_labs'] ?? '')) ?: null;
 
-        if ($albumPageTemplate !== '' && str_starts_with($albumPageTemplate, 'custom_')) {
+        if (is_string($albumPageTemplate) && str_starts_with($albumPageTemplate, 'custom_')) {
             $allow_template_switch = 0;
         }
         
@@ -625,7 +625,7 @@ class AlbumsController extends BaseController
         $customDevelopers = trim((string)($d['custom_developers'] ?? '')) ?: null;
         $customLabs = trim((string)($d['custom_labs'] ?? '')) ?: null;
 
-        if ($albumPageTemplate !== '' && str_starts_with($albumPageTemplate, 'custom_')) {
+        if (is_string($albumPageTemplate) && str_starts_with($albumPageTemplate, 'custom_')) {
             $allow_template_switch = 0;
         }
         

@@ -3,7 +3,8 @@ GUIDA CREAZIONE TEMPLATE HOMEPAGE PER CIMAISE
 ================================================================================
 
 Questa guida ti aiuterà a creare un template personalizzato per la homepage
-del portfolio in Cimaise usando un LLM.
+del portfolio in Cimaise usando il tuo LLM preferito o adattando il prompt
+manualmente.
 
 ================================================================================
 PROMPT PER LLM - COPIA E INCOLLA QUESTO TESTO

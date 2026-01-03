@@ -3,7 +3,8 @@ CIMAISE FULL ALBUM PAGE TEMPLATE CREATION GUIDE
 ================================================================================
 
 This guide will help you create a complete template for the album page
-(header, metadata, gallery and footer) in Cimaise using an LLM.
+(header, metadata, gallery and footer) in Cimaise using your preferred LLM
+or by editing the prompt manually.
 
 ================================================================================
 PROMPT FOR LLM - COPY AND PASTE THIS TEXT

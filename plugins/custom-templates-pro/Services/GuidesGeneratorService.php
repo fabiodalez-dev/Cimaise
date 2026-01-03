@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace CustomTemplatesPro\Services;
 
 /**
- * Service for managing multilingual LLM guides
+ * Service for managing multilingual template guides
  *
  * Guides are stored in guides/{lang}/ folders:
  * - guides/en/ - English guides (default for all languages except Italian)

@@ -814,16 +814,26 @@ class PageController extends BaseController
         $templateCustomCss = '';
         $templateCustomJs = '';
         $templateCustomTwig = '';
-        if (!empty($template['is_custom']) && !empty($template['custom_id'])) {
-            $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
-            $templateCustomCss = $integration->loadTemplateCSS((int)$template['id'], $this->basePath);
-            $templateCustomJs = $integration->loadTemplateJS((int)$template['id'], $this->basePath);
-            $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
-            if ($metadata && !empty($metadata['twig_path'])) {
-                $resolved = $integration->resolveTwigTemplatePath((string)$metadata['twig_path'], 'galleries');
-                if ($resolved) {
-                    $templateCustomTwig = $resolved;
+        if (
+            !empty($template['is_custom'])
+            && !empty($template['custom_id'])
+            && class_exists(\CustomTemplatesPro\Services\TemplateIntegrationService::class)
+        ) {
+            try {
+                $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
+                $templateCustomCss = $integration->loadTemplateCSS((int)$template['id'], $this->basePath);
+                $templateCustomJs = $integration->loadTemplateJS((int)$template['id'], $this->basePath);
+                $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
+                if ($metadata && !empty($metadata['twig_path'])) {
+                    $resolved = $integration->resolveTwigTemplatePath((string)$metadata['twig_path'], 'galleries');
+                    if ($resolved) {
+                        $templateCustomTwig = $resolved;
+                    }
                 }
+            } catch (\Throwable) {
+                $templateCustomCss = '';
+                $templateCustomJs = '';
+                $templateCustomTwig = '';
             }
         }
 
@@ -888,7 +898,7 @@ class PageController extends BaseController
 
         $pageCustomCss = '';
         $pageCustomJs = '';
-        if ($customPageTemplateId) {
+        if ($customPageTemplateId && class_exists(\CustomTemplatesPro\Services\TemplateIntegrationService::class)) {
             try {
                 $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
                 $pageCustomCss = $integration->loadTemplateCSS(1000 + $customPageTemplateId, $this->basePath);
@@ -1411,22 +1421,31 @@ class PageController extends BaseController
 
             $templateAssets = ['css' => [], 'js' => []];
             $templateCustomTwig = '';
-            if (!empty($template['is_custom']) && !empty($template['custom_id'])) {
-                $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
-                $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
-                if ($metadata) {
-                    foreach ($metadata['css_paths'] ?? [] as $path) {
-                        $templateAssets['css'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
-                    }
-                    foreach ($metadata['js_paths'] ?? [] as $path) {
-                        $templateAssets['js'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
-                    }
-                    if (!empty($metadata['twig_path'])) {
-                        $resolved = $integration->resolveTwigTemplatePath((string)$metadata['twig_path'], 'galleries');
-                        if ($resolved) {
-                            $templateCustomTwig = $resolved;
+            if (
+                !empty($template['is_custom'])
+                && !empty($template['custom_id'])
+                && class_exists(\CustomTemplatesPro\Services\TemplateIntegrationService::class)
+            ) {
+                try {
+                    $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
+                    $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
+                    if ($metadata) {
+                        foreach ($metadata['css_paths'] ?? [] as $path) {
+                            $templateAssets['css'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
+                        }
+                        foreach ($metadata['js_paths'] ?? [] as $path) {
+                            $templateAssets['js'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
+                        }
+                        if (!empty($metadata['twig_path'])) {
+                            $resolved = $integration->resolveTwigTemplatePath((string)$metadata['twig_path'], 'galleries');
+                            if ($resolved) {
+                                $templateCustomTwig = $resolved;
+                            }
                         }
                     }
+                } catch (\Throwable) {
+                    $templateAssets = ['css' => [], 'js' => []];
+                    $templateCustomTwig = '';
                 }
             }
 

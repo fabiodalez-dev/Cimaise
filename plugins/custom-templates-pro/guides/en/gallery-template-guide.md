@@ -3,8 +3,7 @@ CIMAISE GALLERY TEMPLATE CREATION GUIDE
 ================================================================================
 
 This guide will help you create a custom template for album galleries
-in Cimaise using an LLM (Large Language Model) like Claude, ChatGPT,
-or other AI assistants.
+in Cimaise using your preferred LLM or by editing the prompt manually.
 
 ================================================================================
 PROMPT FOR LLM - COPY AND PASTE THIS TEXT

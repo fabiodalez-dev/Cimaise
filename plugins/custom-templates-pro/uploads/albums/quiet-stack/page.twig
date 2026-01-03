@@ -43,7 +43,7 @@
       <div class="quiet-tags">
         {% for tag in album.tags %}
           {% set tag_url = '/tag/' ~ (tag.slug|e('url')) %}
-          <a class="quiet-tag" href="{% if tag_url starts with '/' %}{{ base_path|e }}{{ tag_url }}{% else %}{{ tag_url }}{% endif %}">#{{ tag.name|e }}</a>
+          <a class="quiet-tag" href="{{ base_path|e }}{{ tag_url }}">#{{ tag.name|e }}</a>
         {% endfor %}
       </div>
     {% endif %}

@@ -3,7 +3,7 @@ CIMAISE HOMEPAGE TEMPLATE CREATION GUIDE
 ================================================================================
 
 This guide will help you create a custom template for the portfolio homepage
-in Cimaise using an LLM.
+in Cimaise using your preferred LLM or by editing the prompt manually.
 
 ================================================================================
 PROMPT FOR LLM - COPY AND PASTE THIS TEXT
