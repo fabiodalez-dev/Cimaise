@@ -1,5 +1,4 @@
 {# Load @masonry-grid/vanilla as ES module and expose globally #}
-{% if layout == 'masonry' and tpl_slug != 'masonry-portfolio' %}
 <script type="module" nonce="{{ csp_nonce() }}">
 import { BalancedMasonryGrid, RegularMasonryGrid } from '{{ base_path }}/assets/vendor/masonry-grid/index.js';
 window.BalancedMasonryGrid = BalancedMasonryGrid;
@@ -11,7 +10,6 @@ if (window.DEBUG_GALLERY) {
     console.log('masonry-grid module loaded and exposed globally');
 }
 </script>
-{% endif %}
 <script nonce="{{ csp_nonce() }}">
 // Global base path for API calls
 window.basePath = '{{ base_path }}';
@@ -386,7 +384,7 @@ if (templateSlug === 'grid-ampia') {
     } else {
         window.addEventListener('load', () => initMasonryPortfolio());
     }
-} else if (layout === 'masonry') {
+} else if (layout === 'masonry' || document.querySelector('.gallery-masonry')) {
     // Wait for ES module to load and expose BalancedMasonryGrid
     function tryInitMasonry() {
         if (typeof BalancedMasonryGrid !== 'undefined') {
@@ -981,12 +979,12 @@ document.addEventListener('click', function(event) {
                 // Using CSS variables and inset for gaps per @masonry-grid/vanilla docs
                 // translateY% ignores margins, so we use inset on inner container instead
                 styleEl.textContent = `
-                    .gallery-masonry { --masonry-gap-v: ${gV}px; --masonry-gap-h: ${gH}px; display: grid; column-gap: var(--masonry-gap-h); grid-template-columns: repeat(${m}, 1fr); align-items: start; opacity: 0; transition: opacity 0.3s ease-in-out; }
+                    .gallery-masonry { --masonry-gap-v: ${gV}px; --masonry-gap-h: ${gH}px; display: grid; gap: var(--masonry-gap-v) var(--masonry-gap-h); grid-template-columns: repeat(${m}, 1fr); align-items: start; opacity: 0; transition: opacity 0.3s ease-in-out; }
                     .gallery-masonry.masonry-ready { opacity: 1; }
                     @media (min-width: 768px) { .gallery-masonry { grid-template-columns: repeat(${t}, 1fr); } }
                     @media (min-width: 1024px) { .gallery-masonry { grid-template-columns: repeat(${d}, 1fr); } }
                     .gallery-masonry .masonry-frame { position: relative; aspect-ratio: var(--width) / var(--height); min-width: 0; }
-                    .gallery-masonry .masonry-frame > .frame-content { position: absolute; inset: calc(var(--masonry-gap-v) / 2) 0; overflow: hidden; }
+                    .gallery-masonry .masonry-frame > .frame-content { position: absolute; inset: 0; overflow: hidden; }
                     .gallery-masonry .masonry-frame img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
                     .gallery-masonry .masonry-frame:hover img { transform: scale(1.03); }
                 `;
@@ -1140,13 +1138,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.dataset.gsapGalleryIntroDone = '1';
 
     const allHeaderEls = document.querySelectorAll('[data-gsap="categories"], [data-gsap="title"], [data-gsap="meta"], [data-gsap="excerpt"], [data-gsap="body"], [data-gsap="equipment"]');
-    allHeaderEls.forEach(el => {
-        el.setAttribute('data-animated', '1');
-        el.style.opacity = '1';
-        el.style.transform = 'none';
-    });
-    if (typeof gsap !== 'undefined') {
-        gsap.set(allHeaderEls, { clearProps: 'all', opacity: 1 });
+    if (allHeaderEls.length) {
+        allHeaderEls.forEach(el => {
+            el.setAttribute('data-animated', '1');
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+        });
+        if (typeof gsap !== 'undefined') {
+            gsap.set(allHeaderEls, { clearProps: 'all', opacity: 1 });
+        }
     }
 
     // Template switcher fade in
@@ -1189,13 +1189,15 @@ document.addEventListener('DOMContentLoaded', function() {
 window.addEventListener('pageshow', function(event) {
     if (event.persisted) {
         const animatedElements = document.querySelectorAll('[data-gsap]');
-        animatedElements.forEach(function(el) {
-            el.style.opacity = '1';
-            el.style.transform = 'none';
-            el.setAttribute('data-animated', '1');
-        });
-        if (typeof gsap !== 'undefined') {
-            gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
+        if (animatedElements.length) {
+            animatedElements.forEach(function(el) {
+                el.style.opacity = '1';
+                el.style.transform = 'none';
+                el.setAttribute('data-animated', '1');
+            });
+            if (typeof gsap !== 'undefined') {
+                gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
+            }
         }
     }
 });

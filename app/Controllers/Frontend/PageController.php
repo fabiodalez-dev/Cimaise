@@ -407,7 +407,10 @@ class PageController extends BaseController
         $templateSettings = $this->normalizeTemplateSettings($templateSettings);
         $templateSettings['template_slug'] = $template['slug'] ?? '';
         if (!empty($template['is_custom'])) {
-            $templateSettings['layout'] = 'custom';
+            $layout = $templateSettings['layout'] ?? '';
+            if ($layout !== 'masonry') {
+                $templateSettings['layout'] = 'custom';
+            }
         }
 
         // Normalize settings
@@ -1211,7 +1214,10 @@ class PageController extends BaseController
             }
             $templateSettings['template_slug'] = $template['slug'] ?? '';
             if (!empty($template['is_custom'])) {
-                $templateSettings['layout'] = 'custom';
+                $layout = $templateSettings['layout'] ?? '';
+                if ($layout !== 'masonry') {
+                    $templateSettings['layout'] = 'custom';
+                }
             }
             $templateSettings = $this->normalizeTemplateSettings($templateSettings);
 

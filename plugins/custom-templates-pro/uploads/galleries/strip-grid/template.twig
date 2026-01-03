@@ -5,6 +5,7 @@
     {% set resolved_src = img_src starts with '/' ? base_path ~ img_src : img_src %}
     <a href="{% if href starts with '/' %}{{ base_path }}{{ href }}{% else %}{{ href }}{% endif %}"
        class="pswp-link strip-grid-item"
+       style="--sg-w: {{ image.width|default(3)|e('html_attr') }}; --sg-h: {{ image.height|default(2)|e('html_attr') }}; background-image: url('{{ resolved_src|e('html_attr') }}');"
        data-image-id="{{ image.id }}"
        data-pswp-width="{{ image.width|default(1600) }}"
        data-pswp-height="{{ image.height|default(1067) }}"
