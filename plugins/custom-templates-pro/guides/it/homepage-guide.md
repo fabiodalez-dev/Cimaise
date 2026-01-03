@@ -183,11 +183,106 @@ ESEMPI DI EFFETTI:
 - Autoplay muted loop
 
 BEST PRACTICES:
-- Performance: usa loading="lazy", decoding="async", dimensioni esplicite width/height per evitare CLS, e genera AVIF/WebP/JPEG con srcset.
-- Immagini: preferisci <picture>, imposta sizes corretti, e limita le dimensioni massime per il hero (evita 4k su mobile).
-- SEO: aggiungi JSON-LD (CollectionPage), title/description univoci, e Open Graph con cover.
-- Accessibility: testo alternativo coerente, contrasto sufficiente, focus visibile su link, e aria-label per pulsanti/icon-only.
-- Mobile: layout a colonna singola, target touch >= 44px, hover non essenziali, sticky disabilitato su schermi piccoli.
-- JS: evita librerie pesanti, usa IntersectionObserver per reveal, rispetta prefers-reduced-motion.
+
+1. PERFORMANCE:
+   - loading="lazy" e decoding="async" su tutte le immagini below-the-fold
+   - Dimensioni esplicite width/height per evitare CLS (Cumulative Layout Shift)
+   - fetchpriority="high" solo sull'immagine hero (LCP)
+   - Esempio:
+     ```html
+     <img src="hero.jpg" width="1600" height="900"
+          fetchpriority="high" decoding="async">
+     ```
+
+2. OTTIMIZZAZIONE IMMAGINI:
+   - Usa sempre <picture> con formati progressivi: AVIF → WebP → JPEG
+   - Imposta sizes corretto per evitare download eccessivi:
+     ```html
+     <picture>
+       <source type="image/avif" srcset="img-400.avif 400w, img-800.avif 800w, img-1200.avif 1200w"
+               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
+       <source type="image/webp" srcset="...">
+       <img src="img-800.jpg" alt="..." loading="lazy">
+     </picture>
+     ```
+   - Hero: limita a 1600px max (evita 4K su mobile, spreco banda)
+   - Thumbnail grid: 400-800px sufficienti
+
+3. SEO E STRUCTURED DATA:
+   - JSON-LD CollectionPage per homepage portfolio:
+     ```html
+     <script type="application/ld+json">
+     {
+       "@context": "https://schema.org",
+       "@type": "CollectionPage",
+       "name": "{{ site_title }}",
+       "description": "{{ site_description }}",
+       "mainEntity": {
+         "@type": "ItemList",
+         "numberOfItems": {{ albums|length }}
+       }
+     }
+     </script>
+     ```
+   - Open Graph: og:image con cover principale (1200x630 ideale)
+   - Title univoco: "Portfolio | Nome Fotografo"
+
+4. ACCESSIBILITÀ (WCAG 2.1):
+   - Alt text descrittivo: "Ritratto in bianco e nero" non "IMG_001"
+   - Contrasto minimo 4.5:1 per testo normale, 3:1 per testo grande
+   - Focus visibile su tutti i link/pulsanti:
+     ```css
+     a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+     ```
+   - ARIA per elementi interattivi senza testo:
+     ```html
+     <button aria-label="Apri menu navigazione">
+       <svg>...</svg>
+     </button>
+     ```
+   - Skip link per navigazione keyboard:
+     ```html
+     <a href="#main-content" class="sr-only focus:not-sr-only">
+       Vai al contenuto
+     </a>
+     ```
+
+5. MOBILE E TOUCH:
+   - Layout single-column sotto 640px
+   - Target touch minimo 44x44px (Apple HIG) o 48x48px (Material):
+     ```css
+     .nav-link { min-height: 44px; padding: 12px 16px; }
+     ```
+   - Hover effects non essenziali (degradano gracefully)
+   - Evita position:sticky su viewport < 768px (problemi scroll)
+   - Swipe gesture con touch-action appropriato:
+     ```css
+     .carousel { touch-action: pan-x; }
+     ```
+
+6. JAVASCRIPT RESPONSABILE:
+   - Niente jQuery o librerie > 50KB per animazioni semplici
+   - IntersectionObserver per reveal on scroll:
+     ```js
+     const observer = new IntersectionObserver((entries) => {
+       entries.forEach(e => e.isIntersecting && e.target.classList.add('visible'));
+     }, { threshold: 0.1 });
+     document.querySelectorAll('.album-card').forEach(el => observer.observe(el));
+     ```
+   - Rispetta prefers-reduced-motion:
+     ```js
+     const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+     if (!prefersReduced) { /* animazioni */ }
+     ```
+   - Debounce su scroll/resize (16ms = 60fps):
+     ```js
+     let ticking = false;
+     window.addEventListener('scroll', () => {
+       if (!ticking) {
+         requestAnimationFrame(() => { /* ... */ ticking = false; });
+         ticking = true;
+       }
+     });
+     ```
 
 CREA UN TEMPLATE COMPLETO con tutti i file necessari.

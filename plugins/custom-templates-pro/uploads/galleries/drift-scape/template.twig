@@ -1,13 +1,13 @@
-{% set show_captions = template_settings.show_captions|default(false) %}
-<div class="caption-rail">
+<section class="ds-gallery" data-drift-gallery>
   {% for image in images %}
     {% set href = image.lightbox_url|default(image.url) %}
-    {% set resolved_href = href starts with '/' ? base_path ~ href : href %}
     {% set img_src = image.fallback_src|default(image.url) %}
+    {% set resolved_href = href starts with '/' ? base_path ~ href : href %}
     {% set resolved_src = img_src starts with '/' ? base_path ~ img_src : img_src %}
-    <figure class="caption-rail-item">
+    <article class="ds-tile" data-drift-item style="--ds-w: {{ image.width|default(4)|e('html_attr') }}; --ds-h: {{ image.height|default(3)|e('html_attr') }};">
       <a href="{{ resolved_href|e('html_attr') }}"
-         class="pswp-link"
+         class="pswp-link ds-link"
+         aria-label="{{ image.alt_text|default(image.alt)|default('Open image in lightbox')|e('html_attr') }}"
          data-image-id="{{ image.id|e('html_attr') }}"
          data-pswp-width="{{ image.width|default(1600)|e('html_attr') }}"
          data-pswp-height="{{ image.height|default(1067)|e('html_attr') }}"
@@ -24,14 +24,10 @@
                width="{{ image.width|default(1600) }}"
                height="{{ image.height|default(1067) }}"
                loading="lazy"
-               decoding="async">
+               decoding="async"
+               class="ds-img">
         </picture>
       </a>
-      {% if show_captions and image.caption %}<figcaption>{{ image.caption|e('html') }}</figcaption>{% endif %}
-    </figure>
+    </article>
   {% endfor %}
-</div>
-
-<script nonce="{{ csp_nonce() }}">
-window.templateSettings = JSON.parse({{ template_settings|json_encode|e('js') }});
-</script>
+</section>

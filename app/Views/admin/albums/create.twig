@@ -254,12 +254,12 @@
 
                 function updateVisibility() {
                   const option = pageSelect.options[pageSelect.selectedIndex];
-                  const isCustom = option ? option.value.startsWith('custom_') : false;
-                  galleryLabel.classList.toggle('hidden', isCustom);
-                  gallerySelect.classList.toggle('hidden', isCustom);
-                  if (galleryNote) galleryNote.classList.toggle('hidden', !isCustom);
+                  const usesGallery = option ? option.dataset.usesGallery !== '0' : true;
+                  galleryLabel.classList.toggle('hidden', !usesGallery);
+                  gallerySelect.classList.toggle('hidden', !usesGallery);
+                  if (galleryNote) galleryNote.classList.toggle('hidden', usesGallery);
                   if (allowSwitchInput) {
-                    if (isCustom) {
+                    if (!usesGallery) {
                       allowSwitchInput.checked = false;
                       allowSwitchInput.disabled = true;
                     } else {

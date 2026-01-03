@@ -1,7 +1,7 @@
 {% set cols = template_settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
-{% set gap_settings = template_settings.gap|default({horizontal: 18, vertical: 18}) %}
-{% set gap_h = gap_settings.horizontal|default(gap_settings) %}
-{% set gap_v = gap_settings.vertical|default(gap_settings) %}
+{% set gap_raw = template_settings.gap|default({horizontal: 18, vertical: 18}) %}
+{% set gap_h = gap_raw.horizontal is defined ? gap_raw.horizontal : (gap_raw is iterable ? 18 : gap_raw) %}
+{% set gap_v = gap_raw.vertical is defined ? gap_raw.vertical : (gap_raw is iterable ? 18 : gap_raw) %}
 <section class="quiet-masonry" style="--qm-gap-h: {{ gap_h }}px; --qm-gap-v: {{ gap_v }}px;">
   <div class="gallery-masonry pswp-gallery" style="--masonry-gap-h: {{ gap_h }}px; --masonry-gap-v: {{ gap_v }}px; --masonry-cols-mobile: {{ cols.mobile }}; --masonry-cols-tablet: {{ cols.tablet }}; --masonry-cols-desktop: {{ cols.desktop }};">
   {% for image in images %}
