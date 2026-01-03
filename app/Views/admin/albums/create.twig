@@ -214,31 +214,55 @@
                        placeholder="0">
               </div>
 
-              <div>
-                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.template') }}</label>
-                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="template_id">
+              <div data-gallery-template-container>
+                <label class="block text-sm font-medium text-black mb-2" data-gallery-template-label>{{ trans('admin.albums.template') }}</label>
+                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="template_id" data-gallery-template-select>
                   <option value="">{{ trans('admin.albums.default_template') }}</option>
                   {% for template in templates %}
                     <option value="{{ template.id }}">{{ template.name }}</option>
                   {% endfor %}
                 </select>
+                <p class="text-xs text-gray-500 mt-1 hidden" data-gallery-template-note>{{ trans('admin.albums.page_template_overrides_gallery') }}</p>
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.page_template_label') }}</label>
-                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="album_page_template">
-                  <option value="">{{ trans('admin.albums.page_template_inherit') }}</option>
-                  <option value="classic">{{ trans('admin.albums.page_template_classic') }}</option>
-                  <option value="hero">{{ trans('admin.albums.page_template_hero') }}</option>
-                  <option value="magazine">{{ trans('admin.albums.page_template_magazine') }}</option>
+                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="album_page_template" data-album-page-template-select data-default-page-template="{{ default_album_page_template|e('html_attr') }}">
+                  <option value="" data-uses-gallery="1">{{ trans('admin.albums.page_template_inherit') }}</option>
+                  <option value="classic" data-uses-gallery="1">{{ trans('admin.albums.page_template_classic') }}</option>
+                  <option value="hero" data-uses-gallery="1">{{ trans('admin.albums.page_template_hero') }}</option>
+                  <option value="magazine" data-uses-gallery="1">{{ trans('admin.albums.page_template_magazine') }}</option>
                   {% if album_page_templates is defined and album_page_templates|length > 0 %}
                     {% for template in album_page_templates %}
-                      <option value="{{ template.value|e('html_attr') }}">{{ template.label|default('Custom Template') }}</option>
+                      {% set uses_gallery = template.settings.uses_gallery_template is defined and not template.settings.uses_gallery_template ? '0' : '1' %}
+                      <option value="{{ template.value|e('html_attr') }}" data-uses-gallery="{{ uses_gallery }}">{{ template.label|default(trans('admin.templates.custom_template_fallback')) }}</option>
                     {% endfor %}
                   {% endif %}
                 </select>
                 <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.page_template_help') }}</p>
               </div>
+
+              <script nonce="{{ csp_nonce() }}">
+              (function() {
+                const pageSelect = document.querySelector('[data-album-page-template-select]');
+                const galleryContainer = document.querySelector('[data-gallery-template-container]');
+                const galleryLabel = document.querySelector('[data-gallery-template-label]');
+                const gallerySelect = document.querySelector('[data-gallery-template-select]');
+                const galleryNote = document.querySelector('[data-gallery-template-note]');
+                if (!pageSelect || !galleryContainer || !gallerySelect || !galleryLabel) return;
+
+                function updateVisibility() {
+                  const option = pageSelect.options[pageSelect.selectedIndex];
+                  const isCustom = option ? option.value.startsWith('custom_') : false;
+                  galleryLabel.classList.toggle('hidden', isCustom);
+                  gallerySelect.classList.toggle('hidden', isCustom);
+                  if (galleryNote) galleryNote.classList.toggle('hidden', !isCustom);
+                }
+
+                pageSelect.addEventListener('change', updateVisibility);
+                updateVisibility();
+              })();
+              </script>
 
               <div class="space-y-3">
                 <label class="flex items-center gap-3">

@@ -1,6 +1,16 @@
 .panel-notes {
-  background: #fff;
-  color: #111;
+  --pn-bg: #fff;
+  --pn-text: #111;
+  --pn-text-muted: #666;
+  --pn-border: #eee;
+  background: var(--pn-bg);
+  color: var(--pn-text);
+}
+html.dark .panel-notes {
+  --pn-bg: #111;
+  --pn-text: #f5f5f5;
+  --pn-text-muted: #b5b5b5;
+  --pn-border: #2a2a2a;
 }
 .panel-notes .pn-wrap {
   max-width: 1040px;
@@ -13,7 +23,7 @@
   margin-bottom: 12px;
 }
 .panel-notes .pn-meta {
-  color: #666;
+  color: var(--pn-text-muted);
   font-size: 13px;
   display: flex;
   flex-wrap: wrap;
@@ -25,7 +35,7 @@
   margin-top: 28px;
 }
 .panel-notes .pn-card {
-  border: 1px solid #eee;
+  border: 1px solid var(--pn-border);
   padding: 18px 20px;
   border-radius: 14px;
 }
@@ -34,7 +44,7 @@
   letter-spacing: 0.2em;
   font-size: 11px;
   margin-bottom: 10px;
-  color: #666;
+  color: var(--pn-text-muted);
 }
 .panel-notes .pn-body {
   font-size: 18px;

@@ -9,19 +9,25 @@
          data-pswp-height="{{ image.height|default(1067) }}"
          data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}">
         <picture>
-          {% if image.sources.avif|length %}
+          {% if image.sources.avif|default([])|length %}
             <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
           {% endif %}
-          {% if image.sources.webp|length %}
+          {% if image.sources.webp|default([])|length %}
             <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
           {% endif %}
           <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                alt="{{ image.alt_text|default(image.alt)|default('')|e('html_attr') }}"
+               width="{{ image.width|default(1600) }}"
+               height="{{ image.height|default(1067) }}"
                loading="lazy"
                decoding="async">
         </picture>
       </a>
-      {% if image.caption %}<figcaption>{{ image.caption|e }}</figcaption>{% endif %}
+      {% if image.caption %}<figcaption>{{ image.caption|e('html') }}</figcaption>{% endif %}
     </figure>
   {% endfor %}
 </div>
+
+<script nonce="{{ csp_nonce() }}">
+window.templateSettings = {{ template_settings|json_encode|raw }};
+</script>
