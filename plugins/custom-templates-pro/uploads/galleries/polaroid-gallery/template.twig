@@ -1,5 +1,6 @@
 {% set cols = template_settings.columns|default({desktop: 4, tablet: 3, mobile: 2}) %}
 {% set gap = template_settings.gap|default(30) %}
+{% set show_captions = template_settings.show_captions|default(false) %}
 
 <div class="polaroid-gallery" style="--gap: {{ gap }}px; --cols-mobile: {{ cols.mobile }}; --cols-tablet: {{ cols.tablet }}; --cols-desktop: {{ cols.desktop }};">
   {% for image in images %}
@@ -50,7 +51,7 @@
         {% endif %}
       </a>
 
-      {% if image.caption %}
+      {% if show_captions and image.caption %}
       <div class="polaroid-caption">
         {{ image.caption|e }}
       </div>

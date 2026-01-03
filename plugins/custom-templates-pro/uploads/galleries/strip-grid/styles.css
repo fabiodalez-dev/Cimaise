@@ -1,35 +1,81 @@
 .strip-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 56px 48px;
+  grid-auto-rows: 120px;
+  padding: 10px 0 40px;
 }
 .strip-grid-item {
+  position: relative;
   display: block;
-  background: #f5f5f5;
-  overflow: hidden;
-}
-.strip-grid-item img {
-  display: block;
-  width: 100%;
-  height: auto;
+  aspect-ratio: var(--sg-w) / var(--sg-h);
+  background-color: #f5f5f5;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: translateY(0);
   transition: transform 0.3s ease;
 }
-.strip-grid-item:hover img {
-  transform: scale(1.02);
+.strip-grid-item img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+.strip-grid-item:hover {
+  transform: translateY(-4px);
+}
+
+.strip-grid-item:nth-child(3n + 1) {
+  grid-column: span 2;
+  grid-row: span 3;
+}
+.strip-grid-item:nth-child(5n + 2) {
+  grid-column: span 1;
+  grid-row: span 2;
+  transform: translateY(18px);
+}
+.strip-grid-item:nth-child(7n + 3) {
+  grid-column: span 2;
+  grid-row: span 4;
+  transform: translateY(-12px);
+}
+.strip-grid-item:nth-child(9n + 4) {
+  grid-column: span 1;
+  grid-row: span 3;
+  transform: translateY(26px);
 }
 
 @media (max-width: 640px) {
   .strip-grid {
     grid-template-columns: 1fr;
+    gap: 28px;
+    grid-auto-rows: auto;
+  }
+  .strip-grid-item {
+    aspect-ratio: auto;
+    min-height: 220px;
+    transform: none;
+  }
+  .strip-grid-item:nth-child(3n + 1),
+  .strip-grid-item:nth-child(5n + 2),
+  .strip-grid-item:nth-child(7n + 3),
+  .strip-grid-item:nth-child(9n + 4) {
+    grid-column: auto;
+    grid-row: auto;
+    transform: none;
   }
 }
 
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   .strip-grid-item {
-    background: #1f1f1f;
+    background-color: #1f1f1f;
   }
 }
 html.dark .strip-grid-item {
-  background: #1f1f1f;
+  background-color: #1f1f1f;
 }

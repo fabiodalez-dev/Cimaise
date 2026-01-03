@@ -17,7 +17,7 @@ return function (Database $db): array {
             $createTable = <<<SQL
 CREATE TABLE IF NOT EXISTS custom_templates (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  type TEXT NOT NULL,
+  type TEXT NOT NULL CHECK(type IN ('gallery', 'album_page', 'homepage')),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   description TEXT,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS custom_templates (
   css_paths TEXT,
   js_paths TEXT,
   preview_path TEXT,
-  is_active INTEGER DEFAULT 1,
+  is_active INTEGER DEFAULT 1 CHECK(is_active IN (0, 1)),
   installed_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 )

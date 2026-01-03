@@ -66,6 +66,7 @@ html.dark {
 .ss-grid {
   column-count: var(--ss-cols-mobile);
   column-gap: var(--ss-gap);
+  column-fill: balance;
 }
 
 @media (min-width: 768px) {
@@ -85,7 +86,7 @@ html.dark {
   border: 1px solid var(--ss-border);
   box-shadow: 0 12px 24px rgba(12, 13, 18, 0.08);
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 0;
   break-inside: avoid;
   margin-bottom: var(--ss-gap);
   opacity: 0;

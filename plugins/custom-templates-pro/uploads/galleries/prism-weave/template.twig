@@ -1,30 +1,25 @@
 {# NOTE: Keep this template in sync with examples/prism-weave-gallery/template.twig. #}
 {% set cols = template_settings.columns|default({desktop: 4, tablet: 3, mobile: 1}) %}
-{% set gap = template_settings.gap|default(18) %}
-{% set rounded = template_settings.style.rounded|default(true) %}
+{% set gap_settings = template_settings.gap|default(18) %}
+{% set gap_h = gap_settings.horizontal is defined ? gap_settings.horizontal : (gap_settings is iterable ? 18 : gap_settings) %}
+{% set gap_v = gap_settings.vertical is defined ? gap_settings.vertical : (gap_settings is iterable ? 18 : gap_settings) %}
+{% set rounded = false %}
 {% set hover_scale = template_settings.style.hover_scale|default(true) %}
+{% set show_captions = template_settings.show_captions|default(false) %}
 
-<section class="pw-gallery" style="--pw-gap: {{ gap }}px; --pw-cols-mobile: {{ cols.mobile }}; --pw-cols-tablet: {{ cols.tablet }}; --pw-cols-desktop: {{ cols.desktop }};">
-  <header class="pw-head">
-    <p class="pw-kicker">{{ album.category_name|default('Gallery')|e }}</p>
-    <h2 class="pw-title">{{ album.title|default(site_title)|e }}</h2>
-    {% if album.excerpt %}
-    <p class="pw-subtitle">{{ album.excerpt|e }}</p>
-    {% endif %}
-  </header>
-
-  <div class="pw-columns">
+<section class="pw-gallery" style="--pw-gap-h: {{ gap_h }}px; --pw-gap-v: {{ gap_v }}px;">
+  <div class="gallery-masonry pswp-gallery" style="--masonry-gap-h: {{ gap_h }}px; --masonry-gap-v: {{ gap_v }}px; --masonry-cols-mobile: {{ cols.mobile }}; --masonry-cols-tablet: {{ cols.tablet }}; --masonry-cols-desktop: {{ cols.desktop }};">
     {% for image in images %}
       {% set lightbox_href = image.lightbox_url|default(image.url) %}
       {% set img_w = image.width|default(4) %}
       {% set img_h = image.height|default(3) %}
-      <figure class="pw-tile {% if rounded %}pw-rounded{% endif %} {% if hover_scale %}pw-hover{% endif %}" data-reveal>
-        <div class="pw-frame" style="--pw-w: {{ img_w|e('html_attr') }}; --pw-h: {{ img_h|e('html_attr') }};">
+      <div class="masonry-frame pw-tile {% if hover_scale %}pw-hover{% endif %}" style="--width: {{ img_w|e('html_attr') }}; --height: {{ img_h|e('html_attr') }};" data-reveal>
+        <div class="frame-content pw-frame{% if rounded %} pw-rounded{% endif %}">
           <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
              class="pswp-link pw-link"
-             data-image-id="{{ image.id }}"
-             data-pswp-width="{{ image.width|default(1600) }}"
-             data-pswp-height="{{ image.height|default(1067) }}"
+             data-image-id="{{ image.id|e('html_attr') }}"
+             data-pswp-width="{{ image.width|default(1600)|e('html_attr') }}"
+             data-pswp-height="{{ image.height|default(1067)|e('html_attr') }}"
              data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
              data-title="{{ image.caption|default('')|e }}"
              data-alt="{{ image.alt|default('')|e }}">
@@ -47,11 +42,11 @@
                  class="pw-img">
             </picture>
           </a>
+          {% if show_captions and image.caption %}
+          <div class="pw-cap">{{ image.caption|e }}</div>
+          {% endif %}
         </div>
-        {% if image.caption %}
-        <figcaption class="pw-cap">{{ image.caption|e }}</figcaption>
-        {% endif %}
-      </figure>
+      </div>
     {% endfor %}
   </div>
 </section>

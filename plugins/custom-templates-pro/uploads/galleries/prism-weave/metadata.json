@@ -9,20 +9,27 @@
     "cimaise": ">=1.0.0"
   },
   "settings": {
+    "layout": "masonry",
     "columns": {
       "desktop": 4,
       "tablet": 3,
       "mobile": 1
     },
-    "gap": 18,
+    "gap": {
+      "horizontal": 18,
+      "vertical": 18
+    },
     "style": {
       "rounded": true,
       "hover_scale": true
+    },
+    "masonry": {
+      "type": "balanced"
     }
   },
   "libraries": {
     "photoswipe": true,
-    "masonry": false
+    "masonry": true
   },
   "assets": {
     "css": ["styles.css"],

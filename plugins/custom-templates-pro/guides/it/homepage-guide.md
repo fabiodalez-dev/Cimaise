@@ -183,9 +183,11 @@ ESEMPI DI EFFETTI:
 - Autoplay muted loop
 
 BEST PRACTICES:
-- Performance: lazy loading, image optimization
-- SEO: Schema.org, meta tags
-- Accessibility: ARIA labels, keyboard navigation
-- Mobile: responsive, touch-friendly
+- Performance: usa loading="lazy", decoding="async", dimensioni esplicite width/height per evitare CLS, e genera AVIF/WebP/JPEG con srcset.
+- Immagini: preferisci <picture>, imposta sizes corretti, e limita le dimensioni massime per il hero (evita 4k su mobile).
+- SEO: aggiungi JSON-LD (CollectionPage), title/description univoci, e Open Graph con cover.
+- Accessibility: testo alternativo coerente, contrasto sufficiente, focus visibile su link, e aria-label per pulsanti/icon-only.
+- Mobile: layout a colonna singola, target touch >= 44px, hover non essenziali, sticky disabilitato su schermi piccoli.
+- JS: evita librerie pesanti, usa IntersectionObserver per reveal, rispetta prefers-reduced-motion.
 
 CREA UN TEMPLATE COMPLETO con tutti i file necessari.

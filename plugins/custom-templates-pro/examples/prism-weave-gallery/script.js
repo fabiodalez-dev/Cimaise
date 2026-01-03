@@ -14,10 +14,13 @@
     return;
   }
 
+  const tileIndices = new WeakMap();
+  tiles.forEach((tile, index) => tileIndices.set(tile, index));
+
   const observer = new IntersectionObserver((entries, obs) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
-        const index = Array.prototype.indexOf.call(tiles, entry.target);
+        const index = tileIndices.get(entry.target);
         entry.target.style.transitionDelay = `${index * 40}ms`;
         entry.target.classList.add('is-visible');
         obs.unobserve(entry.target);
