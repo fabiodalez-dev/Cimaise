@@ -6,7 +6,7 @@ This guide will help you create a custom template for album galleries
 in Cimaise using your preferred LLM or by editing the prompt manually.
 
 ================================================================================
-PROMPT FOR LLM - COPY AND PASTE THIS TEXT
+PROMPT - COPY AND PASTE THIS TEXT
 ================================================================================
 
 Create a custom Twig template for a photo gallery in Cimaise CMS.

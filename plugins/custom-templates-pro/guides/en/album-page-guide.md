@@ -7,7 +7,7 @@ This guide will help you create a complete template for the album page
 or by editing the prompt manually.
 
 ================================================================================
-PROMPT FOR LLM - COPY AND PASTE THIS TEXT
+PROMPT - COPY AND PASTE THIS TEXT
 ================================================================================
 
 Create a complete Twig template for the album page in Cimaise CMS, including

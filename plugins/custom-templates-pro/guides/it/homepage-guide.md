@@ -7,7 +7,7 @@ del portfolio in Cimaise usando il tuo LLM preferito o adattando il prompt
 manualmente.
 
 ================================================================================
-PROMPT PER LLM - COPIA E INCOLLA QUESTO TESTO
+PROMPT - COPIA E INCOLLA QUESTO TESTO
 ================================================================================
 
 Crea un template Twig per la homepage di un portfolio fotografico in Cimaise CMS.

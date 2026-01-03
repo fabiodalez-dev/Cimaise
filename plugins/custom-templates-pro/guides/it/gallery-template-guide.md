@@ -7,7 +7,7 @@ degli album in Cimaise usando il tuo LLM preferito o adattando il prompt
 manualmente.
 
 ================================================================================
-PROMPT PER LLM - COPIA E INCOLLA QUESTO TESTO
+PROMPT - COPIA E INCOLLA QUESTO TESTO
 ================================================================================
 
 Crea un template Twig personalizzato per una galleria fotografica in Cimaise CMS.

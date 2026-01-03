@@ -5,7 +5,7 @@
   if (!tiles.length) {
     return;
   }
-  if (gallery) {
+  if (gallery && !prefersReduced) {
     gallery.classList.add('pw-animate');
   }
 

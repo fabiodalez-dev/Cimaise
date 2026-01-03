@@ -65,16 +65,16 @@ html.dark .panel-notes {
     padding: 36px 18px;
   }
   .panel-notes .pn-title {
-    font-size: 2rem;
+    font-size: clamp(1.75rem, 5vw, 2rem);
   }
   .panel-notes .pn-body {
-    font-size: 1rem;
+    font-size: clamp(0.9rem, 2vw, 1rem);
   }
 }
 
 @media (max-width: 640px) {
-  .panel-notes .gallery-grid,
-  .panel-notes .gallery-masonry {
-    grid-template-columns: 1fr !important;
+  .panel-notes .pn-gallery .gallery-grid,
+  .panel-notes .pn-gallery .gallery-masonry {
+    grid-template-columns: 1fr;
   }
 }
