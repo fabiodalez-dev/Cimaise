@@ -2,14 +2,13 @@
   "type": "gallery",
   "name": "Strip Grid",
   "slug": "strip-grid",
-  "description": "Wide strips with tight rhythm.",
+  "description": "Sparse strips with wide whitespace and horizontal drift.",
   "version": "1.0.0",
   "author": "Cimaise",
   "settings": {
-    "layout": "grid",
+    "layout": "sparse",
     "columns": {"desktop": 2, "tablet": 2, "mobile": 1},
-    "gap": {"horizontal": 20, "vertical": 20},
-    "aspect_ratio": "16:9",
+    "gap": {"horizontal": 36, "vertical": 36},
     "style": {"rounded": false, "shadow": false, "hover_scale": true}
   },
   "assets": {

@@ -9,11 +9,12 @@
   <div class="polaroid-frame" style="--rotation: {{ rotation }}deg;">
     <div class="polaroid-photo">
       {% set lightbox_href = image.lightbox_url|default(image.url) %}
-      <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+      {% set resolved_href = lightbox_href starts with '/' ? base_path ~ lightbox_href : lightbox_href %}
+      <a href="{{ resolved_href|e('html_attr') }}"
          class="pswp-link gallery-link block w-full h-full"
-         data-image-id="{{ image.id }}"
-         data-pswp-width="{{ image.width|default(1600) }}"
-         data-pswp-height="{{ image.height|default(1067) }}"
+         data-image-id="{{ image.id|e('html_attr') }}"
+         data-pswp-width="{{ image.width|default(1600)|e('html_attr') }}"
+         data-pswp-height="{{ image.height|default(1067)|e('html_attr') }}"
          data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
          data-title="{{ image.caption|default('')|e }}"
          data-alt="{{ image.alt|default('')|e }}"
@@ -33,23 +34,25 @@
           <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
           {% endif %}
 
-          <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+          {% set img_src = image.fallback_src|default(image.url) %}
+          {% set resolved_src = img_src starts with '/' ? base_path ~ img_src : img_src %}
+          <img src="{{ resolved_src|e('html_attr') }}"
                alt="{{ image.alt|e }}"
                class="polaroid-img"
                loading="lazy"
                decoding="async">
         </picture>
-
-        {% if album.allow_downloads %}
-        <button type="button"
-                class="polaroid-download"
-                title="Download"
-                data-action="download-image"
-                data-download-url="{{ base_path }}/download/image/{{ image.id }}">
-          <i class="fa-solid fa-arrow-down"></i>
-        </button>
-        {% endif %}
       </a>
+      {% if album.allow_downloads %}
+      <button type="button"
+              class="polaroid-download"
+              title="Download"
+              aria-label="Download image"
+              data-action="download-image"
+              data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+        <i class="fa-solid fa-arrow-down"></i>
+      </button>
+      {% endif %}
 
       {% if show_captions and image.caption %}
       <div class="polaroid-caption">
@@ -62,5 +65,5 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
-window.templateSettings = {{ template_settings|json_encode|raw }};
+window.templateSettings = JSON.parse({{ template_settings|json_encode|e('js') }});
 </script>

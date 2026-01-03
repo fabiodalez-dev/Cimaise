@@ -37,7 +37,7 @@ SQL;
             $createTable = <<<SQL
 CREATE TABLE IF NOT EXISTS custom_templates (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  type VARCHAR(50) NOT NULL,
+  type VARCHAR(50) NOT NULL CHECK(type IN ('gallery', 'album_page', 'homepage')),
   name VARCHAR(190) NOT NULL,
   slug VARCHAR(190) NOT NULL,
   description TEXT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS custom_templates (
   css_paths JSON NULL,
   js_paths JSON NULL,
   preview_path VARCHAR(255) NULL,
-  is_active TINYINT(1) DEFAULT 1,
+  is_active TINYINT(1) DEFAULT 1 CHECK(is_active IN (0, 1)),
   installed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),

@@ -3,54 +3,54 @@
 {% set gap_settings = template_settings.gap|default(18) %}
 {% set gap_h = gap_settings.horizontal is defined ? gap_settings.horizontal : (gap_settings is iterable ? 18 : gap_settings) %}
 {% set gap_v = gap_settings.vertical is defined ? gap_settings.vertical : (gap_settings is iterable ? 18 : gap_settings) %}
-{% set rounded = false %}
+{% set rounded = template_settings.style.rounded|default(false) %}
 {% set hover_scale = template_settings.style.hover_scale|default(true) %}
 {% set show_captions = template_settings.show_captions|default(false) %}
 
 <section class="pw-gallery" style="--pw-gap-h: {{ gap_h }}px; --pw-gap-v: {{ gap_v }}px;">
-  <div class="gallery-masonry pswp-gallery" style="--masonry-gap-h: {{ gap_h }}px; --masonry-gap-v: {{ gap_v }}px; --masonry-cols-mobile: {{ cols.mobile }}; --masonry-cols-tablet: {{ cols.tablet }}; --masonry-cols-desktop: {{ cols.desktop }};">
+  <div class="pw-sparse pswp-gallery">
     {% for image in images %}
       {% set lightbox_href = image.lightbox_url|default(image.url) %}
       {% set img_w = image.width|default(4) %}
       {% set img_h = image.height|default(3) %}
-      <div class="masonry-frame pw-tile {% if hover_scale %}pw-hover{% endif %}" style="--width: {{ img_w|e('html_attr') }}; --height: {{ img_h|e('html_attr') }};" data-reveal>
-        <div class="frame-content pw-frame{% if rounded %} pw-rounded{% endif %}">
-          <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
-             class="pswp-link pw-link"
-             data-image-id="{{ image.id|e('html_attr') }}"
-             data-pswp-width="{{ image.width|default(1600)|e('html_attr') }}"
-             data-pswp-height="{{ image.height|default(1067)|e('html_attr') }}"
-             data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
-             data-title="{{ image.caption|default('')|e }}"
-             data-alt="{{ image.alt|default('')|e }}">
-            <picture>
-            {% if image.sources.avif|length %}
-            <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
-            {% endif %}
-            {% if image.sources.webp|length %}
-            <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
-            {% endif %}
-            {% if image.sources.jpg|length %}
-            <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
-            {% endif %}
-            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
-                 alt="{{ image.alt|e }}"
-                 width="{{ image.width|default(1600) }}"
-                 height="{{ image.height|default(1067) }}"
-                 loading="lazy"
-                 decoding="async"
-                 class="pw-img">
-            </picture>
-          </a>
-          {% if show_captions and image.caption %}
-          <div class="pw-cap">{{ image.caption|e }}</div>
+      <article class="pw-sparse-item {% if hover_scale %}pw-hover{% endif %}{% if rounded %} pw-rounded{% endif %}"
+               style="--pw-w: {{ img_w|e('html_attr') }}; --pw-h: {{ img_h|e('html_attr') }};"
+               data-reveal>
+        <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+           class="pswp-link pw-link"
+           data-image-id="{{ image.id|e('html_attr') }}"
+           data-pswp-width="{{ image.width|default(1600)|e('html_attr') }}"
+           data-pswp-height="{{ image.height|default(1067)|e('html_attr') }}"
+           data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
+           data-title="{{ image.caption|default('')|e }}"
+           data-alt="{{ image.alt|default('')|e }}">
+          <picture>
+          {% if image.sources.avif|length %}
+          <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
           {% endif %}
-        </div>
-      </div>
+          {% if image.sources.webp|length %}
+          <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+          {% endif %}
+          {% if image.sources.jpg|length %}
+          <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+          {% endif %}
+          <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+               alt="{{ image.alt|e }}"
+               width="{{ image.width|default(1600) }}"
+               height="{{ image.height|default(1067) }}"
+               loading="lazy"
+               decoding="async"
+               class="pw-img">
+          </picture>
+        </a>
+        {% if show_captions and image.caption %}
+        <div class="pw-cap">{{ image.caption|e }}</div>
+        {% endif %}
+      </article>
     {% endfor %}
   </div>
 </section>
 
 <script nonce="{{ csp_nonce() }}">
-window.templateSettings = {{ template_settings|json_encode|raw }};
+window.templateSettings = JSON.parse({{ template_settings|json_encode|e('js') }});
 </script>
