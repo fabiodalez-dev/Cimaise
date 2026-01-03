@@ -278,7 +278,7 @@ MIT License - Vedi LICENSE file
 
 - **Documentazione**: `docs/` directory
 - **Issues**: GitHub Issues
-- **Email**: support@cimaise.com
+- **Email**: <support@cimaise.com>
 
 ## 🎉 Credits
 
