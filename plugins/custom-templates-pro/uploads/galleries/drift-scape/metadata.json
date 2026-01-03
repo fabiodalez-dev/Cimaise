@@ -1,8 +1,8 @@
 {
   "type": "gallery",
-  "name": "Prism Weave",
-  "slug": "prism-weave",
-  "description": "Gallery moderna a colonne fluide con reveal animato e hover luminoso",
+  "name": "Drift Scape",
+  "slug": "drift-scape",
+  "description": "Sparse gallery with wide whitespace and horizontal drift.",
   "version": "1.0.0",
   "author": "Cimaise Team",
   "requires": {
@@ -11,22 +11,22 @@
   "settings": {
     "layout": "sparse",
     "columns": {
-      "desktop": 4,
-      "tablet": 3,
+      "desktop": 3,
+      "tablet": 2,
       "mobile": 1
     },
     "gap": {
-      "horizontal": 18,
-      "vertical": 18
+      "horizontal": 40,
+      "vertical": 48
     },
     "style": {
       "rounded": false,
+      "shadow": false,
       "hover_scale": true
     }
   },
   "libraries": {
-    "photoswipe": true,
-    "masonry": false
+    "photoswipe": true
   },
   "assets": {
     "css": ["styles.css"],

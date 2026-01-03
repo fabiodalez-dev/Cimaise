@@ -182,9 +182,106 @@ EFFECT EXAMPLES:
 - Autoplay muted loop
 
 BEST PRACTICES:
-- Performance: lazy loading, image optimization
-- SEO: Schema.org, meta tags
-- Accessibility: ARIA labels, keyboard navigation
-- Mobile: responsive, touch-friendly
+
+1. PERFORMANCE:
+   - loading="lazy" and decoding="async" on all below-the-fold images
+   - Explicit width/height dimensions to avoid CLS (Cumulative Layout Shift)
+   - fetchpriority="high" only on the hero image (LCP)
+   - Example:
+     ```html
+     <img src="hero.jpg" width="1600" height="900"
+          fetchpriority="high" decoding="async">
+     ```
+
+2. IMAGE OPTIMIZATION:
+   - Always use <picture> with progressive formats: AVIF → WebP → JPEG
+   - Set correct sizes attribute to avoid excessive downloads:
+     ```html
+     <picture>
+       <source type="image/avif" srcset="img-400.avif 400w, img-800.avif 800w, img-1200.avif 1200w"
+               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
+       <source type="image/webp" srcset="...">
+       <img src="img-800.jpg" alt="..." loading="lazy">
+     </picture>
+     ```
+   - Hero: limit to 1600px max (avoid 4K on mobile, wastes bandwidth)
+   - Thumbnail grid: 400-800px is sufficient
+
+3. SEO AND STRUCTURED DATA:
+   - JSON-LD CollectionPage for portfolio homepage:
+     ```html
+     <script type="application/ld+json">
+     {
+       "@context": "https://schema.org",
+       "@type": "CollectionPage",
+       "name": "{{ site_title }}",
+       "description": "{{ site_description }}",
+       "mainEntity": {
+         "@type": "ItemList",
+         "numberOfItems": {{ albums|length }}
+       }
+     }
+     </script>
+     ```
+   - Open Graph: og:image with main cover (1200x630 ideal)
+   - Unique title: "Portfolio | Photographer Name"
+
+4. ACCESSIBILITY (WCAG 2.1):
+   - Descriptive alt text: "Black and white portrait" not "IMG_001"
+   - Minimum contrast 4.5:1 for normal text, 3:1 for large text
+   - Visible focus on all links/buttons:
+     ```css
+     a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+     ```
+   - ARIA for interactive elements without text:
+     ```html
+     <button aria-label="Open navigation menu">
+       <svg>...</svg>
+     </button>
+     ```
+   - Skip link for keyboard navigation:
+     ```html
+     <a href="#main-content" class="sr-only focus:not-sr-only">
+       Skip to content
+     </a>
+     ```
+
+5. MOBILE AND TOUCH:
+   - Single-column layout below 640px
+   - Minimum touch target 44x44px (Apple HIG) or 48x48px (Material):
+     ```css
+     .nav-link { min-height: 44px; padding: 12px 16px; }
+     ```
+   - Hover effects are non-essential (degrade gracefully)
+   - Avoid position:sticky on viewport < 768px (scroll issues)
+   - Swipe gestures with appropriate touch-action:
+     ```css
+     .carousel { touch-action: pan-x; }
+     ```
+
+6. RESPONSIBLE JAVASCRIPT:
+   - No jQuery or libraries > 50KB for simple animations
+   - IntersectionObserver for scroll reveal:
+     ```js
+     const observer = new IntersectionObserver((entries) => {
+       entries.forEach(e => e.isIntersecting && e.target.classList.add('visible'));
+     }, { threshold: 0.1 });
+     document.querySelectorAll('.album-card').forEach(el => observer.observe(el));
+     ```
+   - Respect prefers-reduced-motion:
+     ```js
+     const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+     if (!prefersReduced) { /* animations */ }
+     ```
+   - Debounce on scroll/resize (16ms = 60fps):
+     ```js
+     let ticking = false;
+     window.addEventListener('scroll', () => {
+       if (!ticking) {
+         requestAnimationFrame(() => { /* ... */ ticking = false; });
+         ticking = true;
+       }
+     });
+     ```
 
 CREATE A COMPLETE TEMPLATE with all necessary files.
