@@ -1,0 +1,52 @@
+.quiet-page {
+  background: #fff;
+  color: #111;
+}
+.quiet-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 22px;
+}
+.quiet-title {
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1.15;
+  margin-bottom: 12px;
+}
+.quiet-meta {
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.quiet-divider {
+  height: 1px;
+  background: #eee;
+  margin: 26px 0;
+}
+.quiet-body {
+  font-size: 18px;
+  line-height: 1.75;
+}
+.quiet-eq {
+  display: grid;
+  gap: 12px;
+  font-size: 14px;
+}
+.quiet-eq strong {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 11px;
+  color: #666;
+  display: block;
+  margin-bottom: 4px;
+}
+.quiet-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+.quiet-tag {
+  border-bottom: 1px solid #111;
+}

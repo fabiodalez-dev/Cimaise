@@ -1,0 +1,19 @@
+{
+  "type": "album_page",
+  "name": "Cover Rail",
+  "slug": "cover-rail",
+  "description": "Hero cover with rail meta blocks and gallery.",
+  "version": "1.0.0",
+  "author": "Cimaise",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "gallery_layout": "grid",
+    "show_equipment": true,
+    "header_style": "cover"
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}
