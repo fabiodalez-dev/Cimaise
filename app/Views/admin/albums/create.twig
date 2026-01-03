@@ -224,6 +224,22 @@
                 </select>
               </div>
 
+              <div>
+                <label class="block text-sm font-medium text-black mb-2">{{ trans('admin.albums.page_template_label') }}</label>
+                <select class="form-input border-gray-300 focus:border-black focus:ring-black" name="album_page_template">
+                  <option value="">{{ trans('admin.albums.page_template_inherit') }}</option>
+                  <option value="classic">{{ trans('admin.albums.page_template_classic') }}</option>
+                  <option value="hero">{{ trans('admin.albums.page_template_hero') }}</option>
+                  <option value="magazine">{{ trans('admin.albums.page_template_magazine') }}</option>
+                  {% if album_page_templates is defined and album_page_templates|length > 0 %}
+                    {% for template in album_page_templates %}
+                      <option value="{{ template.value|e('html_attr') }}">{{ template.label|default('Custom Template') }}</option>
+                    {% endfor %}
+                  {% endif %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">{{ trans('admin.albums.page_template_help') }}</p>
+              </div>
+
               <div class="space-y-3">
                 <label class="flex items-center gap-3">
                   <input class="h-4 w-4 text-black border-gray-300 rounded focus:ring-black"

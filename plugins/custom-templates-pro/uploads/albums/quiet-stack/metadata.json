@@ -1,0 +1,19 @@
+{
+  "type": "album_page",
+  "name": "Quiet Stack",
+  "slug": "quiet-stack",
+  "description": "Minimal stacked layout with subtle dividers.",
+  "version": "1.0.0",
+  "author": "Cimaise",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "gallery_layout": "grid",
+    "show_equipment": true,
+    "header_style": "minimal"
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}

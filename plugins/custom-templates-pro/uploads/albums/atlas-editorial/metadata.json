@@ -1,0 +1,19 @@
+{
+  "type": "album_page",
+  "name": "Atlas Editorial",
+  "slug": "atlas-editorial",
+  "description": "Editorial layout with cover, body, and sidebar equipment.",
+  "version": "1.0.0",
+  "author": "Cimaise",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "gallery_layout": "grid",
+    "show_equipment": true,
+    "header_style": "editorial"
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}

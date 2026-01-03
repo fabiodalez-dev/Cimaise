@@ -1,0 +1,19 @@
+{
+  "type": "album_page",
+  "name": "Split Story",
+  "slug": "split-story",
+  "description": "Split layout with sticky meta and wide gallery.",
+  "version": "1.0.0",
+  "author": "Cimaise",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "gallery_layout": "masonry",
+    "show_equipment": true,
+    "header_style": "split"
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}
