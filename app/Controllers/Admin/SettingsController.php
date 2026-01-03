@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\SettingsService;
 use App\Support\Database;
+use App\Support\Hooks;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -30,6 +31,14 @@ class SettingsController extends BaseController
             // Templates table doesn't exist yet
         }
 
+        // Custom album page templates (from plugins)
+        $albumPageTemplates = [];
+        try {
+            $albumPageTemplates = Hooks::applyFilter('available_album_page_templates', []);
+        } catch (\Throwable) {
+            $albumPageTemplates = [];
+        }
+
         // Check if maintenance-mode plugin is active
         $maintenancePluginActive = false;
         try {
@@ -44,6 +53,7 @@ class SettingsController extends BaseController
         return $this->view->render($response, 'admin/settings.twig', [
             'settings' => $settings,
             'templates' => $templates,
+            'album_page_templates' => $albumPageTemplates,
             'maintenancePluginActive' => $maintenancePluginActive,
             'csrf' => $_SESSION['csrf'] ?? '',
         ]);
@@ -130,8 +140,20 @@ class SettingsController extends BaseController
         $svc->set('image.variants_async', $variantsAsync);
         $svc->set('lightbox.show_exif', $showExif);
         
-        $galleryPageTemplate = $data['gallery_page_template'] ?? 'classic';
-        if (!in_array($galleryPageTemplate, ['classic', 'hero', 'magazine'])) {
+        $galleryPageTemplate = (string)($data['gallery_page_template'] ?? 'classic');
+        $allowedPageTemplates = ['classic', 'hero', 'magazine'];
+        try {
+            $customTemplates = Hooks::applyFilter('available_album_page_templates', []);
+            foreach ($customTemplates as $template) {
+                $value = $template['value'] ?? null;
+                if (is_string($value) && $value !== '') {
+                    $allowedPageTemplates[] = $value;
+                }
+            }
+        } catch (\Throwable) {
+            // Ignore plugin errors; fallback to core templates.
+        }
+        if (!in_array($galleryPageTemplate, $allowedPageTemplates, true)) {
             $galleryPageTemplate = 'classic';
         }
         $svc->set('gallery.page_template', $galleryPageTemplate);

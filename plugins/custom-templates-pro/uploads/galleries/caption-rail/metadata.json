@@ -1,0 +1,18 @@
+{
+  "type": "gallery",
+  "name": "Caption Rail",
+  "slug": "caption-rail",
+  "description": "Grid with subtle caption rail.",
+  "version": "1.0.0",
+  "author": "Cimaise",
+  "settings": {
+    "layout": "grid",
+    "columns": {"desktop": 4, "tablet": 2, "mobile": 1},
+    "gap": {"horizontal": 12, "vertical": 12},
+    "aspect_ratio": "3:2",
+    "style": {"rounded": true, "shadow": false, "hover_scale": true}
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}

@@ -1,0 +1,16 @@
+<div class="strip-grid">
+  {% for image in images %}
+    {% set href = image.lightbox_url|default(image.url) %}
+    <a href="{% if href starts with '/' %}{{ base_path }}{{ href }}{% else %}{{ href }}{% endif %}"
+       class="pswp-link strip-grid-item"
+       data-image-id="{{ image.id }}"
+       data-pswp-width="{{ image.width|default(1600) }}"
+       data-pswp-height="{{ image.height|default(1067) }}"
+       data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}">
+      <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+           alt="{{ image.alt_text|default(image.alt)|default('')|e('html_attr') }}"
+           loading="lazy"
+           decoding="async">
+    </a>
+  {% endfor %}
+</div>

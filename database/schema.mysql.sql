@@ -165,6 +165,7 @@ CREATE TABLE IF NOT EXISTS `albums` (
   `location_id` INT UNSIGNED NULL,
   `template_id` INT UNSIGNED NULL,
   `custom_template_id` INT UNSIGNED NULL,
+  `album_page_template` VARCHAR(190) NULL,
   `excerpt` TEXT NULL,
   `body` MEDIUMTEXT NULL,
   `cover_image_id` INT UNSIGNED NULL,
@@ -565,7 +566,12 @@ CREATE TABLE IF NOT EXISTS `plugin_analytics_custom_events` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_plugin_analytics_session` (`session_id`),
-  KEY `idx_plugin_analytics_type` (`event_type`)
+  KEY `idx_plugin_analytics_type` (`event_type`),
+  KEY `idx_plugin_analytics_user` (`user_id`),
+  CONSTRAINT `fk_plugin_analytics_custom_events_session`
+    FOREIGN KEY (`session_id`) REFERENCES `analytics_sessions`(`session_id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_plugin_analytics_custom_events_user`
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `plugin_image_ratings` (
@@ -574,13 +580,39 @@ CREATE TABLE IF NOT EXISTS `plugin_image_ratings` (
   `rated_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `rated_by` INT UNSIGNED NULL,
   PRIMARY KEY (`image_id`),
+  KEY `idx_plugin_image_ratings_rated_by` (`rated_by`),
   CONSTRAINT `fk_plugin_image_ratings_image`
-    FOREIGN KEY (`image_id`) REFERENCES `images`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`image_id`) REFERENCES `images`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_plugin_image_ratings_user`
+    FOREIGN KEY (`rated_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
 -- ANALYTICS PRO TABLES (Plugin)
 -- ============================================
+
+CREATE TABLE IF NOT EXISTS `analytics_pro_sessions` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `session_id` VARCHAR(64) NOT NULL,
+  `user_id` INT UNSIGNED NULL,
+  `ip_address` VARCHAR(45) NULL,
+  `user_agent` TEXT NULL,
+  `device_type` VARCHAR(50) NULL,
+  `browser` VARCHAR(50) NULL,
+  `country` VARCHAR(80) NULL,
+  `started_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `last_activity` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `ended_at` DATETIME NULL,
+  `duration` INT DEFAULT 0,
+  `pageviews` INT DEFAULT 0,
+  `events_count` INT DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_analytics_pro_session_id` (`session_id`),
+  KEY `idx_analytics_pro_user_id` (`user_id`),
+  KEY `idx_analytics_pro_started_at` (`started_at`),
+  CONSTRAINT `fk_analytics_pro_sessions_user`
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `analytics_pro_events` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -604,28 +636,11 @@ CREATE TABLE IF NOT EXISTS `analytics_pro_events` (
   KEY `idx_analytics_pro_category` (`category`),
   KEY `idx_analytics_pro_created_at` (`created_at`),
   KEY `idx_analytics_pro_user_id` (`user_id`),
-  KEY `idx_analytics_pro_session_id` (`session_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `analytics_pro_sessions` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `session_id` VARCHAR(64) NOT NULL,
-  `user_id` INT UNSIGNED NULL,
-  `ip_address` VARCHAR(45) NULL,
-  `user_agent` TEXT NULL,
-  `device_type` VARCHAR(50) NULL,
-  `browser` VARCHAR(50) NULL,
-  `country` VARCHAR(80) NULL,
-  `started_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `last_activity` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `ended_at` DATETIME NULL,
-  `duration` INT DEFAULT 0,
-  `pageviews` INT DEFAULT 0,
-  `events_count` INT DEFAULT 0,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_analytics_pro_session_id` (`session_id`),
-  KEY `idx_analytics_pro_user_id` (`user_id`),
-  KEY `idx_analytics_pro_started_at` (`started_at`)
+  KEY `idx_analytics_pro_session_id` (`session_id`),
+  CONSTRAINT `fk_analytics_pro_events_user`
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_analytics_pro_events_session`
+    FOREIGN KEY (`session_id`) REFERENCES `analytics_pro_sessions`(`session_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `analytics_pro_funnels` (

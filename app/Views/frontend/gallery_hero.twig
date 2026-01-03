@@ -990,6 +990,7 @@
     const albumRef = el.getAttribute('data-album-ref') || window.location.pathname.split('/').pop();
     if (!galleryContainer || !templateId || !albumRef) { delete el.dataset.switchInProgress; return; }
     const original = galleryContainer.innerHTML;
+    galleryContainer.classList.add('tpl-switching');
     galleryContainer.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div></div>';
     document.querySelectorAll('.tpl-switch').forEach(btn => { btn.classList.remove('bg-black','text-white'); btn.classList.add('text-neutral-700','hover:bg-neutral-100'); });
     el.classList.remove('text-neutral-700','hover:bg-neutral-100'); el.classList.add('bg-black','text-white');
@@ -997,7 +998,6 @@
     fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
       .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
       .then(html => {
-        galleryContainer.style.opacity = '0';
         let parsedHtml = html;
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
@@ -1161,6 +1161,7 @@
           const dc = d>=6?'lg:grid-cols-6':d==5?'lg:grid-cols-5':d==4?'lg:grid-cols-4':d==3?'lg:grid-cols-3':d==2?'lg:grid-cols-2':'lg:grid-cols-1';
           galleryContainer.className = `grid ${mc} ${tc} ${dc} gap-6`;
         }
+        galleryContainer.classList.add('tpl-switching');
         galleryContainer.id = idKeep;
         // Update URL
         try { history.pushState(null, '', `${basePath}/album/${albumRef}?template=${templateId}`); } catch(e){}
@@ -1195,7 +1196,7 @@
           }
           // Show container after animation starts
           setTimeout(() => {
-            galleryContainer.style.opacity = '1';
+            galleryContainer.classList.remove('tpl-switching');
             galleryContainer.style.transition = 'none';
             // Fallback: force items visible if animation failed
             galleryContainer.querySelectorAll('.masonry-item, .image-item, .photo-item').forEach(el => {
@@ -1207,7 +1208,7 @@
           }, 80);
         }, 50);
       })
-      .catch(err => { console.error('Template switch failed', err); galleryContainer.innerHTML = original; galleryContainer.style.opacity = '1'; })
+      .catch(err => { console.error('Template switch failed', err); galleryContainer.innerHTML = original; galleryContainer.classList.remove('tpl-switching'); })
       .finally(() => { delete el.dataset.switchInProgress; });
   });
   </script>
@@ -1248,16 +1249,10 @@
 {% endblock %}
 
 {% block styles %}
-{{ parent() }}
-{% if template_custom_css is defined and template_custom_css %}
-{{ template_custom_css|raw }}
-{% endif %}
+  {{ parent() }}
 {% endblock %}
 
 {% block scripts %}
   {{ parent() }}
   <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/hero.js"></script>
-  {% if template_custom_js is defined and template_custom_js %}
-  {{ template_custom_js|raw }}
-  {% endif %}
 {% endblock %}

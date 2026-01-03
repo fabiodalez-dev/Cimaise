@@ -1,0 +1,59 @@
+.cover-rail {
+  background: #fff;
+  color: #111;
+}
+.cover-rail .cr-hero {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 36px 24px 0;
+}
+.cover-rail .cr-hero-media {
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f2f2f2;
+}
+.cover-rail .cr-title {
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.05;
+  margin: 18px 0 10px;
+}
+.cover-rail .cr-meta {
+  color: #666;
+  font-size: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.cover-rail .cr-body {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  font-size: 18px;
+  line-height: 1.75;
+}
+.cover-rail .cr-rail {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 24px 30px;
+  display: grid;
+  gap: 16px;
+}
+.cover-rail .cr-card {
+  border: 1px solid #eee;
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.cover-rail .cr-card strong {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 11px;
+  color: #666;
+  display: block;
+  margin-bottom: 6px;
+}
+@media (min-width: 900px) {
+  .cover-rail .cr-rail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
