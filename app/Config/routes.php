@@ -253,27 +253,47 @@ $app->get('/admin-login', function (Request $request, Response $response) {
 });
 
 $app->get('/admin/login', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
+    $controller = new \App\Controllers\Admin\AuthController(
+        $container['db'],
+        Twig::fromRequest($request),
+        new \App\Services\SettingsService($container['db'])
+    );
     return $controller->showLogin($request, $response);
 });
 
 $app->post('/admin/login', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
+    $controller = new \App\Controllers\Admin\AuthController(
+        $container['db'],
+        Twig::fromRequest($request),
+        new \App\Services\SettingsService($container['db'])
+    );
     return $controller->login($request, $response);
 })->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 5, 600, 'login'));
 
 $app->post('/admin/logout', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
+    $controller = new \App\Controllers\Admin\AuthController(
+        $container['db'],
+        Twig::fromRequest($request),
+        new \App\Services\SettingsService($container['db'])
+    );
     return $controller->logout($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->post('/admin/profile/update', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
+    $controller = new \App\Controllers\Admin\AuthController(
+        $container['db'],
+        Twig::fromRequest($request),
+        new \App\Services\SettingsService($container['db'])
+    );
     return $controller->updateProfile($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->post('/admin/profile/password', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
+    $controller = new \App\Controllers\Admin\AuthController(
+        $container['db'],
+        Twig::fromRequest($request),
+        new \App\Services\SettingsService($container['db'])
+    );
     return $controller->changePassword($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 

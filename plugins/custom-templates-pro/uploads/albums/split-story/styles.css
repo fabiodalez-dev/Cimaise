@@ -68,7 +68,7 @@ html.dark {
 }
 .split-page .pw-gallery {
   --pw-cols-tablet: 2 !important;
-  --pw-cols-desktop: 3 !important;
+  --pw-cols-desktop: 2 !important;
 }
 @media (max-width: 900px) {
   .split-container {
@@ -84,6 +84,16 @@ html.dark {
   }
   .split-section-title {
     letter-spacing: 0.14em;
+  }
+}
+
+@media (max-width: 640px) {
+  .split-page .gallery-grid,
+  .split-page .gallery-masonry {
+    grid-template-columns: 1fr !important;
+  }
+  .split-page .pw-gallery {
+    --pw-cols-mobile: 1 !important;
   }
 }
 @media (min-width: 1024px) {

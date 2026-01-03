@@ -11,13 +11,14 @@
 .caption-rail-item img {
   display: block;
   width: 100%;
-  height: 100%;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
 }
 .caption-rail-item figcaption {
-  font-size: 12px;
+  font-size: 14px;
   padding: 8px 10px;
-  color: #444;
+  color: #333;
+  line-height: 1.5;
 }
 
 @media (max-width: 640px) {

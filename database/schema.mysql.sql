@@ -139,10 +139,10 @@ CREATE TABLE IF NOT EXISTS `custom_templates` (
   `description` TEXT NULL,
   `version` VARCHAR(50) NOT NULL,
   `author` VARCHAR(190) NULL,
-  `metadata` LONGTEXT NULL,
+  `metadata` JSON NULL,
   `twig_path` VARCHAR(255) NOT NULL,
-  `css_paths` LONGTEXT NULL,
-  `js_paths` LONGTEXT NULL,
+  `css_paths` JSON NULL,
+  `js_paths` JSON NULL,
   `preview_path` VARCHAR(255) NULL,
   `is_active` TINYINT(1) DEFAULT 1,
   `installed_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -897,7 +897,7 @@ INSERT IGNORE INTO `plugin_status` (`slug`, `name`, `version`, `description`, `a
 VALUES
 ('analytics-logger', 'Analytics Logger', '1.0.0', 'Advanced analytics logging with custom events and detailed tracking', 'Cimaise Team', 'plugins/analytics-logger', 1, 1),
 ('cimaise-analytics-pro', 'Cimaise Analytics Pro', '1.0.0', 'Sistema di analytics professionale con tracking avanzato, dashboard interattiva, report personalizzabili, funnel analysis, heatmap, export dati e real-time monitoring per Cimaise', 'Cimaise Team', 'plugins/cimaise-analytics-pro', 1, 1),
-('custom-templates-pro', 'Custom Templates Pro', '1.0.0', 'Carica template personalizzati per gallerie, album e homepage con guide complete per LLM', 'Cimaise Team', 'plugins/custom-templates-pro', 1, 1),
+('custom-templates-pro', 'Custom Templates Pro', '1.0.0', 'Carica template personalizzati per gallerie, album e homepage con guide e prompt personalizzabili', 'Cimaise Team', 'plugins/custom-templates-pro', 1, 1),
 ('hello-cimaise', 'Hello Cimaise', '1.0.0', 'Simple example plugin demonstrating the hooks system', 'Cimaise Team', 'plugins/hello-cimaise', 1, 1),
 ('image-rating', 'Image Rating', '1.0.0', 'Add star rating system to images (1-5 stars) with sorting and filtering', 'Cimaise Team', 'plugins/image-rating', 1, 1),
 ('maintenance-mode', 'Maintenance Mode', '1.0.0', 'Put your site under construction with a beautiful maintenance page. Only admins can access the site.', 'Cimaise Team', 'plugins/maintenance-mode', 1, 1);

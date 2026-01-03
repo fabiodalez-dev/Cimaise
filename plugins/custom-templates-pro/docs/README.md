@@ -1,6 +1,6 @@
 # Custom Templates Pro
 
-Plugin per Cimaise che permette di caricare template personalizzati per gallerie, album e homepage con guide complete per LLM.
+Plugin per Cimaise che permette di caricare template personalizzati per gallerie, album e homepage con guide e prompt personalizzabili.
 
 ## 🎯 Funzionalità
 
@@ -8,7 +8,7 @@ Plugin per Cimaise che permette di caricare template personalizzati per gallerie
 - ✅ **Template Pagina Album**: Template completi della pagina album (header, metadata, galleria integrata)
 - ✅ **Template Homepage**: Design personalizzati per la homepage del portfolio
 - ✅ **Upload Sicuro**: Validazione completa dei file ZIP con scan malware e syntax check
-- ✅ **Guide LLM**: Guide complete con prompt ottimizzati per Claude, ChatGPT e altri LLM
+- ✅ **Guide Template**: Guide complete con prompt e checklist tecniche
 - ✅ **CSP Compliance**: Tutti gli script supportano Content Security Policy con nonce
 - ✅ **Integrazione Seamless**: I template custom appaiono automaticamente in tutte le interfacce
 
@@ -21,29 +21,29 @@ Plugin per Cimaise che permette di caricare template personalizzati per gallerie
 5. Il plugin creerà automaticamente:
    - Tabella database `custom_templates`
    - Directory `plugins/custom-templates-pro/uploads/`
-   - Guide LLM in `plugins/custom-templates-pro/guides/`
+   - Guide template in `plugins/custom-templates-pro/guides/`
 
 ## 🚀 Utilizzo
 
-### 1. Scaricare le Guide LLM
+### 1. Scaricare le Guide Template
 
-1. Vai su **Admin → Custom Templates → Guide LLM**
+1. Vai su **Admin → Custom Templates → Guide Template**
 2. Scarica la guida per il tipo di template che vuoi creare:
    - **Gallery Template Guide**: Per gallerie fotografiche
    - **Album Page Guide**: Per pagine album complete
    - **Homepage Guide**: Per homepage personalizzate
-3. Apri il file `.txt` e copia il prompt per LLM
+3. Apri il file `.txt` e copia il prompt di base
 
-### 2. Creare Template con un LLM
+### 2. Creare Template con un Prompt
 
-1. Apri il tuo LLM preferito (Claude, ChatGPT, Gemini, ecc.)
-2. Incolla il prompt dalla guida
+1. Apri il tuo LLM preferito o lavora direttamente sul prompt
+2. Incolla il prompt dalla guida o adattalo al tuo stile
 3. Descrivi il template che vuoi:
    - Stile visivo (minimalista, magazine, polaroid, ecc.)
    - Layout (grid, masonry, carousel, ecc.)
    - Effetti (parallax, hover animations, ecc.)
    - Colori e tipografia
-4. Il LLM genererà tutti i file necessari:
+4. Genera tutti i file necessari:
    - `metadata.json`
    - `template.twig` (o `page.twig` o `home.twig`)
    - `styles.css` (opzionale)
@@ -252,7 +252,7 @@ plugins/custom-templates-pro/
 │   └── TemplateIntegrationService.php
 ├── templates/admin/               # Template Twig admin
 ├── assets/                        # CSS/JS plugin
-├── guides/                        # Guide LLM generate
+├── guides/                        # Guide template generate
 ├── uploads/                       # Templates caricati
 └── docs/                          # Documentazione
 ```

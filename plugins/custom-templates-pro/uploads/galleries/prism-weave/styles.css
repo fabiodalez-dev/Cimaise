@@ -21,6 +21,7 @@ html.dark {
 .pw-gallery {
   padding: 2.5rem 1.25rem 3rem;
   color: var(--pw-ink);
+  font-family: var(--font-body), system-ui, sans-serif;
 }
 
 .pw-head {
@@ -30,7 +31,7 @@ html.dark {
 }
 
 .pw-kicker {
-  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  font-family: var(--font-captions), system-ui, sans-serif;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   font-size: 0.75rem;
@@ -39,7 +40,7 @@ html.dark {
 }
 
 .pw-title {
-  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-family: var(--font-headings), serif;
   font-size: clamp(2rem, 3vw, 3rem);
   margin-bottom: 0.75rem;
 }
@@ -48,6 +49,7 @@ html.dark {
   color: var(--pw-muted);
   font-size: 1rem;
   line-height: 1.6;
+  font-family: var(--font-body), system-ui, sans-serif;
 }
 
 .pw-columns {
@@ -70,12 +72,17 @@ html.dark {
 .pw-tile {
   break-inside: avoid;
   margin-bottom: var(--pw-gap);
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.3s ease;
+  opacity: 1;
+  transform: translateY(0);
   background: var(--pw-card);
   border: 1px solid var(--pw-border);
   box-shadow: 0 6px 16px var(--pw-glow);
+}
+
+.pw-animate .pw-tile {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.3s ease;
 }
 
 .pw-rounded {
@@ -107,6 +114,7 @@ html.dark {
   padding: 0.75rem 1rem 1rem;
   font-size: 0.9rem;
   color: var(--pw-muted);
+  font-family: var(--font-captions), system-ui, sans-serif;
 }
 
 .pw-hover:hover {
@@ -114,7 +122,7 @@ html.dark {
   transform: translateY(0) scale(1.02);
 }
 
-.pw-tile.is-visible {
+.pw-animate .pw-tile.is-visible {
   opacity: 1;
   transform: translateY(0);
 }

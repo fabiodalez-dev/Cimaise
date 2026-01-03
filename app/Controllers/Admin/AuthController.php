@@ -17,7 +17,11 @@ class AuthController extends BaseController
 {
     private const REMEMBER_TOKEN_DAYS = 30;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(
+        private Database $db,
+        private Twig $view,
+        private SettingsService $settings
+    )
     {
         parent::__construct();
     }
@@ -365,9 +369,7 @@ class AuthController extends BaseController
     private function getAdminLocale(): string
     {
         try {
-            $settings = new SettingsService($this->db);
-            $locale = (string)($settings->get('admin.language', 'en') ?? 'en');
-            return $locale !== '' ? $locale : 'en';
+            return (string)($this->settings->get('admin.language', 'en') ?? 'en');
         } catch (\Throwable) {
             return 'en';
         }

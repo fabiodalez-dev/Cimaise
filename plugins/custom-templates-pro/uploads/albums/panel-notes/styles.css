@@ -71,3 +71,10 @@ html.dark .panel-notes {
     font-size: 1rem;
   }
 }
+
+@media (max-width: 640px) {
+  .panel-notes .gallery-grid,
+  .panel-notes .gallery-masonry {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -28,7 +28,7 @@ html.dark {
 }
 
 .ss-kicker {
-  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  font-family: var(--font-captions), system-ui, sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.25em;
   font-size: 0.7rem;
@@ -37,7 +37,7 @@ html.dark {
 }
 
 .ss-title {
-  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-family: var(--font-headings), serif;
   font-size: clamp(2.5rem, 4vw, 3.75rem);
   margin-bottom: 1rem;
 }
@@ -46,6 +46,7 @@ html.dark {
   font-size: 1.05rem;
   line-height: 1.7;
   color: var(--ss-muted);
+  font-family: var(--font-body), system-ui, sans-serif;
 }
 
 .ss-meta {
@@ -55,6 +56,7 @@ html.dark {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  font-family: var(--font-captions), system-ui, sans-serif;
 }
 
 .ss-dot {
@@ -112,6 +114,7 @@ html.dark {
   padding: 0.85rem 1rem 1.1rem;
   font-size: 0.9rem;
   color: var(--ss-muted);
+  font-family: var(--font-captions), system-ui, sans-serif;
 }
 
 @media (max-width: 768px) {
@@ -123,5 +126,12 @@ html.dark {
   }
   .ss-excerpt {
     font-size: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .ss-album .gallery-grid,
+  .ss-album .gallery-masonry {
+    grid-template-columns: 1fr !important;
   }
 }

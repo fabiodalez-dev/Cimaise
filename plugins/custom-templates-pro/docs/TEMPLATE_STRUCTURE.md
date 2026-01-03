@@ -414,7 +414,7 @@ Il plugin valida automaticamente:
 ## 📚 Risorse
 
 - **Variabili Twig**: Vedi `VARIABLES_REFERENCE.md`
-- **Guide LLM**: Scarica da Admin → Custom Templates → Guide
+- **Guide Template**: Scarica da Admin → Custom Templates → Guide
 - **Esempi**: Vedi template core in `app/Views/frontend/`
 
 ---

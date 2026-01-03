@@ -85,3 +85,10 @@ html.dark {
     padding: 0 18px 24px;
   }
 }
+
+@media (max-width: 640px) {
+  .cover-rail .gallery-grid,
+  .cover-rail .gallery-masonry {
+    grid-template-columns: 1fr !important;
+  }
+}

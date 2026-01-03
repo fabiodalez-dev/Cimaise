@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Custom Templates Pro
- * Description: Carica template personalizzati per gallerie, album e homepage con guide complete per LLM
+ * Description: Carica template personalizzati per gallerie, album e homepage con guide e prompt personalizzabili
  * Version: 1.0.0
  * Author: Cimaise Team
  * Requires: 1.0.0

@@ -74,3 +74,10 @@ html.dark {
     font-size: 1rem;
   }
 }
+
+@media (max-width: 640px) {
+  .quiet-page .gallery-grid,
+  .quiet-page .gallery-masonry {
+    grid-template-columns: 1fr !important;
+  }
+}

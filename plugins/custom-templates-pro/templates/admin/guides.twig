@@ -9,9 +9,7 @@
       <i class="fas fa-arrow-left"></i>
     </a>
     <div>
-      <h1 class="text-3xl font-bold text-gray-900">
-        <i class="fas fa-book-reader text-purple-600 mr-3"></i>{{ plugin_trans('ctp.guides.title') }}
-      </h1>
+      <h1 class="text-3xl font-bold text-gray-900">{{ plugin_trans('ctp.guides.title') }}</h1>
       <p class="text-gray-600 mt-1">{{ plugin_trans('ctp.guides.subtitle') }}</p>
     </div>
   </div>
@@ -22,9 +20,7 @@
   <div class="p-6">
     <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ plugin_trans('ctp.guides.how_to') }}</h2>
     <div class="prose max-w-none text-gray-600">
-      <p class="mb-4">
-        {{ plugin_trans('ctp.guides.intro')|raw }}
-      </p>
+      <p class="mb-4">{{ plugin_trans('ctp.guides.intro')|raw }}</p>
       <ol class="list-decimal list-inside space-y-2">
         <li>{{ plugin_trans('ctp.guides.step1') }}</li>
         <li>{{ plugin_trans('ctp.guides.step2') }}</li>
@@ -42,36 +38,21 @@
   <!-- Gallery Guide -->
   <div class="card">
     <div class="p-6">
-      <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-3xl mb-4">
-        <i class="fas fa-th"></i>
-      </div>
       <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.guides.gallery.title') }}</h3>
       <p class="text-gray-600 mb-4 text-sm">
         {{ plugin_trans('ctp.guides.gallery.desc') }}
       </p>
 
       <div class="space-y-2 mb-4 text-sm">
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.gallery.feature1') }}</span>
-        </div>
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.gallery.feature2') }}</span>
-        </div>
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.gallery.feature3') }}</span>
-        </div>
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.gallery.feature4') }}</span>
-        </div>
+        <div>{{ plugin_trans('ctp.guides.gallery.feature1') }}</div>
+        <div>{{ plugin_trans('ctp.guides.gallery.feature2') }}</div>
+        <div>{{ plugin_trans('ctp.guides.gallery.feature3') }}</div>
+        <div>{{ plugin_trans('ctp.guides.gallery.feature4') }}</div>
       </div>
 
       <a href="{{ base_path }}/admin/custom-templates/guides/gallery/download"
          class="btn btn-primary w-full justify-center">
-        <i class="fas fa-download mr-2"></i>{{ plugin_trans('ctp.guides.download') }}
+        {{ plugin_trans('ctp.guides.download') }}
       </a>
     </div>
   </div>
@@ -79,36 +60,21 @@
   <!-- Album Page Guide -->
   <div class="card">
     <div class="p-6">
-      <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-3xl mb-4">
-        <i class="fas fa-file-image"></i>
-      </div>
       <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.guides.album_page.title') }}</h3>
       <p class="text-gray-600 mb-4 text-sm">
         {{ plugin_trans('ctp.guides.album_page.desc') }}
       </p>
 
       <div class="space-y-2 mb-4 text-sm">
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.album_page.feature1') }}</span>
-        </div>
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.album_page.feature2') }}</span>
-        </div>
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.album_page.feature3') }}</span>
-        </div>
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.album_page.feature4') }}</span>
-        </div>
+        <div>{{ plugin_trans('ctp.guides.album_page.feature1') }}</div>
+        <div>{{ plugin_trans('ctp.guides.album_page.feature2') }}</div>
+        <div>{{ plugin_trans('ctp.guides.album_page.feature3') }}</div>
+        <div>{{ plugin_trans('ctp.guides.album_page.feature4') }}</div>
       </div>
 
       <a href="{{ base_path }}/admin/custom-templates/guides/album_page/download"
          class="btn btn-primary w-full justify-center">
-        <i class="fas fa-download mr-2"></i>{{ plugin_trans('ctp.guides.download') }}
+        {{ plugin_trans('ctp.guides.download') }}
       </a>
     </div>
   </div>
@@ -116,96 +82,22 @@
   <!-- Homepage Guide -->
   <div class="card">
     <div class="p-6">
-      <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center text-white text-3xl mb-4">
-        <i class="fas fa-home"></i>
-      </div>
       <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.guides.homepage.title') }}</h3>
       <p class="text-gray-600 mb-4 text-sm">
         {{ plugin_trans('ctp.guides.homepage.desc') }}
       </p>
 
       <div class="space-y-2 mb-4 text-sm">
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.homepage.feature1') }}</span>
-        </div>
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.homepage.feature2') }}</span>
-        </div>
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.homepage.feature3') }}</span>
-        </div>
-        <div class="flex items-start">
-          <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
-          <span>{{ plugin_trans('ctp.guides.homepage.feature4') }}</span>
-        </div>
+        <div>{{ plugin_trans('ctp.guides.homepage.feature1') }}</div>
+        <div>{{ plugin_trans('ctp.guides.homepage.feature2') }}</div>
+        <div>{{ plugin_trans('ctp.guides.homepage.feature3') }}</div>
+        <div>{{ plugin_trans('ctp.guides.homepage.feature4') }}</div>
       </div>
 
       <a href="{{ base_path }}/admin/custom-templates/guides/homepage/download"
          class="btn btn-primary w-full justify-center">
-        <i class="fas fa-download mr-2"></i>{{ plugin_trans('ctp.guides.download') }}
+        {{ plugin_trans('ctp.guides.download') }}
       </a>
-    </div>
-  </div>
-</div>
-
-<!-- LLM Tips -->
-<div class="card mt-6">
-  <div class="p-6 border-b border-gray-200">
-    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-      <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
-      {{ plugin_trans('ctp.guides.tips') }}
-    </h2>
-  </div>
-  <div class="p-6">
-    <div class="grid md:grid-cols-2 gap-6">
-      <div>
-        <h3 class="font-semibold text-gray-900 mb-3">{{ plugin_trans('ctp.guides.recommended') }}</h3>
-        <ul class="space-y-2 text-sm text-gray-600">
-          <li class="flex items-start">
-            <i class="fas fa-robot text-blue-600 mr-2 mt-1"></i>
-            <div>
-              <strong>{{ plugin_trans('ctp.guides.llm.claude') }}</strong> - {{ plugin_trans('ctp.guides.llm.claude_desc') }}
-            </div>
-          </li>
-          <li class="flex items-start">
-            <i class="fas fa-robot text-green-600 mr-2 mt-1"></i>
-            <div>
-              <strong>{{ plugin_trans('ctp.guides.llm.chatgpt') }}</strong> - {{ plugin_trans('ctp.guides.llm.chatgpt_desc') }}
-            </div>
-          </li>
-          <li class="flex items-start">
-            <i class="fas fa-robot text-purple-600 mr-2 mt-1"></i>
-            <div>
-              <strong>{{ plugin_trans('ctp.guides.llm.gemini') }}</strong> - {{ plugin_trans('ctp.guides.llm.gemini_desc') }}
-            </div>
-          </li>
-        </ul>
-      </div>
-
-      <div>
-        <h3 class="font-semibold text-gray-900 mb-3">{{ plugin_trans('ctp.guides.best_practices') }}</h3>
-        <ul class="space-y-2 text-sm text-gray-600">
-          <li class="flex items-start">
-            <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
-            <span>{{ plugin_trans('ctp.guides.practice1') }}</span>
-          </li>
-          <li class="flex items-start">
-            <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
-            <span>{{ plugin_trans('ctp.guides.practice2') }}</span>
-          </li>
-          <li class="flex items-start">
-            <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
-            <span>{{ plugin_trans('ctp.guides.practice3') }}</span>
-          </li>
-          <li class="flex items-start">
-            <i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i>
-            <span>{{ plugin_trans('ctp.guides.practice4') }}</span>
-          </li>
-        </ul>
-      </div>
     </div>
   </div>
 </div>

@@ -60,7 +60,7 @@ SQL;
             mkdir($guidesDir, 0755, true);
         }
 
-        // 4. Genera guide LLM
+        // 4. Genera guide template
         require_once $pluginDir . '/Services/GuidesGeneratorService.php';
         $guidesService = new GuidesGeneratorService();
         $guidesService->generateAllGuides();
@@ -69,7 +69,7 @@ SQL;
 
         return [
             'success' => true,
-            'message' => 'Custom Templates Pro installato con successo! Le guide LLM sono state generate.'
+            'message' => 'Custom Templates Pro installato con successo! Le guide template sono state generate.'
         ];
 
     } catch (\Throwable $e) {

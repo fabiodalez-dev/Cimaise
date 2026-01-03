@@ -8,6 +8,7 @@ use PDO;
 
 class TemplateIntegrationService
 {
+    private const CUSTOM_ID_OFFSET = 1000;
     private string $pluginDir;
     private PDO $pdo;
 
@@ -48,7 +49,7 @@ class TemplateIntegrationService
             $metadata = $template['metadata'];
 
             $coreFormatted[] = [
-                'id' => 1000 + (int)$template['id'], // Offset per evitare conflitti con template core
+                'id' => self::CUSTOM_ID_OFFSET + (int)$template['id'], // Offset per evitare conflitti con template core
                 'name' => $template['name'],
                 'slug' => $template['slug'],
                 'description' => $template['description'],
@@ -118,7 +119,9 @@ class TemplateIntegrationService
     public function getGalleryTemplatePath(int $templateId): ?string
     {
         // Rimuovi offset se presente
-        $customId = $templateId >= 1000 ? $templateId - 1000 : $templateId;
+        $customId = $templateId >= self::CUSTOM_ID_OFFSET
+            ? $templateId - self::CUSTOM_ID_OFFSET
+            : $templateId;
 
         $stmt = $this->pdo->prepare(
             'SELECT twig_path FROM custom_templates WHERE id = :id AND type = :type AND is_active = 1'
@@ -134,7 +137,9 @@ class TemplateIntegrationService
      */
     public function loadTemplateCSS(int $templateId, string $basePath = ''): string
     {
-        $customId = $templateId >= 1000 ? $templateId - 1000 : $templateId;
+        $customId = $templateId >= self::CUSTOM_ID_OFFSET
+            ? $templateId - self::CUSTOM_ID_OFFSET
+            : $templateId;
 
         $stmt = $this->pdo->prepare(
             'SELECT css_paths FROM custom_templates WHERE id = :id AND is_active = 1'
@@ -169,7 +174,9 @@ class TemplateIntegrationService
      */
     public function loadTemplateJS(int $templateId, string $basePath = '', string $nonce = ''): string
     {
-        $customId = $templateId >= 1000 ? $templateId - 1000 : $templateId;
+        $customId = $templateId >= self::CUSTOM_ID_OFFSET
+            ? $templateId - self::CUSTOM_ID_OFFSET
+            : $templateId;
 
         $stmt = $this->pdo->prepare(
             'SELECT js_paths FROM custom_templates WHERE id = :id AND is_active = 1'
@@ -217,7 +224,7 @@ class TemplateIntegrationService
      */
     public function isCustomTemplate(int $templateId): bool
     {
-        return $templateId >= 1000;
+        return $templateId >= self::CUSTOM_ID_OFFSET;
     }
 
     /**
