@@ -96,7 +96,9 @@ class TemplateIntegrationService
         $coreFormatted = [];
 
         foreach ($customTemplates as $template) {
-            $metadata = $template['metadata'] ?? [];
+            $metadata = is_array($template['metadata'] ?? null)
+                ? $template['metadata']
+                : $this->decodeJson($template['metadata'] ?? '{}', []);
             $coreFormatted[] = [
                 'value' => 'custom_' . $template['slug'],
                 'label' => $template['name'] . ' (Custom)',
@@ -146,6 +148,7 @@ class TemplateIntegrationService
 
         $paths = $this->decodeJson($cssPaths, []);
         $output = '';
+        $safeBasePath = htmlspecialchars(rtrim($basePath, '/'), ENT_QUOTES, 'UTF-8');
 
         foreach ($paths as $path) {
             $safePath = $this->validateAssetPath((string)$path);
@@ -154,7 +157,7 @@ class TemplateIntegrationService
             }
             $fullPath = $this->pluginDir . '/' . $safePath;
             if (file_exists($fullPath)) {
-                $output .= '<link rel="stylesheet" href="' . rtrim($basePath, '/') . '/plugins/custom-templates-pro/' . $safePath . '">' . "\n";
+                $output .= '<link rel="stylesheet" href="' . $safeBasePath . '/plugins/custom-templates-pro/' . htmlspecialchars($safePath, ENT_QUOTES, 'UTF-8') . '">' . "\n";
             }
         }
 
@@ -180,6 +183,8 @@ class TemplateIntegrationService
 
         $paths = $this->decodeJson($jsPaths, []);
         $output = '';
+        $safeBasePath = htmlspecialchars(rtrim($basePath, '/'), ENT_QUOTES, 'UTF-8');
+        $safeNonce = $nonce ? ' nonce="' . htmlspecialchars($nonce, ENT_QUOTES, 'UTF-8') . '"' : '';
 
         foreach ($paths as $path) {
             $safePath = $this->validateAssetPath((string)$path);
@@ -188,8 +193,7 @@ class TemplateIntegrationService
             }
             $fullPath = $this->pluginDir . '/' . $safePath;
             if (file_exists($fullPath)) {
-                $nonceAttr = $nonce ? ' nonce="' . $nonce . '"' : '';
-                $output .= '<script src="' . rtrim($basePath, '/') . '/plugins/custom-templates-pro/' . $safePath . '"' . $nonceAttr . '></script>' . "\n";
+                $output .= '<script src="' . $safeBasePath . '/plugins/custom-templates-pro/' . htmlspecialchars($safePath, ENT_QUOTES, 'UTF-8') . '"' . $safeNonce . '></script>' . "\n";
             }
         }
 

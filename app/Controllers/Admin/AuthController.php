@@ -42,12 +42,13 @@ class AuthController extends BaseController
         $password = (string)($data['password'] ?? '');
         $csrf = (string)($data['csrf'] ?? '');
         $rememberMe = !empty($data['remember_me']);
+        $adminLocale = $this->getAdminLocale();
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.csrf_invalid'),
                 'csrf' => $_SESSION['csrf'] ?? '',
-                'admin_locale' => $this->getAdminLocale()
+                'admin_locale' => $adminLocale
             ]);
         }
 
@@ -55,7 +56,7 @@ class AuthController extends BaseController
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.email_password_required'),
                 'csrf' => $_SESSION['csrf'] ?? '',
-                'admin_locale' => $this->getAdminLocale()
+                'admin_locale' => $adminLocale
             ]);
         }
 
@@ -67,7 +68,7 @@ class AuthController extends BaseController
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.invalid_credentials'),
                 'csrf' => $_SESSION['csrf'] ?? '',
-                'admin_locale' => $this->getAdminLocale()
+                'admin_locale' => $adminLocale
             ]);
         }
 
@@ -76,7 +77,7 @@ class AuthController extends BaseController
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.account_deactivated'),
                 'csrf' => $_SESSION['csrf'] ?? '',
-                'admin_locale' => $this->getAdminLocale()
+                'admin_locale' => $adminLocale
             ]);
         }
 
@@ -85,7 +86,7 @@ class AuthController extends BaseController
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.access_denied_admin_only'),
                 'csrf' => $_SESSION['csrf'] ?? '',
-                'admin_locale' => $this->getAdminLocale()
+                'admin_locale' => $adminLocale
             ]);
         }
 

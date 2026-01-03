@@ -1,6 +1,6 @@
 /**
  * Minimal Album Page Template
- * Design pulito e minimale per portfolio fotografici
+ * Clean and minimal design for photography portfolios
  */
 
 :root {
@@ -189,11 +189,11 @@ html.dark {
 /* Responsive */
 @media (max-width: 768px) {
   .minimal-header {
-    padding: 4rem 0 3rem;
+    padding: 3.5rem 0 2.5rem;
   }
 
   .minimal-title {
-    font-size: 2rem;
+    font-size: 1.85rem;
   }
 
   .minimal-excerpt {
@@ -201,7 +201,7 @@ html.dark {
   }
 
   .minimal-body {
-    padding: 3rem 0;
+    padding: 2.5rem 0;
   }
 
   .minimal-equipment-grid {

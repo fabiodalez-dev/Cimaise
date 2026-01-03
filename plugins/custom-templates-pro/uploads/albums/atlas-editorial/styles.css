@@ -102,3 +102,21 @@ html.dark {
     top: 120px;
   }
 }
+
+@media (max-width: 900px) {
+  .atlas-container {
+    padding: 36px 18px;
+  }
+  .atlas-title {
+    font-size: 2rem;
+  }
+  .atlas-excerpt {
+    font-size: 1rem;
+  }
+  .atlas-equipment {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--atlas-border);
+    padding-top: 18px;
+  }
+}

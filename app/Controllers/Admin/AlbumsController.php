@@ -192,6 +192,10 @@ class AlbumsController extends BaseController
         $customFilms = trim((string)($d['custom_films'] ?? '')) ?: null;
         $customDevelopers = trim((string)($d['custom_developers'] ?? '')) ?: null;
         $customLabs = trim((string)($d['custom_labs'] ?? '')) ?: null;
+
+        if ($albumPageTemplate !== '' && str_starts_with($albumPageTemplate, 'custom_')) {
+            $allow_template_switch = 0;
+        }
         
         if ($title === '' || $category_id <= 0) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.title_category_required')];
@@ -451,10 +455,6 @@ class AlbumsController extends BaseController
             }
         }
 
-        $settingsService = new SettingsService($this->db);
-        $defaultAlbumPageTemplate = (string)($settingsService->get('gallery.page_template', 'classic') ?? 'classic');
-        $albumPageTemplates = $this->getAlbumPageTemplates();
-
         $imgsStmt = $pdo->prepare("SELECT i.id, i.original_path, i.created_at, i.sort_order,
                                    i.alt_text, i.caption, i.width, i.height,
                                    i.camera_id, i.lens_id, i.film_id, i.developer_id, i.lab_id, i.location_id,
@@ -624,6 +624,10 @@ class AlbumsController extends BaseController
         $customFilms = trim((string)($d['custom_films'] ?? '')) ?: null;
         $customDevelopers = trim((string)($d['custom_developers'] ?? '')) ?: null;
         $customLabs = trim((string)($d['custom_labs'] ?? '')) ?: null;
+
+        if ($albumPageTemplate !== '' && str_starts_with($albumPageTemplate, 'custom_')) {
+            $allow_template_switch = 0;
+        }
         
         if ($title === '' || $category_id <= 0) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.title_category_required')];

@@ -849,6 +849,10 @@ class PageController extends BaseController
             $pageTemplate = 'classic';
         }
 
+        if (str_starts_with($pageTemplate, 'custom_')) {
+            $availableTemplates = [];
+        }
+
         $customPageTemplate = null;
         $customPageTemplateId = null;
         if (str_starts_with($pageTemplate, 'custom_')) {
