@@ -2254,10 +2254,10 @@
     "admin.users.status_inactive": "Inactive",
     "admin.users.title": "User Management",
     "admin.users.total_users": "total users",
-    "admin.users.update_user": "Update User"
+    "admin.users.update_user": "Update User",
+    "admin.albums.page_template_overrides_gallery": "When a custom page template is selected, the gallery template is ignored for this album.",
+    "admin.templates.custom_template_fallback": "Custom Template"
   },
-  "admin.albums.page_template_overrides_gallery": "Page template controls the gallery layout for this album.",
-  "admin.templates.custom_template_fallback": "Custom Template",
   "admin.templates.wall_desktop_settings": "Desktop Settings",
   "admin.templates.wall_divider_hint": "Set the vertical divider between items (px).",
   "admin.templates.wall_divider_width": "Divider width",

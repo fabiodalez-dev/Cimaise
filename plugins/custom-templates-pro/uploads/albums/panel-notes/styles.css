@@ -59,3 +59,15 @@ html.dark .panel-notes {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+@media (max-width: 768px) {
+  .panel-notes .pn-wrap {
+    padding: 36px 18px;
+  }
+  .panel-notes .pn-title {
+    font-size: 2rem;
+  }
+  .panel-notes .pn-body {
+    font-size: 1rem;
+  }
+}

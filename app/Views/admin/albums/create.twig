@@ -249,6 +249,7 @@
                 const galleryLabel = document.querySelector('[data-gallery-template-label]');
                 const gallerySelect = document.querySelector('[data-gallery-template-select]');
                 const galleryNote = document.querySelector('[data-gallery-template-note]');
+                const allowSwitchInput = document.querySelector('#allow_template_switch');
                 if (!pageSelect || !galleryContainer || !gallerySelect || !galleryLabel) return;
 
                 function updateVisibility() {
@@ -257,6 +258,14 @@
                   galleryLabel.classList.toggle('hidden', isCustom);
                   gallerySelect.classList.toggle('hidden', isCustom);
                   if (galleryNote) galleryNote.classList.toggle('hidden', !isCustom);
+                  if (allowSwitchInput) {
+                    if (isCustom) {
+                      allowSwitchInput.checked = false;
+                      allowSwitchInput.disabled = true;
+                    } else {
+                      allowSwitchInput.disabled = false;
+                    }
+                  }
                 }
 
                 pageSelect.addEventListener('change', updateVisibility);

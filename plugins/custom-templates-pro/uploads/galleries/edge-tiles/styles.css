@@ -22,3 +22,9 @@
   text-align: center;
   font-size: 0.95rem;
 }
+
+@media (max-width: 640px) {
+  .edge-tiles {
+    grid-template-columns: 1fr;
+  }
+}

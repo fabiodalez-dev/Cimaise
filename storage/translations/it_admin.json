@@ -2254,10 +2254,10 @@
     "admin.users.status_inactive": "Disattivo",
     "admin.users.title": "Gestione Utenti",
     "admin.users.total_users": "utenti totali",
-    "admin.users.update_user": "Aggiorna Utente"
+    "admin.users.update_user": "Aggiorna Utente",
+    "admin.albums.page_template_overrides_gallery": "Quando selezioni un template pagina personalizzato, il template galleria viene ignorato per questo album.",
+    "admin.templates.custom_template_fallback": "Template personalizzato"
   },
-  "admin.albums.page_template_overrides_gallery": "Il template pagina controlla il layout della galleria per questo album.",
-  "admin.templates.custom_template_fallback": "Template personalizzato",
   "admin.templates.wall_desktop_settings": "Impostazioni Desktop",
   "admin.templates.wall_divider_hint": "Imposta il divisore verticale tra gli elementi (px).",
   "admin.templates.wall_divider_width": "Spessore divisore",

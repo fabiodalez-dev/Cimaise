@@ -19,3 +19,9 @@
   padding: 8px 10px;
   color: #444;
 }
+
+@media (max-width: 640px) {
+  .caption-rail {
+    grid-template-columns: 1fr;
+  }
+}

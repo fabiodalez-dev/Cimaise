@@ -16,16 +16,19 @@
   <div class="pw-columns">
     {% for image in images %}
       {% set lightbox_href = image.lightbox_url|default(image.url) %}
+      {% set img_w = image.width|default(4) %}
+      {% set img_h = image.height|default(3) %}
       <figure class="pw-tile {% if rounded %}pw-rounded{% endif %} {% if hover_scale %}pw-hover{% endif %}" data-reveal>
-        <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
-           class="pswp-link pw-link"
-           data-image-id="{{ image.id }}"
-           data-pswp-width="{{ image.width|default(1600) }}"
-           data-pswp-height="{{ image.height|default(1067) }}"
-           data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
-           data-title="{{ image.caption|default('')|e }}"
-           data-alt="{{ image.alt|default('')|e }}">
-          <picture>
+        <div class="pw-frame" style="--pw-w: {{ img_w|e('html_attr') }}; --pw-h: {{ img_h|e('html_attr') }};">
+          <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+             class="pswp-link pw-link"
+             data-image-id="{{ image.id }}"
+             data-pswp-width="{{ image.width|default(1600) }}"
+             data-pswp-height="{{ image.height|default(1067) }}"
+             data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
+             data-title="{{ image.caption|default('')|e }}"
+             data-alt="{{ image.alt|default('')|e }}">
+            <picture>
             {% if image.sources.avif|length %}
             <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
             {% endif %}
@@ -37,14 +40,17 @@
             {% endif %}
             <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                  alt="{{ image.alt|e }}"
+                 width="{{ image.width|default(1600) }}"
+                 height="{{ image.height|default(1067) }}"
                  loading="lazy"
                  decoding="async"
                  class="pw-img">
-          </picture>
-          {% if image.caption %}
-          <figcaption class="pw-cap">{{ image.caption|e }}</figcaption>
-          {% endif %}
-        </a>
+            </picture>
+          </a>
+        </div>
+        {% if image.caption %}
+        <figcaption class="pw-cap">{{ image.caption|e }}</figcaption>
+        {% endif %}
       </figure>
     {% endfor %}
   </div>

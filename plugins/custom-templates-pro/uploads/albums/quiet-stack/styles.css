@@ -62,3 +62,15 @@ html.dark {
 .quiet-tag {
   border-bottom: 1px solid var(--quiet-text);
 }
+
+@media (max-width: 768px) {
+  .quiet-wrap {
+    padding: 36px 18px;
+  }
+  .quiet-title {
+    font-size: 2rem;
+  }
+  .quiet-body {
+    font-size: 1rem;
+  }
+}

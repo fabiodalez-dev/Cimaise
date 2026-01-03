@@ -19,6 +19,11 @@
 .mono-grid-item:hover img {
   transform: scale(1.03);
 }
+@media (max-width: 640px) {
+  .mono-grid {
+    grid-template-columns: 1fr;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .mono-grid-item img {
     transition: none;
