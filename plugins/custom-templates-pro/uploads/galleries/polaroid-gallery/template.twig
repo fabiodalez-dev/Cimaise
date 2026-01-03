@@ -16,8 +16,8 @@
          data-pswp-width="{{ image.width|default(1600)|e('html_attr') }}"
          data-pswp-height="{{ image.height|default(1067)|e('html_attr') }}"
          data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
-         data-title="{{ image.caption|default('')|e }}"
-         data-alt="{{ image.alt|default('')|e }}"
+         data-title="{{ image.caption|default('')|e('html_attr') }}"
+         data-alt="{{ image.alt|default('')|e('html_attr') }}"
          data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
          data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}">
 
@@ -37,7 +37,7 @@
           {% set img_src = image.fallback_src|default(image.url) %}
           {% set resolved_src = img_src starts with '/' ? base_path ~ img_src : img_src %}
           <img src="{{ resolved_src|e('html_attr') }}"
-               alt="{{ image.alt|e }}"
+               alt="{{ image.alt|e('html_attr') }}"
                class="polaroid-img"
                loading="lazy"
                decoding="async">
@@ -65,5 +65,5 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
-window.templateSettings = JSON.parse({{ template_settings|json_encode|e('js') }});
+window.templateSettings = {{ template_settings|json_encode(constant('JSON_HEX_TAG'))|raw }};
 </script>

@@ -64,7 +64,6 @@ SQL;
         // Crea indici per performance (solo SQLite; MySQL li ha già)
         if ($db->isSqlite()) {
             $db->pdo()->exec('CREATE INDEX IF NOT EXISTS idx_custom_templates_type ON custom_templates(type)');
-            $db->pdo()->exec('CREATE INDEX IF NOT EXISTS idx_custom_templates_slug ON custom_templates(slug)');
             $db->pdo()->exec('CREATE INDEX IF NOT EXISTS idx_custom_templates_active ON custom_templates(is_active)');
         }
 
@@ -88,16 +87,18 @@ SQL;
             mkdir($guidesDir, 0755, true);
         }
 
-        // 4. Genera guide template
+        // 4. Verifica guide template
         require_once $pluginDir . '/Services/GuidesGeneratorService.php';
         $guidesService = new GuidesGeneratorService();
-        $guidesService->generateAllGuides();
+        if (!$guidesService->guidesExist()) {
+            throw new \RuntimeException('Guide template mancanti');
+        }
 
         error_log('Custom Templates Pro: Plugin installed successfully');
 
         return [
             'success' => true,
-            'message' => 'Custom Templates Pro installato con successo! Le guide template sono state generate.'
+            'message' => 'Custom Templates Pro installato con successo!'
         ];
 
     } catch (\Throwable $e) {

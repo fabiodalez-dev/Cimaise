@@ -33,5 +33,5 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
-window.templateSettings = JSON.parse({{ template_settings|json_encode|e('js') }});
+window.templateSettings = {{ template_settings|json_encode(constant('JSON_HEX_TAG'))|raw }};
 </script>
