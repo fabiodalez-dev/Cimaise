@@ -1,6 +1,18 @@
+:root {
+  --cr-bg: #fff;
+  --cr-text: #111;
+  --cr-muted: #666;
+  --cr-border: #eee;
+}
+html.dark {
+  --cr-bg: #111;
+  --cr-text: #f5f5f5;
+  --cr-muted: #b5b5b5;
+  --cr-border: #2a2a2a;
+}
 .cover-rail {
-  background: #fff;
-  color: #111;
+  background: var(--cr-bg);
+  color: var(--cr-text);
 }
 .cover-rail .cr-hero {
   max-width: 1280px;
@@ -18,7 +30,7 @@
   margin: 18px 0 10px;
 }
 .cover-rail .cr-meta {
-  color: #666;
+  color: var(--cr-muted);
   font-size: 13px;
   display: flex;
   flex-wrap: wrap;
@@ -39,16 +51,16 @@
   gap: 16px;
 }
 .cover-rail .cr-card {
-  border: 1px solid #eee;
+  border: 1px solid var(--cr-border);
   padding: 14px 16px;
   border-radius: 10px;
   font-size: 14px;
 }
 .cover-rail .cr-card strong {
   text-transform: uppercase;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
   font-size: 11px;
-  color: #666;
+  color: var(--cr-muted);
   display: block;
   margin-bottom: 6px;
 }

@@ -1,12 +1,12 @@
 <div class="quiet-masonry">
   {% for image in images %}
     {% set href = image.lightbox_url|default(image.url) %}
-    <div class="quiet-masonry-item" style="--w: {{ image.width|default(4) }}; --h: {{ image.height|default(3) }};">
+    <div class="quiet-masonry-item" style="--w: {{ image.width|default(4)|e('html_attr') }}; --h: {{ image.height|default(3)|e('html_attr') }};">
       <a href="{% if href starts with '/' %}{{ base_path }}{{ href }}{% else %}{{ href }}{% endif %}"
          class="pswp-link"
-         data-image-id="{{ image.id }}"
-         data-pswp-width="{{ image.width|default(1600) }}"
-         data-pswp-height="{{ image.height|default(1067) }}"
+         data-image-id="{{ image.id|e('html_attr') }}"
+         data-pswp-width="{{ image.width|default(1600)|e('html_attr') }}"
+         data-pswp-height="{{ image.height|default(1067)|e('html_attr') }}"
          data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}">
         <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
              alt="{{ image.alt_text|default(image.alt)|default('')|e('html_attr') }}"

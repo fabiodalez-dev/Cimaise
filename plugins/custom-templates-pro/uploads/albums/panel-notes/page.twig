@@ -7,7 +7,13 @@
     {% if album.shoot_date or (album.equipment.locations|length > 0) %}
       <div class="pn-meta">
         {% if album.shoot_date %}<span>{{ album.shoot_date|date_format }}</span>{% endif %}
-        {% if album.equipment.locations|length > 0 %}<span>{{ album.equipment.locations|join(', ') }}</span>{% endif %}
+        {% if album.equipment.locations|length > 0 %}
+          <span>
+            {% for location in album.equipment.locations %}
+              {{ location|e }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </span>
+        {% endif %}
       </div>
     {% endif %}
 
@@ -15,13 +21,13 @@
       {% if album.equipment.cameras|length > 0 %}
         <div class="pn-card">
           <h3>{{ trans('album.camera')|default('Camera') }}</h3>
-          {% for camera in album.equipment.cameras %}<div>{{ camera }}</div>{% endfor %}
+          {% for camera in album.equipment.cameras %}<div>{{ camera|e }}</div>{% endfor %}
         </div>
       {% endif %}
       {% if album.equipment.lenses|length > 0 %}
         <div class="pn-card">
           <h3>{{ trans('album.lens')|default('Lens') }}</h3>
-          {% for lens in album.equipment.lenses %}<div>{{ lens }}</div>{% endfor %}
+          {% for lens in album.equipment.lenses %}<div>{{ lens|e }}</div>{% endfor %}
         </div>
       {% endif %}
       {% if album.equipment.film|length > 0 %}
@@ -30,9 +36,9 @@
           {% for film in album.equipment.film %}
             <div>
               {% if film.name is defined %}
-                {{ film.name }}{% if film.iso %} (ISO {{ film.iso }}){% endif %}
+                {{ film.name|e }}{% if film.iso %} (ISO {{ film.iso|e }}){% endif %}
               {% else %}
-                {{ film }}
+                {{ film|e }}
               {% endif %}
             </div>
           {% endfor %}

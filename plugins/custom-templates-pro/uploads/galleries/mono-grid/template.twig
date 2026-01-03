@@ -10,10 +10,10 @@
        data-pswp-height="{{ image.height|default(1067) }}"
        data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}">
       <picture>
-        {% if image.sources.avif|length %}
+        {% if image.sources.avif|default([])|length %}
           <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
         {% endif %}
-        {% if image.sources.webp|length %}
+        {% if image.sources.webp|default([])|length %}
           <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
         {% endif %}
         <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"

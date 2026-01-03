@@ -1,6 +1,20 @@
+:root {
+  --atlas-bg: #fff;
+  --atlas-text: #111;
+  --atlas-muted: #666;
+  --atlas-border: #eee;
+  --atlas-panel: #fff;
+}
+html.dark {
+  --atlas-bg: #111;
+  --atlas-text: #f5f5f5;
+  --atlas-muted: #b5b5b5;
+  --atlas-border: #2a2a2a;
+  --atlas-panel: #151515;
+}
 .atlas-page {
-  background: #fff;
-  color: #111;
+  background: var(--atlas-bg);
+  color: var(--atlas-text);
 }
 .atlas-container {
   max-width: 1080px;
@@ -8,14 +22,14 @@
   padding: 48px 24px;
 }
 .atlas-header {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--atlas-border);
   padding-bottom: 28px;
 }
 .atlas-kicker {
   text-transform: uppercase;
   letter-spacing: 0.22em;
   font-size: 12px;
-  color: #666;
+  color: var(--atlas-muted);
 }
 .atlas-title {
   font-size: clamp(32px, 4vw, 52px);
@@ -27,13 +41,13 @@
   flex-wrap: wrap;
   gap: 12px;
   font-size: 13px;
-  color: #666;
+  color: var(--atlas-muted);
 }
 .atlas-excerpt {
   font-size: 18px;
   line-height: 1.65;
   margin-top: 18px;
-  color: #222;
+  color: var(--atlas-text);
 }
 .atlas-cover {
   margin: 28px 0 0;
@@ -48,13 +62,13 @@
 .atlas-body {
   font-size: 18px;
   line-height: 1.75;
-  color: #222;
+  color: var(--atlas-text);
 }
 .atlas-equipment {
-  border-left: 2px solid #111;
+  border-left: 2px solid var(--atlas-text);
   padding-left: 18px;
   font-size: 14px;
-  color: #333;
+  color: var(--atlas-text);
 }
 .atlas-equipment h3 {
   text-transform: uppercase;
@@ -71,10 +85,10 @@
   flex-wrap: wrap;
   gap: 10px;
   font-size: 12px;
-  color: #666;
+  color: var(--atlas-muted);
 }
 .atlas-tag {
-  border: 1px solid #ddd;
+  border: 1px solid var(--atlas-border);
   padding: 4px 10px;
   border-radius: 999px;
 }

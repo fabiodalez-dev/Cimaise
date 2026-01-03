@@ -7,18 +7,24 @@ window.RegularMasonryGrid = RegularMasonryGrid;
 window._masonryGridReady = true; // Flag for sync check
 // Dispatch event when library is ready
 window.dispatchEvent(new CustomEvent('masonry-grid-ready'));
-console.log('masonry-grid module loaded and exposed globally');
+if (window.DEBUG_GALLERY) {
+    console.log('masonry-grid module loaded and exposed globally');
+}
 </script>
 {% endif %}
 <script nonce="{{ csp_nonce() }}">
 // Global base path for API calls
 window.basePath = '{{ base_path }}';
+window.DEBUG_GALLERY = false;
 
 // Template settings (also expose globally for template switcher)
 const templateSettings = {{ template_settings ? template_settings|json_encode|raw : '{}' }};
 window.templateSettings = templateSettings;
 const layout = templateSettings.layout || 'grid';
 const templateSlug = templateSettings.template_slug || '';
+const DEBUG_GALLERY = window.DEBUG_GALLERY === true;
+const debugLog = (...args) => { if (DEBUG_GALLERY) console.log(...args); };
+const debugWarn = (...args) => { if (DEBUG_GALLERY) console.warn(...args); };
 
 /**
  * Masonry Portfolio initialization using Masonry + imagesLoaded
@@ -246,14 +252,14 @@ function initGalleryMasonry(containerOrSelector) {
         : containerOrSelector || document.querySelector('.gallery-masonry');
 
     if (!grid) {
-        console.warn('Masonry: No grid container found');
+        debugWarn('Masonry: No grid container found');
         return null;
     }
     if (grid._masonryInitialized) return grid._masonryInstance;
 
     // Check if masonry classes are available
     if (typeof BalancedMasonryGrid === 'undefined' && typeof RegularMasonryGrid === 'undefined') {
-        console.warn('Masonry library not loaded, using CSS Grid fallback');
+        debugWarn('Masonry library not loaded, using CSS Grid fallback');
         grid.classList.add('masonry-ready');
         return null;
     }
@@ -263,16 +269,16 @@ function initGalleryMasonry(containerOrSelector) {
     const MasonryClass = masonryType === 'regular' ? RegularMasonryGrid : BalancedMasonryGrid;
     const className = masonryType === 'regular' ? 'RegularMasonryGrid' : 'BalancedMasonryGrid';
 
-    console.log(`Masonry: Using ${className} on grid with ${grid.children.length} children`);
+    debugLog(`Masonry: Using ${className} on grid with ${grid.children.length} children`);
 
     // Debug: Check item dimensions
     const items = grid.querySelectorAll('.masonry-frame');
-    console.log(`Masonry: Found ${items.length} .masonry-frame items`);
+    debugLog(`Masonry: Found ${items.length} .masonry-frame items`);
     if (items.length > 0) {
         const firstItem = items[0];
         const rect = firstItem.getBoundingClientRect();
         const style = getComputedStyle(firstItem);
-        console.log(`Masonry: First item dimensions: ${rect.width}x${rect.height}, aspect-ratio: ${style.aspectRatio}`);
+        debugLog(`Masonry: First item dimensions: ${rect.width}x${rect.height}, aspect-ratio: ${style.aspectRatio}`);
     }
 
     grid._masonryInitialized = true;
@@ -286,14 +292,14 @@ function initGalleryMasonry(containerOrSelector) {
     // Create masonry instance
     try {
         grid._masonryInstance = new MasonryClass(grid);
-        console.log(`Masonry: ${className} instance created successfully`);
+        debugLog(`Masonry: ${className} instance created successfully`);
 
         // Debug: Check if transforms are applied after a short delay
         setTimeout(() => {
             const transformedItems = Array.from(items).filter(item => item.style.transform);
-            console.log(`Masonry: ${transformedItems.length}/${items.length} items have transforms`);
+            debugLog(`Masonry: ${transformedItems.length}/${items.length} items have transforms`);
             if (transformedItems.length > 0) {
-                console.log('Masonry: First transform:', transformedItems[0].style.transform);
+                debugLog('Masonry: First transform:', transformedItems[0].style.transform);
             }
         }, 100);
     } catch (e) {
@@ -384,17 +390,17 @@ if (templateSlug === 'grid-ampia') {
     // Wait for ES module to load and expose BalancedMasonryGrid
     function tryInitMasonry() {
         if (typeof BalancedMasonryGrid !== 'undefined') {
-            console.log('BalancedMasonryGrid available, initializing masonry');
+            debugLog('BalancedMasonryGrid available, initializing masonry');
             initGalleryMasonry();
         } else if (window._masonryGridReady) {
             // Module fired event but we missed it, try again
-            console.log('Module ready flag set, retrying...');
+            debugLog('Module ready flag set, retrying...');
             setTimeout(tryInitMasonry, 10);
         } else {
             // Library not ready yet, wait for the event
-            console.log('Waiting for masonry-grid module...');
+            debugLog('Waiting for masonry-grid module...');
             window.addEventListener('masonry-grid-ready', () => {
-                console.log('masonry-grid-ready event received');
+                debugLog('masonry-grid-ready event received');
                 initGalleryMasonry();
             }, { once: true });
         }
@@ -632,7 +638,7 @@ function loadTemplateAssets(assets) {
     cssList.forEach(href => {
         if (!href || document.querySelector(`link[data-template-asset="${href}"]`)) return;
         if (!isValidAssetPath(href) || (!href.startsWith(allowedPrefix) && !href.startsWith('/plugins/custom-templates-pro/'))) {
-            console.warn('Asset CSS bloccato: percorso non valido', href);
+            debugWarn('Asset CSS blocked: invalid path', href);
             return;
         }
         const link = document.createElement('link');
@@ -646,7 +652,7 @@ function loadTemplateAssets(assets) {
     jsList.forEach(src => {
         if (!src || document.querySelector(`script[data-template-asset="${src}"]`)) return;
         if (!isValidAssetPath(src) || (!src.startsWith(allowedPrefix) && !src.startsWith('/plugins/custom-templates-pro/'))) {
-            console.warn('Asset JS bloccato: percorso non valido', src);
+            debugWarn('Asset JS blocked: invalid path', src);
             return;
         }
         const script = document.createElement('script');
@@ -720,11 +726,11 @@ document.addEventListener('click', function(event) {
                         window.templateAssets = JSON.parse(assetsMatch[1]);
                     } catch (e) {
                         console.error('Failed to parse templateAssets:', e);
-                        console.warn('templateAssets JSON malformato, uso default:', assetsMatch[1].substring(0, 100));
+                        debugWarn('templateAssets JSON invalid, using default:', assetsMatch[1].substring(0, 100));
                         window.templateAssets = { css: [], js: [] };
                     }
                 } else {
-                    console.debug('templateAssets non trovato nella risposta, uso default');
+                    debugLog('templateAssets not found in response, using default');
                     window.templateAssets = { css: [], js: [] };
                 }
                 settingsScript.remove();
@@ -1076,32 +1082,32 @@ document.addEventListener('click', function(event) {
             setTimeout(() => {
                 galleryContainer.classList.remove('tpl-switching');
 
-                    // Force visibility on all items as fallback
-                    // But DON'T touch masonry-frame transforms - the masonry library manages those!
-                    const allItems = galleryContainer.querySelectorAll('.gallery-item, .masonry-frame, .dense-grid-item, .photo-item');
-                    allItems.forEach((item, idx) => {
-                        if (!item.hasAttribute('data-animated')) {
-                            item.style.opacity = '1';
-                            // Only reset transform for non-masonry items
-                            // Masonry library uses translateY(%) for positioning
-                            if (!item.classList.contains('masonry-frame') && !item.classList.contains('photo-item')) {
-                                item.style.transform = 'none';
-                            }
+                // Force visibility on all items as fallback
+                // But DON'T touch masonry-frame transforms - the masonry library manages those!
+                const allItems = galleryContainer.querySelectorAll('.gallery-item, .masonry-frame, .dense-grid-item, .photo-item');
+                allItems.forEach((item) => {
+                    if (!item.hasAttribute('data-animated')) {
+                        item.style.opacity = '1';
+                        // Only reset transform for non-masonry items
+                        // Masonry library uses translateY(%) for positioning
+                        if (!item.classList.contains('masonry-frame') && !item.classList.contains('photo-item')) {
+                            item.style.transform = 'none';
                         }
-                    });
-
-                    // Trigger gallery animation if available
-                    if (typeof window.animateGalleryOnce === 'function') {
-                        window.animateGalleryOnce();
                     }
+                });
 
-                    // Update Lenis scroll
-                    if (window.lenisResize) {
-                        setTimeout(window.lenisResize, 100);
-                    }
-                    // Restore scroll position (template 2 was jumping to top)
-                    window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' });
-                }, 50);
+                // Trigger gallery animation if available
+                if (typeof window.animateGalleryOnce === 'function') {
+                    window.animateGalleryOnce();
+                }
+
+                // Update Lenis scroll
+                if (window.lenisResize) {
+                    setTimeout(window.lenisResize, 100);
+                }
+                // Restore scroll position (template 2 was jumping to top)
+                window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' });
+            }, 50);
             });
         })
         .catch(err => {

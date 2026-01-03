@@ -5,7 +5,7 @@
     {% include custom_page_template %}
   {% else %}
     <div class="max-w-6xl mx-auto px-4 py-10">
-      <p class="text-neutral-600">{{ trans('album.empty_message')|default('Template not available.') }}</p>
+      <p class="text-neutral-600">{{ trans('template.not_available')|default('Template not available.') }}</p>
     </div>
   {% endif %}
 {% endblock %}

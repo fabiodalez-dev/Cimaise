@@ -7,7 +7,13 @@
     {% if album.shoot_date or (album.equipment.locations|length > 0) %}
       <div class="quiet-meta">
         {% if album.shoot_date %}<span>{{ album.shoot_date|date_format }}</span>{% endif %}
-        {% if album.equipment.locations|length > 0 %}<span>{{ album.equipment.locations|join(', ') }}</span>{% endif %}
+        {% if album.equipment.locations|length > 0 %}
+          <span>
+            {% for location in album.equipment.locations %}
+              {{ location|e }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </span>
+        {% endif %}
       </div>
     {% endif %}
 
@@ -21,13 +27,13 @@
       <div class="quiet-divider"></div>
       <div class="quiet-eq">
         {% if album.equipment.cameras|length > 0 %}
-          <div><strong>{{ trans('album.camera')|default('Camera') }}</strong>{% for camera in album.equipment.cameras %}{{ camera }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+          <div><strong>{{ trans('album.camera')|default('Camera') }}</strong>{% for camera in album.equipment.cameras %}{{ camera|e }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
         {% endif %}
         {% if album.equipment.lenses|length > 0 %}
-          <div><strong>{{ trans('album.lens')|default('Lens') }}</strong>{% for lens in album.equipment.lenses %}{{ lens }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+          <div><strong>{{ trans('album.lens')|default('Lens') }}</strong>{% for lens in album.equipment.lenses %}{{ lens|e }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
         {% endif %}
         {% if album.equipment.film|length > 0 %}
-          <div><strong>{{ trans('album.film')|default('Film') }}</strong>{% for film in album.equipment.film %}{% if film.name is defined %}{{ film.name }}{% if film.iso %} (ISO {{ film.iso }}){% endif %}{% else %}{{ film }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+          <div><strong>{{ trans('album.film')|default('Film') }}</strong>{% for film in album.equipment.film %}{% if film.name is defined %}{{ film.name|e }}{% if film.iso %} (ISO {{ film.iso|e }}){% endif %}{% else %}{{ film|e }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</div>
         {% endif %}
       </div>
     {% endif %}
@@ -36,7 +42,7 @@
       <div class="quiet-divider"></div>
       <div class="quiet-tags">
         {% for tag in album.tags %}
-          {% set tag_url = '/tag/' ~ tag.slug %}
+          {% set tag_url = '/tag/' ~ (tag.slug|e('url')) %}
           <a class="quiet-tag" href="{% if tag_url starts with '/' %}{{ base_path }}{{ tag_url }}{% else %}{{ tag_url }}{% endif %}">#{{ tag.name|e }}</a>
         {% endfor %}
       </div>

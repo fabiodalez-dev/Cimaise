@@ -1,6 +1,18 @@
+:root {
+  --quiet-bg: #fff;
+  --quiet-text: #111;
+  --quiet-muted: #666;
+  --quiet-divider: #eee;
+}
+html.dark {
+  --quiet-bg: #111;
+  --quiet-text: #f5f5f5;
+  --quiet-muted: #b5b5b5;
+  --quiet-divider: #2a2a2a;
+}
 .quiet-page {
-  background: #fff;
-  color: #111;
+  background: var(--quiet-bg);
+  color: var(--quiet-text);
 }
 .quiet-wrap {
   max-width: 900px;
@@ -14,14 +26,14 @@
 }
 .quiet-meta {
   font-size: 13px;
-  color: #666;
+  color: var(--quiet-muted);
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 .quiet-divider {
   height: 1px;
-  background: #eee;
+  background: var(--quiet-divider);
   margin: 26px 0;
 }
 .quiet-body {
@@ -37,7 +49,7 @@
   text-transform: uppercase;
   letter-spacing: 0.2em;
   font-size: 11px;
-  color: #666;
+  color: var(--quiet-muted);
   display: block;
   margin-bottom: 4px;
 }
@@ -48,5 +60,5 @@
   font-size: 12px;
 }
 .quiet-tag {
-  border-bottom: 1px solid #111;
+  border-bottom: 1px solid var(--quiet-text);
 }

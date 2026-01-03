@@ -58,7 +58,7 @@
                              class="mt-1"
                              {% if settings['gallery.page_template'] == template.value %}checked{% endif %}>
                       <div>
-                        <div class="font-medium text-gray-900">{{ template.label|default('Custom Template') }}</div>
+                        <div class="font-medium text-gray-900">{{ template.label|default(trans('admin.templates.custom_template_fallback')) }}</div>
                         {% if template.description %}
                           <div class="text-sm text-gray-600">{{ template.description }}</div>
                         {% endif %}

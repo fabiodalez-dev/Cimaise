@@ -82,10 +82,6 @@ class AlbumsController extends BaseController
         } catch (\Throwable $e) {
             // Templates table doesn't exist yet, continue without templates
         }
-        $settingsService = new SettingsService($this->db);
-        $defaultAlbumPageTemplate = (string)($settingsService->get('gallery.page_template', 'classic') ?? 'classic');
-        $albumPageTemplates = $this->getAlbumPageTemplates();
-        
         // Load equipment data
         $cameras = $pdo->query('SELECT id, make, model FROM cameras ORDER BY make, model')->fetchAll();
         $lenses = $pdo->query('SELECT id, brand, model FROM lenses ORDER BY brand, model')->fetchAll();
@@ -373,6 +369,10 @@ class AlbumsController extends BaseController
             // Templates table doesn't exist yet, continue without templates
         }
         
+        $settingsService = new SettingsService($this->db);
+        $defaultAlbumPageTemplate = (string)($settingsService->get('gallery.page_template', 'classic') ?? 'classic');
+        $albumPageTemplates = $this->getAlbumPageTemplates();
+
         // Load equipment data
         $cameras = $pdo->query('SELECT id, make, model FROM cameras ORDER BY make, model')->fetchAll();
         $lenses = $pdo->query('SELECT id, brand, model FROM lenses ORDER BY brand, model')->fetchAll();
@@ -450,6 +450,10 @@ class AlbumsController extends BaseController
                 // Custom fields table may not exist yet
             }
         }
+
+        $settingsService = new SettingsService($this->db);
+        $defaultAlbumPageTemplate = (string)($settingsService->get('gallery.page_template', 'classic') ?? 'classic');
+        $albumPageTemplates = $this->getAlbumPageTemplates();
 
         $imgsStmt = $pdo->prepare("SELECT i.id, i.original_path, i.created_at, i.sort_order,
                                    i.alt_text, i.caption, i.width, i.height,

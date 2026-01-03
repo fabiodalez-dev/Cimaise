@@ -2,7 +2,7 @@
   "type": "album_page",
   "name": "Minimal Album Page",
   "slug": "minimal-album-page",
-  "description": "Pagina album completa con design minimalista e pulito",
+  "description": "Complete album page with minimalist and clean design",
   "version": "1.0.0",
   "author": "Cimaise Team",
   "requires": {

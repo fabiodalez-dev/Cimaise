@@ -820,8 +820,10 @@ class PageController extends BaseController
             $templateCustomJs = $integration->loadTemplateJS((int)$template['id'], $this->basePath);
             $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
             if ($metadata && !empty($metadata['twig_path'])) {
-                $twigPath = preg_replace('~^uploads/galleries/+~', '', (string)$metadata['twig_path']);
-                $templateCustomTwig = ltrim((string)$twigPath, '/');
+                $resolved = $integration->resolveTwigTemplatePath((string)$metadata['twig_path'], 'galleries');
+                if ($resolved) {
+                    $templateCustomTwig = $resolved;
+                }
             }
         }
 
@@ -834,8 +836,8 @@ class PageController extends BaseController
         $allowedPageTemplates = ['classic', 'hero', 'magazine'];
         try {
             $customTemplates = Hooks::applyFilter('available_album_page_templates', []);
-            foreach ($customTemplates as $template) {
-                $value = $template['value'] ?? null;
+            foreach ($customTemplates as $customTpl) {
+                $value = $customTpl['value'] ?? null;
                 if (is_string($value) && $value !== '') {
                     $allowedPageTemplates[] = $value;
                 }
@@ -856,10 +858,12 @@ class PageController extends BaseController
                     $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
                     foreach ($integration->getAlbumPageTemplatesForCore() as $tpl) {
                         if (($tpl['value'] ?? '') === $pageTemplate && !empty($tpl['twig_path'])) {
-                            $twigPath = preg_replace('~^uploads/albums/+~', '', (string)$tpl['twig_path']);
-                            $customPageTemplate = ltrim((string)$twigPath, '/');
-                            $customPageTemplateId = (int)($tpl['custom_id'] ?? 0);
-                            break;
+                            $resolved = $integration->resolveTwigTemplatePath((string)$tpl['twig_path'], 'albums');
+                            if ($resolved) {
+                                $customPageTemplate = $resolved;
+                                $customPageTemplateId = (int)($tpl['custom_id'] ?? 0);
+                                break;
+                            }
                         }
                     }
                 } catch (\Throwable) {
@@ -1414,8 +1418,10 @@ class PageController extends BaseController
                         $templateAssets['js'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
                     }
                     if (!empty($metadata['twig_path'])) {
-                        $twigPath = preg_replace('~^uploads/galleries/+~', '', (string)$metadata['twig_path']);
-                        $templateCustomTwig = ltrim((string)$twigPath, '/');
+                        $resolved = $integration->resolveTwigTemplatePath((string)$metadata['twig_path'], 'galleries');
+                        if ($resolved) {
+                            $templateCustomTwig = $resolved;
+                        }
                     }
                 }
             }

@@ -1,6 +1,18 @@
+:root {
+  --split-bg: #fff;
+  --split-text: #111;
+  --split-muted: #666;
+  --split-border: #eee;
+}
+html.dark {
+  --split-bg: #111;
+  --split-text: #f5f5f5;
+  --split-muted: #b5b5b5;
+  --split-border: #2a2a2a;
+}
 .split-page {
-  background: #fff;
-  color: #111;
+  background: var(--split-bg);
+  color: var(--split-text);
 }
 .split-container {
   max-width: 1160px;
@@ -20,14 +32,14 @@
   flex-wrap: wrap;
   gap: 12px;
   font-size: 13px;
-  color: #666;
+  color: var(--split-muted);
 }
 .split-grid {
   display: grid;
   gap: 32px;
 }
 .split-aside {
-  border: 1px solid #eee;
+  border: 1px solid var(--split-border);
   padding: 20px;
   border-radius: 12px;
   font-size: 14px;
@@ -41,7 +53,7 @@
   letter-spacing: 0.2em;
   font-size: 11px;
   margin: 18px 0 10px;
-  color: #555;
+  color: var(--split-muted);
 }
 .split-tags {
   display: flex;
@@ -50,7 +62,7 @@
   font-size: 12px;
 }
 .split-tag {
-  border: 1px solid #ddd;
+  border: 1px solid var(--split-border);
   padding: 3px 8px;
   border-radius: 999px;
 }

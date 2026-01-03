@@ -96,12 +96,14 @@ class TemplateIntegrationService
         $coreFormatted = [];
 
         foreach ($customTemplates as $template) {
+            $metadata = $template['metadata'] ?? [];
             $coreFormatted[] = [
                 'value' => 'custom_' . $template['slug'],
                 'label' => $template['name'] . ' (Custom)',
                 'description' => $template['description'],
                 'custom_id' => $template['id'],
-                'twig_path' => $template['twig_path']
+                'twig_path' => $template['twig_path'],
+                'settings' => is_array($metadata) ? ($metadata['settings'] ?? []) : []
             ];
         }
 
@@ -146,9 +148,13 @@ class TemplateIntegrationService
         $output = '';
 
         foreach ($paths as $path) {
-            $fullPath = $this->pluginDir . '/' . $path;
+            $safePath = $this->validateAssetPath((string)$path);
+            if ($safePath === null) {
+                continue;
+            }
+            $fullPath = $this->pluginDir . '/' . $safePath;
             if (file_exists($fullPath)) {
-                $output .= '<link rel="stylesheet" href="' . rtrim($basePath, '/') . '/plugins/custom-templates-pro/' . $path . '">' . "\n";
+                $output .= '<link rel="stylesheet" href="' . rtrim($basePath, '/') . '/plugins/custom-templates-pro/' . $safePath . '">' . "\n";
             }
         }
 
@@ -176,10 +182,14 @@ class TemplateIntegrationService
         $output = '';
 
         foreach ($paths as $path) {
-            $fullPath = $this->pluginDir . '/' . $path;
+            $safePath = $this->validateAssetPath((string)$path);
+            if ($safePath === null) {
+                continue;
+            }
+            $fullPath = $this->pluginDir . '/' . $safePath;
             if (file_exists($fullPath)) {
                 $nonceAttr = $nonce ? ' nonce="' . $nonce . '"' : '';
-                $output .= '<script src="' . rtrim($basePath, '/') . '/plugins/custom-templates-pro/' . $path . '"' . $nonceAttr . '></script>' . "\n";
+                $output .= '<script src="' . rtrim($basePath, '/') . '/plugins/custom-templates-pro/' . $safePath . '"' . $nonceAttr . '></script>' . "\n";
             }
         }
 
@@ -222,8 +232,8 @@ class TemplateIntegrationService
         }
 
         $template['metadata'] = $this->decodeJson($template['metadata'] ?? null, []);
-        $template['css_paths'] = $this->decodeJson($template['css_paths'] ?? '[]', []);
-        $template['js_paths'] = $this->decodeJson($template['js_paths'] ?? '[]', []);
+        $template['css_paths'] = $this->sanitizeAssetPaths($this->decodeJson($template['css_paths'] ?? '[]', []));
+        $template['js_paths'] = $this->sanitizeAssetPaths($this->decodeJson($template['js_paths'] ?? '[]', []));
 
         return $template;
     }
@@ -241,5 +251,68 @@ class TemplateIntegrationService
         }
 
         return is_array($decoded) ? $decoded : $default;
+    }
+
+    public function resolveTwigTemplatePath(string $twigPath, string $type): ?string
+    {
+        $cleanPath = ltrim(str_replace('\\', '/', $twigPath), '/');
+        if ($cleanPath === '' || str_contains($cleanPath, '..')) {
+            return null;
+        }
+
+        $fullPath = $this->pluginDir . '/' . $cleanPath;
+        $realPath = realpath($fullPath);
+        if ($realPath === false) {
+            return null;
+        }
+
+        $baseDir = realpath($this->pluginDir . '/uploads/' . $type);
+        if ($baseDir === false) {
+            return null;
+        }
+        $baseDir = rtrim($baseDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (!str_starts_with($realPath, $baseDir)) {
+            return null;
+        }
+
+        $relative = substr($realPath, strlen($baseDir));
+        return ltrim(str_replace('\\', '/', (string)$relative), '/');
+    }
+
+    private function validateAssetPath(string $path): ?string
+    {
+        $cleanPath = ltrim(str_replace('\\', '/', $path), '/');
+        if ($cleanPath === '' || str_contains($cleanPath, '..')) {
+            return null;
+        }
+
+        $fullPath = $this->pluginDir . '/' . $cleanPath;
+        $realPath = realpath($fullPath);
+        if ($realPath === false) {
+            return null;
+        }
+
+        $uploadsDir = realpath($this->pluginDir . '/uploads');
+        if ($uploadsDir === false) {
+            return null;
+        }
+        $uploadsDir = rtrim($uploadsDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (!str_starts_with($realPath, $uploadsDir)) {
+            return null;
+        }
+
+        return $cleanPath;
+    }
+
+    private function sanitizeAssetPaths(array $paths): array
+    {
+        $clean = [];
+        foreach ($paths as $path) {
+            $safePath = $this->validateAssetPath((string)$path);
+            if ($safePath !== null) {
+                $clean[] = $safePath;
+            }
+        }
+        return $clean;
     }
 }
