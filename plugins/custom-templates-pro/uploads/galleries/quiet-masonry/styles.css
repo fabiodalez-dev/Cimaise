@@ -32,3 +32,13 @@
     transform: none;
   }
 }
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .quiet-masonry-item {
+    background: #1f1f1f;
+  }
+}
+html.dark .quiet-masonry-item {
+  background: #1f1f1f;
+}

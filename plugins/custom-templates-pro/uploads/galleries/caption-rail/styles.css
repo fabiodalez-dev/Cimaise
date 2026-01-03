@@ -26,3 +26,21 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .caption-rail-item {
+    background: #1a1a1a;
+    border-color: #333;
+  }
+  .caption-rail-item figcaption {
+    color: #e5e5e5;
+  }
+}
+html.dark .caption-rail-item {
+  background: #1a1a1a;
+  border-color: #333;
+}
+html.dark .caption-rail-item figcaption {
+  color: #e5e5e5;
+}

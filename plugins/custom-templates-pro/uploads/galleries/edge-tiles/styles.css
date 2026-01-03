@@ -28,3 +28,19 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .edge-tiles-item {
+    background: #1f1f1f;
+  }
+  .edge-tiles-empty {
+    color: #999;
+  }
+}
+html.dark .edge-tiles-item {
+  background: #1f1f1f;
+}
+html.dark .edge-tiles-empty {
+  color: #999;
+}
