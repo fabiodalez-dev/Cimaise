@@ -214,8 +214,8 @@ BEST PRACTICES:
      {
        "@context": "https://schema.org",
        "@type": "CollectionPage",
-       "name": "{{ site_title }}",
-       "description": "{{ site_description }}",
+       "name": {{ site_title|json_encode|raw }},
+       "description": {{ site_description|json_encode|raw }},
        "mainEntity": {
          "@type": "ItemList",
          "numberOfItems": {{ albums|length }}

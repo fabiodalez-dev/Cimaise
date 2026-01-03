@@ -96,7 +96,6 @@ CREATE TABLE IF NOT EXISTS custom_templates (
 );
 
 CREATE INDEX IF NOT EXISTS idx_custom_templates_type ON custom_templates(type);
-CREATE INDEX IF NOT EXISTS idx_custom_templates_slug ON custom_templates(slug);
 CREATE INDEX IF NOT EXISTS idx_custom_templates_active ON custom_templates(is_active);
 
 -- ============================================
