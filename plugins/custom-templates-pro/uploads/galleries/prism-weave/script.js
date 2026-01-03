@@ -1,4 +1,4 @@
-// NOTE: Keep this file in sync with examples/prism-weave-gallery/script.js.
+// NOTE: Keep this file in sync with examples/prism-weave-gallery/script.js (if present).
 (function() {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const gallery = document.querySelector('.pw-gallery');
@@ -6,7 +6,7 @@
   if (!tiles.length) {
     return;
   }
-  if (gallery) {
+  if (gallery && !prefersReduced) {
     gallery.classList.add('pw-animate');
   }
 

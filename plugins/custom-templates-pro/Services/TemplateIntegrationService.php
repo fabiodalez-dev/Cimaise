@@ -47,6 +47,12 @@ class TemplateIntegrationService
 
         foreach ($customTemplates as $template) {
             $metadata = $template['metadata'];
+            $cssPaths = $this->sanitizeAssetPaths(
+                $this->decodeJson($template['css_paths'] ?? '[]', [])
+            );
+            $jsPaths = $this->sanitizeAssetPaths(
+                $this->decodeJson($template['js_paths'] ?? '[]', [])
+            );
 
             $coreFormatted[] = [
                 'id' => self::CUSTOM_ID_OFFSET + (int)$template['id'], // Offset per evitare conflitti con template core
@@ -58,8 +64,8 @@ class TemplateIntegrationService
                 'is_custom' => true,
                 'custom_id' => $template['id'],
                 'twig_path' => $template['twig_path'],
-                'css_paths' => $this->decodeJson($template['css_paths'] ?? '[]', []),
-                'js_paths' => $this->decodeJson($template['js_paths'] ?? '[]', []),
+                'css_paths' => $cssPaths,
+                'js_paths' => $jsPaths,
                 'preview_path' => $template['preview_path']
             ];
         }
