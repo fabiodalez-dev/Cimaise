@@ -23,3 +23,13 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .strip-grid-item {
+    background: #1f1f1f;
+  }
+}
+html.dark .strip-grid-item {
+  background: #1f1f1f;
+}
