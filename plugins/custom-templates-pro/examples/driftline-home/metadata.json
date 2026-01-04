@@ -1,0 +1,22 @@
+{
+  "type": "homepage",
+  "name": "Driftline Home",
+  "slug": "driftline-home",
+  "description": "Minimal homepage with a typographic hero and animated mosaic",
+  "version": "1.0.0",
+  "author": "Cimaise Team",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "hero_title": "Portfolio",
+    "hero_subtitle": "An analog-forward collection of light, texture, and place."
+  },
+  "libraries": {
+    "photoswipe": false
+  },
+  "assets": {
+    "css": ["styles.css"],
+    "js": ["script.js"]
+  }
+}

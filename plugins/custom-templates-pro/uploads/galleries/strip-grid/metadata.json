@@ -1,0 +1,17 @@
+{
+  "type": "gallery",
+  "name": "Strip Grid",
+  "slug": "strip-grid",
+  "description": "Sparse strips with wide whitespace and horizontal drift.",
+  "version": "1.0.0",
+  "author": "Cimaise",
+  "settings": {
+    "layout": "sparse",
+    "columns": {"desktop": 2, "tablet": 2, "mobile": 1},
+    "gap": {"horizontal": 36, "vertical": 36},
+    "style": {"rounded": false, "shadow": false, "hover_scale": true}
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}

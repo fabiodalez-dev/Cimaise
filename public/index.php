@@ -14,6 +14,8 @@ use App\Middlewares\FlashMiddleware;
 use App\Middlewares\SecurityHeadersMiddleware;
 use Slim\Middleware\ErrorMiddleware;
 use Slim\Exception\HttpNotFoundException;
+use App\Support\Hooks;
+use App\Support\PluginManager;
 
 // Check if installer is being accessed
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -123,6 +125,16 @@ if (str_ends_with($basePath, '/public')) {
     $basePath = substr($basePath, 0, -7);
 }
 
+// Initialize plugins after bootstrap
+try {
+    $pluginManager = PluginManager::getInstance();
+    if ($container['db'] !== null) {
+        Hooks::doAction('cimaise_init', $container['db'], $pluginManager);
+    }
+} catch (\Throwable $e) {
+    // Plugin init failures should not block the app bootstrap
+}
+
 // Maintenance mode check - must be after session_start() and before routing
 if ($container['db'] !== null && !$isInstallerRoute) {
     $maintenancePluginFile = __DIR__ . '/../plugins/maintenance-mode/plugin.php';
@@ -168,6 +180,26 @@ $twig->getEnvironment()->addExtension(new \App\Extensions\AnalyticsTwigExtension
 $twig->getEnvironment()->addExtension(new \App\Extensions\SecurityTwigExtension());
 $twig->getEnvironment()->addExtension(new \App\Extensions\HooksTwigExtension());
 
+// Register plugin Twig namespaces
+$pluginTemplatesDir = __DIR__ . '/../plugins/custom-templates-pro/templates';
+if (is_dir($pluginTemplatesDir)) {
+    $loader = $twig->getLoader();
+    if ($loader instanceof \Twig\Loader\FilesystemLoader) {
+        $loader->addPath($pluginTemplatesDir, 'custom-templates-pro');
+    }
+}
+
+// Register additional Twig paths from plugins
+$loader = $twig->getLoader();
+if ($loader instanceof \Twig\Loader\FilesystemLoader) {
+    $pluginTwigPaths = Hooks::applyFilter('twig_loader_paths', []);
+    foreach ($pluginTwigPaths as $pluginTwigPath) {
+        if (is_string($pluginTwigPath) && $pluginTwigPath !== '') {
+            $loader->addPath($pluginTwigPath);
+        }
+    }
+}
+
 // Add translation extension (only if database is available)
 $translationService = null;
 if ($container['db'] !== null) {
@@ -176,6 +208,9 @@ if ($container['db'] !== null) {
     // Expose globally for trans() helper function in controllers
     $GLOBALS['translationService'] = $translationService;
 }
+
+// Let plugins register Twig extensions
+Hooks::doAction('twig_environment', $twig);
 
 $app->add(TwigMiddleware::create($app, $twig));
 
@@ -230,6 +265,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('site_language', $siteLanguage);
         $twig->getEnvironment()->addGlobal('admin_language', $adminLanguage);
         $twig->getEnvironment()->addGlobal('admin_debug', (bool)$settingsSvc->get('admin.debug_logs', false));
+        $twig->getEnvironment()->addGlobal('app_debug', (bool)($_ENV['APP_DEBUG'] ?? false));
         // Dark mode setting
         $twig->getEnvironment()->addGlobal('dark_mode', (bool)$settingsSvc->get('frontend.dark_mode', false));
         // Custom CSS (frontend only, already sanitized in controller)
@@ -370,6 +406,7 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('site_language', 'en');
         $twig->getEnvironment()->addGlobal('admin_language', 'en');
         $twig->getEnvironment()->addGlobal('admin_debug', false);
+        $twig->getEnvironment()->addGlobal('app_debug', (bool)($_ENV['APP_DEBUG'] ?? false));
         // Cookie banner defaults on error
         $twig->getEnvironment()->addGlobal('cookie_banner_enabled', true);
         $twig->getEnvironment()->addGlobal('custom_js_essential', '');

@@ -1,0 +1,65 @@
+{% set cols = template_settings.columns|default({desktop: 4, tablet: 3, mobile: 2}) %}
+{% set gap = template_settings.gap|default(30) %}
+
+<div class="polaroid-gallery" style="--gap: {{ gap }}px; --cols-mobile: {{ cols.mobile }}; --cols-tablet: {{ cols.tablet }}; --cols-desktop: {{ cols.desktop }};">
+  {% for image in images %}
+  {% set rotations = [-3, -2, -1, 0, 1, 2, 3] %}
+  {% set rotation = rotations[loop.index0 % (rotations|length)] %}
+  <div class="polaroid-frame" style="--rotation: {{ rotation }}deg;">
+    <div class="polaroid-photo">
+      {% set lightbox_href = image.lightbox_url|default(image.url) %}
+      <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+         class="pswp-link gallery-link block w-full h-full"
+         data-image-id="{{ image.id }}"
+         data-pswp-width="{{ image.width|default(1600) }}"
+         data-pswp-height="{{ image.height|default(1067) }}"
+         data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
+         data-title="{{ image.caption|default('')|e }}"
+         data-alt="{{ image.alt|default('')|e }}"
+         data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e }}"
+         data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e }}">
+
+        <picture>
+          {% if image.sources.avif|length %}
+          <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+          {% endif %}
+
+          {% if image.sources.webp|length %}
+          <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+          {% endif %}
+
+          {% if image.sources.jpg|length %}
+          <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+          {% endif %}
+
+          <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+               alt="{{ image.alt|e }}"
+               class="polaroid-img"
+               loading="lazy"
+               decoding="async">
+        </picture>
+
+        {% if album.allow_downloads %}
+        <button type="button"
+                class="polaroid-download"
+                title="Download"
+                data-action="download-image"
+                data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+          <i class="fa-solid fa-arrow-down"></i>
+        </button>
+        {% endif %}
+      </a>
+
+      {% if image.caption %}
+      <div class="polaroid-caption">
+        {{ image.caption|e }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+window.templateSettings = {{ template_settings|json_encode|raw }};
+</script>

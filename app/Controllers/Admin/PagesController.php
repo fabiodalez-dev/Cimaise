@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Services\ImagesService;
 use App\Services\SettingsService;
 use App\Support\Database;
+use App\Support\Hooks;
 use finfo;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -285,12 +286,20 @@ class PagesController extends BaseController
             // Default gallery template id (DB-driven layout)
             'gallery.default_template_id' => $svc->get('gallery.default_template_id'),
         ];
-        // Load templates for dropdown (DB)
+        // Load templates for dropdown (core + custom)
         $templates = [];
         try {
-            $templates = $this->db->pdo()->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
+            $templates = (new \App\Services\TemplateService($this->db))->getGalleryTemplatesForDropdown();
         } catch (\Throwable) {
             $templates = [];
+        }
+
+        // Custom album page templates (from plugins)
+        $albumPageTemplates = [];
+        try {
+            $albumPageTemplates = Hooks::applyFilter('available_album_page_templates', []);
+        } catch (\Throwable) {
+            $albumPageTemplates = [];
         }
         
         // Get current filter settings for reference
@@ -300,6 +309,7 @@ class PagesController extends BaseController
             'settings' => $settings,
             'filter_settings' => $filterSettings,
             'templates' => $templates,
+            'album_page_templates' => $albumPageTemplates,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
@@ -330,7 +340,19 @@ class PagesController extends BaseController
 
         // Save global page template
         $pageTemplate = (string)($data['page_template'] ?? 'classic');
-        if (!in_array($pageTemplate, ['classic','hero','magazine'], true)) { $pageTemplate = 'classic'; }
+        $allowedTemplates = ['classic', 'hero', 'magazine'];
+        try {
+            $customTemplates = Hooks::applyFilter('available_album_page_templates', []);
+            foreach ($customTemplates as $template) {
+                $value = $template['value'] ?? null;
+                if (is_string($value) && $value !== '') {
+                    $allowedTemplates[] = $value;
+                }
+            }
+        } catch (\Throwable) {
+            // Ignore plugin errors; fallback to core templates.
+        }
+        if (!in_array($pageTemplate, $allowedTemplates, true)) { $pageTemplate = 'classic'; }
         $svc->set('gallery.page_template', $pageTemplate);
 
         // Default gallery template selector moved to global Settings page.

@@ -1,0 +1,65 @@
+{% set cols = template_settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
+{% set gap = template_settings.gap|default(20) %}
+{% set show_captions = template_settings.show_captions|default(false) %}
+
+<article class="ss-album" style="--ss-gap: {{ gap }}px; --ss-cols-mobile: {{ cols.mobile }}; --ss-cols-tablet: {{ cols.tablet }}; --ss-cols-desktop: {{ cols.desktop }};">
+  <header class="ss-hero">
+    <p class="ss-kicker">{{ album.category_name|default('Album')|e }}</p>
+    <h1 class="ss-title">{{ album.title|e }}</h1>
+    {% if album.excerpt %}
+    <p class="ss-excerpt">{{ album.excerpt|e }}</p>
+    {% endif %}
+    <div class="ss-meta">
+      {% if album.shoot_date %}
+      <span>{{ album.shoot_date|date_format }}</span>
+      {% endif %}
+      {% if images|length %}
+      {% if album.shoot_date %}<span class="ss-dot">•</span>{% endif %}
+      <span>{{ images|length }} photos</span>
+      {% endif %}
+    </div>
+  </header>
+
+  <section class="ss-grid">
+    {% for image in images %}
+      {% set lightbox_href = image.lightbox_url|default(image.url) %}
+      {% set img_src = image.fallback_src|default(image.url) %}
+      <figure class="ss-frame" data-reveal>
+        <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+           class="pswp-link ss-link"
+           data-image-id="{{ image.id }}"
+           data-pswp-width="{{ image.width|default(1600) }}"
+           data-pswp-height="{{ image.height|default(1067) }}"
+           data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
+           data-title="{{ image.caption|default('')|e }}"
+           data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}">
+          <picture>
+            {% if image.sources.avif|default([])|length %}
+            <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            {% endif %}
+            {% if image.sources.webp|default([])|length %}
+            <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            {% endif %}
+            {% if image.sources.jpg|default([])|length %}
+            <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            {% endif %}
+            <img src="{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+                 alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                 width="{{ image.width|default(1600) }}"
+                 height="{{ image.height|default(1067) }}"
+                 loading="lazy"
+                 decoding="async"
+                 class="ss-img">
+          </picture>
+          {% if show_captions and image.caption %}
+          <figcaption class="ss-caption">{{ image.caption|e }}</figcaption>
+          {% endif %}
+        </a>
+      </figure>
+    {% endfor %}
+  </section>
+</article>
+
+<script nonce="{{ csp_nonce() }}">
+window.templateSettings = {{ template_settings|json_encode|raw }};
+</script>

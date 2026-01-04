@@ -73,8 +73,10 @@ class HelloCimaisePlugin
         }
 
         // Example: Get plugin stats
-        $stats = $pluginManager->getStats();
-        error_log("Hello Cimaise: Total hooks registered: " . $stats['total_hooks']);
+        if (is_object($pluginManager) && method_exists($pluginManager, 'getStats')) {
+            $stats = $pluginManager->getStats();
+            error_log("Hello Cimaise: Total hooks registered: " . $stats['total_hooks']);
+        }
     }
 
     /**

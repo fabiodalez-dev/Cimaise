@@ -1,0 +1,16 @@
+{% extends "frontend/_layout.twig" %}
+
+{% block content %}
+  {% if custom_page_template %}
+    {% include custom_page_template %}
+  {% else %}
+    <div class="max-w-6xl mx-auto px-4 py-10">
+      <p class="text-neutral-600">{{ trans('template.not_available') }}</p>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {{ parent() }}
+  {% include 'frontend/_album_gallery_scripts.twig' %}
+{% endblock %}

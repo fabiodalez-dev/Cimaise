@@ -1,0 +1,79 @@
+{% macro build_srcset(sources, base_path) %}
+{% for src in sources %}
+  {% set src_url = src|split(' ')|first %}
+  {% set resolved_url = src_url starts with '/' ? base_path ~ src_url : src_url %}
+  {% set descriptor = src|split(' ')|slice(1)|join(' ') %}
+  {{ resolved_url|e('html_attr') }} {{ descriptor|e('html_attr') }}{% if not loop.last %}, {% endif %}
+{% endfor %}
+{% endmacro %}
+{% import _self as macros %}
+{% set cols = template_settings.columns|default({desktop: 4, tablet: 3, mobile: 2}) %}
+{% set gap = template_settings.gap|default(30) %}
+{% set show_captions = template_settings.show_captions|default(false) %}
+
+<div class="polaroid-gallery" style="--gap: {{ gap }}px; --cols-mobile: {{ cols.mobile }}; --cols-tablet: {{ cols.tablet }}; --cols-desktop: {{ cols.desktop }};">
+  {% for image in images %}
+  {% set rotations = [-3, -2, -1, 0, 1, 2, 3] %}
+  {% set rotation = rotations[loop.index0 % (rotations|length)] %}
+  <div class="polaroid-frame" style="--rotation: {{ rotation }}deg;">
+    <div class="polaroid-photo">
+      {% set lightbox_href = image.lightbox_url|default(image.url) %}
+      {% set resolved_href = lightbox_href starts with '/' ? base_path ~ lightbox_href : lightbox_href %}
+      <a href="{{ resolved_href|e('html_attr') }}"
+         class="pswp-link gallery-link block w-full h-full"
+         data-image-id="{{ image.id|e('html_attr') }}"
+         data-pswp-width="{{ image.width|default(1600)|e('html_attr') }}"
+         data-pswp-height="{{ image.height|default(1067)|e('html_attr') }}"
+         data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}"
+         data-title="{{ image.caption|default('')|e('html_attr') }}"
+         data-alt="{{ image.alt|default('')|e('html_attr') }}"
+         data-camera="{{ image.camera_name|default(image.custom_camera)|default('')|e('html_attr') }}"
+         data-lens="{{ image.lens_name|default(image.custom_lens)|default('')|e('html_attr') }}">
+
+        <picture>
+          {% if image.sources.avif|length %}
+          <source type="image/avif" srcset="{{ macros.build_srcset(image.sources.avif, base_path) }}">
+          {% endif %}
+
+          {% if image.sources.webp|length %}
+          <source type="image/webp" srcset="{{ macros.build_srcset(image.sources.webp, base_path) }}">
+          {% endif %}
+
+          {% if image.sources.jpg|length %}
+          <source type="image/jpeg" srcset="{{ macros.build_srcset(image.sources.jpg, base_path) }}">
+          {% endif %}
+
+          {% set img_src = image.fallback_src|default(image.url) %}
+          {% set resolved_src = img_src starts with '/' ? base_path ~ img_src : img_src %}
+          <img src="{{ resolved_src|e('html_attr') }}"
+               alt="{{ image.alt|e('html_attr') }}"
+               class="polaroid-img"
+               loading="lazy"
+               decoding="async">
+        </picture>
+      </a>
+      {% if album.allow_downloads %}
+      <button type="button"
+              class="polaroid-download"
+              title="Download"
+              aria-label="Download image"
+              data-action="download-image"
+              data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+        <i class="fa-solid fa-arrow-down"></i>
+      </button>
+      {% endif %}
+
+      {% if show_captions and image.caption %}
+      <div class="polaroid-caption">
+        {{ image.caption|e }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% set json_flags = constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT') %}
+<script nonce="{{ csp_nonce() }}">
+window.templateSettings = {{ template_settings|json_encode(json_flags)|raw }};
+</script>
