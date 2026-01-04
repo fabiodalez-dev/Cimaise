@@ -29,19 +29,22 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+      <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
         <label class="flex items-center gap-2 cursor-pointer group">
-          <input type="checkbox"
-                 class="switcher-toggle w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                 data-id="{{ template.id }}"
-                 data-type="template"
-                 {{ template.show_in_switcher|default(1) ? 'checked' : '' }}>
           <span class="text-xs text-gray-600 group-hover:text-gray-900">{{ trans('admin.templates.show_in_switcher') }}</span>
+          <span class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox"
+                   class="switcher-toggle sr-only peer"
+                   data-id="{{ template.id }}"
+                   data-type="template"
+                   {{ template.show_in_switcher|default(1) ? 'checked' : '' }}>
+            <span class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></span>
+          </span>
         </label>
 
         <a href="{{ base_path }}/admin/templates/{{ template.id }}/edit"
-           class="text-xs text-gray-500 hover:text-gray-900">
-          <i class="fas fa-cog mr-1"></i>{{ trans('admin.templates.edit_settings') }}
+           class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900">
+          <i class="fas fa-cog"></i>{{ trans('admin.templates.edit_settings') }}
         </a>
       </div>
     </div>
@@ -62,20 +65,23 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between pt-2 border-t border-gray-100">
-          <label class="flex items-center gap-2 cursor-pointer group">
+      <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
+        <label class="flex items-center gap-2 cursor-pointer group">
+          <span class="text-xs text-gray-600 group-hover:text-gray-900">{{ trans('admin.templates.show_in_switcher') }}</span>
+          <span class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox"
-                   class="switcher-toggle w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                   class="switcher-toggle sr-only peer"
                    data-id="{{ template.id }}"
                    data-type="custom"
                    {{ template.show_in_switcher|default(1) ? 'checked' : '' }}>
-            <span class="text-xs text-gray-600 group-hover:text-gray-900">{{ trans('admin.templates.show_in_switcher') }}</span>
-          </label>
+            <span class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></span>
+          </span>
+        </label>
 
-          <a href="{{ base_path }}/admin/custom-templates/{{ template.id }}/edit"
-             class="text-xs text-gray-500 hover:text-gray-900">
-            <i class="fas fa-cog mr-1"></i>{{ trans('admin.templates.edit_settings') }}
-          </a>
+        <a href="{{ base_path }}/admin/custom-templates/{{ template.id }}/edit"
+           class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900">
+          <i class="fas fa-cog"></i>{{ trans('admin.templates.edit_settings') }}
+        </a>
         </div>
       </div>
       {% endfor %}

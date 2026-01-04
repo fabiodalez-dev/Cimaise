@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace CimaiseAnalyticsPro;
 
+use App\Services\SettingsService;
 use App\Support\Database;
 
 class AnalyticsPro
@@ -32,7 +33,7 @@ class AnalyticsPro
                     value INTEGER,
                     user_id INTEGER,
                     session_id TEXT,
-                    ip_address TEXT,
+                    ip_hash TEXT,
                     user_agent TEXT,
                     referrer TEXT,
                     device_type TEXT,
@@ -54,7 +55,7 @@ class AnalyticsPro
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     session_id TEXT NOT NULL UNIQUE,
                     user_id INTEGER,
-                    ip_address TEXT,
+                    ip_hash TEXT,
                     user_agent TEXT,
                     device_type TEXT,
                     browser TEXT,
@@ -113,7 +114,7 @@ class AnalyticsPro
 
             $stmt = $this->db->pdo()->prepare("
                 INSERT INTO analytics_pro_events
-                (event_name, category, action, label, value, user_id, session_id, ip_address,
+                (event_name, category, action, label, value, user_id, session_id, ip_hash,
                  user_agent, referrer, device_type, browser, country, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
@@ -126,7 +127,7 @@ class AnalyticsPro
                 $data['value'] ?? null,
                 $data['user_id'] ?? $_SESSION['user_id'] ?? null,
                 $sessionId,
-                $_SERVER['REMOTE_ADDR'] ?? null,
+                $this->hashIp($_SERVER['REMOTE_ADDR'] ?? null),
                 $_SERVER['HTTP_USER_AGENT'] ?? null,
                 $_SERVER['HTTP_REFERER'] ?? null,
                 $data['device_type'] ?? null,
@@ -162,14 +163,14 @@ class AnalyticsPro
             // Create session record
             $stmt = $this->db->pdo()->prepare("
                 INSERT INTO analytics_pro_sessions
-                (session_id, user_id, ip_address, user_agent, device_type, browser, country)
+                (session_id, user_id, ip_hash, user_agent, device_type, browser, country)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
 
             $stmt->execute([
                 $_SESSION['analytics_session_id'],
                 $_SESSION['user_id'] ?? null,
-                $_SERVER['REMOTE_ADDR'] ?? null,
+                $this->hashIp($_SERVER['REMOTE_ADDR'] ?? null),
                 $_SERVER['HTTP_USER_AGENT'] ?? null,
                 $this->detectDeviceType($_SERVER['HTTP_USER_AGENT'] ?? ''),
                 $this->detectBrowser($_SERVER['HTTP_USER_AGENT'] ?? ''),
@@ -194,6 +195,28 @@ class AnalyticsPro
         ");
 
         $stmt->execute([$sessionId]);
+    }
+
+    private function hashIp(?string $ip): ?string
+    {
+        if (!$ip) {
+            return null;
+        }
+
+        $settings = new SettingsService($this->db);
+        $anonymize = filter_var($settings->get('ip_anonymization', true), FILTER_VALIDATE_BOOLEAN);
+
+        if ($anonymize) {
+            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $parts = explode('.', $ip);
+                $parts[3] = '0';
+                $ip = implode('.', $parts);
+            } elseif (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                $ip = substr($ip, 0, 19) . '::';
+            }
+        }
+
+        return hash('sha256', $ip . 'cimaise_salt');
     }
 
     /**

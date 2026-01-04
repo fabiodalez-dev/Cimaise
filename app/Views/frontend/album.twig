@@ -1275,7 +1275,12 @@ function initDenseGrid(containerOrSelector) {
                     img.classList.add('loaded');
                 });
                 img.addEventListener('error', function() {
-                    // No-op: allow broken images to settle without spinner
+                    img.classList.add('opacity-60');
+                    const errorLabel = document.createElement('span');
+                    errorLabel.className = 'block text-xs text-red-500 mt-2';
+                    errorLabel.textContent = '{{ trans("album.image_load_error")|default("Image failed to load")|e('js') }}';
+                    img.parentNode.appendChild(errorLabel);
+                    try { console.warn('Image failed to load:', img.currentSrc || img.src); } catch (e) {}
                 });
             }
         }

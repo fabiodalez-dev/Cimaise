@@ -19,7 +19,7 @@
       <article class="pw-sparse-item {% if hover_scale %}pw-hover{% endif %}{% if rounded %} pw-rounded{% endif %}"
                style="--pw-w: {{ img_w|e('html_attr') }}; --pw-h: {{ img_h|e('html_attr') }};"
                data-reveal>
-        <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+        <a href="{% if lightbox_href starts with '/' %}{{ (base_path ~ lightbox_href)|e('html_attr') }}{% else %}{{ lightbox_href|e('html_attr') }}{% endif %}"
            class="pswp-link pw-link"
            data-image-id="{{ image.id|e('html_attr') }}"
            data-pswp-width="{{ image.width|default(1600)|e('html_attr') }}"
@@ -37,7 +37,7 @@
           {% if image.sources.jpg|length %}
           <source type="image/jpeg" srcset="{{ macros.build_srcset(image.sources.jpg, base_path) }}">
           {% endif %}
-          <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+          <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ (base_path ~ img_src)|e('html_attr') }}{% else %}{{ img_src|e('html_attr') }}{% endif %}"
                alt="{{ image.alt|e('html_attr') }}"
                width="{{ image.width|default(1600)|e('html_attr') }}"
                height="{{ image.height|default(1067)|e('html_attr') }}"
