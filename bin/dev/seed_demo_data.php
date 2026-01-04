@@ -38,12 +38,15 @@ if (!$force) {
     echo "\n";
     echo "Continue? [y/N]: ";
     $handle = fopen("php://stdin", "r");
-    $line = fgets($handle);
+    try {
+        $line = fgets($handle);
+    } finally {
+        fclose($handle);
+    }
     if (trim(strtolower($line)) !== 'y') {
         echo "Aborted.\n";
         exit(0);
     }
-    fclose($handle);
 }
 
 $container = require __DIR__ . '/../../app/Config/bootstrap.php';
@@ -131,14 +134,22 @@ function downloadImage(string $url, string $path): bool
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_USERAGENT, 'Cimaise Demo Seeder/1.0');
     $data = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($code >= 200 && $code < 300 && strlen($data) > 1000) {
-        file_put_contents($path, $data);
+    if ($code >= 200 && $code < 300 && $data !== false && strlen($data) > 1000) {
+        if (file_put_contents($path, $data) === false) {
+            return false;
+        }
+        $imageInfo = @getimagesize($path);
+        if ($imageInfo === false) {
+            @unlink($path);
+            return false;
+        }
         return true;
     }
     return false;
@@ -899,200 +910,209 @@ $albumIds = [];
 $imageCount = 0;
 
 foreach ($albums as $albumData) {
-    // Extract metadata for junction tables
-    $albumCategories = $albumData['categories'] ?? [];
-    $albumTags = $albumData['tags'] ?? [];
-    $albumCameras = $albumData['cameras'] ?? [];
-    $albumLenses = $albumData['lenses'] ?? [];
-    $albumFilms = $albumData['films'] ?? [];
-    $albumDevelopers = $albumData['developers'] ?? [];
-    $albumLabs = $albumData['labs'] ?? [];
-    $albumImagesData = $albumData['images'] ?? [];
+    try {
+        $pdo->beginTransaction();
 
-    // Remove non-column data
-    unset(
-        $albumData['categories'],
-        $albumData['tags'],
-        $albumData['cameras'],
-        $albumData['lenses'],
-        $albumData['films'],
-        $albumData['developers'],
-        $albumData['labs'],
-        $albumData['images']
-    );
+        // Extract metadata for junction tables
+        $albumCategories = $albumData['categories'] ?? [];
+        $albumTags = $albumData['tags'] ?? [];
+        $albumCameras = $albumData['cameras'] ?? [];
+        $albumLenses = $albumData['lenses'] ?? [];
+        $albumFilms = $albumData['films'] ?? [];
+        $albumDevelopers = $albumData['developers'] ?? [];
+        $albumLabs = $albumData['labs'] ?? [];
+        $albumImagesData = $albumData['images'] ?? [];
 
-    // Upsert album
-    $albumId = upsertById($pdo, 'albums', $albumData);
-    $albumIds[$albumData['slug']] = $albumId;
+        // Remove non-column data
+        unset(
+            $albumData['categories'],
+            $albumData['tags'],
+            $albumData['cameras'],
+            $albumData['lenses'],
+            $albumData['films'],
+            $albumData['developers'],
+            $albumData['labs'],
+            $albumData['images']
+        );
 
-    $status = [];
-    if ($albumData['is_nsfw']) $status[] = 'NSFW';
-    if ($albumData['password_hash']) $status[] = 'PASSWORD';
-    if (!$albumData['is_published']) $status[] = 'DRAFT';
-    $statusStr = !empty($status) ? ' [' . implode('+', $status) . ']' : '';
-    echo "   ✓ {$albumData['title']}{$statusStr}\n";
+        // Upsert album
+        $albumId = upsertById($pdo, 'albums', $albumData);
+        $albumIds[$albumData['slug']] = $albumId;
 
-    // Link categories (using junction table)
-    $pdo->prepare("DELETE FROM album_category WHERE album_id = ?")->execute([$albumId]);
-    foreach ($albumCategories as $catSlug) {
-        if (isset($categoryIds[$catSlug])) {
-            linkManyToMany($pdo, 'album_category', 'album_id', $albumId, 'category_id', $categoryIds[$catSlug]);
-        }
-    }
+        $status = [];
+        if ($albumData['is_nsfw']) $status[] = 'NSFW';
+        if ($albumData['password_hash']) $status[] = 'PASSWORD';
+        if (!$albumData['is_published']) $status[] = 'DRAFT';
+        $statusStr = !empty($status) ? ' [' . implode('+', $status) . ']' : '';
+        echo "   ✓ {$albumData['title']}{$statusStr}\n";
 
-    // Link tags
-    $pdo->prepare("DELETE FROM album_tag WHERE album_id = ?")->execute([$albumId]);
-    foreach ($albumTags as $tagSlug) {
-        if (isset($tagIds[$tagSlug])) {
-            linkManyToMany($pdo, 'album_tag', 'album_id', $albumId, 'tag_id', $tagIds[$tagSlug]);
-        }
-    }
-
-    // Link cameras
-    $pdo->prepare("DELETE FROM album_camera WHERE album_id = ?")->execute([$albumId]);
-    foreach ($albumCameras as $camName) {
-        if (isset($cameraIds[$camName])) {
-            linkManyToMany($pdo, 'album_camera', 'album_id', $albumId, 'camera_id', $cameraIds[$camName]);
-        }
-    }
-
-    // Link lenses
-    $pdo->prepare("DELETE FROM album_lens WHERE album_id = ?")->execute([$albumId]);
-    foreach ($albumLenses as $lensName) {
-        if (isset($lensIds[$lensName])) {
-            linkManyToMany($pdo, 'album_lens', 'album_id', $albumId, 'lens_id', $lensIds[$lensName]);
-        }
-    }
-
-    // Link films
-    $pdo->prepare("DELETE FROM album_film WHERE album_id = ?")->execute([$albumId]);
-    foreach ($albumFilms as $filmKey) {
-        if (isset($filmIds[$filmKey])) {
-            linkManyToMany($pdo, 'album_film', 'album_id', $albumId, 'film_id', $filmIds[$filmKey]);
-        }
-    }
-
-    // Link developers
-    $pdo->prepare("DELETE FROM album_developer WHERE album_id = ?")->execute([$albumId]);
-    foreach ($albumDevelopers as $devName) {
-        if (isset($developerIds[$devName])) {
-            linkManyToMany($pdo, 'album_developer', 'album_id', $albumId, 'developer_id', $developerIds[$devName]);
-        }
-    }
-
-    // Link labs
-    $pdo->prepare("DELETE FROM album_lab WHERE album_id = ?")->execute([$albumId]);
-    foreach ($albumLabs as $labName) {
-        if (isset($labIds[$labName])) {
-            linkManyToMany($pdo, 'album_lab', 'album_id', $albumId, 'lab_id', $labIds[$labName]);
-        }
-    }
-
-    // Link location
-    if (!empty($albumData['location_id'])) {
-        $pdo->prepare("DELETE FROM album_location WHERE album_id = ?")->execute([$albumId]);
-        linkManyToMany($pdo, 'album_location', 'album_id', $albumId, 'location_id', $albumData['location_id']);
-    }
-
-    // Insert images
-    $coverId = null;
-    $sortOrder = 1;
-    $albumSlug = $albumData['slug'];
-    foreach ($albumImagesData as $imgData) {
-        $filePath = '/media/seed/albums/' . $albumSlug . '/' . $imgData['file'];
-        $fullPath = $root . '/public' . $filePath;
-
-        // Download image from Unsplash if available
-        $downloadedDimensions = null;
-        if (isset($albumImages[$albumSlug][$imgData['file']])) {
-            $imgUrlData = $albumImages[$albumSlug][$imgData['file']];
-            if (downloadImage($imgUrlData[0], $fullPath)) {
-                $downloadedDimensions = ['width' => $imgUrlData[1], 'height' => $imgUrlData[2]];
+        // Link categories (using junction table)
+        $pdo->prepare("DELETE FROM album_category WHERE album_id = ?")->execute([$albumId]);
+        foreach ($albumCategories as $catSlug) {
+            if (isset($categoryIds[$catSlug])) {
+                linkManyToMany($pdo, 'album_category', 'album_id', $albumId, 'category_id', $categoryIds[$catSlug]);
             }
         }
 
-        // Use downloaded dimensions or get from file
-        if ($downloadedDimensions) {
-            $imgInfo = array_merge($downloadedDimensions, ['mime' => 'image/jpeg']);
-        } else {
-            $imgInfo = getImageInfo($fullPath);
+        // Link tags
+        $pdo->prepare("DELETE FROM album_tag WHERE album_id = ?")->execute([$albumId]);
+        foreach ($albumTags as $tagSlug) {
+            if (isset($tagIds[$tagSlug])) {
+                linkManyToMany($pdo, 'album_tag', 'album_id', $albumId, 'tag_id', $tagIds[$tagSlug]);
+            }
         }
-        $hash = is_file($fullPath) ? sha1_file($fullPath) : sha1($filePath . time());
 
-        // Find camera/lens/film IDs
-        $imgCameraId = null;
-        $imgLensId = null;
-        $imgFilmId = null;
+        // Link cameras
+        $pdo->prepare("DELETE FROM album_camera WHERE album_id = ?")->execute([$albumId]);
+        foreach ($albumCameras as $camName) {
+            if (isset($cameraIds[$camName])) {
+                linkManyToMany($pdo, 'album_camera', 'album_id', $albumId, 'camera_id', $cameraIds[$camName]);
+            }
+        }
 
-        if (!empty($imgData['camera']) && isset($cameraIds[$imgData['camera']])) {
-            $imgCameraId = $cameraIds[$imgData['camera']];
+        // Link lenses
+        $pdo->prepare("DELETE FROM album_lens WHERE album_id = ?")->execute([$albumId]);
+        foreach ($albumLenses as $lensName) {
+            if (isset($lensIds[$lensName])) {
+                linkManyToMany($pdo, 'album_lens', 'album_id', $albumId, 'lens_id', $lensIds[$lensName]);
+            }
         }
-        if (!empty($imgData['lens']) && isset($lensIds[$imgData['lens']])) {
-            $imgLensId = $lensIds[$imgData['lens']];
+
+        // Link films
+        $pdo->prepare("DELETE FROM album_film WHERE album_id = ?")->execute([$albumId]);
+        foreach ($albumFilms as $filmKey) {
+            if (isset($filmIds[$filmKey])) {
+                linkManyToMany($pdo, 'album_film', 'album_id', $albumId, 'film_id', $filmIds[$filmKey]);
+            }
         }
-        if (!empty($imgData['film'])) {
-            // Film key format: "Brand Name ISO Format"
-            foreach ($filmIds as $key => $id) {
-                if (strpos($key, $imgData['film']) !== false || $imgData['film'] === $key) {
-                    $imgFilmId = $id;
-                    break;
+
+        // Link developers
+        $pdo->prepare("DELETE FROM album_developer WHERE album_id = ?")->execute([$albumId]);
+        foreach ($albumDevelopers as $devName) {
+            if (isset($developerIds[$devName])) {
+                linkManyToMany($pdo, 'album_developer', 'album_id', $albumId, 'developer_id', $developerIds[$devName]);
+            }
+        }
+
+        // Link labs
+        $pdo->prepare("DELETE FROM album_lab WHERE album_id = ?")->execute([$albumId]);
+        foreach ($albumLabs as $labName) {
+            if (isset($labIds[$labName])) {
+                linkManyToMany($pdo, 'album_lab', 'album_id', $albumId, 'lab_id', $labIds[$labName]);
+            }
+        }
+
+        // Link location
+        if (!empty($albumData['location_id'])) {
+            $pdo->prepare("DELETE FROM album_location WHERE album_id = ?")->execute([$albumId]);
+            linkManyToMany($pdo, 'album_location', 'album_id', $albumId, 'location_id', $albumData['location_id']);
+        }
+
+        // Insert images
+        $coverId = null;
+        $sortOrder = 1;
+        $albumSlug = $albumData['slug'];
+        foreach ($albumImagesData as $imgData) {
+            $filePath = '/media/seed/albums/' . $albumSlug . '/' . $imgData['file'];
+            $fullPath = $root . '/public' . $filePath;
+
+            // Download image from Unsplash if available
+            $downloadedDimensions = null;
+            if (isset($albumImages[$albumSlug][$imgData['file']])) {
+                $imgUrlData = $albumImages[$albumSlug][$imgData['file']];
+                if (downloadImage($imgUrlData[0], $fullPath)) {
+                    $downloadedDimensions = ['width' => $imgUrlData[1], 'height' => $imgUrlData[2]];
                 }
             }
+
+            // Use downloaded dimensions or get from file
+            if ($downloadedDimensions) {
+                $imgInfo = array_merge($downloadedDimensions, ['mime' => 'image/jpeg']);
+            } else {
+                $imgInfo = getImageInfo($fullPath);
+            }
+            $hash = is_file($fullPath) ? sha1_file($fullPath) : sha1($filePath . time());
+
+            // Find camera/lens/film IDs
+            $imgCameraId = null;
+            $imgLensId = null;
+            $imgFilmId = null;
+
+            if (!empty($imgData['camera']) && isset($cameraIds[$imgData['camera']])) {
+                $imgCameraId = $cameraIds[$imgData['camera']];
+            }
+            if (!empty($imgData['lens']) && isset($lensIds[$imgData['lens']])) {
+                $imgLensId = $lensIds[$imgData['lens']];
+            }
+            if (!empty($imgData['film'])) {
+                $imgFilmId = $filmIds[$imgData['film']] ?? null;
+                if ($imgFilmId === null) {
+                    echo "     ⚠ Film '{$imgData['film']}' non trovato per {$imgData['file']}\n";
+                }
+            }
+
+            // Check if image already exists
+            $stmt = $pdo->prepare("SELECT id FROM images WHERE album_id = ? AND original_path = ?");
+            $stmt->execute([$albumId, $filePath]);
+            $existingImgId = $stmt->fetchColumn();
+
+            if ($existingImgId) {
+                // Update existing image
+                $pdo->prepare("UPDATE images SET alt_text = ?, caption = ?, camera_id = ?, lens_id = ?, film_id = ?, process = ?, width = ?, height = ?, mime = ?, sort_order = ? WHERE id = ?")
+                    ->execute([
+                        $imgData['alt'],
+                        $imgData['caption'],
+                        $imgCameraId,
+                        $imgLensId,
+                        $imgFilmId,
+                        $imgData['process'],
+                        $imgInfo['width'],
+                        $imgInfo['height'],
+                        $imgInfo['mime'],
+                        $sortOrder,
+                        $existingImgId,
+                    ]);
+                $imgId = (int)$existingImgId;
+            } else {
+                // Insert new image
+                $pdo->prepare("INSERT INTO images (album_id, original_path, file_hash, width, height, mime, alt_text, caption, camera_id, lens_id, film_id, process, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                    ->execute([
+                        $albumId,
+                        $filePath,
+                        $hash,
+                        $imgInfo['width'],
+                        $imgInfo['height'],
+                        $imgInfo['mime'],
+                        $imgData['alt'],
+                        $imgData['caption'],
+                        $imgCameraId,
+                        $imgLensId,
+                        $imgFilmId,
+                        $imgData['process'],
+                        $sortOrder,
+                    ]);
+                $imgId = (int)$pdo->lastInsertId();
+            }
+
+            if ($coverId === null) {
+                $coverId = $imgId;
+            }
+            $sortOrder++;
+            $imageCount++;
         }
 
-        // Check if image already exists
-        $stmt = $pdo->prepare("SELECT id FROM images WHERE album_id = ? AND original_path = ?");
-        $stmt->execute([$albumId, $filePath]);
-        $existingImgId = $stmt->fetchColumn();
-
-        if ($existingImgId) {
-            // Update existing image
-            $pdo->prepare("UPDATE images SET alt_text = ?, caption = ?, camera_id = ?, lens_id = ?, film_id = ?, process = ?, width = ?, height = ?, mime = ?, sort_order = ? WHERE id = ?")
-                ->execute([
-                    $imgData['alt'],
-                    $imgData['caption'],
-                    $imgCameraId,
-                    $imgLensId,
-                    $imgFilmId,
-                    $imgData['process'],
-                    $imgInfo['width'],
-                    $imgInfo['height'],
-                    $imgInfo['mime'],
-                    $sortOrder,
-                    $existingImgId,
-                ]);
-            $imgId = (int)$existingImgId;
-        } else {
-            // Insert new image
-            $pdo->prepare("INSERT INTO images (album_id, original_path, file_hash, width, height, mime, alt_text, caption, camera_id, lens_id, film_id, process, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-                ->execute([
-                    $albumId,
-                    $filePath,
-                    $hash,
-                    $imgInfo['width'],
-                    $imgInfo['height'],
-                    $imgInfo['mime'],
-                    $imgData['alt'],
-                    $imgData['caption'],
-                    $imgCameraId,
-                    $imgLensId,
-                    $imgFilmId,
-                    $imgData['process'],
-                    $sortOrder,
-                ]);
-            $imgId = (int)$pdo->lastInsertId();
+        // Set cover image
+        if ($coverId) {
+            $pdo->prepare("UPDATE albums SET cover_image_id = ? WHERE id = ?")->execute([$coverId, $albumId]);
         }
 
-        if ($coverId === null) {
-            $coverId = $imgId;
+        $pdo->commit();
+    } catch (\Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
         }
-        $sortOrder++;
-        $imageCount++;
-    }
-
-    // Set cover image
-    if ($coverId) {
-        $pdo->prepare("UPDATE albums SET cover_image_id = ? WHERE id = ?")->execute([$coverId, $albumId]);
+        echo "   ✗ Errore durante il seeding di {$albumData['title']}: {$e->getMessage()}\n";
+        throw $e;
     }
 }
 

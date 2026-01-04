@@ -21,6 +21,7 @@
     "album.equipment": "Attrezzatura",
     "album.film": "Pellicola",
     "album.info": "Info",
+    "album.image_load_error": "Immagine non caricata",
     "album.lens": "Obiettivo",
     "album.location": "Luogo",
     "album.more_from": "Altri da {category}",

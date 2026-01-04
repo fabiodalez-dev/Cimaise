@@ -577,11 +577,14 @@ CREATE TABLE IF NOT EXISTS `plugin_analytics_custom_events` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `plugin_image_ratings` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `image_id` INT UNSIGNED NOT NULL,
   `rating` TINYINT UNSIGNED NOT NULL,
   `rated_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `rated_by` INT UNSIGNED NULL,
-  PRIMARY KEY (`image_id`),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_plugin_image_ratings_image_rated_by` (`image_id`, `rated_by`),
+  KEY `idx_plugin_image_ratings_image_id` (`image_id`),
   KEY `idx_plugin_image_ratings_rated_by` (`rated_by`),
   CONSTRAINT `fk_plugin_image_ratings_image`
     FOREIGN KEY (`image_id`) REFERENCES `images`(`id`) ON DELETE CASCADE,
@@ -597,7 +600,7 @@ CREATE TABLE IF NOT EXISTS `analytics_pro_sessions` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `session_id` VARCHAR(64) NOT NULL,
   `user_id` INT UNSIGNED NULL,
-  `ip_address` VARCHAR(45) NULL,
+  `ip_hash` CHAR(64) NULL,
   `user_agent` TEXT NULL,
   `device_type` VARCHAR(50) NULL,
   `browser` VARCHAR(50) NULL,
@@ -625,7 +628,7 @@ CREATE TABLE IF NOT EXISTS `analytics_pro_events` (
   `value` INT NULL,
   `user_id` INT UNSIGNED NULL,
   `session_id` VARCHAR(64) NULL,
-  `ip_address` VARCHAR(45) NULL,
+  `ip_hash` CHAR(64) NULL,
   `user_agent` TEXT NULL,
   `referrer` TEXT NULL,
   `device_type` VARCHAR(50) NULL,

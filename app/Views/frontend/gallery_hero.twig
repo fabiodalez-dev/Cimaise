@@ -961,9 +961,21 @@
     if (!assets) return;
     const cssList = Array.isArray(assets.css) ? assets.css : [];
     const jsList = Array.isArray(assets.js) ? assets.js : [];
+    const allowedPrefix = (basePath || '').replace(/\/$/, '') + '/';
+    const isAllowedAssetUrl = (value) => {
+      if (!value || typeof value !== 'string') return false;
+      try {
+        const url = new URL(value, window.location.origin);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+        if (url.origin !== window.location.origin) return false;
+        return url.pathname.startsWith(allowedPrefix);
+      } catch (e) {
+        return false;
+      }
+    };
 
     cssList.forEach(href => {
-      if (!href || document.querySelector(`link[data-template-asset="${href}"]`)) return;
+      if (!isAllowedAssetUrl(href) || document.querySelector(`link[data-template-asset="${href}"]`)) return;
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = href;
@@ -972,7 +984,7 @@
     });
 
     jsList.forEach(src => {
-      if (!src || document.querySelector(`script[data-template-asset="${src}"]`)) return;
+      if (!isAllowedAssetUrl(src) || document.querySelector(`script[data-template-asset="${src}"]`)) return;
       const script = document.createElement('script');
       script.src = src;
       script.defer = true;

@@ -583,14 +583,17 @@ CREATE INDEX IF NOT EXISTS idx_plugin_analytics_type ON plugin_analytics_custom_
 CREATE INDEX IF NOT EXISTS idx_plugin_analytics_user ON plugin_analytics_custom_events(user_id);
 
 CREATE TABLE IF NOT EXISTS plugin_image_ratings (
-  image_id INTEGER PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  image_id INTEGER NOT NULL,
   rating INTEGER NOT NULL CHECK(rating >= 0 AND rating <= 5),
   rated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   rated_by INTEGER NULL,
+  UNIQUE(image_id, rated_by),
   FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE,
   FOREIGN KEY (rated_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_plugin_image_ratings_image_id ON plugin_image_ratings(image_id);
 CREATE INDEX IF NOT EXISTS idx_plugin_image_ratings_rated_by ON plugin_image_ratings(rated_by);
 
 -- ============================================
@@ -601,7 +604,7 @@ CREATE TABLE IF NOT EXISTS analytics_pro_sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   session_id TEXT NOT NULL UNIQUE,
   user_id INTEGER,
-  ip_address TEXT,
+  ip_hash TEXT,
   user_agent TEXT,
   device_type TEXT,
   browser TEXT,
@@ -627,7 +630,7 @@ CREATE TABLE IF NOT EXISTS analytics_pro_events (
   value INTEGER,
   user_id INTEGER,
   session_id TEXT,
-  ip_address TEXT,
+  ip_hash TEXT,
   user_agent TEXT,
   referrer TEXT,
   device_type TEXT,
