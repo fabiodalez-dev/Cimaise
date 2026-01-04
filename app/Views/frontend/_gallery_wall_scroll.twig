@@ -26,8 +26,14 @@
 {% endif %}
 
 <style nonce="{{ csp_nonce() }}">
+  .gallery-wall {
+    /* Break out of parent container to full viewport width */
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    position: relative;
+    left: 0;
+  }
   .gallery-wall, .gallery-wall * {
-    margin: 0;
     padding: 0;
     box-sizing: border-box;
   }

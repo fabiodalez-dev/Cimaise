@@ -17,19 +17,57 @@ class TemplatesController extends BaseController
 
     public function index(Request $request, Response $response): Response
     {
-        $stmt = $this->db->pdo()->query('SELECT * FROM templates ORDER BY name ASC');
-        $templates = $stmt->fetchAll() ?: [];
+        $templates = (new \App\Services\TemplateService($this->db))->getGalleryTemplates();
 
-        // Decode JSON fields for display
-        foreach ($templates as &$template) {
-            $template['settings'] = json_decode($template['settings'] ?? '{}', true) ?: [];
-            $template['libs'] = json_decode($template['libs'] ?? '[]', true) ?: [];
+        // Get custom templates (plugin templates)
+        $customTemplates = [];
+        $stmt = $this->db->pdo()->query("SELECT * FROM custom_templates WHERE type = 'gallery' AND is_active = 1 ORDER BY name");
+        if ($stmt) {
+            $customTemplates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         }
 
         return $this->view->render($response, 'admin/templates/index.twig', [
             'templates' => $templates,
+            'custom_templates' => $customTemplates,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
+    }
+
+    public function toggleSwitcher(Request $request, Response $response): Response
+    {
+        $response = $response->withHeader('Content-Type', 'application/json');
+
+        // CSRF validation from header
+        $token = $request->getHeaderLine('X-CSRF-Token');
+        if (!hash_equals($_SESSION['csrf'] ?? '', $token)) {
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'CSRF error']));
+            return $response->withStatus(403);
+        }
+
+        $data = json_decode((string)$request->getBody(), true) ?? [];
+        $id = (int)($data['id'] ?? 0);
+        $type = $data['type'] ?? 'template';
+        $show = (int)($data['show'] ?? 1);
+
+        if ($id <= 0) {
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Invalid ID']));
+            return $response->withStatus(400);
+        }
+
+        try {
+            if ($type === 'custom') {
+                $stmt = $this->db->pdo()->prepare('UPDATE custom_templates SET show_in_switcher = ? WHERE id = ?');
+            } else {
+                $stmt = $this->db->pdo()->prepare('UPDATE templates SET show_in_switcher = ? WHERE id = ?');
+            }
+            $stmt->execute([$show, $id]);
+
+            $response->getBody()->write(json_encode(['success' => true]));
+            return $response;
+        } catch (\Throwable $e) {
+            $response->getBody()->write(json_encode(['success' => false, 'message' => $e->getMessage()]));
+            return $response->withStatus(500);
+        }
     }
 
     // New template creation is disabled
@@ -49,6 +87,10 @@ class TemplatesController extends BaseController
     public function edit(Request $request, Response $response, array $args): Response
     {
         $id = (int)($args['id'] ?? 0);
+        if ($id >= 1000) {
+            $_SESSION['flash'][] = ['type' => 'warning', 'message' => trans('admin.flash.templates_custom_edit')];
+            return $response->withHeader('Location', $this->redirect('/admin/custom-templates'))->withStatus(302);
+        }
         $stmt = $this->db->pdo()->prepare('SELECT * FROM templates WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $template = $stmt->fetch();

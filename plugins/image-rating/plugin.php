@@ -66,8 +66,8 @@ class ImageRatingPlugin
 
     public function setup($db, $pluginManager): void
     {
-        $this->db = $db;
-        $this->ratingService = new ImageRating($db);
+        $this->db = $db instanceof \App\Support\Database ? $db->pdo() : $db;
+        $this->ratingService = new ImageRating($this->db);
         $this->ratingService->createTable();
     }
 

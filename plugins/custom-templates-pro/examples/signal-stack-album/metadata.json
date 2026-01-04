@@ -1,0 +1,26 @@
+{
+  "type": "album_page",
+  "name": "Signal Stack Album",
+  "slug": "signal-stack",
+  "description": "Pagina album editoriale con hero tipografico e griglia modulare",
+  "version": "1.0.0",
+  "author": "Cimaise Team",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "columns": {
+      "desktop": 3,
+      "tablet": 2,
+      "mobile": 1
+    },
+    "gap": 20
+  },
+  "libraries": {
+    "photoswipe": true
+  },
+  "assets": {
+    "css": ["styles.css"],
+    "js": ["script.js"]
+  }
+}

@@ -1,115 +1,169 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.templates.title') }} — Cimaise{% endblock %}
+{% macro template_icon(template) %}
+  {% set icon = 'fa-th' %}
+  {% if template.settings.layout == 'masonry' or template.settings.layout == 'masonry_fit' %}
+    {% set icon = 'fa-columns' %}
+  {% elseif template.settings.layout == 'magazine' %}
+    {% set icon = 'fa-newspaper' %}
+  {% elseif template.settings.layout == 'gallery_wall' %}
+    {% set icon = 'fa-arrows-left-right' %}
+  {% elseif template.slug == 'grid-ampia' %}
+    {% set icon = 'fa-puzzle-piece' %}
+  {% endif %}
+  {{ icon }}
+{% endmacro %}
+
 {% block content %}
   <div class="flex items-center justify-between mb-8 flex-wrap gap-3">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.templates.title') }}</h1>
-      <p class="text-gray-600 mt-1">{{ trans('admin.templates.page_description') }}</p>
+      <p class="text-gray-600 mt-1">{{ trans('admin.templates.switcher_description') }}</p>
     </div>
   </div>
 
-  <div class="card">
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.templates.name') }}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.templates.description_label') }}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.templates.layout') }}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.templates.libraries') }}</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.templates.actions') }}</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          {% for template in templates %}
-            <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0 h-10 w-10">
-                    <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                      <i class="fas fa-palette text-white text-sm"></i>
-                    </div>
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">{{ template.name }}</div>
-                    <div class="text-sm text-gray-500">/{{ template.slug }}</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4">
-                <div class="text-sm text-gray-900">{{ template.description|default('—') }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">
-                  {% if template.settings.layout == 'masonry_fit' %}
-                    <span class="inline-flex items-center">
-                      <i class="fas fa-th text-indigo-500 mr-1.5"></i>{{ trans('admin.templates.masonry_full') }}
-                    </span>
-                    <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded ml-2">{{ trans('admin.templates.css_columns') }}</span>
-                  {% elseif template.settings.layout == 'magazine' %}
-                    <span class="inline-flex items-center">
-                      <i class="fas fa-newspaper text-purple-500 mr-1.5"></i>{{ trans('admin.templates.magazine') }}
-                    </span>
-                  {% elseif template.settings.layout == 'slideshow' %}
-                    <span class="inline-flex items-center">
-                      <i class="fas fa-play-circle text-green-500 mr-1.5"></i>{{ trans('admin.templates.slideshow') }}
-                    </span>
-                  {% elseif template.settings.layout == 'fullscreen' %}
-                    <span class="inline-flex items-center">
-                      <i class="fas fa-expand text-orange-500 mr-1.5"></i>{{ trans('admin.templates.fullscreen') }}
-                    </span>
-                  {% else %}
-                    <span class="inline-flex items-center">
-                      <i class="fas fa-grip-horizontal text-blue-500 mr-1.5"></i>{{ template.settings.layout|default('grid')|title }}
-                    </span>
-                  {% endif %}
-                  {% if template.settings.masonry and template.settings.layout != 'masonry_fit' %}<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded ml-2">{{ trans('admin.templates.masonry') }}</span>{% endif %}
-                </div>
-                {% set cols = template.settings.columns is defined ? template.settings.columns : {'desktop': 3, 'tablet': 2, 'mobile': 1} %}
-                {% set desktop_cols = cols.desktop %}
-                {% set tablet_cols = cols.tablet %}
-                {% set mobile_cols = cols.mobile %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    {% for template in templates %}
+    {% set show_in_switcher = template.show_in_switcher is defined ? template.show_in_switcher : 1 %}
+    <div class="card p-4 flex flex-col gap-3 hover:shadow-md transition-all duration-200 {{ show_in_switcher == 0 ? 'opacity-50 grayscale' : '' }}" data-template-id="{{ template.id }}">
+      <div class="flex items-start gap-3">
+        <i class="fas {{ _self.template_icon(template) }} text-gray-900 text-lg mt-0.5"></i>
+        <div class="flex-1 min-w-0">
+          <a href="{{ base_path }}/admin/templates/{{ template.id }}/edit" class="font-medium text-gray-900 hover:text-blue-600 truncate block">{{ template.name }}</a>
+          <p class="text-xs text-gray-500 truncate">{{ template.description|default('—') }}</p>
+        </div>
+      </div>
 
-                <div class="text-xs text-gray-500 mt-1">
-                  <i class="fas fa-desktop mr-1"></i>{{ desktop_cols|default(3) }} col
-                  <i class="fas fa-tablet-alt ml-2 mr-1"></i>{{ tablet_cols|default(2) }} col
-                  <i class="fas fa-mobile-alt ml-2 mr-1"></i>{{ mobile_cols|default(1) }} col
-                </div>
-                {% if template.settings.layout == 'masonry_fit' and template.settings.gap is defined %}
-                <div class="text-xs text-gray-400 mt-1">
-                  Gap: {{ template.settings.gap.horizontal|default(16) }}px × {{ template.settings.gap.vertical|default(16) }}px
-                </div>
-                {% endif %}
-              </td>
-              <td class="px-6 py-4">
-                {% for lib in template.libs %}
-                  <span class="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded mr-1">{{ lib }}</span>
-                {% endfor %}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div class="flex justify-end gap-2">
-                  <a href="{{ base_path }}/admin/templates/{{ template.id }}/edit"
-                     class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors">
-                    <i class="fas fa-edit mr-1"></i>{{ trans('admin.templates.edit') }}
-                  </a>
-                </div>
-              </td>
-            </tr>
-          {% else %}
-            <tr>
-              <td colspan="5" class="px-6 py-12 text-center">
-                <div class="flex flex-col items-center">
-                  <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                    <i class="fas fa-palette text-gray-400 text-xl"></i>
-                  </div>
-                  <h3 class="text-sm font-medium text-gray-900 mb-1">{{ trans('admin.templates.no_templates') }}</h3>
-                  <p class="text-sm text-gray-500">{{ trans('admin.templates.no_templates_hint') }}</p>
-                </div>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
+        <label class="flex items-center gap-2 cursor-pointer group">
+          <span class="text-xs text-gray-600 group-hover:text-gray-900">{{ trans('admin.templates.show_in_switcher') }}</span>
+          {% include 'admin/_partials/toggle_switch.twig' with {
+            'id': template.id,
+            'type': 'template',
+            'checked': show_in_switcher != 0,
+            'ring_class': 'peer-focus:ring-blue-300',
+            'checked_bg_class': 'peer-checked:bg-blue-600'
+          } %}
+        </label>
+
+        <a href="{{ base_path }}/admin/templates/{{ template.id }}/edit"
+           class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900">
+          <i class="fas fa-cog"></i>{{ trans('admin.templates.edit_settings') }}
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if custom_templates|default([])|length > 0 %}
+  <div class="mt-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ trans('admin.templates.custom_templates') }}</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {% for template in custom_templates %}
+      {% set show_in_switcher = template.show_in_switcher is defined ? template.show_in_switcher : 1 %}
+      <div class="card p-4 flex flex-col gap-3 hover:shadow-md transition-all duration-200 {{ show_in_switcher == 0 ? 'opacity-50 grayscale' : '' }}" data-template-id="{{ template.id }}">
+        <div class="flex items-start gap-3">
+          <i class="fas fa-palette text-gray-900 text-lg mt-0.5"></i>
+          <div class="flex-1 min-w-0">
+            <a href="{{ base_path }}/admin/custom-templates/{{ template.id }}/edit" class="font-medium text-gray-900 hover:text-blue-600 truncate block">{{ template.name }}</a>
+            <p class="text-xs text-gray-500 truncate">{{ template.description|default('—') }}</p>
+          </div>
+        </div>
+
+      <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
+        <label class="flex items-center gap-2 cursor-pointer group">
+          <span class="text-xs text-gray-600 group-hover:text-gray-900">{{ trans('admin.templates.show_in_switcher') }}</span>
+          {% include 'admin/_partials/toggle_switch.twig' with {
+            'id': template.id,
+            'type': 'custom',
+            'checked': show_in_switcher != 0,
+            'ring_class': 'peer-focus:ring-purple-300',
+            'checked_bg_class': 'peer-checked:bg-purple-600'
+          } %}
+        </label>
+
+        <a href="{{ base_path }}/admin/custom-templates/{{ template.id }}/edit"
+           class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900">
+          <i class="fas fa-cog"></i>{{ trans('admin.templates.edit_settings') }}
+        </a>
+        </div>
+      </div>
+      {% endfor %}
     </div>
   </div>
+  {% endif %}
+
+  {% if templates|length == 0 and (custom_templates|default([])|length == 0) %}
+  <div class="card p-12 text-center">
+    <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+      <i class="fas fa-palette text-gray-400 text-xl"></i>
+    </div>
+    <h3 class="text-sm font-medium text-gray-900 mb-1">{{ trans('admin.templates.no_templates') }}</h3>
+    <p class="text-sm text-gray-500">{{ trans('admin.templates.no_templates_hint') }}</p>
+  </div>
+  {% endif %}
+
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.switcher-toggle').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+      const id = this.dataset.id;
+      const type = this.dataset.type;
+      const show = this.checked ? 1 : 0;
+      const card = this.closest('.card');
+      const originalChecked = this.checked;
+      const errorMsg = '{{ trans("admin.templates.toggle_error")|default("Errore di connessione")|e('js') }}';
+      const timeoutMsg = '{{ trans("admin.templates.toggle_timeout")|default("Timeout di connessione")|e('js') }}';
+
+      this.disabled = true;
+      if (card) card.style.opacity = '0.6';
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      fetch('{{ base_path }}/admin/templates/toggle-switcher', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': '{{ csrf }}'
+        },
+        body: JSON.stringify({ id: id, type: type, show: show }),
+        signal: controller.signal
+      })
+      .then(r => r.json())
+      .then(data => {
+        clearTimeout(timeoutId);
+        this.disabled = false;
+        if (card) card.style.opacity = '';
+        if (data.success) {
+          if (show) {
+            card.classList.remove('opacity-50', 'grayscale');
+          } else {
+            card.classList.add('opacity-50', 'grayscale');
+          }
+        } else {
+          this.checked = !originalChecked;
+          if (window.showToast) {
+            window.showToast(data.message || errorMsg, 'error');
+          } else {
+            alert(data.message || errorMsg);
+          }
+        }
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        this.disabled = false;
+        if (card) card.style.opacity = '';
+        this.checked = !originalChecked;
+        const message = err && err.name === 'AbortError' ? timeoutMsg : errorMsg;
+        if (window.showToast) {
+          window.showToast(message, 'error');
+        } else {
+          alert(message);
+        }
+      });
+    });
+  });
+});
+</script>
 {% endblock %}

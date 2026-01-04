@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\SettingsService;
 use App\Support\Database;
+use App\Support\Hooks;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -22,13 +23,16 @@ class SettingsController extends BaseController
         $svc = new SettingsService($this->db);
         $settings = $svc->all();
         
-        // Load templates for dropdown
+        // Load templates for dropdown (core + custom)
         $templates = [];
         try {
-            $templates = $this->db->pdo()->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
+            $templates = (new \App\Services\TemplateService($this->db))->getGalleryTemplatesForDropdown();
         } catch (\Throwable $e) {
             // Templates table doesn't exist yet
         }
+
+        // Custom album page templates (from plugins)
+        $albumPageTemplates = $this->getPluginAlbumPageTemplates();
 
         // Check if maintenance-mode plugin is active
         $maintenancePluginActive = false;
@@ -44,6 +48,7 @@ class SettingsController extends BaseController
         return $this->view->render($response, 'admin/settings.twig', [
             'settings' => $settings,
             'templates' => $templates,
+            'album_page_templates' => $albumPageTemplates,
             'maintenancePluginActive' => $maintenancePluginActive,
             'csrf' => $_SESSION['csrf'] ?? '',
         ]);
@@ -110,13 +115,7 @@ class SettingsController extends BaseController
             'email' => trim((string)($data['site_email'] ?? ''))
         ];
         
-        // Performance settings  
-        $performanceSettings = [
-            'compression' => isset($data['enable_compression'])
-        ];
-        
         $paginationLimit = max(1, min(100, (int)($data['pagination_limit'] ?? 12)));
-        $cacheTtl = max(1, min(168, (int)($data['cache_ttl'] ?? 24)));
         $disableRightClick = isset($data['disable_right_click']);
 
         // Lightbox settings
@@ -130,8 +129,15 @@ class SettingsController extends BaseController
         $svc->set('image.variants_async', $variantsAsync);
         $svc->set('lightbox.show_exif', $showExif);
         
-        $galleryPageTemplate = $data['gallery_page_template'] ?? 'classic';
-        if (!in_array($galleryPageTemplate, ['classic', 'hero', 'magazine'])) {
+        $galleryPageTemplate = (string)($data['gallery_page_template'] ?? 'classic');
+        $allowedPageTemplates = array_merge(
+            ['classic', 'hero', 'magazine'],
+            array_values(array_filter(array_map(
+                static fn(array $template) => is_string($template['value'] ?? null) ? $template['value'] : null,
+                $this->getPluginAlbumPageTemplates()
+            )))
+        );
+        if (!in_array($galleryPageTemplate, $allowedPageTemplates, true)) {
             $galleryPageTemplate = 'classic';
         }
         $svc->set('gallery.page_template', $galleryPageTemplate);
@@ -200,9 +206,7 @@ class SettingsController extends BaseController
         }
         $svc->set('recaptcha.enabled', $recaptchaEnabled);
 
-        $svc->set('performance.compression', $performanceSettings['compression']);
         $svc->set('pagination.limit', $paginationLimit);
-        $svc->set('cache.ttl', $cacheTtl);
         $svc->set('admin.debug_logs', isset($data['admin_debug_logs']));
         $svc->set('frontend.disable_right_click', $disableRightClick);
         $svc->set('frontend.dark_mode', isset($data['dark_mode']));
@@ -698,5 +702,23 @@ class SettingsController extends BaseController
         }
 
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+    }
+
+    /**
+     * Load album page templates from plugins.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getPluginAlbumPageTemplates(): array
+    {
+        try {
+            $templates = Hooks::applyFilter('available_album_page_templates', []);
+            return is_array($templates) ? $templates : [];
+        } catch (\Throwable $e) {
+            Logger::warning('Failed to load plugin album page templates', [
+                'error' => $e->getMessage(),
+            ], 'plugins');
+            return [];
+        }
     }
 }

@@ -3,15 +3,19 @@ declare(strict_types=1);
 
 namespace CimaiseAnalyticsPro;
 
+use App\Services\SettingsService;
 use App\Support\Database;
 
 class AnalyticsPro
 {
     private Database $db;
+    private SettingsService $settings;
+    private ?string $ipSalt = null;
 
-    public function __construct(Database $db)
+    public function __construct(Database $db, ?SettingsService $settings = null)
     {
         $this->db = $db;
+        $this->settings = $settings ?? new SettingsService($db);
         $this->ensureTables();
     }
 
@@ -21,82 +25,167 @@ class AnalyticsPro
     private function ensureTables(): void
     {
         try {
-            // Events table
-            $this->db->pdo()->exec("
-                CREATE TABLE IF NOT EXISTS analytics_pro_events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    event_name TEXT NOT NULL,
-                    category TEXT,
-                    action TEXT,
-                    label TEXT,
-                    value INTEGER,
-                    user_id INTEGER,
-                    session_id TEXT,
-                    ip_address TEXT,
-                    user_agent TEXT,
-                    referrer TEXT,
-                    device_type TEXT,
-                    browser TEXT,
-                    country TEXT,
-                    metadata TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_event_name (event_name),
-                    INDEX idx_category (category),
-                    INDEX idx_created_at (created_at),
-                    INDEX idx_user_id (user_id),
-                    INDEX idx_session_id (session_id)
-                )
-            ");
+            if ($this->db->isSqlite()) {
+                $this->db->pdo()->exec("
+                    CREATE TABLE IF NOT EXISTS analytics_pro_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        event_name TEXT NOT NULL,
+                        category TEXT,
+                        action TEXT,
+                        label TEXT,
+                        value INTEGER,
+                        user_id INTEGER,
+                        session_id TEXT,
+                        ip_hash TEXT,
+                        user_agent TEXT,
+                        referrer TEXT,
+                        device_type TEXT,
+                        browser TEXT,
+                        country TEXT,
+                        metadata TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+                        FOREIGN KEY (session_id) REFERENCES analytics_pro_sessions(session_id) ON DELETE SET NULL
+                    )
+                ");
 
-            // Sessions table
-            $this->db->pdo()->exec("
-                CREATE TABLE IF NOT EXISTS analytics_pro_sessions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    session_id TEXT NOT NULL UNIQUE,
-                    user_id INTEGER,
-                    ip_address TEXT,
-                    user_agent TEXT,
-                    device_type TEXT,
-                    browser TEXT,
-                    country TEXT,
-                    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    ended_at DATETIME,
-                    duration INTEGER DEFAULT 0,
-                    pageviews INTEGER DEFAULT 0,
-                    events_count INTEGER DEFAULT 0,
-                    INDEX idx_session_id (session_id),
-                    INDEX idx_user_id (user_id),
-                    INDEX idx_started_at (started_at)
-                )
-            ");
+                $this->db->pdo()->exec("
+                    CREATE TABLE IF NOT EXISTS analytics_pro_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        session_id TEXT NOT NULL UNIQUE,
+                        user_id INTEGER,
+                        ip_hash TEXT,
+                        user_agent TEXT,
+                        device_type TEXT,
+                        browser TEXT,
+                        country TEXT,
+                        started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        ended_at DATETIME,
+                        duration INTEGER DEFAULT 0,
+                        pageviews INTEGER DEFAULT 0,
+                        events_count INTEGER DEFAULT 0,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                    )
+                ");
 
-            // Funnels table
-            $this->db->pdo()->exec("
-                CREATE TABLE IF NOT EXISTS analytics_pro_funnels (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    description TEXT,
-                    steps TEXT NOT NULL,
-                    is_active INTEGER DEFAULT 1,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            ");
+                $this->db->pdo()->exec("
+                    CREATE TABLE IF NOT EXISTS analytics_pro_funnels (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        steps TEXT NOT NULL,
+                        is_active INTEGER DEFAULT 1,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                ");
 
-            // Custom dimensions table
-            $this->db->pdo()->exec("
-                CREATE TABLE IF NOT EXISTS analytics_pro_dimensions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    event_id INTEGER NOT NULL,
-                    dimension_name TEXT NOT NULL,
-                    dimension_value TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_event_id (event_id),
-                    INDEX idx_dimension_name (dimension_name),
-                    FOREIGN KEY (event_id) REFERENCES analytics_pro_events(id) ON DELETE CASCADE
-                )
-            ");
+                $this->db->pdo()->exec("
+                    CREATE TABLE IF NOT EXISTS analytics_pro_dimensions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        event_id INTEGER NOT NULL,
+                        dimension_name TEXT NOT NULL,
+                        dimension_value TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (event_id) REFERENCES analytics_pro_events(id) ON DELETE CASCADE
+                    )
+                ");
+
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_event_name ON analytics_pro_events(event_name)");
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_category ON analytics_pro_events(category)");
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_created_at ON analytics_pro_events(created_at)");
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_user_id ON analytics_pro_events(user_id)");
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_session_id ON analytics_pro_events(session_id)");
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_sessions_user_id ON analytics_pro_sessions(user_id)");
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_sessions_started_at ON analytics_pro_sessions(started_at)");
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_dimensions_event_id ON analytics_pro_dimensions(event_id)");
+                $this->db->pdo()->exec("CREATE INDEX IF NOT EXISTS idx_analytics_pro_dimensions_name ON analytics_pro_dimensions(dimension_name)");
+            } else {
+                $this->db->pdo()->exec("
+                    CREATE TABLE IF NOT EXISTS analytics_pro_sessions (
+                        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                        session_id VARCHAR(64) NOT NULL,
+                        user_id INT UNSIGNED NULL,
+                        ip_hash CHAR(64) NULL,
+                        user_agent TEXT NULL,
+                        device_type VARCHAR(50) NULL,
+                        browser VARCHAR(50) NULL,
+                        country VARCHAR(80) NULL,
+                        started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        ended_at DATETIME NULL,
+                        duration INT DEFAULT 0,
+                        pageviews INT DEFAULT 0,
+                        events_count INT DEFAULT 0,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY idx_analytics_pro_session_id (session_id),
+                        KEY idx_analytics_pro_sessions_user_id (user_id),
+                        KEY idx_analytics_pro_sessions_started_at (started_at),
+                        CONSTRAINT fk_analytics_pro_sessions_user
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                ");
+
+                $this->db->pdo()->exec("
+                    CREATE TABLE IF NOT EXISTS analytics_pro_events (
+                        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                        event_name VARCHAR(120) NOT NULL,
+                        category VARCHAR(120) NULL,
+                        action VARCHAR(120) NULL,
+                        label VARCHAR(255) NULL,
+                        value INT NULL,
+                        user_id INT UNSIGNED NULL,
+                        session_id VARCHAR(64) NULL,
+                        ip_hash CHAR(64) NULL,
+                        user_agent TEXT NULL,
+                        referrer TEXT NULL,
+                        device_type VARCHAR(50) NULL,
+                        browser VARCHAR(50) NULL,
+                        country VARCHAR(80) NULL,
+                        metadata TEXT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        KEY idx_analytics_pro_event_name (event_name),
+                        KEY idx_analytics_pro_category (category),
+                        KEY idx_analytics_pro_created_at (created_at),
+                        KEY idx_analytics_pro_user_id (user_id),
+                        KEY idx_analytics_pro_session_id (session_id),
+                        CONSTRAINT fk_analytics_pro_events_user
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+                        CONSTRAINT fk_analytics_pro_events_session
+                            FOREIGN KEY (session_id) REFERENCES analytics_pro_sessions(session_id) ON DELETE SET NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                ");
+
+                $this->db->pdo()->exec("
+                    CREATE TABLE IF NOT EXISTS analytics_pro_funnels (
+                        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                        name VARCHAR(190) NOT NULL,
+                        description TEXT NULL,
+                        steps TEXT NOT NULL,
+                        is_active TINYINT(1) DEFAULT 1,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                ");
+
+                $this->db->pdo()->exec("
+                    CREATE TABLE IF NOT EXISTS analytics_pro_dimensions (
+                        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                        event_id INT UNSIGNED NOT NULL,
+                        dimension_name VARCHAR(190) NOT NULL,
+                        dimension_value TEXT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        KEY idx_analytics_pro_dimensions_event_id (event_id),
+                        KEY idx_analytics_pro_dimensions_name (dimension_name),
+                        CONSTRAINT fk_analytics_pro_dimensions_event
+                            FOREIGN KEY (event_id) REFERENCES analytics_pro_events(id) ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                ");
+            }
 
         } catch (\Throwable $e) {
             error_log("Analytics Pro: Error creating tables: " . $e->getMessage());
@@ -113,7 +202,7 @@ class AnalyticsPro
 
             $stmt = $this->db->pdo()->prepare("
                 INSERT INTO analytics_pro_events
-                (event_name, category, action, label, value, user_id, session_id, ip_address,
+                (event_name, category, action, label, value, user_id, session_id, ip_hash,
                  user_agent, referrer, device_type, browser, country, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
@@ -126,7 +215,7 @@ class AnalyticsPro
                 $data['value'] ?? null,
                 $data['user_id'] ?? $_SESSION['user_id'] ?? null,
                 $sessionId,
-                $_SERVER['REMOTE_ADDR'] ?? null,
+                $this->hashIp($_SERVER['REMOTE_ADDR'] ?? null),
                 $_SERVER['HTTP_USER_AGENT'] ?? null,
                 $_SERVER['HTTP_REFERER'] ?? null,
                 $data['device_type'] ?? null,
@@ -162,14 +251,14 @@ class AnalyticsPro
             // Create session record
             $stmt = $this->db->pdo()->prepare("
                 INSERT INTO analytics_pro_sessions
-                (session_id, user_id, ip_address, user_agent, device_type, browser, country)
+                (session_id, user_id, ip_hash, user_agent, device_type, browser, country)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
 
             $stmt->execute([
                 $_SESSION['analytics_session_id'],
                 $_SESSION['user_id'] ?? null,
-                $_SERVER['REMOTE_ADDR'] ?? null,
+                $this->hashIp($_SERVER['REMOTE_ADDR'] ?? null),
                 $_SERVER['HTTP_USER_AGENT'] ?? null,
                 $this->detectDeviceType($_SERVER['HTTP_USER_AGENT'] ?? ''),
                 $this->detectBrowser($_SERVER['HTTP_USER_AGENT'] ?? ''),
@@ -194,6 +283,58 @@ class AnalyticsPro
         ");
 
         $stmt->execute([$sessionId]);
+    }
+
+    private function hashIp(?string $ip): ?string
+    {
+        if (!$ip) {
+            return null;
+        }
+
+        $anonymize = filter_var($this->settings->get('ip_anonymization', true), FILTER_VALIDATE_BOOLEAN);
+
+        if ($anonymize) {
+            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $parts = explode('.', $ip);
+                $parts[3] = '0';
+                $ip = implode('.', $parts);
+            } elseif (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                $binary = inet_pton($ip);
+                if ($binary !== false) {
+                    $masked = substr($binary, 0, 6) . str_repeat("\0", 10);
+                    $ip = inet_ntop($masked) ?: $ip;
+                }
+            }
+        }
+
+        return hash('sha256', $ip . $this->getIpSalt());
+    }
+
+    private function getIpSalt(): string
+    {
+        if ($this->ipSalt !== null) {
+            return $this->ipSalt;
+        }
+
+        $salt = '';
+        try {
+            $salt = (string)$this->settings->get('analytics.ip_salt', '');
+        } catch (\Throwable $e) {
+            error_log("Analytics Pro: Unable to retrieve IP salt from settings: " . $e->getMessage());
+            $salt = '';
+        }
+
+        if ($salt === '') {
+            $salt = bin2hex(random_bytes(16));
+            try {
+                $this->settings->set('analytics.ip_salt', $salt);
+            } catch (\Throwable $e) {
+                error_log("Analytics Pro: Unable to persist IP salt to settings: " . $e->getMessage());
+            }
+        }
+
+        $this->ipSalt = $salt;
+        return $salt;
     }
 
     /**

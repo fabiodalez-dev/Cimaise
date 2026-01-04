@@ -1,0 +1,122 @@
+<div class="minimal-album-page">
+  <!-- Header -->
+  <header class="minimal-header">
+    <div class="minimal-container">
+      {% if album.categories|length > 0 %}
+      <div class="minimal-categories">
+        {% for cat in album.categories %}
+        <a href="{{ base_path }}/category/{{ cat.slug }}" class="minimal-category">
+          {{ cat.name|upper }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <h1 class="minimal-title">{{ album.title|e }}</h1>
+
+      {% if album.shoot_date or album.equipment.locations|length > 0 %}
+      <div class="minimal-meta">
+        {% if album.shoot_date %}
+        <span class="minimal-date">{{ album.shoot_date|date_format }}</span>
+        {% endif %}
+        {% if album.equipment.locations|length > 0 %}
+        {% if album.shoot_date %}<span class="minimal-separator">•</span>{% endif %}
+        <span class="minimal-location">{{ album.equipment.locations|join(', ') }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if album.excerpt %}
+      <p class="minimal-excerpt">{{ album.excerpt|e }}</p>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- Body -->
+  {% if album.body %}
+  <div class="minimal-container minimal-body">
+    {{ album.body|safe_html }}
+  </div>
+  {% endif %}
+
+  <!-- Equipment -->
+  {% if album.equipment.cameras|length > 0 or album.equipment.lenses|length > 0 or album.equipment.film|length > 0 %}
+  <div class="minimal-container minimal-equipment">
+    <h3 class="minimal-equipment-title">{{ trans('album.equipment')|default('Equipment') }}</h3>
+    <div class="minimal-equipment-grid">
+      {% if album.equipment.cameras|length > 0 %}
+      <div class="minimal-equipment-item">
+        <div class="minimal-equipment-label">{{ trans('album.camera')|default('Camera') }}</div>
+        <div class="minimal-equipment-values">
+          {% for camera in album.equipment.cameras %}
+          <div>{{ camera }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if album.equipment.lenses|length > 0 %}
+      <div class="minimal-equipment-item">
+        <div class="minimal-equipment-label">{{ trans('album.lens')|default('Lens') }}</div>
+        <div class="minimal-equipment-values">
+          {% for lens in album.equipment.lenses %}
+          <div>{{ lens }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if album.equipment.film|length > 0 %}
+      <div class="minimal-equipment-item">
+        <div class="minimal-equipment-label">{{ trans('album.film')|default('Film') }}</div>
+        <div class="minimal-equipment-values">
+          {% for film in album.equipment.film %}
+          <div>
+            {% if film.name is defined %}
+              {{ film.name }}
+              {% if film.iso %} (ISO {{ film.iso }}){% endif %}
+            {% else %}
+              {{ film }}
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Gallery -->
+  <div class="minimal-gallery">
+    <div class="minimal-container">
+      <div class="minimal-grid">
+        {% for image in images %}
+        <div class="minimal-grid-item">
+          {% set lightbox_href = image.lightbox_url|default(image.url) %}
+          <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+             class="pswp-link minimal-image"
+             data-pswp-width="{{ image.width|default(1600) }}"
+             data-pswp-height="{{ image.height|default(1067) }}"
+             data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}">
+
+            <picture>
+              {% if image.sources.avif|length %}
+              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+              {% endif %}
+
+              {% if image.sources.webp|length %}
+              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+              {% endif %}
+
+              <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+                   alt="{{ image.alt|e }}"
+                   loading="lazy">
+            </picture>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>

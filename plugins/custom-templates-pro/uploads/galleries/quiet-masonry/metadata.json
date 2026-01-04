@@ -1,0 +1,18 @@
+{
+  "type": "gallery",
+  "name": "Quiet Masonry",
+  "slug": "quiet-masonry",
+  "description": "Soft masonry rhythm with subtle hover.",
+  "version": "1.0.0",
+  "author": "Cimaise",
+  "settings": {
+    "layout": "masonry",
+    "columns": {"desktop": 3, "tablet": 2, "mobile": 1},
+    "gap": {"horizontal": 18, "vertical": 18},
+    "style": {"rounded": true, "shadow": false, "hover_scale": true},
+    "masonry": {"type": "balanced"}
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}

@@ -1,0 +1,104 @@
+:root {
+  --ss-ink: #0c0d12;
+  --ss-muted: #5a5d66;
+  --ss-paper: #f6f4f1;
+  --ss-accent: #e87c5b;
+}
+
+.ss-album {
+  background: var(--ss-paper);
+  padding: 3rem 1.5rem 4rem;
+  color: var(--ss-ink);
+}
+
+.ss-hero {
+  max-width: 860px;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+}
+
+.ss-kicker {
+  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font-size: 0.7rem;
+  color: var(--ss-muted);
+  margin-bottom: 1rem;
+}
+
+.ss-title {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-size: clamp(2.5rem, 4vw, 3.75rem);
+  margin-bottom: 1rem;
+}
+
+.ss-excerpt {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--ss-muted);
+}
+
+.ss-meta {
+  margin-top: 1.2rem;
+  font-size: 0.9rem;
+  color: var(--ss-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ss-dot {
+  color: var(--ss-accent);
+}
+
+.ss-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ss-cols-mobile), minmax(0, 1fr));
+  gap: var(--ss-gap);
+}
+
+@media (min-width: 768px) {
+  .ss-grid {
+    grid-template-columns: repeat(var(--ss-cols-tablet), minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .ss-grid {
+    grid-template-columns: repeat(var(--ss-cols-desktop), minmax(0, 1fr));
+  }
+}
+
+.ss-frame {
+  background: #fff;
+  border: 1px solid rgba(12, 13, 18, 0.06);
+  box-shadow: 0 12px 24px rgba(12, 13, 18, 0.08);
+  overflow: hidden;
+  border-radius: 16px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.ss-frame.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ss-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ss-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.ss-caption {
+  padding: 0.85rem 1rem 1.1rem;
+  font-size: 0.9rem;
+  color: var(--ss-muted);
+}

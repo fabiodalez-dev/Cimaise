@@ -496,26 +496,6 @@ Aggiunge voce "Tags" nel menu principale accanto a "Categories".
 
 ## Performance
 
-### Compressione Output
-**Campo**: `performance.compression`
-**Tipo**: Checkbox (default: ON)
-
-Abilita gzip/deflate compression per HTML, CSS, JS.
-
-**Risparmio**: ~60-80% dimensioni pagina
-
-**Lascia ON** a meno che:
-- Il tuo server/CDN fa già compressione (es. Cloudflare)
-- Vuoi debugging più semplice in sviluppo
-
-**Verifica compressione attiva**:
-```bash
-curl -H "Accept-Encoding: gzip" -I https://tuosito.com
-# Cerca header: Content-Encoding: gzip
-```
-
----
-
 ### Limite Paginazione
 **Campo**: `pagination.limit`
 
@@ -533,35 +513,6 @@ Numero di elementi per pagina nelle liste.
 - **12**: Multiplo di 3, 4, 6 → griglia pulita
 - **20**: Se hai molti album e vuoi ridurre click
 - **8-10**: Mobile-first, scrolling ridotto
-
----
-
-### TTL Cache
-**Campo**: `cache.ttl`
-
-Time To Live per cache in **ore**.
-
-**Default**: 24 ore
-**Range**: 1-168 ore (1 settimana)
-
-**Cosa viene cachato**:
-- Lensfun database (fotocamere/obiettivi)
-- Traduzioni compilate
-- Template compilati Twig
-- Query database frequenti
-
-**Quando ridurre** (6-12 ore):
-- Sviluppo attivo
-- Modifichi spesso traduzioni
-
-**Quando aumentare** (72-168 ore):
-- Sito stabile in produzione
-- Vuoi massime performance
-
-**Clear cache manuale**:
-```bash
-rm -rf storage/cache/*
-```
 
 ---
 

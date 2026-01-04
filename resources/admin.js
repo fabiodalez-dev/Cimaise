@@ -52,6 +52,26 @@ const debugLog = (...args) => {
   } catch (e) {}
 };
 
+const UPLOAD_COMPLETION_HIDE_DELAY = 2500;
+const UPLOAD_ERROR_HIDE_DELAY = 3000;
+
+const extractUploadErrorMessage = (error, response) => {
+  let msg = t('admin.upload.upload_error');
+  if (response && response.body) {
+    msg = response.body.error || response.body.message || msg;
+  } else if (response && response.response) {
+    const text = response.responseText || response.response || '';
+    try {
+      const parsed = JSON.parse(text);
+      msg = parsed.error || parsed.message || msg;
+    } catch (e) {}
+  }
+  if (error && error.message && (!msg || msg === 'Upload error')) {
+    msg = error.message;
+  }
+  return msg;
+};
+
 /**
  * Initialize the custom image upload area: configures an Uppy instance (XHRUpload with CSRF),
  * builds a hidden file input, enables drag-and-drop, renders a total + per-file progress panel,
@@ -286,7 +306,7 @@ function initUppyAreaUpload() {
 
     // Hide progress after 2.5 seconds and clear file list
     setTimeout(() => {
-      progressEl.classList.add('hidden');
+      if (progressEl) progressEl.classList.add('hidden');
       const listEl = document.getElementById('upload-file-list');
       if (listEl) listEl.innerHTML = '';
       fileProgressMap.clear();
@@ -295,24 +315,14 @@ function initUppyAreaUpload() {
         spinnerEl.className = 'animate-spin rounded-full h-5 w-5 border-b-2 border-black';
         spinnerEl.innerHTML = '';
       }
-    }, 2500);
+    }, UPLOAD_COMPLETION_HIDE_DELAY);
 
     refreshGalleryArea();
   });
 
   // Surface server-side errors (400, etc.) instead of generic network error
   uppy.on('upload-error', (file, error, response) => {
-    let msg = t('admin.upload.upload_error');
-    try {
-      if (response && response.body) {
-        msg = response.body.error || response.body.message || msg;
-      } else if (response && response.response) {
-        // XHRUpload may expose raw XHR as response
-        const text = response.responseText || response.response || '';
-        try { const j = JSON.parse(text); msg = j.error || j.message || msg; } catch {}
-      }
-      if (error && error.message && (!msg || msg === 'Upload error')) msg = error.message;
-    } catch {}
+    const msg = extractUploadErrorMessage(error, response);
 
     // Update individual file progress to show error
     updateFileEl(file.id, 100, t('admin.common.error') + ' ✗', true, false);
@@ -328,11 +338,11 @@ function initUppyAreaUpload() {
     try { console.error('[Upload error]', error); } catch (e) {}
 
     setTimeout(() => {
-      progressEl.classList.add('hidden');
+      if (progressEl) progressEl.classList.add('hidden');
       const listEl = document.getElementById('upload-file-list');
       if (listEl) listEl.innerHTML = '';
       fileProgressMap.clear();
-    }, 3000);
+    }, UPLOAD_ERROR_HIDE_DELAY);
   });
 }
 

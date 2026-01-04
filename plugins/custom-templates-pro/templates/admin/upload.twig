@@ -1,0 +1,194 @@
+{% extends "admin/_layout.twig" %}
+
+{% block title %}{{ plugin_trans('ctp.upload.title') }} - {{ plugin_trans('ctp.title') }}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="flex items-center space-x-4 mb-4">
+    <a href="{{ base_path }}/admin/custom-templates" class="text-gray-600 hover:text-gray-900">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">{{ plugin_trans('ctp.upload.title') }}</h1>
+      <p class="text-gray-600 mt-1">{{ plugin_trans('ctp.upload.subtitle') }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Upload Form -->
+  <div class="lg:col-span-2">
+    <form method="POST" action="{{ base_path }}/admin/custom-templates/upload" enctype="multipart/form-data" id="upload-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+
+      <div class="card mb-6">
+        <div class="p-6 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900">{{ plugin_trans('ctp.upload.details') }}</h2>
+        </div>
+        <div class="p-6 space-y-6">
+          <!-- Template Type -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              {{ plugin_trans('ctp.upload.type_label') }}
+            </label>
+            <select name="template_type" id="template-type" required class="form-select w-full">
+              <option value="gallery" data-count="{{ template_counts.gallery ?? 0 }}">{{ plugin_trans('ctp.upload.type.gallery') }}</option>
+              <option value="album_page" data-count="{{ template_counts.album_page ?? 0 }}">{{ plugin_trans('ctp.upload.type.album_page') }}</option>
+              <option value="homepage" data-count="{{ template_counts.homepage ?? 0 }}">{{ plugin_trans('ctp.upload.type.homepage') }}</option>
+            </select>
+            <p class="mt-1 text-sm text-gray-500" id="type-description">
+              {{ plugin_trans('ctp.upload.type_desc.gallery') }}
+            </p>
+            <p class="mt-1 text-sm text-blue-600" id="existing-count">
+              <i class="fas fa-info-circle mr-1"></i>
+              <span id="count-text"></span>
+            </p>
+          </div>
+
+          <!-- Multi-template note -->
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+              <i class="fas fa-lightbulb text-blue-600 mt-0.5 mr-3"></i>
+              <p class="text-sm text-blue-800">
+                {{ plugin_trans('ctp.upload.multi_templates_note') }}
+              </p>
+            </div>
+          </div>
+
+          <!-- File Upload -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              {{ plugin_trans('ctp.upload.file_label') }}
+            </label>
+            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors" id="drop-zone">
+              <div class="space-y-1 text-center">
+                <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-3"></i>
+                <div class="flex text-sm text-gray-600">
+                  <label for="template-zip" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                    <span>{{ plugin_trans('ctp.upload.file_upload') }}</span>
+                    <input id="template-zip" name="template_zip" type="file" accept=".zip" required class="sr-only">
+                  </label>
+                  <p class="pl-1">{{ plugin_trans('ctp.upload.file_drag') }}</p>
+                </div>
+                <p class="text-xs text-gray-500">
+                  {{ plugin_trans('ctp.upload.file_limit') }}
+                </p>
+                <div id="file-info" class="hidden mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p class="text-sm font-medium text-blue-900" id="file-name"></p>
+                  <p class="text-xs text-blue-600" id="file-size"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Validation Results -->
+          <div id="validation-results" class="hidden">
+            <div class="rounded-lg border border-gray-200 p-4">
+              <h3 class="text-sm font-medium text-gray-900 mb-3">{{ plugin_trans('ctp.upload.preview') }}</h3>
+              <div id="validation-content" class="space-y-2 text-sm"></div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="flex justify-end space-x-3">
+            <a href="{{ base_path }}/admin/custom-templates" class="btn btn-outline">
+              {{ plugin_trans('ctp.upload.cancel') }}
+            </a>
+            <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
+              <i class="fas fa-upload mr-2"></i>{{ plugin_trans('ctp.upload.submit') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Instructions Sidebar -->
+  <div class="lg:col-span-1">
+    <div class="card sticky top-6">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+          {{ plugin_trans('ctp.upload.instructions') }}
+        </h2>
+      </div>
+      <div class="p-6 space-y-4 text-sm">
+        <div>
+          <h3 class="font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.upload.structure') }}</h3>
+          {% set structure_items = plugin_trans('ctp.upload.structure_items') %}
+          {% if structure_items is not iterable %}
+            {% set structure_items = structure_items|split('|') %}
+          {% endif %}
+          <ul class="list-disc list-inside space-y-1 text-gray-600">
+            {% for item in structure_items %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="border-t pt-4">
+          <h3 class="font-semibold text-gray-900 mb-2">
+            <i class="fas fa-layer-group text-purple-600 mr-1"></i>
+            {{ plugin_trans('ctp.upload.multi_support') }}
+          </h3>
+          <p class="text-gray-600 mb-2">{{ plugin_trans('ctp.upload.multi_desc') }}</p>
+          <code class="text-xs bg-gray-100 p-2 rounded block text-gray-700 leading-relaxed">{{ plugin_trans('ctp.upload.multi_example') }}</code>
+        </div>
+
+        <div class="border-t pt-4">
+          <h3 class="font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.upload.validations') }}</h3>
+          <ul class="space-y-1 text-gray-600">
+            <li class="flex items-start">
+              <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+              <span>{{ plugin_trans('ctp.upload.validation_size') }}</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+              <span>{{ plugin_trans('ctp.upload.validation_twig') }}</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+              <span>{{ plugin_trans('ctp.upload.validation_malware') }}</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+              <span>{{ plugin_trans('ctp.upload.validation_csp') }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="border-t pt-4">
+          <h3 class="font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.upload.need_help') }}</h3>
+          <p class="text-gray-600 mb-3">
+            {{ plugin_trans('ctp.upload.help_desc') }}
+          </p>
+          <a href="{{ base_path }}/admin/custom-templates/guides" class="btn btn-sm btn-outline w-full justify-center">
+            <i class="fas fa-book mr-2"></i>{{ plugin_trans('ctp.llm_guides') }}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div
+  id="upload-config"
+  data-type-descriptions='{{ {
+    gallery: plugin_trans('ctp.upload.type_desc.gallery'),
+    album_page: plugin_trans('ctp.upload.type_desc.album_page'),
+    homepage: plugin_trans('ctp.upload.type_desc.homepage')
+  }|json_encode|e('html_attr') }}'
+  data-errors='{{ {
+    size: plugin_trans('ctp.upload.error_size'),
+    type: plugin_trans('ctp.upload.error_type')
+  }|json_encode|e('html_attr') }}'
+  data-messages='{{ {
+    size_ok: plugin_trans('ctp.upload.validation_size_ok'),
+    full_validation: plugin_trans('ctp.upload.validation_full'),
+    uploading: plugin_trans('ctp.upload.uploading')
+  }|json_encode|e('html_attr') }}'
+  data-existing-count-template="{{ plugin_trans('ctp.upload.existing_count')|e('html_attr') }}"
+></div>
+
+<script src="{{ base_path }}/plugins/custom-templates-pro/assets/js/upload.js" nonce="{{ csp_nonce() }}"></script>
+{% endblock %}

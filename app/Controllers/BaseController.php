@@ -262,22 +262,69 @@ abstract class BaseController
 
         if (empty($album['cover']) || empty($album['cover']['variants']) || !is_array($album['cover']['variants'])) {
             unset($album['cover']);
+        } else {
+            $blurVariants = array_values(array_filter(
+                $album['cover']['variants'],
+                fn($variant) => isset($variant['variant']) && $variant['variant'] === 'blur'
+            ));
+
+            if ($blurVariants === []) {
+                unset($album['cover']);
+            } else {
+                $album['cover']['variants'] = $blurVariants;
+                unset($album['cover']['original_path']);
+            }
+        }
+
+        if (!empty($album['cover_image']) && is_array($album['cover_image'])) {
+            if (empty($album['cover_image']['blur_path']) && !empty($album['cover_image']['preview_path'])) {
+                $album['cover_image']['blur_path'] = $album['cover_image']['preview_path'];
+            }
+            if (empty($album['cover_image']['blur_path'])) {
+                unset($album['cover_image']);
+            } else {
+                unset(
+                    $album['cover_image']['preview_path'],
+                    $album['cover_image']['original_path'],
+                    $album['cover_image']['path']
+                );
+            }
+        }
+
+        return $album;
+    }
+
+    protected function ensureAlbumCoverImage(array $album): array
+    {
+        if (!empty($album['cover_image']) || empty($album['cover']) || !is_array($album['cover'])) {
             return $album;
         }
 
-        $blurVariants = array_values(array_filter(
-            $album['cover']['variants'],
-            fn($variant) => isset($variant['variant']) && $variant['variant'] === 'blur'
-        ));
+        $cover = $album['cover'];
+        $coverImage = [
+            'id' => $cover['id'] ?? null,
+            'width' => isset($cover['width']) ? (int)$cover['width'] : null,
+            'height' => isset($cover['height']) ? (int)$cover['height'] : null,
+            'alt_text' => $cover['alt_text'] ?? '',
+            'original_path' => $cover['original_path'] ?? null,
+        ];
 
-        if ($blurVariants === []) {
-            unset($album['cover']);
-            return $album;
+        if (!empty($cover['variants']) && is_array($cover['variants'])) {
+            foreach ($cover['variants'] as $variant) {
+                if (empty($variant['path'])) {
+                    continue;
+                }
+                if (($variant['variant'] ?? '') === 'blur') {
+                    $coverImage['blur_path'] = $variant['path'];
+                    continue;
+                }
+                if (empty($coverImage['preview_path'])) {
+                    $coverImage['preview_path'] = $variant['path'];
+                }
+            }
         }
 
-        $album['cover']['variants'] = $blurVariants;
-        unset($album['cover']['original_path']);
-
+        $album['cover_image'] = $coverImage;
         return $album;
     }
 
