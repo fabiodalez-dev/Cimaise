@@ -167,8 +167,8 @@ class PageController extends BaseController
             'masonry_layout_mode' => in_array((string)($svc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'), ['fullwidth', 'boxed'], true) ? (string)$svc->get('home.masonry_layout_mode', 'fullwidth') : 'fullwidth',
         ];
 
-        // Pagination parameters
-        $perPage = 12;
+        // Pagination parameters (from settings)
+        $perPage = (int)$svc->get('pagination.limit', 12);
         
         // Get total count of published albums
         $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1');
