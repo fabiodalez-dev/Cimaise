@@ -21,6 +21,7 @@
     "album.equipment": "Equipment",
     "album.film": "Film",
     "album.info": "Info",
+    "album.image_load_error": "Image failed to load",
     "album.lens": "Lens",
     "album.location": "Location",
     "album.more_from": "More from {category}",

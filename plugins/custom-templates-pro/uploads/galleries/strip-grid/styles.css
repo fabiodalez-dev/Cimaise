@@ -71,10 +71,8 @@
 @media (prefers-color-scheme: dark) {
   .strip-sparse-link {
     background: #1f1f1f;
-    border-color: rgba(255, 255, 255, 0.08);
   }
 }
 html.dark .strip-sparse-link {
   background: #1f1f1f;
-  border-color: rgba(255, 255, 255, 0.08);
 }

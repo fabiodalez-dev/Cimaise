@@ -573,8 +573,10 @@ class GalleryController extends BaseController
             $templateCustomJs = $integration->loadTemplateJS((int)$template['id'], $this->basePath);
             $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
             if ($metadata && !empty($metadata['twig_path'])) {
-                $twigPath = preg_replace('~^uploads/galleries/+~', '', (string)$metadata['twig_path']);
-                $templateCustomTwig = ltrim((string)$twigPath, '/');
+                $resolved = $integration->resolveTwigTemplatePath((string)$metadata['twig_path'], 'galleries');
+                if ($resolved) {
+                    $templateCustomTwig = $resolved;
+                }
             }
         }
 
@@ -935,9 +937,10 @@ class GalleryController extends BaseController
                 $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
                 $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
                 if ($metadata) {
-                    $twigPath = (string)($metadata['twig_path'] ?? '');
-                    $twigPath = preg_replace('~^uploads/galleries/+~', '', $twigPath);
-                    $templateFile = ltrim($twigPath, '/');
+                    $resolved = $integration->resolveTwigTemplatePath((string)($metadata['twig_path'] ?? ''), 'galleries');
+                    if ($resolved) {
+                        $templateFile = $resolved;
+                    }
 
                     $templateAssets['css'] = array_map(
                         fn($path) => rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/'),
