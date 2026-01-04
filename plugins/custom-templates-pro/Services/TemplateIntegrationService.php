@@ -273,6 +273,10 @@ class TemplateIntegrationService
     public function resolveTwigTemplatePath(string $twigPath, string $type): ?string
     {
         $cleanPath = ltrim(str_replace('\\', '/', $twigPath), '/');
+        $pluginPrefix = 'plugins/custom-templates-pro/';
+        if (str_starts_with($cleanPath, $pluginPrefix)) {
+            $cleanPath = substr($cleanPath, strlen($pluginPrefix));
+        }
         if ($cleanPath === '' || str_contains($cleanPath, '..')) {
             return null;
         }
@@ -299,6 +303,10 @@ class TemplateIntegrationService
     private function validateAssetPath(string $path): ?string
     {
         $cleanPath = ltrim(str_replace('\\', '/', $path), '/');
+        $pluginPrefix = 'plugins/custom-templates-pro/';
+        if (str_starts_with($cleanPath, $pluginPrefix)) {
+            $cleanPath = substr($cleanPath, strlen($pluginPrefix));
+        }
         if ($cleanPath === '' || str_contains($cleanPath, '..')) {
             return null;
         }

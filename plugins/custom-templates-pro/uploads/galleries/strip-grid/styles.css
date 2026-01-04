@@ -11,7 +11,6 @@
   aspect-ratio: var(--sg-w) / var(--sg-h);
   margin: clamp(28px, 7vw, 96px) auto;
   transition: transform 0.35s ease;
-  will-change: transform;
 }
 
 @media (min-width: 1024px) {
@@ -54,6 +53,17 @@
 }
 
 .strip-sparse-link:hover img {
+  will-change: transform;
+  transform: scale(1.03);
+}
+
+.strip-sparse-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.strip-sparse-link:focus-visible img {
+  will-change: transform;
   transform: scale(1.03);
 }
 
