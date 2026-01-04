@@ -107,6 +107,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const type = this.dataset.type;
       const show = this.checked ? 1 : 0;
       const card = this.closest('.card');
+      const originalChecked = this.checked;
+      const errorMsg = '{{ trans("admin.templates.toggle_error")|default("Errore di connessione")|e('js') }}';
+
+      this.disabled = true;
+      if (card) card.style.opacity = '0.6';
 
       fetch('{{ base_path }}/admin/templates/toggle-switcher', {
         method: 'POST',
@@ -118,6 +123,8 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .then(r => r.json())
       .then(data => {
+        this.disabled = false;
+        if (card) card.style.opacity = '';
         if (data.success) {
           if (show) {
             card.classList.remove('opacity-50', 'grayscale');
@@ -125,12 +132,23 @@ document.addEventListener('DOMContentLoaded', function() {
             card.classList.add('opacity-50', 'grayscale');
           }
         } else {
-          this.checked = !this.checked;
-          alert(data.message || 'Error');
+          this.checked = !originalChecked;
+          if (window.showToast) {
+            window.showToast(data.message || errorMsg, 'error');
+          } else {
+            alert(data.message || errorMsg);
+          }
         }
       })
       .catch(() => {
-        this.checked = !this.checked;
+        this.disabled = false;
+        if (card) card.style.opacity = '';
+        this.checked = !originalChecked;
+        if (window.showToast) {
+          window.showToast(errorMsg, 'error');
+        } else {
+          alert(errorMsg);
+        }
       });
     });
   });

@@ -9,10 +9,13 @@ use App\Support\Database;
 class AnalyticsPro
 {
     private Database $db;
+    private SettingsService $settings;
+    private ?string $ipSalt = null;
 
     public function __construct(Database $db)
     {
         $this->db = $db;
+        $this->settings = new SettingsService($db);
         $this->ensureTables();
     }
 
@@ -203,8 +206,7 @@ class AnalyticsPro
             return null;
         }
 
-        $settings = new SettingsService($this->db);
-        $anonymize = filter_var($settings->get('ip_anonymization', true), FILTER_VALIDATE_BOOLEAN);
+        $anonymize = filter_var($this->settings->get('ip_anonymization', true), FILTER_VALIDATE_BOOLEAN);
 
         if ($anonymize) {
             if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
@@ -212,11 +214,41 @@ class AnalyticsPro
                 $parts[3] = '0';
                 $ip = implode('.', $parts);
             } elseif (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                $ip = substr($ip, 0, 19) . '::';
+                $binary = inet_pton($ip);
+                if ($binary !== false) {
+                    $masked = substr($binary, 0, 6) . str_repeat("\0", 10);
+                    $ip = inet_ntop($masked) ?: $ip;
+                }
             }
         }
 
-        return hash('sha256', $ip . 'cimaise_salt');
+        return hash('sha256', $ip . $this->getIpSalt());
+    }
+
+    private function getIpSalt(): string
+    {
+        if ($this->ipSalt !== null) {
+            return $this->ipSalt;
+        }
+
+        $salt = '';
+        try {
+            $salt = (string)$this->settings->get('analytics.ip_salt', '');
+        } catch (\Throwable) {
+            $salt = '';
+        }
+
+        if ($salt === '') {
+            $salt = bin2hex(random_bytes(16));
+            try {
+                $this->settings->set('analytics.ip_salt', $salt);
+            } catch (\Throwable) {
+                // Keep generated salt in-memory even if settings write fails.
+            }
+        }
+
+        $this->ipSalt = $salt;
+        return $salt;
     }
 
     /**

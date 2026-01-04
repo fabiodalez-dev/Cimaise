@@ -148,6 +148,11 @@ class GalleryController extends BaseController
         if ($templateId === null && !empty($album['template_id'])) {
             $templateId = (int)$album['template_id'];
         }
+        $fallbackTemplate = [
+            'name' => 'Simple Grid',
+            'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]]),
+        ];
+        $fallbackSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
         if (!$templateId) {
             // Use default template from settings
             $settingsService = new SettingsService($this->db);
@@ -157,27 +162,17 @@ class GalleryController extends BaseController
                 // Use the predefined template from settings
                 $templateId = (int)$defaultTemplateId;
                 $template = $templateService->getGalleryTemplateById($templateId);
-                if ($template) {
-                    $templateSettings = $template['settings'] ?? [];
-                }
+                $templateSettings = $template ? ($template['settings'] ?? []) : $fallbackSettings;
+                $template = $template ?: $fallbackTemplate;
             } else {
                 // No default template set, use basic grid fallback
-                $template = ['name' => 'Simple Grid', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
-                $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
+                $template = $fallbackTemplate;
+                $templateSettings = $fallbackSettings;
             }
         } else {
             $template = $templateService->getGalleryTemplateById($templateId);
-            if (!$template) {
-                // Fallback to basic grid
-                $template = ['name' => 'Simple Grid', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
-                $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
-            } else {
-                $templateSettings = $template['settings'] ?? [];
-            }
-        }
-        if (!$template) {
-            $template = ['name' => 'Simple Grid', 'settings' => json_encode(['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]])];
-            $templateSettings = ['layout' => 'grid', 'columns' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1]];
+            $templateSettings = $template ? ($template['settings'] ?? []) : $fallbackSettings;
+            $template = $template ?: $fallbackTemplate;
         }
         // Normalize settings and align Magazine Split behavior with AJAX switcher
         $templateSettings = $this->applyTemplateOverrides($template, $templateSettings);
