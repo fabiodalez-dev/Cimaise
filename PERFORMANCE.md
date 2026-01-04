@@ -284,7 +284,7 @@ For **existing installations**, you need to run the migration to add performance
 
 ```bash
 # Run from project root
-php bin/migrate.php
+php bin/console migrate
 ```
 
 This will automatically run `database/migrations/2024_05_performance_settings.php` which adds all performance settings with default values.
