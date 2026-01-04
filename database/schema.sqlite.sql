@@ -95,6 +95,13 @@ CREATE TABLE IF NOT EXISTS plugin_status (
 -- Note: slug already has UNIQUE constraint which creates an implicit index
 CREATE INDEX IF NOT EXISTS idx_plugin_status_active ON plugin_status(is_active);
 
+CREATE TRIGGER IF NOT EXISTS trg_plugin_status_updated_at
+AFTER UPDATE ON plugin_status
+FOR EACH ROW
+BEGIN
+  UPDATE plugin_status SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
 -- ============================================
 -- CUSTOM TEMPLATES (Plugin)
 -- ============================================
@@ -189,6 +196,7 @@ CREATE TABLE IF NOT EXISTS albums (
   slug TEXT NOT NULL UNIQUE,
   category_id INTEGER NOT NULL,
   location_id INTEGER,
+  -- Template selection: custom_template_id takes precedence over template_id.
   template_id INTEGER,
   custom_template_id INTEGER,
   album_page_template TEXT,
@@ -202,10 +210,15 @@ CREATE TABLE IF NOT EXISTS albums (
   sort_order INTEGER DEFAULT 0,
   password_hash TEXT,
   allow_downloads INTEGER NOT NULL DEFAULT 0,
+  -- JSON array of camera names: ["Canon AE-1", "Nikon F3"]
   custom_cameras TEXT,
+  -- JSON array of lens names: ["50mm f/1.8", "35mm f/2.0"]
   custom_lenses TEXT,
+  -- JSON array of films: ["Kodak Portra 400 35mm"]
   custom_films TEXT,
+  -- JSON array of developers: ["D-76", "Rodinal"]
   custom_developers TEXT,
+  -- JSON array of labs: ["Lab Name"]
   custom_labs TEXT,
   seo_title TEXT,
   seo_description TEXT,
@@ -222,6 +235,7 @@ CREATE TABLE IF NOT EXISTS albums (
   allow_template_switch INTEGER NOT NULL DEFAULT 0,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT,
+  CHECK ((template_id IS NULL) OR (custom_template_id IS NULL)),
   FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
   FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
   FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE SET NULL,

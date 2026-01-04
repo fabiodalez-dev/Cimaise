@@ -32,12 +32,7 @@ class SettingsController extends BaseController
         }
 
         // Custom album page templates (from plugins)
-        $albumPageTemplates = [];
-        try {
-            $albumPageTemplates = Hooks::applyFilter('available_album_page_templates', []);
-        } catch (\Throwable) {
-            $albumPageTemplates = [];
-        }
+        $albumPageTemplates = $this->getPluginAlbumPageTemplates();
 
         // Check if maintenance-mode plugin is active
         $maintenancePluginActive = false;
@@ -135,18 +130,13 @@ class SettingsController extends BaseController
         $svc->set('lightbox.show_exif', $showExif);
         
         $galleryPageTemplate = (string)($data['gallery_page_template'] ?? 'classic');
-        $allowedPageTemplates = ['classic', 'hero', 'magazine'];
-        try {
-            $customTemplates = Hooks::applyFilter('available_album_page_templates', []);
-            foreach ($customTemplates as $template) {
-                $value = $template['value'] ?? null;
-                if (is_string($value) && $value !== '') {
-                    $allowedPageTemplates[] = $value;
-                }
-            }
-        } catch (\Throwable) {
-            // Ignore plugin errors; fallback to core templates.
-        }
+        $allowedPageTemplates = array_merge(
+            ['classic', 'hero', 'magazine'],
+            array_values(array_filter(array_map(
+                static fn(array $template) => is_string($template['value'] ?? null) ? $template['value'] : null,
+                $this->getPluginAlbumPageTemplates()
+            )))
+        );
         if (!in_array($galleryPageTemplate, $allowedPageTemplates, true)) {
             $galleryPageTemplate = 'classic';
         }
@@ -712,5 +702,23 @@ class SettingsController extends BaseController
         }
 
         return $response->withHeader('Location', $this->redirect('/admin/settings'))->withStatus(302);
+    }
+
+    /**
+     * Load album page templates from plugins.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getPluginAlbumPageTemplates(): array
+    {
+        try {
+            $templates = Hooks::applyFilter('available_album_page_templates', []);
+            return is_array($templates) ? $templates : [];
+        } catch (\Throwable $e) {
+            Logger::warning('Failed to load plugin album page templates', [
+                'error' => $e->getMessage(),
+            ], 'plugins');
+            return [];
+        }
     }
 }

@@ -2040,6 +2040,7 @@
     "admin.templates.show_in_switcher": "Show in switcher",
     "admin.templates.edit_settings": "Edit settings",
     "admin.templates.switcher_description": "Manage which templates appear in the frontend switcher",
+    "admin.templates.toggle_timeout": "Connection timeout",
     "admin.templates.dense_grid_cell_size": "Grid Cell Size",
     "admin.templates.dense_min_cell_desktop": "Min Cell Desktop",
     "admin.templates.dense_min_cell_tablet": "Min Cell Tablet",
