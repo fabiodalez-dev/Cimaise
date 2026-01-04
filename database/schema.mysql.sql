@@ -167,6 +167,7 @@ CREATE TABLE IF NOT EXISTS `albums` (
   `slug` VARCHAR(220) NOT NULL,
   `category_id` INT UNSIGNED NOT NULL,
   `location_id` INT UNSIGNED NULL,
+  -- Template selection: custom_template_id takes precedence over template_id.
   `template_id` INT UNSIGNED NULL,
   `custom_template_id` INT UNSIGNED NULL,
   `album_page_template` VARCHAR(190) NULL,
@@ -180,10 +181,15 @@ CREATE TABLE IF NOT EXISTS `albums` (
   `sort_order` INT DEFAULT 0,
   `password_hash` VARCHAR(255) NULL,
   `allow_downloads` TINYINT(1) NOT NULL DEFAULT 0,
+  -- JSON array of camera names: ["Canon AE-1", "Nikon F3"]
   `custom_cameras` TEXT NULL,
+  -- JSON array of lens names: ["50mm f/1.8", "35mm f/2.0"]
   `custom_lenses` TEXT NULL,
+  -- JSON array of films: ["Kodak Portra 400 35mm"]
   `custom_films` TEXT NULL,
+  -- JSON array of developers: ["D-76", "Rodinal"]
   `custom_developers` TEXT NULL,
+  -- JSON array of labs: ["Lab Name"]
   `custom_labs` TEXT NULL,
   `is_nsfw` TINYINT(1) NOT NULL DEFAULT 0,
   `seo_title` VARCHAR(255) NULL,
@@ -214,6 +220,7 @@ CREATE TABLE IF NOT EXISTS `albums` (
   KEY `idx_albums_published_date` (`is_published`, `published_at`),
   KEY `idx_albums_published_shoot` (`is_published`, `shoot_date`),
   KEY `idx_albums_published_nsfw` (`is_published`, `is_nsfw`),
+  CHECK ((`template_id` IS NULL) OR (`custom_template_id` IS NULL)),
   CONSTRAINT `fk_albums_category` FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_albums_location` FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_albums_template` FOREIGN KEY (`template_id`) REFERENCES `templates`(`id`) ON DELETE SET NULL,
