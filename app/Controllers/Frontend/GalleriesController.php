@@ -391,9 +391,8 @@ class GalleriesController extends BaseController
             if (!$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
                 continue;
             }
-            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent && !empty($album['cover_image'])) {
-                unset($album['cover_image']['preview_path'], $album['cover_image']['original_path'], $album['cover_image']['path']);
-            }
+            $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
+            $album = $this->ensureAlbumCoverImage($album);
             $visibleAlbums[] = $album;
         }
         

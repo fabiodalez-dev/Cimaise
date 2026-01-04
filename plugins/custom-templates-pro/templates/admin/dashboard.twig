@@ -1,0 +1,177 @@
+{% extends "admin/_layout.twig" %}
+
+{% block title %}{{ plugin_trans('ctp.title') }} - Cimaise{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="flex justify-between items-center">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">
+        <i class="fas fa-palette text-purple-600 mr-3"></i>{{ plugin_trans('ctp.title') }}
+      </h1>
+      <p class="text-gray-600 mt-2">{{ plugin_trans('ctp.subtitle') }}</p>
+    </div>
+    <div class="flex gap-3">
+      <a href="{{ base_path }}/admin/custom-templates/guides" class="btn btn-outline">
+        <i class="fas fa-book mr-2"></i>{{ plugin_trans('ctp.llm_guides') }}
+      </a>
+      <a href="{{ base_path }}/admin/custom-templates/upload" class="btn btn-primary">
+        <i class="fas fa-upload mr-2"></i>{{ plugin_trans('ctp.upload_template') }}
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <!-- Gallery Templates -->
+  <div class="card p-6 hover:shadow-lg transition-shadow">
+    <div class="flex items-center justify-between mb-4">
+      <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+        <i class="fas fa-th text-2xl text-blue-600"></i>
+      </div>
+      <span class="text-3xl font-bold text-gray-900">{{ stats.gallery.total }}</span>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ plugin_trans('ctp.type.gallery') }}</h3>
+    <p class="text-sm text-gray-600">
+      <span class="text-green-600 font-medium">{{ stats.gallery.active }}</span> {{ plugin_trans('ctp.active_count') }}
+    </p>
+    <a href="{{ base_path }}/admin/custom-templates/list?type=gallery" class="text-sm text-blue-600 hover:text-blue-700 mt-3 inline-block">
+      {{ plugin_trans('ctp.view_all') }} →
+    </a>
+  </div>
+
+  <!-- Album Page Templates -->
+  <div class="card p-6 hover:shadow-lg transition-shadow">
+    <div class="flex items-center justify-between mb-4">
+      <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+        <i class="fas fa-file-image text-2xl text-purple-600"></i>
+      </div>
+      <span class="text-3xl font-bold text-gray-900">{{ stats.album_page.total }}</span>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ plugin_trans('ctp.type.album_page') }}</h3>
+    <p class="text-sm text-gray-600">
+      <span class="text-green-600 font-medium">{{ stats.album_page.active }}</span> {{ plugin_trans('ctp.active_count') }}
+    </p>
+    <a href="{{ base_path }}/admin/custom-templates/list?type=album_page" class="text-sm text-purple-600 hover:text-purple-700 mt-3 inline-block">
+      {{ plugin_trans('ctp.view_all') }} →
+    </a>
+  </div>
+
+  <!-- Homepage Templates -->
+  <div class="card p-6 hover:shadow-lg transition-shadow">
+    <div class="flex items-center justify-between mb-4">
+      <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+        <i class="fas fa-home text-2xl text-green-600"></i>
+      </div>
+      <span class="text-3xl font-bold text-gray-900">{{ stats.homepage.total }}</span>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ plugin_trans('ctp.type.homepage') }}</h3>
+    <p class="text-sm text-gray-600">
+      <span class="text-green-600 font-medium">{{ stats.homepage.active }}</span> {{ plugin_trans('ctp.active_count') }}
+    </p>
+    <a href="{{ base_path }}/admin/custom-templates/list?type=homepage" class="text-sm text-green-600 hover:text-green-700 mt-3 inline-block">
+      {{ plugin_trans('ctp.view_all') }} →
+    </a>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+  <!-- Upload New Template -->
+  <div class="card">
+    <div class="p-6 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+        <i class="fas fa-cloud-upload-alt text-blue-600 mr-3"></i>
+        {{ plugin_trans('ctp.dashboard.upload_new') }}
+      </h2>
+    </div>
+    <div class="p-6">
+      <p class="text-gray-600 mb-4">
+        {{ plugin_trans('ctp.dashboard.upload_desc') }}
+      </p>
+      <a href="{{ base_path }}/admin/custom-templates/upload" class="btn btn-primary w-full justify-center">
+        <i class="fas fa-upload mr-2"></i>{{ plugin_trans('ctp.dashboard.go_upload') }}
+      </a>
+    </div>
+  </div>
+
+  <!-- Download Template Guides -->
+  <div class="card">
+    <div class="p-6 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+        <i class="fas fa-book-reader text-purple-600 mr-3"></i>
+        {{ plugin_trans('ctp.dashboard.llm_guides') }}
+      </h2>
+    </div>
+    <div class="p-6">
+      <p class="text-gray-600 mb-4">
+        {{ plugin_trans('ctp.dashboard.llm_desc') }}
+      </p>
+      <a href="{{ base_path }}/admin/custom-templates/guides" class="btn btn-outline w-full justify-center">
+        <i class="fas fa-download mr-2"></i>{{ plugin_trans('ctp.dashboard.download_guides') }}
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Templates -->
+{% if recent_templates|length > 0 %}
+<div class="card">
+  <div class="p-6 border-b border-gray-200">
+    <h2 class="text-lg font-semibold text-gray-900">{{ plugin_trans('ctp.dashboard.recent') }}</h2>
+    <p class="text-sm text-gray-600 mt-1">{{ plugin_trans('ctp.dashboard.recent_subtitle') }}</p>
+  </div>
+  <div class="divide-y divide-gray-200">
+    {% for template in recent_templates %}
+    <div class="p-6 hover:bg-gray-50 transition-colors">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <!-- Icon based on type -->
+          {% if template.type == 'gallery' %}
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <i class="fas fa-th text-blue-600"></i>
+            </div>
+          {% elseif template.type == 'album_page' %}
+            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <i class="fas fa-file-image text-purple-600"></i>
+            </div>
+          {% else %}
+            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <i class="fas fa-home text-green-600"></i>
+            </div>
+          {% endif %}
+
+          <div>
+            <h3 class="font-semibold text-gray-900">{{ template.name }}</h3>
+            <div class="flex items-center space-x-3 mt-1">
+              <span class="text-sm text-gray-500">v{{ template.version }}</span>
+              {% if template.author %}
+              <span class="text-sm text-gray-500">• {{ template.author }}</span>
+              {% endif %}
+              <span class="text-sm text-gray-500">• {{ template.installed_at|date(plugin_trans('ctp.date_format')|default('d/m/Y')) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <span class="px-3 py-1 rounded-full text-xs font-medium {{ template.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }}">
+            {{ template.is_active ? plugin_trans('ctp.active') : plugin_trans('ctp.inactive') }}
+          </span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="card p-12 text-center">
+  <i class="fas fa-palette text-6xl text-gray-300 mb-4"></i>
+  <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ plugin_trans('ctp.dashboard.no_templates') }}</h3>
+  <p class="text-gray-600 mb-6">{{ plugin_trans('ctp.dashboard.no_templates_desc') }}</p>
+  <a href="{{ base_path }}/admin/custom-templates/upload" class="btn btn-primary inline-flex items-center">
+    <i class="fas fa-upload mr-2"></i>{{ plugin_trans('ctp.upload_template') }}
+  </a>
+</div>
+{% endif %}
+{% endblock %}

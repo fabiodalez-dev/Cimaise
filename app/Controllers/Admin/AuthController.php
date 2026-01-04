@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Services\SettingsService;
 use App\Services\VariantMaintenanceService;
 use App\Support\CookieHelper;
 use App\Support\Database;
@@ -16,7 +17,11 @@ class AuthController extends BaseController
 {
     private const REMEMBER_TOKEN_DAYS = 30;
 
-    public function __construct(private Database $db, private Twig $view)
+    public function __construct(
+        private Database $db,
+        private Twig $view,
+        private SettingsService $settings
+    )
     {
         parent::__construct();
     }
@@ -29,7 +34,8 @@ class AuthController extends BaseController
         }
 
         return $this->view->render($response, 'admin/login.twig', [
-            'csrf' => $_SESSION['csrf'] ?? ''
+            'csrf' => $_SESSION['csrf'] ?? '',
+            'admin_locale' => $this->getAdminLocale()
         ]);
     }
 
@@ -40,18 +46,21 @@ class AuthController extends BaseController
         $password = (string)($data['password'] ?? '');
         $csrf = (string)($data['csrf'] ?? '');
         $rememberMe = !empty($data['remember_me']);
+        $adminLocale = $this->getAdminLocale();
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.csrf_invalid'),
-                'csrf' => $_SESSION['csrf'] ?? ''
+                'csrf' => $_SESSION['csrf'] ?? '',
+                'admin_locale' => $adminLocale
             ]);
         }
 
         if ($email === '' || $password === '') {
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.email_password_required'),
-                'csrf' => $_SESSION['csrf'] ?? ''
+                'csrf' => $_SESSION['csrf'] ?? '',
+                'admin_locale' => $adminLocale
             ]);
         }
 
@@ -62,7 +71,8 @@ class AuthController extends BaseController
         if (!$user || !password_verify($password, $user['password_hash'])) {
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.invalid_credentials'),
-                'csrf' => $_SESSION['csrf'] ?? ''
+                'csrf' => $_SESSION['csrf'] ?? '',
+                'admin_locale' => $adminLocale
             ]);
         }
 
@@ -70,7 +80,8 @@ class AuthController extends BaseController
         if (!$user['is_active']) {
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.account_deactivated'),
-                'csrf' => $_SESSION['csrf'] ?? ''
+                'csrf' => $_SESSION['csrf'] ?? '',
+                'admin_locale' => $adminLocale
             ]);
         }
 
@@ -78,7 +89,8 @@ class AuthController extends BaseController
         if ($user['role'] !== 'admin') {
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.access_denied_admin_only'),
-                'csrf' => $_SESSION['csrf'] ?? ''
+                'csrf' => $_SESSION['csrf'] ?? '',
+                'admin_locale' => $adminLocale
             ]);
         }
 
@@ -352,5 +364,14 @@ class AuthController extends BaseController
                 Logger::warning('Variant maintenance skipped', ['error' => $e->getMessage()], 'maintenance');
             }
         });
+    }
+
+    private function getAdminLocale(): string
+    {
+        try {
+            return (string)($this->settings->get('admin.language', 'en') ?? 'en');
+        } catch (\Throwable) {
+            return 'en';
+        }
     }
 }

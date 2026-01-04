@@ -1,0 +1,8 @@
+{% if template_custom_twig %}
+  {% include template_custom_twig %}
+{% endif %}
+
+<script nonce="{{ csp_nonce() }}">
+window.templateSettings = {{ template_settings|json_encode|raw }};
+window.templateAssets = {{ template_assets|default({css: [], js: []})|json_encode|raw }};
+</script>

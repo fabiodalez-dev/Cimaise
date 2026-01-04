@@ -1,0 +1,284 @@
+{% import 'frontend/_seo_macros.twig' as Seo %}
+{% import 'frontend/_caption.twig' as Caption %}
+
+{% set custom_template_twig = template_custom_twig|default('') %}
+{% set tpl_slug = template_settings.template_slug|default('') %}
+{% set layout = template_settings.layout|default('grid') %}
+{% set cols = template_settings.columns|default({desktop: 3, tablet: 2, mobile: 1}) %}
+{% set gap = template_settings.gap|default({horizontal: 16, vertical: 16}) %}
+{% set aspect_ratio = template_settings.aspect_ratio|default('1:1') %}
+{% set style = template_settings.style|default({rounded: false, shadow: false, hover_scale: true}) %}
+
+{% set desktop_cols = cols.desktop|default(3)|round %}
+{% set tablet_cols = cols.tablet|default(2)|round %}
+{% set mobile_cols = cols.mobile|default(1)|round %}
+{% set gap_h = gap.horizontal|default(16)|round %}
+{% set gap_v = gap.vertical|default(16)|round %}
+
+{% set aspect_class = 'aspect-square' %}
+{% if aspect_ratio == '4:3' %}
+  {% set aspect_class = 'aspect-[4/3]' %}
+{% elseif aspect_ratio == '16:9' %}
+  {% set aspect_class = 'aspect-video' %}
+{% elseif aspect_ratio == '3:2' %}
+  {% set aspect_class = 'aspect-[3/2]' %}
+{% endif %}
+
+{% set rounded_class = style.rounded ? 'rounded-lg' : '' %}
+{% set shadow_class = style.shadow ? 'shadow-md hover:shadow-xl' : '' %}
+{% set hover_class = style.hover_scale ? 'group-hover:scale-105' : '' %}
+{% set hover_fade = style.hover_fade is not defined or style.hover_fade ? '1' : '0' %}
+
+{% if custom_template_twig %}
+  <div id="images-gallery" class="pswp-gallery" data-layout="custom" data-hover-fade="{{ hover_fade }}">
+    {% include custom_template_twig %}
+  </div>
+
+{% elseif tpl_slug == 'grid-ampia' %}
+  {% include 'frontend/_gallery_creative_layout.twig' with { images: images, template_settings: template_settings, album: album, base_path: base_path, site_title: site_title } %}
+
+{% elseif tpl_slug == 'gallery-wall-scroll' %}
+  {% include 'frontend/_gallery_wall_scroll.twig' with { images: images, template_settings: template_settings, album: album, base_path: base_path, site_title: site_title } %}
+
+{% elseif tpl_slug == 'masonry-portfolio' %}
+  {% include 'frontend/_gallery_masonry_portfolio.twig' with { images: images, template_settings: template_settings, album: album, base_path: base_path, site_title: site_title } %}
+
+{% elseif layout == 'dense_grid' %}
+  {% set dense = template_settings.dense_grid|default({}) %}
+  {% set min_cell = dense.min_cell_desktop|default(280) %}
+  {% set row_height = dense.row_height|default(220) %}
+  {% set dense_gap = dense.gap|default(12) %}
+  {% set adaptive = dense.adaptive|default(true) %}
+  <style nonce="{{ csp_nonce() }}">
+    .dense-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax({{ min_cell }}px, 1fr));
+      grid-auto-rows: {{ row_height }}px;
+      grid-auto-flow: dense;
+      gap: {{ dense_gap }}px;
+      padding: {{ dense_gap }}px;
+    }
+    .dense-grid-item { position: relative; overflow: hidden; background: #f5f5f5; }
+    .dense-grid-item:hover img { transform: scale(1.03); }
+    .dense-grid-link { display: block; width: 100%; height: 100%; }
+    .dense-grid-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+    .dense-grid-item.landscape { grid-column: span 2; }
+    .dense-grid-item.portrait-tall { grid-row: span 2; }
+    .dense-grid-item.square-large { grid-column: span 2; grid-row: span 2; }
+    @media (max-width: 900px) {
+      .dense-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 160px; }
+    }
+    @media (max-width: 640px) {
+      .dense-grid { grid-template-columns: repeat(1, 1fr); grid-auto-rows: 220px; }
+      .dense-grid-item.landscape,
+      .dense-grid-item.portrait-tall,
+      .dense-grid-item.square-large { grid-column: span 1; grid-row: span 1; }
+    }
+  </style>
+  <div id="images-gallery"
+       class="dense-grid pswp-gallery"
+       data-layout="dense_grid"
+       data-adaptive="{{ adaptive ? 'true' : 'false' }}"
+       data-hover-fade="{{ hover_fade }}">
+    {% for image in images %}
+      <div class="dense-grid-item" data-image-id="{{ image.id }}" data-width="{{ image.width|default(0) }}" data-height="{{ image.height|default(0) }}">
+        {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+        <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+           class="pswp-link dense-grid-link"
+           title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
+           data-pswp-width="{{ image.width|default(1600) }}"
+           data-pswp-height="{{ image.height|default(1067) }}"
+           data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}">
+          <picture>
+            {% if image.sources.avif|length %}
+              <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            {% endif %}
+            {% if image.sources.webp|length %}
+              <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+            {% endif %}
+            <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+                 alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                 loading="lazy"
+                 decoding="async"
+                 class="dense-grid-img">
+          </picture>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+
+{% elseif layout == 'magazine' %}
+  {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
+
+{% elseif layout == 'masonry' %}
+  <style nonce="{{ csp_nonce() }}">
+    .gallery-masonry {
+      --masonry-gap-v: {{ gap_v }}px;
+      --masonry-gap-h: {{ gap_h }}px;
+      display: grid;
+      column-gap: var(--masonry-gap-h);
+      grid-template-columns: repeat({{ mobile_cols }}, 1fr);
+      align-items: start;
+      width: 100%;
+      max-width: 100%;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    .gallery-masonry.masonry-ready { opacity: 1; }
+    .gallery-masonry.gsap-failed { opacity: 1; }
+    @media (min-width: 768px) { .gallery-masonry { grid-template-columns: repeat({{ tablet_cols }}, 1fr); } }
+    @media (min-width: 1024px) { .gallery-masonry { grid-template-columns: repeat({{ desktop_cols }}, 1fr); } }
+    .gallery-masonry .masonry-frame { position: relative; aspect-ratio: var(--width) / var(--height); min-width: 0; }
+    .gallery-masonry .masonry-frame > .frame-content { position: absolute; inset: calc(var(--masonry-gap-v) / 2) 0; overflow: hidden; }
+    .gallery-masonry .masonry-frame img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+    .gallery-masonry .masonry-frame:hover img { transform: scale(1.03); }
+  </style>
+  <div id="images-gallery"
+       class="gallery-masonry pswp-gallery"
+       data-layout="masonry"
+       data-gap-h="{{ gap_h }}"
+       data-gap-v="{{ gap_v }}"
+       data-cols-desktop="{{ desktop_cols }}"
+       data-cols-tablet="{{ tablet_cols }}"
+       data-cols-mobile="{{ mobile_cols }}"
+       data-rounded="{{ style.rounded ? '1' : '0' }}"
+       data-shadow="{{ style.shadow ? '1' : '0' }}"
+       data-hover-fade="{{ hover_fade }}">
+    {% for image in images %}
+      {% set imgW = image.width|default(4) %}
+      {% set imgH = image.height|default(3) %}
+      <div class="masonry-frame" style="--width: {{ imgW }}; --height: {{ imgH }};">
+        <div class="frame-content group {{ rounded_class }} {{ shadow_class }}">
+          {% set lightbox_href = image.lightbox_url|default(image.url) %}
+          {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+          <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+             class="pswp-link gallery-link block w-full h-full overflow-hidden bg-neutral-100 cursor-pointer {{ rounded_class }}"
+             title="{{ seo_title|e('html_attr') }}"
+             data-image-id="{{ image.id }}"
+             data-pswp-width="{{ image.width|default(1600) }}"
+             data-pswp-height="{{ image.height|default(1067) }}"
+             data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+             data-title="{{ image.caption|default('')|e }}"
+             data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+             data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+             data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+             data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+             data-developer="{{ image.developer_name|default('')|e }}"
+             data-lab="{{ image.lab_name|default('')|e }}"
+             data-location="{{ image.location_name|default('')|e }}"
+             data-iso="{{ image.iso|default('') }}"
+             data-shutter="{{ image.shutter_speed|default('')|e }}"
+             data-aperture="{{ image.aperture|default('') }}"
+             data-focal-length="{{ image.focal_length|default('') }}"
+             {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+            <picture>
+              {% if image.sources.avif|length %}
+                <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+              {% endif %}
+              {% if image.sources.webp|length %}
+                <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+              {% endif %}
+              <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+                   alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                   title="{{ seo_title|e('html_attr') }}"
+                   loading="lazy"
+                   decoding="async"
+                   data-fallback="hide">
+            </picture>
+          </a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <style nonce="{{ csp_nonce() }}">
+    .gallery-grid { display: grid; gap: {{ gap_v }}px {{ gap_h }}px; }
+    @media (min-width: 1024px) { .gallery-grid { grid-template-columns: repeat({{ desktop_cols }}, 1fr); } }
+    @media (min-width: 768px) and (max-width: 1023px) { .gallery-grid { grid-template-columns: repeat({{ tablet_cols }}, 1fr); } }
+    @media (max-width: 767px) { .gallery-grid { grid-template-columns: repeat({{ mobile_cols }}, 1fr); } }
+  </style>
+  <div id="images-gallery"
+       class="gallery-grid pswp-gallery"
+       data-layout="grid"
+       data-gap-h="{{ gap_h }}"
+       data-gap-v="{{ gap_v }}"
+       data-cols-desktop="{{ desktop_cols }}"
+       data-cols-tablet="{{ tablet_cols }}"
+       data-cols-mobile="{{ mobile_cols }}"
+       data-aspect-ratio="{{ aspect_ratio }}"
+       data-hover-fade="{{ hover_fade }}">
+    {% for image in images %}
+      <div class="gallery-item">
+        {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+        {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
+        <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
+           class="pswp-link gallery-link group block overflow-hidden bg-neutral-100 cursor-pointer {{ aspect_class }} {{ rounded_class }} {{ shadow_class }}"
+           title="{{ seo_title|e('html_attr') }}"
+           data-image-id="{{ image.id }}"
+           data-pswp-width="{{ image.width }}"
+           data-pswp-height="{{ image.height }}"
+           data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}"
+           data-title="{{ image.caption|default('')|e }}"
+           data-alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+           data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}"
+           data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}"
+           data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}"
+           data-developer="{{ image.developer_name|default('')|e }}"
+           data-lab="{{ image.lab_name|default('')|e }}"
+           data-location="{{ image.location_name|default('')|e }}"
+           data-iso="{{ image.iso|default('') }}"
+           data-shutter="{{ image.shutter_speed|default('')|e }}"
+           data-aperture="{{ image.aperture|default('') }}"
+           data-focal-length="{{ image.focal_length|default('') }}"
+           {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %}>
+          <picture>
+            {% set variants_avif = [] %}
+            {% set variants_webp = [] %}
+            {% set variants_jpg = [] %}
+            {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+            {% set best_jpg_w = 0 %}
+            {% for variant in image.variants %}
+              {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
+              {% if variant.format == 'avif' %}
+                {% set variants_avif = variants_avif|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+              {% elseif variant.format == 'webp' %}
+                {% set variants_webp = variants_webp|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+              {% elseif variant.format == 'jpg' %}
+                {% set variants_jpg = variants_jpg|merge([variant_url ~ ' ' ~ variant.width ~ 'w']) %}
+                {% if variant.width > best_jpg_w %}
+                  {% set best_jpg_path = variant_url %}
+                  {% set best_jpg_w = variant.width %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+            {% if variants_avif %}
+              <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+            {% endif %}
+            {% if variants_webp %}
+              <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
+            {% endif %}
+            <img src="{{ best_jpg_path }}"
+                 alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                 title="{{ seo_title|e('html_attr') }}"
+                 width="{{ image.width }}"
+                 height="{{ image.height }}"
+                 loading="lazy"
+                 decoding="async"
+                 data-fallback="hide"
+                 class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">
+          </picture>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if images|length == 0 %}
+  <div class="text-center py-20">
+    <h2 class="text-2xl font-light text-neutral-600 mb-4">{{ trans('album.empty') }}</h2>
+    <p class="text-neutral-500">{{ trans('album.empty_message') }}</p>
+  </div>
+{% endif %}

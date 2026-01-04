@@ -253,27 +253,47 @@ $app->get('/admin-login', function (Request $request, Response $response) {
 });
 
 $app->get('/admin/login', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
+    $controller = new \App\Controllers\Admin\AuthController(
+        $container['db'],
+        Twig::fromRequest($request),
+        new \App\Services\SettingsService($container['db'])
+    );
     return $controller->showLogin($request, $response);
 });
 
 $app->post('/admin/login', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
+    $controller = new \App\Controllers\Admin\AuthController(
+        $container['db'],
+        Twig::fromRequest($request),
+        new \App\Services\SettingsService($container['db'])
+    );
     return $controller->login($request, $response);
 })->add(new \App\Middlewares\FileBasedRateLimitMiddleware(dirname(__DIR__, 2) . '/storage/tmp', 5, 600, 'login'));
 
 $app->post('/admin/logout', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
+    $controller = new \App\Controllers\Admin\AuthController(
+        $container['db'],
+        Twig::fromRequest($request),
+        new \App\Services\SettingsService($container['db'])
+    );
     return $controller->logout($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->post('/admin/profile/update', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
+    $controller = new \App\Controllers\Admin\AuthController(
+        $container['db'],
+        Twig::fromRequest($request),
+        new \App\Services\SettingsService($container['db'])
+    );
     return $controller->updateProfile($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
 $app->post('/admin/profile/password', function (Request $request, Response $response) use ($container) {
-    $controller = new \App\Controllers\Admin\AuthController($container['db'], Twig::fromRequest($request));
+    $controller = new \App\Controllers\Admin\AuthController(
+        $container['db'],
+        Twig::fromRequest($request),
+        new \App\Services\SettingsService($container['db'])
+    );
     return $controller->changePassword($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
@@ -670,6 +690,50 @@ $app->post('/admin/plugins/upload', function (Request $request, Response $respon
     return $controller->upload($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 
+// Custom Templates Pro Plugin Routes (registered via closure to defer Twig loading)
+if (class_exists('CustomTemplatesProPlugin') && file_exists(__DIR__ . '/../../plugins/custom-templates-pro/plugin.php')) {
+    $app->get('/admin/custom-templates', function (Request $request, Response $response) use ($container) {
+        $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
+        return $controller->dashboard($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+    $app->get('/admin/custom-templates/list', function (Request $request, Response $response) use ($container) {
+        $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
+        return $controller->list($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+    $app->get('/admin/custom-templates/upload', function (Request $request, Response $response) use ($container) {
+        $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
+        return $controller->uploadForm($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+    $app->post('/admin/custom-templates/upload', function (Request $request, Response $response) use ($container) {
+        $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
+        return $controller->upload($request, $response);
+    })->add(new RateLimitMiddleware(10, 600)) // 10 uploads per 10 minutes
+      ->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+    $app->post('/admin/custom-templates/{id}/toggle', function (Request $request, Response $response, array $args) use ($container) {
+        $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
+        return $controller->toggle($request, $response, $args);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+    $app->post('/admin/custom-templates/{id}/delete', function (Request $request, Response $response, array $args) use ($container) {
+        $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
+        return $controller->delete($request, $response, $args);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+    $app->get('/admin/custom-templates/guides', function (Request $request, Response $response) use ($container) {
+        $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
+        return $controller->guides($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+
+    $app->get('/admin/custom-templates/guides/{type}/download', function (Request $request, Response $response, array $args) use ($container) {
+        $controller = new \CustomTemplatesPro\Controllers\CustomTemplatesController($container['db'], Twig::fromRequest($request));
+        return $controller->downloadGuide($request, $response, $args);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+}
+
 // Albums CRUD
 $app->get('/admin/albums', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\AlbumsController($container['db'], Twig::fromRequest($request));
@@ -959,6 +1023,10 @@ $app->get('/admin/templates/create', function (Request $request, Response $respo
 $app->post('/admin/templates', function (Request $request, Response $response) use ($container) {
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/templates/toggle-switcher', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
+    return $controller->toggleSwitcher($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/templates/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));

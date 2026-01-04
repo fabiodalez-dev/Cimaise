@@ -1,0 +1,105 @@
+<div class="hero-homepage">
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <h1 class="hero-title">{{ site_title|e }}</h1>
+      {% if site_description %}
+      <p class="hero-subtitle">{{ site_description|e }}</p>
+      {% endif %}
+      <div class="hero-scroll">
+        <span class="hero-scroll-text">{{ trans('home.scroll_to_explore')|default('Scroll to explore') }}</span>
+        <svg class="hero-scroll-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M19 12l-7 7-7-7"/>
+        </svg>
+      </div>
+    </div>
+    <div class="hero-overlay"></div>
+  </section>
+
+  <!-- Albums Grid -->
+  <section class="hero-albums">
+    <div class="hero-container">
+      <div class="hero-grid">
+        {% for album in albums %}
+        <article class="hero-album-card" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 50 }}">
+          <a href="{{ base_path }}/album/{{ album.slug }}" class="hero-album-link">
+            <!-- Cover Image -->
+            <div class="hero-album-cover">
+              {% if album.cover_image %}
+              <picture>
+                {% if album.cover_image.sources.avif|length %}
+                <source type="image/avif" srcset="{% for src in album.cover_image.sources.avif %}{{ base_path }}{{ src|split(' ')|first }} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+                {% endif %}
+
+                {% if album.cover_image.sources.webp|length %}
+                <source type="image/webp" srcset="{% for src in album.cover_image.sources.webp %}{{ base_path }}{{ src|split(' ')|first }} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+                {% endif %}
+
+                <img src="{{ base_path }}{{ album.cover_image.url }}"
+                     alt="{{ album.title|e }}"
+                     class="hero-album-img"
+                     loading="lazy">
+              </picture>
+              {% endif %}
+
+              <div class="hero-album-overlay">
+                <div class="hero-album-info">
+                  <h2 class="hero-album-title">{{ album.title|e }}</h2>
+                  {% if album.excerpt %}
+                  <p class="hero-album-excerpt">{{ album.excerpt|e }}</p>
+                  {% endif %}
+                  <div class="hero-album-meta">
+                    {% if album.shoot_date %}
+                    <span>{{ album.shoot_date|date_format }}</span>
+                    {% endif %}
+                    {% if album.image_count %}
+                    {% if album.shoot_date %}<span class="hero-meta-sep">•</span>{% endif %}
+                    <span>{{ album.image_count }} photos</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Categories -->
+            {% if album.categories|length > 0 %}
+            <div class="hero-album-categories">
+              {% for cat in album.categories %}
+              <span class="hero-album-category">{{ cat.name }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </a>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+// Smooth scroll per hero
+document.querySelector('.hero-scroll')?.addEventListener('click', function(e) {
+  e.preventDefault();
+  document.querySelector('.hero-albums')?.scrollIntoView({ behavior: 'smooth' });
+});
+
+// Parallax effect per hero
+let scrollTicking = false;
+window.addEventListener('scroll', function() {
+  if (scrollTicking) {
+    return;
+  }
+
+  scrollTicking = true;
+  window.requestAnimationFrame(function() {
+    const hero = document.querySelector('.hero-section');
+    if (hero) {
+      const scrolled = window.pageYOffset;
+      hero.style.transform = 'translateY(' + (scrolled * 0.5) + 'px)';
+      hero.style.opacity = 1 - (scrolled / 600);
+    }
+    scrollTicking = false;
+  });
+});
+</script>

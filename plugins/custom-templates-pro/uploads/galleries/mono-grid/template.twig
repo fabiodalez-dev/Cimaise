@@ -1,0 +1,26 @@
+<div class="mono-grid">
+  {% for image in images %}
+    {% set href = image.lightbox_url|default(image.url) %}
+    {% set seo_title = image.caption|default('') %}
+    <a href="{% if href starts with '/' %}{{ base_path }}{{ href }}{% else %}{{ href }}{% endif %}"
+       class="pswp-link mono-grid-item"
+       title="{{ seo_title|e('html_attr') }}"
+       data-image-id="{{ image.id }}"
+       data-pswp-width="{{ image.width|default(1600) }}"
+       data-pswp-height="{{ image.height|default(1067) }}"
+       data-pswp-caption="{{ image.caption|default('')|e('html_attr') }}">
+      <picture>
+        {% if image.sources.avif|default([])|length %}
+          <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+        {% endif %}
+        {% if image.sources.webp|default([])|length %}
+          <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+        {% endif %}
+        <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+             alt="{{ image.alt_text|default(image.alt)|default('')|e('html_attr') }}"
+             loading="lazy"
+             decoding="async">
+      </picture>
+    </a>
+  {% endfor %}
+</div>
