@@ -52,8 +52,6 @@ class SettingsService
             'image.breakpoints' => ['sm' => 768, 'md' => 1200, 'lg' => 1920, 'xl' => 2560, 'xxl' => 3840],
             'image.preview' => ['width' => 480, 'height' => null],
             'image.variants_async' => true,
-            // TODO: visibility.public is a placeholder - implement server-side enforcement or remove
-            'visibility' => ['public' => true],
             'gallery.default_template_id' => null,
             'site.title' => 'Cimaise',
             'site.logo' => null,
@@ -63,10 +61,7 @@ class SettingsService
             'site.language' => 'en',
             'admin.language' => 'en',
             'date.format' => 'Y-m-d',
-            // TODO: performance.compression is stored but not consumed by middleware - wire up or remove
-            'performance.compression' => true,
             'pagination.limit' => 12,
-            'cache.ttl' => 24,
             'admin.debug_logs' => false,
             // Privacy & Cookie Banner
             'privacy.cookie_banner_enabled' => true,
