@@ -28,6 +28,15 @@ const sparseItems = Array.from(document.querySelectorAll('.strip-sparse-item[dat
 if (sparseItems.length) {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const desktopQuery = window.matchMedia('(min-width: 1024px)');
+  const seededRand = (seed) => {
+    const x = Math.sin(seed * 931.7) * 10000;
+    return x - Math.floor(x);
+  };
+  const baseOffsets = sparseItems.map((_, index) => {
+    const r = seededRand(index + 1);
+    const dir = index % 2 === 0 ? 1 : -1;
+    return dir * (70 + r * 90);
+  });
   const applyShift = () => {
     const isDesktop = desktopQuery.matches;
     if (!isDesktop || prefersReduced) {
@@ -36,10 +45,9 @@ if (sparseItems.length) {
     }
     const scrollY = window.scrollY || window.pageYOffset || 0;
     sparseItems.forEach((item, index) => {
-      const dir = index % 2 === 0 ? 1 : -1;
-      const base = 40 + (index % 5) * 18;
-      const drift = Math.sin((scrollY + index * 120) / 380) * base;
-      item.style.transform = `translateX(${dir * drift}px)`;
+      const base = baseOffsets[index] || 0;
+      const drift = Math.sin((scrollY + index * 140) / 420) * 40;
+      item.style.transform = `translateX(${base + drift}px)`;
     });
   };
   applyShift();

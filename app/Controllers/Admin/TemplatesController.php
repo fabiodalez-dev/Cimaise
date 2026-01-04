@@ -19,10 +19,55 @@ class TemplatesController extends BaseController
     {
         $templates = (new \App\Services\TemplateService($this->db))->getGalleryTemplates();
 
+        // Get custom templates (plugin templates)
+        $customTemplates = [];
+        $stmt = $this->db->pdo()->query("SELECT * FROM custom_templates WHERE type = 'gallery' AND is_active = 1 ORDER BY name");
+        if ($stmt) {
+            $customTemplates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        }
+
         return $this->view->render($response, 'admin/templates/index.twig', [
             'templates' => $templates,
+            'custom_templates' => $customTemplates,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
+    }
+
+    public function toggleSwitcher(Request $request, Response $response): Response
+    {
+        $response = $response->withHeader('Content-Type', 'application/json');
+
+        // CSRF validation from header
+        $token = $request->getHeaderLine('X-CSRF-Token');
+        if (!hash_equals($_SESSION['csrf'] ?? '', $token)) {
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'CSRF error']));
+            return $response->withStatus(403);
+        }
+
+        $data = json_decode((string)$request->getBody(), true) ?? [];
+        $id = (int)($data['id'] ?? 0);
+        $type = $data['type'] ?? 'template';
+        $show = (int)($data['show'] ?? 1);
+
+        if ($id <= 0) {
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Invalid ID']));
+            return $response->withStatus(400);
+        }
+
+        try {
+            if ($type === 'custom') {
+                $stmt = $this->db->pdo()->prepare('UPDATE custom_templates SET show_in_switcher = ? WHERE id = ?');
+            } else {
+                $stmt = $this->db->pdo()->prepare('UPDATE templates SET show_in_switcher = ? WHERE id = ?');
+            }
+            $stmt->execute([$show, $id]);
+
+            $response->getBody()->write(json_encode(['success' => true]));
+            return $response;
+        } catch (\Throwable $e) {
+            $response->getBody()->write(json_encode(['success' => false, 'message' => $e->getMessage()]));
+            return $response->withStatus(500);
+        }
     }
 
     // New template creation is disabled

@@ -11,7 +11,7 @@
 {% set hover_scale = template_settings.style.hover_scale|default(true) %}
 {% set show_captions = template_settings.show_captions|default(false) %}
 
-<section class="pw-gallery" style="--pw-gap-h: {{ gap_h }}px; --pw-gap-v: {{ gap_v }}px;">
+<section class="pw-gallery" style="--pw-gap-h: {{ gap_h|e('html_attr') }}px; --pw-gap-v: {{ gap_v|e('html_attr') }}px;">
   <div class="pw-sparse pswp-gallery">
     {% for image in images %}
       {% set lightbox_href = image.lightbox_url|default(image.url) %}
@@ -58,7 +58,7 @@
   </div>
 </section>
 
-{% set json_flags = constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') %}
+{% set json_flags = constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT') %}
 <script nonce="{{ csp_nonce() }}">
 window.templateSettings = {{ template_settings|json_encode(json_flags)|raw }};
 </script>

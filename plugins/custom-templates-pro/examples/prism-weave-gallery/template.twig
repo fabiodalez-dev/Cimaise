@@ -54,7 +54,7 @@
   </div>
 </section>
 
-{% set json_flags = constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') %}
+{% set json_flags = constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT') %}
 <script nonce="{{ csp_nonce() }}">
 window.templateSettings = {{ template_settings|json_encode(json_flags)|raw }};
 </script>

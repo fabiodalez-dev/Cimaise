@@ -1073,14 +1073,16 @@ function initGalleryWallScroll(containerOrSelector) {
     }
 
     let maxScroll = 0;
+    let containerHeight = 0;
     const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
     function updateMetrics() {
         const trackWidth = track.scrollWidth;
         const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
+        const wallContainer = container.querySelector('.gallery-wall-container');
+        containerHeight = wallContainer ? wallContainer.offsetHeight : window.innerHeight;
         maxScroll = Math.max(0, trackWidth - windowWidth);
-        const sectionHeight = maxScroll + windowHeight;
+        const sectionHeight = maxScroll + containerHeight;
         section.style.height = sectionHeight + 'px';
     }
 
@@ -1090,7 +1092,7 @@ function initGalleryWallScroll(containerOrSelector) {
             return;
         }
         const rect = section.getBoundingClientRect();
-        const sectionScrollHeight = section.offsetHeight - window.innerHeight;
+        const sectionScrollHeight = section.offsetHeight - (containerHeight || window.innerHeight);
         const scrollInSection = Math.max(0, -rect.top);
         const progress = sectionScrollHeight > 0 ? Math.min(1, scrollInSection / sectionScrollHeight) : 0;
         track.style.transform = `translateX(${-progress * maxScroll}px)`;
