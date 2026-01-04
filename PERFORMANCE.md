@@ -26,12 +26,25 @@ The compression system supports both Brotli and Gzip compression algorithms.
 
 Compression can be configured via the Admin Settings page under "Performance & Cache":
 
-- **Enable/Disable**: Toggle compression on/off
+- **Visual Status Indicators**: The admin interface shows which compression algorithms are available on your server with color-coded badges:
+  - 🟢 Green badge = Extension available and working
+  - 🔴 Red badge = Extension not available
+  - Real-time detection of Brotli, Gzip, and Zlib availability
+
+- **Enable/Disable**: Toggle compression on/off (automatically disabled if no compression extensions are available)
+
 - **Compression Type**:
-  - `auto` - Automatically select best available (Brotli > Gzip > Deflate)
-  - `brotli` - Force Brotli only (falls back to uncompressed if unavailable)
-  - `gzip` - Force Gzip only
+  - `auto` (recommended) - Automatically select best available (Brotli → Gzip → Deflate → None)
+    - The dropdown shows which algorithms will be used based on availability
+  - `brotli` - Force Brotli only (option disabled if not available)
+  - `gzip` - Force Gzip only (option disabled if not available)
+
 - **Compression Level**: 0-11 for Brotli, 1-9 for Gzip (higher = better compression but slower)
+
+- **Smart UI**: The interface adapts based on server capabilities:
+  - Fields are disabled if no compression is available
+  - Contextual warnings appear if extensions are missing
+  - Installation tips are shown for missing extensions
 
 #### How It Works
 
@@ -39,9 +52,26 @@ The `CompressionMiddleware` (`app/Middlewares/CompressionMiddleware.php`):
 
 1. Checks if compression is enabled in settings
 2. Verifies the response is compressible (minimum 860 bytes, appropriate content type)
-3. Selects the best compression algorithm based on client support
+3. Selects the best compression algorithm based on:
+   - Server availability (checked via `function_exists()`)
+   - Client support (from `Accept-Encoding` header)
+   - User preference (from settings)
 4. Compresses the response body
 5. Adds appropriate headers (`Content-Encoding`, `Vary`)
+
+**Automatic Fallback Chain:**
+```
+User Request
+    ↓
+Auto Mode Selected?
+    ↓
+├─→ Brotli available & client supports? → Use Brotli
+├─→ Gzip available & client supports?   → Use Gzip
+├─→ Deflate available & client supports? → Use Deflate
+└─→ No compression available            → Serve uncompressed
+```
+
+This means **you don't need to configure anything** - just enable compression and the system will automatically use the best available option. If Brotli is not installed, Gzip will be used seamlessly.
 
 #### Compressible Content Types
 
@@ -193,11 +223,24 @@ Expected improvements:
 
 ### Compression Not Working
 
-1. **Check PHP extensions**: `php -m | grep brotli`
-2. **Check settings**: Ensure compression is enabled in Admin Settings
-3. **Check response size**: Responses < 860 bytes are not compressed
-4. **Check content type**: Only compressible types are compressed
-5. **Check client support**: Verify `Accept-Encoding` header in request
+1. **Check PHP extensions**: `php -m | grep -E "brotli|zlib"`
+   - If only zlib is shown: Gzip will work, Brotli won't
+   - If neither is shown: No compression available
+2. **Check admin interface**: Go to Settings → Performance & Cache
+   - Look at the colored badges to see what's available
+   - Green badge = working, Red badge = not available
+3. **Check settings**: Ensure compression is enabled in Admin Settings
+4. **Check response size**: Responses < 860 bytes are not compressed
+5. **Check content type**: Only compressible types are compressed
+6. **Check client support**: Verify `Accept-Encoding` header in request
+
+**Example Scenarios:**
+
+| Server Setup | Admin Shows | Result |
+|--------------|-------------|--------|
+| Brotli + Gzip installed | 🟢 Brotli, 🟢 Gzip | Auto mode uses Brotli |
+| Only Gzip installed | 🔴 Brotli, 🟢 Gzip | Auto mode uses Gzip |
+| No extensions | 🔴 Brotli, 🔴 Gzip | Compression disabled automatically |
 
 ### Cache Not Working
 
