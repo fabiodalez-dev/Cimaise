@@ -219,19 +219,19 @@
       </div>
       <div class="flex space-x-1">
         {% if pagination.has_prev %}
-          <a href="?page={{ pagination.page - 1 }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ trans('admin.albums.previous') }}</a>
+          <a href="?page={{ pagination.page - 1 }}&order={{ order_mode|e('url') }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ trans('admin.albums.previous') }}</a>
         {% endif %}
 
         {% for p in range(max(1, pagination.page - 2), min(pagination.pages, pagination.page + 2) + 1) %}
           {% if p == pagination.page %}
             <span class="px-3 py-2 text-sm bg-black text-white rounded">{{ p }}</span>
           {% else %}
-            <a href="?page={{ p }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ p }}</a>
+            <a href="?page={{ p }}&order={{ order_mode|e('url') }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ p }}</a>
           {% endif %}
         {% endfor %}
 
         {% if pagination.has_next %}
-          <a href="?page={{ pagination.page + 1 }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ trans('admin.albums.next') }}</a>
+          <a href="?page={{ pagination.page + 1 }}&order={{ order_mode|e('url') }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ trans('admin.albums.next') }}</a>
         {% endif %}
       </div>
     </div>

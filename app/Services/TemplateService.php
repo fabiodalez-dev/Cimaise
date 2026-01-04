@@ -61,6 +61,30 @@ class TemplateService
     }
 
     /**
+     * Gallery templates visible in frontend switcher (filtered by show_in_switcher).
+     */
+    public function getGalleryTemplatesForSwitcher(): array
+    {
+        $templates = [];
+
+        try {
+            $templates = $this->db->pdo()
+                ->query('SELECT * FROM templates WHERE show_in_switcher = 1 ORDER BY name ASC')
+                ->fetchAll() ?: [];
+        } catch (\Throwable) {
+            $templates = [];
+        }
+
+        foreach ($templates as &$template) {
+            $template['settings'] = json_decode($template['settings'] ?? '{}', true) ?: [];
+            $template['libs'] = json_decode($template['libs'] ?? '[]', true) ?: [];
+        }
+        unset($template);
+
+        return array_merge($templates, $this->getCustomGalleryTemplatesForSwitcher());
+    }
+
+    /**
      * Resolve a gallery template by ID (core or custom).
      */
     public function getGalleryTemplateById(int $templateId): ?array
@@ -92,6 +116,38 @@ class TemplateService
         $rows = $this->getCustomGalleryTemplateRows(['id', 'name', 'slug', 'description', 'metadata']);
         $templates = [];
 
+        foreach ($rows as $row) {
+            $metadata = json_decode($row['metadata'] ?? '{}', true) ?: [];
+            $templates[] = [
+                'id' => 1000 + (int)$row['id'],
+                'name' => $row['name'],
+                'slug' => $row['slug'],
+                'description' => $row['description'] ?? '',
+                'settings' => $metadata['settings'] ?? [],
+                'libs' => $metadata['libraries'] ?? [],
+                'is_custom' => true,
+                'custom_id' => (int)$row['id'],
+            ];
+        }
+
+        return $templates;
+    }
+
+    private function getCustomGalleryTemplatesForSwitcher(): array
+    {
+        try {
+            $stmt = $this->db->pdo()->query(
+                "SELECT id, name, slug, description, metadata
+                 FROM custom_templates
+                 WHERE type = 'gallery' AND is_active = 1 AND show_in_switcher = 1
+                 ORDER BY name ASC"
+            );
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $templates = [];
         foreach ($rows as $row) {
             $metadata = json_decode($row['metadata'] ?? '{}', true) ?: [];
             $templates[] = [
