@@ -50,10 +50,20 @@ if (sparseItems.length) {
       item.style.transform = `translateX(${base + drift}px)`;
     });
   };
-  applyShift();
-  if (desktopQuery.matches && !prefersReduced) {
-    window.addEventListener('scroll', () => window.requestAnimationFrame(applyShift), { passive: true });
-  }
-  window.addEventListener('resize', applyShift);
+  let scrollHandler = null;
+  const updateListeners = () => {
+    const shouldListen = desktopQuery.matches && !prefersReduced;
+    if (shouldListen && !scrollHandler) {
+      scrollHandler = () => window.requestAnimationFrame(applyShift);
+      window.addEventListener('scroll', scrollHandler, { passive: true });
+    } else if (!shouldListen && scrollHandler) {
+      window.removeEventListener('scroll', scrollHandler);
+      scrollHandler = null;
+    }
+    applyShift();
+  };
+  updateListeners();
+  desktopQuery.addEventListener('change', updateListeners);
+  window.addEventListener('resize', updateListeners);
 }
 </script>

@@ -106,6 +106,7 @@ function linkManyToMany(PDO $pdo, string $table, string $col1, int $id1, string 
 function getImageInfo(string $path): array
 {
     if (!is_file($path)) {
+        // Default to 3:2 aspect ratio (1600x1067) - common for photography.
         return ['width' => 1600, 'height' => 1067, 'mime' => 'image/jpeg'];
     }
     $info = @getimagesize($path);
@@ -136,10 +137,18 @@ function downloadImage(string $url, string $path): bool
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_setopt($ch, CURLOPT_MAXFILESIZE, 50 * 1024 * 1024);
     curl_setopt($ch, CURLOPT_USERAGENT, 'Cimaise Demo Seeder/1.0');
     $data = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    $errno = curl_errno($ch);
     curl_close($ch);
+
+    if ($errno !== 0) {
+        error_log("Curl error downloading {$url}: [{$errno}] {$error}");
+        return false;
+    }
 
     if ($code >= 200 && $code < 300 && $data !== false && strlen($data) > 1000) {
         if (file_put_contents($path, $data) === false) {
