@@ -1040,7 +1040,12 @@ foreach ($albums as $albumData) {
             } else {
                 $imgInfo = getImageInfo($fullPath);
             }
-            $hash = is_file($fullPath) ? sha1_file($fullPath) : sha1($filePath . time());
+            if (is_file($fullPath)) {
+                $hash = sha1_file($fullPath);
+            } else {
+                echo "     ⚠ File immagine non trovato: {$fullPath}, uso hash del percorso\n";
+                $hash = sha1($filePath);
+            }
 
             // Find camera/lens/film IDs
             $imgCameraId = null;

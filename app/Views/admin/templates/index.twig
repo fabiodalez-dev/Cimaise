@@ -1,5 +1,19 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.templates.title') }} — Cimaise{% endblock %}
+{% macro template_icon(template) %}
+  {% set icon = 'fa-th' %}
+  {% if template.settings.layout == 'masonry' or template.settings.layout == 'masonry_fit' %}
+    {% set icon = 'fa-columns' %}
+  {% elseif template.settings.layout == 'magazine' %}
+    {% set icon = 'fa-newspaper' %}
+  {% elseif template.settings.layout == 'gallery_wall' %}
+    {% set icon = 'fa-arrows-left-right' %}
+  {% elseif template.slug == 'grid-ampia' %}
+    {% set icon = 'fa-puzzle-piece' %}
+  {% endif %}
+  {{ icon }}
+{% endmacro %}
+
 {% block content %}
   <div class="flex items-center justify-between mb-8 flex-wrap gap-3">
     <div>
@@ -10,19 +24,10 @@
 
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
     {% for template in templates %}
-    <div class="card p-4 flex flex-col gap-3 hover:shadow-md transition-all duration-200 {{ template.show_in_switcher|default(1) ? '' : 'opacity-50 grayscale' }}" data-template-id="{{ template.id }}">
+    {% set show_in_switcher = template.show_in_switcher is defined ? template.show_in_switcher : 1 %}
+    <div class="card p-4 flex flex-col gap-3 hover:shadow-md transition-all duration-200 {{ show_in_switcher == 0 ? 'opacity-50 grayscale' : '' }}" data-template-id="{{ template.id }}">
       <div class="flex items-start gap-3">
-        {% set icon = 'fa-th' %}
-        {% if template.settings.layout == 'masonry' or template.settings.layout == 'masonry_fit' %}
-          {% set icon = 'fa-columns' %}
-        {% elseif template.settings.layout == 'magazine' %}
-          {% set icon = 'fa-newspaper' %}
-        {% elseif template.settings.layout == 'gallery_wall' %}
-          {% set icon = 'fa-arrows-left-right' %}
-        {% elseif template.slug == 'grid-ampia' %}
-          {% set icon = 'fa-puzzle-piece' %}
-        {% endif %}
-        <i class="fas {{ icon }} text-gray-900 text-lg mt-0.5"></i>
+        <i class="fas {{ _self.template_icon(template) }} text-gray-900 text-lg mt-0.5"></i>
         <div class="flex-1 min-w-0">
           <a href="{{ base_path }}/admin/templates/{{ template.id }}/edit" class="font-medium text-gray-900 hover:text-blue-600 truncate block">{{ template.name }}</a>
           <p class="text-xs text-gray-500 truncate">{{ template.description|default('—') }}</p>
@@ -32,14 +37,13 @@
       <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
         <label class="flex items-center gap-2 cursor-pointer group">
           <span class="text-xs text-gray-600 group-hover:text-gray-900">{{ trans('admin.templates.show_in_switcher') }}</span>
-          <span class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox"
-                   class="switcher-toggle sr-only peer"
-                   data-id="{{ template.id }}"
-                   data-type="template"
-                   {{ template.show_in_switcher|default(1) ? 'checked' : '' }}>
-            <span class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></span>
-          </span>
+          {% include 'admin/_partials/toggle_switch.twig' with {
+            'id': template.id,
+            'type': 'template',
+            'checked': show_in_switcher != 0,
+            'ring_class': 'peer-focus:ring-blue-300',
+            'checked_bg_class': 'peer-checked:bg-blue-600'
+          } %}
         </label>
 
         <a href="{{ base_path }}/admin/templates/{{ template.id }}/edit"
@@ -56,7 +60,8 @@
     <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ trans('admin.templates.custom_templates') }}</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {% for template in custom_templates %}
-      <div class="card p-4 flex flex-col gap-3 hover:shadow-md transition-all duration-200 {{ template.show_in_switcher|default(1) ? '' : 'opacity-50 grayscale' }}" data-template-id="{{ template.id }}">
+      {% set show_in_switcher = template.show_in_switcher is defined ? template.show_in_switcher : 1 %}
+      <div class="card p-4 flex flex-col gap-3 hover:shadow-md transition-all duration-200 {{ show_in_switcher == 0 ? 'opacity-50 grayscale' : '' }}" data-template-id="{{ template.id }}">
         <div class="flex items-start gap-3">
           <i class="fas fa-palette text-gray-900 text-lg mt-0.5"></i>
           <div class="flex-1 min-w-0">
@@ -68,14 +73,13 @@
       <div class="flex items-center justify-between gap-3 pt-2 border-t border-gray-100">
         <label class="flex items-center gap-2 cursor-pointer group">
           <span class="text-xs text-gray-600 group-hover:text-gray-900">{{ trans('admin.templates.show_in_switcher') }}</span>
-          <span class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox"
-                   class="switcher-toggle sr-only peer"
-                   data-id="{{ template.id }}"
-                   data-type="custom"
-                   {{ template.show_in_switcher|default(1) ? 'checked' : '' }}>
-            <span class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></span>
-          </span>
+          {% include 'admin/_partials/toggle_switch.twig' with {
+            'id': template.id,
+            'type': 'custom',
+            'checked': show_in_switcher != 0,
+            'ring_class': 'peer-focus:ring-purple-300',
+            'checked_bg_class': 'peer-checked:bg-purple-600'
+          } %}
         </label>
 
         <a href="{{ base_path }}/admin/custom-templates/{{ template.id }}/edit"
@@ -109,9 +113,13 @@ document.addEventListener('DOMContentLoaded', function() {
       const card = this.closest('.card');
       const originalChecked = this.checked;
       const errorMsg = '{{ trans("admin.templates.toggle_error")|default("Errore di connessione")|e('js') }}';
+      const timeoutMsg = '{{ trans("admin.templates.toggle_timeout")|default("Timeout di connessione")|e('js') }}';
 
       this.disabled = true;
       if (card) card.style.opacity = '0.6';
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       fetch('{{ base_path }}/admin/templates/toggle-switcher', {
         method: 'POST',
@@ -119,10 +127,12 @@ document.addEventListener('DOMContentLoaded', function() {
           'Content-Type': 'application/json',
           'X-CSRF-Token': '{{ csrf }}'
         },
-        body: JSON.stringify({ id: id, type: type, show: show })
+        body: JSON.stringify({ id: id, type: type, show: show }),
+        signal: controller.signal
       })
       .then(r => r.json())
       .then(data => {
+        clearTimeout(timeoutId);
         this.disabled = false;
         if (card) card.style.opacity = '';
         if (data.success) {
@@ -140,14 +150,16 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        clearTimeout(timeoutId);
         this.disabled = false;
         if (card) card.style.opacity = '';
         this.checked = !originalChecked;
+        const message = err && err.name === 'AbortError' ? timeoutMsg : errorMsg;
         if (window.showToast) {
-          window.showToast(errorMsg, 'error');
+          window.showToast(message, 'error');
         } else {
-          alert(errorMsg);
+          alert(message);
         }
       });
     });
