@@ -4,22 +4,20 @@
  * Cimaise Demo Data Seeder
  *
  * Comprehensive script to populate the application with demo data including:
- * - Categories with images
+ * - Categories with images (auto-downloaded from Unsplash)
  * - Tags
  * - Locations
  * - Equipment (cameras, lenses, films, developers, labs)
  * - Multiple albums with various settings (NSFW, password-protected, etc.)
- * - Images with metadata
+ * - Images with metadata (auto-downloaded from Unsplash)
  *
  * Usage: php bin/dev/seed_demo_data.php [--force]
  *
  * Options:
  *   --force    Skip confirmation prompt
  *
- * IMPORTANT: Place test images in public/media/seed/ before running.
- * Required image structure:
- *   public/media/seed/categories/   - Category cover images
- *   public/media/seed/albums/       - Album images (organized by album slug)
+ * Images are automatically downloaded from Unsplash (free stock photos).
+ * After running, execute: php bin/console images:generate
  */
 
 declare(strict_types=1);
@@ -109,6 +107,109 @@ function getImageInfo(string $path): array
     ];
 }
 
+/**
+ * Download an image from URL to local path
+ */
+function downloadImage(string $url, string $path): bool
+{
+    $dir = dirname($path);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+
+    if (file_exists($path)) {
+        return true;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Cimaise Demo Seeder/1.0');
+    $data = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($code >= 200 && $code < 300 && strlen($data) > 1000) {
+        file_put_contents($path, $data);
+        return true;
+    }
+    return false;
+}
+
+// Unsplash image URLs for categories (800x600)
+$categoryImages = [
+    'street.jpg' => 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&h=600&fit=crop',
+    'portrait.jpg' => 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=600&fit=crop',
+    'landscape.jpg' => 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
+    'architecture.jpg' => 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&h=600&fit=crop',
+    'film.jpg' => 'https://images.unsplash.com/photo-1495121553079-4c61bcce1894?w=800&h=600&fit=crop',
+    'bw.jpg' => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=600&fit=crop',
+    'documentary.jpg' => 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&h=600&fit=crop',
+    'fineart.jpg' => 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=600&fit=crop',
+];
+
+// Unsplash image URLs for albums (mixed orientations: horizontal, vertical, square)
+$albumImages = [
+    'streets-of-milan' => [
+        'milan-001.jpg' => ['https://images.unsplash.com/photo-1513581166391-887a96ddeafd?w=1600&h=1067&fit=crop', 1600, 1067],
+        'milan-002.jpg' => ['https://images.unsplash.com/photo-1520277739336-7bf67edfa768?w=1067&h=1600&fit=crop', 1067, 1600],
+        'milan-003.jpg' => ['https://images.unsplash.com/photo-1534430480872-3498386e7856?w=1600&h=1600&fit=crop', 1600, 1600],
+        'milan-004.jpg' => ['https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=1600&h=1067&fit=crop', 1600, 1067],
+        'milan-005.jpg' => ['https://images.unsplash.com/photo-1523730205978-59fd1b2965e3?w=1067&h=1600&fit=crop', 1067, 1600],
+        'milan-006.jpg' => ['https://images.unsplash.com/photo-1515542622106-78bda8ba0e5b?w=1600&h=1067&fit=crop', 1600, 1067],
+    ],
+    'intimate-portraits' => [
+        'portrait-001.jpg' => ['https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=1067&h=1600&fit=crop', 1067, 1600],
+        'portrait-002.jpg' => ['https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=1600&h=1067&fit=crop', 1600, 1067],
+        'portrait-003.jpg' => ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1600&h=1600&fit=crop', 1600, 1600],
+        'portrait-004.jpg' => ['https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=1067&h=1600&fit=crop', 1067, 1600],
+    ],
+    'body-studies' => [
+        'body-001.jpg' => ['https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1067&h=1600&fit=crop', 1067, 1600],
+        'body-002.jpg' => ['https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&h=1067&fit=crop', 1600, 1067],
+        'body-003.jpg' => ['https://images.unsplash.com/photo-1520787497953-1985ca467702?w=1600&h=1600&fit=crop', 1600, 1600],
+        'body-004.jpg' => ['https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1067&h=1600&fit=crop', 1067, 1600],
+    ],
+    'private-collection' => [
+        'private-001.jpg' => ['https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=1600&h=1067&fit=crop', 1600, 1067],
+        'private-002.jpg' => ['https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=1067&h=1600&fit=crop', 1067, 1600],
+        'private-003.jpg' => ['https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1600&h=1600&fit=crop', 1600, 1600],
+    ],
+    'iceland-fire-ice' => [
+        'iceland-001.jpg' => ['https://images.unsplash.com/photo-1476610182048-b716b8518aae?w=1600&h=1067&fit=crop', 1600, 1067],
+        'iceland-002.jpg' => ['https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=1067&h=1600&fit=crop', 1067, 1600],
+        'iceland-003.jpg' => ['https://images.unsplash.com/photo-1529963183134-61a90db47eaf?w=1600&h=1600&fit=crop', 1600, 1600],
+        'iceland-004.jpg' => ['https://images.unsplash.com/photo-1490682143684-14369e18dce8?w=1600&h=1067&fit=crop', 1600, 1067],
+        'iceland-005.jpg' => ['https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=1067&h=1600&fit=crop', 1067, 1600],
+        'iceland-006.jpg' => ['https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1600&h=1067&fit=crop', 1600, 1067],
+        'iceland-007.jpg' => ['https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1067&h=1600&fit=crop', 1067, 1600],
+        'iceland-008.jpg' => ['https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=1600&h=1067&fit=crop', 1600, 1067],
+    ],
+    'tokyo-nights' => [
+        'tokyo-001.jpg' => ['https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1600&h=1067&fit=crop', 1600, 1067],
+        'tokyo-002.jpg' => ['https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1067&h=1600&fit=crop', 1067, 1600],
+        'tokyo-003.jpg' => ['https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=1600&h=1600&fit=crop', 1600, 1600],
+        'tokyo-004.jpg' => ['https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=1600&h=1067&fit=crop', 1600, 1067],
+        'tokyo-005.jpg' => ['https://images.unsplash.com/photo-1480796927426-f609979314bd?w=1067&h=1600&fit=crop', 1067, 1600],
+        'tokyo-006.jpg' => ['https://images.unsplash.com/photo-1551641506-ee5bf4cb45f1?w=1600&h=1067&fit=crop', 1600, 1067],
+    ],
+    'brutalist-barcelona' => [
+        'barcelona-001.jpg' => ['https://images.unsplash.com/photo-1583422409516-2895a77efded?w=1600&h=1067&fit=crop', 1600, 1067],
+        'barcelona-002.jpg' => ['https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=1067&h=1600&fit=crop', 1067, 1600],
+        'barcelona-003.jpg' => ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600&h=1600&fit=crop', 1600, 1600],
+        'barcelona-004.jpg' => ['https://images.unsplash.com/photo-1520608421741-68228b76b6df?w=1600&h=1067&fit=crop', 1600, 1067],
+    ],
+    'venetian-craftsmen' => [
+        'venice-001.jpg' => ['https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=1600&h=1067&fit=crop', 1600, 1067],
+        'venice-002.jpg' => ['https://images.unsplash.com/photo-1514890547357-a9ee288728e0?w=1067&h=1600&fit=crop', 1067, 1600],
+        'venice-003.jpg' => ['https://images.unsplash.com/photo-1534113414509-0eec2bfb493f?w=1600&h=1600&fit=crop', 1600, 1600],
+        'venice-004.jpg' => ['https://images.unsplash.com/photo-1498307833015-e7b400441eb8?w=1600&h=1067&fit=crop', 1600, 1067],
+        'venice-005.jpg' => ['https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=1067&h=1600&fit=crop', 1067, 1600],
+    ],
+];
+
 echo "\n🚀 Starting demo data seeding...\n\n";
 
 // ============================================
@@ -178,7 +279,19 @@ $categories = [
 $categoryIds = [];
 foreach ($categories as $cat) {
     $categoryIds[$cat['slug']] = upsertById($pdo, 'categories', $cat);
-    echo "   ✓ {$cat['name']}\n";
+
+    // Download category image from Unsplash
+    $imgFile = basename($cat['image_path']);
+    if (isset($categoryImages[$imgFile])) {
+        $imgPath = $root . '/public' . $cat['image_path'];
+        if (downloadImage($categoryImages[$imgFile], $imgPath)) {
+            echo "   ✓ {$cat['name']} (image downloaded)\n";
+        } else {
+            echo "   ✓ {$cat['name']} (image download failed)\n";
+        }
+    } else {
+        echo "   ✓ {$cat['name']}\n";
+    }
 }
 
 // Subcategories
@@ -788,7 +901,7 @@ foreach ($albums as $albumData) {
     $albumFilms = $albumData['films'] ?? [];
     $albumDevelopers = $albumData['developers'] ?? [];
     $albumLabs = $albumData['labs'] ?? [];
-    $albumImages = $albumData['images'] ?? [];
+    $albumImagesData = $albumData['images'] ?? [];
 
     // Remove non-column data
     unset(
@@ -878,10 +991,26 @@ foreach ($albums as $albumData) {
     // Insert images
     $coverId = null;
     $sortOrder = 1;
-    foreach ($albumImages as $imgData) {
-        $filePath = '/media/seed/albums/' . $albumData['slug'] . '/' . $imgData['file'];
+    $albumSlug = $albumData['slug'];
+    foreach ($albumImagesData as $imgData) {
+        $filePath = '/media/seed/albums/' . $albumSlug . '/' . $imgData['file'];
         $fullPath = $root . '/public' . $filePath;
-        $imgInfo = getImageInfo($fullPath);
+
+        // Download image from Unsplash if available
+        $downloadedDimensions = null;
+        if (isset($albumImages[$albumSlug][$imgData['file']])) {
+            $imgUrlData = $albumImages[$albumSlug][$imgData['file']];
+            if (downloadImage($imgUrlData[0], $fullPath)) {
+                $downloadedDimensions = ['width' => $imgUrlData[1], 'height' => $imgUrlData[2]];
+            }
+        }
+
+        // Use downloaded dimensions or get from file
+        if ($downloadedDimensions) {
+            $imgInfo = array_merge($downloadedDimensions, ['mime' => 'image/jpeg']);
+        } else {
+            $imgInfo = getImageInfo($fullPath);
+        }
         $hash = is_file($fullPath) ? sha1_file($fullPath) : sha1($filePath . time());
 
         // Find camera/lens/film IDs
@@ -991,10 +1120,8 @@ echo "║  Draft albums:                                                 ║\n";
 echo "║    - brutalist-barcelona                                       ║\n";
 echo "╚════════════════════════════════════════════════════════════════╝\n";
 echo "\n";
-echo "📁 Place your test images in:\n";
-echo "   public/media/seed/categories/   - Category cover images\n";
-echo "   public/media/seed/albums/{slug}/ - Album images\n";
+echo "📷 Images downloaded from Unsplash (free stock photos)\n";
 echo "\n";
-echo "🚀 Run variant generation after adding images:\n";
+echo "🚀 Run variant generation:\n";
 echo "   php bin/console images:generate\n";
 echo "\n";
