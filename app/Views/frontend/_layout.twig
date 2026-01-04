@@ -1251,10 +1251,10 @@
                             </button>
                             
                             <!-- Mega Menu Panel -->
-                            <div id="categories-mega-menu" class="absolute left-0 top-full mt-2 w-[720px] bg-white border border-gray-200 shadow-xl rounded-xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out">
-                                <div class="p-8">
+                            <div id="categories-mega-menu" class="absolute left-1/2 top-full mt-3 w-[min(100vw-2rem,1040px)] -translate-x-1/2 bg-white border border-gray-200 shadow-2xl rounded-2xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out">
+                                <div class="p-8 max-h-[70vh] overflow-y-auto">
                                     <!-- Parent Categories Grid -->
-                                    <div class="grid grid-cols-3 gap-6" id="parent-categories-grid">
+                                    <div class="grid gap-8" id="parent-categories-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
                                         {% for category in filtered_parent_categories %}
                                         <div class="group cursor-pointer category-parent-item relative" data-category-id="{{ category.id }}" data-category-slug="{{ category.slug }}" data-category-name="{{ category.name|e }}">
                                             <a href="{{ base_path }}/category/{{ category.slug }}" class="block hover:no-underline">
@@ -1694,16 +1694,37 @@
                 isOpen = true;
             }
             
-            // Mouse enter/leave for smooth mega menu
+            // Mouse enter/leave for smooth mega menu (keep open across whitespace)
             const dropdown = document.getElementById('categories-dropdown');
-            if (dropdown) {
-                dropdown.addEventListener('mouseenter', () => {
-                    clearTimeout(hoverTimeout);
+            const scheduleClose = () => {
+                clearTimeout(hoverTimeout);
+                hoverTimeout = setTimeout(closeMenu, 180);
+            };
+            const clearClose = () => clearTimeout(hoverTimeout);
+            const isHoveringTarget = (target) => {
+                if (!target) return false;
+                return (menu.contains(target) || toggle.contains(target));
+            };
+
+            [toggle, menu].forEach((el) => {
+                if (!el) return;
+                el.addEventListener('mouseenter', () => {
+                    clearClose();
                     openMenu();
                 });
-                
-                dropdown.addEventListener('mouseleave', () => {
-                    hoverTimeout = setTimeout(closeMenu, 150);
+                el.addEventListener('mouseleave', (e) => {
+                    if (isHoveringTarget(e.relatedTarget)) return;
+                    scheduleClose();
+                });
+            });
+            if (dropdown) {
+                dropdown.addEventListener('focusin', () => {
+                    clearClose();
+                    openMenu();
+                });
+                dropdown.addEventListener('focusout', (e) => {
+                    if (isHoveringTarget(e.relatedTarget)) return;
+                    scheduleClose();
                 });
             }
             

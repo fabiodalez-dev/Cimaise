@@ -810,7 +810,7 @@ class PageController extends BaseController
         $availableTemplates = [];
         if (!empty($album['allow_template_switch'])) {
             try {
-                $availableTemplates = $templateService->getGalleryTemplates();
+                $availableTemplates = $templateService->getGalleryTemplatesForSwitcher();
             } catch (\Throwable) { $availableTemplates = []; }
         }
 
@@ -1816,6 +1816,7 @@ class PageController extends BaseController
                 continue;
             }
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
+            $album = $this->ensureAlbumCoverImage($album);
             $visibleAlbums[] = $album;
         }
         return $visibleAlbums;

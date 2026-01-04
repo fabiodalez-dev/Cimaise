@@ -474,7 +474,7 @@ class GalleryController extends BaseController
         $list = [];
         if (!empty($album['allow_template_switch'])) {
             try {
-                $list = $templateService->getGalleryTemplates();
+                $list = $templateService->getGalleryTemplatesForSwitcher();
             } catch (\Throwable) { $list = []; }
         }
 

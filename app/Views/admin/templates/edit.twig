@@ -129,6 +129,98 @@
             </div>
           </div>
 
+          {% elseif item.slug == 'grid-compatta' %}
+          <input type="hidden" name="layout" value="dense_grid">
+          {% set dense = item.settings.dense_grid|default({}) %}
+
+          <div class="space-y-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.templates.dense_grid_cell_size') }}</label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">
+                    <i class="fas fa-desktop mr-1"></i>{{ trans('admin.templates.dense_min_cell_desktop') }}
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input type="range" name="dense_min_desktop" min="150" max="400" value="{{ dense.minCellDesktop|default(250) }}" class="flex-1" id="dense-min-desktop-slider">
+                    <span class="text-sm text-gray-600 w-14 text-right" id="dense-min-desktop-value">{{ dense.minCellDesktop|default(250) }}px</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">
+                    <i class="fas fa-tablet-alt mr-1"></i>{{ trans('admin.templates.dense_min_cell_tablet') }}
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input type="range" name="dense_min_tablet" min="100" max="300" value="{{ dense.minCellTablet|default(150) }}" class="flex-1" id="dense-min-tablet-slider">
+                    <span class="text-sm text-gray-600 w-14 text-right" id="dense-min-tablet-value">{{ dense.minCellTablet|default(150) }}px</span>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">{{ trans('admin.templates.dense_min_cell_hint') }}</p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.templates.dense_row_height') }}</label>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">
+                    <i class="fas fa-desktop mr-1"></i>Desktop
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input type="range" name="dense_row_height" min="150" max="400" value="{{ dense.rowHeight|default(250) }}" class="flex-1" id="dense-row-height-slider">
+                    <span class="text-sm text-gray-600 w-14 text-right" id="dense-row-height-value">{{ dense.rowHeight|default(250) }}px</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">
+                    <i class="fas fa-tablet-alt mr-1"></i>Tablet
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input type="range" name="dense_row_height_tablet" min="100" max="300" value="{{ dense.rowHeightTablet|default(180) }}" class="flex-1" id="dense-row-height-tablet-slider">
+                    <span class="text-sm text-gray-600 w-14 text-right" id="dense-row-height-tablet-value">{{ dense.rowHeightTablet|default(180) }}px</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">
+                    <i class="fas fa-mobile-alt mr-1"></i>Mobile
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input type="range" name="dense_row_height_mobile" min="150" max="400" value="{{ dense.rowHeightMobile|default(300) }}" class="flex-1" id="dense-row-height-mobile-slider">
+                    <span class="text-sm text-gray-600 w-14 text-right" id="dense-row-height-mobile-value">{{ dense.rowHeightMobile|default(300) }}px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">{{ trans('admin.templates.dense_gap') }}</label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.templates.gap') }}</label>
+                  <div class="flex items-center gap-2">
+                    <input type="range" name="dense_gap" min="0" max="32" value="{{ dense.gap|default(8) }}" class="flex-1" id="dense-gap-slider">
+                    <span class="text-sm text-gray-600 w-14 text-right" id="dense-gap-value">{{ dense.gap|default(8) }}px</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">{{ trans('admin.templates.dense_max_width') }}</label>
+                  <div class="flex items-center gap-2">
+                    <input type="range" name="dense_max_width" min="800" max="2400" step="100" value="{{ dense.maxWidth|default(1600) }}" class="flex-1" id="dense-max-width-slider">
+                    <span class="text-sm text-gray-600 w-14 text-right" id="dense-max-width-value">{{ dense.maxWidth|default(1600) }}px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t pt-4">
+              <label class="flex items-center">
+                <input type="checkbox" name="dense_adaptive_sizing" class="form-checkbox"{% if dense.adaptiveSizing %} checked{% endif %}>
+                <span class="ml-2 text-sm text-gray-700">{{ trans('admin.templates.dense_adaptive_sizing') }}</span>
+              </label>
+              <p class="text-xs text-gray-500 mt-1 ml-6">{{ trans('admin.templates.dense_adaptive_sizing_hint') }}</p>
+            </div>
+          </div>
+
           {% elseif item.slug == 'masonry-portfolio' %}
           <input type="hidden" name="layout" value="masonry">
           {% set mp = item.settings.masonry_portfolio|default({}) %}
@@ -777,6 +869,26 @@
           creativeGapValue.textContent = this.value + 'px';
         });
       }
+
+      // Dense grid slider handlers
+      const denseSliders = [
+        { slider: 'dense-min-desktop-slider', value: 'dense-min-desktop-value' },
+        { slider: 'dense-min-tablet-slider', value: 'dense-min-tablet-value' },
+        { slider: 'dense-row-height-slider', value: 'dense-row-height-value' },
+        { slider: 'dense-row-height-tablet-slider', value: 'dense-row-height-tablet-value' },
+        { slider: 'dense-row-height-mobile-slider', value: 'dense-row-height-mobile-value' },
+        { slider: 'dense-gap-slider', value: 'dense-gap-value' },
+        { slider: 'dense-max-width-slider', value: 'dense-max-width-value' }
+      ];
+      denseSliders.forEach(function(pair) {
+        const slider = document.getElementById(pair.slider);
+        const value = document.getElementById(pair.value);
+        if (slider && value) {
+          slider.addEventListener('input', function() {
+            value.textContent = this.value + 'px';
+          });
+        }
+      });
 
       // Initial UI state
       updateLayoutUI();

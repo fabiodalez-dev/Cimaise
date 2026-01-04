@@ -91,7 +91,13 @@ function upsertById(PDO $pdo, string $table, array $data, string $uniqueField = 
 
 function linkManyToMany(PDO $pdo, string $table, string $col1, int $id1, string $col2, int $id2): void
 {
-    $pdo->prepare("INSERT OR IGNORE INTO $table ($col1, $col2) VALUES (?, ?)")->execute([$id1, $id2]);
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'sqlite') {
+        $sql = "INSERT OR IGNORE INTO $table ($col1, $col2) VALUES (?, ?)";
+    } else {
+        $sql = "INSERT IGNORE INTO $table ($col1, $col2) VALUES (?, ?)";
+    }
+    $pdo->prepare($sql)->execute([$id1, $id2]);
 }
 
 function getImageInfo(string $path): array
@@ -860,7 +866,7 @@ $albums = [
         'slug' => 'venetian-craftsmen',
         'category_id' => $categoryIds['documentary'],
         'location_id' => $locationIds['venice-italy'],
-        'template_id' => 7,
+        'template_id' => 6,
         'excerpt' => 'Documenting the disappearing traditional crafts of Venice.',
         'body' => '<p>Venice is not just a tourist destination—it\'s a living museum of centuries-old craftsmanship. This documentary project follows the last generation of traditional artisans: the gondola builders, the glassblowers of Murano, the lace makers of Burano, and the mask craftsmen of the carnival.</p><p>An ongoing project started in 2022.</p>',
         'shoot_date' => '2024-02-01',

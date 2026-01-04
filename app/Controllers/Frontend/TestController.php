@@ -174,7 +174,7 @@ class TestController extends BaseController
 
         // Available templates for icon switcher
         try {
-            $list = $templateService->getGalleryTemplates();
+            $list = $templateService->getGalleryTemplatesForSwitcher();
         } catch (\Throwable) { $list = []; }
 
         // Nav categories for header

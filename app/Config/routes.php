@@ -1024,6 +1024,10 @@ $app->post('/admin/templates', function (Request $request, Response $response) u
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
     return $controller->store($request, $response);
 })->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
+$app->post('/admin/templates/toggle-switcher', function (Request $request, Response $response) use ($container) {
+    $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
+    return $controller->toggleSwitcher($request, $response);
+})->add($container['db'] ? new AuthMiddleware($container['db']) : function($request, $handler) { return $handler->handle($request); });
 $app->get('/admin/templates/{id}/edit', function (Request $request, Response $response, array $args) use ($container) {
     $controller = new \App\Controllers\Admin\TemplatesController($container['db'], Twig::fromRequest($request));
     return $controller->edit($request, $response, $args);
