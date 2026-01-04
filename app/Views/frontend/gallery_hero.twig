@@ -260,6 +260,7 @@
 
   {# Gallery container. We reuse the same dynamic partial and JS contract #}
   {# Hero cover defaults to masonry_fit layout for better presentation #}
+  {% set custom_template_twig = template_custom_twig|default('') %}
   {% set layout = template_settings.layout|default('masonry_fit') %}
   {% set masonry = template_settings.masonry|default(false) %}
   {% set cols = template_settings.columns is defined ? template_settings.columns : {'desktop':3,'tablet':2,'mobile':1} %}
@@ -275,7 +276,11 @@
 
   {% set style = template_settings.style|default({rounded: false, shadow: false, hover_scale: true, hover_fade: true}) %}
 
-  {% if layout == 'magazine' %}
+  {% if custom_template_twig %}
+    <div id="images-gallery" class="pswp-gallery" data-layout="custom">
+      {% include custom_template_twig %}
+    </div>
+  {% elseif layout == 'magazine' %}
     <div id="images-gallery" class="mt-10" data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
       {% include 'frontend/_gallery_magazine_content.twig' with { images: images, template_settings: template_settings, album: album } %}
     </div>
@@ -568,15 +573,17 @@
         }
 
         let maxScroll = 0;
+        let containerHeight = 0;
         const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
         function updateMetrics() {
-          const trackWidth = track.scrollWidth;
-          const windowWidth = window.innerWidth;
-          const windowHeight = window.innerHeight;
-          maxScroll = Math.max(0, trackWidth - windowWidth);
-          const sectionHeight = maxScroll + windowHeight;
-          section.style.height = sectionHeight + 'px';
+            const trackWidth = track.scrollWidth;
+            const windowWidth = window.innerWidth;
+            const wallContainer = container.querySelector('.gallery-wall-container');
+            containerHeight = wallContainer ? wallContainer.offsetHeight : window.innerHeight;
+            maxScroll = Math.max(0, trackWidth - windowWidth);
+            const sectionHeight = maxScroll + containerHeight;
+            section.style.height = sectionHeight + 'px';
         }
 
         function updateTrack() {
@@ -585,7 +592,7 @@
             return;
           }
           const rect = section.getBoundingClientRect();
-          const sectionScrollHeight = section.offsetHeight - window.innerHeight;
+            const sectionScrollHeight = section.offsetHeight - (containerHeight || window.innerHeight);
           const scrollInSection = Math.max(0, -rect.top);
           const progress = sectionScrollHeight > 0 ? Math.min(1, scrollInSection / sectionScrollHeight) : 0;
           track.style.transform = `translateX(${-progress * maxScroll}px)`;
@@ -950,6 +957,41 @@
       // Silently fail - magazine layout will show without animation
     }
   }
+  function loadTemplateAssets(assets) {
+    if (!assets) return;
+    const cssList = Array.isArray(assets.css) ? assets.css : [];
+    const jsList = Array.isArray(assets.js) ? assets.js : [];
+    const allowedPrefix = (basePath || '').replace(/\/$/, '') + '/';
+    const isAllowedAssetUrl = (value) => {
+      if (!value || typeof value !== 'string') return false;
+      try {
+        const url = new URL(value, window.location.origin);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+        if (url.origin !== window.location.origin) return false;
+        return url.pathname.startsWith(allowedPrefix);
+      } catch (e) {
+        return false;
+      }
+    };
+
+    cssList.forEach(href => {
+      if (!isAllowedAssetUrl(href) || document.querySelector(`link[data-template-asset="${href}"]`)) return;
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      link.setAttribute('data-template-asset', href);
+      document.head.appendChild(link);
+    });
+
+    jsList.forEach(src => {
+      if (!isAllowedAssetUrl(src) || document.querySelector(`script[data-template-asset="${src}"]`)) return;
+      const script = document.createElement('script');
+      script.src = src;
+      script.defer = true;
+      script.setAttribute('data-template-asset', src);
+      document.body.appendChild(script);
+    });
+  }
   // Delegated handler for template switches (AJAX) with class update
   document.addEventListener('click', function(event) {
     const el = event.target.closest('.tpl-switch');
@@ -962,6 +1004,7 @@
     const albumRef = el.getAttribute('data-album-ref') || window.location.pathname.split('/').pop();
     if (!galleryContainer || !templateId || !albumRef) { delete el.dataset.switchInProgress; return; }
     const original = galleryContainer.innerHTML;
+    galleryContainer.classList.add('tpl-switching');
     galleryContainer.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div></div>';
     document.querySelectorAll('.tpl-switch').forEach(btn => { btn.classList.remove('bg-black','text-white'); btn.classList.add('text-neutral-700','hover:bg-neutral-100'); });
     el.classList.remove('text-neutral-700','hover:bg-neutral-100'); el.classList.add('bg-black','text-white');
@@ -969,7 +1012,6 @@
     fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
       .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
       .then(html => {
-        galleryContainer.style.opacity = '0';
         let parsedHtml = html;
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
@@ -980,13 +1022,20 @@
             try { window.templateSettings = JSON.parse(match[1]); }
             catch(e) { console.error('Failed to parse templateSettings:', e); }
           }
+          const assetsMatch = settingsScript.textContent.match(/window\.templateAssets\s*=\s*(\{[\s\S]*?\});/);
+          if (assetsMatch) {
+            try { window.templateAssets = JSON.parse(assetsMatch[1]); }
+            catch(e) { console.error('Failed to parse templateAssets:', e); window.templateAssets = { css: [], js: [] }; }
+          }
           settingsScript.remove();
         }
         parsedHtml = doc.body ? doc.body.innerHTML : html;
+        loadTemplateAssets(window.templateAssets);
         galleryContainer.innerHTML = parsedHtml;
         // Match direct object assignment from _gallery_content.twig
         // Update container classes based on new template settings
         const templateSlug = window.templateSettings?.template_slug || '';
+        const isCustomTemplate = window.templateSettings?.layout === 'custom';
         const newLayout = templateSlug === 'masonry-portfolio'
           ? 'masonry_portfolio'
           : (templateSlug === 'grid-ampia'
@@ -1001,7 +1050,10 @@
           document.body.classList.remove('gallery-wall-page');
         }
 
-        if (newLayout === 'magazine') {
+        if (isCustomTemplate) {
+          galleryContainer.className = 'pswp-gallery';
+          galleryContainer.dataset.layout = 'custom';
+        } else if (newLayout === 'magazine') {
           galleryContainer.className = 'mt-10';
         } else if (newLayout === 'gallery_wall') {
           const wall = window.templateSettings?.gallery_wall || {};
@@ -1123,6 +1175,7 @@
           const dc = d>=6?'lg:grid-cols-6':d==5?'lg:grid-cols-5':d==4?'lg:grid-cols-4':d==3?'lg:grid-cols-3':d==2?'lg:grid-cols-2':'lg:grid-cols-1';
           galleryContainer.className = `grid ${mc} ${tc} ${dc} gap-6`;
         }
+        galleryContainer.classList.add('tpl-switching');
         galleryContainer.id = idKeep;
         // Update URL
         try { history.pushState(null, '', `${basePath}/album/${albumRef}?template=${templateId}`); } catch(e){}
@@ -1157,7 +1210,7 @@
           }
           // Show container after animation starts
           setTimeout(() => {
-            galleryContainer.style.opacity = '1';
+            galleryContainer.classList.remove('tpl-switching');
             galleryContainer.style.transition = 'none';
             // Fallback: force items visible if animation failed
             galleryContainer.querySelectorAll('.masonry-item, .image-item, .photo-item').forEach(el => {
@@ -1169,7 +1222,7 @@
           }, 80);
         }, 50);
       })
-      .catch(err => { console.error('Template switch failed', err); galleryContainer.innerHTML = original; galleryContainer.style.opacity = '1'; })
+      .catch(err => { console.error('Template switch failed', err); galleryContainer.innerHTML = original; galleryContainer.classList.remove('tpl-switching'); })
       .finally(() => { delete el.dataset.switchInProgress; });
   });
   </script>
@@ -1207,6 +1260,10 @@
     ]
   }
   </script>
+{% endblock %}
+
+{% block styles %}
+  {{ parent() }}
 {% endblock %}
 
 {% block scripts %}

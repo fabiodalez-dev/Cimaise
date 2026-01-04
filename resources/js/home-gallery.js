@@ -21,11 +21,13 @@ import Lenis from 'lenis';
     const trackWidth = track.scrollWidth;
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
+    const containerHeight = windowHeight - headerHeight;
 
-    // Calculate section height to prevent empty background
-    // trackWidth - windowWidth = horizontal scroll distance
-    // + windowHeight = keep sticky active until end
-    const sectionHeight = (trackWidth - windowWidth) + windowHeight;
+    // Calculate section height:
+    // - trackWidth - windowWidth = horizontal scroll distance to show last image
+    // - + containerHeight = keep sticky active until last image is fully visible
+    // - + containerHeight = buffer to pause on last image before footer
+    const sectionHeight = (trackWidth - windowWidth) + containerHeight + containerHeight;
     gallerySection.style.height = sectionHeight + 'px';
 
     const maxScroll = trackWidth - windowWidth;

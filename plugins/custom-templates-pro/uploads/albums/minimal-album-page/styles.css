@@ -1,0 +1,218 @@
+/**
+ * Minimal Album Page Template
+ * Clean and minimal design for photography portfolios
+ */
+
+:root {
+  --minimal-bg: #fff;
+  --minimal-text: #1a1a1a;
+  --minimal-border: #e5e5e5;
+  --minimal-text-muted: #666;
+  --minimal-text-light: #999;
+  --minimal-body: #333;
+}
+html.dark {
+  --minimal-bg: #1a1a1a;
+  --minimal-text: #e5e5e5;
+  --minimal-border: #333;
+  --minimal-text-muted: #999;
+  --minimal-text-light: #999;
+  --minimal-body: #e0e0e0;
+}
+.minimal-album-page {
+  background: var(--minimal-bg);
+  color: var(--minimal-text);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.minimal-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Header */
+.minimal-header {
+  padding: 6rem 0 4rem;
+  text-align: center;
+  border-bottom: 1px solid var(--minimal-border);
+}
+
+.minimal-categories {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.minimal-category {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--minimal-text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.minimal-category:hover {
+  color: var(--minimal-text);
+}
+
+.minimal-title {
+  font-size: 3rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  margin: 0 0 1rem;
+  line-height: 1.2;
+}
+
+.minimal-meta {
+  font-size: 0.875rem;
+  color: var(--minimal-text-muted);
+  margin-bottom: 2rem;
+}
+
+.minimal-separator {
+  margin: 0 0.5rem;
+}
+
+.minimal-excerpt {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--minimal-text-muted);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Body */
+.minimal-body {
+  padding: 4rem 0;
+  max-width: 800px;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--minimal-body);
+}
+
+.minimal-body p {
+  margin-bottom: 1.5rem;
+}
+
+/* Equipment */
+.minimal-equipment {
+  padding: 3rem 0;
+  border-top: 1px solid var(--minimal-border);
+  border-bottom: 1px solid var(--minimal-border);
+}
+
+.minimal-equipment-title {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--minimal-text-light);
+  margin-bottom: 2rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+.minimal-equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.minimal-equipment-item {
+  text-align: center;
+}
+
+.minimal-equipment-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--minimal-text-light);
+  margin-bottom: 0.75rem;
+}
+
+.minimal-equipment-values {
+  font-size: 0.9375rem;
+  color: var(--minimal-body);
+  line-height: 1.6;
+}
+
+/* Gallery */
+.minimal-gallery {
+  padding: 4rem 0 6rem;
+}
+
+.minimal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .minimal-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .minimal-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.minimal-grid-item {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--minimal-border);
+}
+
+.minimal-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.minimal-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.minimal-image:hover img {
+  transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .minimal-header {
+    padding: 3.5rem 0 2.5rem;
+  }
+
+  .minimal-title {
+    font-size: 1.85rem;
+  }
+
+  .minimal-excerpt {
+    font-size: 1rem;
+  }
+
+  .minimal-body {
+    padding: 2.5rem 0;
+  }
+
+  .minimal-equipment-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .minimal-album-page .gallery-grid,
+  .minimal-album-page .gallery-masonry {
+    grid-template-columns: 1fr !important;
+  }
+}

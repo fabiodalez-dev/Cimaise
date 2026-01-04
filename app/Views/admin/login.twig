@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it"{% if dark_mode|default(false) %} class="dark"{% endif %}>
+<html lang="{{ admin_locale|default('en')|slice(0, 2) }}"{% if dark_mode|default(false) %} class="dark"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -51,7 +51,7 @@
               type="email" 
               required 
               autofocus
-              class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder:text-gray-400 dark:bg-white dark:text-black dark:placeholder:text-black/60 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
               placeholder="admin@cimaise.local"
             >
           </div>
@@ -68,7 +68,7 @@
               name="password"
               type="password"
               required
-              class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder:text-gray-400 dark:bg-white dark:text-black dark:placeholder:text-black/60 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
               placeholder="••••••••"
             >
           </div>

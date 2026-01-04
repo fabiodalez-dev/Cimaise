@@ -109,6 +109,7 @@ class Installer
             $this->verifyRequirements($data);
             $this->setupDatabase($data);
             $this->installSchema();
+            $this->runPluginInstallHooks();
             $this->createFirstUser($data);
             $this->updateSiteSettings($data);
             $this->generateFavicons($data);
@@ -149,7 +150,10 @@ class Installer
                     'image_variants', 'images', 'albums', 'users', 'settings',
                     'templates', 'categories', 'tags', 'cameras', 'lenses',
                     'films', 'developers', 'labs', 'locations', 'filter_settings',
-                    'frontend_texts'
+                    'frontend_texts', 'custom_templates', 'plugin_status',
+                    'plugin_analytics_custom_events', 'plugin_image_ratings',
+                    'analytics_pro_events', 'analytics_pro_sessions',
+                    'analytics_pro_funnels', 'analytics_pro_dimensions'
                 ];
                 foreach ($tablesToDrop as $table) {
                     $this->db->pdo()->exec("DROP TABLE IF EXISTS `{$table}`");
@@ -166,6 +170,46 @@ class Installer
 
         if (!empty($errors)) {
             throw new \RuntimeException(implode("\n", $errors));
+        }
+    }
+
+    private function runPluginInstallHooks(): void
+    {
+        if ($this->db === null) {
+            return;
+        }
+
+        $pluginsDir = $this->rootPath . '/plugins';
+        if (!is_dir($pluginsDir)) {
+            return;
+        }
+
+        $previousContainer = $GLOBALS['container'] ?? null;
+        $GLOBALS['container'] = ['db' => $this->db];
+
+        foreach (glob($pluginsDir . '/*', GLOB_ONLYDIR) as $pluginPath) {
+            $installHook = $pluginPath . '/install.php';
+            if (!file_exists($installHook)) {
+                continue;
+            }
+
+            try {
+                ob_start();
+                $installer = require $installHook;
+                ob_end_clean();
+
+                if (is_callable($installer)) {
+                    $installer($this->db);
+                }
+            } catch (\Throwable $e) {
+                error_log('Installer: Plugin install hook failed: ' . basename($pluginPath) . ' - ' . $e->getMessage());
+            }
+        }
+
+        if ($previousContainer !== null) {
+            $GLOBALS['container'] = $previousContainer;
+        } else {
+            unset($GLOBALS['container']);
         }
     }
 

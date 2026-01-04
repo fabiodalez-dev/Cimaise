@@ -1,0 +1,59 @@
+<main class="dl-home">
+  <section class="dl-hero">
+    <div class="dl-hero-content">
+      <p class="dl-eyebrow">{{ home_settings.hero_title|default(site_title)|e }}</p>
+      <h1 class="dl-headline">{{ site_title|e }}</h1>
+      {% if site_description %}
+      <p class="dl-subhead">{{ site_description|e }}</p>
+      {% endif %}
+    </div>
+    <div class="dl-orbit"></div>
+  </section>
+
+  <section class="dl-mosaic" aria-label="Featured photographs">
+    {% for image in all_images|slice(0, 12) %}
+      {% set img_src = image.fallback_src|default(image.url) %}
+      <figure class="dl-chip dl-reveal" data-reveal>
+        <img src="{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
+             alt="{{ image.alt|default(site_title)|e }}"
+             loading="lazy"
+             decoding="async">
+      </figure>
+    {% endfor %}
+  </section>
+
+  <section class="dl-albums">
+    <div class="dl-albums-head">
+      <h2>{{ home_settings.albums_title|default(plugin_trans('templates.driftline_home.albums_title'))|e }}</h2>
+      {% if home_settings.albums_subtitle %}
+      <p>{{ home_settings.albums_subtitle|e }}</p>
+      {% endif %}
+    </div>
+    <div class="dl-albums-grid">
+      {% for album in albums %}
+      <article class="dl-card dl-reveal" data-reveal>
+        <a href="{{ base_path }}/album/{{ album.slug }}" class="dl-card-link">
+          {% if album.cover_image %}
+          {% set cover = album.cover_image %}
+          {% set cover_src = cover.url|default('') %}
+          <img src="{% if cover_src starts with '/' %}{{ base_path }}{{ cover_src }}{% else %}{{ cover_src }}{% endif %}"
+               alt="{{ album.title|e }}"
+               loading="lazy"
+               decoding="async">
+          {% endif %}
+          <div class="dl-card-body">
+            <h3>{{ album.title|e }}</h3>
+            {% if album.excerpt %}
+            <p>{{ album.excerpt|e }}</p>
+            {% endif %}
+          </div>
+        </a>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+</main>
+
+<script nonce="{{ csp_nonce() }}">
+window.templateSettings = {{ template_settings|json_encode(constant('JSON_HEX_TAG'))|raw }};
+</script>
