@@ -77,18 +77,26 @@ SQL;
 
         foreach ($uploadDirs as $dir) {
             if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
+                if (!mkdir($dir, 0755, true) && !is_dir($dir)) {
+                    throw new \RuntimeException("Impossibile creare la directory: {$dir}");
+                }
             }
         }
 
         // 3. Crea directory guides se non esiste
         $guidesDir = $pluginDir . '/guides';
         if (!is_dir($guidesDir)) {
-            mkdir($guidesDir, 0755, true);
+            if (!mkdir($guidesDir, 0755, true) && !is_dir($guidesDir)) {
+                throw new \RuntimeException("Impossibile creare la directory: {$guidesDir}");
+            }
         }
 
         // 4. Verifica guide template
-        require_once $pluginDir . '/Services/GuidesGeneratorService.php';
+        $guidesServicePath = $pluginDir . '/Services/GuidesGeneratorService.php';
+        if (!file_exists($guidesServicePath)) {
+            throw new \RuntimeException('File GuidesGeneratorService non trovato');
+        }
+        require_once $guidesServicePath;
         $guidesService = new GuidesGeneratorService();
         if (!$guidesService->guidesExist()) {
             throw new \RuntimeException('Guide template mancanti');

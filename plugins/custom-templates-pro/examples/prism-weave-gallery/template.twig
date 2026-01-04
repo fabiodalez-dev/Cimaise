@@ -1,4 +1,8 @@
 {% set cols = template_settings.columns|default({desktop: 4, tablet: 3, mobile: 1}) %}
+{% macro build_srcset(sources, base_path) %}
+{% for src in sources %}{% set src_url = src|split(' ')|first %}{% set resolved_url = src_url starts with '/' ? base_path ~ src_url : src_url %}{% set descriptor = src|split(' ')|slice(1)|join(' ') %}{{ resolved_url|e('html_attr') }} {{ descriptor|e('html_attr') }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% endmacro %}
+{% import _self as macros %}
 {% set gap_settings = template_settings.gap|default(18) %}
 {% set gap_h = gap_settings.horizontal|default(gap_settings) %}
 {% set gap_v = gap_settings.vertical|default(gap_settings) %}
@@ -25,18 +29,18 @@
            data-alt="{{ image.alt|default('')|e('html_attr') }}">
           <picture>
           {% if image.sources.avif|length %}
-          <source type="image/avif" srcset="{% for src in image.sources.avif %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+          <source type="image/avif" srcset="{{ macros.build_srcset(image.sources.avif, base_path) }}">
           {% endif %}
           {% if image.sources.webp|length %}
-          <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+          <source type="image/webp" srcset="{{ macros.build_srcset(image.sources.webp, base_path) }}">
           {% endif %}
           {% if image.sources.jpg|length %}
-          <source type="image/jpeg" srcset="{% for src in image.sources.jpg %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
+          <source type="image/jpeg" srcset="{{ macros.build_srcset(image.sources.jpg, base_path) }}">
           {% endif %}
           <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                alt="{{ image.alt|e('html_attr') }}"
-               width="{{ image.width|default(1600) }}"
-               height="{{ image.height|default(1067) }}"
+               width="{{ image.width|default(1600)|e('html_attr') }}"
+               height="{{ image.height|default(1067)|e('html_attr') }}"
                loading="lazy"
                decoding="async"
                class="pw-img">
@@ -50,6 +54,7 @@
   </div>
 </section>
 
+{% set json_flags = constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') %}
 <script nonce="{{ csp_nonce() }}">
-window.templateSettings = {{ template_settings|json_encode(constant('JSON_HEX_TAG'))|raw }};
+window.templateSettings = {{ template_settings|json_encode(json_flags)|raw }};
 </script>
