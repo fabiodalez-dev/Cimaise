@@ -569,6 +569,7 @@ class SettingsController extends BaseController
             $result = $faviconService->generateFavicons($absoluteLogoPath);
 
             if ($result['success']) {
+                $svc->set('pwa.existing_icons', []);
                 $generatedCount = count($result['generated']);
                 $message = str_replace('{count}', (string)$generatedCount, trans('admin.flash.favicon_success'));
 
@@ -715,6 +716,7 @@ class SettingsController extends BaseController
             $result = $faviconService->generateFavicons($absoluteSourcePath);
 
             if ($result['success']) {
+                $svc->set('pwa.existing_icons', []);
                 $generatedCount = count($result['generated']);
                 $message = str_replace('{count}', (string)$generatedCount, trans('admin.flash.favicon_success'));
 

@@ -856,6 +856,54 @@ php bin/console nsfw:generate-blur --album=42
 
 ---
 
+## Development Scripts
+
+Scripts for development and testing workflows:
+
+### Demo Data Seeder
+
+Populate your installation with sample albums, categories, and images for testing:
+
+```bash
+# Run with confirmation prompt
+php bin/dev/seed_demo_data.php
+
+# Skip confirmation (for CI/automation)
+php bin/dev/seed_demo_data.php --force
+```
+
+**What it creates:**
+- Categories (Street, Portrait, Landscape, Film, etc.)
+- Equipment (cameras, lenses, film stocks)
+- Sample albums with images downloaded from Unsplash
+- NSFW and password-protected albums for testing
+- Draft albums for workflow testing
+
+Images are stored in `/storage/originals/` (matching production upload behavior) and variants are automatically generated.
+
+### Clean for Reinstallation
+
+Reset the application to a fresh state for reinstallation:
+
+```bash
+# Interactive (asks for confirmation)
+bash bin/dev/clean_for_reinstall.sh
+
+# Non-interactive (for automation)
+bash bin/dev/clean_for_reinstall.sh --force
+```
+
+**What it removes:**
+- All image variants (`public/media/*`)
+- All original files (`storage/originals/*`)
+- Database (`database/database.sqlite`)
+- Environment config (`.env`)
+- Cache, logs, and temp files
+
+After running, navigate to `/install` to set up a fresh installation.
+
+---
+
 ## Scheduled Maintenance (Cron)
 
 Cimaise includes a maintenance system that automatically generates missing image variants and blur previews for protected albums. This runs automatically on each page request, but for best performance, you can schedule it via cron.

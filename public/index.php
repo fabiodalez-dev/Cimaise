@@ -85,8 +85,13 @@ if (!$isInstallerRoute) {
     
     // If not installed, redirect to installer
     if (!$installed) {
-        // Avoid redirect loop - check if we're already on install page
-        if (strpos($_SERVER['REQUEST_URI'], '/install') === false) {
+        // Avoid redirect loop - check if we're already on install page or accessing media
+        // Media files must be accessible during installation (e.g., uploaded logo preview)
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $isInstallerPath = strpos($uri, '/install') !== false;
+        $isMediaPath = strpos($uri, '/media/') !== false;
+
+        if (!$isInstallerPath && !$isMediaPath) {
             $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
             $scriptDir = dirname($scriptPath);
             $basePath = $scriptDir === '/' ? '' : $scriptDir;

@@ -1586,6 +1586,7 @@ class PageController extends BaseController
                 SELECT ac.category_id
                 FROM album_category ac
                 WHERE ac.album_id = a.id
+                -- LIMIT 1 prevents duplicate rows; selects the lowest category_id as a stable fallback.
                 ORDER BY ac.category_id ASC
                 LIMIT 1
             )

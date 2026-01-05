@@ -17,7 +17,12 @@
  *   --force    Skip confirmation prompt
  *
  * Images are automatically downloaded from Unsplash (free stock photos).
- * After running, execute: php bin/console images:generate
+ * Original images are stored in /storage/originals/ (like backend upload).
+ * Temp files are automatically cleaned up after seeding.
+ *
+ * This script automatically runs:
+ * - php bin/console images:generate (generates variants)
+ * - php bin/console nsfw:generate-blur --all (generates blur for protected albums)
  */
 
 declare(strict_types=1);
@@ -55,6 +60,12 @@ $pdo = $db->pdo();
 
 $root = dirname(__DIR__, 2);
 $mediaPath = $root . '/public/media/seed';
+$storageOriginalsPath = $root . '/storage/originals';
+
+// Ensure storage/originals directory exists
+if (!is_dir($storageOriginalsPath)) {
+    mkdir($storageOriginalsPath, 0755, true);
+}
 
 // Helper functions
 function upsertById(PDO $pdo, string $table, array $data, string $uniqueField = 'slug'): int
@@ -1022,29 +1033,44 @@ foreach ($albums as $albumData) {
         $sortOrder = 1;
         $albumSlug = $albumData['slug'];
         foreach ($albumImagesData as $imgData) {
-            $filePath = '/media/seed/albums/' . $albumSlug . '/' . $imgData['file'];
-            $fullPath = $root . '/public' . $filePath;
-
-            // Download image from Unsplash if available
+            // Download image from Unsplash to temp location first
+            $tempPath = $root . '/public/media/seed/albums/' . $albumSlug . '/' . $imgData['file'];
             $downloadedDimensions = null;
+
             if (isset($albumImages[$albumSlug][$imgData['file']])) {
                 $imgUrlData = $albumImages[$albumSlug][$imgData['file']];
-                if (downloadImage($imgUrlData[0], $fullPath)) {
+                if (downloadImage($imgUrlData[0], $tempPath)) {
                     $downloadedDimensions = ['width' => $imgUrlData[1], 'height' => $imgUrlData[2]];
                 }
             }
 
-            // Use downloaded dimensions or get from file
+            // Get image info and hash
             if ($downloadedDimensions) {
                 $imgInfo = array_merge($downloadedDimensions, ['mime' => 'image/jpeg']);
             } else {
-                $imgInfo = getImageInfo($fullPath);
+                $imgInfo = getImageInfo($tempPath);
             }
-            if (is_file($fullPath)) {
-                $hash = sha1_file($fullPath);
-            } else {
-                echo "     ⚠ File immagine non trovato: {$fullPath}, uso hash del percorso\n";
-                $hash = sha1($filePath);
+
+            if (!is_file($tempPath)) {
+                echo "     ⚠ File immagine non trovato: {$tempPath}, salto\n";
+                continue;
+            }
+
+            // Generate hash and determine extension (like backend does)
+            $hash = sha1_file($tempPath);
+            $ext = match ($imgInfo['mime']) {
+                'image/jpeg' => '.jpg',
+                'image/png' => '.png',
+                'image/webp' => '.webp',
+                default => '.jpg',
+            };
+
+            // Copy to storage/originals/{hash}.{ext} (like backend upload)
+            $storageFilePath = $storageOriginalsPath . '/' . $hash . $ext;
+            $storageRelativePath = '/storage/originals/' . $hash . $ext;
+
+            if (!is_file($storageFilePath)) {
+                copy($tempPath, $storageFilePath);
             }
 
             // Find camera/lens/film IDs
@@ -1065,15 +1091,16 @@ foreach ($albums as $albumData) {
                 }
             }
 
-            // Check if image already exists
-            $stmt = $pdo->prepare("SELECT id FROM images WHERE album_id = ? AND original_path = ?");
-            $stmt->execute([$albumId, $filePath]);
+            // Check if image already exists by hash (more reliable than path)
+            $stmt = $pdo->prepare("SELECT id FROM images WHERE album_id = ? AND file_hash = ?");
+            $stmt->execute([$albumId, $hash]);
             $existingImgId = $stmt->fetchColumn();
 
             if ($existingImgId) {
-                // Update existing image
-                $pdo->prepare("UPDATE images SET alt_text = ?, caption = ?, camera_id = ?, lens_id = ?, film_id = ?, process = ?, width = ?, height = ?, mime = ?, sort_order = ? WHERE id = ?")
+                // Update existing image - also update original_path to new storage location
+                $pdo->prepare("UPDATE images SET original_path = ?, alt_text = ?, caption = ?, camera_id = ?, lens_id = ?, film_id = ?, process = ?, width = ?, height = ?, mime = ?, sort_order = ? WHERE id = ?")
                     ->execute([
+                        $storageRelativePath,
                         $imgData['alt'],
                         $imgData['caption'],
                         $imgCameraId,
@@ -1088,11 +1115,11 @@ foreach ($albums as $albumData) {
                     ]);
                 $imgId = (int)$existingImgId;
             } else {
-                // Insert new image
+                // Insert new image with storage path (like backend upload)
                 $pdo->prepare("INSERT INTO images (album_id, original_path, file_hash, width, height, mime, alt_text, caption, camera_id, lens_id, film_id, process, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
                     ->execute([
                         $albumId,
-                        $filePath,
+                        $storageRelativePath,
                         $hash,
                         $imgInfo['width'],
                         $imgInfo['height'],
@@ -1161,6 +1188,7 @@ echo "║    - brutalist-barcelona                                       ║\n";
 echo "╚════════════════════════════════════════════════════════════════╝\n";
 echo "\n";
 echo "📷 Images downloaded from Unsplash (free stock photos)\n";
+echo "📁 Originals stored in /storage/originals/ (like backend upload)\n";
 echo "\n";
 
 // ============================================
@@ -1195,6 +1223,33 @@ if ($blurReturn === 0) {
     foreach ($blurOutput as $line) {
         echo "     {$line}\n";
     }
+}
+
+// ============================================
+// CLEANUP: Remove temp album seed files (keep category images)
+// ============================================
+$seedAlbumsDir = $root . '/public/media/seed/albums';
+if (is_dir($seedAlbumsDir)) {
+    echo "🗑️  Cleaning up temporary album seed files...\n";
+
+    // Recursively delete the albums seed directory only
+    // (category images in /public/media/seed/categories/ are kept as they're referenced in DB)
+    $deleteSeedDir = function($dir) use (&$deleteSeedDir) {
+        if (!is_dir($dir)) return;
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            if (is_dir($path)) {
+                $deleteSeedDir($path);
+            } else {
+                @unlink($path);
+            }
+        }
+        @rmdir($dir);
+    };
+
+    $deleteSeedDir($seedAlbumsDir);
+    echo "   ✓ Temporary album files removed (category images preserved)\n";
 }
 
 echo "\n";

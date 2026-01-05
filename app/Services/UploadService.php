@@ -648,6 +648,41 @@ class UploadService
     }
 
     /**
+     * Ensure a generic blur placeholder exists for protected media fallbacks.
+     */
+    public function ensureBlurPlaceholder(): ?string
+    {
+        $mediaDir = dirname(__DIR__, 2) . '/public/media';
+        ImagesService::ensureDir($mediaDir);
+
+        $placeholderPath = $mediaDir . '/blur-placeholder.jpg';
+        if (!is_file($placeholderPath)) {
+            $image = imagecreatetruecolor(8, 8);
+            if ($image === false) {
+                Logger::warning('UploadService: Failed to allocate blur placeholder image', [], 'upload');
+                return null;
+            }
+
+            $color = imagecolorallocate($image, 120, 120, 120);
+            if ($color !== false) {
+                imagefilledrectangle($image, 0, 0, 7, 7, $color);
+            }
+
+            $saved = imagejpeg($image, $placeholderPath, 60);
+            imagedestroy($image);
+
+            if (!$saved) {
+                Logger::warning('UploadService: Failed to write blur placeholder image', [
+                    'path' => $placeholderPath,
+                ], 'upload');
+                return null;
+            }
+        }
+
+        return '/media/blur-placeholder.jpg';
+    }
+
+    /**
      * Generate blur using ImageMagick (high quality)
      */
     private function generateBlurWithImagick(string $src, string $dest): bool

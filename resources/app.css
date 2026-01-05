@@ -386,9 +386,9 @@ html.dark .bg-white { background-color: var(--color-bg-secondary) !important; }
 /* Note: .bg-black is handled with specific selectors (button.bg-black, a.bg-black) to preserve contrast */
 
 /* Dark mode for background opacity variants */
-html.dark .bg-white\/95 { background-color: rgba(var(--color-bg-secondary-rgb), 0.95) !important; }
-html.dark .bg-white\/98 { background-color: rgba(var(--color-bg-secondary-rgb), 0.98) !important; }
-html.dark .bg-white\/80 { background-color: rgba(var(--color-bg-secondary-rgb), 0.8) !important; }
+html.dark .bg-white\/95 { background-color: rgb(var(--color-bg-secondary-rgb) / 0.95) !important; }
+html.dark .bg-white\/98 { background-color: rgb(var(--color-bg-secondary-rgb) / 0.98) !important; }
+html.dark .bg-white\/80 { background-color: rgb(var(--color-bg-secondary-rgb) / 0.8) !important; }
 html.dark .bg-gray-50\/80 { background-color: rgba(10, 10, 10, 0.8) !important; }
 
 /* Dark mode for borders */
@@ -499,7 +499,7 @@ html.dark .text-white {
 
 /* Dark mode for header and navigation */
 html.dark #main-header {
-  background-color: rgba(var(--color-bg-secondary-rgb), 0.95) !important;
+  background-color: rgb(var(--color-bg-secondary-rgb) / 0.95) !important;
   border-color: #262626 !important;
 }
 
@@ -552,7 +552,7 @@ html.dark .tag-item:hover .bg-gray-100 {
 
 /* Dark mode for search panel */
 html.dark #header-search-panel {
-  background-color: rgba(var(--color-bg-secondary-rgb), 0.95) !important;
+  background-color: rgb(var(--color-bg-secondary-rgb) / 0.95) !important;
   border-color: #262626 !important;
 }
 
@@ -575,7 +575,7 @@ html.dark #header-search-suggestions {
 
 /* Dark mode for mobile menu */
 html.dark #mobile-menu {
-  background-color: rgba(var(--color-bg-secondary-rgb), 0.98) !important;
+  background-color: rgb(var(--color-bg-secondary-rgb) / 0.98) !important;
   border-color: #262626 !important;
 }
 
@@ -602,7 +602,7 @@ html.dark #mobile-menu .bg-gray-100 {
 
 /* Dark mode for filters panel */
 html.dark #filters-panel {
-  background-color: rgba(var(--color-bg-secondary-rgb), 0.8) !important;
+  background-color: rgb(var(--color-bg-secondary-rgb) / 0.8) !important;
   border-color: #262626 !important;
 }
 
@@ -711,7 +711,7 @@ html.dark h6.text-black {
 
 /* Dark mode for filters section */
 html.dark #filters-section {
-  background-color: rgba(var(--color-bg-secondary-rgb), 0.95) !important;
+  background-color: rgb(var(--color-bg-secondary-rgb) / 0.95) !important;
   border-color: #262626 !important;
 }
 
@@ -812,7 +812,7 @@ html.dark p.text-gray-600 {
 
 /* Dark mode for category badges */
 html.dark .bg-white\/90 {
-  background-color: rgba(var(--color-bg-secondary-rgb), 0.9) !important;
+  background-color: rgb(var(--color-bg-secondary-rgb) / 0.9) !important;
   color: #fafafa !important;
 }
 
@@ -900,7 +900,7 @@ html.dark .albums-edge-right {
 
 /* Albums carousel arrows */
 html.dark .albums-arrow {
-  background: rgba(var(--color-bg-secondary-rgb), 0.9) !important;
+  background: rgb(var(--color-bg-secondary-rgb) / 0.9) !important;
   color: #fafafa !important;
   border-color: rgba(255,255,255,.08) !important;
 }
@@ -934,7 +934,7 @@ html.dark .head-logo_text {
 }
 
 html.dark .menu-btn {
-  background-color: rgba(var(--color-bg-secondary-rgb), 0.9) !important;
+  background-color: rgb(var(--color-bg-secondary-rgb) / 0.9) !important;
   color: #fafafa !important;
 }
 
@@ -1135,7 +1135,7 @@ html.dark #nsfw-confirm-btn:hover {
 
 /* Dark mode for category badges on cards */
 html.dark .bg-white\/80 {
-  background-color: rgba(var(--color-bg-secondary-rgb), 0.8) !important;
+  background-color: rgb(var(--color-bg-secondary-rgb) / 0.8) !important;
   color: #fafafa !important;
 }
 

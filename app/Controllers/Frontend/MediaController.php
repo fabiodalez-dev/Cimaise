@@ -4,7 +4,10 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
+use App\Services\UploadService;
+use App\Support\BlurGenerationJob;
 use App\Support\Database;
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -16,7 +19,7 @@ class MediaController extends BaseController
 {
     private const BLUR_CACHE_SECONDS = 3600; // 1 hour for blur variants
 
-    public function __construct(private Database $db)
+    public function __construct(private Database $db, private UploadService $uploadService)
     {
         parent::__construct();
     }
@@ -108,21 +111,35 @@ class MediaController extends BaseController
     }
 
     /**
-     * Generate blur variant on-demand for protected albums.
-     * Returns the URL path to the blur variant, or null on failure.
+     * Enqueue blur variant generation for protected albums.
+     * Returns a placeholder URL path while the background job runs, or null on failure.
      */
     private function generateBlurOnDemand(int $imageId): ?string
     {
+        $dispatched = false;
         try {
-            $uploadService = new \App\Services\UploadService($this->db);
-            return $uploadService->generateBlurredVariant($imageId);
+            $dispatched = BlurGenerationJob::dispatch($imageId);
         } catch (\Throwable $e) {
-            \App\Support\Logger::warning('Failed to generate blur on-demand', [
+            Logger::warning('Failed to enqueue blur generation job', [
                 'image_id' => $imageId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 'media');
-            return null;
         }
+
+        if (!$dispatched) {
+            Logger::warning('Blur generation job dispatch failed', [
+                'image_id' => $imageId,
+            ], 'media');
+        }
+
+        $placeholder = $this->uploadService->ensureBlurPlaceholder();
+        if ($placeholder === null) {
+            Logger::warning('Failed to resolve blur placeholder', [
+                'image_id' => $imageId,
+            ], 'media');
+        }
+
+        return $placeholder;
     }
 
     /**

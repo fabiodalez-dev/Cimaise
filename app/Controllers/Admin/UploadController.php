@@ -87,8 +87,13 @@ class UploadController extends BaseController
             $albumCheck->execute([$albumId]);
             $album = $albumCheck->fetch();
             $needsBlur = !empty($album['is_nsfw']) || !empty($album['password_hash']);
-        } catch (\Throwable) {
-            // Column might not exist, assume no blur needed
+        } catch (\Throwable $e) {
+            // Backwards compatibility: older schemas may not include is_nsfw and/or password_hash.
+            Logger::warning('UploadController: album blur check failed (missing columns?)', [
+                'album_id' => $albumId,
+                'columns' => ['is_nsfw', 'password_hash'],
+                'error' => $e->getMessage(),
+            ], 'upload');
         }
 
         // Prepare array compatible with UploadService
@@ -211,6 +216,9 @@ class UploadController extends BaseController
                 $publicPath = dirname(__DIR__, 3) . '/public';
                 $faviconService = new \App\Services\FaviconService($publicPath);
                 $faviconResult = $faviconService->generateFavicons($destPath);
+                if (!empty($faviconResult['success'])) {
+                    $settings->set('pwa.existing_icons', []);
+                }
             } catch (\Throwable $faviconError) {
                 $faviconResult['error'] = $faviconError->getMessage();
                 \App\Support\Logger::error('Favicon generation failed after logo upload', [

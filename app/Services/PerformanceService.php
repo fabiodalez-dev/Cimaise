@@ -42,17 +42,15 @@ class PerformanceService
         }
 
         // Analytics domains (if custom analytics JS is configured)
-        $analyticsJs = $this->settings->get('privacy.custom_js_analytics', '');
-        if (!empty($analyticsJs)) {
-            if (str_contains($analyticsJs, 'google-analytics') || str_contains($analyticsJs, 'googletagmanager')) {
-                $hints['dns-prefetch'][] = ['href' => 'https://www.googletagmanager.com'];
-                $hints['dns-prefetch'][] = ['href' => 'https://www.google-analytics.com'];
-            }
+        $analyticsJs = (string) ($this->settings->get('privacy.custom_js_analytics', '') ?? '');
+        if ($analyticsJs !== '' && (str_contains($analyticsJs, 'google-analytics') || str_contains($analyticsJs, 'googletagmanager'))) {
+            $hints['dns-prefetch'][] = ['href' => 'https://www.googletagmanager.com'];
+            $hints['dns-prefetch'][] = ['href' => 'https://www.google-analytics.com'];
         }
 
         // CDN domains (if configured)
-        $cdnUrl = $this->settings->get('cdn.url', '');
-        if (!empty($cdnUrl)) {
+        $cdnUrl = (string) ($this->settings->get('cdn.url', '') ?? '');
+        if ($cdnUrl !== '') {
             $parsed = parse_url($cdnUrl);
             if ($parsed && isset($parsed['scheme']) && isset($parsed['host'])) {
                 $hints['preconnect'][] = [
@@ -78,8 +76,8 @@ class PerformanceService
     private function usesGoogleFonts(): bool
     {
         // Check if custom CSS contains Google Fonts imports
-        $customCss = $this->settings->get('frontend.custom_css', '');
-        if (str_contains($customCss, 'fonts.googleapis.com') || str_contains($customCss, 'fonts.gstatic.com')) {
+        $customCss = (string) ($this->settings->get('frontend.custom_css', '') ?? '');
+        if ($customCss !== '' && (str_contains($customCss, 'fonts.googleapis.com') || str_contains($customCss, 'fonts.gstatic.com'))) {
             return true;
         }
 
@@ -87,7 +85,7 @@ class PerformanceService
         try {
             $stmt = $this->db->pdo()->query("SELECT value FROM settings WHERE key = 'typography.font_family'");
             $fontFamily = $stmt->fetchColumn();
-            if ($fontFamily && str_contains($fontFamily, 'google')) {
+            if ($fontFamily && is_string($fontFamily) && str_contains($fontFamily, 'google')) {
                 return true;
             }
         } catch (\Throwable $e) {

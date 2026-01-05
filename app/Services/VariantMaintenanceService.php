@@ -198,7 +198,7 @@ class VariantMaintenanceService
             FROM images i
             JOIN albums a ON a.id = i.album_id
             LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'blur'
-            WHERE (a.is_nsfw = 1 OR a.is_password_protected = 1) AND iv.id IS NULL
+            WHERE (a.is_nsfw = 1 OR (a.password_hash IS NOT NULL AND a.password_hash != '')) AND iv.id IS NULL
             LIMIT 1
         ");
         $blurStmt->execute();
