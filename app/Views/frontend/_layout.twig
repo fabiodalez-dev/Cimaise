@@ -3750,10 +3750,13 @@
     <script nonce="{{ csp_nonce() }}">
     // Register Service Worker for offline support and PWA features
     if ('serviceWorker' in navigator) {
+      const pwaDebug = {{ app_debug|default(false) ? 'true' : 'false' }};
+      const pwaLog = pwaDebug ? console.log.bind(console) : function() {};
+
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('{{ base_path }}/sw.js')
           .then(function(registration) {
-            console.log('[PWA] Service Worker registered:', registration.scope);
+            pwaLog('[PWA] Service Worker registered:', registration.scope);
 
             // Check for updates periodically
             setInterval(function() {
@@ -3766,7 +3769,7 @@
               newWorker.addEventListener('statechange', function() {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   // New content available, notify user
-                  console.log('[PWA] New content available, please refresh.');
+                  pwaLog('[PWA] New content available, please refresh.');
                   // Optionally show a notification to the user
                   if (window.confirm('New version available! Click OK to refresh.')) {
                     newWorker.postMessage({ type: 'SKIP_WAITING' });
@@ -3777,7 +3780,7 @@
             });
           })
           .catch(function(error) {
-            console.log('[PWA] Service Worker registration failed:', error);
+            pwaLog('[PWA] Service Worker registration failed:', error);
           });
 
         // Reload page when new service worker takes control

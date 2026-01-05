@@ -12,6 +12,10 @@ const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_IMAGES = `${CACHE_VERSION}-images`;
 const CACHE_PAGES = `${CACHE_VERSION}-pages`;
 
+// Debug mode - set to false to suppress console logs
+const DEBUG = false;
+const log = (...args) => DEBUG && console.log(...args);
+
 // Assets to pre-cache on install
 const STATIC_ASSETS = [
   '/',
@@ -27,12 +31,12 @@ const MAX_PAGE_CACHE = 20; // Store up to 20 pages
  * INSTALL - Pre-cache critical assets
  */
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
+  log('[SW] Installing service worker...');
 
   event.waitUntil(
     caches.open(CACHE_STATIC)
       .then((cache) => {
-        console.log('[SW] Pre-caching static assets');
+        log('[SW] Pre-caching static assets');
         return cache.addAll(STATIC_ASSETS);
       })
       .then(() => self.skipWaiting()) // Activate immediately
@@ -43,7 +47,7 @@ self.addEventListener('install', (event) => {
  * ACTIVATE - Clean up old caches
  */
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
+  log('[SW] Activating service worker...');
 
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -51,7 +55,7 @@ self.addEventListener('activate', (event) => {
         cacheNames
           .filter((name) => name.startsWith('cimaise-') && name !== CACHE_STATIC && name !== CACHE_IMAGES && name !== CACHE_PAGES)
           .map((name) => {
-            console.log('[SW] Deleting old cache:', name);
+            log('[SW] Deleting old cache:', name);
             return caches.delete(name);
           })
       );
@@ -121,12 +125,12 @@ async function cacheFirstStrategy(request, cacheName, maxItems = 50) {
     const cachedResponse = await cache.match(request);
 
     if (cachedResponse) {
-      console.log('[SW] Cache hit:', request.url);
+      log('[SW] Cache hit:', request.url);
       return cachedResponse;
     }
 
     // 2. Not in cache, fetch from network
-    console.log('[SW] Cache miss, fetching:', request.url);
+    log('[SW] Cache miss, fetching:', request.url);
     const networkResponse = await fetch(request);
 
     // 3. Cache successful responses
@@ -172,13 +176,13 @@ async function staleWhileRevalidateStrategy(request, cacheName) {
         try {
           cache.put(request, networkResponse.clone());
         } catch (error) {
-          console.log('[SW] Cache put failed:', error);
+          log('[SW] Cache put failed:', error);
         }
       }
       return networkResponse;
     })
     .catch((error) => {
-      console.log('[SW] Background fetch failed:', error);
+      log('[SW] Background fetch failed:', error);
       return null;
     });
 
@@ -215,7 +219,7 @@ async function networkFirstStrategy(request, cacheName, maxItems = 20) {
 
   } catch (error) {
     // 3. Network failed, try cache
-    console.log('[SW] Network failed, trying cache:', request.url);
+    log('[SW] Network failed, trying cache:', request.url);
     const cache = await caches.open(cacheName);
     const cachedResponse = await cache.match(request);
 
