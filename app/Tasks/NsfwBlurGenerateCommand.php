@@ -50,13 +50,13 @@ class NsfwBlurGenerateCommand extends Command
             if ($nsfwOnly) {
                 $conditions[] = 'is_nsfw = 1';
             } elseif ($passwordOnly) {
-                $conditions[] = 'is_password_protected = 1';
+                $conditions[] = 'password_hash IS NOT NULL';
             } else {
                 // Default: both NSFW and password-protected
-                $conditions[] = '(is_nsfw = 1 OR is_password_protected = 1)';
+                $conditions[] = '(is_nsfw = 1 OR password_hash IS NOT NULL)';
             }
 
-            $query = 'SELECT id, title, cover_image_id, is_nsfw, is_password_protected FROM albums WHERE ' . implode(' AND ', $conditions);
+            $query = 'SELECT id, title, cover_image_id, is_nsfw, (password_hash IS NOT NULL) as is_password_protected FROM albums WHERE ' . implode(' AND ', $conditions);
             $params = [];
 
             if ($albumId) {

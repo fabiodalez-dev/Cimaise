@@ -17,10 +17,10 @@ class CompressionMiddleware implements MiddlewareInterface
 
     public function process(Request $request, Handler $handler): Response
     {
-        // Get compression settings
-        $compressionEnabled = $this->settings->get('performance.compression_enabled', true);
-        $compressionType = $this->settings->get('performance.compression_type', 'auto');
-        $compressionLevel = $this->settings->get('performance.compression_level', 6);
+        // Get compression settings (use ?? to ensure non-null values even if setting is explicitly null)
+        $compressionEnabled = $this->settings->get('performance.compression_enabled', true) ?? true;
+        $compressionType = $this->settings->get('performance.compression_type', 'auto') ?? 'auto';
+        $compressionLevel = $this->settings->get('performance.compression_level', 6) ?? 6;
 
         if (!$compressionEnabled) {
             return $handler->handle($request);
