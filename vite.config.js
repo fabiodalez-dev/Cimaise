@@ -44,6 +44,8 @@ export default defineConfig({
           return '[name].js'
         },
         assetFileNames: '[name][extname]',
+        // Put chunks in js/ folder (not default assets/ to avoid /assets/assets/ path)
+        chunkFileNames: 'js/[name]-[hash].js',
         // Optimize chunk splitting for better caching
         manualChunks: undefined,
       },
