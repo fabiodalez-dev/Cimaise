@@ -49,6 +49,9 @@ class CacheMiddleware implements MiddlewareInterface
         }
 
         // Check if it's a media file
+        if (str_starts_with($path, '/media/protected/')) {
+            return $this->addProtectedMediaCache($response);
+        }
         if (str_starts_with($path, '/media/')) {
             return $this->addMediaCache($response);
         }
@@ -102,6 +105,13 @@ class CacheMiddleware implements MiddlewareInterface
             ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT')
             ->withHeader('ETag', $etag)
             ->withHeader('Pragma', 'public');
+    }
+
+    private function addProtectedMediaCache(Response $response): Response
+    {
+        return $response
+            ->withHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->withHeader('Pragma', 'no-cache');
     }
 
     private function addHtmlCache(Response $response): Response

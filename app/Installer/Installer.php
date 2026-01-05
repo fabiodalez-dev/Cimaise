@@ -533,8 +533,8 @@ class Installer
         $cacheEnabled = isset($data['cache_enabled']) && $data['cache_enabled'] === '1';
         $compressionEnabled = isset($data['compression_enabled']) && $data['compression_enabled'] === '1';
 
-        $settings['performance.cache_enabled'] = $cacheEnabled ? 'true' : 'false';
-        $settings['performance.compression_enabled'] = $compressionEnabled ? 'true' : 'false';
+        $settings['performance.cache_enabled'] = $cacheEnabled;
+        $settings['performance.compression_enabled'] = $compressionEnabled;
 
         // Add page settings based on selected language
         $pageSettings = $this->getPageSettingsForLanguage($language);

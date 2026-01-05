@@ -118,7 +118,8 @@ class CompressionMiddleware implements MiddlewareInterface
         // Brotli level ranges from 0 to 11
         $brotliLevel = min(11, max(0, $level));
 
-        $compressed = brotli_compress($data, $brotliLevel, BROTLI_TEXT);
+        $mode = defined('BROTLI_TEXT') ? BROTLI_TEXT : 1;
+        $compressed = brotli_compress($data, $brotliLevel, $mode);
         return $compressed !== false ? $compressed : null;
     }
 

@@ -13,6 +13,7 @@ node_modules/
 # Build artifacts
 public/assets/*.js.map
 public/assets/*.css.map
+public/assets/assets/
 
 # User uploaded content
 public/media/*

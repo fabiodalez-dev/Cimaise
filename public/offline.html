@@ -121,13 +121,12 @@
     <script>
         // Auto-retry when connection is restored
         window.addEventListener('online', () => {
-            console.log('Connection restored, reloading...');
             window.location.reload();
         });
 
         // Show connection status
-        if (navigator.onLine) {
-            // If somehow we're on offline page but online, redirect home
+        if (navigator.onLine && document.referrer && document.referrer.startsWith(window.location.origin)) {
+            // If we were redirected here from this site, go back online route.
             setTimeout(() => {
                 window.location.href = '/';
             }, 1000);

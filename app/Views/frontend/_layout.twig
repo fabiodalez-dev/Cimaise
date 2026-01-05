@@ -18,7 +18,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/apple-touch-icon.png">
 
     <!-- PWA Manifest & Meta Tags -->
-    <link rel="manifest" href="{{ base_path }}/manifest.json">
+    <link rel="manifest" href="{{ base_path }}/site.webmanifest">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2212,14 +2212,18 @@
         let ticking = false;
         
         function updateHeader() {
+            if (!header) {
+                return;
+            }
             // Skip header hide for gallery wall template
             if (document.body.classList.contains('gallery-wall-page')) return;
 
             const currentScroll = window.pageYOffset;
+            const hasGsap = typeof gsap !== 'undefined';
 
             if (currentScroll > lastScroll && currentScroll > 100) {
                 // Scrolling down
-                if (typeof gsap !== 'undefined') {
+                if (hasGsap) {
                     gsap.to(header, {
                         y: -100,
                         duration: 0.3,
@@ -2230,7 +2234,7 @@
                 }
             } else {
                 // Scrolling up or at top
-                if (typeof gsap !== 'undefined') {
+                if (hasGsap) {
                     gsap.to(header, {
                         y: 0,
                         duration: 0.3,

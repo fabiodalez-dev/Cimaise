@@ -346,7 +346,7 @@ The plugin includes detailed instruction files for AI assistants:
 ```text
 plugins/custom-templates-pro/guides/
 ├── en/
-│   ├── gallery-guide.md      # Instructions for gallery templates
+│   ├── gallery-template-guide.md      # Instructions for gallery templates
 │   ├── album-page-guide.md   # Instructions for album page templates
 │   └── homepage-guide.md     # Instructions for homepage templates
 └── it/

@@ -448,17 +448,25 @@
 let galleriesIntroUserScrolled = false;
 let galleriesIntroTimeline = null;
 
+const resolveElements = function(target) {
+    if (!target) return [];
+    if (typeof target === 'string') return Array.from(document.querySelectorAll(target));
+    if (typeof target.length === 'number') return Array.from(target);
+    return [target];
+};
+
 // GSAP safety wrapper - graceful degradation if GSAP fails to load
 const safeGsap = {
     to: function(target, vars) {
         if (typeof gsap !== 'undefined') return gsap.to(target, vars);
         // Fallback: apply end state immediately
-        const els = typeof target === 'string' ? document.querySelectorAll(target) : (target.length !== undefined ? target : [target]);
+        const els = resolveElements(target);
         els.forEach(el => {
             if (vars.opacity !== undefined) el.style.opacity = vars.opacity;
             if (vars.maxHeight !== undefined) el.style.maxHeight = typeof vars.maxHeight === 'number' ? vars.maxHeight + 'px' : vars.maxHeight;
             if (vars.rotation !== undefined) el.style.transform = 'rotate(' + vars.rotation + 'deg)';
             if (vars.y !== undefined) el.style.transform = 'translateY(' + vars.y + 'px)';
+            if (vars.pointerEvents !== undefined) el.style.pointerEvents = vars.pointerEvents;
         });
         if (vars.onComplete) setTimeout(vars.onComplete, 0);
         return { kill: function() {} };
@@ -466,8 +474,12 @@ const safeGsap = {
     from: function(target, vars) {
         if (typeof gsap !== 'undefined') return gsap.from(target, vars);
         // Fallback: show immediately
-        const els = typeof target === 'string' ? document.querySelectorAll(target) : (target.length !== undefined ? target : [target]);
-        els.forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; });
+        const els = resolveElements(target);
+        els.forEach(el => {
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+            if (vars.pointerEvents !== undefined) el.style.pointerEvents = vars.pointerEvents;
+        });
         if (vars.onComplete) setTimeout(vars.onComplete, 0);
         return { kill: function() {} };
     },

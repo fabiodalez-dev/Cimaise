@@ -166,15 +166,29 @@ async function staleWhileRevalidateStrategy(request, cacheName) {
   const cachedResponse = await cache.match(request);
 
   // Fetch from network in background (don't await)
-  const fetchPromise = fetch(request).then((networkResponse) => {
-    if (networkResponse && networkResponse.status === 200) {
-      cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  });
+  const fetchPromise = fetch(request)
+    .then((networkResponse) => {
+      if (networkResponse && networkResponse.status === 200) {
+        try {
+          cache.put(request, networkResponse.clone());
+        } catch (error) {
+          console.log('[SW] Cache put failed:', error);
+        }
+      }
+      return networkResponse;
+    })
+    .catch((error) => {
+      console.log('[SW] Background fetch failed:', error);
+      return null;
+    });
 
   // Return cached response immediately if available
-  return cachedResponse || fetchPromise;
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  const networkResponse = await fetchPromise;
+  return networkResponse || new Response('Service Unavailable', { status: 503 });
 }
 
 /**
@@ -210,7 +224,8 @@ async function networkFirstStrategy(request, cacheName, maxItems = 20) {
     }
 
     // 4. No cache available, show offline page
-    const offlinePage = await cache.match('/offline.html');
+    const staticCache = await caches.open(CACHE_STATIC);
+    const offlinePage = await staticCache.match('/offline.html');
     if (offlinePage) {
       return offlinePage;
     }
