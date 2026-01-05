@@ -15,9 +15,11 @@
     {# Image area with link #}
     <a href="{{ album_url }}" class="block aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm" title="{{ seo_title|e('html_attr') }}">
     {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
+    {% set is_locked = album.is_locked|default(false) %}
+    {% set should_blur_cover = (album.is_nsfw and show_nsfw_overlay) or is_locked %}
     {% if has_cover %}
-      {% if album.is_nsfw and not (nsfw_consent|default(false)) and not (is_admin|default(false)) %}
-        {# NSFW albums: use blur preview until consent is confirmed client-side #}
+      {% if should_blur_cover %}
+        {# Protected albums: use blur preview until consent/unlock is confirmed #}
         {% set blur_path = null %}
         {% set card_img_url = null %}
 
@@ -138,7 +140,7 @@
       {% endif %}
 
       {# Password Protected Badge #}
-      {% if album.is_password_protected or album.password_hash %}
+      {% if album.is_password_protected %}
       <div class="absolute top-2 right-2 text-white z-20 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" title="{{ trans('album.password_protected') }}">
         <i class="fas fa-lock text-lg"></i>
       </div>

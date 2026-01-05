@@ -2711,6 +2711,7 @@
                     let prevHtmlPadding = '';
                     let prevBodyPadding = '';
                     let scrollLocked = false;
+                    let wakeLock = null;
                     const lockScroll = () => {
                         if (scrollLocked) return;
                         scrollLocked = true;
@@ -2730,6 +2731,14 @@
                         if (window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
                             window.lenisInstance.stop();
                         }
+                        // Screen Wake Lock - keep screen on during lightbox viewing
+                        if ('wakeLock' in navigator) {
+                            navigator.wakeLock.request('screen').then(lock => {
+                                wakeLock = lock;
+                            }).catch(() => {
+                                // Wake lock request failed (page not visible or permission denied)
+                            });
+                        }
                     };
                     const unlockScroll = () => {
                         if (!scrollLocked) return;
@@ -2742,6 +2751,14 @@
                         document.body.style.paddingRight = prevBodyPadding;
                         if (window.lenisInstance && typeof window.lenisInstance.start === 'function') {
                             window.lenisInstance.start();
+                        }
+                        // Release Screen Wake Lock
+                        if (wakeLock) {
+                            wakeLock.release().then(() => {
+                                wakeLock = null;
+                            }).catch(() => {
+                                wakeLock = null;
+                            });
                         }
                     };
 

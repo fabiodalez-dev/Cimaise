@@ -451,6 +451,9 @@ let galleriesIntroTimeline = null;
 
 const resolveElements = function(target) {
     if (!target) return [];
+    if (Array.isArray(target)) {
+        return target.flatMap(resolveElements);
+    }
     if (typeof target === 'string') return Array.from(document.querySelectorAll(target));
     if (typeof target.length === 'number') return Array.from(target);
     return [target];
@@ -463,11 +466,26 @@ const safeGsap = {
         // Fallback: apply end state immediately
         const els = resolveElements(target);
         els.forEach(el => {
-            if (vars.opacity !== undefined) el.style.opacity = vars.opacity;
-            if (vars.maxHeight !== undefined) el.style.maxHeight = typeof vars.maxHeight === 'number' ? vars.maxHeight + 'px' : vars.maxHeight;
-            if (vars.rotation !== undefined) el.style.transform = 'rotate(' + vars.rotation + 'deg)';
-            if (vars.y !== undefined) el.style.transform = 'translateY(' + vars.y + 'px)';
-            if (vars.pointerEvents !== undefined) el.style.pointerEvents = vars.pointerEvents;
+            if (!el || !el.style) return;
+            if (vars.opacity !== undefined) {
+                el.style.opacity = vars.opacity;
+            }
+            if (vars.maxHeight !== undefined) {
+                el.style.maxHeight = typeof vars.maxHeight === 'number' ? vars.maxHeight + 'px' : vars.maxHeight;
+            }
+            let transform = el.style.transform || '';
+            if (vars.rotation !== undefined) {
+                transform += (transform ? ' ' : '') + 'rotate(' + vars.rotation + 'deg)';
+            }
+            if (vars.y !== undefined) {
+                transform += (transform ? ' ' : '') + 'translateY(' + vars.y + 'px)';
+            }
+            if (transform) {
+                el.style.transform = transform;
+            }
+            if (vars.pointerEvents !== undefined) {
+                el.style.pointerEvents = vars.pointerEvents;
+            }
         });
         if (vars.onComplete) setTimeout(vars.onComplete, 0);
         return { kill: function() {} };
@@ -477,6 +495,7 @@ const safeGsap = {
         // Fallback: show immediately
         const els = resolveElements(target);
         els.forEach(el => {
+            if (!el || !el.style) return;
             el.style.opacity = '1';
             el.style.transform = 'none';
             if (vars.pointerEvents !== undefined) el.style.pointerEvents = vars.pointerEvents;
@@ -950,8 +969,11 @@ function generateGalleryCard(album) {
     const alt = escapeHtml(coverImage.alt_text || album.title || '');
     const slug = encodeURIComponent(album.slug || '');
     // Skip NSFW restrictions for admins
-    const isNsfw = (album.is_nsfw && !window.isAdmin) ? true : false;
+    const isNsfw = !!(album.is_nsfw && !window.isAdmin);
     const canShowNsfw = !isNsfw || hasConfirmedNsfw();
+    const isLocked = !!album.is_locked;
+    const isNsfwUnconfirmed = isNsfw && !canShowNsfw;
+    const shouldBlurCover = isNsfwUnconfirmed || isLocked;
     const albumUrl = window.basePath + '/album/' + slug;
     const seoTitle = [window.siteTitle || '', album.title || ''].filter(Boolean).join(' — ');
 
@@ -968,7 +990,7 @@ function generateGalleryCard(album) {
 
     const rel = document.createElement('div');
     rel.className = 'relative aspect-[4/3] overflow-hidden bg-gray-100';
-    if (isNsfw && !canShowNsfw) {
+    if (shouldBlurCover) {
         if (safeBlurSrc) {
             const img = document.createElement('img');
             img.src = safeBlurSrc;
@@ -999,7 +1021,7 @@ function generateGalleryCard(album) {
         rel.appendChild(ph);
     }
     // NSFW Overlay
-    if (isNsfw && !canShowNsfw) {
+    if (isNsfwUnconfirmed) {
         const nsfwOverlay = document.createElement('div');
         nsfwOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm';
         nsfwOverlay.innerHTML = '<i class="fas fa-eye-slash text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.nsfwWarningShort || '18+') + '</span>';

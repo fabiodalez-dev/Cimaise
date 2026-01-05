@@ -366,7 +366,9 @@
     "share.facebook": "Share on Facebook",
     "share.link_copied": "Link copied!",
     "share.linkedin": "Share on LinkedIn",
+    "share.native_share": "Share",
     "share.pinterest": "Pin on Pinterest",
+    "share.share": "Share",
     "share.share_on": "Share on {network}",
     "share.twitter": "Share on Twitter"
   },

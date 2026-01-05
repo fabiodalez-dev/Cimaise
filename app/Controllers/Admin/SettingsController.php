@@ -220,6 +220,19 @@ class SettingsController extends BaseController
         $svc->set('frontend.disable_right_click', $disableRightClick);
         $svc->set('frontend.dark_mode', isset($data['dark_mode']));
 
+        // PWA settings
+        $pwaThemeColor = trim((string)($data['pwa_theme_color'] ?? '#ffffff'));
+        $pwaBackgroundColor = trim((string)($data['pwa_background_color'] ?? '#ffffff'));
+        // Validate color format (hex color)
+        if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $pwaThemeColor)) {
+            $pwaThemeColor = '#ffffff';
+        }
+        if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $pwaBackgroundColor)) {
+            $pwaBackgroundColor = '#ffffff';
+        }
+        $svc->set('pwa.theme_color', $pwaThemeColor);
+        $svc->set('pwa.background_color', $pwaBackgroundColor);
+
         // Custom CSS - sanitize with maximum security
         $customCss = '';
         if (isset($data['custom_css'])) {

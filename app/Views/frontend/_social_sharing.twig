@@ -1,7 +1,14 @@
-{# Social Sharing Template #}
+{# Social Sharing Template with Web Share API support #}
 {% if enabled_socials is defined and enabled_socials|length > 0 %}
-<div class="social-sharing mt-8 mb-8">
+<div class="social-sharing mt-8 mb-8" data-share-title="{{ album.title|e('html_attr') }}" data-share-url="{{ canonical_url|default(current_url) }}">
   <div class="max-w-4xl mx-auto text-center">
+    {# Web Share API button (mobile only, hidden by default) #}
+    <button type="button" class="web-share-btn hidden social-btn" title="{{ trans('share.native_share')|default('Share') }}">
+      <i class="fas fa-share-alt"></i>
+      <span class="ml-2 text-sm">{{ trans('share.share')|default('Share') }}</span>
+    </button>
+
+    {# Traditional social buttons (hidden on mobile when Web Share is available) #}
     <div class="social-buttons">
       {% for social in enabled_socials %}
         {% set config = available_socials[social] %}
@@ -9,23 +16,23 @@
           {% set share_url = config.url %}
           {% set title_encoded = album.title|url_encode %}
           {% set url_encoded = canonical_url|default(current_url)|url_encode %}
-          
+
           {% if share_url != '#' and not (share_url starts with 'javascript:') %}
             {% set share_url = share_url|replace({'{title}': title_encoded, '{url}': url_encoded}) %}
-            <a href="{{ share_url }}" 
-               target="_blank" rel="noopener noreferrer" 
-               class="social-btn {{ social }}" 
+            <a href="{{ share_url }}"
+               target="_blank" rel="noopener noreferrer"
+               class="social-btn {{ social }}"
                title="{{ trans('share.share_on')|replace({'{network}': config.name}) }}">
               <i class="{{ config.icon }}"></i>
             </a>
           {% elseif share_url starts with 'javascript:' %}
-            <a href="{{ share_url|replace({'{title}': album.title, '{url}': canonical_url|default(current_url)}) }}" 
-               class="social-btn {{ social }}" 
+            <a href="{{ share_url|replace({'{title}': album.title, '{url}': canonical_url|default(current_url)}) }}"
+               class="social-btn {{ social }}"
                title="{{ config.name }}">
               <i class="{{ config.icon }}"></i>
             </a>
           {% else %}
-            <span class="social-btn {{ social }}" 
+            <span class="social-btn {{ social }}"
                   title="{{ config.name }} (Display only)">
               <i class="{{ config.icon }}"></i>
             </span>
@@ -35,4 +42,45 @@
     </div>
   </div>
 </div>
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  // Web Share API implementation for mobile
+  const container = document.querySelector('.social-sharing');
+  if (!container) return;
+
+  const webShareBtn = container.querySelector('.web-share-btn');
+  const socialButtons = container.querySelector('.social-buttons');
+
+  if (!webShareBtn || !socialButtons) return;
+
+  // Check if Web Share API is available and we're on mobile
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                   (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+
+  if (navigator.share && isMobile) {
+    // Show Web Share button, hide social buttons on mobile
+    webShareBtn.classList.remove('hidden');
+    socialButtons.classList.add('hidden');
+
+    webShareBtn.addEventListener('click', async function() {
+      const title = container.dataset.shareTitle || document.title;
+      const url = container.dataset.shareUrl || window.location.href;
+
+      try {
+        await navigator.share({
+          title: title,
+          url: url
+        });
+      } catch (err) {
+        // User cancelled or share failed - show fallback
+        if (err.name !== 'AbortError') {
+          webShareBtn.classList.add('hidden');
+          socialButtons.classList.remove('hidden');
+        }
+      }
+    });
+  }
+})();
+</script>
 {% endif %}

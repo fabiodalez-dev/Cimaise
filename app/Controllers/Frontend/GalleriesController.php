@@ -5,6 +5,7 @@ namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
 use App\Support\Database;
 use App\Services\SettingsService;
+use App\Services\NavigationService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -38,7 +39,7 @@ class GalleriesController extends BaseController
         $filterOptions = $this->getFilterOptions();
         
         // Get navigation categories
-        $parentCategories = $this->getParentCategoriesForNavigation();
+        $parentCategories = (new NavigationService($this->db))->getParentCategoriesForNavigation();
         
         return $this->view->render($response, 'frontend/galleries.twig', [
             'albums' => $albums,
@@ -622,38 +623,4 @@ class GalleriesController extends BaseController
         return $path !== false ? (string)$path : null;
     }
 
-    private function getParentCategoriesForNavigation(): array
-    {
-        $pdo = $this->db->pdo();
-        
-        // Get parent categories with children and album counts
-        $stmt = $pdo->prepare('
-            SELECT c.*, COUNT(DISTINCT a.id) as albums_count
-            FROM categories c
-            LEFT JOIN album_category ac ON ac.category_id = c.id
-            LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
-            WHERE c.parent_id IS NULL
-            GROUP BY c.id
-            ORDER BY c.sort_order ASC, c.name ASC
-        ');
-        $stmt->execute();
-        $parents = $stmt->fetchAll();
-        
-        // Get children for each parent
-        foreach ($parents as &$parent) {
-            $stmt = $pdo->prepare('
-                SELECT c.*, COUNT(DISTINCT a.id) as albums_count
-                FROM categories c
-                LEFT JOIN album_category ac ON ac.category_id = c.id
-                LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
-                WHERE c.parent_id = :parent_id
-                GROUP BY c.id
-                ORDER BY c.sort_order ASC, c.name ASC
-            ');
-            $stmt->execute([':parent_id' => $parent['id']]);
-            $parent['children'] = $stmt->fetchAll();
-        }
-        
-        return $parents;
-    }
 }
