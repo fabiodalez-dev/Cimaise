@@ -315,6 +315,79 @@ Each template offers fine-grained control:
 
 ---
 
+## Custom Templates with AI
+
+**Create unique gallery layouts by describing them to an AI assistant.**
+
+Cimaise includes a powerful Custom Templates plugin that lets you design completely original gallery, album page, and homepage templates. The innovation: you don't need to code. Just describe what you want to an AI assistant (Claude, ChatGPT, etc.), and it generates the template for you.
+
+### How It Works
+
+1. **Describe Your Vision** — Tell the AI what you want: "A polaroid-style gallery with scattered photos on a corkboard background" or "A minimalist grid with large whitespace and subtle hover animations"
+
+2. **Include the Instructions** — Copy the provided LLM instruction guide and paste it with your description. The guide tells the AI exactly what variables are available, what HTML structure to use, and how to format the output
+
+3. **Get Your Template** — The AI generates a complete template package with Twig template, CSS styles, and JavaScript if needed
+
+4. **Install & Use** — Upload the ZIP to Admin → Templates → Custom Templates, and assign it to any album
+
+### Available Template Types
+
+| Type | What You Can Customize |
+|------|------------------------|
+| **Gallery Templates** | How photos display within albums (grid, masonry, carousel, etc.) |
+| **Album Page Templates** | The entire album page including header, metadata, and photo grid |
+| **Homepage Templates** | Complete homepage layouts with album showcases |
+
+### Included LLM Guides
+
+The plugin includes detailed instruction files for AI assistants:
+
+```text
+plugins/custom-templates-pro/guides/
+├── en/
+│   ├── gallery-guide.md      # Instructions for gallery templates
+│   ├── album-page-guide.md   # Instructions for album page templates
+│   └── homepage-guide.md     # Instructions for homepage templates
+└── it/
+    └── ... (Italian translations)
+```
+
+Each guide includes:
+- Available Twig variables (album data, images, settings, translations)
+- Required HTML structure and CSS classes
+- PhotoSwipe lightbox integration patterns
+- Responsive image handling with srcset
+- Security requirements (XSS prevention, CSP compliance)
+
+### Example Prompts
+
+**Polaroid Gallery:**
+> "Create a gallery template that displays photos as polaroid snapshots scattered on a wooden desk. Each photo should have a slight random rotation, a white border like a polaroid, and a handwritten-style caption below."
+
+**Magazine Editorial:**
+> "Design an album page template with a full-bleed hero image, large serif typography for the title, and a two-column text layout for the description. Photos should display in an asymmetric editorial grid."
+
+**Minimal Portfolio:**
+> "Build a homepage template with a single large featured image that changes on scroll, minimal navigation, and a dark background. The aesthetic should be high-end fashion photography."
+
+### Why This Matters
+
+Traditional CMS template creation requires:
+- Learning a templating language (Twig, Blade, etc.)
+- Understanding CSS frameworks
+- JavaScript for interactivity
+- Hours of trial and error
+
+With Cimaise + AI:
+- Describe in plain language
+- Get working code in minutes
+- Iterate by conversation: "Make the hover effect more subtle" or "Add a parallax effect"
+
+**The included instruction guides ensure AI assistants generate templates that actually work**—with proper escaping, responsive images, and PhotoSwipe integration already handled.
+
+---
+
 ## Protect Your Work
 
 ### Password-Protected Galleries
@@ -612,6 +685,69 @@ All image requests go through PHP validation:
 - NSFW content requires age confirmation
 - Path traversal attacks blocked
 - Only image MIME types served
+
+---
+
+## Performance & Caching
+
+Cimaise is optimized for speed out of the box:
+
+### HTTP Compression
+
+All text-based responses are compressed automatically:
+
+- **Brotli** — Modern compression (20-30% smaller than Gzip) for browsers that support it
+- **Gzip** — Universal fallback for older browsers
+- **Automatic Detection** — Server chooses the best compression based on `Accept-Encoding`
+
+Compressed content types:
+- HTML, CSS, JavaScript
+- JSON, XML, SVG
+- Web fonts (WOFF, WOFF2, TTF)
+
+### Browser Caching
+
+Smart cache headers maximize repeat-visit performance:
+
+| Asset Type | Cache Duration | Strategy |
+|------------|----------------|----------|
+| Images (JPEG, WebP, AVIF) | 1 year | Immutable (versioned filenames) |
+| CSS & JavaScript | 1 year | Immutable (Vite hashed builds) |
+| Fonts | 1 year | Immutable |
+| HTML pages | 5 minutes | Must-revalidate |
+| JSON/XML | 1 hour | Must-revalidate |
+
+**Result:** Returning visitors load pages instantly from browser cache.
+
+### Progressive Web App (PWA)
+
+Install Cimaise as an app on any device:
+
+- **Service Worker** — Caches core assets for offline access
+- **Web App Manifest** — Customizable theme colors and icons
+- **Offline Page** — Graceful fallback when connection is lost
+- **Add to Home Screen** — Works like a native app on mobile
+
+PWA features are configured from Admin → Settings:
+- Theme color (affects browser chrome and splash screen)
+- Background color
+- App name and short name
+
+### Resource Optimization
+
+- **DNS Prefetch** — Pre-resolves external domains (Google Fonts, analytics)
+- **Preconnect** — Establishes early connections to CDN origins
+- **Critical CSS** — Above-fold styles load first
+- **Deferred Scripts** — Non-critical JavaScript loads after page render
+- **Image Priority** — First image loads with `fetchpriority="high"`
+
+### Installer Configuration
+
+During installation, you can enable:
+- **Cache System** — Browser and server-side caching
+- **Compression** — Brotli/Gzip response compression
+
+Both are enabled by default for optimal performance.
 
 ---
 
