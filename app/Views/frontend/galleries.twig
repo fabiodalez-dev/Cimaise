@@ -505,6 +505,16 @@ const safeGsap = {
     },
     set: function(target, vars) {
         if (typeof gsap !== 'undefined') return gsap.set(target, vars);
+        const els = resolveElements(target);
+        els.forEach(el => {
+            if (!el || !el.style) return;
+            if (vars.opacity !== undefined) {
+                el.style.opacity = vars.opacity;
+            }
+            if (vars.clearProps === 'all') {
+                el.style.cssText = '';
+            }
+        });
     },
     killTweensOf: function(target) {
         if (typeof gsap !== 'undefined') return gsap.killTweensOf(target);

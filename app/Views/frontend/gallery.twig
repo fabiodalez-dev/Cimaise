@@ -529,10 +529,10 @@
                                    decoding="async"
                                    data-fallback="hide">
                           </picture>
-                          {% if album.allow_downloads %}
-                              <button type="button"
-                                      class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
-                                      title="{{ trans('image.download') }}"
+                      {% if album.allow_downloads %}
+                          <button type="button"
+                                  class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
+                                  title="{{ trans('image.download') }}"
                                       data-action="download-image"
                                       data-download-url="{{ base_path }}/download/image/{{ image.id }}">
                                   <i class="fa-solid fa-arrow-down text-sm"></i>
@@ -639,7 +639,7 @@
                                data-fallback="hide"
                                class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">
                       </picture>
-                      {% if album.allow_downloads and (current_template_id|default(0) != 1) %}
+                      {% if album.allow_downloads %}
                           <button type="button"
                                   class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
                                   title="{{ trans('image.download') }}"

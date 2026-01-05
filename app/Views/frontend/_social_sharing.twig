@@ -102,7 +102,11 @@
     if (action === 'more') {
       event.preventDefault();
       if (navigator.share) {
-        navigator.share({ title: title, url: url }).catch(function() {});
+        navigator.share({ title: title, url: url }).catch(function(err) {
+          if (err.name !== 'AbortError') {
+            console.error('Share failed:', err);
+          }
+        });
       }
     }
   });

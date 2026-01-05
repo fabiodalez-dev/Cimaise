@@ -296,7 +296,9 @@ self.addEventListener('message', (event) => {
           cacheNames.map((name) => caches.delete(name))
         );
       }).then(() => {
-        event.ports[0].postMessage({ success: true });
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: true });
+        }
       })
     );
   }

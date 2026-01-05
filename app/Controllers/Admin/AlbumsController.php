@@ -42,7 +42,19 @@ class AlbumsController extends BaseController
                                COALESCE(iv.path, i.original_path) AS cover_path
                                FROM albums a JOIN categories c ON c.id = a.category_id
                                LEFT JOIN images i ON i.id = a.cover_image_id
-                               LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
+                               LEFT JOIN image_variants iv ON iv.id = (
+                                   SELECT iv2.id
+                                   FROM image_variants iv2
+                                   WHERE iv2.image_id = i.id AND iv2.variant = 'sm'
+                                   ORDER BY CASE iv2.format
+                                       WHEN 'jpg' THEN 1
+                                       WHEN 'jpeg' THEN 1
+                                       WHEN 'webp' THEN 2
+                                       WHEN 'avif' THEN 3
+                                       ELSE 4
+                                   END, iv2.id
+                                   LIMIT 1
+                               )
                                ORDER BY {$orderBy}
                                LIMIT :limit OFFSET :offset");
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);

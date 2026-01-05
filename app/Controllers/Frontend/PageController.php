@@ -1510,11 +1510,18 @@ class PageController extends BaseController
         
         // Get albums in category (supports both legacy category_id and junction table)
         $stmt = $pdo->prepare('
-            SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug
+            SELECT a.*, c.name as category_name, c.slug as category_slug
             FROM albums a
             JOIN categories c ON c.slug = :slug
-            LEFT JOIN album_category ac ON ac.album_id = a.id AND ac.category_id = c.id
-            WHERE a.is_published = 1 AND (a.category_id = c.id OR ac.category_id IS NOT NULL)
+            WHERE a.is_published = 1
+              AND (
+                a.category_id = c.id
+                OR EXISTS (
+                  SELECT 1
+                  FROM album_category ac
+                  WHERE ac.album_id = a.id AND ac.category_id = c.id
+                )
+              )
             ORDER BY a.published_at DESC
         ');
         $stmt->execute([':slug' => $slug]);
@@ -1566,15 +1573,20 @@ class PageController extends BaseController
         
         // Get albums with this tag (supports both legacy category_id and junction table)
         $stmt = $pdo->prepare('
-            SELECT DISTINCT a.*,
+            SELECT a.*,
                    COALESCE(c1.name, c2.name) as category_name,
                    COALESCE(c1.slug, c2.slug) as category_slug
             FROM albums a
             JOIN album_tag at ON at.album_id = a.id
             JOIN tags t ON t.id = at.tag_id
             LEFT JOIN categories c1 ON c1.id = a.category_id
-            LEFT JOIN album_category ac ON ac.album_id = a.id
-            LEFT JOIN categories c2 ON c2.id = ac.category_id
+            LEFT JOIN categories c2 ON c2.id = (
+                SELECT ac.category_id
+                FROM album_category ac
+                WHERE ac.album_id = a.id
+                ORDER BY ac.category_id ASC
+                LIMIT 1
+            )
             WHERE t.slug = :slug AND a.is_published = 1
             ORDER BY a.published_at DESC
         ');
