@@ -128,58 +128,8 @@ class FaviconService
 
         imagedestroy($sourceImage);
 
-        // Generate site.webmanifest
-        $manifestPath = $this->publicPath . '/site.webmanifest';
-        $manifest = [
-            'name' => 'Photography Portfolio',
-            'short_name' => 'Portfolio',
-            'icons' => [
-                [
-                    'src' => '/icon-72x72.png',
-                    'sizes' => '72x72',
-                    'type' => 'image/png'
-                ],
-                [
-                    'src' => '/icon-128x128.png',
-                    'sizes' => '128x128',
-                    'type' => 'image/png'
-                ],
-                [
-                    'src' => '/icon-144x144.png',
-                    'sizes' => '144x144',
-                    'type' => 'image/png'
-                ],
-                [
-                    'src' => '/icon-152x152.png',
-                    'sizes' => '152x152',
-                    'type' => 'image/png'
-                ],
-                [
-                    'src' => '/android-chrome-192x192.png',
-                    'sizes' => '192x192',
-                    'type' => 'image/png'
-                ],
-                [
-                    'src' => '/icon-384x384.png',
-                    'sizes' => '384x384',
-                    'type' => 'image/png'
-                ],
-                [
-                    'src' => '/android-chrome-512x512.png',
-                    'sizes' => '512x512',
-                    'type' => 'image/png'
-                ]
-            ],
-            'theme_color' => '#ffffff',
-            'background_color' => '#ffffff',
-            'display' => 'standalone'
-        ];
-
-        if (file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) !== false) {
-            $generated[] = 'site.webmanifest';
-        } else {
-            $errors[] = 'Failed to generate site.webmanifest';
-        }
+        // Note: site.webmanifest is now generated dynamically by PageController::webManifest()
+        // which checks for icon existence and uses database settings for site name/colors
 
         return [
             'success' => count($generated) > 0,
@@ -215,7 +165,6 @@ class FaviconService
             'apple-touch-icon.png',
             'android-chrome-192x192.png',
             'android-chrome-512x512.png',
-            'site.webmanifest',
             // PWA manifest icons
             'icon-72x72.png',
             'icon-128x128.png',
