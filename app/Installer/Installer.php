@@ -528,6 +528,14 @@ class Installer
             'typography.captions_weight' => 400,
         ];
 
+        // Add performance settings if provided (from installer UI)
+        // Checkbox sends '1' when checked, absent when unchecked
+        $cacheEnabled = isset($data['cache_enabled']) && $data['cache_enabled'] === '1';
+        $compressionEnabled = isset($data['compression_enabled']) && $data['compression_enabled'] === '1';
+
+        $settings['performance.cache_enabled'] = $cacheEnabled ? 'true' : 'false';
+        $settings['performance.compression_enabled'] = $compressionEnabled ? 'true' : 'false';
+
         // Add page settings based on selected language
         $pageSettings = $this->getPageSettingsForLanguage($language);
         $settings = array_merge($settings, $pageSettings);
