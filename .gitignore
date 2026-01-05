@@ -10,10 +10,9 @@ database/database.sqlite
 node_modules/
 !public/assets/vendor/
 
-# Build artifacts
+# Build artifacts (source maps only, keep chunks)
 public/assets/*.js.map
 public/assets/*.css.map
-public/assets/assets/
 
 # User uploaded content
 public/media/*

@@ -195,7 +195,7 @@ class PageController extends BaseController
         $hasMore = $totalAlbums > $perPage;
         
         // Get categories for navigation with hierarchy
-        $parentCategories = $this->getParentCategoriesForNavigation();
+        $parentCategories = (new NavigationService($this->db))->getParentCategoriesForNavigation();
         
         // Keep flat list for backward compatibility
         $categories = [];
@@ -327,7 +327,7 @@ class PageController extends BaseController
                 return $this->view->render($response, 'frontend/album_password.twig', [
                     'album' => $album,
                     'categories' => $navCategories,
-                    'parent_categories' => $this->getParentCategoriesForNavigation(),
+                    'parent_categories' => (new NavigationService($this->db))->getParentCategoriesForNavigation(),
                     'page_title' => $album['title'] . ' — Protected',
                     'error' => $error,
                     'csrf' => $_SESSION['csrf'] ?? ''
@@ -346,7 +346,7 @@ class PageController extends BaseController
             return $this->view->render($response, 'frontend/nsfw_gate.twig', [
                 'album' => $album,
                 'categories' => $navCategories,
-                'parent_categories' => $this->getParentCategoriesForNavigation(),
+                'parent_categories' => (new NavigationService($this->db))->getParentCategoriesForNavigation(),
                 'page_title' => $album['title'] . ' — Age Verification Required',
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'robots' => 'noindex,nofollow'
@@ -987,7 +987,7 @@ class PageController extends BaseController
             'album_ref' => $albumRef,
             'is_admin' => $isAdmin,
             'categories' => $navCategories,
-            'parent_categories' => $this->getParentCategoriesForNavigation(),
+            'parent_categories' => (new NavigationService($this->db))->getParentCategoriesForNavigation(),
             'page_title' => $seoMeta['page_title'],
             'meta_description' => $seoMeta['meta_description'],
             'meta_image' => $seoMeta['meta_image'],
@@ -1532,7 +1532,7 @@ class PageController extends BaseController
             'category' => $category,
             'albums' => $albums,
             'categories' => $categories,
-            'parent_categories' => $this->getParentCategoriesForNavigation(),
+            'parent_categories' => (new NavigationService($this->db))->getParentCategoriesForNavigation(),
             'page_title' => $seo['page_title'],
             'meta_description' => $seo['meta_description'],
             'meta_image' => $seo['meta_image'],
@@ -1605,7 +1605,7 @@ class PageController extends BaseController
             'albums' => $albums,
             'tags' => $tags,
             'categories' => $navCategories,
-            'parent_categories' => $this->getParentCategoriesForNavigation(),
+            'parent_categories' => (new NavigationService($this->db))->getParentCategoriesForNavigation(),
             'page_title' => $seo['page_title'],
             'meta_description' => $seo['meta_description'],
             'meta_image' => $seo['meta_image'],
@@ -1650,7 +1650,7 @@ class PageController extends BaseController
         $seo = $this->buildSeo($request, $aboutTitle, $shortAbout, $aboutPhoto ?: null);
         return $this->view->render($response, 'frontend/about.twig', [
             'categories' => $navCategories,
-            'parent_categories' => $this->getParentCategoriesForNavigation(),
+            'parent_categories' => (new NavigationService($this->db))->getParentCategoriesForNavigation(),
             'page_title' => $seo['page_title'],
             'meta_description' => $seo['meta_description'],
             'meta_image' => $seo['meta_image'],
@@ -1825,6 +1825,21 @@ class PageController extends BaseController
             $album['is_locked'] = !$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id']);
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $album = $this->ensureAlbumCoverImage($album);
+            $needsProtectedPreview = !$isAdmin
+                && ($album['is_locked'] || (!empty($album['is_nsfw']) && !$nsfwConsent));
+            if ($needsProtectedPreview && !empty($album['cover_image']['id'])) {
+                $blurPath = $album['cover_image']['blur_path'] ?? '';
+                $ext = 'jpg';
+                if ($blurPath && preg_match('/\\.([a-z0-9]+)$/i', (string)$blurPath, $matches)) {
+                    $ext = strtolower($matches[1]);
+                }
+                $album['cover_image']['blur_path'] = '/media/protected/' . (int)$album['cover_image']['id'] . '/blur.' . $ext;
+                unset(
+                    $album['cover_image']['preview_path'],
+                    $album['cover_image']['original_path'],
+                    $album['cover_image']['path']
+                );
+            }
             $visibleAlbums[] = $album;
         }
         return $visibleAlbums;
@@ -2043,44 +2058,6 @@ class PageController extends BaseController
         }
         
         return $image;
-    }
-    
-    /**
-     * Get parent categories with album counts for navigation
-     */
-    private function getParentCategoriesForNavigation(): array
-    {
-        $pdo = $this->db->pdo();
-
-        // Get parent categories with album counts (using album_category junction table)
-        $stmt = $pdo->prepare('
-            SELECT c.*, COUNT(DISTINCT a.id) as albums_count
-            FROM categories c
-            LEFT JOIN album_category ac ON ac.category_id = c.id
-            LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
-            WHERE c.parent_id IS NULL
-            GROUP BY c.id
-            ORDER BY c.sort_order ASC, c.name ASC
-        ');
-        $stmt->execute();
-        $parents = $stmt->fetchAll();
-
-        // Get children for each parent
-        foreach ($parents as &$parent) {
-            $childStmt = $pdo->prepare('
-                SELECT c.*, COUNT(DISTINCT a.id) as albums_count
-                FROM categories c
-                LEFT JOIN album_category ac ON ac.category_id = c.id
-                LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
-                WHERE c.parent_id = :parent_id
-                GROUP BY c.id
-                ORDER BY c.sort_order ASC, c.name ASC
-            ');
-            $childStmt->execute([':parent_id' => $parent['id']]);
-            $parent['children'] = $childStmt->fetchAll();
-        }
-
-        return $parents;
     }
     
     private function getAvailableSocials(): array

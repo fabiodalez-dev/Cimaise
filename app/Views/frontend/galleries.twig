@@ -265,11 +265,12 @@
                aria-label="{{ seo_title|e('html_attr') }}">
         {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
         {% set is_nsfw_unconfirmed = album.is_nsfw and not can_show_nsfw %}
+        {% set is_locked = album.is_locked|default(false) %}
 
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
           {% if album.cover_image %}
-            {% if is_nsfw_unconfirmed %}
+            {% if is_nsfw_unconfirmed or is_locked %}
               {% set blur_path = album.cover_image.blur_path|default(null) %}
               {% if blur_path %}
               <img src="{% if blur_path starts with '/' %}{{ base_path }}{{ blur_path }}{% else %}{{ blur_path }}{% endif %}"

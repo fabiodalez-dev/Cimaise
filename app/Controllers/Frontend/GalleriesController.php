@@ -85,11 +85,19 @@ class GalleriesController extends BaseController
                     'width' => (int)($album['cover_image']['width'] ?? 400),
                     'height' => (int)($album['cover_image']['height'] ?? 300),
                 ];
-                if ($isNsfw && !$canShowNsfw) {
-                    $coverImage['blur_path'] = $album['cover_image']['blur_path'] ?? null;
+                $blurPath = $album['cover_image']['blur_path'] ?? null;
+                if (!empty($album['is_locked']) && !empty($album['cover_image']['id'])) {
+                    $ext = 'jpg';
+                    if ($blurPath && preg_match('/\\.([a-z0-9]+)$/i', (string)$blurPath, $matches)) {
+                        $ext = strtolower($matches[1]);
+                    }
+                    $blurPath = '/media/protected/' . (int)$album['cover_image']['id'] . '/blur.' . $ext;
+                }
+                if (($isNsfw && !$canShowNsfw) || !empty($album['is_locked'])) {
+                    $coverImage['blur_path'] = $blurPath;
                 } else {
                     $coverImage['preview_path'] = $album['cover_image']['preview_path'] ?? null;
-                    $coverImage['blur_path'] = $album['cover_image']['blur_path'] ?? null;
+                    $coverImage['blur_path'] = $blurPath;
                 }
             }
 
@@ -104,6 +112,7 @@ class GalleriesController extends BaseController
                 'category_slug' => $album['category_slug'] ?? null,
                 'images_count' => $album['images_count'] ?? 0,
                 'is_password_protected' => $album['is_password_protected'] ?? false,
+                'is_locked' => $album['is_locked'] ?? false,
                 'is_nsfw' => $isNsfw,
                 'cover_image' => $coverImage,
                 'tags' => array_map(function($tag) {

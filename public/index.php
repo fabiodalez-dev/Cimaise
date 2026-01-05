@@ -15,6 +15,7 @@ use App\Middlewares\SecurityHeadersMiddleware;
 use Slim\Middleware\ErrorMiddleware;
 use Slim\Exception\HttpNotFoundException;
 use App\Support\Hooks;
+use App\Support\CookieHelper;
 use App\Support\PluginManager;
 
 // Check if installer is being accessed
@@ -110,10 +111,7 @@ ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
 // Only set secure cookie flag if actually using HTTPS
 // Checking APP_DEBUG alone breaks HTTP localhost testing in production mode
-$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-    || ($_SERVER['SERVER_PORT'] ?? 80) == 443
-    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-if ($isHttps) {
+if (CookieHelper::isHttps()) {
     ini_set('session.cookie_secure', '1');
 }
 session_start();
@@ -176,6 +174,7 @@ if ($basePath) {
 $app->addBodyParsingMiddleware();
 
 // Performance middleware (cache and compression)
+$settingsService = null;
 if ($container['db'] !== null) {
     $settingsService = new \App\Services\SettingsService($container['db']);
     $app->add(new \App\Middlewares\CompressionMiddleware($settingsService));
@@ -222,7 +221,9 @@ if ($container['db'] !== null) {
     $GLOBALS['translationService'] = $translationService;
 
     // Add performance extension for optimization features
-    $settingsService = new \App\Services\SettingsService($container['db']);
+    if ($settingsService === null) {
+        $settingsService = new \App\Services\SettingsService($container['db']);
+    }
     $performanceService = new \App\Services\PerformanceService($container['db'], $settingsService);
     $twig->getEnvironment()->addExtension(new \App\Extensions\PerformanceTwigExtension($performanceService));
 }

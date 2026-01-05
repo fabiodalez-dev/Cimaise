@@ -14,7 +14,7 @@ class CookieHelper
     public static function isHttps(): bool
     {
         return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-            || ($_SERVER['SERVER_PORT'] ?? 80) == 443
+            || (int)($_SERVER['SERVER_PORT'] ?? 80) === 443
             || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     }
 
