@@ -2,12 +2,13 @@
 // Lenis smooth scroll is now loaded globally via smooth-scroll.js
 import './home-gallery.js'
 import './albums-carousel.js'
+import './home-infinite-loader.js'
 
 /**
  * Home Infinite Gallery - Entry animation reveal
  * Handles the fade-in animation for .home-item elements in the classic home template
  */
-(function() {
+(function () {
   'use strict';
 
   function onReady(fn) {
