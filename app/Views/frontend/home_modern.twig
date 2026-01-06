@@ -373,7 +373,7 @@
                     {% for image in all_images %}
                     {# Get best image URL (prefer md webp) #}
                     {% set fallback_path = image.fallback_src ?? image.variants[0].path ?? image.original_path %}
-                    {% set img_src = fallback_path starts with '/' ? base_path ~ fallback_path : base_path ~ '/' ~ fallback_path %}
+                    {% set img_src = fallback_path starts with '/' ? base_path ~ fallback_path : fallback_path %}
                     {% set srcset_avif = [] %}
                     {% set srcset_webp = [] %}
                     {% set srcset_jpg = [] %}

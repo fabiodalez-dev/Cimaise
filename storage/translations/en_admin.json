@@ -1476,6 +1476,7 @@
     "admin.pages.title": "Pages",
     "admin.pages.view": "View",
     "admin.pages.view_page": "View page",
+    "admin.pagination.goto_page": "Go to page",
     "admin.pagination.next": "Next",
     "admin.pagination.previous": "Previous",
     "admin.plugins.activate": "Activate",

@@ -1,6 +1,6 @@
 {% import 'frontend/_seo_macros.twig' as Seo %}
 {# Masonry image item - shows full image without cropping #}
-{% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+{% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
 {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
 
 <div class="masonry-item">
@@ -36,7 +36,10 @@
         {% set variants_avif = [] %}
         {% set variants_webp = [] %}
         {% set variants_jpg = [] %}
-        {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+        {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+        {% if best_jpg_path starts with '/' %}
+          {% set best_jpg_path = base_path ~ best_jpg_path %}
+        {% endif %}
         {% set best_jpg_w = 0 %}
         {% for variant in image.variants %}
           {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}

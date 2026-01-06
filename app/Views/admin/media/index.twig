@@ -68,6 +68,7 @@
             {% else %}
             <li>
               <a href="?page={{ p }}{% if pagination.query %}&q={{ pagination.query|url_encode }}{% endif %}"
+                 aria-label="{{ trans('admin.pagination.goto_page')|default('Go to page') }} {{ p }}"
                  class="flex items-center justify-center w-9 h-9 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors">{{ p }}</a>
             </li>
             {% endif %}

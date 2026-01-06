@@ -192,7 +192,7 @@ document.addEventListener('click', function(event) {
     {% for image in images %}
     {
       "@type": "ImageObject",
-      "contentUrl": "{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}",
+      "contentUrl": "{% set schema_url = image.fallback_src|default(image.url|default(image.original_path)) %}{% if schema_url starts with '/' %}{{ base_path }}{{ schema_url }}{% else %}{{ schema_url }}{% endif %}",
       {% if image.alt_text %}"description": {{ image.alt_text|json_encode|raw }},{% endif %}
       {% if image.caption %}"caption": {{ image.caption|json_encode|raw }},{% endif %}
       {% if image.width and image.height %}"width": {{ image.width }},
@@ -206,7 +206,7 @@ document.addEventListener('click', function(event) {
       {% if schema is defined and schema.image_copyright_notice %}"copyrightNotice": {{ schema.image_copyright_notice|replace_year|json_encode|raw }},{% endif %}
       {% if schema is defined and schema.image_license_url %}"license": {{ schema.image_license_url|json_encode|raw }},{% endif %}
       {% if schema is defined and schema.image_acquire_license_page %}"acquireLicensePage": {{ schema.image_acquire_license_page|json_encode|raw }},{% endif %}
-      "thumbnailUrl": "{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}"
+      "thumbnailUrl": "{% set schema_thumb = image.fallback_src|default(image.url|default(image.original_path)) %}{% if schema_thumb starts with '/' %}{{ base_path }}{{ schema_thumb }}{% else %}{{ schema_thumb }}{% endif %}"
     }{% if not loop.last %},{% endif %}
     {% endfor %}
   ]
@@ -227,7 +227,9 @@ document.addEventListener('click', function(event) {
     <!-- Background Image -->
     {% if album.cover %}
     <div class="absolute inset-0 z-0">
-        {% set cover_url = album.cover.variants|length > 0 ? (album.cover.variants|last.path) : album.cover.original_path %}
+        {% set cover_url = album.cover.variants|length > 0
+          ? (album.cover.variants|last.path)
+          : album.cover_image.preview_path|default(album.cover_image.path|default(album.cover_image.original_path|default(album.cover.original_path))) %}
         <img src="{% if cover_url starts with '/' %}{{ base_path }}{{ cover_url }}{% else %}{{ cover_url }}{% endif %}" alt="{{ album.title|e }}" class="w-full h-full object-cover">
     </div>
     {% endif %}
@@ -544,7 +546,7 @@ document.addEventListener('click', function(event) {
                 {% set sizeClass = 'big' %}
             {% endif %}
             <div class="{{ sizeClass }}">
-                {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                {% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
                 {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
                 <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
                    class="pswp-link"
@@ -570,7 +572,10 @@ document.addEventListener('click', function(event) {
                         {% set variants_avif = [] %}
                         {% set variants_webp = [] %}
                         {% set variants_jpg = [] %}
-                        {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                        {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+                        {% if best_jpg_path starts with '/' %}
+                          {% set best_jpg_path = base_path ~ best_jpg_path %}
+                        {% endif %}
                         {% set best_jpg_w = 0 %}
                         {% for variant in image.variants %}
                             {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
@@ -684,7 +689,7 @@ document.addEventListener('click', function(event) {
                 {% set imgH = image.height|default(3) %}
                 <div class="masonry-frame" style="--width: {{ imgW }}; --height: {{ imgH }};">
                     <div class="frame-content group {{ rounded_class }} {{ shadow_class }}">
-                        {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                        {% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
                         {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
                         <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
                            class="pswp-link gallery-link block w-full h-full overflow-hidden bg-neutral-100 cursor-pointer {{ rounded_class }}"
@@ -710,7 +715,10 @@ document.addEventListener('click', function(event) {
                                 {% set variants_avif = [] %}
                                 {% set variants_webp = [] %}
                                 {% set variants_jpg = [] %}
-                                {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                                {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+                                {% if best_jpg_path starts with '/' %}
+                                  {% set best_jpg_path = base_path ~ best_jpg_path %}
+                                {% endif %}
                                 {% set best_jpg_w = 0 %}
                                 {% for variant in image.variants %}
                                     {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
@@ -793,7 +801,7 @@ document.addEventListener('click', function(event) {
              data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
             {% for image in images %}
                 <div class="gallery-item">
-                    {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                    {% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
                     {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
                     <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
                        class="pswp-link gallery-link group block overflow-hidden bg-neutral-100 cursor-pointer {{ aspect_class }} {{ rounded_class }} {{ shadow_class }}"
@@ -819,7 +827,10 @@ document.addEventListener('click', function(event) {
                             {% set variants_avif = [] %}
                             {% set variants_webp = [] %}
                             {% set variants_jpg = [] %}
-                            {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                            {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+                            {% if best_jpg_path starts with '/' %}
+                              {% set best_jpg_path = base_path ~ best_jpg_path %}
+                            {% endif %}
                             {% set best_jpg_w = 0 %}
                             {% for variant in image.variants %}
                                 {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}

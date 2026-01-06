@@ -161,8 +161,10 @@
         {% if jpg_sources|length > 0 %}
         <source type="image/jpeg" srcset="{% for src in jpg_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
         {% endif %}
+        {% set img_src = image.fallback_src|default(image.original_path) %}
+        {% set img_url = img_src starts with '/' ? base_path ~ img_src : img_src %}
         <img
-          src="{{ base_path }}{{ image.fallback_src|default(image.original_path)|e('html_attr') }}"
+          src="{{ img_url|e('html_attr') }}"
           alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
           width="{{ image.width|default(800) }}"
           height="{{ image.height|default(600) }}"

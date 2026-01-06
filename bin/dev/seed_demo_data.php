@@ -1494,6 +1494,11 @@ echo "\n";
 echo "🔄 Generating image variants and blur previews...\n";
 echo "\n";
 
+if (!function_exists('exec')) {
+    echo "✗ Error: exec() is disabled in php.ini. Image variants and blur generation require exec() to be enabled.\n";
+    exit(1);
+}
+
 // Run images:generate first
 echo "   Running: php bin/console images:generate\n";
 $variantOutput = [];
@@ -1526,7 +1531,7 @@ if ($blurReturn === 0) {
 // CLEANUP: Remove temp album seed files (keep category images)
 // ============================================
 $seedAlbumsDir = $root . '/public/media/seed/albums';
-if (is_dir($seedAlbumsDir)) {
+if (is_dir($seedAlbumsDir) && str_contains($seedAlbumsDir, '/public/media/seed/albums')) {
     echo "🗑️  Cleaning up temporary album seed files...\n";
 
     // Recursively delete the albums seed directory only

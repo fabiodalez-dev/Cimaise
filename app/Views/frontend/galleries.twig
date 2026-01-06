@@ -1039,9 +1039,15 @@ function generateGalleryCard(album) {
     // NSFW Overlay
     if (isNsfwUnconfirmed) {
         const nsfwOverlay = document.createElement('div');
-        nsfwOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm';
+        nsfwOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10';
         nsfwOverlay.innerHTML = '<i class="fas fa-eye-slash text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.nsfwWarningShort || '18+') + '</span>';
         rel.appendChild(nsfwOverlay);
+    }
+    if (isLocked && !isNsfwUnconfirmed) {
+        const lockOverlay = document.createElement('div');
+        lockOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10';
+        lockOverlay.innerHTML = '<i class="fas fa-lock text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.passwordProtected || 'Password Protected') + '</span>';
+        rel.appendChild(lockOverlay);
     }
     // Top right badges container (lock + count)
     const badgesContainer = document.createElement('div');

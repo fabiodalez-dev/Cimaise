@@ -1004,7 +1004,7 @@
             background: #fff;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.55s ease;
+            transition: opacity 0.15s ease;
             z-index: 9998;
         }
         #pswp-open-overlay.is-visible {
@@ -2653,11 +2653,11 @@
                         padding: { top: 60, bottom: 100, left: 72, right: 72 },
                         
                         // Modern smooth animations
-                        showHideAnimationType: 'fade',
-                        hideAnimationDuration: 420,
-                        showAnimationDuration: 520,
-                        zoomAnimationDuration: 420,
-                        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                        showHideAnimationType: 'none',
+                        hideAnimationDuration: 0,
+                        showAnimationDuration: 0,
+                        zoomAnimationDuration: 0,
+                        easing: 'linear',
                         
                         // Click/tap interactions (handled manually for centered zoom)
                         imageClickAction: false,
@@ -2668,7 +2668,7 @@
                         // Performance optimizations
                         preloadFirstSlide: true,
                         preload: [1, 2],
-                        preloaderDelay: 800,
+                        preloaderDelay: 0,
                         
                         // Better accessibility (template-controlled)
                         escKey: (psCfg.escKey === undefined ? true : !!psCfg.escKey),
@@ -3294,11 +3294,11 @@
                     padding: { top: 60, bottom: 100, left: 72, right: 72 },
                     
                     // Modern animations
-                    showHideAnimationType: 'fade',
-                    hideAnimationDuration: 200,
-                    showAnimationDuration: 300,
-                    zoomAnimationDuration: 250,
-                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    showHideAnimationType: 'none',
+                    hideAnimationDuration: 0,
+                    showAnimationDuration: 0,
+                    zoomAnimationDuration: 0,
+                    easing: 'linear',
                     
                         // Custom interactions: zoom handled manually
                         imageClickAction: false,
@@ -3439,14 +3439,14 @@
                   const lightbox = new PhotoSwipe({
                       dataSource: items,
                       index: startIndex,
-                      showHideAnimationType: 'fade',
+                      showHideAnimationType: 'none',
                       allowPanToNext: !!psCfg.allowPanToNext,
                       bgOpacity: 0.94,
                       loop: !!psCfg.loop,
-                      showAnimationDuration: 420,
-                      hideAnimationDuration: 320,
-                      zoomAnimationDuration: 360,
-                      easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+                      showAnimationDuration: 0,
+                      hideAnimationDuration: 0,
+                      zoomAnimationDuration: 0,
+                      easing: 'linear'
                   });
                   // Custom caption overlay for PhotoSwipe
                   let psCaptionEl = document.createElement('div');

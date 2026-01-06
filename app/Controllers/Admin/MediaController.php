@@ -66,6 +66,7 @@ class MediaController extends BaseController
                        COALESCE((
                            SELECT iv.path FROM image_variants iv
                            WHERE iv.image_id = i.id AND iv.variant = \'sm\'
+                           -- Prefer webp for admin UI performance (smaller files, faster loading)
                            ORDER BY CASE iv.format WHEN \'webp\' THEN 1 WHEN \'jpg\' THEN 2 ELSE 3 END
                            LIMIT 1
                        ), i.original_path) AS preview_path
