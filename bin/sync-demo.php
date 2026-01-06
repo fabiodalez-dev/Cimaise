@@ -508,6 +508,34 @@ HTACCESS;
     file_put_contents($file, $content);
 }
 
+function createRootIndexPhp(string $demoRoot, bool $dryRun): void {
+    logMsg("Creating root index.php for subdirectory fallback");
+    if ($dryRun) return;
+
+    $file = "$demoRoot/index.php";
+
+    // Create a simple index.php that forwards to public/index.php
+    // This works even when AllowOverride is disabled in root directory
+    $content = <<<'PHP'
+<?php
+/**
+ * Root index.php for subdirectory installations
+ * Forwards all requests to public/index.php
+ *
+ * This file is needed when AllowOverride is not enabled
+ * in the root directory but only in public/
+ */
+
+// Change working directory to public/
+chdir(__DIR__ . '/public');
+
+// Include the main application entry point
+require __DIR__ . '/public/index.php';
+PHP;
+
+    file_put_contents($file, $content);
+}
+
 function createDemoTemplateMenu(string $demoRoot, bool $dryRun): void {
     logMsg("Creating demo-only file: _demo_template_menu.twig");
     if ($dryRun) return;
@@ -647,6 +675,7 @@ logMsg("Applying demo-specific patches...");
 patchIndexPhp($demoRoot, $dryRun);
 patchHtaccess($demoRoot, $dryRun);
 patchRootHtaccess($demoRoot, $dryRun);
+createRootIndexPhp($demoRoot, $dryRun);
 patchAuthController($demoRoot, $dryRun);
 patchPageController($demoRoot, $dryRun);
 patchAdminLayout($demoRoot, $dryRun);
