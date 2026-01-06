@@ -85,7 +85,10 @@ function syncDirectory(string $src, string $dst, bool $dryRun): void {
 
     // Create destination if it doesn't exist
     if (!is_dir($dst)) {
-        mkdir($dst, 0755, true);
+        if (!mkdir($dst, 0755, true)) {
+            errorMsg("Failed to create directory: $dst");
+            return;
+        }
     }
 
     // Get all files in source
@@ -106,14 +109,21 @@ function syncDirectory(string $src, string $dst, bool $dryRun): void {
 
         if ($item->isDir()) {
             if (!is_dir($dstPath)) {
-                mkdir($dstPath, 0755, true);
+                if (!mkdir($dstPath, 0755, true)) {
+                    errorMsg("Failed to create directory: $dstPath");
+                }
             }
         } else {
             $dstDir = dirname($dstPath);
             if (!is_dir($dstDir)) {
-                mkdir($dstDir, 0755, true);
+                if (!mkdir($dstDir, 0755, true)) {
+                    errorMsg("Failed to create directory: $dstDir");
+                    continue;
+                }
             }
-            copy($item->getPathname(), $dstPath);
+            if (!copy($item->getPathname(), $dstPath)) {
+                errorMsg("Failed to copy: {$item->getPathname()} to $dstPath");
+            }
         }
     }
 
@@ -135,9 +145,13 @@ function syncDirectory(string $src, string $dst, bool $dryRun): void {
 
             if (!file_exists($srcPath) && !is_dir($srcPath)) {
                 if ($item->isDir()) {
-                    @rmdir($item->getPathname());
+                    if (!@rmdir($item->getPathname())) {
+                        warnMsg("Failed to remove directory: {$item->getPathname()}");
+                    }
                 } else {
-                    @unlink($item->getPathname());
+                    if (!@unlink($item->getPathname())) {
+                        warnMsg("Failed to remove file: {$item->getPathname()}");
+                    }
                 }
             }
         }
@@ -164,13 +178,13 @@ function syncFile(string $src, string $dst, bool $dryRun): void {
 function syncPublicAssets(string $projectRoot, string $demoRoot, bool $dryRun): void {
     logMsg("Syncing public assets...");
 
-    if ($dryRun) return;
-
     // Sync assets folder
-    syncDirectory("$projectRoot/public/assets", "$demoRoot/public/assets", false);
+    syncDirectory("$projectRoot/public/assets", "$demoRoot/public/assets", $dryRun);
 
     // Sync fonts
-    syncDirectory("$projectRoot/public/fonts", "$demoRoot/public/fonts", false);
+    syncDirectory("$projectRoot/public/fonts", "$demoRoot/public/fonts", $dryRun);
+
+    if ($dryRun) return;
 
     // Sync favicons
     $favicons = ['favicon.ico', 'favicon-32x32.png', 'favicon-16x16.png',
@@ -179,7 +193,9 @@ function syncPublicAssets(string $projectRoot, string $demoRoot, bool $dryRun): 
     foreach ($favicons as $favicon) {
         $src = "$projectRoot/public/$favicon";
         if (file_exists($src)) {
-            copy($src, "$demoRoot/public/$favicon");
+            if (!copy($src, "$demoRoot/public/$favicon")) {
+                errorMsg("Failed to copy favicon: $favicon");
+            }
         }
     }
 }
@@ -208,6 +224,10 @@ PHP;
         $content
     );
 
+    if (!str_contains($content, "define('DEMO_MODE', true)")) {
+        warnMsg("Failed to apply DEMO_MODE constant patch to index.php");
+    }
+
     // Add demo Twig globals before $app->run();
     $demoGlobals = <<<'PHP'
 
@@ -221,6 +241,10 @@ $app->run();
 PHP;
 
     $content = str_replace('$app->run();', $demoGlobals, $content);
+
+    if (!str_contains($content, "addGlobal('is_demo', true)")) {
+        warnMsg("Failed to apply Twig globals patch to index.php");
+    }
 
     file_put_contents($file, $content);
 }
@@ -252,12 +276,20 @@ PHP;
         $content
     );
 
+    if (!str_contains($content, '// DEMO MODE: Block password change')) {
+        warnMsg("Failed to apply password change block patch to AuthController.php");
+    }
+
     // Add is_demo to showLogin render
     $content = preg_replace(
         "/'csrf' => \\\$_SESSION\['csrf'\] \?\? ''/",
         "'csrf' => \$_SESSION['csrf'] ?? '',\n            'is_demo' => defined('DEMO_MODE') && DEMO_MODE",
         $content
     );
+
+    if (!str_contains($content, "'is_demo' => defined('DEMO_MODE')")) {
+        warnMsg("Failed to apply is_demo patch to AuthController.php");
+    }
 
     file_put_contents($file, $content);
 }
@@ -286,6 +318,10 @@ PHP;
         "$1$templateOverride",
         $content
     );
+
+    if (!str_contains($content, '// DEMO MODE: Allow template override')) {
+        warnMsg("Failed to apply template override patch to PageController.php");
+    }
 
     file_put_contents($file, $content);
 }
@@ -320,6 +356,10 @@ TWIG;
         $content
     );
 
+    if (!str_contains($content, '{# DEMO MODE: Demo banner #}')) {
+        warnMsg("Failed to apply demo banner patch to admin/_layout.twig");
+    }
+
     file_put_contents($file, $content);
 }
 
@@ -344,6 +384,10 @@ TWIG;
         $content,
         1 // Only replace first occurrence
     );
+
+    if (!str_contains($content, "_demo_template_menu.twig")) {
+        warnMsg("Failed to apply template menu patch to frontend/_layout.twig");
+    }
 
     file_put_contents($file, $content);
 }
@@ -395,6 +439,10 @@ TWIG;
         $content,
         1
     );
+
+    if (!str_contains($content, '{# DEMO MODE: Show login credentials #}')) {
+        warnMsg("Failed to apply credentials box patch to admin/login.twig");
+    }
 
     file_put_contents($file, $content);
 }
