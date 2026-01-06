@@ -45,11 +45,20 @@ class SettingsController extends BaseController
             // Plugin table doesn't exist yet
         }
 
+        // Check compression availability
+        $compressionAvailability = [
+            'brotli' => function_exists('brotli_compress'),
+            'gzip' => function_exists('gzencode'),
+            'deflate' => function_exists('gzdeflate'),
+            'zlib' => extension_loaded('zlib')
+        ];
+
         return $this->view->render($response, 'admin/settings.twig', [
             'settings' => $settings,
             'templates' => $templates,
             'album_page_templates' => $albumPageTemplates,
             'maintenancePluginActive' => $maintenancePluginActive,
+            'compressionAvailability' => $compressionAvailability,
             'csrf' => $_SESSION['csrf'] ?? '',
         ]);
     }
@@ -211,6 +220,19 @@ class SettingsController extends BaseController
         $svc->set('frontend.disable_right_click', $disableRightClick);
         $svc->set('frontend.dark_mode', isset($data['dark_mode']));
 
+        // PWA settings
+        $pwaThemeColor = trim((string)($data['pwa_theme_color'] ?? '#ffffff'));
+        $pwaBackgroundColor = trim((string)($data['pwa_background_color'] ?? '#ffffff'));
+        // Validate color format (hex color)
+        if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $pwaThemeColor)) {
+            $pwaThemeColor = '#ffffff';
+        }
+        if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $pwaBackgroundColor)) {
+            $pwaBackgroundColor = '#ffffff';
+        }
+        $svc->set('pwa.theme_color', $pwaThemeColor);
+        $svc->set('pwa.background_color', $pwaBackgroundColor);
+
         // Custom CSS - sanitize with maximum security
         $customCss = '';
         if (isset($data['custom_css'])) {
@@ -246,6 +268,22 @@ class SettingsController extends BaseController
         $svc->set('frontend.custom_css', $customCss);
         $svc->set('navigation.show_tags_in_header', isset($data['show_tags_in_header']));
         $svc->set('privacy.nsfw_global_warning', isset($data['nsfw_global_warning']));
+
+        // Performance & Cache settings
+        $svc->set('performance.compression_enabled', isset($data['compression_enabled']));
+        $compressionType = in_array($data['compression_type'] ?? 'auto', ['auto', 'brotli', 'gzip'], true)
+            ? $data['compression_type']
+            : 'auto';
+        $svc->set('performance.compression_type', $compressionType);
+        $compressionLevel = max(0, min(11, (int)($data['compression_level'] ?? 6)));
+        $svc->set('performance.compression_level', $compressionLevel);
+        $svc->set('performance.cache_enabled', isset($data['cache_enabled']));
+        $staticCacheMaxAge = max(0, (int)($data['static_cache_max_age'] ?? 31536000));
+        $svc->set('performance.static_cache_max_age', $staticCacheMaxAge);
+        $mediaCacheMaxAge = max(0, (int)($data['media_cache_max_age'] ?? 86400));
+        $svc->set('performance.media_cache_max_age', $mediaCacheMaxAge);
+        $htmlCacheMaxAge = max(0, (int)($data['html_cache_max_age'] ?? 300));
+        $svc->set('performance.html_cache_max_age', $htmlCacheMaxAge);
 
         // Maintenance Mode settings (dot notation for consistency)
         $svc->set('maintenance.enabled', isset($data['maintenance_enabled']));
@@ -531,6 +569,7 @@ class SettingsController extends BaseController
             $result = $faviconService->generateFavicons($absoluteLogoPath);
 
             if ($result['success']) {
+                $svc->set('pwa.existing_icons', []);
                 $generatedCount = count($result['generated']);
                 $message = str_replace('{count}', (string)$generatedCount, trans('admin.flash.favicon_success'));
 
@@ -677,6 +716,7 @@ class SettingsController extends BaseController
             $result = $faviconService->generateFavicons($absoluteSourcePath);
 
             if ($result['success']) {
+                $svc->set('pwa.existing_icons', []);
                 $generatedCount = count($result['generated']);
                 $message = str_replace('{count}', (string)$generatedCount, trans('admin.flash.favicon_success'));
 

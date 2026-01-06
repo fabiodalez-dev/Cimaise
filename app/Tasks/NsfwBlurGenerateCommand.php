@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Tasks;
 
+use App\Services\SettingsService;
 use App\Services\UploadService;
 use App\Support\Database;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -22,10 +23,12 @@ class NsfwBlurGenerateCommand extends Command
 
     protected function configure(): void
     {
-        $this->setDescription('Generate blurred image variants for NSFW album covers')
+        $this->setDescription('Generate blurred image variants for NSFW and password-protected album covers')
              ->addOption('album', 'a', InputOption::VALUE_OPTIONAL, 'Process only specific album ID')
              ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force regeneration of existing blur variants')
-             ->addOption('all', null, InputOption::VALUE_NONE, 'Process all images in NSFW albums (not just covers)');
+             ->addOption('all', null, InputOption::VALUE_NONE, 'Process all images in protected albums (not just covers)')
+             ->addOption('nsfw-only', null, InputOption::VALUE_NONE, 'Process only NSFW albums')
+             ->addOption('password-only', null, InputOption::VALUE_NONE, 'Process only password-protected albums');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -33,16 +36,30 @@ class NsfwBlurGenerateCommand extends Command
         $albumId = $input->getOption('album');
         $force = $input->getOption('force');
         $processAll = $input->getOption('all');
+        $nsfwOnly = $input->getOption('nsfw-only');
+        $passwordOnly = $input->getOption('password-only');
 
-        $output->writeln('<info>Generating blurred variants for NSFW albums...</info>');
+        $output->writeln('<info>Generating blurred variants for protected albums...</info>');
         $output->writeln('');
 
         try {
             $pdo = $this->db->pdo();
+            $settings = new SettingsService($this->db);
+            $settings->clearCache();
             $uploadService = new UploadService($this->db);
 
-            // Get NSFW albums
-            $query = 'SELECT id, title, cover_image_id FROM albums WHERE is_nsfw = 1';
+            // Build query for protected albums (NSFW and/or password-protected)
+            $conditions = [];
+            if ($nsfwOnly) {
+                $conditions[] = 'is_nsfw = 1';
+            } elseif ($passwordOnly) {
+                $conditions[] = 'password_hash IS NOT NULL';
+            } else {
+                // Default: both NSFW and password-protected
+                $conditions[] = '(is_nsfw = 1 OR password_hash IS NOT NULL)';
+            }
+
+            $query = 'SELECT id, title, cover_image_id, is_nsfw, (password_hash IS NOT NULL) as is_password_protected FROM albums WHERE ' . implode(' AND ', $conditions);
             $params = [];
 
             if ($albumId) {
@@ -55,19 +72,28 @@ class NsfwBlurGenerateCommand extends Command
             $albums = $stmt->fetchAll();
 
             if (!$albums) {
-                $output->writeln('<comment>No NSFW albums found.</comment>');
+                $output->writeln('<comment>No protected albums found.</comment>');
                 return Command::SUCCESS;
             }
 
             $totalAlbums = count($albums);
-            $output->writeln("<info>Found {$totalAlbums} NSFW album(s)</info>");
+            $typeLabel = $nsfwOnly ? 'NSFW' : ($passwordOnly ? 'password-protected' : 'protected');
+            $output->writeln("<info>Found {$totalAlbums} {$typeLabel} album(s)</info>");
             $output->writeln('');
 
             $totalStats = ['generated' => 0, 'failed' => 0, 'skipped' => 0];
             $errors = [];
 
             foreach ($albums as $album) {
-                $output->writeln("<info>Processing album #{$album['id']}: {$album['title']}</info>");
+                $protection = [];
+                if (!empty($album['is_nsfw'])) {
+                    $protection[] = 'NSFW';
+                }
+                if (!empty($album['is_password_protected'])) {
+                    $protection[] = 'password';
+                }
+                $protectionLabel = implode('+', $protection);
+                $output->writeln("<info>Processing album #{$album['id']}: {$album['title']} [{$protectionLabel}]</info>");
 
                 if ($processAll) {
                     // Generate blur for all images in album

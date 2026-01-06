@@ -263,22 +263,22 @@ class UploadService
         $fastUploadMode = $this->envFlag('FAST_UPLOAD', $variantsAsync);
         $syncVariants = $this->envFlag('SYNC_VARIANTS_ON_UPLOAD', !$variantsAsync);
 
-        // Fetch album settings once (cover + NSFW flag)
-        $coverCheck = $pdo->prepare('SELECT cover_image_id, is_nsfw FROM albums WHERE id = :id');
+        // Fetch album settings once (cover + protection flags)
+        $coverCheck = $pdo->prepare('SELECT cover_image_id, is_nsfw, password_hash FROM albums WHERE id = :id');
         $coverCheck->execute([':id' => $albumId]);
         $album = $coverCheck->fetch();
-        $isAlbumNsfw = !empty($album['is_nsfw']);
+        $needsBlur = !empty($album['is_nsfw']) || !empty($album['password_hash']);
 
         if ($syncVariants || !$fastUploadMode) {
             $this->generateVariantsForImage($imageId, false);
-            if ($isAlbumNsfw) {
+            if ($needsBlur) {
                 $this->generateBlurredVariant($imageId);
             }
         } else {
             // Generate variants after response flush to keep UX snappy but still complete
             // Note: We capture $this->db to check connection validity in shutdown
             $db = $this->db;
-            register_shutdown_function(function () use ($imageId, $db, $isAlbumNsfw) {
+            register_shutdown_function(function () use ($imageId, $db, $needsBlur) {
                 try {
                     // Check if DB connection is still valid (may be closed during shutdown)
                     $pdo = $db->pdo();
@@ -287,7 +287,7 @@ class UploadService
                     // Connection still valid, generate variants
                     $uploadService = new self($db);
                     $uploadService->generateVariantsForImage($imageId, false);
-                    if ($isAlbumNsfw) {
+                    if ($needsBlur) {
                         $uploadService->generateBlurredVariant($imageId);
                     }
                 } catch (\PDOException $e) {
@@ -645,6 +645,41 @@ class UploadService
         }
 
         return null;
+    }
+
+    /**
+     * Ensure a generic blur placeholder exists for protected media fallbacks.
+     */
+    public function ensureBlurPlaceholder(): ?string
+    {
+        $mediaDir = dirname(__DIR__, 2) . '/public/media';
+        ImagesService::ensureDir($mediaDir);
+
+        $placeholderPath = $mediaDir . '/blur-placeholder.jpg';
+        if (!is_file($placeholderPath)) {
+            $image = imagecreatetruecolor(8, 8);
+            if ($image === false) {
+                Logger::warning('UploadService: Failed to allocate blur placeholder image', [], 'upload');
+                return null;
+            }
+
+            $color = imagecolorallocate($image, 120, 120, 120);
+            if ($color !== false) {
+                imagefilledrectangle($image, 0, 0, 7, 7, $color);
+            }
+
+            $saved = imagejpeg($image, $placeholderPath, 60);
+            imagedestroy($image);
+
+            if (!$saved) {
+                Logger::warning('UploadService: Failed to write blur placeholder image', [
+                    'path' => $placeholderPath,
+                ], 'upload');
+                return null;
+            }
+        }
+
+        return '/media/blur-placeholder.jpg';
     }
 
     /**

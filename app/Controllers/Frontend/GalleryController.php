@@ -116,14 +116,14 @@ class GalleryController extends BaseController
         if (!empty($album['password_hash']) && !$isAdmin) {
             $allowed = $this->hasAlbumPasswordAccess((int)$album['id']);
             if (!$allowed) {
-                // Categories for header menu
-                $navCategories = (new NavigationService($this->db))->getNavigationCategories();
+                $navService = new NavigationService($this->db);
                 $query = $request->getQueryParams();
                 // Pass error type: '1' for wrong password, 'nsfw' for NSFW confirmation required
                 $error = $query['error'] ?? null;
                 return $this->view->render($response, 'frontend/album_password.twig', [
                     'album' => $album,
-                    'categories' => $navCategories,
+                    'categories' => $navService->getNavigationCategories(),
+                    'parent_categories' => $navService->getParentCategoriesForNavigation(),
                     'page_title' => $album['title'] . ' — Protected',
                     'error' => $error,
                     'csrf' => $_SESSION['csrf'] ?? '',
@@ -133,10 +133,11 @@ class GalleryController extends BaseController
         }
         // NSFW server-side enforcement for albums without password protection
         if ($isNsfwAlbum && !$this->hasNsfwAlbumConsent((int)$album['id'])) {
-            $navCategories = (new NavigationService($this->db))->getNavigationCategories();
+            $navService = new NavigationService($this->db);
             return $this->view->render($response, 'frontend/nsfw_gate.twig', [
                 'album' => $album,
-                'categories' => $navCategories,
+                'categories' => $navService->getNavigationCategories(),
+                'parent_categories' => $navService->getParentCategoriesForNavigation(),
                 'page_title' => $album['title'] . ' — Age Verification Required',
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'robots' => 'noindex,nofollow'
@@ -282,6 +283,12 @@ class GalleryController extends BaseController
             $albumCustomFields = [];
         }
 
+        // EAGER LOADING: Load all variants for all images in ONE query (solves N+1 problem)
+        // Before: 150+ queries (1 for images + 50 images × 3 queries each)
+        // After: 2 queries (1 for images + 1 for all variants)
+        $imageIds = array_column($imagesRows, 'id');
+        $variantsByImage = \App\Services\ImageVariantsService::eagerLoadVariants($pdo, $imageIds);
+
         // Build gallery items for the template, preferring public variants
         $images = [];
         foreach ($imagesRows as $img) {
@@ -291,71 +298,59 @@ class GalleryController extends BaseController
             $lightboxUrl = $isProtectedAlbum
                 ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
                 : $bestUrl;
-            
-            $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
-            try {
-                // Get best variant for gallery grid
-                $v = $pdo->prepare("SELECT path, width, height FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
-                $v->execute([':id' => $img['id']]);
-                $vr = $v->fetch();
-                if ($vr && !empty($vr['path'])) { $bestUrl = $vr['path']; }
-                
-                // Choose the largest available variant for lightbox (prefer size, then format)
-                $lb = $pdo->prepare("
-                    SELECT variant, format, path
-                    FROM image_variants
-                    WHERE image_id = :id AND path NOT LIKE '/storage/%'
-                    ORDER BY
-                        width DESC,
-                        CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END,
-                        CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 WHEN 'sm' THEN 5 ELSE 9 END
-                    LIMIT 1
-                ");
-                $lb->execute([':id' => $img['id']]);
-                $lbr = $lb->fetch();
-                if ($lbr && !empty($lbr['path'])) {
-                    // Always protect paths for protected albums, regardless of allow_downloads
-                    if ($isProtectedAlbum) {
-                        $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $lbr['variant'] . '.' . $lbr['format'];
-                    } else {
-                        $lightboxUrl = $lbr['path'];
-                    }
+
+            // Get pre-loaded variants for this image (NO database query!)
+            $imgVariants = $variantsByImage[(int)$img['id']] ?? [];
+
+            // Use helper methods instead of individual queries
+            $gridVariant = \App\Services\ImageVariantsService::getBestGridVariant($imgVariants);
+            $lightboxVariant = \App\Services\ImageVariantsService::getBestLightboxVariant($imgVariants);
+            $sources = \App\Services\ImageVariantsService::buildResponsiveSources($imgVariants);
+
+            // Apply grid variant
+            if ($gridVariant && !empty($gridVariant['path'])) {
+                $bestUrl = $gridVariant['path'];
+            }
+
+            // Apply lightbox variant
+            if ($lightboxVariant && !empty($lightboxVariant['path'])) {
+                if ($isProtectedAlbum) {
+                    $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $lightboxVariant['variant'] . '.' . $lightboxVariant['format'];
                 } else {
-                    // Fallback: always use protected endpoint for protected albums
-                    $lightboxUrl = $isProtectedAlbum
-                        ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
-                        : $bestUrl;
+                    $lightboxUrl = $lightboxVariant['path'];
                 }
-                
-                // Build responsive sources for <picture>
-                $srcStmt = $pdo->prepare("SELECT format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width ASC");
-                $srcStmt->execute([':id' => $img['id']]);
-                $rows = $srcStmt->fetchAll() ?: [];
-                foreach ($rows as $r) {
-                    $fmt = $r['format'];
-                    if (isset($sources[$fmt])) {
-                        $sources[$fmt][] = $r['path'] . ' ' . (int)$r['width'] . 'w';
-                    }
-                }
-            } catch (\Throwable) {}
+            } else {
+                // Fallback: always use protected endpoint for protected albums
+                $lightboxUrl = $isProtectedAlbum
+                    ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
+                    : $bestUrl;
+            }
 
             // Ensure we never leak /storage/originals (not publicly served)
             if (str_starts_with((string)$bestUrl, '/storage/')) {
-                // If no public variants available, try to find any jpg variant
-                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
-                $fallbackStmt->execute([':id' => $img['id']]);
-                $fallback = $fallbackStmt->fetchColumn();
-                $bestUrl = $fallback ?: '/media/placeholder.jpg'; // Use placeholder if no variants
+                // Find any public variant as fallback
+                $fallback = null;
+                foreach ($imgVariants as $v) {
+                    if (!str_starts_with($v['path'], '/storage/')) {
+                        $fallback = $v['path'];
+                        break;
+                    }
+                }
+                $bestUrl = $fallback ?: '/media/placeholder.jpg';
             }
             if (str_starts_with((string)$lightboxUrl, '/storage/')) {
-                // For lightbox, prefer largest variant (size first, then format)
-                $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY width DESC, CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END LIMIT 1");
-                $fallbackStmt->execute([':id' => $img['id']]);
-                $fallback = $fallbackStmt->fetchColumn();
-                // Always use protected endpoint for protected albums
+                // For lightbox, find largest non-storage variant
+                $fallback = null;
+                $maxWidth = 0;
+                foreach ($imgVariants as $v) {
+                    if (!str_starts_with($v['path'], '/storage/') && ($v['width'] ?? 0) > $maxWidth) {
+                        $maxWidth = $v['width'] ?? 0;
+                        $fallback = $v['path'];
+                    }
+                }
                 $lightboxUrl = $isProtectedAlbum
                     ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
-                    : ($fallback ?: $bestUrl); // Use bestUrl as fallback
+                    : ($fallback ?: $bestUrl);
             }
 
             // Build an enhanced caption combining caption + basic metadata
@@ -758,6 +753,10 @@ class GalleryController extends BaseController
                 // Custom fields tables may not exist yet
             }
 
+            // EAGER LOADING: Load all variants for all images in ONE query (solves N+1 problem)
+            $imageIds = array_column($imagesRows, 'id');
+            $variantsByImage = \App\Services\ImageVariantsService::eagerLoadVariants($pdo, $imageIds);
+
             // Build gallery items for the template, preferring public variants
             $images = [];
             foreach ($imagesRows as $img) {
@@ -766,70 +765,57 @@ class GalleryController extends BaseController
                 $lightboxUrl = $isProtectedAlbum
                     ? $this->basePath . '/media/protected/' . $img['id'] . '/original'
                     : $bestUrl;
-                try {
-                    // Grid: prefer largest public variant (avif > webp > jpg)
-                    $vg = $pdo->prepare("SELECT path, width, height FROM image_variants
-                        WHERE image_id = :id AND path NOT LIKE '/storage/%'
-                        ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
-                    $vg->execute([':id' => $img['id']]);
-                    if ($vgr = $vg->fetch()) { if (!empty($vgr['path'])) { $bestUrl = $vgr['path']; } }
-                    // Lightbox: choose the largest available variant (size first, then format)
-                    $lb = $pdo->prepare("
-                        SELECT variant, format, path
-                        FROM image_variants
-                        WHERE image_id = :id AND path NOT LIKE '/storage/%'
-                        ORDER BY width DESC,
-                                 CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END,
-                                 CASE variant WHEN 'xxl' THEN 1 WHEN 'xl' THEN 2 WHEN 'lg' THEN 3 WHEN 'md' THEN 4 WHEN 'sm' THEN 5 ELSE 9 END
-                        LIMIT 1
-                    ");
-                    $lb->execute([':id' => $img['id']]);
-                    $lbr = $lb->fetch();
-                    if ($lbr && !empty($lbr['path'])) {
-                        // Always protect paths for protected albums
-                        if ($isProtectedAlbum) {
-                            $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $lbr['variant'] . '.' . $lbr['format'];
-                        } else {
-                            $lightboxUrl = $lbr['path'];
-                        }
-                    } elseif (!$isProtectedAlbum) {
-                        $lightboxUrl = $bestUrl;
-                    }
 
-                    // Lightbox: only use variant if original is not publicly accessible
-                    // Original paths like /media/originals/... are public, /storage/... are not
-                    // Build responsive sources for <picture>
-                    $srcStmt = $pdo->prepare("SELECT format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width ASC");
-                    $srcStmt->execute([':id' => $img['id']]);
-                    $rows = $srcStmt->fetchAll() ?: [];
-                    $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
-                    foreach ($rows as $r) {
-                        $fmt = $r['format'];
-                        if (isset($sources[$fmt])) {
-                            $sources[$fmt][] = $r['path'] . ' ' . (int)$r['width'] . 'w';
-                        }
-                    }
-                } catch (\Throwable $e) {
-                    Logger::warning('GalleryController: Error fetching image variants', ['error' => $e->getMessage()], 'gallery');
+                // Get pre-loaded variants for this image (NO database query!)
+                $imgVariants = $variantsByImage[(int)$img['id']] ?? [];
+
+                // Use helper methods instead of individual queries
+                $gridVariant = \App\Services\ImageVariantsService::getBestGridVariant($imgVariants);
+                $lightboxVariant = \App\Services\ImageVariantsService::getBestLightboxVariant($imgVariants);
+                $sources = \App\Services\ImageVariantsService::buildResponsiveSources($imgVariants);
+
+                // Apply grid variant
+                if ($gridVariant && !empty($gridVariant['path'])) {
+                    $bestUrl = $gridVariant['path'];
                 }
+
+                // Apply lightbox variant
+                if ($lightboxVariant && !empty($lightboxVariant['path'])) {
+                    if ($isProtectedAlbum) {
+                        $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/' . $lightboxVariant['variant'] . '.' . $lightboxVariant['format'];
+                    } else {
+                        $lightboxUrl = $lightboxVariant['path'];
+                    }
+                } elseif (!$isProtectedAlbum) {
+                    $lightboxUrl = $bestUrl;
+                }
+
                 // Fallbacks - ensure we never serve /storage/ paths
                 if (str_starts_with((string)$bestUrl, '/storage/')) {
-                    // Try to find any public variant
-                    $fallbackStmt = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%' ORDER BY width DESC LIMIT 1");
-                    $fallbackStmt->execute([':id' => $img['id']]);
-                    $fallback = $fallbackStmt->fetchColumn();
+                    // Find any public variant as fallback
+                    $fallback = null;
+                    foreach ($imgVariants as $v) {
+                        if (!str_starts_with($v['path'], '/storage/')) {
+                            $fallback = $v['path'];
+                            break;
+                        }
+                    }
                     $bestUrl = $fallback ?: '/media/placeholder.jpg';
                 }
                 if (str_starts_with((string)$lightboxUrl, '/storage/')) {
-                    // For lightbox, prefer largest variant (size first, then format)
-                    $lbFallback = $pdo->prepare("SELECT path FROM image_variants WHERE image_id = :id AND format IN ('jpg','webp','avif') AND path NOT LIKE '/storage/%' ORDER BY width DESC, CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END LIMIT 1");
-                    $lbFallback->execute([':id' => $img['id']]);
-                    $fallbackPath = $lbFallback->fetchColumn();
-                    // Always use protected endpoint for protected albums
+                    // For lightbox, find largest non-storage variant
+                    $fallback = null;
+                    $maxWidth = 0;
+                    foreach ($imgVariants as $v) {
+                        if (!str_starts_with($v['path'], '/storage/') && ($v['width'] ?? 0) > $maxWidth) {
+                            $maxWidth = $v['width'] ?? 0;
+                            $fallback = $v['path'];
+                        }
+                    }
                     if ($isProtectedAlbum) {
                         $lightboxUrl = $this->basePath . '/media/protected/' . $img['id'] . '/original';
                     } else {
-                        $lightboxUrl = $fallbackPath ?: $bestUrl;
+                        $lightboxUrl = $fallback ?: $bestUrl;
                     }
                 }
 

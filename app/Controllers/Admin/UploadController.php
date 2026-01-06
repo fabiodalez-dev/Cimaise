@@ -80,14 +80,20 @@ class UploadController extends BaseController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        // Check if album is NSFW for blur generation
-        $isNsfw = false;
+        // Check if album needs blur generation (NSFW or password-protected)
+        $needsBlur = false;
         try {
-            $nsfwCheck = $this->db->pdo()->prepare('SELECT is_nsfw FROM albums WHERE id = ?');
-            $nsfwCheck->execute([$albumId]);
-            $isNsfw = (bool) $nsfwCheck->fetchColumn();
-        } catch (\Throwable) {
-            // Column might not exist, assume not NSFW
+            $albumCheck = $this->db->pdo()->prepare('SELECT is_nsfw, password_hash FROM albums WHERE id = ?');
+            $albumCheck->execute([$albumId]);
+            $album = $albumCheck->fetch();
+            $needsBlur = !empty($album['is_nsfw']) || !empty($album['password_hash']);
+        } catch (\Throwable $e) {
+            // Backwards compatibility: older schemas may not include is_nsfw and/or password_hash.
+            Logger::warning('UploadController: album blur check failed (missing columns?)', [
+                'album_id' => $albumId,
+                'columns' => ['is_nsfw', 'password_hash'],
+                'error' => $e->getMessage(),
+            ], 'upload');
         }
 
         // Prepare array compatible with UploadService
@@ -96,13 +102,13 @@ class UploadController extends BaseController
             $svc = new UploadService($this->db);
             $meta = $svc->ingestAlbumUpload($albumId, $fArr);
 
-            // Generate blurred variant if album is NSFW (quick preview)
-            if ($isNsfw && !empty($meta['id'])) {
+            // Generate blurred variant if album is NSFW or password-protected
+            if ($needsBlur && !empty($meta['id'])) {
                 try {
                     $svc->generateBlurredVariant((int) $meta['id']);
                 } catch (\Throwable $blurError) {
                     // Log but don't fail the upload
-                    \App\Support\Logger::warning('Failed to generate NSFW blur for uploaded image', [
+                    \App\Support\Logger::warning('Failed to generate blur for protected album image', [
                         'image_id' => $meta['id'],
                         'error' => $blurError->getMessage()
                     ], 'upload');
@@ -210,6 +216,9 @@ class UploadController extends BaseController
                 $publicPath = dirname(__DIR__, 3) . '/public';
                 $faviconService = new \App\Services\FaviconService($publicPath);
                 $faviconResult = $faviconService->generateFavicons($destPath);
+                if (!empty($faviconResult['success'])) {
+                    $settings->set('pwa.existing_icons', []);
+                }
             } catch (\Throwable $faviconError) {
                 $faviconResult['error'] = $faviconError->getMessage();
                 \App\Support\Logger::error('Favicon generation failed after logo upload', [

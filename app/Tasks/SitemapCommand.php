@@ -32,6 +32,7 @@ class SitemapCommand extends Command
         $cliBaseUrl = $input->getOption('base-url');
 
         $settingsService = new SettingsService($this->db);
+        $settingsService->clearCache();
         $seoBaseUrl = $settingsService->get('seo.canonical_base_url', '');
 
         $baseUrl = $cliBaseUrl ?: ($seoBaseUrl ?: BaseUrlService::getCurrentBaseUrl());

@@ -214,6 +214,11 @@ abstract class BaseController
 
     /**
      * Centralized access validation for protected albums (password/NSFW).
+     *
+     * For media serving (individual images):
+     * - Blur variants are always allowed (for preview purposes)
+     * - Password-protected albums: Full images allowed (password protects album page, not images)
+     * - NSFW albums: Full images require consent
      */
     protected function validateAlbumAccess(
         int $albumId,
@@ -226,21 +231,18 @@ abstract class BaseController
             return true;
         }
 
-        if ($isPasswordProtected && !$this->hasAlbumPasswordAccess($albumId)) {
-            if ($log) {
-                $accessCount = isset($_SESSION['album_access']) && \is_array($_SESSION['album_access'])
-                    ? count($_SESSION['album_access'])
-                    : 0;
-                error_log("[MediaAccess] DENY password album={$albumId} variant={$variant} access_count={$accessCount}");
-            }
-            return 'password';
-        }
-
         $variantName = $variant !== null ? strtolower($variant) : null;
-        if ($isNsfw && $variantName === 'blur') {
+
+        // Blur variants are always allowed for preview purposes
+        if ($variantName === 'blur') {
             return true;
         }
 
+        // Password-protected albums: images are allowed (password protects page view, not images)
+        // This allows cover images to show in album listings
+        // The album page itself will still require password entry
+
+        // NSFW albums require consent for non-blur variants
         if ($isNsfw && !$this->hasNsfwAlbumConsent($albumId)) {
             if ($log) {
                 $consentCount = isset($_SESSION['nsfw_confirmed']) && \is_array($_SESSION['nsfw_confirmed'])
@@ -260,34 +262,36 @@ abstract class BaseController
             return $album;
         }
 
-        if (empty($album['cover']) || empty($album['cover']['variants']) || !is_array($album['cover']['variants'])) {
-            unset($album['cover']);
-        } else {
+        // Mark as requiring CSS blur fallback if no blur variant exists
+        $album['nsfw_needs_css_blur'] = true;
+
+        if (!empty($album['cover']) && !empty($album['cover']['variants']) && is_array($album['cover']['variants'])) {
             $blurVariants = array_values(array_filter(
                 $album['cover']['variants'],
                 fn($variant) => isset($variant['variant']) && $variant['variant'] === 'blur'
             ));
 
-            if ($blurVariants === []) {
-                unset($album['cover']);
-            } else {
+            if ($blurVariants !== []) {
+                // Use only blur variants for display
                 $album['cover']['variants'] = $blurVariants;
                 unset($album['cover']['original_path']);
+                $album['nsfw_needs_css_blur'] = false;
             }
+            // If no blur variants, keep the cover as-is for CSS blur fallback in template
         }
 
         if (!empty($album['cover_image']) && is_array($album['cover_image'])) {
             if (empty($album['cover_image']['blur_path']) && !empty($album['cover_image']['preview_path'])) {
                 $album['cover_image']['blur_path'] = $album['cover_image']['preview_path'];
             }
-            if (empty($album['cover_image']['blur_path'])) {
-                unset($album['cover_image']);
-            } else {
+            // Don't unset cover_image even without blur - template will apply CSS blur
+            if (!empty($album['cover_image']['blur_path'])) {
                 unset(
                     $album['cover_image']['preview_path'],
                     $album['cover_image']['original_path'],
                     $album['cover_image']['path']
                 );
+                $album['nsfw_needs_css_blur'] = false;
             }
         }
 

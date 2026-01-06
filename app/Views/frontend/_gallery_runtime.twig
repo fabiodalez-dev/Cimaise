@@ -1077,6 +1077,22 @@ document.addEventListener('click', function(event) {
                             .catch(err => console.error('Failed to load masonry module:', err));
                     }
                 }
+                const nestedMasonry = galleryContainer.querySelector('.gallery-masonry');
+                if (nestedMasonry && newLayout !== 'masonry') {
+                    nestedMasonry._masonryInitialized = false;
+                    if (typeof window.BalancedMasonryGrid !== 'undefined') {
+                        window.galleryMasonry = initGalleryMasonry(nestedMasonry);
+                    } else {
+                        import(`${window.basePath}/assets/vendor/masonry-grid/index.js`)
+                            .then(module => {
+                                window.BalancedMasonryGrid = module.BalancedMasonryGrid;
+                                window.RegularMasonryGrid = module.RegularMasonryGrid;
+                                window._masonryGridReady = true;
+                                window.galleryMasonry = initGalleryMasonry(nestedMasonry);
+                            })
+                            .catch(err => console.error('Failed to load masonry module:', err));
+                    }
+                }
 
             // STEP 10: Make visible and animate items
             setTimeout(() => {

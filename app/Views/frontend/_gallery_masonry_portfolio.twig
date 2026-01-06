@@ -133,7 +133,7 @@
     {% set imgW = image.width|default(0) %}
     {% set imgH = image.height|default(0) %}
     {% set is_landscape = imgW > 0 and imgH > 0 and (imgW / imgH) > 1.3 %}
-    {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+    {% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
     {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
     <div class="photo-item{{ is_landscape ? ' landscape' : '' }}">
       <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
@@ -161,7 +161,10 @@
           {% set variants_avif = [] %}
           {% set variants_webp = [] %}
           {% set variants_jpg = [] %}
-          {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+          {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+          {% if best_jpg_path starts with '/' %}
+            {% set best_jpg_path = base_path ~ best_jpg_path %}
+          {% endif %}
           {% set best_jpg_w = 0 %}
           {% for variant in image.variants %}
             {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}

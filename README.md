@@ -83,7 +83,7 @@ Customize fonts for your portfolio with live preview. Choose from curated font p
 
 <img src="screenshot/Lightbox.jpg" alt="Lightbox" width="800">
 
-Full-screen image viewing with smooth animations. Caption and equipment metadata displayed below (camera, lens, category). Dot navigation shows position in gallery. Keyboard navigation, zoom controls, and share buttons. Clean minimal UI that doesn't distract from your images.
+Full-screen image viewing with instant navigation. Caption and equipment metadata displayed below (camera, lens, category). Dot navigation shows position in gallery. Keyboard navigation, zoom controls, and share buttons. Clean minimal UI that doesn't distract from your images. Performance-optimized with disabled animations for instant image switching.
 
 ### EXIF Data Display
 
@@ -129,7 +129,7 @@ Create and organize your albums with drag-and-drop reordering. Each row shows co
 
 <img src="screenshot/media page.jpg" alt="Media Library" width="800">
 
-Visual grid of all uploaded images with batch selection. Right panel shows photo metadata—assign camera (Hasselblad 500C/M shown), lens, film stock, developer, lab, location, and custom fields. Bulk upload 100+ images at once. Click any image to edit its metadata or view in lightbox.
+Visual grid of all uploaded images with batch selection and pagination. Right panel shows photo metadata—assign camera (Hasselblad 500C/M shown), lens, film stock, developer, lab, location, and custom fields. Bulk upload 100+ images at once. Click any image to edit its metadata or view in lightbox. Handles large libraries with thousands of images through efficient server-side pagination.
 
 ### Translation Management
 
@@ -315,6 +315,79 @@ Each template offers fine-grained control:
 
 ---
 
+## Custom Templates with AI
+
+**Create unique gallery layouts by describing them to an AI assistant.**
+
+Cimaise includes a powerful Custom Templates plugin that lets you design completely original gallery, album page, and homepage templates. The innovation: you don't need to code. Just describe what you want to an AI assistant (Claude, ChatGPT, etc.), and it generates the template for you.
+
+### How It Works
+
+1. **Describe Your Vision** — Tell the AI what you want: "A polaroid-style gallery with scattered photos on a corkboard background" or "A minimalist grid with large whitespace and subtle hover animations"
+
+2. **Include the Instructions** — Copy the provided LLM instruction guide and paste it with your description. The guide tells the AI exactly what variables are available, what HTML structure to use, and how to format the output
+
+3. **Get Your Template** — The AI generates a complete template package with Twig template, CSS styles, and JavaScript if needed
+
+4. **Install & Use** — Upload the ZIP to Admin → Templates → Custom Templates, and assign it to any album
+
+### Available Template Types
+
+| Type | What You Can Customize |
+|------|------------------------|
+| **Gallery Templates** | How photos display within albums (grid, masonry, carousel, etc.) |
+| **Album Page Templates** | The entire album page including header, metadata, and photo grid |
+| **Homepage Templates** | Complete homepage layouts with album showcases |
+
+### Included LLM Guides
+
+The plugin includes detailed instruction files for AI assistants:
+
+```text
+plugins/custom-templates-pro/guides/
+├── en/
+│   ├── gallery-template-guide.md      # Instructions for gallery templates
+│   ├── album-page-guide.md   # Instructions for album page templates
+│   └── homepage-guide.md     # Instructions for homepage templates
+└── it/
+    └── ... (Italian translations)
+```
+
+Each guide includes:
+- Available Twig variables (album data, images, settings, translations)
+- Required HTML structure and CSS classes
+- PhotoSwipe lightbox integration patterns
+- Responsive image handling with srcset
+- Security requirements (XSS prevention, CSP compliance)
+
+### Example Prompts
+
+**Polaroid Gallery:**
+> "Create a gallery template that displays photos as polaroid snapshots scattered on a wooden desk. Each photo should have a slight random rotation, a white border like a polaroid, and a handwritten-style caption below."
+
+**Magazine Editorial:**
+> "Design an album page template with a full-bleed hero image, large serif typography for the title, and a two-column text layout for the description. Photos should display in an asymmetric editorial grid."
+
+**Minimal Portfolio:**
+> "Build a homepage template with a single large featured image that changes on scroll, minimal navigation, and a dark background. The aesthetic should be high-end fashion photography."
+
+### Why This Matters
+
+Traditional CMS template creation requires:
+- Learning a templating language (Twig, Blade, etc.)
+- Understanding CSS frameworks
+- JavaScript for interactivity
+- Hours of trial and error
+
+With Cimaise + AI:
+- Describe in plain language
+- Get working code in minutes
+- Iterate by conversation: "Make the hover effect more subtle" or "Add a parallax effect"
+
+**The included instruction guides ensure AI assistants generate templates that actually work**—with proper escaping, responsive images, and PhotoSwipe integration already handled.
+
+---
+
 ## Protect Your Work
 
 ### Password-Protected Galleries
@@ -417,6 +490,10 @@ Visitors can combine filters: "Show me all medium-format Portra 400 shots from 2
 ### Shareable Searches
 
 Every filter combination creates a unique URL. Share `yoursite.com/galleries?film=portra-400&year=2024` and recipients see exactly that filtered view.
+
+### Smart Category Counts
+
+Navigation menus show accurate album counts per category. Protected albums (NSFW or password-protected) are automatically excluded from these counts for non-authenticated visitors—no spoilers about hidden content.
 
 ---
 
@@ -615,6 +692,77 @@ All image requests go through PHP validation:
 
 ---
 
+## Performance & Caching
+
+Cimaise is optimized for speed out of the box:
+
+### HTTP Compression
+
+All text-based responses are compressed automatically:
+
+- **Brotli** — Modern compression (20-30% smaller than Gzip) for browsers that support it
+- **Gzip** — Universal fallback for older browsers
+- **Automatic Detection** — Server chooses the best compression based on `Accept-Encoding`
+
+Compressed content types:
+- HTML, CSS, JavaScript
+- JSON, XML, SVG
+- Web fonts (WOFF, WOFF2, TTF)
+
+### Browser Caching
+
+Smart cache headers maximize repeat-visit performance:
+
+| Asset Type | Cache Duration | Strategy |
+|------------|----------------|----------|
+| Images (JPEG, WebP, AVIF) | 1 year | Immutable (versioned filenames) |
+| CSS & JavaScript | 1 year | Immutable (Vite hashed builds) |
+| Fonts | 1 year | Immutable |
+| HTML pages | 5 minutes | Must-revalidate |
+| JSON/XML | 1 hour | Must-revalidate |
+
+**Result:** Returning visitors load pages instantly from browser cache.
+
+### Progressive Web App (PWA)
+
+Install Cimaise as an app on any device:
+
+- **Service Worker** — Caches core assets for offline access
+- **Web App Manifest** — Customizable theme colors and icons
+- **Offline Page** — Graceful fallback when connection is lost
+- **Add to Home Screen** — Works like a native app on mobile
+- **Web Share API** — Native sharing on mobile devices (share images directly to other apps)
+- **Wake Lock API** — Keeps screen awake during lightbox slideshows
+
+PWA features are configured from Admin → Settings:
+- Theme color (affects browser chrome and splash screen)
+- Background color
+- App name and short name
+
+### Resource Optimization
+
+- **DNS Prefetch** — Pre-resolves external domains (Google Fonts, analytics)
+- **Preconnect** — Establishes early connections to CDN origins
+- **Critical CSS** — Above-fold styles load first
+- **Deferred Scripts** — Non-critical JavaScript loads after page render
+- **Image Priority** — First image loads with `fetchpriority="high"`
+
+### Database Query Optimization
+
+- **Batch Album Enrichment** — Equipment, categories, and tags loaded in single queries instead of N+1
+- **Settings Cache** — Configuration values cached with automatic invalidation
+- **Efficient Pagination** — Server-side pagination for media library and galleries
+
+### Installer Configuration
+
+During installation, you can enable:
+- **Cache System** — Browser and server-side caching
+- **Compression** — Brotli/Gzip response compression
+
+Both are enabled by default for optimal performance.
+
+---
+
 ## Admin Experience
 
 A dashboard that doesn't insult your intelligence:
@@ -688,10 +836,162 @@ php bin/console migrate              # Run database migrations
 php bin/console seed                 # Seed default templates and categories
 php bin/console user:create          # Create admin user
 php bin/console images:generate      # Generate all image variants
-php bin/console nsfw:blur:generate   # Generate blur variants for NSFW albums
+php bin/console nsfw:generate-blur   # Generate blur variants for protected albums
+php bin/console maintenance:run      # Run daily maintenance (variants + blur)
 php bin/console sitemap:generate     # Build XML sitemap
 php bin/console analytics:cleanup    # Purge old analytics data
 ```
+
+### Blur Generation Options
+
+The `nsfw:generate-blur` command generates blurred preview images for protected albums:
+
+```bash
+# Generate blur for all NSFW and password-protected albums
+php bin/console nsfw:generate-blur
+
+# Process only NSFW albums
+php bin/console nsfw:generate-blur --nsfw-only
+
+# Process only password-protected albums
+php bin/console nsfw:generate-blur --password-only
+
+# Force regeneration of existing blur variants
+php bin/console nsfw:generate-blur --force
+
+# Process all images in albums (not just covers)
+php bin/console nsfw:generate-blur --all
+
+# Process a specific album
+php bin/console nsfw:generate-blur --album=42
+```
+
+---
+
+## Development Scripts
+
+Scripts for development and testing workflows:
+
+### Demo Data Seeder
+
+Populate your installation with sample albums, categories, and images for testing:
+
+```bash
+# Run with confirmation prompt
+php bin/dev/seed_demo_data.php
+
+# Skip confirmation (for CI/automation)
+php bin/dev/seed_demo_data.php --force
+```
+
+**What it creates:**
+- Categories (Street, Portrait, Landscape, Film, etc.)
+- Equipment (cameras, lenses, film stocks)
+- Sample albums with images downloaded from Unsplash
+- NSFW and password-protected albums for testing
+- Draft albums for workflow testing
+
+Images are stored in `/storage/originals/` (matching production upload behavior) and variants are automatically generated.
+
+### Clean for Reinstallation
+
+Reset the application to a fresh state for reinstallation:
+
+```bash
+# Interactive (asks for confirmation)
+bash bin/dev/clean_for_reinstall.sh
+
+# Non-interactive (for automation)
+bash bin/dev/clean_for_reinstall.sh --force
+```
+
+**What it removes:**
+- All image variants (`public/media/*`)
+- All original files (`storage/originals/*`)
+- Database (`database/database.sqlite`)
+- Environment config (`.env`)
+- Cache, logs, and temp files
+
+After running, navigate to `/install` to set up a fresh installation.
+
+### Demo Site Sync
+
+Maintain a synchronized demo site for showcasing Cimaise:
+
+```bash
+# Full sync from main app to demo folder
+php bin/sync-demo.php
+
+# Preview changes without applying
+php bin/sync-demo.php --dry-run
+```
+
+The sync script:
+- Copies all application code to `/demo/` folder
+- Applies demo-specific patches (template switcher, demo banner, password protection)
+- Preserves demo-only files (database, media, configuration)
+- Injects demo mode detection (`DEMO_MODE` constant)
+
+Demo features:
+- **Template Switcher** — Visitors can switch between all 6 home templates via dropdown
+- **Demo Banner** — Shows demo credentials in admin panel
+- **Password Change Block** — Prevents users from locking themselves out
+- **24-Hour Reset** — Cron script resets demo to clean state daily
+
+---
+
+## Scheduled Maintenance (Cron)
+
+Cimaise includes a maintenance system that automatically generates missing image variants and blur previews for protected albums. This runs automatically on each page request, but for best performance, you can schedule it via cron.
+
+### Recommended Cron Setup
+
+Add this to your crontab (`crontab -e`):
+
+```bash
+# Run maintenance daily at 3 AM
+0 3 * * * cd /path/to/cimaise && php bin/console maintenance:run --quiet
+
+# For high-traffic sites, run every 6 hours
+0 */6 * * * cd /path/to/cimaise && php bin/console maintenance:run --quiet
+```
+
+### What Maintenance Does
+
+The `maintenance:run` command performs these tasks:
+
+1. **Image Variant Generation** — Creates missing responsive variants (AVIF, WebP, JPEG) for all uploaded images
+2. **Blur Variant Generation** — Creates blurred preview images for:
+   - NSFW albums (for age-gated content)
+   - Password-protected albums (for locked content previews)
+
+### Maintenance Features
+
+- **File-based locking** — Prevents concurrent execution if the cron runs while another is still processing
+- **Date tracking** — Skips execution if already run today (unless `--force` is used)
+- **Graceful failure** — Logs errors without blocking other operations
+
+### Manual Execution
+
+```bash
+# Normal run (skips if already run today)
+php bin/console maintenance:run
+
+# Force run even if already run today
+php bin/console maintenance:run --force
+
+# Quiet mode for cron (no output)
+php bin/console maintenance:run --quiet
+```
+
+### When to Use Cron vs. Automatic
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Small portfolio (<100 images) | Automatic is fine |
+| Large portfolio (1000+ images) | Use cron to avoid request delays |
+| High traffic site | Use cron during off-peak hours |
+| Frequent uploads | Run cron more often (every 6 hours) |
 
 ---
 

@@ -103,6 +103,30 @@
         </div>
     </div>
 
+    <h5 class="mb-3 mt-4"><i class="fas fa-tachometer-alt me-2"></i>{{ trans('installer.performance_title') }}</h5>
+    <p class="text-muted mb-3">{{ trans('installer.performance_desc') }}</p>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" id="cache-enabled" name="cache_enabled" value="1" {{ cache_enabled|default(true) ? 'checked' }}>
+                <label class="form-check-label" for="cache-enabled">
+                    {{ trans('installer.enable_cache') }}
+                </label>
+                <div class="form-text">{{ trans('installer.enable_cache_help') }}</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" id="compression-enabled" name="compression_enabled" value="1" {{ compression_enabled|default(true) ? 'checked' }}>
+                <label class="form-check-label" for="compression-enabled">
+                    {{ trans('installer.enable_compression') }}
+                </label>
+                <div class="form-text">{{ trans('installer.enable_compression_help') }}</div>
+            </div>
+        </div>
+    </div>
+
     <div class="alert alert-info">
         <h5><i class="fas fa-lightbulb me-2"></i>{{ trans('installer.default_content_title') }}</h5>
         <p>{{ trans('installer.default_content_desc') }}</p>

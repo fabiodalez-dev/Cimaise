@@ -123,11 +123,17 @@ $app->get('/fonts/typography.css', function (Request $request, Response $respons
 // Protected media serving (for password-protected and NSFW albums)
 // Rate limited to prevent scraping/enumeration attacks
 $app->get('/media/protected/{id}/{variant}.{format}', function (Request $request, Response $response, array $args) use ($container) {
-    $controller = new \App\Controllers\Frontend\MediaController($container['db']);
+    $controller = new \App\Controllers\Frontend\MediaController(
+        $container['db'],
+        new \App\Services\UploadService($container['db'])
+    );
     return $controller->serveProtected($request, $response, $args);
 })->add(new RateLimitMiddleware(100, 60)); // 100 requests per minute
 $app->get('/media/protected/{id}/original', function (Request $request, Response $response, array $args) use ($container) {
-    $controller = new \App\Controllers\Frontend\MediaController($container['db']);
+    $controller = new \App\Controllers\Frontend\MediaController(
+        $container['db'],
+        new \App\Services\UploadService($container['db'])
+    );
     return $controller->serveOriginal($request, $response, $args);
 })->add(new RateLimitMiddleware(100, 60)); // 100 requests per minute
 
@@ -135,7 +141,54 @@ $app->get('/media/protected/{id}/original', function (Request $request, Response
 // All /media/* requests go through PHP to check if album is protected
 // This MUST be after /media/protected/* routes to not intercept them
 $app->get('/media/{path:.*}', function (Request $request, Response $response, array $args) use ($container) {
-    $controller = new \App\Controllers\Frontend\MediaController($container['db']);
+    // During installation, database isn't available - serve static files directly
+    if ($container['db'] === null) {
+        $path = $args['path'] ?? '';
+        if (empty($path) || str_contains($path, '..') || str_contains($path, '\\') || str_starts_with($path, '/')) {
+            return $response->withStatus(404);
+        }
+
+        $root = dirname(__DIR__, 2);
+        $filePath = "{$root}/public/media/{$path}";
+        $realPath = realpath($filePath);
+        $mediaRoot = realpath("{$root}/public/media/");
+
+        if (!$realPath || !$mediaRoot || !is_file($realPath) || !str_starts_with($realPath, $mediaRoot . DIRECTORY_SEPARATOR)) {
+            return $response->withStatus(404);
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $realPath);
+        finfo_close($finfo);
+
+        $allowedMimes = ['image/jpeg', 'image/webp', 'image/avif', 'image/png', 'image/gif'];
+        if (!in_array($mime, $allowedMimes, true)) {
+            return $response->withStatus(403);
+        }
+
+        $stream = fopen($realPath, 'rb');
+        if (!$stream) {
+            return $response->withStatus(500);
+        }
+
+        $body = $response->getBody();
+        while (!feof($stream)) {
+            $chunk = fread($stream, 8192);
+            if ($chunk === false) break;
+            $body->write($chunk);
+        }
+        fclose($stream);
+
+        return $response
+            ->withHeader('Content-Type', $mime)
+            ->withHeader('Content-Length', (string)filesize($realPath))
+            ->withHeader('Cache-Control', 'public, max-age=86400');
+    }
+
+    $controller = new \App\Controllers\Frontend\MediaController(
+        $container['db'],
+        new \App\Services\UploadService($container['db'])
+    );
     return $controller->servePublic($request, $response, $args);
 })->add(new RateLimitMiddleware(200, 60)); // 200 requests per minute (higher for public media)
 

@@ -876,7 +876,15 @@ INSERT INTO `settings` (`key`, `value`, `type`) VALUES
 ('recaptcha.secret_key', '', 'string'),
 -- Frontend settings
 ('frontend.dark_mode', 'false', 'boolean'),
-('frontend.custom_css', '', 'string');
+('frontend.custom_css', '', 'string'),
+-- Performance settings
+('performance.compression_enabled', 'true', 'boolean'),
+('performance.compression_type', 'auto', 'string'),
+('performance.compression_level', '6', 'integer'),
+('performance.cache_enabled', 'true', 'boolean'),
+('performance.static_cache_max_age', '31536000', 'integer'),
+('performance.media_cache_max_age', '86400', 'integer'),
+('performance.html_cache_max_age', '300', 'integer');
 
 -- Default filter settings
 INSERT INTO `filter_settings` (`setting_key`, `setting_value`, `description`, `sort_order`) VALUES

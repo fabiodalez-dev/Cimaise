@@ -20,21 +20,25 @@ class MediaController extends BaseController
         parent::__construct();
     }
 
+    private const PER_PAGE = 60;
+
     public function index(Request $request, Response $response): Response
     {
         $pdo = $this->db->pdo();
         $q = trim((string)($request->getQueryParams()['q'] ?? ''));
-        
+        $page = max(1, (int)($request->getQueryParams()['page'] ?? 1));
+        $offset = ($page - 1) * self::PER_PAGE;
+
         // Load albums list for attach action
         $albums = $pdo->query('SELECT id, title FROM albums ORDER BY created_at DESC LIMIT 500')->fetchAll() ?: [];
-        
+
         // Load equipment data for sidebar
         $cameras = $pdo->query('SELECT id, make, model FROM cameras ORDER BY make, model')->fetchAll() ?: [];
         $lenses = $pdo->query('SELECT id, brand, model FROM lenses ORDER BY brand, model')->fetchAll() ?: [];
         $films = $pdo->query('SELECT id, brand, name FROM films ORDER BY brand, name')->fetchAll() ?: [];
         $developers = $pdo->query('SELECT id, name FROM developers ORDER BY name')->fetchAll() ?: [];
         $labs = $pdo->query('SELECT id, name FROM labs ORDER BY name')->fetchAll() ?: [];
-        
+
         // Load locations
         $locations = [];
         try {
@@ -42,21 +46,42 @@ class MediaController extends BaseController
         } catch (\Throwable) {
             // Locations table might not exist
         }
-        
+
+        // Count total images for pagination
+        $countSql = 'SELECT COUNT(*) FROM images i';
+        $params = [];
+        if ($q !== '') {
+            $countSql .= ' WHERE i.alt_text LIKE :q OR i.caption LIKE :q OR i.original_path LIKE :q';
+            $params[':q'] = '%' . $q . '%';
+        }
+        $countStmt = $pdo->prepare($countSql);
+        $countStmt->execute($params);
+        $totalItems = (int)$countStmt->fetchColumn();
+        $totalPages = (int)ceil($totalItems / self::PER_PAGE);
+
+        // Use subquery to get exactly one preview variant per image (prefer webp > jpg > avif)
         $sql = 'SELECT i.id, i.album_id, i.original_path, i.created_at, i.width, i.height, i.alt_text, i.caption,
                        i.camera_id, i.lens_id, i.film_id, i.developer_id, i.lab_id, i.location_id,
                        i.iso, i.shutter_speed, i.aperture,
-                       COALESCE(iv.path, i.original_path) AS preview_path
-                FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = \'sm\'';
-        $params = [];
+                       COALESCE((
+                           SELECT iv.path FROM image_variants iv
+                           WHERE iv.image_id = i.id AND iv.variant = \'sm\'
+                           -- Prefer webp for admin UI performance (smaller files, faster loading)
+                           ORDER BY CASE iv.format WHEN \'webp\' THEN 1 WHEN \'jpg\' THEN 2 ELSE 3 END
+                           LIMIT 1
+                       ), i.original_path) AS preview_path
+                FROM images i';
         if ($q !== '') {
             $sql .= ' WHERE i.alt_text LIKE :q OR i.caption LIKE :q OR i.original_path LIKE :q';
-            $params[':q'] = '%' . $q . '%';
         }
-        $sql .= ' ORDER BY i.id DESC LIMIT 200';
+        $sql .= ' ORDER BY i.id DESC LIMIT :limit OFFSET :offset';
         $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
+        if ($q !== '') {
+            $stmt->bindValue(':q', '%' . $q . '%', \PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':limit', self::PER_PAGE, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
         $items = $stmt->fetchAll() ?: [];
 
         $partial = (string)($request->getQueryParams()['partial'] ?? '') === '1';
@@ -70,7 +95,14 @@ class MediaController extends BaseController
             'developers' => $developers,
             'labs' => $labs,
             'locations' => $locations,
-            'csrf' => $_SESSION['csrf'] ?? ''
+            'csrf' => $_SESSION['csrf'] ?? '',
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_items' => $totalItems,
+                'per_page' => self::PER_PAGE,
+                'query' => $q
+            ]
         ]);
     }
 

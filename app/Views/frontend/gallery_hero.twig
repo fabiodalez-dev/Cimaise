@@ -731,7 +731,34 @@
         });
       }
     }
+    const nestedMasonry = document.querySelector('.gallery-masonry');
+    if (nestedMasonry) {
+      nestedMasonry._masonryInitialized = false;
+      if (typeof window.BalancedMasonryGrid !== 'undefined') {
+        initBalancedMasonryGrid(nestedMasonry);
+      } else {
+        import(`${basePath}/assets/vendor/masonry-grid/index.js`)
+          .then(module => {
+            window.BalancedMasonryGrid = module.BalancedMasonryGrid;
+            window.RegularMasonryGrid = module.RegularMasonryGrid;
+            window._masonryGridReady = true;
+            initBalancedMasonryGrid(nestedMasonry);
+          })
+          .catch(err => console.error('Failed to load masonry module:', err));
+      }
+    }
     setTimeout(() => { const gc = document.getElementById('images-gallery'); if (gc) { gc.querySelectorAll('.image-item').forEach(item => { item.style.opacity = '1'; item.style.transform = 'scale(1)'; item.style.transition = 'none'; }); } }, 100);
+  }
+
+  function initBalancedMasonryGrid(container) {
+    if (!container || typeof window.BalancedMasonryGrid === 'undefined') return null;
+    if (container._balancedMasonryInstance) {
+      container._balancedMasonryInstance.destroy();
+      container._balancedMasonryInstance = null;
+    }
+    container._balancedMasonryInstance = new window.BalancedMasonryGrid(container);
+    container.classList.add('masonry-ready');
+    return container._balancedMasonryInstance;
   }
   function initMagazineAutoscroll() {
     try {

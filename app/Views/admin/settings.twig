@@ -567,6 +567,47 @@
       </div>
     </div>
 
+    <!-- PWA Settings -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-mobile-alt mr-3 text-gray-600"></i>
+          {{ trans('admin.settings.pwa_title') }}
+        </h3>
+        <p class="text-sm text-gray-600 mb-6">{{ trans('admin.settings.pwa_desc') }}</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.pwa_theme_color') }}</label>
+            <div class="flex items-center gap-3">
+              <input type="color" name="pwa_theme_color" id="pwa_theme_color" value="{{ settings['pwa.theme_color']|default('#ffffff') }}" class="h-10 w-14 border border-gray-300 rounded cursor-pointer">
+              <input type="text" id="pwa_theme_color_text" value="{{ settings['pwa.theme_color']|default('#ffffff') }}" class="form-input font-mono text-sm w-28" placeholder="#ffffff" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$">
+            </div>
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.pwa_theme_color_hint') }}</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.pwa_background_color') }}</label>
+            <div class="flex items-center gap-3">
+              <input type="color" name="pwa_background_color" id="pwa_background_color" value="{{ settings['pwa.background_color']|default('#ffffff') }}" class="h-10 w-14 border border-gray-300 rounded cursor-pointer">
+              <input type="text" id="pwa_background_color_text" value="{{ settings['pwa.background_color']|default('#ffffff') }}" class="form-input font-mono text-sm w-28" placeholder="#ffffff" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$">
+            </div>
+            <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.pwa_background_color_hint') }}</p>
+          </div>
+        </div>
+
+        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="flex items-start">
+            <i class="fas fa-info-circle text-blue-600 mr-3 mt-0.5"></i>
+            <div class="text-sm text-blue-800">
+              <strong>{{ trans('admin.settings.pwa_info_title') }}</strong>
+              <p class="mt-1">{{ trans('admin.settings.pwa_info_desc') }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Debug / Diagnostics -->
     <div class="card">
       <div class="p-6">
@@ -579,6 +620,172 @@
           <input type="checkbox" name="admin_debug_logs" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['admin.debug_logs'] %}checked{% endif %}>
           <span class="ml-3 text-sm text-gray-700">{{ trans('admin.settings.debug_enable') }}</span>
         </label>
+      </div>
+    </div>
+
+    <!-- Performance & Cache Settings -->
+    <div class="card">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-rocket mr-3 text-gray-600"></i>
+          {{ trans('admin.settings.performance_cache_title') }}
+        </h3>
+        <p class="text-sm text-gray-600 mb-6">
+          {{ trans('admin.settings.performance_cache_desc') }}
+        </p>
+
+        <!-- Compression Availability Status -->
+        <div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <h4 class="text-sm font-semibold text-gray-900 mb-3">{{ trans('admin.settings.compression_support_title') }}</h4>
+          <div class="flex flex-wrap gap-3">
+            {% if compressionAvailability.brotli %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <i class="fas fa-check-circle mr-1.5"></i>
+                {{ trans('admin.settings.compression_brotli_available') }}
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                <i class="fas fa-times-circle mr-1.5"></i>
+                {{ trans('admin.settings.compression_brotli_not_available') }}
+              </span>
+            {% endif %}
+
+            {% if compressionAvailability.gzip %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <i class="fas fa-check-circle mr-1.5"></i>
+                {{ trans('admin.settings.compression_gzip_available') }}
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                <i class="fas fa-times-circle mr-1.5"></i>
+                {{ trans('admin.settings.compression_gzip_not_available') }}
+              </span>
+            {% endif %}
+
+            {% if compressionAvailability.zlib %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <i class="fas fa-check-circle mr-1.5"></i>
+                {{ trans('admin.settings.compression_zlib_loaded') }}
+              </span>
+            {% endif %}
+          </div>
+
+          {% if not compressionAvailability.brotli and not compressionAvailability.gzip %}
+          <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded">
+            <div class="flex items-start">
+              <i class="fas fa-exclamation-triangle text-amber-600 mr-2 mt-0.5"></i>
+              <div class="text-xs text-amber-800">
+                <strong>{{ trans('admin.settings.compression_none_available') }}</strong> {{ trans('admin.settings.compression_install_extensions') }}
+                <code class="bg-amber-100 px-1 rounded">pecl install brotli</code> or ensure zlib is enabled.
+              </div>
+            </div>
+          </div>
+          {% elseif not compressionAvailability.brotli %}
+          <div class="mt-3 text-xs text-gray-600">
+            <i class="fas fa-info-circle mr-1"></i>
+            <strong>{{ trans('admin.settings.compression_install_tip') }}</strong> <code class="bg-gray-100 px-1 rounded">pecl install brotli</code>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Compression Settings -->
+          <div class="space-y-4">
+            <h4 class="text-sm font-semibold text-gray-900 border-b pb-2">{{ trans('admin.settings.compression_settings_title') }}</h4>
+
+            <label class="flex items-center">
+              <input type="checkbox" name="compression_enabled" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['performance.compression_enabled'] %}checked{% endif %} {% if not compressionAvailability.brotli and not compressionAvailability.gzip %}disabled{% endif %}>
+              <span class="ml-3 text-sm text-gray-700">
+                <strong>{{ trans('admin.settings.compression_enable') }}</strong><br>
+                <span class="text-xs text-gray-500">
+                  {% if compressionAvailability.brotli or compressionAvailability.gzip %}
+                    {{ trans('admin.settings.compression_enable_desc') }}
+                  {% else %}
+                    ({{ trans('admin.settings.compression_disabled_no_ext') }})
+                  {% endif %}
+                </span>
+              </span>
+            </label>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.compression_type') }}</label>
+              <select name="compression_type" class="form-input" {% if not compressionAvailability.brotli and not compressionAvailability.gzip %}disabled{% endif %}>
+                <option value="auto" {% if settings['performance.compression_type'] == 'auto' %}selected{% endif %}>
+                  {% if compressionAvailability.brotli %}{{ trans('admin.settings.compression_type_auto_brotli_gzip') }}{% elseif compressionAvailability.gzip %}{{ trans('admin.settings.compression_type_auto_gzip') }}{% else %}{{ trans('admin.settings.compression_type_auto_none') }}{% endif %}
+                </option>
+                <option value="brotli" {% if settings['performance.compression_type'] == 'brotli' %}selected{% endif %} {% if not compressionAvailability.brotli %}disabled{% endif %}>
+                  {% if not compressionAvailability.brotli %}{{ trans('admin.settings.compression_type_brotli_unavailable') }}{% else %}{{ trans('admin.settings.compression_type_brotli') }}{% endif %}
+                </option>
+                <option value="gzip" {% if settings['performance.compression_type'] == 'gzip' %}selected{% endif %} {% if not compressionAvailability.gzip %}disabled{% endif %}>
+                  {% if not compressionAvailability.gzip %}{{ trans('admin.settings.compression_type_gzip_unavailable') }}{% else %}{{ trans('admin.settings.compression_type_gzip') }}{% endif %}
+                </option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">
+                {% if compressionAvailability.brotli and compressionAvailability.gzip %}
+                  {{ trans('admin.settings.compression_type_hint_auto') }}
+                {% elseif compressionAvailability.gzip %}
+                  {{ trans('admin.settings.compression_type_hint_gzip_only') }}
+                {% else %}
+                  {{ trans('admin.settings.compression_type_hint_none') }}
+                {% endif %}
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.compression_level') }}</label>
+              <input type="number" name="compression_level" min="0" max="11" value="{{ settings['performance.compression_level'] }}" class="form-input" {% if not compressionAvailability.brotli and not compressionAvailability.gzip %}disabled{% endif %}>
+              <p class="text-xs text-gray-500 mt-1">
+                {{ trans('admin.settings.compression_level_hint') }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Cache Settings -->
+          <div class="space-y-4">
+            <h4 class="text-sm font-semibold text-gray-900 border-b pb-2">{{ trans('admin.settings.cache_settings_title') }}</h4>
+
+            <label class="flex items-center">
+              <input type="checkbox" name="cache_enabled" class="rounded border-gray-300 text-black focus:ring-black" {% if settings['performance.cache_enabled'] %}checked{% endif %}>
+              <span class="ml-3 text-sm text-gray-700">
+                <strong>{{ trans('admin.settings.cache_enable') }}</strong><br>
+                <span class="text-xs text-gray-500">{{ trans('admin.settings.cache_enable_desc') }}</span>
+              </span>
+            </label>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.cache_static_max_age') }}</label>
+              <input type="number" name="static_cache_max_age" min="0" value="{{ settings['performance.static_cache_max_age'] }}" class="form-input">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.cache_static_max_age_hint') }}</p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.cache_media_max_age') }}</label>
+              <input type="number" name="media_cache_max_age" min="0" value="{{ settings['performance.media_cache_max_age'] }}" class="form-input">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.cache_media_max_age_hint') }}</p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.cache_html_max_age') }}</label>
+              <input type="number" name="html_cache_max_age" min="0" value="{{ settings['performance.html_cache_max_age'] }}" class="form-input">
+              <p class="text-xs text-gray-500 mt-1">{{ trans('admin.settings.cache_html_max_age_hint') }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="flex items-start">
+            <i class="fas fa-info-circle text-blue-600 mr-3 mt-0.5"></i>
+            <div class="text-sm text-blue-800">
+              <strong>{{ trans('admin.settings.performance_how_it_works') }}</strong>
+              <ul class="list-disc ml-5 mt-2 space-y-1">
+                <li><strong>{{ trans('admin.settings.performance_auto_mode') }}</strong></li>
+                <li><strong>{{ trans('admin.settings.performance_fallback') }}</strong></li>
+                <li><strong>{{ trans('admin.settings.performance_cache_note') }}</strong></li>
+                <li><strong>{{ trans('admin.settings.performance_impact') }}</strong></li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -972,6 +1179,41 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   }
+
+  // PWA color picker sync
+  const colorPairs = [
+    { picker: 'pwa_theme_color', text: 'pwa_theme_color_text' },
+    { picker: 'pwa_background_color', text: 'pwa_background_color_text' }
+  ];
+
+  colorPairs.forEach(pair => {
+    const picker = document.getElementById(pair.picker);
+    const text = document.getElementById(pair.text);
+    if (picker && text) {
+      // Sync picker to text
+      picker.addEventListener('input', function() {
+        text.value = this.value.toUpperCase();
+      });
+      // Sync text to picker
+      text.addEventListener('input', function() {
+        const val = this.value.trim();
+        if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+          picker.value = val;
+        }
+      });
+      // Validate and normalize on blur
+      text.addEventListener('blur', function() {
+        let val = this.value.trim().toUpperCase();
+        if (!val.startsWith('#')) val = '#' + val;
+        if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+          this.value = val;
+          picker.value = val;
+        } else {
+          this.value = picker.value.toUpperCase();
+        }
+      });
+    }
+  });
 });
 </script>
 {% endblock %}

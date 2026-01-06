@@ -4,7 +4,10 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
+use App\Services\UploadService;
+use App\Support\BlurGenerationJob;
 use App\Support\Database;
+use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -16,7 +19,7 @@ class MediaController extends BaseController
 {
     private const BLUR_CACHE_SECONDS = 3600; // 1 hour for blur variants
 
-    public function __construct(private Database $db)
+    public function __construct(private Database $db, private UploadService $uploadService)
     {
         parent::__construct();
     }
@@ -105,6 +108,38 @@ class MediaController extends BaseController
         }
 
         return null;
+    }
+
+    /**
+     * Enqueue blur variant generation for protected albums.
+     * Returns a placeholder URL path while the background job runs, or null on failure.
+     */
+    private function generateBlurOnDemand(int $imageId): ?string
+    {
+        $dispatched = false;
+        try {
+            $dispatched = BlurGenerationJob::dispatch($imageId);
+        } catch (\Throwable $e) {
+            Logger::warning('Failed to enqueue blur generation job', [
+                'image_id' => $imageId,
+                'error' => $e->getMessage(),
+            ], 'media');
+        }
+
+        if (!$dispatched) {
+            Logger::warning('Blur generation job dispatch failed', [
+                'image_id' => $imageId,
+            ], 'media');
+        }
+
+        $placeholder = $this->uploadService->ensureBlurPlaceholder();
+        if ($placeholder === null) {
+            Logger::warning('Failed to resolve blur placeholder', [
+                'image_id' => $imageId,
+            ], 'media');
+        }
+
+        return $placeholder;
     }
 
     /**
@@ -220,15 +255,23 @@ class MediaController extends BaseController
         // Graceful fallback: if the requested variant is missing (except blur), serve the original file
         if (!$variantRow || empty($variantRow['path'])) {
             if ($variant === 'blur') {
-                return $response->withStatus(404);
+                // Try to generate blur on-demand for protected albums
+                $blurPath = $this->generateBlurOnDemand($imageId);
+                if ($blurPath !== null) {
+                    $variantRow = ['path' => $blurPath];
+                } else {
+                    return $response->withStatus(404);
+                }
+            } else {
+                // For non-blur variants, fallback to original
+                $origStmt = $pdo->prepare('SELECT original_path FROM images WHERE id = :id');
+                $origStmt->execute([':id' => $imageId]);
+                $origPath = $origStmt->fetchColumn();
+                if (!$origPath) {
+                    return $response->withStatus(404);
+                }
+                $variantRow = ['path' => $origPath];
             }
-            $origStmt = $pdo->prepare('SELECT original_path FROM images WHERE id = :id');
-            $origStmt->execute([':id' => $imageId]);
-            $origPath = $origStmt->fetchColumn();
-            if (!$origPath) {
-                return $response->withStatus(404);
-            }
-            $variantRow = ['path' => $origPath];
         }
 
         // Build file path - DB stores URL paths like /media/... which map to public/media/

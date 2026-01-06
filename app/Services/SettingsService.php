@@ -4,34 +4,51 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Support\Database;
+use App\Support\Logger;
 use PDO;
 
 class SettingsService
 {
-    public function __construct(private Database $db) {}
+    private static ?array $cache = null;
+
+    public function __construct(private Database $db)
+    {
+    }
+
+    public function clearCache(): void
+    {
+        self::$cache = null;
+    }
+
+    private function loadCache(): void
+    {
+        if (self::$cache !== null) {
+            return;
+        }
+
+        try {
+            $stmt = $this->db->query('SELECT `key`, `value` FROM settings');
+            $dbSettings = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $dbSettings[$row['key']] = json_decode($row['value'] ?? 'null', true);
+            }
+            self::$cache = array_merge($this->defaults(), $dbSettings);
+        } catch (\Throwable $e) {
+            Logger::warning('SettingsService: Failed to load settings cache', ['error' => $e->getMessage()], 'settings');
+            self::$cache = $this->defaults();
+        }
+    }
 
     public function all(): array
     {
-        $stmt = $this->db->pdo()->query('SELECT `key`, `value` FROM settings');
-        $res = [];
-        foreach ($stmt->fetchAll() as $row) {
-            $res[$row['key']] = json_decode($row['value'] ?? 'null', true);
-        }
-        return $res + $this->defaults();
+        $this->loadCache();
+        return self::$cache;
     }
 
     public function get(string $key, mixed $default = null): mixed
     {
-        $stmt = $this->db->pdo()->prepare('SELECT `value` FROM settings WHERE `key`=:k');
-        $stmt->execute([':k' => $key]);
-        $val = $stmt->fetchColumn();
-        
-        // Handle case where value is the string "null"
-        if ($val === 'null') {
-            return $this->defaults()[$key] ?? $default;
-        }
-        
-        return $val !== false ? json_decode((string)$val, true) : ($this->defaults()[$key] ?? $default);
+        $this->loadCache();
+        return self::$cache[$key] ?? $default;
     }
 
     public function set(string $key, mixed $value): void
@@ -42,6 +59,9 @@ class SettingsService
         $encodedValue = json_encode($value, JSON_UNESCAPED_SLASHES);
         $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
         $stmt->execute([':k' => $key, ':v' => $encodedValue, ':t' => $type]);
+
+        $this->loadCache();
+        self::$cache[$key] = $value;
     }
 
     public function defaults(): array
@@ -75,6 +95,14 @@ class SettingsService
             'frontend.dark_mode' => false,
             'frontend.custom_css' => '',
             'navigation.show_tags_in_header' => false,
+            // Performance & Cache Settings
+            'performance.compression_enabled' => true,
+            'performance.compression_type' => 'auto', // auto, brotli, gzip
+            'performance.compression_level' => 6, // 0-11 for brotli, 1-9 for gzip
+            'performance.cache_enabled' => true,
+            'performance.static_cache_max_age' => 31536000, // 1 year for static assets
+            'performance.media_cache_max_age' => 86400, // 1 day for media
+            'performance.html_cache_max_age' => 300, // 5 minutes for HTML pages
         ];
     }
 }

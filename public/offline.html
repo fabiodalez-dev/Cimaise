@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Cimaise</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #ffffff;
+            color: #111111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 480px;
+        }
+
+        .icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 2rem;
+            color: #999999;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+            color: #111111;
+        }
+
+        p {
+            font-size: 0.9375rem;
+            color: #666666;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #111111;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            transition: background 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #333333;
+        }
+
+        .cached-info {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .cached-info p {
+            font-size: 0.8125rem;
+            color: #888888;
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01M10.172 13.172a8 8 0 0111.656 0M6.343 10.343c3.515-3.515 9.199-3.515 12.714 0" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="3" y1="3" x2="21" y2="21" stroke-linecap="round"/>
+        </svg>
+
+        <h1>You're offline</h1>
+        <p>
+            Check your connection and try again.<br>
+            Previously viewed content may still be available.
+        </p>
+
+        <a href="/" class="btn" onclick="window.location.reload(); return false;">Retry</a>
+
+        <div class="cached-info">
+            <p>Photos and pages you've visited are cached on your device.</p>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('online', () => {
+            window.location.reload();
+        });
+    </script>
+</body>
+</html>
