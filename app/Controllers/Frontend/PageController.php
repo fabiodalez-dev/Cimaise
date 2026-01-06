@@ -197,7 +197,9 @@ class PageController extends BaseController
         $hasMore = $totalAlbums > $perPage;
         
         // Get categories for navigation with hierarchy
-        $parentCategories = $this->getNavigationService()->getParentCategoriesForNavigation();
+        // Include NSFW albums in count if user has admin access or global NSFW consent
+        $includeNsfw = $isAdmin || $nsfwConsent;
+        $parentCategories = $this->getNavigationService()->getParentCategoriesForNavigation($includeNsfw);
         
         // Keep flat list for backward compatibility
         $categories = [];
@@ -227,21 +229,24 @@ class PageController extends BaseController
         
         // Get random images from all published albums for infinite scroll
         // Include NSFW albums if user has global consent, always exclude password-protected albums
-        $includeNsfw = ($isAdmin || $nsfwConsent) ? 1 : 0;
+        // Use junction table for multi-category albums, with fallback to legacy category_id
         $stmt = $pdo->prepare("
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description,
-                   c.slug as category_slug, c.name as category_name
+                   GROUP_CONCAT(DISTINCT c.slug) as category_slugs,
+                   (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
             FROM images i
             JOIN albums a ON a.id = i.album_id
-            JOIN categories c ON c.id = a.category_id
+            LEFT JOIN album_category ac ON ac.album_id = a.id
+            LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
+            GROUP BY i.id
             ORDER BY RANDOM()
             LIMIT 500
         ");
-        $stmt->execute([':include_nsfw' => $includeNsfw]);
+        $stmt->execute([':include_nsfw' => $includeNsfw ? 1 : 0]);
         $allImages = $stmt->fetchAll();
         
         // Process images with responsive sources

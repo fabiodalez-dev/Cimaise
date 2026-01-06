@@ -869,10 +869,10 @@ document.addEventListener('click', function(event) {
                                 class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
                                 title="{{ trans('image.download') }}"
                                 data-action="download-image"
-                                    data-download-url="{{ base_path }}/download/image/{{ image.id }}">
-                                <i class="fa-solid fa-arrow-down text-sm"></i>
-                            </button>
-                        {% endif %}
+                                data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+                            <i class="fa-solid fa-arrow-down text-sm"></i>
+                        </button>
+                    {% endif %}
                         {% if image.caption %}
                             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm p-4 pt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 {{ image.caption|e }}

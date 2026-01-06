@@ -1,5 +1,5 @@
 {# Reusable responsive <picture> partial #}
-{# Inputs: img (object/array with width,height,alt_text,original_path), variants (list like image_variants rows), index (optional), layout (optional) #}
+{# Inputs: img (object/array with width,height,alt_text,original_path), variants (list like image_variants rows), index (optional), layout (optional), context (optional string used to derive img_context for image_priority/layout decisions) #}
 {% set variants_avif = [] %}
 {% set variants_webp = [] %}
 {% set variants_jpg = [] %}

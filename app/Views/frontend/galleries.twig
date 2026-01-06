@@ -479,15 +479,15 @@ const safeGsap = {
             if (vars.maxHeight !== undefined) {
                 el.style.maxHeight = typeof vars.maxHeight === 'number' ? vars.maxHeight + 'px' : vars.maxHeight;
             }
-            let transform = el.style.transform || '';
+            let transforms = [];
             if (vars.rotation !== undefined) {
-                transform += (transform ? ' ' : '') + 'rotate(' + vars.rotation + 'deg)';
+                transforms.push('rotate(' + vars.rotation + 'deg)');
             }
             if (vars.y !== undefined) {
-                transform += (transform ? ' ' : '') + 'translateY(' + vars.y + 'px)';
+                transforms.push('translateY(' + vars.y + 'px)');
             }
-            if (transform) {
-                el.style.transform = transform;
+            if (transforms.length) {
+                el.style.transform = transforms.join(' ');
             }
             if (vars.pointerEvents !== undefined) {
                 el.style.pointerEvents = vars.pointerEvents;

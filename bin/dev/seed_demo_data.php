@@ -1544,7 +1544,9 @@ if (is_dir($seedAlbumsDir) && str_contains($seedAlbumsDir, '/public/media/seed/a
             if (is_dir($path)) {
                 $deleteSeedDir($path);
             } else {
-                @unlink($path);
+                if (!@unlink($path)) {
+                    echo "     ⚠ Could not delete file: {$path}\n";
+                }
             }
         }
         @rmdir($dir);

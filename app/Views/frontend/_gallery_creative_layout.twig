@@ -220,15 +220,18 @@
             {% if image.sources is defined and (image.sources.avif|length or image.sources.webp|length or image.sources.jpg|length) %}
               {% for src in image.sources.avif %}
                 {% set src_url = src|split(' ')|first %}
-                {% set variants_avif = variants_avif|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src|split(' ')|slice(1)|join(' ')]) %}
+                {% set src_rest = src|split(' ')|slice(1)|join(' ')|trim %}
+                {% set variants_avif = variants_avif|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ (src_rest ? ' ' ~ src_rest : '')]) %}
               {% endfor %}
               {% for src in image.sources.webp %}
                 {% set src_url = src|split(' ')|first %}
-                {% set variants_webp = variants_webp|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src|split(' ')|slice(1)|join(' ')]) %}
+                {% set src_rest = src|split(' ')|slice(1)|join(' ')|trim %}
+                {% set variants_webp = variants_webp|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ (src_rest ? ' ' ~ src_rest : '')]) %}
               {% endfor %}
               {% for src in image.sources.jpg %}
                 {% set src_url = src|split(' ')|first %}
-                {% set variants_jpg = variants_jpg|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src|split(' ')|slice(1)|join(' ')]) %}
+                {% set src_rest = src|split(' ')|slice(1)|join(' ')|trim %}
+                {% set variants_jpg = variants_jpg|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ (src_rest ? ' ' ~ src_rest : '')]) %}
               {% endfor %}
             {% else %}
               {% for variant in image.variants %}
