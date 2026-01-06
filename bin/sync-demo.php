@@ -468,6 +468,46 @@ function patchHtaccess(string $demoRoot, bool $dryRun): void {
     file_put_contents($file, $content);
 }
 
+function patchRootHtaccess(string $demoRoot, bool $dryRun): void {
+    logMsg("Creating demo root .htaccess for subdirectory routing");
+    if ($dryRun) return;
+
+    $file = "$demoRoot/.htaccess";
+
+    // Create a simple .htaccess that redirects to public/
+    // Using same approach as main project - no RewriteBase needed
+    $content = <<<'HTACCESS'
+# Redirect all requests to public/ directory
+# For demo site at /cimaise/ subdirectory
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Skip if already in public directory
+    RewriteRule ^public/ - [L]
+
+    # Route all requests to public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Fallback: If mod_rewrite fails, try DirectoryIndex
+DirectoryIndex public/index.php
+
+# Deny access to sensitive files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "\.(env|sqlite|log)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+HTACCESS;
+
+    file_put_contents($file, $content);
+}
+
 function createDemoTemplateMenu(string $demoRoot, bool $dryRun): void {
     logMsg("Creating demo-only file: _demo_template_menu.twig");
     if ($dryRun) return;
@@ -606,6 +646,7 @@ logMsg("Applying demo-specific patches...");
 // Step 4: Apply demo patches
 patchIndexPhp($demoRoot, $dryRun);
 patchHtaccess($demoRoot, $dryRun);
+patchRootHtaccess($demoRoot, $dryRun);
 patchAuthController($demoRoot, $dryRun);
 patchPageController($demoRoot, $dryRun);
 patchAdminLayout($demoRoot, $dryRun);
