@@ -43,6 +43,53 @@
 
       <!-- Media Grid -->
       {% include 'admin/media/_grid.twig' %}
+
+      <!-- Pagination -->
+      {% if pagination.total_pages > 1 %}
+      <nav class="mt-6 flex items-center justify-center" aria-label="Pagination">
+        <ul class="flex items-center gap-1">
+          {# Previous button #}
+          {% if pagination.current_page > 1 %}
+          <li>
+            <a href="?page={{ pagination.current_page - 1 }}{% if pagination.query %}&q={{ pagination.query|url_encode }}{% endif %}"
+               class="flex items-center justify-center w-9 h-9 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors"
+               aria-label="{{ trans('admin.pagination.previous') }}">
+              <i class="fas fa-chevron-left text-xs"></i>
+            </a>
+          </li>
+          {% endif %}
+
+          {# Page numbers #}
+          {% for p in 1..pagination.total_pages %}
+            {% if p == pagination.current_page %}
+            <li>
+              <span class="flex items-center justify-center w-9 h-9 bg-black text-white font-medium" aria-current="page">{{ p }}</span>
+            </li>
+            {% else %}
+            <li>
+              <a href="?page={{ p }}{% if pagination.query %}&q={{ pagination.query|url_encode }}{% endif %}"
+                 aria-label="{{ trans('admin.pagination.goto_page')|default('Go to page') }} {{ p }}"
+                 class="flex items-center justify-center w-9 h-9 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors">{{ p }}</a>
+            </li>
+            {% endif %}
+          {% endfor %}
+
+          {# Next button #}
+          {% if pagination.current_page < pagination.total_pages %}
+          <li>
+            <a href="?page={{ pagination.current_page + 1 }}{% if pagination.query %}&q={{ pagination.query|url_encode }}{% endif %}"
+               class="flex items-center justify-center w-9 h-9 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors"
+               aria-label="{{ trans('admin.pagination.next') }}">
+              <i class="fas fa-chevron-right text-xs"></i>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      <p class="mt-2 text-center text-sm text-gray-500">
+        {{ pagination.total_items }} {{ trans('admin.media.items') }}
+      </p>
+      {% endif %}
     </div>
 
     <!-- Sidebar for image details -->

@@ -9,13 +9,21 @@ namespace App\Support;
 class CookieHelper
 {
     /**
-     * Check if insecure cookies are allowed (localhost + debug mode)
-     * Only allow insecure cookies on localhost in debug mode for development
+     * Check if currently running over HTTPS
+     */
+    public static function isHttps(): bool
+    {
+        return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (int)($_SERVER['SERVER_PORT'] ?? 80) === 443
+            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    }
+
+    /**
+     * Check if insecure cookies are allowed (not using HTTPS)
+     * Returns true when running over HTTP, allowing cookies to work on localhost
      */
     public static function allowInsecureCookies(): bool
     {
-        $isLocalhost = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true)
-            || ($_SERVER['SERVER_NAME'] ?? '') === 'localhost';
-        return $isLocalhost && filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        return !self::isHttps();
     }
 }

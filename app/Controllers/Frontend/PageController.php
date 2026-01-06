@@ -15,6 +15,8 @@ use Slim\Views\Twig;
 
 class PageController extends BaseController
 {
+    private ?NavigationService $navigationService = null;
+
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
@@ -195,7 +197,9 @@ class PageController extends BaseController
         $hasMore = $totalAlbums > $perPage;
         
         // Get categories for navigation with hierarchy
-        $parentCategories = $this->getParentCategoriesForNavigation();
+        // Include NSFW albums in count if user has admin access or global NSFW consent
+        $includeNsfw = $isAdmin || $nsfwConsent;
+        $parentCategories = $this->getNavigationService()->getParentCategoriesForNavigation($includeNsfw);
         
         // Keep flat list for backward compatibility
         $categories = [];
@@ -225,27 +229,28 @@ class PageController extends BaseController
         
         // Get random images from all published albums for infinite scroll
         // Include NSFW albums if user has global consent, always exclude password-protected albums
-        $includeNsfw = ($isAdmin || $nsfwConsent) ? 1 : 0;
+        // Use junction table for multi-category albums, with fallback to legacy category_id
         $stmt = $pdo->prepare("
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description,
-                   c.slug as category_slug, c.name as category_name
+                   GROUP_CONCAT(DISTINCT c.slug) as category_slugs,
+                   (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
             FROM images i
             JOIN albums a ON a.id = i.album_id
-            JOIN categories c ON c.id = a.category_id
+            LEFT JOIN album_category ac ON ac.album_id = a.id
+            LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
+            GROUP BY i.id, a.id, a.title, a.slug, a.excerpt, a.category_id
             ORDER BY RANDOM()
             LIMIT 500
         ");
-        $stmt->execute([':include_nsfw' => $includeNsfw]);
+        $stmt->execute([':include_nsfw' => $includeNsfw ? 1 : 0]);
         $allImages = $stmt->fetchAll();
         
-        // Process images with responsive sources
-        foreach ($allImages as &$image) {
-            $image = $this->processImageSources($image);
-        }
+        // Process images with responsive sources (batch to avoid N+1 queries)
+        $allImages = $this->processImageSourcesBatch($allImages);
         
         $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
 
@@ -320,13 +325,14 @@ class PageController extends BaseController
 
             if (!$allowed) {
                 // Categories for header menu
-                $navCategories = (new NavigationService($this->db))->getNavigationCategories();
+                $navCategories = $this->getNavigationService()->getNavigationCategories();
                 $query = $request->getQueryParams();
                 // Pass error type: '1' for wrong password, 'nsfw' for NSFW confirmation required
                 $error = $query['error'] ?? null;
                 return $this->view->render($response, 'frontend/album_password.twig', [
                     'album' => $album,
                     'categories' => $navCategories,
+                    'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
                     'page_title' => $album['title'] . ' — Protected',
                     'error' => $error,
                     'csrf' => $_SESSION['csrf'] ?? ''
@@ -341,10 +347,11 @@ class PageController extends BaseController
 
         if ($isNsfw && !$isAdmin && empty($album['password_hash']) && !$nsfwConfirmed) {
             // Show NSFW gate page - user must confirm they're 18+ to view
-            $navCategories = (new NavigationService($this->db))->getNavigationCategories();
+            $navCategories = $this->getNavigationService()->getNavigationCategories();
             return $this->view->render($response, 'frontend/nsfw_gate.twig', [
                 'album' => $album,
                 'categories' => $navCategories,
+                'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
                 'page_title' => $album['title'] . ' — Age Verification Required',
                 'csrf' => $_SESSION['csrf'] ?? '',
                 'robots' => 'noindex,nofollow'
@@ -431,83 +438,59 @@ class PageController extends BaseController
         } catch (\Throwable) {}
 
         // Equipment (album-level pivot lists)
+        // PERFORMANCE: Use batch loading (1 query) instead of 6 separate queries
         $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
 
-        // Load equipment: each type in its own try-catch to avoid one failure breaking all
-        // 1. Cameras
-        try {
-            if (!empty($album['custom_cameras'])) {
-                $equipment['cameras'] = array_filter(array_map('trim', explode("\n", $album['custom_cameras'])));
-            } else {
-                $cameraStmt = $pdo->prepare('SELECT c.make, c.model FROM cameras c JOIN album_camera ac ON c.id = ac.camera_id WHERE ac.album_id = :a');
-                $cameraStmt->execute([':a' => $album['id']]);
-                $cameras = $cameraStmt->fetchAll();
-                $equipment['cameras'] = array_map(fn($c) => trim(($c['make'] ?? '') . ' ' . ($c['model'] ?? '')), $cameras);
-            }
-        } catch (\Throwable) {}
+        // 1. Check custom fields first (they take priority over DB relationships)
+        if (!empty($album['custom_cameras'])) {
+            $equipment['cameras'] = array_filter(array_map('trim', explode("\n", $album['custom_cameras'])));
+        }
+        if (!empty($album['custom_lenses'])) {
+            $equipment['lenses'] = array_filter(array_map('trim', explode("\n", $album['custom_lenses'])));
+        }
+        if (!empty($album['custom_films'])) {
+            $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
+        }
+        if (!empty($album['custom_developers'])) {
+            $equipment['developers'] = array_filter(array_map('trim', explode("\n", $album['custom_developers'])));
+        }
+        if (!empty($album['custom_labs'])) {
+            $equipment['labs'] = array_filter(array_map('trim', explode("\n", $album['custom_labs'])));
+        }
 
-        // 2. Lenses
-        try {
-            if (!empty($album['custom_lenses'])) {
-                $equipment['lenses'] = array_filter(array_map('trim', explode("\n", $album['custom_lenses'])));
-            } else {
-                $lensStmt = $pdo->prepare('SELECT l.brand, l.model FROM lenses l JOIN album_lens al ON l.id = al.lens_id WHERE al.album_id = :a');
-                $lensStmt->execute([':a' => $album['id']]);
-                $lenses = $lensStmt->fetchAll();
-                $equipment['lenses'] = array_map(fn($l) => trim(($l['brand'] ?? '') . ' ' . ($l['model'] ?? '')), $lenses);
-            }
-        } catch (\Throwable) {}
+        // 2. For any equipment types not set via custom fields, load from DB in ONE query
+        $needsDbLookup = empty($equipment['cameras']) || empty($equipment['lenses']) ||
+                         empty($equipment['film']) || empty($equipment['developers']) ||
+                         empty($equipment['labs']) || empty($equipment['locations']);
 
-        // 3. Films
-        try {
-            if (!empty($album['custom_films'])) {
-                $equipment['film'] = array_filter(array_map('trim', explode("\n", $album['custom_films'])));
-            } else {
-                $filmStmt = $pdo->prepare('SELECT f.brand, f.name, f.iso, f.format FROM films f JOIN album_film af ON f.id = af.film_id WHERE af.album_id = :a');
-                $filmStmt->execute([':a' => $album['id']]);
-                $films = $filmStmt->fetchAll();
-                $equipment['film'] = array_map(function($f) {
-                    $name = trim(($f['brand'] ?? '') . ' ' . ($f['name'] ?? ''));
-                    return [
-                        'name' => $name,
-                        'iso' => $f['iso'] ?? null,
-                        'format' => $f['format'] ?? null
-                    ];
-                }, $films);
-            }
-        } catch (\Throwable) {}
+        if ($needsDbLookup) {
+            try {
+                $dbEquipment = \App\Services\ImageVariantsService::eagerLoadEquipment($pdo, [(int)$album['id']]);
+                $albumEquip = $dbEquipment[(int)$album['id']] ?? [];
 
-        // 4. Developers
-        try {
-            if (!empty($album['custom_developers'])) {
-                $equipment['developers'] = array_filter(array_map('trim', explode("\n", $album['custom_developers'])));
-            } else {
-                $devStmt = $pdo->prepare('SELECT d.name FROM developers d JOIN album_developer ad ON d.id = ad.developer_id WHERE ad.album_id = :a');
-                $devStmt->execute([':a' => $album['id']]);
-                $developers = $devStmt->fetchAll();
-                $equipment['developers'] = array_map(fn($d) => $d['name'], $developers);
+                // Merge only empty equipment types (preserve custom field priority)
+                if (empty($equipment['cameras'])) {
+                    $equipment['cameras'] = $albumEquip['cameras'] ?? [];
+                }
+                if (empty($equipment['lenses'])) {
+                    $equipment['lenses'] = $albumEquip['lenses'] ?? [];
+                }
+                if (empty($equipment['film'])) {
+                    $equipment['film'] = $albumEquip['film'] ?? [];
+                }
+                if (empty($equipment['developers'])) {
+                    $equipment['developers'] = $albumEquip['developers'] ?? [];
+                }
+                if (empty($equipment['labs'])) {
+                    $equipment['labs'] = $albumEquip['labs'] ?? [];
+                }
+                if (empty($equipment['locations'])) {
+                    $equipment['locations'] = $albumEquip['locations'] ?? [];
+                }
+            } catch (\Throwable) {
+                // Equipment tables might not exist yet
             }
-        } catch (\Throwable) {}
-
-        // 5. Labs
-        try {
-            if (!empty($album['custom_labs'])) {
-                $equipment['labs'] = array_filter(array_map('trim', explode("\n", $album['custom_labs'])));
-            } else {
-                $labStmt = $pdo->prepare('SELECT l.name FROM labs l JOIN album_lab al ON l.id = al.lab_id WHERE al.album_id = :a');
-                $labStmt->execute([':a' => $album['id']]);
-                $labs = $labStmt->fetchAll();
-                $equipment['labs'] = array_map(fn($l) => $l['name'], $labs);
-            }
-        } catch (\Throwable) {}
-
-        // 6. Locations
-        try {
-            $locStmt = $pdo->prepare('SELECT l.name FROM locations l JOIN album_location al ON l.id = al.location_id WHERE al.album_id = :a ORDER BY l.name');
-            $locStmt->execute([':a' => $album['id']]);
-            $locations = $locStmt->fetchAll();
-            $equipment['locations'] = array_map(fn($l) => $l['name'], $locations);
-        } catch (\Throwable) {}
+        }
         
         // Get album images
         $stmt = $pdo->prepare('
@@ -518,12 +501,15 @@ class PageController extends BaseController
         ');
         $stmt->execute([':id' => $album['id']]);
         $images = $stmt->fetchAll();
-        
-        // Get variants for each image and format EXIF
+
+        // PERFORMANCE: Eager load ALL variants in one query instead of N+1 queries
+        // Before: 50 images = 50 queries. After: 50 images = 1 query
+        $imageIds = array_column($images, 'id');
+        $variantsByImage = \App\Services\ImageVariantsService::eagerLoadVariants($pdo, $imageIds);
+
+        // Attach variants to images and format EXIF
         foreach ($images as &$image) {
-            $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
-            $variantsStmt->execute([':id' => $image['id']]);
-            $image['variants'] = $variantsStmt->fetchAll();
+            $image['variants'] = $variantsByImage[(int)$image['id']] ?? [];
 
             // Format EXIF for display
             if (!empty($image['exif'])) {
@@ -623,7 +609,7 @@ class PageController extends BaseController
         }
         
         // Categories for header menu
-        $navCategories = (new NavigationService($this->db))->getNavigationCategories();
+        $navCategories = $this->getNavigationService()->getNavigationCategories();
 
         // Determine if album is protected (requires session access validation)
         $isProtectedAlbum = !empty($album['password_hash']) || !empty($album['is_nsfw']);
@@ -634,41 +620,35 @@ class PageController extends BaseController
             $bestUrl = $image['original_path'];
             // Default lightbox URL; replaced below with largest available variant
             $lightboxUrl = $bestUrl;
-            try {
-                // Grid: prefer largest public variant (format priority avif > webp > jpg)
-                $vg = $pdo->prepare("SELECT path, width, height, variant, format FROM image_variants
-                    WHERE image_id = :id AND path NOT LIKE '/storage/%'
-                    ORDER BY CASE format WHEN 'avif' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END, width DESC LIMIT 1");
-                $vg->execute([':id' => $image['id']]);
-                if ($vgr = $vg->fetch()) {
-                    if (!empty($vgr['path'])) {
-                        // For protected albums, use protected media URL instead of direct path
-                        if ($isProtectedAlbum && !$isAdmin) {
-                            $bestUrl = '/media/protected/' . $image['id'] . '/' . $vgr['variant'] . '.' . $vgr['format'];
-                        } else {
-                            $bestUrl = $vgr['path'];
-                        }
-                    }
-                }
 
-                // Lightbox: for protected albums, use protected original URL
-                $chosen = $this->selectBestLightboxVariant((array)($image['variants'] ?? []));
-                if ($chosen !== null) {
-                    if ($isProtectedAlbum && !$isAdmin) {
-                        $lightboxUrl = '/media/protected/' . $image['id'] . '/' . $chosen['variant'] . '.' . $chosen['format'];
-                    } else {
-                        $lightboxUrl = $chosen['path'];
-                    }
+            // PERFORMANCE: Use pre-loaded variants instead of querying per image
+            // Grid: prefer largest public variant (format priority avif > webp > jpg)
+            $vgr = \App\Services\ImageVariantsService::getBestGridVariant($image['variants'] ?? []);
+            if ($vgr && !empty($vgr['path'])) {
+                // For protected albums, use protected media URL instead of direct path
+                if ($isProtectedAlbum && !$isAdmin) {
+                    $bestUrl = '/media/protected/' . $image['id'] . '/' . $vgr['variant'] . '.' . $vgr['format'];
                 } else {
-                    $lightboxUrl = $bestUrl;
-                    // Always protect /storage/ paths for protected albums, regardless of allow_downloads
-                    if ($isProtectedAlbum && !$isAdmin && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
-                        $lightboxUrl = '/media/protected/' . $image['id'] . '/original';
-                    }
+                    $bestUrl = $vgr['path'];
                 }
-            } catch (\Throwable $e) {
-                Logger::warning('PageController: Error fetching image variants', ['image_id' => $image['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
             }
+
+            // Lightbox: for protected albums, use protected original URL
+            $chosen = \App\Services\ImageVariantsService::getBestLightboxVariant($image['variants'] ?? []);
+            if ($chosen !== null) {
+                if ($isProtectedAlbum && !$isAdmin) {
+                    $lightboxUrl = '/media/protected/' . $image['id'] . '/' . $chosen['variant'] . '.' . $chosen['format'];
+                } else {
+                    $lightboxUrl = $chosen['path'];
+                }
+            } else {
+                $lightboxUrl = $bestUrl;
+                // Always protect /storage/ paths for protected albums, regardless of allow_downloads
+                if ($isProtectedAlbum && !$isAdmin && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
+                    $lightboxUrl = '/media/protected/' . $image['id'] . '/original';
+                }
+            }
+
             // Final fallback: if still pointing to /storage, use grid URL
             if (str_starts_with((string)$lightboxUrl, '/storage/')) { $lightboxUrl = $bestUrl; }
 
@@ -985,7 +965,7 @@ class PageController extends BaseController
             'album_ref' => $albumRef,
             'is_admin' => $isAdmin,
             'categories' => $navCategories,
-            'parent_categories' => $this->getParentCategoriesForNavigation(),
+            'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
             'page_title' => $seoMeta['page_title'],
             'meta_description' => $seoMeta['meta_description'],
             'meta_image' => $seoMeta['meta_image'],
@@ -1296,27 +1276,49 @@ class PageController extends BaseController
 
             // Build gallery items for the template
             $images = [];
+            $variantsByImage = [];
+            if (!empty($imagesRows)) {
+                $imageIds = array_column($imagesRows, 'id');
+                $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
+                $variantsStmt = $pdo->prepare("
+                    SELECT image_id, variant, format, path, width, height
+                    FROM image_variants
+                    WHERE image_id IN ($placeholders) AND path NOT LIKE '/storage/%'
+                    ORDER BY image_id, variant ASC
+                ");
+                $variantsStmt->execute($imageIds);
+                foreach ($variantsStmt->fetchAll() as $variant) {
+                    $imageId = (int)$variant['image_id'];
+                    if (!isset($variantsByImage[$imageId])) {
+                        $variantsByImage[$imageId] = [];
+                    }
+                    $variantsByImage[$imageId][] = $variant;
+                }
+            }
+
+            $variantOrder = ['lg' => 1, 'md' => 2, 'sm' => 3];
             foreach ($imagesRows as $img) {
                 $bestUrl = $img['original_path'];
                 $lightboxUrl = $img['original_path'];
                 $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
 
                 try {
-                    $v = $pdo->prepare("SELECT path, width, height, variant, format FROM image_variants WHERE image_id = :id ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
-                    $v->execute([':id' => $img['id']]);
-                    $vr = $v->fetch();
-                    if ($vr && !empty($vr['path'])) {
-                        // For protected albums, use protected media URL
-                        if ($isProtectedAlbum && !$isAdmin) {
-                            $bestUrl = '/media/protected/' . $img['id'] . '/' . $vr['variant'] . '.' . $vr['format'];
-                        } else {
-                            $bestUrl = $vr['path'];
+                    $variants = $variantsByImage[(int)$img['id']] ?? [];
+                    $bestVariant = null;
+                    foreach ($variants as $variant) {
+                        $rank = $variantOrder[strtolower((string)($variant['variant'] ?? ''))] ?? 9;
+                        if ($bestVariant === null || $rank < $bestVariant['rank']) {
+                            $bestVariant = ['rank' => $rank, 'variant' => $variant];
                         }
                     }
-
-                    $variantsStmt = $pdo->prepare("SELECT variant, format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%'");
-                    $variantsStmt->execute([':id' => $img['id']]);
-                    $variants = $variantsStmt->fetchAll() ?: [];
+                    if ($bestVariant && !empty($bestVariant['variant']['path'])) {
+                        // For protected albums, use protected media URL
+                        if ($isProtectedAlbum && !$isAdmin) {
+                            $bestUrl = '/media/protected/' . $img['id'] . '/' . $bestVariant['variant']['variant'] . '.' . $bestVariant['variant']['format'];
+                        } else {
+                            $bestUrl = $bestVariant['variant']['path'];
+                        }
+                    }
 
                     $chosen = $this->selectBestLightboxVariant($variants);
                     if ($chosen !== null) {
@@ -1506,12 +1508,20 @@ class PageController extends BaseController
             return $response->withStatus(404);
         }
         
-        // Get albums in category
+        // Get albums in category (supports both legacy category_id and junction table)
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
-            FROM albums a 
-            JOIN categories c ON c.id = a.category_id 
-            WHERE c.slug = :slug AND a.is_published = 1
+            FROM albums a
+            JOIN categories c ON c.slug = :slug
+            WHERE a.is_published = 1
+              AND (
+                a.category_id = c.id
+                OR EXISTS (
+                  SELECT 1
+                  FROM album_category ac
+                  WHERE ac.album_id = a.id AND ac.category_id = c.id
+                )
+              )
             ORDER BY a.published_at DESC
         ');
         $stmt->execute([':slug' => $slug]);
@@ -1529,7 +1539,7 @@ class PageController extends BaseController
             'category' => $category,
             'albums' => $albums,
             'categories' => $categories,
-            'parent_categories' => $this->getParentCategoriesForNavigation(),
+            'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
             'page_title' => $seo['page_title'],
             'meta_description' => $seo['meta_description'],
             'meta_image' => $seo['meta_image'],
@@ -1561,13 +1571,25 @@ class PageController extends BaseController
             ]);
         }
         
-        // Get albums with this tag
+        // Get albums with this tag (supports both legacy category_id and junction table)
         $stmt = $pdo->prepare('
-            SELECT a.*, c.name as category_name, c.slug as category_slug
-            FROM albums a 
-            JOIN categories c ON c.id = a.category_id 
+            SELECT a.*,
+                   COALESCE(c1.name, c2.name) as category_name,
+                   COALESCE(c1.slug, c2.slug) as category_slug
+            FROM albums a
             JOIN album_tag at ON at.album_id = a.id
             JOIN tags t ON t.id = at.tag_id
+            LEFT JOIN categories c1 ON c1.id = a.category_id
+            LEFT JOIN categories c2 ON c2.id = (
+                SELECT ac.category_id
+                FROM album_category ac
+                WHERE ac.album_id = a.id
+                -- Seleziona una singola categoria per album (la prima per ID) per garantire
+                -- risultati deterministici e prevenire righe duplicate quando un album
+                -- ha categorie multiple nella junction table.
+                ORDER BY ac.category_id ASC
+                LIMIT 1
+            )
             WHERE t.slug = :slug AND a.is_published = 1
             ORDER BY a.published_at DESC
         ');
@@ -1590,7 +1612,7 @@ class PageController extends BaseController
         $tags = $stmt->fetchAll();
         
         // Categories for header menu
-        $navCategories = (new NavigationService($this->db))->getNavigationCategories();
+        $navCategories = $this->getNavigationService()->getNavigationCategories();
 
         $seo = $this->buildSeo($request, '#' . $tag['name'], 'Photography albums tagged with: ' . $tag['name']);
         return $this->view->render($response, 'frontend/tag.twig', [
@@ -1598,7 +1620,7 @@ class PageController extends BaseController
             'albums' => $albums,
             'tags' => $tags,
             'categories' => $navCategories,
-            'parent_categories' => $this->getParentCategoriesForNavigation(),
+            'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
             'page_title' => $seo['page_title'],
             'meta_description' => $seo['meta_description'],
             'meta_image' => $seo['meta_image'],
@@ -1614,7 +1636,7 @@ class PageController extends BaseController
     public function about(Request $request, Response $response): Response
     {
         // categories for header
-        $navCategories = (new NavigationService($this->db))->getNavigationCategories();
+        $navCategories = $this->getNavigationService()->getNavigationCategories();
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
 
@@ -1643,7 +1665,7 @@ class PageController extends BaseController
         $seo = $this->buildSeo($request, $aboutTitle, $shortAbout, $aboutPhoto ?: null);
         return $this->view->render($response, 'frontend/about.twig', [
             'categories' => $navCategories,
-            'parent_categories' => $this->getParentCategoriesForNavigation(),
+            'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
             'page_title' => $seo['page_title'],
             'meta_description' => $seo['meta_description'],
             'meta_image' => $seo['meta_image'],
@@ -1763,6 +1785,136 @@ class PageController extends BaseController
         return $response->withHeader('Location', $this->redirect('/' . $slug . '?sent=1'))->withStatus(302);
     }
 
+    /**
+     * Batch enrich multiple albums with cover images, tags, locations, and counts.
+     * Reduces N+1 queries from ~5 per album to 5 total queries.
+     *
+     * @param array $albums Albums to enrich
+     * @return array Enriched albums
+     */
+    private function enrichAlbumsBatch(array $albums): array
+    {
+        if (empty($albums)) {
+            return [];
+        }
+
+        $pdo = $this->db->pdo();
+        $albumIds = array_column($albums, 'id');
+        $coverImageIds = array_filter(array_column($albums, 'cover_image_id'));
+
+        // Build placeholders
+        $albumPlaceholders = implode(',', array_fill(0, count($albumIds), '?'));
+
+        // 1. Batch fetch cover images
+        $coverImages = [];
+        if (!empty($coverImageIds)) {
+            $coverPlaceholders = implode(',', array_fill(0, count($coverImageIds), '?'));
+            $stmt = $pdo->prepare("SELECT * FROM images WHERE id IN ($coverPlaceholders)");
+            $stmt->execute(array_values($coverImageIds));
+            foreach ($stmt->fetchAll() as $img) {
+                $coverImages[(int)$img['id']] = $img;
+            }
+        }
+
+        // 2. Batch fetch variants for all cover images
+        $variantsByImage = [];
+        if (!empty($coverImageIds)) {
+            $stmt = $pdo->prepare("
+                SELECT * FROM image_variants
+                WHERE image_id IN ($coverPlaceholders)
+                ORDER BY image_id, variant ASC
+            ");
+            $stmt->execute(array_values($coverImageIds));
+            foreach ($stmt->fetchAll() as $variant) {
+                $imageId = (int)$variant['image_id'];
+                if (!isset($variantsByImage[$imageId])) {
+                    $variantsByImage[$imageId] = [];
+                }
+                $variantsByImage[$imageId][] = $variant;
+            }
+        }
+
+        // 3. Batch fetch tags for all albums
+        $tagsByAlbum = [];
+        $stmt = $pdo->prepare("
+            SELECT at.album_id, t.*
+            FROM tags t
+            JOIN album_tag at ON at.tag_id = t.id
+            WHERE at.album_id IN ($albumPlaceholders)
+            ORDER BY t.name ASC
+        ");
+        $stmt->execute($albumIds);
+        foreach ($stmt->fetchAll() as $tag) {
+            $albumId = (int)$tag['album_id'];
+            unset($tag['album_id']);
+            if (!isset($tagsByAlbum[$albumId])) {
+                $tagsByAlbum[$albumId] = [];
+            }
+            $tagsByAlbum[$albumId][] = $tag;
+        }
+
+        // 4. Batch fetch locations for all albums
+        $locationsByAlbum = [];
+        try {
+            $stmt = $pdo->prepare("
+                SELECT al.album_id, l.id, l.name, l.slug
+                FROM album_location al
+                JOIN locations l ON l.id = al.location_id
+                WHERE al.album_id IN ($albumPlaceholders)
+                ORDER BY l.name
+            ");
+            $stmt->execute($albumIds);
+            foreach ($stmt->fetchAll() as $loc) {
+                $albumId = (int)$loc['album_id'];
+                unset($loc['album_id']);
+                if (!isset($locationsByAlbum[$albumId])) {
+                    $locationsByAlbum[$albumId] = [];
+                }
+                $locationsByAlbum[$albumId][] = $loc;
+            }
+        } catch (\Throwable) {
+            // Locations table may not exist
+        }
+
+        // 5. Batch fetch image counts for all albums
+        $countsByAlbum = [];
+        $stmt = $pdo->prepare("
+            SELECT album_id, COUNT(*) as cnt
+            FROM images
+            WHERE album_id IN ($albumPlaceholders)
+            GROUP BY album_id
+        ");
+        $stmt->execute($albumIds);
+        foreach ($stmt->fetchAll() as $row) {
+            $countsByAlbum[(int)$row['album_id']] = (int)$row['cnt'];
+        }
+
+        // Assemble enriched albums
+        foreach ($albums as &$album) {
+            $albumId = (int)$album['id'];
+            $coverImageId = $album['cover_image_id'] ? (int)$album['cover_image_id'] : null;
+
+            // Cover image with variants
+            if ($coverImageId && isset($coverImages[$coverImageId])) {
+                $cover = $coverImages[$coverImageId];
+                $cover['variants'] = $variantsByImage[$coverImageId] ?? [];
+                $album['cover'] = $cover;
+            }
+
+            // Tags
+            $album['tags'] = $tagsByAlbum[$albumId] ?? [];
+
+            // Locations
+            $album['locations'] = $locationsByAlbum[$albumId] ?? [];
+
+            // Images count
+            $album['images_count'] = $countsByAlbum[$albumId] ?? 0;
+        }
+        unset($album);
+
+        return $albums;
+    }
+
     private function enrichAlbum(array $album): array
     {
         $pdo = $this->db->pdo();
@@ -1809,14 +1961,36 @@ class PageController extends BaseController
 
     private function filterAlbumsByAccess(array $albums, bool $isAdmin, bool $nsfwConsent): array
     {
+        if (empty($albums)) {
+            return [];
+        }
+
+        // Batch enrich all albums at once (5 queries instead of 5*N)
+        $albums = $this->enrichAlbumsBatch($albums);
+
         $visibleAlbums = [];
         foreach ($albums as $album) {
-            $album = $this->enrichAlbum($album);
-            if (!$isAdmin && !empty($album['password_hash']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
-                continue;
-            }
+            $album['is_password_protected'] = !empty($album['password_hash']);
+            unset($album['password_hash']);
+            // Mark password-protected albums as locked (but still show them in listings)
+            $album['is_locked'] = !$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id']);
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $album = $this->ensureAlbumCoverImage($album);
+            $needsProtectedPreview = !$isAdmin
+                && ($album['is_locked'] || (!empty($album['is_nsfw']) && !$nsfwConsent));
+            if ($needsProtectedPreview && !empty($album['cover_image']['id'])) {
+                $blurPath = $album['cover_image']['blur_path'] ?? '';
+                $ext = 'jpg';
+                if ($blurPath && preg_match('/\\.([a-z0-9]+)$/i', (string)$blurPath, $matches)) {
+                    $ext = strtolower($matches[1]);
+                }
+                $album['cover_image']['blur_path'] = '/media/protected/' . (int)$album['cover_image']['id'] . '/blur.' . $ext;
+                unset(
+                    $album['cover_image']['preview_path'],
+                    $album['cover_image']['original_path'],
+                    $album['cover_image']['path']
+                );
+            }
             $visibleAlbums[] = $album;
         }
         return $visibleAlbums;
@@ -2036,43 +2210,90 @@ class PageController extends BaseController
         
         return $image;
     }
-    
-    /**
-     * Get parent categories with album counts for navigation
-     */
-    private function getParentCategoriesForNavigation(): array
+
+    private function processImageSourcesBatch(array $images): array
     {
-        $pdo = $this->db->pdo();
-
-        // Get parent categories with album counts (using album_category junction table)
-        $stmt = $pdo->prepare('
-            SELECT c.*, COUNT(DISTINCT a.id) as albums_count
-            FROM categories c
-            LEFT JOIN album_category ac ON ac.category_id = c.id
-            LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
-            WHERE c.parent_id IS NULL
-            GROUP BY c.id
-            ORDER BY c.sort_order ASC, c.name ASC
-        ');
-        $stmt->execute();
-        $parents = $stmt->fetchAll();
-
-        // Get children for each parent
-        foreach ($parents as &$parent) {
-            $childStmt = $pdo->prepare('
-                SELECT c.*, COUNT(DISTINCT a.id) as albums_count
-                FROM categories c
-                LEFT JOIN album_category ac ON ac.category_id = c.id
-                LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
-                WHERE c.parent_id = :parent_id
-                GROUP BY c.id
-                ORDER BY c.sort_order ASC, c.name ASC
-            ');
-            $childStmt->execute([':parent_id' => $parent['id']]);
-            $parent['children'] = $childStmt->fetchAll();
+        if (empty($images)) {
+            return [];
         }
 
-        return $parents;
+        $pdo = $this->db->pdo();
+        $imageIds = array_column($images, 'id');
+        $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
+        $variantsByImage = [];
+
+        try {
+            $variantsStmt = $pdo->prepare("
+                SELECT image_id, format, path, width, variant
+                FROM image_variants
+                WHERE image_id IN ($placeholders)
+                ORDER BY image_id, variant ASC
+            ");
+            $variantsStmt->execute($imageIds);
+            foreach ($variantsStmt->fetchAll() as $variant) {
+                $imageId = (int)$variant['image_id'];
+                if (!isset($variantsByImage[$imageId])) {
+                    $variantsByImage[$imageId] = [];
+                }
+                $variantsByImage[$imageId][] = $variant;
+            }
+        } catch (\Throwable $e) {
+            Logger::warning('PageController: Error processing image sources (batch)', ['error' => $e->getMessage()], 'frontend');
+            foreach ($images as &$image) {
+                $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
+                $image['variants'] = [];
+                $image['fallback_src'] = $image['original_path'];
+            }
+            unset($image);
+            return $images;
+        }
+
+        $publicDir = dirname(__DIR__, 3) . '/public';
+        foreach ($images as &$image) {
+            $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
+            $variants = $variantsByImage[(int)$image['id']] ?? [];
+
+            foreach ($variants as $variant) {
+                $format = $variant['format'] ?? 'jpg';
+                $path = $variant['path'] ?? '';
+                if (!isset($sources[$format]) || $path === '' || str_starts_with($path, '/storage/')) {
+                    continue;
+                }
+                if (is_file($publicDir . $path)) {
+                    $sources[$format][] = $path . ' ' . (int)$variant['width'] . 'w';
+                } elseif ($format === 'jpg') {
+                    $webpPath = preg_replace('/\.jpg$/i', '.webp', $path);
+                    if (is_file($publicDir . $webpPath)) {
+                        $sources['webp'][] = $webpPath . ' ' . (int)$variant['width'] . 'w';
+                    }
+                }
+            }
+
+            $fallbackUrl = $image['original_path'];
+            foreach ($variants as $variant) {
+                if (!empty($variant['path']) && !str_starts_with((string)$variant['path'], '/storage/')) {
+                    $fullPath = $publicDir . $variant['path'];
+                    if (is_file($fullPath)) {
+                        $fallbackUrl = $variant['path'];
+                        break;
+                    }
+                    if (($variant['format'] ?? '') === 'jpg') {
+                        $webpPath = preg_replace('/\.jpg$/i', '.webp', $variant['path']);
+                        if (is_file($publicDir . $webpPath)) {
+                            $fallbackUrl = $webpPath;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            $image['sources'] = $sources;
+            $image['variants'] = $variants;
+            $image['fallback_src'] = $fallbackUrl;
+        }
+        unset($image);
+
+        return $images;
     }
     
     private function getAvailableSocials(): array
@@ -2494,6 +2715,7 @@ class PageController extends BaseController
 
     /**
      * Generate dynamic web manifest for PWA
+     * Only includes icons that actually exist on disk
      */
     public function webManifest(Request $request, Response $response): Response
     {
@@ -2504,25 +2726,78 @@ class PageController extends BaseController
         $themeColor = (string)($svc->get('pwa.theme_color', '#ffffff') ?? '#ffffff');
         $backgroundColor = (string)($svc->get('pwa.background_color', '#ffffff') ?? '#ffffff');
         $basePath = $this->basePath ?: '';
+        $publicPath = dirname(__DIR__, 3) . '/public';
+
+        // All possible PWA icons (generated by FaviconService)
+        $possibleIcons = [
+            ['file' => 'icon-72x72.png', 'size' => '72x72'],
+            ['file' => 'favicon-96x96.png', 'size' => '96x96'],
+            ['file' => 'icon-128x128.png', 'size' => '128x128'],
+            ['file' => 'icon-144x144.png', 'size' => '144x144'],
+            ['file' => 'icon-152x152.png', 'size' => '152x152'],
+            ['file' => 'android-chrome-192x192.png', 'size' => '192x192'],
+            ['file' => 'icon-384x384.png', 'size' => '384x384'],
+            ['file' => 'android-chrome-512x512.png', 'size' => '512x512'],
+        ];
+
+        $iconSizeMap = [];
+        foreach ($possibleIcons as $icon) {
+            $iconSizeMap[$icon['file']] = $icon['size'];
+        }
+
+        $cachedIconFiles = $svc->get('pwa.existing_icons', []);
+        $cachedIconFiles = is_array($cachedIconFiles) ? $cachedIconFiles : [];
+        $needsRebuild = $cachedIconFiles === [];
+
+        if (!$needsRebuild) {
+            foreach ($cachedIconFiles as $file) {
+                if (!is_string($file) || !file_exists($publicPath . '/' . $file)) {
+                    $needsRebuild = true;
+                    break;
+                }
+            }
+        }
+
+        if ($needsRebuild) {
+            $cachedIconFiles = [];
+            foreach ($possibleIcons as $icon) {
+                try {
+                    if (@file_exists($publicPath . '/' . $icon['file'])) {
+                        $cachedIconFiles[] = $icon['file'];
+                    }
+                } catch (\Throwable $e) {
+                    \App\Support\Logger::warning('PageController: Error checking PWA icon existence', [
+                        'icon' => $icon['file'],
+                        'error' => $e->getMessage(),
+                    ], 'frontend');
+                }
+            }
+            try {
+                $svc->set('pwa.existing_icons', $cachedIconFiles);
+            } catch (\Throwable) {
+                // Ignore settings write failures for manifest caching.
+            }
+        }
+
+        $icons = [];
+        foreach ($cachedIconFiles as $file) {
+            $size = $iconSizeMap[$file] ?? null;
+            if (!$size) {
+                continue;
+            }
+            $icons[] = [
+                'src' => $basePath . '/' . $file,
+                'sizes' => $size,
+                'type' => 'image/png',
+                'purpose' => 'any maskable'
+            ];
+        }
 
         $manifest = [
             'name' => $siteName,
             'short_name' => $this->truncateShortName($siteName),
             'description' => $siteDescription,
-            'icons' => [
-                [
-                    'src' => $basePath . '/android-chrome-192x192.png',
-                    'sizes' => '192x192',
-                    'type' => 'image/png',
-                    'purpose' => 'any maskable'
-                ],
-                [
-                    'src' => $basePath . '/android-chrome-512x512.png',
-                    'sizes' => '512x512',
-                    'type' => 'image/png',
-                    'purpose' => 'any maskable'
-                ]
-            ],
+            'icons' => $icons,
             'start_url' => $basePath . '/',
             'scope' => $basePath . '/',
             'display' => 'standalone',
@@ -2534,5 +2809,13 @@ class PageController extends BaseController
         return $response
             ->withHeader('Content-Type', 'application/manifest+json')
             ->withHeader('Cache-Control', 'public, max-age=86400');
+    }
+
+    private function getNavigationService(): NavigationService
+    {
+        if ($this->navigationService === null) {
+            $this->navigationService = new NavigationService($this->db);
+        }
+        return $this->navigationService;
     }
 }

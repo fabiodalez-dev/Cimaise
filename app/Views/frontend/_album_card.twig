@@ -2,30 +2,52 @@
   {% set seo_title = (site_title|default('Portfolio')) ~ ' — ' ~ album.title %}
   {% if album.cover and album.cover.alt_text is defined and album.cover.alt_text %}
     {% set seo_title = seo_title ~ ' — ' ~ album.cover.alt_text %}
+  {% elseif album.cover_image and album.cover_image.alt_text is defined and album.cover_image.alt_text %}
+    {% set seo_title = seo_title ~ ' — ' ~ album.cover_image.alt_text %}
   {% endif %}
   {% set album_url = base_path ~ '/album/' ~ album.slug %}
+
+  {# Determine if we have cover data (either album.cover or album.cover_image) #}
+  {% set has_cover = album.cover or album.cover_image %}
 
   {# Image container with relative positioning for badge overlay #}
   <div class="relative">
     {# Image area with link #}
     <a href="{{ album_url }}" class="block aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm" title="{{ seo_title|e('html_attr') }}">
     {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
-    {% if album.cover %}
-      {% if album.is_nsfw and not (nsfw_consent|default(false)) and not (is_admin|default(false)) %}
-        {# NSFW albums: use blur preview until consent is confirmed client-side #}
+    {% set is_locked = album.is_locked|default(false) %}
+    {% set should_blur_cover = (album.is_nsfw and show_nsfw_overlay) or is_locked %}
+    {% if has_cover %}
+      {% if should_blur_cover %}
+        {# Protected albums: use blur preview until consent/unlock is confirmed #}
         {% set blur_path = null %}
-        {% for variant in album.cover.variants %}
-          {% if variant.variant == 'blur' %}
-            {% set blur_path = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
-          {% endif %}
-        {% endfor %}
-        {% set card_img_url = album.cover.original_path %}
-        {% if album.cover.variants is iterable %}
+        {% set card_img_url = null %}
+
+        {# Check album.cover_image first (flat structure from GalleriesController) #}
+        {% if album.cover_image.blur_path is defined and album.cover_image.blur_path %}
+          {% set blur_path = album.cover_image.blur_path starts with '/' ? base_path ~ album.cover_image.blur_path : album.cover_image.blur_path %}
+          {% set card_img_url = album.cover_image.preview_path|default(album.cover_image.blur_path) %}
+        {% endif %}
+
+        {# Fallback to album.cover.variants structure (from PageController) #}
+        {% if blur_path is null and album.cover.variants is iterable %}
           {% for variant in album.cover.variants %}
-            {% if card_img_url == album.cover.original_path and (variant.variant is not defined or variant.variant != 'blur') %}
-              {% set card_img_url = variant.path %}
+            {% if variant.variant == 'blur' %}
+              {% set blur_path = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
             {% endif %}
           {% endfor %}
+        {% endif %}
+
+        {# Get the real image URL for when consent is given #}
+        {% if card_img_url is null %}
+          {% set card_img_url = album.cover.original_path|default(album.cover_image.original_path|default(null)) %}
+          {% if album.cover.variants is iterable %}
+            {% for variant in album.cover.variants %}
+              {% if card_img_url == album.cover.original_path and (variant.variant is not defined or variant.variant != 'blur') %}
+                {% set card_img_url = variant.path %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
         {% endif %}
         {% set real_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
         {% if blur_path %}
@@ -47,6 +69,8 @@
         {% endif %}
       {% else %}
         {# Non-NSFW albums (or consented NSFW): show full quality responsive images #}
+        {% set has_variants = album.cover.variants is iterable and album.cover.variants|length > 0 %}
+        {% if has_variants %}
         <picture class="block absolute inset-0 w-full h-full">
           {% set variants_avif = [] %}
           {% set variants_webp = [] %}
@@ -78,22 +102,33 @@
           {% endif %}
 
           {% set card_img_url = album.cover.original_path %}
-          {% if album.cover.variants is iterable %}
-            {% for variant in album.cover.variants %}
-              {% if card_img_url == album.cover.original_path and (variant.variant is not defined or variant.variant != 'blur') %}
-                {% set card_img_url = variant.path %}
-              {% endif %}
-            {% endfor %}
-          {% endif %}
+          {% for variant in album.cover.variants %}
+            {% if card_img_url == album.cover.original_path and (variant.variant is not defined or variant.variant != 'blur') %}
+              {% set card_img_url = variant.path %}
+            {% endif %}
+          {% endfor %}
           {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
 
           <img src="{{ original_url }}"
-               alt="{{ (album.cover.alt_text ?? album.title)|e }}"
+               alt="{{ (album.cover.alt_text ?? album.cover_image.alt_text ?? album.title)|e }}"
                title="{{ seo_title|e('html_attr') }}"
                loading="lazy"
                decoding="async"
                class="block w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
         </picture>
+        {% else %}
+        {# Fallback for cover_image structure (flat, no variants) #}
+        {% set card_img_url = album.cover_image.preview_path|default(album.cover_image.original_path|default(album.cover.original_path|default(null))) %}
+        {% if card_img_url %}
+          {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
+          <img src="{{ original_url }}"
+               alt="{{ (album.cover_image.alt_text ?? album.cover.alt_text ?? album.title)|e }}"
+               title="{{ seo_title|e('html_attr') }}"
+               loading="lazy"
+               decoding="async"
+               class="block absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
+        {% endif %}
+        {% endif %}
       {% endif %}
 
       {# NSFW Overlay - shown only when user hasn't given consent (not for admins) #}
@@ -105,7 +140,7 @@
       {% endif %}
 
       {# Password Protected Badge #}
-      {% if album.is_password_protected or album.password_hash %}
+      {% if album.is_password_protected %}
       <div class="absolute top-2 right-2 text-white z-20 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" title="{{ trans('album.password_protected') }}">
         <i class="fas fa-lock text-lg"></i>
       </div>

@@ -394,8 +394,13 @@ html.dark .masonry-veil-bottom {
         gallery: gallerySelector,
         children: childrenSelector,
         pswpModule: PhotoSwipe,
-        showHideAnimationType: 'fade',
-        bgOpacity: 0.95
+        showHideAnimationType: 'none',
+        showAnimationDuration: 0,
+        hideAnimationDuration: 0,
+        zoomAnimationDuration: 0,
+        easing: 'linear',
+        bgOpacity: 0.95,
+        preloaderDelay: 0
       });
       _lbInstance.addFilter('caption', (c, item)=>{
         const el = item && item.el;
