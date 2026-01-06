@@ -15,6 +15,7 @@ use App\Middlewares\SecurityHeadersMiddleware;
 use Slim\Middleware\ErrorMiddleware;
 use Slim\Exception\HttpNotFoundException;
 use App\Support\Hooks;
+use App\Support\CookieHelper;
 use App\Support\PluginManager;
 
 // Check if installer is being accessed
@@ -84,8 +85,13 @@ if (!$isInstallerRoute) {
     
     // If not installed, redirect to installer
     if (!$installed) {
-        // Avoid redirect loop - check if we're already on install page
-        if (strpos($_SERVER['REQUEST_URI'], '/install') === false) {
+        // Avoid redirect loop - check if we're already on install page or accessing media
+        // Media files must be accessible during installation (e.g., uploaded logo preview)
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $isInstallerPath = strpos($uri, '/install') !== false;
+        $isMediaPath = strpos($uri, '/media/') !== false;
+
+        if (!$isInstallerPath && !$isMediaPath) {
             $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
             $scriptDir = dirname($scriptPath);
             $basePath = $scriptDir === '/' ? '' : $scriptDir;
@@ -108,7 +114,12 @@ try {
 ini_set('session.use_strict_mode', '1');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
-if ((bool)($_ENV['APP_DEBUG'] ?? false) === false) {
+// CRITICAL: Set session cookie path to root to ensure it works in subdirectory installations
+// Without this, the cookie may be restricted to /subdir/public/ and not sent to /subdir/admin/
+ini_set('session.cookie_path', '/');
+// Only set secure cookie flag if actually using HTTPS
+// Checking APP_DEBUG alone breaks HTTP localhost testing in production mode
+if (CookieHelper::isHttps()) {
     ini_set('session.cookie_secure', '1');
 }
 session_start();
@@ -169,6 +180,15 @@ if ($basePath) {
 }
 
 $app->addBodyParsingMiddleware();
+
+// Performance middleware (cache and compression)
+$settingsService = null;
+if ($container['db'] !== null) {
+    $settingsService = new \App\Services\SettingsService($container['db']);
+    $app->add(new \App\Middlewares\CacheMiddleware($settingsService));
+    $app->add(new \App\Middlewares\CompressionMiddleware($settingsService));
+}
+
 $app->add(new CsrfMiddleware());
 $app->add(new FlashMiddleware());
 $app->add(new SecurityHeadersMiddleware());
@@ -207,6 +227,13 @@ if ($container['db'] !== null) {
     $twig->getEnvironment()->addExtension(new \App\Extensions\TranslationTwigExtension($translationService));
     // Expose globally for trans() helper function in controllers
     $GLOBALS['translationService'] = $translationService;
+
+    // Add performance extension for optimization features
+    if ($settingsService === null) {
+        $settingsService = new \App\Services\SettingsService($container['db']);
+    }
+    $performanceService = new \App\Services\PerformanceService($container['db'], $settingsService, $basePath);
+    $twig->getEnvironment()->addExtension(new \App\Extensions\PerformanceTwigExtension($performanceService));
 }
 
 // Let plugins register Twig extensions

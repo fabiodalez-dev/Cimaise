@@ -189,10 +189,18 @@ document.addEventListener('click', function(event) {
     "name": {{ schema.author_name|json_encode|raw }}
   },{% endif %}
   "associatedMedia": [
+    {% set valid_images = [] %}
     {% for image in images %}
+      {% set img_url = image.fallback_src|default(image.url|default(image.original_path|default(''))) %}
+      {% if img_url is not empty %}
+        {% set valid_images = valid_images|merge([image]) %}
+      {% endif %}
+    {% endfor %}
+    {% for image in valid_images %}
+    {% set schema_url = image.fallback_src|default(image.url|default(image.original_path)) %}
     {
       "@type": "ImageObject",
-      "contentUrl": "{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}",
+      "contentUrl": "{% if schema_url starts with '/' %}{{ base_path }}{{ schema_url }}{% else %}{{ schema_url }}{% endif %}",
       {% if image.alt_text %}"description": {{ image.alt_text|json_encode|raw }},{% endif %}
       {% if image.caption %}"caption": {{ image.caption|json_encode|raw }},{% endif %}
       {% if image.width and image.height %}"width": {{ image.width }},
@@ -206,7 +214,7 @@ document.addEventListener('click', function(event) {
       {% if schema is defined and schema.image_copyright_notice %}"copyrightNotice": {{ schema.image_copyright_notice|replace_year|json_encode|raw }},{% endif %}
       {% if schema is defined and schema.image_license_url %}"license": {{ schema.image_license_url|json_encode|raw }},{% endif %}
       {% if schema is defined and schema.image_acquire_license_page %}"acquireLicensePage": {{ schema.image_acquire_license_page|json_encode|raw }},{% endif %}
-      "thumbnailUrl": "{% if image.original_path starts with '/' %}{{ base_path }}{{ image.original_path }}{% else %}{{ image.original_path }}{% endif %}"
+      "thumbnailUrl": "{% if schema_url starts with '/' %}{{ base_path }}{{ schema_url }}{% else %}{{ schema_url }}{% endif %}"
     }{% if not loop.last %},{% endif %}
     {% endfor %}
   ]
@@ -227,7 +235,9 @@ document.addEventListener('click', function(event) {
     <!-- Background Image -->
     {% if album.cover %}
     <div class="absolute inset-0 z-0">
-        {% set cover_url = album.cover.variants|length > 0 ? (album.cover.variants|last.path) : album.cover.original_path %}
+        {% set cover_url = album.cover.variants|length > 0
+          ? (album.cover.variants|last.path)
+          : album.cover_image.preview_path|default(album.cover_image.path|default(album.cover_image.original_path|default(album.cover.original_path))) %}
         <img src="{% if cover_url starts with '/' %}{{ base_path }}{{ cover_url }}{% else %}{{ cover_url }}{% endif %}" alt="{{ album.title|e }}" class="w-full h-full object-cover">
     </div>
     {% endif %}
@@ -544,7 +554,7 @@ document.addEventListener('click', function(event) {
                 {% set sizeClass = 'big' %}
             {% endif %}
             <div class="{{ sizeClass }}">
-                {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                {% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
                 {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
                 <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
                    class="pswp-link"
@@ -570,7 +580,10 @@ document.addEventListener('click', function(event) {
                         {% set variants_avif = [] %}
                         {% set variants_webp = [] %}
                         {% set variants_jpg = [] %}
-                        {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                        {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+                        {% if best_jpg_path starts with '/' %}
+                          {% set best_jpg_path = base_path ~ best_jpg_path %}
+                        {% endif %}
                         {% set best_jpg_w = 0 %}
                         {% for variant in image.variants %}
                             {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
@@ -684,7 +697,7 @@ document.addEventListener('click', function(event) {
                 {% set imgH = image.height|default(3) %}
                 <div class="masonry-frame" style="--width: {{ imgW }}; --height: {{ imgH }};">
                     <div class="frame-content group {{ rounded_class }} {{ shadow_class }}">
-                        {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                        {% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
                         {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
                         <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
                            class="pswp-link gallery-link block w-full h-full overflow-hidden bg-neutral-100 cursor-pointer {{ rounded_class }}"
@@ -710,7 +723,10 @@ document.addEventListener('click', function(event) {
                                 {% set variants_avif = [] %}
                                 {% set variants_webp = [] %}
                                 {% set variants_jpg = [] %}
-                                {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                                {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+                                {% if best_jpg_path starts with '/' %}
+                                  {% set best_jpg_path = base_path ~ best_jpg_path %}
+                                {% endif %}
                                 {% set best_jpg_w = 0 %}
                                 {% for variant in image.variants %}
                                     {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
@@ -741,21 +757,22 @@ document.addEventListener('click', function(event) {
                                      decoding="async"
                                      data-fallback="hide">
                             </picture>
-                            {% if album.allow_downloads %}
-                                <button type="button"
-                                        class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
-                                        title="{{ trans('image.download') }}"
-                                        data-action="download-image"
-                                        data-download-url="{{ base_path }}/download/image/{{ image.id }}">
-                                    <i class="fa-solid fa-arrow-down text-sm"></i>
-                                </button>
-                            {% endif %}
                             {% if image.caption %}
                                 <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm p-4 pt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                     {{ image.caption|e }}
                                 </div>
                             {% endif %}
                         </a>
+                        {% if album.allow_downloads %}
+                            <button type="button"
+                                    class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
+                                    title="{{ trans('image.download') }}"
+                                    aria-label="{{ trans('image.download') }}"
+                                    data-action="download-image"
+                                    data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+                                <i class="fa-solid fa-arrow-down text-sm"></i>
+                            </button>
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}
@@ -792,11 +809,11 @@ document.addEventListener('click', function(event) {
              data-aspect-ratio="{{ aspect_ratio }}"
              data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
             {% for image in images %}
-                <div class="gallery-item">
-                    {% set lightbox_href = image.lightbox_url|default(image.original_path) %}
+                <div class="gallery-item group relative">
+                    {% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
                     {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
                     <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
-                       class="pswp-link gallery-link group block overflow-hidden bg-neutral-100 cursor-pointer {{ aspect_class }} {{ rounded_class }} {{ shadow_class }}"
+                       class="pswp-link gallery-link block overflow-hidden bg-neutral-100 cursor-pointer {{ aspect_class }} {{ rounded_class }} {{ shadow_class }}"
                        title="{{ seo_title|e('html_attr') }}"
                        data-image-id="{{ image.id }}"
                        data-pswp-width="{{ image.width }}"
@@ -819,7 +836,10 @@ document.addEventListener('click', function(event) {
                             {% set variants_avif = [] %}
                             {% set variants_webp = [] %}
                             {% set variants_jpg = [] %}
-                            {% set best_jpg_path = image.original_path starts with '/' ? base_path ~ image.original_path : image.original_path %}
+                            {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+                            {% if best_jpg_path starts with '/' %}
+                              {% set best_jpg_path = base_path ~ best_jpg_path %}
+                            {% endif %}
                             {% set best_jpg_w = 0 %}
                             {% for variant in image.variants %}
                                 {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : variant.path %}
@@ -853,21 +873,22 @@ document.addEventListener('click', function(event) {
                                  data-fallback="hide"
                                  class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">
                         </picture>
-                        {% if album.allow_downloads %}
-                            <button type="button"
-                                    class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
-                                    title="{{ trans('image.download') }}"
-                                    data-action="download-image"
-                                    data-download-url="{{ base_path }}/download/image/{{ image.id }}">
-                                <i class="fa-solid fa-arrow-down text-sm"></i>
-                            </button>
-                        {% endif %}
                         {% if image.caption %}
                             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm p-4 pt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 {{ image.caption|e }}
                             </div>
                         {% endif %}
                     </a>
+                    {% if album.allow_downloads %}
+                        <button type="button"
+                                class="absolute top-3 right-3 bg-black/60 text-white p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer {{ rounded_class }}"
+                                title="{{ trans('image.download') }}"
+                                aria-label="{{ trans('image.download') }}"
+                                data-action="download-image"
+                                data-download-url="{{ base_path }}/download/image/{{ image.id }}">
+                            <i class="fa-solid fa-arrow-down text-sm"></i>
+                        </button>
+                    {% endif %}
                 </div>
             {% endfor %}
         </div>

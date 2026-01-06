@@ -32,7 +32,7 @@
     (filter_settings.show_year and filter_options.years|length > 0)
   %}
   {% if filter_settings.enabled and has_filter_options %}
-  <div id="filters-section" class="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+  <div id="filters-section" class="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-neutral-700 sticky top-0 z-40 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <!-- Filter Toggle Button -->
       <div class="flex items-center justify-between">
@@ -236,10 +236,10 @@
   {% endif %}
   
   <!-- Loading Overlay -->
-  <div id="loading-overlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+  <div id="loading-overlay" class="fixed inset-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
     <div class="text-center">
       <div class="animate-spin w-12 h-12 border-4 border-gray-200 border-t-black rounded-full mb-4"></div>
-      <p class="text-gray-600 font-medium">{{ trans('general.loading') }}</p>
+      <p class="text-gray-600 dark:text-gray-300 font-medium">{{ trans('general.loading') }}</p>
     </div>
   </div>
 
@@ -265,11 +265,12 @@
                aria-label="{{ seo_title|e('html_attr') }}">
         {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
         {% set is_nsfw_unconfirmed = album.is_nsfw and not can_show_nsfw %}
+        {% set is_locked = album.is_locked|default(false) %}
 
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
           {% if album.cover_image %}
-            {% if is_nsfw_unconfirmed %}
+            {% if is_nsfw_unconfirmed or is_locked %}
               {% set blur_path = album.cover_image.blur_path|default(null) %}
               {% if blur_path %}
               <img src="{% if blur_path starts with '/' %}{{ base_path }}{{ blur_path }}{% else %}{{ blur_path }}{% endif %}"
@@ -309,6 +310,12 @@
           <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
             <i class="fas fa-eye-slash text-3xl mb-2"></i>
             <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short') }}</span>
+          </div>
+          {% endif %}
+          {% if is_locked and not is_nsfw_unconfirmed %}
+          <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
+            <i class="fas fa-lock text-3xl mb-2"></i>
+            <span class="text-sm font-medium">{{ trans('album.password_protected') }}</span>
           </div>
           {% endif %}
 
@@ -400,11 +407,11 @@
     <div class="text-center py-24" id="empty-state" data-gsap="empty-state">
       <div class="max-w-md mx-auto">
         <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
-        <h3 class="text-2xl font-semibold text-gray-900 mb-4">{{ trans('filter.no_galleries_title') }}</h3>
-        <p class="text-gray-600 mb-8 leading-relaxed">
+        <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">{{ trans('filter.no_galleries_title') }}</h3>
+        <p class="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
           {{ trans('filter.no_galleries_text') }}
         </p>
-        <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
+        <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition-colors duration-200">
           <i class="fas fa-times"></i>
           {{ trans('filter.clear') }}
         </button>
@@ -447,6 +454,78 @@
 // Galleries Page JavaScript with GSAP Animations
 let galleriesIntroUserScrolled = false;
 let galleriesIntroTimeline = null;
+
+const resolveElements = function(target) {
+    if (!target) return [];
+    if (Array.isArray(target)) {
+        return target.flatMap(resolveElements);
+    }
+    if (typeof target === 'string') return Array.from(document.querySelectorAll(target));
+    if (typeof target.length === 'number') return Array.from(target);
+    return [target];
+};
+
+// GSAP safety wrapper - graceful degradation if GSAP fails to load
+const safeGsap = {
+    to: function(target, vars) {
+        if (typeof gsap !== 'undefined') return gsap.to(target, vars);
+        // Fallback: apply end state immediately
+        const els = resolveElements(target);
+        els.forEach(el => {
+            if (!el || !el.style) return;
+            if (vars.opacity !== undefined) {
+                el.style.opacity = vars.opacity;
+            }
+            if (vars.maxHeight !== undefined) {
+                el.style.maxHeight = typeof vars.maxHeight === 'number' ? vars.maxHeight + 'px' : vars.maxHeight;
+            }
+            let transforms = [];
+            if (vars.rotation !== undefined) {
+                transforms.push('rotate(' + vars.rotation + 'deg)');
+            }
+            if (vars.y !== undefined) {
+                transforms.push('translateY(' + vars.y + 'px)');
+            }
+            if (transforms.length) {
+                el.style.transform = transforms.join(' ');
+            }
+            if (vars.pointerEvents !== undefined) {
+                el.style.pointerEvents = vars.pointerEvents;
+            }
+        });
+        if (vars.onComplete) setTimeout(vars.onComplete, 0);
+        return { kill: function() {} };
+    },
+    from: function(target, vars) {
+        if (typeof gsap !== 'undefined') return gsap.from(target, vars);
+        // Fallback: show immediately
+        const els = resolveElements(target);
+        els.forEach(el => {
+            if (!el || !el.style) return;
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+            if (vars.pointerEvents !== undefined) el.style.pointerEvents = vars.pointerEvents;
+        });
+        if (vars.onComplete) setTimeout(vars.onComplete, 0);
+        return { kill: function() {} };
+    },
+    set: function(target, vars) {
+        if (typeof gsap !== 'undefined') return gsap.set(target, vars);
+        const els = resolveElements(target);
+        els.forEach(el => {
+            if (!el || !el.style) return;
+            if (vars.opacity !== undefined) {
+                el.style.opacity = vars.opacity;
+            }
+            if (vars.clearProps === 'all') {
+                el.style.cssText = '';
+            }
+        });
+    },
+    killTweensOf: function(target) {
+        if (typeof gsap !== 'undefined') return gsap.killTweensOf(target);
+    }
+};
 
 window.addEventListener('scroll', function() {
     galleriesIntroUserScrolled = true;
@@ -617,10 +696,10 @@ function initFilters() {
         const filtersGrid = $('#filters-grid');
         const chevron = $('#filter-chevron');
         const isOpen = filtersGrid.hasClass('filters-open');
-        
+
         if (isOpen) {
             // Close filters
-            gsap.to(filtersGrid, {
+            safeGsap.to(filtersGrid, {
                 opacity: 0,
                 maxHeight: 0,
                 duration: {{ filter_settings.animation_duration }},
@@ -629,7 +708,7 @@ function initFilters() {
                     filtersGrid.removeClass('filters-open');
                 }
             });
-            gsap.to(chevron, {
+            safeGsap.to(chevron, {
                 rotation: 0,
                 duration: {{ filter_settings.animation_duration }},
                 ease: 'power2.inOut'
@@ -640,23 +719,23 @@ function initFilters() {
             const targetHeight = filtersGrid[0]
                 ? (filtersGrid[0].scrollHeight + 16)
                 : Math.min(window.innerHeight * 0.6, 800);
-            gsap.to(filtersGrid, {
+            safeGsap.to(filtersGrid, {
                 opacity: 1,
                 maxHeight: targetHeight,
                 duration: {{ filter_settings.animation_duration }},
                 ease: 'power2.inOut'
             });
-            gsap.to(chevron, {
+            safeGsap.to(chevron, {
                 rotation: 180,
                 duration: {{ filter_settings.animation_duration }},
                 ease: 'power2.inOut'
             });
-            
+
             // Animate filter groups with safety check
             setTimeout(() => {
                 const filterGroups = document.querySelectorAll('.filter-group');
                 if (filterGroups.length > 0) {
-                    gsap.from('.filter-group', {
+                    safeGsap.from('.filter-group', {
                         y: 15,
                         opacity: 0,
                         duration: {{ filter_settings.animation_duration }},
@@ -764,11 +843,11 @@ function updateGalleries(albums, animate = false) {
                 <div class="col-span-full text-center py-24" id="empty-state">
                     <div class="max-w-md mx-auto">
                         <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
-                        <h3 class="text-2xl font-semibold text-gray-900 mb-4">${window.pageTexts.noResultsTitle}</h3>
-                        <p class="text-gray-600 mb-8 leading-relaxed">
+                        <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">${window.pageTexts.noResultsTitle}</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
                             ${window.pageTexts.noResultsText}
                         </p>
-                        <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
+                        <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition-colors duration-200">
                             <i class="fas fa-times"></i>
                             ${window.pageTexts.clearFiltersText}
                         </button>
@@ -790,17 +869,17 @@ function updateGalleries(albums, animate = false) {
         return;
     }
     if (isUpdatingGalleries) {
-        gsap.killTweensOf('#galleries-grid .gallery-card');
+        safeGsap.killTweensOf('#galleries-grid .gallery-card');
     }
     isUpdatingGalleries = true;
-    
+
     // Add animation class
     if (grid[0]) {
         grid[0].classList.add('gsap-grid-animating');
     }
-    
+
     // Animate out current galleries with specific selector
-    gsap.to('#galleries-grid .gallery-card', {
+    safeGsap.to('#galleries-grid .gallery-card', {
         y: -20,
         opacity: 0,
         duration: {{ filter_settings.animation_duration }},
@@ -813,11 +892,11 @@ function updateGalleries(albums, animate = false) {
                     <div class="col-span-full text-center py-24" id="empty-state">
                         <div class="max-w-md mx-auto">
                             <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
-                            <h3 class="text-2xl font-semibold text-gray-900 mb-4">${window.pageTexts.noResultsTitle}</h3>
-                            <p class="text-gray-600 mb-8 leading-relaxed">
+                            <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">${window.pageTexts.noResultsTitle}</h3>
+                            <p class="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
                                 ${window.pageTexts.noResultsText}
                             </p>
-                            <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors duration-200">
+                            <button data-action="clear-filters" class="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition-colors duration-200">
                                 <i class="fas fa-times"></i>
                                 ${window.pageTexts.clearFiltersText}
                             </button>
@@ -835,9 +914,9 @@ function updateGalleries(albums, animate = false) {
                     html += generateGalleryCard(album);
                 });
                 grid.html(html);
-                
+
                 // Animate in new galleries with specific selector
-                gsap.from('#galleries-grid .gallery-card', {
+                safeGsap.from('#galleries-grid .gallery-card', {
                     y: 40,
                     opacity: 0,
                     duration: {{ filter_settings.animation_duration }},
@@ -847,7 +926,7 @@ function updateGalleries(albums, animate = false) {
                         if (grid[0]) {
                             grid[0].classList.remove('gsap-grid-animating');
                         }
-                        gsap.set('#galleries-grid .gallery-card', { clearProps: 'all' });
+                        safeGsap.set('#galleries-grid .gallery-card', { clearProps: 'all' });
                         isUpdatingGalleries = false;
                     }
                 });
@@ -906,8 +985,11 @@ function generateGalleryCard(album) {
     const alt = escapeHtml(coverImage.alt_text || album.title || '');
     const slug = encodeURIComponent(album.slug || '');
     // Skip NSFW restrictions for admins
-    const isNsfw = (album.is_nsfw && !window.isAdmin) ? true : false;
+    const isNsfw = !!(album.is_nsfw && !window.isAdmin);
     const canShowNsfw = !isNsfw || hasConfirmedNsfw();
+    const isLocked = !!album.is_locked;
+    const isNsfwUnconfirmed = isNsfw && !canShowNsfw;
+    const shouldBlurCover = isNsfwUnconfirmed || isLocked;
     const albumUrl = window.basePath + '/album/' + slug;
     const seoTitle = [window.siteTitle || '', album.title || ''].filter(Boolean).join(' — ');
 
@@ -924,7 +1006,7 @@ function generateGalleryCard(album) {
 
     const rel = document.createElement('div');
     rel.className = 'relative aspect-[4/3] overflow-hidden bg-gray-100';
-    if (isNsfw && !canShowNsfw) {
+    if (shouldBlurCover) {
         if (safeBlurSrc) {
             const img = document.createElement('img');
             img.src = safeBlurSrc;
@@ -955,11 +1037,17 @@ function generateGalleryCard(album) {
         rel.appendChild(ph);
     }
     // NSFW Overlay
-    if (isNsfw && !canShowNsfw) {
+    if (isNsfwUnconfirmed) {
         const nsfwOverlay = document.createElement('div');
-        nsfwOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm';
+        nsfwOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10';
         nsfwOverlay.innerHTML = '<i class="fas fa-eye-slash text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.nsfwWarningShort || '18+') + '</span>';
         rel.appendChild(nsfwOverlay);
+    }
+    if (isLocked && !isNsfwUnconfirmed) {
+        const lockOverlay = document.createElement('div');
+        lockOverlay.className = 'nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10';
+        lockOverlay.innerHTML = '<i class="fas fa-lock text-3xl mb-2"></i><span class="text-sm font-medium">' + esc(window.pageTexts.passwordProtected || 'Password Protected') + '</span>';
+        rel.appendChild(lockOverlay);
     }
     // Top right badges container (lock + count)
     const badgesContainer = document.createElement('div');
@@ -1063,10 +1151,10 @@ function updateActiveFilters(filters) {
     
     if (hasActiveFilters) {
         activeFiltersContainer.html(activeFiltersHtml);
-        gsap.to(activeFiltersContainer, { opacity: 1, duration: 0.3 });
-        gsap.to(clearButton, { opacity: 1, duration: 0.3 });
+        safeGsap.to(activeFiltersContainer, { opacity: 1, duration: 0.3 });
+        safeGsap.to(clearButton, { opacity: 1, duration: 0.3 });
     } else {
-        gsap.to([activeFiltersContainer, clearButton], { opacity: 0, duration: 0.3 });
+        safeGsap.to([activeFiltersContainer, clearButton], { opacity: 0, duration: 0.3 });
     }
 }
 
@@ -1099,7 +1187,7 @@ function clearAllFilters() {
 }
 
 function showLoading() {
-    gsap.to('#loading-overlay', {
+    safeGsap.to('#loading-overlay', {
         opacity: 1,
         pointerEvents: 'auto',
         duration: 0.3
@@ -1107,7 +1195,7 @@ function showLoading() {
 }
 
 function hideLoading() {
-    gsap.to('#loading-overlay', {
+    safeGsap.to('#loading-overlay', {
         opacity: 0,
         pointerEvents: 'none',
         duration: 0.3

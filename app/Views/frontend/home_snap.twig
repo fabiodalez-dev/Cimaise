@@ -427,12 +427,15 @@ html.dark .snap-indicator:hover {
         {% for album in albums|reverse %}
         <a href="{{ base_path }}/album/{{ album.slug|e('html_attr') }}" class="snap-cover">
           {% if album.cover and album.cover.variants|length > 0 %}
-            {% set coverSrc = base_path ~ (album.cover.variants|first).path|default(album.cover.original_path) %}
+            {% set coverRaw = (album.cover.variants|first).path %}
+          {% elseif album.cover_image and album.cover_image.preview_path %}
+            {% set coverRaw = album.cover_image.preview_path %}
           {% elseif album.cover %}
-            {% set coverSrc = base_path ~ album.cover.original_path %}
+            {% set coverRaw = album.cover.original_path %}
           {% else %}
-            {% set coverSrc = base_path ~ '/assets/img/placeholder.jpg' %}
+            {% set coverRaw = '/assets/img/placeholder.jpg' %}
           {% endif %}
+          {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
           <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="lazy">
         </a>
         {% endfor %}
@@ -446,12 +449,15 @@ html.dark .snap-indicator:hover {
       {% for album in albums %}
       <a href="{{ base_path }}/album/{{ album.slug|e('html_attr') }}" class="snap-mobile-slide">
         {% if album.cover and album.cover.variants|length > 0 %}
-          {% set coverSrc = base_path ~ (album.cover.variants|first).path|default(album.cover.original_path) %}
+          {% set coverRaw = (album.cover.variants|first).path %}
+        {% elseif album.cover_image and album.cover_image.preview_path %}
+          {% set coverRaw = album.cover_image.preview_path %}
         {% elseif album.cover %}
-          {% set coverSrc = base_path ~ album.cover.original_path %}
+          {% set coverRaw = album.cover.original_path %}
         {% else %}
-          {% set coverSrc = base_path ~ '/assets/img/placeholder.jpg' %}
+          {% set coverRaw = '/assets/img/placeholder.jpg' %}
         {% endif %}
+        {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
         <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="lazy">
         <div class="snap-mobile-info">
           <span class="snap-year">{{ album.shoot_date ? album.shoot_date|date('Y') : album.published_at|date('Y') }}</span>

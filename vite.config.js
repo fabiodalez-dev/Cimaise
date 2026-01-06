@@ -1,13 +1,27 @@
 import { defineConfig } from 'vite'
 import path from 'path'
 
-// Minimal Vite config to emit specific JS entries into public/assets
+// Optimized Vite config for performance
 export default defineConfig({
   build: {
     outDir: 'public/assets',
     emptyOutDir: false, // don't wipe existing assets already in public/assets
     copyPublicDir: false, // avoid duplicating /public into /public/assets
     manifest: false,
+    // Optimize build for production
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log in production
+        drop_debugger: true,
+      },
+    },
+    // Enable source maps only in development
+    sourcemap: false,
+    // Optimize chunk size
+    chunkSizeWarningLimit: 1000,
+    // CSS code splitting
+    cssCodeSplit: true,
     rollupOptions: {
       input: {
         'js/hero': path.resolve(__dirname, 'resources/js/hero.js'),
@@ -30,7 +44,21 @@ export default defineConfig({
           return '[name].js'
         },
         assetFileNames: '[name][extname]',
+        // Put chunks in js/ folder (not default assets/ to avoid /assets/assets/ path)
+        chunkFileNames: 'js/[name]-[hash].js',
+        // Optimize chunk splitting for better caching
+        manualChunks: undefined,
       },
+    },
+  },
+  // CSS optimization
+  css: {
+    devSourcemap: false,
+  },
+  // Server optimization for development
+  server: {
+    hmr: {
+      overlay: false,
     },
   },
 })

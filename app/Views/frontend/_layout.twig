@@ -16,11 +16,30 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ base_path }}/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ base_path }}/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ base_path }}/apple-touch-icon.png">
-    <link rel="manifest" href="{{ base_path }}/site.webmanifest">
-    <meta name="theme-color" content="#ffffff">
 
-    <!-- Preload local typography fonts -->
+    <!-- PWA Manifest & Meta Tags -->
+    <link rel="manifest" href="{{ base_path }}/site.webmanifest">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cimaise">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Resource Hints for Performance -->
+    {% set hints = resource_hints() %}
+    {% for hint in hints['dns-prefetch'] %}
+    <link rel="dns-prefetch" href="{{ hint.href }}">
+    {% endfor %}
+    {% for hint in hints['preconnect'] %}
+    {% if hint.href %}
+    <link rel="preconnect" href="{{ hint.href }}"{% if hint.crossorigin %} crossorigin{% endif %}>
+    {% endif %}
+    {% endfor %}
+
+    <!-- Preload Critical Resources -->
     <link rel="preload" href="{{ base_path }}/fonts/typography.css" as="style">
+    <link rel="preload" href="{{ base_path }}/assets/app.css" as="style">
     
     <!-- Open Graph -->
     <meta property="og:title" content="{{ page_title|e('html_attr') }}">
@@ -193,6 +212,18 @@
         /* Reduce paint complexity during scroll */
         img {
             content-visibility: auto;
+        }
+
+        /* Accessibility: Respect user motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
         }
 
         /* Template-specific styles */
@@ -985,7 +1016,7 @@
             background: #fff;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.55s ease;
+            transition: opacity 0.15s ease;
             z-index: 9998;
         }
         #pswp-open-overlay.is-visible {
@@ -1150,7 +1181,12 @@
         .social-btn i {
             font-size: 16px;
         }
-        
+
+        /* Ensure hidden class takes precedence */
+        .social-btn.hidden {
+            display: none !important;
+        }
+
         /* Individual social media colors on hover */
         .social-btn.behance:hover { color: #1769ff; }
         .social-btn.whatsapp:hover { color: #25d366; }
@@ -1244,14 +1280,14 @@
                         <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.about') }}</a>
                         
                         <!-- Categories Mega Menu -->
-                        <div class="relative" id="categories-dropdown">
-                            <button id="categories-toggle" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md">
+                        <div class="static" id="categories-dropdown">
+                            <button id="categories-toggle" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md" aria-haspopup="true" aria-expanded="false" aria-controls="categories-mega-menu">
                                 {{ trans('filter.categories') }}
                                 <i class="fas fa-chevron-down text-xs transition-transform duration-200" id="categories-icon"></i>
                             </button>
-                            
-                            <!-- Mega Menu Panel -->
-                            <div id="categories-mega-menu" class="absolute left-1/2 top-full mt-3 w-[min(100vw-2rem,1040px)] -translate-x-1/2 bg-white border border-gray-200 shadow-2xl rounded-2xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out">
+
+                            <!-- Mega Menu Panel - fixed positioning to center in viewport -->
+                            <div id="categories-mega-menu" class="fixed left-1/2 top-[80px] w-[min(100vw-2rem,1040px)] -translate-x-1/2 bg-white border border-gray-200 shadow-2xl rounded-2xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out">
                                 <div class="p-8 max-h-[70vh] overflow-y-auto">
                                     <!-- Parent Categories Grid -->
                                     <div class="grid gap-8" id="parent-categories-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
@@ -1550,16 +1586,16 @@
 
     <!-- PhotoSwipe lightbox (local) loaded dynamically in JS -->
     
-    <!-- Swiper.js -->
-    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.js"></script>
+    <!-- Swiper.js - Deferred for better initial load performance -->
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.js" defer></script>
 
-    <!-- GSAP -->
-    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/gsap.min.js"></script>
-    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/ScrollTrigger.min.js"></script>
+    <!-- GSAP - Deferred (progressive enhancement for animations) -->
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/gsap.min.js" defer></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/gsap/ScrollTrigger.min.js" defer></script>
 
-    <!-- imagesLoaded + Masonry -->
-    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js"></script>
-    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js"></script>
+    <!-- imagesLoaded + Masonry - Deferred -->
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js" defer></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/vendor/masonry/masonry.pkgd.min.js" defer></script>
     
     <!-- App JS -->
     <script nonce="{{ csp_nonce() }}">
@@ -1658,39 +1694,41 @@
             
             function closeMenu() {
                 if (!isOpen) return;
-                
+
                 menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
                 menu.style.opacity = '0';
-                menu.style.transform = 'translateY(-10px)';
-                
+                menu.style.transform = 'translateX(-50%) translateY(-10px)';
+
                 setTimeout(() => {
                     menu.classList.add('opacity-0', 'invisible');
                     menu.classList.remove('opacity-100', 'visible');
                 }, 200);
-                
+
                 if (icon) {
                     icon.style.transform = 'rotate(0deg)';
                 }
-                
+
+                toggle.setAttribute('aria-expanded', 'false');
                 isOpen = false;
             }
-            
+
             function openMenu() {
                 if (isOpen) return;
-                
+
                 menu.classList.remove('opacity-0', 'invisible');
                 menu.classList.add('opacity-100', 'visible');
-                
+
                 requestAnimationFrame(() => {
                     menu.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
                     menu.style.opacity = '1';
-                    menu.style.transform = 'translateY(0)';
+                    menu.style.transform = 'translateX(-50%) translateY(0)';
                 });
-                
+
                 if (icon) {
                     icon.style.transform = 'rotate(180deg)';
                 }
-                
+
+                toggle.setAttribute('aria-expanded', 'true');
                 isOpen = true;
             }
             
@@ -2196,25 +2234,37 @@
         let ticking = false;
         
         function updateHeader() {
+            if (!header) {
+                return;
+            }
             // Skip header hide for gallery wall template
             if (document.body.classList.contains('gallery-wall-page')) return;
 
             const currentScroll = window.pageYOffset;
+            const hasGsap = typeof gsap !== 'undefined';
 
             if (currentScroll > lastScroll && currentScroll > 100) {
                 // Scrolling down
-                gsap.to(header, {
-                    y: -100,
-                    duration: 0.3,
-                    ease: "power2.out"
-                });
+                if (hasGsap) {
+                    gsap.to(header, {
+                        y: -100,
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                } else {
+                    header.style.transform = 'translateY(-100px)';
+                }
             } else {
                 // Scrolling up or at top
-                gsap.to(header, {
-                    y: 0,
-                    duration: 0.3,
-                    ease: "power2.out"
-                });
+                if (hasGsap) {
+                    gsap.to(header, {
+                        y: 0,
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                } else {
+                    header.style.transform = 'translateY(0)';
+                }
             }
             
             // Add/remove backdrop blur based on scroll
@@ -2620,11 +2670,11 @@
                         padding: { top: 60, bottom: 100, left: 72, right: 72 },
                         
                         // Modern smooth animations
-                        showHideAnimationType: 'fade',
-                        hideAnimationDuration: 420,
-                        showAnimationDuration: 520,
-                        zoomAnimationDuration: 420,
-                        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                        showHideAnimationType: 'none',
+                        hideAnimationDuration: 0,
+                        showAnimationDuration: 0,
+                        zoomAnimationDuration: 0,
+                        easing: 'linear',
                         
                         // Click/tap interactions (handled manually for centered zoom)
                         imageClickAction: false,
@@ -2635,7 +2685,7 @@
                         // Performance optimizations
                         preloadFirstSlide: true,
                         preload: [1, 2],
-                        preloaderDelay: 800,
+                        preloaderDelay: 0,
                         
                         // Better accessibility (template-controlled)
                         escKey: (psCfg.escKey === undefined ? true : !!psCfg.escKey),
@@ -2681,6 +2731,7 @@
                     let prevHtmlPadding = '';
                     let prevBodyPadding = '';
                     let scrollLocked = false;
+                    let wakeLock = null;
                     const lockScroll = () => {
                         if (scrollLocked) return;
                         scrollLocked = true;
@@ -2700,6 +2751,14 @@
                         if (window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
                             window.lenisInstance.stop();
                         }
+                        // Screen Wake Lock - keep screen on during lightbox viewing
+                        if ('wakeLock' in navigator) {
+                            navigator.wakeLock.request('screen').then(lock => {
+                                wakeLock = lock;
+                            }).catch(() => {
+                                // Wake lock request failed (page not visible or permission denied)
+                            });
+                        }
                     };
                     const unlockScroll = () => {
                         if (!scrollLocked) return;
@@ -2712,6 +2771,14 @@
                         document.body.style.paddingRight = prevBodyPadding;
                         if (window.lenisInstance && typeof window.lenisInstance.start === 'function') {
                             window.lenisInstance.start();
+                        }
+                        // Release Screen Wake Lock
+                        if (wakeLock) {
+                            wakeLock.release().then(() => {
+                                wakeLock = null;
+                            }).catch(() => {
+                                wakeLock = null;
+                            });
                         }
                     };
 
@@ -3101,6 +3168,7 @@
                         // Hide any meta-panel (not used)
                         lb.pswp.ui.registerElement({ name: 'meta-panel', order: 99, appendTo: 'root', onInit: (el)=>{ el.style.display='none'; el.className='pswp__meta-panel'; } });
                     
+                        {% if allow_downloads|default(false) %}
                         // Download button - SVG structure matching PhotoSwipe
                         lb.pswp.ui.registerElement({
                             name: 'download-button', order: 8, isButton: true, appendTo: 'bar',
@@ -3110,11 +3178,18 @@
                                 el.setAttribute('aria-label', 'Scarica immagine');
                                 const resolveDownloadUrl = () => {
                                     if (!window.allowDownloads) return null;
-                                    const src = pswp?.currSlide?.data?.src || '';
+                                    const data = pswp?.currSlide?.data || {};
+                                    const src = data.src || '';
+                                    let imageId = null;
                                     const match = src.match(/\/media\/(?:protected\/)?(\d+)(?:_|\/)/);
-                                    if (!match) return null;
+                                    if (match) {
+                                      imageId = match[1];
+                                    } else if (data.element && data.element.dataset && data.element.dataset.imageId) {
+                                      imageId = data.element.dataset.imageId;
+                                    }
+                                    if (!imageId) return null;
                                     const base = (window.basePath || '{{ base_path|e("js") }}').replace(/\/$/, '');
-                                    return `${base}/download/image/${match[1]}`;
+                                    return `${base}/download/image/${imageId}`;
                                 };
                                 const updateVisibility = () => {
                                     const url = resolveDownloadUrl();
@@ -3136,6 +3211,7 @@
                                 updateVisibility();
                             }
                         });
+                        {% endif %}
 
                         // Fullscreen button - SVG structure matching PhotoSwipe
                         lb.pswp.ui.registerElement({
@@ -3235,11 +3311,11 @@
                     padding: { top: 60, bottom: 100, left: 72, right: 72 },
                     
                     // Modern animations
-                    showHideAnimationType: 'fade',
-                    hideAnimationDuration: 200,
-                    showAnimationDuration: 300,
-                    zoomAnimationDuration: 250,
-                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    showHideAnimationType: 'none',
+                    hideAnimationDuration: 0,
+                    showAnimationDuration: 0,
+                    zoomAnimationDuration: 0,
+                    easing: 'linear',
                     
                         // Custom interactions: zoom handled manually
                         imageClickAction: false,
@@ -3380,14 +3456,14 @@
                   const lightbox = new PhotoSwipe({
                       dataSource: items,
                       index: startIndex,
-                      showHideAnimationType: 'fade',
+                      showHideAnimationType: 'none',
                       allowPanToNext: !!psCfg.allowPanToNext,
                       bgOpacity: 0.94,
                       loop: !!psCfg.loop,
-                      showAnimationDuration: 420,
-                      hideAnimationDuration: 320,
-                      zoomAnimationDuration: 360,
-                      easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+                      showAnimationDuration: 0,
+                      hideAnimationDuration: 0,
+                      zoomAnimationDuration: 0,
+                      easing: 'linear'
                   });
                   // Custom caption overlay for PhotoSwipe
                   let psCaptionEl = document.createElement('div');
@@ -3615,11 +3691,11 @@
         function fallbackClose(){ const o = document.getElementById('slb-overlay'); if (o) o.classList.remove('active'); }
     </script>
 
-    <!-- Smooth Scroll (Lenis) -->
+    <!-- Smooth Scroll (Lenis) - Deferred (progressive enhancement) -->
     <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/smooth-scroll.js"></script>
 
-    <!-- Analytics Tracking (Cookieless) -->
-    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/js/analytics.js"></script>
+    <!-- Analytics Tracking (Cookieless) - Deferred (not critical for initial render) -->
+    <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/js/analytics.js" defer></script>
     <script nonce="{{ csp_nonce() }}">
         // Initialize analytics with site configuration
         // Enable by default; JS guard will self-disable if endpoint fails
@@ -3715,6 +3791,90 @@
     }, { passive: false });
     </script>
     {% endif %}
+
+    {# PWA Service Worker Registration #}
+    <script nonce="{{ csp_nonce() }}">
+    // Register Service Worker for offline support and PWA features
+    if ('serviceWorker' in navigator) {
+      const pwaDebug = {{ app_debug|default(false) ? 'true' : 'false' }};
+      const pwaLog = pwaDebug ? console.log.bind(console) : function() {};
+
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('{{ base_path }}/sw.js')
+          .then(function(registration) {
+            pwaLog('[PWA] Service Worker registered:', registration.scope);
+
+            // Check for updates periodically (less aggressive)
+            const updateIntervalMs = 15 * 60 * 1000;
+            setInterval(function() {
+              registration.update();
+            }, updateIntervalMs);
+            document.addEventListener('visibilitychange', function() {
+              if (document.visibilityState === 'visible') {
+                registration.update();
+              }
+            });
+
+            // Handle updates
+            registration.addEventListener('updatefound', function() {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', function() {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New content available, notify user
+                  pwaLog('[PWA] New content available, please refresh.');
+                  // Show a non-blocking update banner
+                  if (!document.getElementById('pwa-update-banner')) {
+                    const banner = document.createElement('div');
+                    banner.id = 'pwa-update-banner';
+                    banner.className = 'fixed bottom-4 left-1/2 z-[9999] flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/90 px-4 py-2 text-xs text-white shadow-lg';
+                    banner.setAttribute('role', 'status');
+                    banner.setAttribute('aria-live', 'polite');
+                    banner.setAttribute('aria-label', 'Update notification');
+                    banner.innerHTML = '<span>New version available</span>';
+                    const refreshBtn = document.createElement('button');
+                    refreshBtn.type = 'button';
+                    refreshBtn.className = 'rounded-full bg-white/10 px-3 py-1 text-xs hover:bg-white/20';
+                    refreshBtn.setAttribute('aria-label', 'Refresh to update now');
+                    refreshBtn.textContent = 'Refresh';
+                    refreshBtn.addEventListener('click', function() {
+                      newWorker.postMessage({ type: 'SKIP_WAITING' });
+                    });
+                    const dismissBtn = document.createElement('button');
+                    dismissBtn.type = 'button';
+                    dismissBtn.className = 'rounded-full bg-white/10 px-3 py-1 text-xs hover:bg-white/20';
+                    dismissBtn.setAttribute('aria-label', 'Dismiss update notification');
+                    dismissBtn.textContent = 'Dismiss';
+                    dismissBtn.addEventListener('click', function() {
+                      banner.remove();
+                    });
+                    banner.appendChild(refreshBtn);
+                    banner.appendChild(dismissBtn);
+                    document.body.appendChild(banner);
+                    setTimeout(function() {
+                      if (banner.parentNode) {
+                        banner.remove();
+                      }
+                    }, 30000);
+                  }
+                }
+              });
+            });
+          })
+          .catch(function(error) {
+            pwaLog('[PWA] Service Worker registration failed:', error);
+          });
+
+        // Reload page when new service worker takes control
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
+      });
+    }
+    </script>
 
     {# Cookie Banner with conditional script loader #}
     {% include 'partials/cookie-banner.twig' %}

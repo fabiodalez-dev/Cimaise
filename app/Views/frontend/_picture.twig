@@ -1,5 +1,5 @@
 {# Reusable responsive <picture> partial #}
-{# Inputs: img (object/array with width,height,alt_text,original_path), variants (list like image_variants rows) #}
+{# Inputs: img (object/array with width,height,alt_text,original_path), variants (list like image_variants rows), index (optional), layout (optional), context (optional string used to derive img_context for image_priority/layout decisions) #}
 {% set variants_avif = [] %}
 {% set variants_webp = [] %}
 {% set variants_jpg = [] %}
@@ -14,14 +14,24 @@
   {% endif %}
 {% endfor %}
 
+{# Get optimized sizes attribute based on layout #}
+{% set sizes_attr = layout is defined ? image_sizes(layout) : '(min-width:1024px) 70vw, 95vw' %}
+
+{# Get image priority based on position #}
+{% set img_index = index is defined ? index : 99 %}
+{% set img_context = context is defined ? context : 'gallery' %}
+{% set priority = image_priority(img_index, img_context) %}
+
 <picture>
   {% if variants_avif %}
-    <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="(min-width:1024px) 70vw, 95vw">
+    <source type="image/avif" srcset="{{ variants_avif|join(', ') }}" sizes="{{ sizes_attr }}">
   {% endif %}
   {% if variants_webp %}
-    <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width:1024px) 70vw, 95vw">
+    <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="{{ sizes_attr }}">
   {% endif %}
-{% set picture_src = (variants_jpg|length > 0) ? variants_jpg[0]|split(' ')|first : img.original_path %}
+{% set picture_src = (variants_jpg|length > 0)
+  ? variants_jpg[0]|split(' ')|first
+  : img.fallback_src|default(img.url|default(img.original_path)) %}
 {# Alt fallback: prefer img.alt_text, then img.alt, then album title, site title, or a generic label #}
 {% set alt_text = img.alt_text|default(img.alt|default('')) %}
 {% if alt_text is empty %}
@@ -37,6 +47,8 @@
        alt="{{ alt_text|e }}"
        width="{{ img.width }}"
        height="{{ img.height }}"
-       loading="lazy" decoding="async"
+       loading="{% if priority == 'high' %}eager{% else %}lazy{% endif %}"
+       decoding="async"
+       {% if priority != 'auto' %}fetchpriority="{{ priority }}"{% endif %}
        class="w-full h-full object-cover">
 </picture>

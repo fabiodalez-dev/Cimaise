@@ -212,6 +212,8 @@ class InstallerController
             'site_language' => 'en',
             'admin_language' => 'en',
             'date_format' => 'Y-m-d',
+            'cache_enabled' => true,
+            'compression_enabled' => true,
             'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
