@@ -447,6 +447,27 @@ TWIG;
     file_put_contents($file, $content);
 }
 
+function patchHtaccess(string $demoRoot, bool $dryRun): void {
+    logMsg("Applying demo patch: public/.htaccess");
+    if ($dryRun) return;
+
+    $file = "$demoRoot/public/.htaccess";
+    $content = file_get_contents($file);
+
+    // Set RewriteBase for /demo/ subdirectory
+    $content = preg_replace(
+        '/# RewriteBase is auto-detected.*\n\s*# RewriteBase \/your-subdirectory\//s',
+        "# Demo runs in /demo/ subdirectory\n  RewriteBase /demo/",
+        $content
+    );
+
+    if (!str_contains($content, 'RewriteBase /demo/')) {
+        warnMsg("Failed to apply RewriteBase patch to .htaccess");
+    }
+
+    file_put_contents($file, $content);
+}
+
 function createDemoTemplateMenu(string $demoRoot, bool $dryRun): void {
     logMsg("Creating demo-only file: _demo_template_menu.twig");
     if ($dryRun) return;
@@ -584,6 +605,7 @@ logMsg("Applying demo-specific patches...");
 
 // Step 4: Apply demo patches
 patchIndexPhp($demoRoot, $dryRun);
+patchHtaccess($demoRoot, $dryRun);
 patchAuthController($demoRoot, $dryRun);
 patchPageController($demoRoot, $dryRun);
 patchAdminLayout($demoRoot, $dryRun);
