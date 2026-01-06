@@ -1169,7 +1169,12 @@
         .social-btn i {
             font-size: 16px;
         }
-        
+
+        /* Ensure hidden class takes precedence */
+        .social-btn.hidden {
+            display: none !important;
+        }
+
         /* Individual social media colors on hover */
         .social-btn.behance:hover { color: #1769ff; }
         .social-btn.whatsapp:hover { color: #25d366; }
@@ -3810,10 +3815,14 @@
                     const banner = document.createElement('div');
                     banner.id = 'pwa-update-banner';
                     banner.className = 'fixed bottom-4 left-1/2 z-[9999] flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/90 px-4 py-2 text-xs text-white shadow-lg';
+                    banner.setAttribute('role', 'status');
+                    banner.setAttribute('aria-live', 'polite');
+                    banner.setAttribute('aria-label', 'Update notification');
                     banner.innerHTML = '<span>New version available</span>';
                     const refreshBtn = document.createElement('button');
                     refreshBtn.type = 'button';
                     refreshBtn.className = 'rounded-full bg-white/10 px-3 py-1 text-xs hover:bg-white/20';
+                    refreshBtn.setAttribute('aria-label', 'Refresh to update now');
                     refreshBtn.textContent = 'Refresh';
                     refreshBtn.addEventListener('click', function() {
                       newWorker.postMessage({ type: 'SKIP_WAITING' });
@@ -3821,6 +3830,7 @@
                     const dismissBtn = document.createElement('button');
                     dismissBtn.type = 'button';
                     dismissBtn.className = 'rounded-full bg-white/10 px-3 py-1 text-xs hover:bg-white/20';
+                    dismissBtn.setAttribute('aria-label', 'Dismiss update notification');
                     dismissBtn.textContent = 'Dismiss';
                     dismissBtn.addEventListener('click', function() {
                       banner.remove();
@@ -3828,6 +3838,11 @@
                     banner.appendChild(refreshBtn);
                     banner.appendChild(dismissBtn);
                     document.body.appendChild(banner);
+                    setTimeout(function() {
+                      if (banner.parentNode) {
+                        banner.remove();
+                      }
+                    }, 30000);
                   }
                 }
               });

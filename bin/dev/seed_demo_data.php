@@ -1499,11 +1499,17 @@ if (!function_exists('exec')) {
     exit(1);
 }
 
+$consolePath = $root . '/bin/console';
+if (!is_file($consolePath)) {
+    echo "✗ Error: bin/console not found at {$consolePath}\n";
+    exit(1);
+}
+
 // Run images:generate first
-echo "   Running: php bin/console images:generate\n";
+echo "   Running: php {$consolePath} images:generate\n";
 $variantOutput = [];
 $variantReturn = 0;
-exec('php ' . escapeshellarg($root . '/bin/console') . ' images:generate 2>&1', $variantOutput, $variantReturn);
+exec('php ' . escapeshellarg($consolePath) . ' images:generate 2>&1', $variantOutput, $variantReturn);
 if ($variantReturn === 0) {
     echo "   ✓ Image variants generated successfully\n";
 } else {
@@ -1514,10 +1520,10 @@ if ($variantReturn === 0) {
 }
 
 // Run nsfw:generate-blur for protected albums
-echo "   Running: php bin/console nsfw:generate-blur --all\n";
+echo "   Running: php {$consolePath} nsfw:generate-blur --all\n";
 $blurOutput = [];
 $blurReturn = 0;
-exec('php ' . escapeshellarg($root . '/bin/console') . ' nsfw:generate-blur --all 2>&1', $blurOutput, $blurReturn);
+exec('php ' . escapeshellarg($consolePath) . ' nsfw:generate-blur --all 2>&1', $blurOutput, $blurReturn);
 if ($blurReturn === 0) {
     echo "   ✓ Blur variants generated for protected albums\n";
 } else {
@@ -1557,5 +1563,10 @@ if (is_dir($seedAlbumsDir) && str_contains($seedAlbumsDir, '/public/media/seed/a
 }
 
 echo "\n";
-echo "✅ Demo data seeding complete!\n";
+$postSeedingSuccess = ($variantReturn === 0 && $blurReturn === 0);
+if ($postSeedingSuccess) {
+    echo "✅ Demo data seeding complete!\n";
+} else {
+    echo "⚠️  Demo data seeding completed with warnings. Check post-seeding command output above.\n";
+}
 echo "\n";

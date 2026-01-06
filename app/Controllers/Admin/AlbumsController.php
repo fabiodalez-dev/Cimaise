@@ -582,11 +582,14 @@ class AlbumsController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
         }
 
-        // Get old album data to detect NSFW changes
+        // Get old album data to detect protection status changes (NSFW or password)
         $pdo = $this->db->pdo();
-        $oldAlbum = $pdo->prepare('SELECT is_nsfw FROM albums WHERE id = ?');
+        $oldAlbum = $pdo->prepare('SELECT is_nsfw, password_hash FROM albums WHERE id = ?');
         $oldAlbum->execute([$id]);
-        $oldNsfw = (int)($oldAlbum->fetchColumn() ?: 0);
+        $oldAlbumData = $oldAlbum->fetch(\PDO::FETCH_ASSOC) ?: [];
+        $oldNsfw = (int)($oldAlbumData['is_nsfw'] ?? 0);
+        $oldHasPassword = !empty($oldAlbumData['password_hash']);
+        $wasProtected = $oldNsfw === 1 || $oldHasPassword;
 
         $d = (array)$request->getParsedBody();
         $title = trim((string)($d['title'] ?? ''));
@@ -815,21 +818,26 @@ class AlbumsController extends BaseController
                 }
             }
 
-            // Handle NSFW blur generation when flag changes
-            if ($is_nsfw !== $oldNsfw) {
+            // Handle blur variant generation when protection status changes (NSFW or password)
+            $newHasPassword = $passwordRaw !== '' || (!$clearPassword && $oldHasPassword);
+            $isProtected = $is_nsfw === 1 || $newHasPassword;
+
+            if ($wasProtected !== $isProtected) {
                 try {
                     $uploadService = new \App\Services\UploadService($this->db);
-                    if ($is_nsfw === 1) {
-                        // Album became NSFW - generate blurred variants
+                    if ($isProtected) {
+                        // Album became protected - generate blurred variants
                         $uploadService->generateBlurredVariantsForAlbum($id);
                     } else {
-                        // Album is no longer NSFW - optionally delete blurred variants
+                        // Album is no longer protected - delete blurred variants
                         $uploadService->deleteBlurredVariantsForAlbum($id);
                     }
                 } catch (\Throwable $blurError) {
                     // Log but don't fail the update
-                    \App\Support\Logger::warning('Failed to process NSFW blur variants', [
+                    \App\Support\Logger::warning('Failed to process blur variants for protection change', [
                         'album_id' => $id,
+                        'was_protected' => $wasProtected,
+                        'is_protected' => $isProtected,
                         'error' => $blurError->getMessage()
                     ], 'admin');
                 }

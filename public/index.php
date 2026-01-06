@@ -114,6 +114,9 @@ try {
 ini_set('session.use_strict_mode', '1');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
+// CRITICAL: Set session cookie path to root to ensure it works in subdirectory installations
+// Without this, the cookie may be restricted to /subdir/public/ and not sent to /subdir/admin/
+ini_set('session.cookie_path', '/');
 // Only set secure cookie flag if actually using HTTPS
 // Checking APP_DEBUG alone breaks HTTP localhost testing in production mode
 if (CookieHelper::isHttps()) {
