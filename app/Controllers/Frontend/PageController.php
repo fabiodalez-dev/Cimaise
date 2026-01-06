@@ -242,7 +242,7 @@ class PageController extends BaseController
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
-            GROUP BY i.id
+            GROUP BY i.id, a.id, a.title, a.slug, a.excerpt, a.category_id
             ORDER BY RANDOM()
             LIMIT 500
         ");

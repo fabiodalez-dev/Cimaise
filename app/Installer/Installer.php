@@ -669,6 +669,12 @@ class Installer
             return;
         }
 
+        // Validate subdirectory - only allow safe characters for Apache config
+        // Allow: alphanumeric, hyphen, underscore, forward slash
+        if (!preg_match('#^[a-zA-Z0-9/_-]*$#', $subdirectory)) {
+            throw new \RuntimeException('Invalid subdirectory path: contains unsafe characters');
+        }
+
         try {
             // 1. Create root .htaccess to redirect to public/
             $this->createRootHtaccess($subdirectory);
@@ -711,12 +717,7 @@ class Installer
             return;
         }
 
-        // Validate subdirectory - only allow safe characters for Apache config
-        // Allow: alphanumeric, hyphen, underscore, forward slash
-        if (!preg_match('#^[a-zA-Z0-9/_-]*$#', $subdirectory)) {
-            throw new \RuntimeException('Invalid subdirectory path: contains unsafe characters');
-        }
-
+        // Subdirectory is already validated in configureHtaccess()
         // Escape for regex use in RewriteCond
         $subdirectoryEscaped = preg_quote($subdirectory, '#');
 
@@ -754,7 +755,9 @@ class Installer
 </IfModule>
 HTACCESS;
 
-        file_put_contents($htaccessPath, $content);
+        if (file_put_contents($htaccessPath, $content) === false) {
+            throw new \RuntimeException('Failed to write root .htaccess file');
+        }
     }
 
     /**
@@ -797,7 +800,9 @@ HTACCESS;
         }
 
         if ($newContent !== $content && $newContent !== null) {
-            file_put_contents($htaccessPath, $newContent);
+            if (file_put_contents($htaccessPath, $newContent) === false) {
+                throw new \RuntimeException('Failed to write public/.htaccess file');
+            }
         }
     }
 

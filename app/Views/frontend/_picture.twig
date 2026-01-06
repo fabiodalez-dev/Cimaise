@@ -47,7 +47,7 @@
        alt="{{ alt_text|e }}"
        width="{{ img.width }}"
        height="{{ img.height }}"
-       loading="{% if img_index == 0 %}eager{% else %}lazy{% endif %}"
+       loading="{% if priority == 'high' %}eager{% else %}lazy{% endif %}"
        decoding="async"
        {% if priority != 'auto' %}fetchpriority="{{ priority }}"{% endif %}
        class="w-full h-full object-cover">

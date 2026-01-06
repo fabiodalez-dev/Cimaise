@@ -48,7 +48,6 @@ class AlbumsController extends BaseController
                                    WHERE iv2.image_id = i.id AND iv2.variant = 'sm'
                                    ORDER BY CASE iv2.format
                                        WHEN 'jpg' THEN 1
-                                       WHEN 'jpeg' THEN 1
                                        WHEN 'webp' THEN 2
                                        WHEN 'avif' THEN 3
                                        ELSE 4

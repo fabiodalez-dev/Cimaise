@@ -421,7 +421,12 @@ class GalleriesController extends BaseController
         if (file_exists($cacheFile)) {
             $cacheData = @file_get_contents($cacheFile);
             if ($cacheData !== false) {
-                $cache = @unserialize($cacheData);
+                // Try JSON first (secure), fallback to unserialize for legacy cache
+                $cache = @json_decode($cacheData, true);
+                if (!is_array($cache)) {
+                    // Legacy serialized cache - will be replaced on next write
+                    $cache = @unserialize($cacheData);
+                }
                 if (is_array($cache) && isset($cache['expires'], $cache['data']) && $cache['expires'] > time()) {
                     return $cache['data'];
                 }
@@ -557,10 +562,10 @@ class GalleriesController extends BaseController
             'years' => $years
         ];
 
-        // Save to cache
+        // Save to cache (use JSON for security - avoids unserialize vulnerabilities)
         $cacheDir = dirname($cacheFile);
         if (is_dir($cacheDir) && is_writable($cacheDir)) {
-            $cacheContent = serialize(['expires' => time() + $cacheTtl, 'data' => $result]);
+            $cacheContent = json_encode(['expires' => time() + $cacheTtl, 'data' => $result]);
             @file_put_contents($cacheFile, $cacheContent, LOCK_EX);
         }
 
@@ -637,7 +642,7 @@ class GalleriesController extends BaseController
                 LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
                 WHERE i.album_id IN ($fallbackPlaceholders)
                   AND i.id = (
-                      SELECT MIN(i2.id) FROM images i2
+                      SELECT i2.id FROM images i2
                       WHERE i2.album_id = i.album_id
                       ORDER BY i2.sort_order ASC, i2.id ASC
                       LIMIT 1
