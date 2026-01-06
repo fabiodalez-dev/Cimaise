@@ -4,7 +4,9 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Logger;
 use App\Services\SettingsService;
+use App\Services\NavigationService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -38,7 +40,7 @@ class GalleriesController extends BaseController
         $filterOptions = $this->getFilterOptions();
         
         // Get navigation categories
-        $parentCategories = $this->getParentCategoriesForNavigation();
+        $parentCategories = (new NavigationService($this->db))->getParentCategoriesForNavigation();
         
         return $this->view->render($response, 'frontend/galleries.twig', [
             'albums' => $albums,
@@ -85,11 +87,19 @@ class GalleriesController extends BaseController
                     'width' => (int)($album['cover_image']['width'] ?? 400),
                     'height' => (int)($album['cover_image']['height'] ?? 300),
                 ];
-                if ($isNsfw && !$canShowNsfw) {
-                    $coverImage['blur_path'] = $album['cover_image']['blur_path'] ?? null;
+                $blurPath = $album['cover_image']['blur_path'] ?? null;
+                if (!empty($album['is_locked']) && !empty($album['cover_image']['id'])) {
+                    $ext = 'jpg';
+                    if ($blurPath && preg_match('/\\.([a-z0-9]+)$/i', (string)$blurPath, $matches)) {
+                        $ext = strtolower($matches[1]);
+                    }
+                    $blurPath = '/media/protected/' . (int)$album['cover_image']['id'] . '/blur.' . $ext;
+                }
+                if (($isNsfw && !$canShowNsfw) || !empty($album['is_locked'])) {
+                    $coverImage['blur_path'] = $blurPath;
                 } else {
                     $coverImage['preview_path'] = $album['cover_image']['preview_path'] ?? null;
-                    $coverImage['blur_path'] = $album['cover_image']['blur_path'] ?? null;
+                    $coverImage['blur_path'] = $blurPath;
                 }
             }
 
@@ -104,6 +114,7 @@ class GalleriesController extends BaseController
                 'category_slug' => $album['category_slug'] ?? null,
                 'images_count' => $album['images_count'] ?? 0,
                 'is_password_protected' => $album['is_password_protected'] ?? false,
+                'is_locked' => $album['is_locked'] ?? false,
                 'is_nsfw' => $isNsfw,
                 'cover_image' => $coverImage,
                 'tags' => array_map(function($tag) {
@@ -384,23 +395,45 @@ class GalleriesController extends BaseController
         $isAdmin ??= $this->isAdmin();
         $nsfwConsent ??= $this->hasNsfwConsent();
 
-        // Enrich albums with cover images and additional data
+        // Batch enrich albums (eliminates N+1 query problem)
+        $albums = $this->enrichAlbumsBatch($albums);
+
+        // Post-process each album for access control and cover sanitization
         $visibleAlbums = [];
         foreach ($albums as $album) {
-            $album = $this->enrichAlbum($album);
-            if (!$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id'])) {
-                continue;
-            }
+            // Mark password-protected albums as locked (but still show them in listings)
+            $album['is_locked'] = !$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id']);
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $album = $this->ensureAlbumCoverImage($album);
             $visibleAlbums[] = $album;
         }
-        
+
         return $visibleAlbums;
     }
 
     private function getFilterOptions(): array
     {
+        // PERFORMANCE: Cache filter options for 5 minutes (300 seconds)
+        // These queries are expensive (9 JOINs with GROUP BY) and change rarely
+        $cacheFile = dirname(__DIR__, 3) . '/storage/cache/filter_options.cache';
+        $cacheTtl = 300; // 5 minutes
+
+        // Check cache
+        if (file_exists($cacheFile)) {
+            $cacheData = @file_get_contents($cacheFile);
+            if ($cacheData !== false) {
+                // Legacy cache migration ended 2025-12-15: do not accept non-JSON data.
+                $cache = @json_decode($cacheData, true);
+                if (!is_array($cache)) {
+                    @unlink($cacheFile);
+                    $cache = [];
+                }
+                if (is_array($cache) && isset($cache['expires'], $cache['data']) && $cache['expires'] > time()) {
+                    return $cache['data'];
+                }
+            }
+        }
+
         $pdo = $this->db->pdo();
         
         // Get categories
@@ -518,7 +551,7 @@ class GalleriesController extends BaseController
         $stmt->execute();
         $years = $stmt->fetchAll();
         
-        return [
+        $result = [
             'categories' => $categories,
             'tags' => $tags,
             'cameras' => $cameras,
@@ -529,8 +562,155 @@ class GalleriesController extends BaseController
             'locations' => $locations,
             'years' => $years
         ];
+
+        // Save to cache (use JSON for security - avoids unserialize vulnerabilities)
+        $cacheDir = dirname($cacheFile);
+        if (is_dir($cacheDir) && is_writable($cacheDir)) {
+            $cacheContent = json_encode(['expires' => time() + $cacheTtl, 'data' => $result]);
+            $written = @file_put_contents($cacheFile, $cacheContent, LOCK_EX);
+            if ($written === false) {
+                Logger::warning('GalleriesController: Failed to write filter options cache', [
+                    'cache_file' => $cacheFile
+                ], 'frontend');
+            }
+        }
+
+        return $result;
     }
 
+    /**
+     * Batch enrich multiple albums with cover images, tags, and counts.
+     * Reduces N+1 queries from ~4 per album to 4 total queries.
+     *
+     * @param array $albums Array of album records
+     * @return array Enriched albums
+     */
+    private function enrichAlbumsBatch(array $albums): array
+    {
+        if (empty($albums)) {
+            return [];
+        }
+
+        $pdo = $this->db->pdo();
+        $albumIds = array_column($albums, 'id');
+        $albumPlaceholders = implode(',', array_fill(0, count($albumIds), '?'));
+
+        // Index albums by ID for easy lookup
+        $albumsById = [];
+        foreach ($albums as $album) {
+            $albumsById[$album['id']] = $album;
+            $albumsById[$album['id']]['cover_image'] = null;
+            $albumsById[$album['id']]['images_count'] = 0;
+            $albumsById[$album['id']]['tags'] = [];
+        }
+
+        // 1. Batch fetch cover images (explicit cover_image_id)
+        $coverImageIds = array_filter(array_column($albums, 'cover_image_id'));
+        $coverImagesById = [];
+        if (!empty($coverImageIds)) {
+            $coverPlaceholders = implode(',', array_fill(0, count($coverImageIds), '?'));
+            $stmt = $pdo->prepare("
+                SELECT i.*,
+                       COALESCE(iv.path, i.original_path) AS preview_path,
+                       blur.path AS blur_path
+                FROM images i
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
+                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
+                WHERE i.id IN ($coverPlaceholders)
+            ");
+            $stmt->execute($coverImageIds);
+            foreach ($stmt->fetchAll() as $img) {
+                $coverImagesById[$img['id']] = $img;
+            }
+        }
+
+        // Assign explicit covers
+        foreach ($albumsById as $albumId => &$album) {
+            if (!empty($album['cover_image_id']) && isset($coverImagesById[$album['cover_image_id']])) {
+                $album['cover_image'] = $coverImagesById[$album['cover_image_id']];
+            }
+        }
+        unset($album);
+
+        // 2. Batch fetch first images for albums without explicit covers
+        $albumsNeedingFallback = array_filter($albumsById, fn($a) => empty($a['cover_image']));
+        if (!empty($albumsNeedingFallback)) {
+            $fallbackIds = array_keys($albumsNeedingFallback);
+            $fallbackPlaceholders = implode(',', array_fill(0, count($fallbackIds), '?'));
+
+            // Get first image per album using window function or subquery
+            $stmt = $pdo->prepare("
+                SELECT i.*,
+                       COALESCE(iv.path, i.original_path) AS preview_path,
+                       blur.path AS blur_path
+                FROM images i
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
+                LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
+                WHERE i.album_id IN ($fallbackPlaceholders)
+                  AND i.id = (
+                      SELECT i2.id FROM images i2
+                      WHERE i2.album_id = i.album_id
+                      ORDER BY i2.sort_order ASC, i2.id ASC
+                      LIMIT 1
+                  )
+            ");
+            $stmt->execute($fallbackIds);
+            foreach ($stmt->fetchAll() as $img) {
+                if (isset($albumsById[$img['album_id']]) && empty($albumsById[$img['album_id']]['cover_image'])) {
+                    $albumsById[$img['album_id']]['cover_image'] = $img;
+                }
+            }
+        }
+
+        // 3. Batch fetch image counts
+        $stmt = $pdo->prepare("
+            SELECT album_id, COUNT(*) as cnt
+            FROM images
+            WHERE album_id IN ($albumPlaceholders)
+            GROUP BY album_id
+        ");
+        $stmt->execute($albumIds);
+        foreach ($stmt->fetchAll() as $row) {
+            if (isset($albumsById[$row['album_id']])) {
+                $albumsById[$row['album_id']]['images_count'] = (int)$row['cnt'];
+            }
+        }
+
+        // 4. Batch fetch tags
+        $stmt = $pdo->prepare("
+            SELECT at.album_id, t.*
+            FROM tags t
+            JOIN album_tag at ON at.tag_id = t.id
+            WHERE at.album_id IN ($albumPlaceholders)
+            ORDER BY t.name ASC
+        ");
+        $stmt->execute($albumIds);
+        foreach ($stmt->fetchAll() as $tag) {
+            $albumId = $tag['album_id'];
+            unset($tag['album_id']);
+            if (isset($albumsById[$albumId])) {
+                $albumsById[$albumId]['tags'][] = $tag;
+            }
+        }
+
+        // Finalize: set password protection flag
+        foreach ($albumsById as &$album) {
+            $album['is_password_protected'] = !empty($album['password_hash']);
+            unset($album['password_hash']);
+        }
+        unset($album);
+
+        // Return in original order
+        $result = [];
+        foreach ($albums as $album) {
+            $result[] = $albumsById[$album['id']];
+        }
+        return $result;
+    }
+
+    /**
+     * @deprecated Use enrichAlbumsBatch() for better performance
+     */
     private function enrichAlbum(array $album): array
     {
         $pdo = $this->db->pdo();
@@ -578,12 +758,12 @@ class GalleriesController extends BaseController
                 $album['cover_image'] = $cover;
             }
         }
-        
+
         // Get images count
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM images WHERE album_id = :album_id');
         $stmt->execute([':album_id' => $album['id']]);
         $album['images_count'] = $stmt->fetchColumn();
-        
+
         // Get tags
         $stmt = $pdo->prepare('
             SELECT t.* FROM tags t
@@ -614,38 +794,4 @@ class GalleriesController extends BaseController
         return $path !== false ? (string)$path : null;
     }
 
-    private function getParentCategoriesForNavigation(): array
-    {
-        $pdo = $this->db->pdo();
-        
-        // Get parent categories with children and album counts
-        $stmt = $pdo->prepare('
-            SELECT c.*, COUNT(DISTINCT a.id) as albums_count
-            FROM categories c
-            LEFT JOIN album_category ac ON ac.category_id = c.id
-            LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
-            WHERE c.parent_id IS NULL
-            GROUP BY c.id
-            ORDER BY c.sort_order ASC, c.name ASC
-        ');
-        $stmt->execute();
-        $parents = $stmt->fetchAll();
-        
-        // Get children for each parent
-        foreach ($parents as &$parent) {
-            $stmt = $pdo->prepare('
-                SELECT c.*, COUNT(DISTINCT a.id) as albums_count
-                FROM categories c
-                LEFT JOIN album_category ac ON ac.category_id = c.id
-                LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
-                WHERE c.parent_id = :parent_id
-                GROUP BY c.id
-                ORDER BY c.sort_order ASC, c.name ASC
-            ');
-            $stmt->execute([':parent_id' => $parent['id']]);
-            $parent['children'] = $stmt->fetchAll();
-        }
-        
-        return $parents;
-    }
 }

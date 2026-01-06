@@ -17,7 +17,12 @@
  *   --force    Skip confirmation prompt
  *
  * Images are automatically downloaded from Unsplash (free stock photos).
- * After running, execute: php bin/console images:generate
+ * Original images are stored in /storage/originals/ (like backend upload).
+ * Temp files are automatically cleaned up after seeding.
+ *
+ * This script automatically runs:
+ * - php bin/console images:generate (generates variants)
+ * - php bin/console nsfw:generate-blur --all (generates blur for protected albums)
  */
 
 declare(strict_types=1);
@@ -55,6 +60,16 @@ $pdo = $db->pdo();
 
 $root = dirname(__DIR__, 2);
 $mediaPath = $root . '/public/media/seed';
+$storageOriginalsPath = $root . '/storage/originals';
+
+// Ensure storage/originals directory exists
+if (!is_dir($storageOriginalsPath)) {
+    $created = mkdir($storageOriginalsPath, 0755, true);
+    if (!$created && !is_dir($storageOriginalsPath)) {
+        echo "✗ Error: unable to create directory {$storageOriginalsPath}\n";
+        exit(1);
+    }
+}
 
 // Helper functions
 function upsertById(PDO $pdo, string $table, array $data, string $uniqueField = 'slug'): int
@@ -234,6 +249,51 @@ $albumImages = [
         'venice-004.jpg' => ['https://images.unsplash.com/photo-1498307833015-e7b400441eb8?w=1600&h=1067&fit=crop', 1600, 1067],
         'venice-005.jpg' => ['https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=1067&h=1600&fit=crop', 1067, 1600],
     ],
+    // New albums for 15 total
+    'paris-passages' => [
+        'paris-001.jpg' => ['https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600&h=1067&fit=crop', 1600, 1067],
+        'paris-002.jpg' => ['https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=1067&h=1600&fit=crop', 1067, 1600],
+        'paris-003.jpg' => ['https://images.unsplash.com/photo-1431274172761-fca41d930114?w=1600&h=1600&fit=crop', 1600, 1600],
+        'paris-004.jpg' => ['https://images.unsplash.com/photo-1478391679764-b2d8b3cd1e94?w=1600&h=1067&fit=crop', 1600, 1067],
+        'paris-005.jpg' => ['https://images.unsplash.com/photo-1549144511-f099e773c147?w=1067&h=1600&fit=crop', 1067, 1600],
+    ],
+    'berlin-shadows' => [
+        'berlin-001.jpg' => ['https://images.unsplash.com/photo-1560969184-10fe8719e047?w=1600&h=1067&fit=crop', 1600, 1067],
+        'berlin-002.jpg' => ['https://images.unsplash.com/photo-1528728329032-2972f65dfb3f?w=1067&h=1600&fit=crop', 1067, 1600],
+        'berlin-003.jpg' => ['https://images.unsplash.com/photo-1546726747-421c6d69c929?w=1600&h=1067&fit=crop', 1600, 1067],
+        'berlin-004.jpg' => ['https://images.unsplash.com/photo-1587330979470-3595ac045ab0?w=1600&h=1600&fit=crop', 1600, 1600],
+    ],
+    'light-and-shadow' => [
+        'light-001.jpg' => ['https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=1067&h=1600&fit=crop', 1067, 1600],
+        'light-002.jpg' => ['https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=1600&h=1067&fit=crop', 1600, 1067],
+        'light-003.jpg' => ['https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=1600&h=1600&fit=crop', 1600, 1600],
+        'light-004.jpg' => ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1067&h=1600&fit=crop', 1067, 1600],
+    ],
+    'exclusive-boudoir' => [
+        'boudoir-001.jpg' => ['https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=1067&h=1600&fit=crop', 1067, 1600],
+        'boudoir-002.jpg' => ['https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1600&h=1067&fit=crop', 1600, 1067],
+        'boudoir-003.jpg' => ['https://images.unsplash.com/photo-1469460340997-2f854421e72f?w=1600&h=1600&fit=crop', 1600, 1600],
+    ],
+    'patagonia-wild' => [
+        'patagonia-001.jpg' => ['https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600&h=1067&fit=crop', 1600, 1067],
+        'patagonia-002.jpg' => ['https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1067&h=1600&fit=crop', 1067, 1600],
+        'patagonia-003.jpg' => ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&h=1600&fit=crop', 1600, 1600],
+        'patagonia-004.jpg' => ['https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1600&h=1067&fit=crop', 1600, 1067],
+        'patagonia-005.jpg' => ['https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1067&h=1600&fit=crop', 1067, 1600],
+        'patagonia-006.jpg' => ['https://images.unsplash.com/photo-1507400492013-162706c8c05e?w=1600&h=1067&fit=crop', 1600, 1067],
+    ],
+    'london-underground' => [
+        'london-001.jpg' => ['https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1600&h=1067&fit=crop', 1600, 1067],
+        'london-002.jpg' => ['https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=1067&h=1600&fit=crop', 1067, 1600],
+        'london-003.jpg' => ['https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=1600&h=1600&fit=crop', 1600, 1600],
+        'london-004.jpg' => ['https://images.unsplash.com/photo-1520986606214-8b456906c813?w=1600&h=1067&fit=crop', 1600, 1067],
+    ],
+    'abstract-silhouettes' => [
+        'abstract-001.jpg' => ['https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1067&h=1600&fit=crop', 1067, 1600],
+        'abstract-002.jpg' => ['https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=1600&h=1067&fit=crop', 1600, 1067],
+        'abstract-003.jpg' => ['https://images.unsplash.com/photo-1492446845049-9c50cc313f00?w=1600&h=1600&fit=crop', 1600, 1600],
+        'abstract-004.jpg' => ['https://images.unsplash.com/photo-1504703395950-b89145a5425b?w=1067&h=1600&fit=crop', 1067, 1600],
+    ],
 ];
 
 echo "\n🚀 Starting demo data seeding...\n\n";
@@ -397,6 +457,9 @@ $locations = [
     ['name' => 'Iceland', 'slug' => 'iceland', 'description' => 'Land of fire and ice'],
     ['name' => 'Scottish Highlands', 'slug' => 'scottish-highlands', 'description' => 'Rugged mountains and lochs'],
     ['name' => 'Dolomites, Italy', 'slug' => 'dolomites-italy', 'description' => 'Dramatic alpine peaks'],
+    ['name' => 'Berlin, Germany', 'slug' => 'berlin-germany', 'description' => 'Capital of art and history'],
+    ['name' => 'London, UK', 'slug' => 'london-uk', 'description' => 'Historic and modern metropolis'],
+    ['name' => 'Patagonia, Argentina', 'slug' => 'patagonia-argentina', 'description' => 'Wild and pristine wilderness'],
 ];
 
 $locationIds = [];
@@ -913,6 +976,239 @@ $albums = [
             ['file' => 'venice-005.jpg', 'alt' => 'Bookbinder hands', 'caption' => 'Centuries-old binding techniques', 'camera' => 'Mamiya 7 II', 'lens' => 'Mamiya N 80mm f/4', 'film' => 'Kodak Portra 400 120', 'process' => 'analog'],
         ],
     ],
+
+    // Album 9: Paris Streets (Standard)
+    [
+        'title' => 'Paris Passages',
+        'slug' => 'paris-passages',
+        'category_id' => $categoryIds['street-photography'],
+        'location_id' => $locationIds['paris-france'],
+        'template_id' => 1,
+        'excerpt' => 'Hidden passages and street life in the City of Light.',
+        'body' => '<p>The covered passages of Paris are a window into 19th century shopping culture. These hidden gems, combined with the vibrant street life of modern Paris, create a unique photographic tapestry.</p>',
+        'shoot_date' => '2024-05-10',
+        'show_date' => 1,
+        'is_published' => 1,
+        'published_at' => '2024-06-01 10:00:00',
+        'sort_order' => 9,
+        'is_nsfw' => 0,
+        'password_hash' => null,
+        'allow_downloads' => 1,
+        'allow_template_switch' => 1,
+        'categories' => ['street-photography'],
+        'tags' => ['street-photography', 'travel', 'france', 'urban'],
+        'cameras' => ['Leica M6'],
+        'lenses' => ['Leica Summicron 35mm f/2'],
+        'films' => ['Kodak Portra 400 35mm'],
+        'developers' => ['C-41'],
+        'labs' => ['Carmencita Film Lab'],
+        'images' => [
+            ['file' => 'paris-001.jpg', 'alt' => 'Eiffel Tower at dusk', 'caption' => 'Iconic view from Trocadero', 'camera' => 'Leica M6', 'lens' => 'Leica Summicron 35mm f/2', 'film' => 'Kodak Portra 400 35mm', 'process' => 'analog'],
+            ['file' => 'paris-002.jpg', 'alt' => 'Covered passage interior', 'caption' => 'Galerie Vivienne details', 'camera' => 'Leica M6', 'lens' => 'Leica Summicron 35mm f/2', 'film' => 'Kodak Portra 400 35mm', 'process' => 'analog'],
+            ['file' => 'paris-003.jpg', 'alt' => 'Seine river boats', 'caption' => 'Morning light on the Seine', 'camera' => 'Leica M6', 'lens' => 'Leica Summicron 35mm f/2', 'film' => 'Kodak Portra 400 35mm', 'process' => 'analog'],
+            ['file' => 'paris-004.jpg', 'alt' => 'Cafe terrace', 'caption' => 'Classic Parisian cafe culture', 'camera' => 'Leica M6', 'lens' => 'Leica Summicron 35mm f/2', 'film' => 'Kodak Portra 400 35mm', 'process' => 'analog'],
+            ['file' => 'paris-005.jpg', 'alt' => 'Metro entrance', 'caption' => 'Art Nouveau metro architecture', 'camera' => 'Leica M6', 'lens' => 'Leica Summicron 35mm f/2', 'film' => 'Kodak Portra 400 35mm', 'process' => 'analog'],
+        ],
+    ],
+
+    // Album 10: Berlin Shadows (Password Protected)
+    [
+        'title' => 'Berlin Shadows',
+        'slug' => 'berlin-shadows',
+        'category_id' => $categoryIds['street-photography'],
+        'location_id' => $locationIds['berlin-germany'],
+        'template_id' => 4,
+        'excerpt' => 'Dark corners and urban contrasts in the German capital.',
+        'body' => '<p>Berlin\'s complex history creates unique urban landscapes. This series explores the interplay of light and shadow in a city constantly reinventing itself.</p><p>🔒 This gallery requires a password for access.</p>',
+        'shoot_date' => '2024-04-20',
+        'show_date' => 1,
+        'is_published' => 1,
+        'published_at' => '2024-05-15 12:00:00',
+        'sort_order' => 10,
+        'is_nsfw' => 0,
+        'password_hash' => password_hash('berlin2024', PASSWORD_DEFAULT), // Password: berlin2024
+        'allow_downloads' => 0,
+        'allow_template_switch' => 1,
+        'categories' => ['street-photography', 'black-white'],
+        'tags' => ['street-photography', 'urban', 'black-and-white', 'germany'],
+        'cameras' => ['Leica M6'],
+        'lenses' => ['Leica Summicron 35mm f/2'],
+        'films' => ['Ilford HP5 Plus 35mm'],
+        'developers' => ['Rodinal'],
+        'labs' => ['Home Development'],
+        'images' => [
+            ['file' => 'berlin-001.jpg', 'alt' => 'Berlin Wall memorial', 'caption' => 'Shadows of history', 'camera' => 'Leica M6', 'lens' => 'Leica Summicron 35mm f/2', 'film' => 'Ilford HP5 Plus 35mm', 'process' => 'analog'],
+            ['file' => 'berlin-002.jpg', 'alt' => 'Industrial architecture', 'caption' => 'Post-industrial Berlin', 'camera' => 'Leica M6', 'lens' => 'Leica Summicron 35mm f/2', 'film' => 'Ilford HP5 Plus 35mm', 'process' => 'analog'],
+            ['file' => 'berlin-003.jpg', 'alt' => 'Street art corner', 'caption' => 'Urban expression', 'camera' => 'Leica M6', 'lens' => 'Leica Summicron 35mm f/2', 'film' => 'Ilford HP5 Plus 35mm', 'process' => 'analog'],
+            ['file' => 'berlin-004.jpg', 'alt' => 'U-Bahn station', 'caption' => 'Underground geometry', 'camera' => 'Leica M6', 'lens' => 'Leica Summicron 35mm f/2', 'film' => 'Ilford HP5 Plus 35mm', 'process' => 'analog'],
+        ],
+    ],
+
+    // Album 11: Light and Shadow (NSFW)
+    [
+        'title' => 'Light and Shadow',
+        'slug' => 'light-and-shadow',
+        'category_id' => $categoryIds['fine-art'],
+        'location_id' => null,
+        'template_id' => 4,
+        'excerpt' => 'Artistic exploration of light playing across form.',
+        'body' => '<p>A fine art series studying the interplay of natural light and the human form. Each image is carefully composed to emphasize shape, texture, and the dynamic between illumination and darkness.</p><p>⚠️ This gallery contains artistic nudity.</p>',
+        'shoot_date' => '2024-03-01',
+        'show_date' => 0,
+        'is_published' => 1,
+        'published_at' => '2024-04-01 00:00:00',
+        'sort_order' => 11,
+        'is_nsfw' => 1, // NSFW
+        'password_hash' => null,
+        'allow_downloads' => 0,
+        'allow_template_switch' => 0,
+        'categories' => ['fine-art', 'black-white'],
+        'tags' => ['black-and-white', 'conceptual', 'minimalist', 'studio'],
+        'cameras' => ['Hasselblad 500C/M'],
+        'lenses' => ['Hasselblad Planar 80mm f/2.8'],
+        'films' => ['Ilford Delta 400 120'],
+        'developers' => ['Ilford DDX'],
+        'labs' => ['Home Development'],
+        'images' => [
+            ['file' => 'light-001.jpg', 'alt' => 'Light study 1', 'caption' => 'Window light study', 'camera' => 'Hasselblad 500C/M', 'lens' => 'Hasselblad Planar 80mm f/2.8', 'film' => 'Ilford Delta 400 120', 'process' => 'analog'],
+            ['file' => 'light-002.jpg', 'alt' => 'Light study 2', 'caption' => 'Chiaroscuro', 'camera' => 'Hasselblad 500C/M', 'lens' => 'Hasselblad Planar 80mm f/2.8', 'film' => 'Ilford Delta 400 120', 'process' => 'analog'],
+            ['file' => 'light-003.jpg', 'alt' => 'Light study 3', 'caption' => 'Form and shadow', 'camera' => 'Hasselblad 500C/M', 'lens' => 'Hasselblad Planar 80mm f/2.8', 'film' => 'Ilford Delta 400 120', 'process' => 'analog'],
+            ['file' => 'light-004.jpg', 'alt' => 'Light study 4', 'caption' => 'Golden hour', 'camera' => 'Hasselblad 500C/M', 'lens' => 'Hasselblad Planar 80mm f/2.8', 'film' => 'Ilford Delta 400 120', 'process' => 'analog'],
+        ],
+    ],
+
+    // Album 12: Exclusive Boudoir (NSFW + Password)
+    [
+        'title' => 'Exclusive Boudoir',
+        'slug' => 'exclusive-boudoir',
+        'category_id' => $categoryIds['fine-art'],
+        'location_id' => null,
+        'template_id' => 3,
+        'excerpt' => 'Premium boudoir collection for verified clients only.',
+        'body' => '<p>An exclusive boudoir photography collection requiring both age verification and special access credentials. These intimate portraits celebrate confidence and elegance.</p>',
+        'shoot_date' => '2024-06-15',
+        'show_date' => 0,
+        'is_published' => 1,
+        'published_at' => '2024-07-01 00:00:00',
+        'sort_order' => 12,
+        'is_nsfw' => 1, // NSFW + Password
+        'password_hash' => password_hash('exclusive789', PASSWORD_DEFAULT), // Password: exclusive789
+        'allow_downloads' => 0,
+        'allow_template_switch' => 0,
+        'categories' => ['fine-art', 'portrait'],
+        'tags' => ['editorial', 'conceptual', 'digital'],
+        'cameras' => ['Sony A7RIV'],
+        'lenses' => ['Sony FE 85mm f/1.4 GM'],
+        'films' => [],
+        'developers' => [],
+        'labs' => [],
+        'images' => [
+            ['file' => 'boudoir-001.jpg', 'alt' => 'Boudoir portrait 1', 'caption' => 'Elegance in motion', 'camera' => 'Sony A7RIV', 'lens' => 'Sony FE 85mm f/1.4 GM', 'film' => null, 'process' => 'digital'],
+            ['file' => 'boudoir-002.jpg', 'alt' => 'Boudoir portrait 2', 'caption' => 'Natural light beauty', 'camera' => 'Sony A7RIV', 'lens' => 'Sony FE 85mm f/1.4 GM', 'film' => null, 'process' => 'digital'],
+            ['file' => 'boudoir-003.jpg', 'alt' => 'Boudoir portrait 3', 'caption' => 'Confidence captured', 'camera' => 'Sony A7RIV', 'lens' => 'Sony FE 85mm f/1.4 GM', 'film' => null, 'process' => 'digital'],
+        ],
+    ],
+
+    // Album 13: Patagonia Wild (Standard)
+    [
+        'title' => 'Patagonia Wild',
+        'slug' => 'patagonia-wild',
+        'category_id' => $categoryIds['landscape'],
+        'location_id' => $locationIds['patagonia-argentina'],
+        'template_id' => 6,
+        'excerpt' => 'Untamed wilderness at the edge of the world.',
+        'body' => '<p>The dramatic landscapes of Patagonia offer some of the most pristine wilderness on Earth. From the Torres del Paine to the Perito Moreno glacier, this collection captures the raw beauty of South America\'s southern frontier.</p>',
+        'shoot_date' => '2024-01-20',
+        'show_date' => 1,
+        'is_published' => 1,
+        'published_at' => '2024-02-28 08:00:00',
+        'sort_order' => 13,
+        'is_nsfw' => 0,
+        'password_hash' => null,
+        'allow_downloads' => 1,
+        'allow_template_switch' => 1,
+        'categories' => ['landscape'],
+        'tags' => ['landscape', 'travel', 'digital', 'nature', 'moody'],
+        'cameras' => ['Sony A7RIV'],
+        'lenses' => ['Sony FE 24-70mm f/2.8 GM', 'Zeiss Batis 25mm f/2'],
+        'films' => [],
+        'developers' => [],
+        'labs' => [],
+        'images' => [
+            ['file' => 'patagonia-001.jpg', 'alt' => 'Torres del Paine', 'caption' => 'Sunrise at Torres del Paine', 'camera' => 'Sony A7RIV', 'lens' => 'Sony FE 24-70mm f/2.8 GM', 'film' => null, 'process' => 'digital'],
+            ['file' => 'patagonia-002.jpg', 'alt' => 'Glacier edge', 'caption' => 'Perito Moreno ice face', 'camera' => 'Sony A7RIV', 'lens' => 'Zeiss Batis 25mm f/2', 'film' => null, 'process' => 'digital'],
+            ['file' => 'patagonia-003.jpg', 'alt' => 'Mountain reflection', 'caption' => 'Mirror lakes of Patagonia', 'camera' => 'Sony A7RIV', 'lens' => 'Sony FE 24-70mm f/2.8 GM', 'film' => null, 'process' => 'digital'],
+            ['file' => 'patagonia-004.jpg', 'alt' => 'Guanaco herd', 'caption' => 'Wildlife of the steppe', 'camera' => 'Sony A7RIV', 'lens' => 'Sony FE 24-70mm f/2.8 GM', 'film' => null, 'process' => 'digital'],
+            ['file' => 'patagonia-005.jpg', 'alt' => 'Storm clouds', 'caption' => 'Patagonian weather drama', 'camera' => 'Sony A7RIV', 'lens' => 'Zeiss Batis 25mm f/2', 'film' => null, 'process' => 'digital'],
+            ['file' => 'patagonia-006.jpg', 'alt' => 'Starry night', 'caption' => 'Milky Way over Fitz Roy', 'camera' => 'Sony A7RIV', 'lens' => 'Zeiss Batis 25mm f/2', 'film' => null, 'process' => 'digital'],
+        ],
+    ],
+
+    // Album 14: London Underground (Password Protected)
+    [
+        'title' => 'London Underground',
+        'slug' => 'london-underground',
+        'category_id' => $categoryIds['street-photography'],
+        'location_id' => $locationIds['london-uk'],
+        'template_id' => 5,
+        'excerpt' => 'The Tube and street scenes from Britain\'s capital.',
+        'body' => '<p>London\'s Underground system is a world unto itself—a labyrinth of tunnels, platforms, and fleeting human connections. This series documents life above and below the city\'s surface.</p><p>🔒 Access requires password.</p>',
+        'shoot_date' => '2024-03-25',
+        'show_date' => 1,
+        'is_published' => 1,
+        'published_at' => '2024-04-20 14:00:00',
+        'sort_order' => 14,
+        'is_nsfw' => 0,
+        'password_hash' => password_hash('tube2024', PASSWORD_DEFAULT), // Password: tube2024
+        'allow_downloads' => 0,
+        'allow_template_switch' => 1,
+        'categories' => ['street-photography', 'documentary'],
+        'tags' => ['street-photography', 'urban', 'uk', 'documentary'],
+        'cameras' => ['Leica MP', 'Fujifilm X-Pro3'],
+        'lenses' => ['Voigtlander Nokton 35mm f/1.4', 'Fujifilm XF 23mm f/1.4 R'],
+        'films' => ['Ilford HP5 Plus 35mm'],
+        'developers' => ['Ilford ID-11'],
+        'labs' => ['AG Photographic'],
+        'images' => [
+            ['file' => 'london-001.jpg', 'alt' => 'Big Ben view', 'caption' => 'Westminster at dusk', 'camera' => 'Leica MP', 'lens' => 'Voigtlander Nokton 35mm f/1.4', 'film' => 'Ilford HP5 Plus 35mm', 'process' => 'analog'],
+            ['file' => 'london-002.jpg', 'alt' => 'Tube platform', 'caption' => 'Mind the gap', 'camera' => 'Fujifilm X-Pro3', 'lens' => 'Fujifilm XF 23mm f/1.4 R', 'film' => null, 'process' => 'digital'],
+            ['file' => 'london-003.jpg', 'alt' => 'Red phone box', 'caption' => 'Classic London icon', 'camera' => 'Leica MP', 'lens' => 'Voigtlander Nokton 35mm f/1.4', 'film' => 'Ilford HP5 Plus 35mm', 'process' => 'analog'],
+            ['file' => 'london-004.jpg', 'alt' => 'City workers', 'caption' => 'Rush hour on the escalator', 'camera' => 'Fujifilm X-Pro3', 'lens' => 'Fujifilm XF 23mm f/1.4 R', 'film' => null, 'process' => 'digital'],
+        ],
+    ],
+
+    // Album 15: Abstract Silhouettes (NSFW)
+    [
+        'title' => 'Abstract Silhouettes',
+        'slug' => 'abstract-silhouettes',
+        'category_id' => $categoryIds['fine-art'],
+        'location_id' => null,
+        'template_id' => 4,
+        'excerpt' => 'Minimalist silhouettes exploring form and negative space.',
+        'body' => '<p>This series reduces the human form to its essential silhouette, creating powerful graphic images that blur the line between photography and abstract art.</p><p>⚠️ Contains artistic nudity.</p>',
+        'shoot_date' => '2024-02-14',
+        'show_date' => 0,
+        'is_published' => 1,
+        'published_at' => '2024-03-14 00:00:00',
+        'sort_order' => 15,
+        'is_nsfw' => 1, // NSFW
+        'password_hash' => null,
+        'allow_downloads' => 0,
+        'allow_template_switch' => 0,
+        'categories' => ['fine-art', 'black-white'],
+        'tags' => ['black-and-white', 'minimalist', 'conceptual', 'studio'],
+        'cameras' => ['Mamiya RZ67'],
+        'lenses' => ['Mamiya Sekor 110mm f/2.8'],
+        'films' => ['Ilford Pan F Plus 120'],
+        'developers' => ['Rodinal'],
+        'labs' => ['Home Development'],
+        'images' => [
+            ['file' => 'abstract-001.jpg', 'alt' => 'Silhouette study 1', 'caption' => 'Curve and contrast', 'camera' => 'Mamiya RZ67', 'lens' => 'Mamiya Sekor 110mm f/2.8', 'film' => 'Ilford Pan F Plus 120', 'process' => 'analog'],
+            ['file' => 'abstract-002.jpg', 'alt' => 'Silhouette study 2', 'caption' => 'Edge and form', 'camera' => 'Mamiya RZ67', 'lens' => 'Mamiya Sekor 110mm f/2.8', 'film' => 'Ilford Pan F Plus 120', 'process' => 'analog'],
+            ['file' => 'abstract-003.jpg', 'alt' => 'Silhouette study 3', 'caption' => 'Negative space', 'camera' => 'Mamiya RZ67', 'lens' => 'Mamiya Sekor 110mm f/2.8', 'film' => 'Ilford Pan F Plus 120', 'process' => 'analog'],
+            ['file' => 'abstract-004.jpg', 'alt' => 'Silhouette study 4', 'caption' => 'Graphic minimalism', 'camera' => 'Mamiya RZ67', 'lens' => 'Mamiya Sekor 110mm f/2.8', 'film' => 'Ilford Pan F Plus 120', 'process' => 'analog'],
+        ],
+    ],
 ];
 
 $albumIds = [];
@@ -1022,29 +1318,50 @@ foreach ($albums as $albumData) {
         $sortOrder = 1;
         $albumSlug = $albumData['slug'];
         foreach ($albumImagesData as $imgData) {
-            $filePath = '/media/seed/albums/' . $albumSlug . '/' . $imgData['file'];
-            $fullPath = $root . '/public' . $filePath;
-
-            // Download image from Unsplash if available
+            // Download image from Unsplash to temp location first
+            $tempPath = $root . '/public/media/seed/albums/' . $albumSlug . '/' . $imgData['file'];
             $downloadedDimensions = null;
+
             if (isset($albumImages[$albumSlug][$imgData['file']])) {
                 $imgUrlData = $albumImages[$albumSlug][$imgData['file']];
-                if (downloadImage($imgUrlData[0], $fullPath)) {
+                if (downloadImage($imgUrlData[0], $tempPath)) {
                     $downloadedDimensions = ['width' => $imgUrlData[1], 'height' => $imgUrlData[2]];
                 }
             }
 
-            // Use downloaded dimensions or get from file
+            // Get image info and hash
             if ($downloadedDimensions) {
                 $imgInfo = array_merge($downloadedDimensions, ['mime' => 'image/jpeg']);
             } else {
-                $imgInfo = getImageInfo($fullPath);
+                $imgInfo = getImageInfo($tempPath);
             }
-            if (is_file($fullPath)) {
-                $hash = sha1_file($fullPath);
-            } else {
-                echo "     ⚠ File immagine non trovato: {$fullPath}, uso hash del percorso\n";
-                $hash = sha1($filePath);
+
+            if (!is_file($tempPath)) {
+                echo "     ⚠ Image file not found: {$tempPath}, skipping\n";
+                continue;
+            }
+
+            // Generate hash and determine extension (like backend does)
+            $hash = sha1_file($tempPath);
+            $ext = match ($imgInfo['mime']) {
+                'image/jpeg' => '.jpg',
+                'image/png' => '.png',
+                'image/webp' => '.webp',
+                default => '.jpg',
+            };
+
+            // Copy to storage/originals/{hash}.{ext} (like backend upload)
+            $storageFilePath = $storageOriginalsPath . '/' . $hash . $ext;
+            $storageRelativePath = '/storage/originals/' . $hash . $ext;
+
+            if (!is_file($storageFilePath)) {
+                if (!copy($tempPath, $storageFilePath)) {
+                    if (is_file($storageFilePath)) {
+                        @unlink($storageFilePath);
+                    }
+                    echo "     ⚠ Failed to copy image from {$tempPath} to {$storageFilePath}, skipping\n";
+                    continue;
+                }
             }
 
             // Find camera/lens/film IDs
@@ -1061,19 +1378,20 @@ foreach ($albums as $albumData) {
             if (!empty($imgData['film'])) {
                 $imgFilmId = $filmIds[$imgData['film']] ?? null;
                 if ($imgFilmId === null) {
-                    echo "     ⚠ Film '{$imgData['film']}' non trovato per {$imgData['file']}\n";
+                    echo "     ⚠ Film '{$imgData['film']}' not found for {$imgData['file']}\n";
                 }
             }
 
-            // Check if image already exists
-            $stmt = $pdo->prepare("SELECT id FROM images WHERE album_id = ? AND original_path = ?");
-            $stmt->execute([$albumId, $filePath]);
+            // Check if image already exists by hash (more reliable than path)
+            $stmt = $pdo->prepare("SELECT id FROM images WHERE album_id = ? AND file_hash = ?");
+            $stmt->execute([$albumId, $hash]);
             $existingImgId = $stmt->fetchColumn();
 
             if ($existingImgId) {
-                // Update existing image
-                $pdo->prepare("UPDATE images SET alt_text = ?, caption = ?, camera_id = ?, lens_id = ?, film_id = ?, process = ?, width = ?, height = ?, mime = ?, sort_order = ? WHERE id = ?")
+                // Update existing image - also update original_path to new storage location
+                $pdo->prepare("UPDATE images SET original_path = ?, alt_text = ?, caption = ?, camera_id = ?, lens_id = ?, film_id = ?, process = ?, width = ?, height = ?, mime = ?, sort_order = ? WHERE id = ?")
                     ->execute([
+                        $storageRelativePath,
                         $imgData['alt'],
                         $imgData['caption'],
                         $imgCameraId,
@@ -1088,11 +1406,11 @@ foreach ($albums as $albumData) {
                     ]);
                 $imgId = (int)$existingImgId;
             } else {
-                // Insert new image
+                // Insert new image with storage path (like backend upload)
                 $pdo->prepare("INSERT INTO images (album_id, original_path, file_hash, width, height, mime, alt_text, caption, camera_id, lens_id, film_id, process, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
                     ->execute([
                         $albumId,
-                        $filePath,
+                        $storageRelativePath,
                         $hash,
                         $imgInfo['width'],
                         $imgInfo['height'],
@@ -1125,7 +1443,7 @@ foreach ($albums as $albumData) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        echo "   ✗ Errore durante il seeding di {$albumData['title']}: {$e->getMessage()}\n";
+        echo "   ✗ Error while seeding {$albumData['title']}: {$e->getMessage()}\n";
         throw $e;
     }
 }
@@ -1150,18 +1468,109 @@ printf("║  Images:      %-3d                                            ║\n"
 echo "╠════════════════════════════════════════════════════════════════╣\n";
 echo "║  Password-protected albums:                                    ║\n";
 echo "║    - intimate-portraits (password: demo123)                    ║\n";
-echo "║    - private-collection (password: private456)                 ║\n";
+echo "║    - berlin-shadows (password: berlin2024)                     ║\n";
+echo "║    - london-underground (password: tube2024)                   ║\n";
+echo "║    - private-collection (password: private456) [+NSFW]         ║\n";
+echo "║    - exclusive-boudoir (password: exclusive789) [+NSFW]        ║\n";
 echo "║                                                                ║\n";
 echo "║  NSFW albums:                                                  ║\n";
 echo "║    - body-studies                                              ║\n";
-echo "║    - private-collection (also password-protected)              ║\n";
+echo "║    - light-and-shadow                                          ║\n";
+echo "║    - abstract-silhouettes                                      ║\n";
+echo "║    - private-collection [+PASSWORD]                            ║\n";
+echo "║    - exclusive-boudoir [+PASSWORD]                             ║\n";
 echo "║                                                                ║\n";
 echo "║  Draft albums:                                                 ║\n";
 echo "║    - brutalist-barcelona                                       ║\n";
 echo "╚════════════════════════════════════════════════════════════════╝\n";
 echo "\n";
 echo "📷 Images downloaded from Unsplash (free stock photos)\n";
+echo "📁 Originals stored in /storage/originals/ (like backend upload)\n";
 echo "\n";
-echo "🚀 Run variant generation:\n";
-echo "   php bin/console images:generate\n";
+
+// ============================================
+// POST-SEEDING: Generate variants and blur
+// ============================================
+echo "🔄 Generating image variants and blur previews...\n";
 echo "\n";
+
+if (!function_exists('exec')) {
+    echo "✗ Error: exec() is disabled in php.ini. Image variants and blur generation require exec() to be enabled.\n";
+    exit(1);
+}
+
+$consolePath = $root . '/bin/console';
+if (!is_file($consolePath)) {
+    echo "✗ Error: bin/console not found at {$consolePath}\n";
+    exit(1);
+}
+
+// Run images:generate first
+echo "   Running: php {$consolePath} images:generate\n";
+$variantOutput = [];
+$variantReturn = 0;
+exec('php ' . escapeshellarg($consolePath) . ' images:generate 2>&1', $variantOutput, $variantReturn);
+if ($variantReturn === 0) {
+    echo "   ✓ Image variants generated successfully\n";
+} else {
+    echo "   ⚠ Image variant generation returned code {$variantReturn}\n";
+    foreach ($variantOutput as $line) {
+        echo "     {$line}\n";
+    }
+}
+
+// Run nsfw:generate-blur for protected albums
+echo "   Running: php {$consolePath} nsfw:generate-blur --all\n";
+$blurOutput = [];
+$blurReturn = 0;
+exec('php ' . escapeshellarg($consolePath) . ' nsfw:generate-blur --all 2>&1', $blurOutput, $blurReturn);
+if ($blurReturn === 0) {
+    echo "   ✓ Blur variants generated for protected albums\n";
+} else {
+    echo "   ⚠ Blur generation returned code {$blurReturn}\n";
+    foreach ($blurOutput as $line) {
+        echo "     {$line}\n";
+    }
+}
+
+// ============================================
+// CLEANUP: Remove temp album seed files (keep category images)
+// ============================================
+$seedAlbumsDir = $root . '/public/media/seed/albums';
+if (is_dir($seedAlbumsDir) && str_contains($seedAlbumsDir, '/public/media/seed/albums')) {
+    echo "🗑️  Cleaning up temporary album seed files...\n";
+
+    // Recursively delete the albums seed directory only
+    // (category images in /public/media/seed/categories/ are kept as they're referenced in DB)
+    $deleteSeedDir = function($dir) use (&$deleteSeedDir) {
+        if (!is_dir($dir)) return;
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            if (is_dir($path)) {
+                $deleteSeedDir($path);
+            } else {
+                if (!@unlink($path)) {
+                    echo "     ⚠ Could not delete file: {$path}\n";
+                }
+            }
+        }
+        @rmdir($dir);
+    };
+
+    $deleteSeedDir($seedAlbumsDir);
+    echo "   ✓ Temporary album files removed (category images preserved)\n";
+}
+
+echo "\n";
+$postSeedingSuccess = ($variantReturn === 0 && $blurReturn === 0);
+if ($postSeedingSuccess) {
+    echo "✅ Demo data seeding complete!\n";
+    echo "\n";
+    exit(0);
+} else {
+    echo "⚠️  Demo data seeding completed with warnings. Check post-seeding command output above.\n";
+    echo "\n";
+    // Exit with error code for CI/CD pipelines
+    exit(1);
+}

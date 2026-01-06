@@ -10,9 +10,17 @@ database/database.sqlite
 node_modules/
 !public/assets/vendor/
 
-# Build artifacts
+# Build artifacts (source maps only, keep chunks)
 public/assets/*.js.map
 public/assets/*.css.map
+
+# Generated PWA icons and manifest (created from uploaded logo)
+public/favicon*.png
+public/favicon.ico
+public/apple-touch-icon.png
+public/android-chrome-*.png
+public/icon-*.png
+public/site.webmanifest
 
 # User uploaded content
 public/media/*
@@ -99,6 +107,9 @@ masonry.md
 
 # Reports folder
 reports/
+
+# Demo site (self-contained copy for showcasing)
+/demo/
 
 # Public vendor markdown files
 public/assets/vendor/**/*.md
