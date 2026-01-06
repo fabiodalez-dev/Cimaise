@@ -490,8 +490,9 @@ function patchRootHtaccess(string $demoRoot, bool $dryRun): void {
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
 
-# Fallback: If mod_rewrite fails, try DirectoryIndex
-DirectoryIndex public/index.php
+# Fallback: If mod_rewrite fails, use index.php as router
+DirectoryIndex index.php
+ErrorDocument 404 /cimaise/index.php
 
 # Deny access to sensitive files
 <FilesMatch "^\.">
@@ -514,17 +515,64 @@ function createRootIndexPhp(string $demoRoot, bool $dryRun): void {
 
     $file = "$demoRoot/index.php";
 
-    // Create a simple index.php that forwards to public/index.php
-    // This works even when AllowOverride is disabled in root directory
+    // Create a PHP router that handles all requests when AllowOverride is disabled
+    // This serves static files directly and forwards dynamic requests to the app
     $content = <<<'PHP'
 <?php
 /**
  * Root index.php for subdirectory installations
- * Forwards all requests to public/index.php
+ * Handles URL routing when AllowOverride is disabled
  *
- * This file is needed when AllowOverride is not enabled
- * in the root directory but only in public/
+ * This file catches all requests and forwards them to public/index.php
  */
+
+// Get the request URI and strip the base path
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+$basePath = '/cimaise';
+
+// Remove base path from request URI
+$path = $requestUri;
+if (str_starts_with($path, $basePath)) {
+    $path = substr($path, strlen($basePath));
+}
+if ($path === '' || $path === false) {
+    $path = '/';
+}
+
+// Check if this is a request for a static file in public/
+$publicFile = __DIR__ . '/public' . parse_url($path, PHP_URL_PATH);
+if (is_file($publicFile)) {
+    // Serve static file with correct MIME type
+    $ext = strtolower(pathinfo($publicFile, PATHINFO_EXTENSION));
+    $mimeTypes = [
+        'js' => 'application/javascript',
+        'css' => 'text/css',
+        'json' => 'application/json',
+        'png' => 'image/png',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'gif' => 'image/gif',
+        'webp' => 'image/webp',
+        'avif' => 'image/avif',
+        'svg' => 'image/svg+xml',
+        'ico' => 'image/x-icon',
+        'woff' => 'font/woff',
+        'woff2' => 'font/woff2',
+        'ttf' => 'font/ttf',
+        'eot' => 'application/vnd.ms-fontobject',
+        'webmanifest' => 'application/manifest+json',
+        'xml' => 'application/xml',
+        'txt' => 'text/plain',
+        'html' => 'text/html',
+        'htm' => 'text/html',
+    ];
+
+    $mimeType = $mimeTypes[$ext] ?? 'application/octet-stream';
+    header('Content-Type: ' . $mimeType);
+    header('Content-Length: ' . filesize($publicFile));
+    readfile($publicFile);
+    exit;
+}
 
 // Change working directory to public/
 chdir(__DIR__ . '/public');
