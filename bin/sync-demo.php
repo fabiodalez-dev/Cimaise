@@ -370,19 +370,24 @@ function patchFrontendLayout(string $demoRoot, bool $dryRun): void {
     $file = "$demoRoot/app/Views/frontend/_layout.twig";
     $content = file_get_contents($file);
 
+    // Insert demo template menu inside the nav element, after the About link
+    // This places it alongside Home, Galleries, About links in the navigation
     $demoMenuInclude = <<<'TWIG'
+
+                        {# DEMO: Home Template Switcher #}
                         {% if is_demo is defined and is_demo %}
                         {% include 'frontend/_demo_template_menu.twig' %}
                         {% endif %}
-                    </header>
+
+                        <!-- Categories Mega Menu -->
 TWIG;
 
-    // Insert before </header>
+    // Replace the Categories Mega Menu comment to insert demo menu before it
     $content = preg_replace(
-        '/<\/header>/',
+        '/\n\s*<!-- Categories Mega Menu -->/',
         $demoMenuInclude,
         $content,
-        1 // Only replace first occurrence
+        1 // Only replace first occurrence (desktop nav)
     );
 
     if (!str_contains($content, "_demo_template_menu.twig")) {
