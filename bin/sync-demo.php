@@ -454,14 +454,14 @@ function patchHtaccess(string $demoRoot, bool $dryRun): void {
     $file = "$demoRoot/public/.htaccess";
     $content = file_get_contents($file);
 
-    // Set RewriteBase for /demo/ subdirectory
+    // Set RewriteBase for /cimaise/ subdirectory
     $content = preg_replace(
         '/# RewriteBase is auto-detected.*\n\s*# RewriteBase \/your-subdirectory\//s',
-        "# Demo runs in /demo/ subdirectory\n  RewriteBase /demo/",
+        "# Demo runs in /cimaise/ subdirectory\n  RewriteBase /cimaise/",
         $content
     );
 
-    if (!str_contains($content, 'RewriteBase /demo/')) {
+    if (!str_contains($content, 'RewriteBase /cimaise/')) {
         warnMsg("Failed to apply RewriteBase patch to .htaccess");
     }
 
