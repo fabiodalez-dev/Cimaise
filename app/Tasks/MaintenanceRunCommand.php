@@ -74,6 +74,7 @@ HELP
             if ($force) {
                 // Reset the last run date to force execution
                 $settings = new \App\Services\SettingsService($this->db);
+                $settings->clearCache();
                 $settings->set('maintenance.variants_daily_last_run', '');
             }
 

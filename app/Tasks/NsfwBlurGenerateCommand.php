@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Tasks;
 
+use App\Services\SettingsService;
 use App\Services\UploadService;
 use App\Support\Database;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -43,6 +44,8 @@ class NsfwBlurGenerateCommand extends Command
 
         try {
             $pdo = $this->db->pdo();
+            $settings = new SettingsService($this->db);
+            $settings->clearCache();
             $uploadService = new UploadService($this->db);
 
             // Build query for protected albums (NSFW and/or password-protected)

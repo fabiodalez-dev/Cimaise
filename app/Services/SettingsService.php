@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Support\Database;
+use App\Support\Logger;
 use PDO;
 
 class SettingsService
@@ -14,6 +15,11 @@ class SettingsService
     {
     }
 
+    public function clearCache(): void
+    {
+        self::$cache = null;
+    }
+
     private function loadCache(): void
     {
         if (self::$cache !== null) {
@@ -21,13 +27,14 @@ class SettingsService
         }
 
         try {
-            $stmt = $this->db->pdo()->query('SELECT `key`, `value` FROM settings');
+            $stmt = $this->db->query('SELECT `key`, `value` FROM settings');
             $dbSettings = [];
             foreach ($stmt->fetchAll() as $row) {
                 $dbSettings[$row['key']] = json_decode($row['value'] ?? 'null', true);
             }
             self::$cache = array_merge($this->defaults(), $dbSettings);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Logger::warning('SettingsService: Failed to load settings cache', ['error' => $e->getMessage()], 'settings');
             self::$cache = $this->defaults();
         }
     }
@@ -53,9 +60,8 @@ class SettingsService
         $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
         $stmt->execute([':k' => $key, ':v' => $encodedValue, ':t' => $type]);
 
-        if (self::$cache !== null) {
-            self::$cache[$key] = $value;
-        }
+        $this->loadCache();
+        self::$cache[$key] = $value;
     }
 
     public function defaults(): array

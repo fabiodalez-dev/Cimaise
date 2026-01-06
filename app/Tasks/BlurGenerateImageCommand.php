@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Tasks;
 
+use App\Services\SettingsService;
 use App\Services\UploadService;
 use App\Support\Database;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -35,6 +36,8 @@ class BlurGenerateImageCommand extends Command
         }
 
         try {
+            $settings = new SettingsService($this->db);
+            $settings->clearCache();
             $uploadService = new UploadService($this->db);
             $result = $uploadService->generateBlurredVariant($imageId, (bool)$input->getOption('force'));
             if ($result === null) {

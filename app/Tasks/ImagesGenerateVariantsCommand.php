@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Tasks;
 
+use App\Services\SettingsService;
 use App\Services\UploadService;
 use App\Support\Database;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -41,6 +42,8 @@ class ImagesGenerateVariantsCommand extends Command
 
         try {
             $pdo = $this->db->pdo();
+            $settings = new SettingsService($this->db);
+            $settings->clearCache();
 
             // Build query to get images needing variants
             $query = 'SELECT id, album_id FROM images WHERE 1=1';

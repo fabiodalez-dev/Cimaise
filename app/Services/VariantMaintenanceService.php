@@ -21,6 +21,7 @@ class VariantMaintenanceService
     {
         $today = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d');
         $settings = new SettingsService($this->db);
+        $settings->clearCache();
         $lastRun = (string)$settings->get(self::SETTINGS_KEY, '');
         if (!$this->shouldRun($settings, $today, $lastRun)) {
             return;

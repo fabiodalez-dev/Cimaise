@@ -249,10 +249,8 @@ class PageController extends BaseController
         $stmt->execute([':include_nsfw' => $includeNsfw ? 1 : 0]);
         $allImages = $stmt->fetchAll();
         
-        // Process images with responsive sources
-        foreach ($allImages as &$image) {
-            $image = $this->processImageSources($image);
-        }
+        // Process images with responsive sources (batch to avoid N+1 queries)
+        $allImages = $this->processImageSourcesBatch($allImages);
         
         $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
 
@@ -1278,27 +1276,49 @@ class PageController extends BaseController
 
             // Build gallery items for the template
             $images = [];
+            $variantsByImage = [];
+            if (!empty($imagesRows)) {
+                $imageIds = array_column($imagesRows, 'id');
+                $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
+                $variantsStmt = $pdo->prepare("
+                    SELECT image_id, variant, format, path, width, height
+                    FROM image_variants
+                    WHERE image_id IN ($placeholders) AND path NOT LIKE '/storage/%'
+                    ORDER BY image_id, variant ASC
+                ");
+                $variantsStmt->execute($imageIds);
+                foreach ($variantsStmt->fetchAll() as $variant) {
+                    $imageId = (int)$variant['image_id'];
+                    if (!isset($variantsByImage[$imageId])) {
+                        $variantsByImage[$imageId] = [];
+                    }
+                    $variantsByImage[$imageId][] = $variant;
+                }
+            }
+
+            $variantOrder = ['lg' => 1, 'md' => 2, 'sm' => 3];
             foreach ($imagesRows as $img) {
                 $bestUrl = $img['original_path'];
                 $lightboxUrl = $img['original_path'];
                 $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
 
                 try {
-                    $v = $pdo->prepare("SELECT path, width, height, variant, format FROM image_variants WHERE image_id = :id ORDER BY CASE variant WHEN 'lg' THEN 1 WHEN 'md' THEN 2 WHEN 'sm' THEN 3 ELSE 9 END LIMIT 1");
-                    $v->execute([':id' => $img['id']]);
-                    $vr = $v->fetch();
-                    if ($vr && !empty($vr['path'])) {
-                        // For protected albums, use protected media URL
-                        if ($isProtectedAlbum && !$isAdmin) {
-                            $bestUrl = '/media/protected/' . $img['id'] . '/' . $vr['variant'] . '.' . $vr['format'];
-                        } else {
-                            $bestUrl = $vr['path'];
+                    $variants = $variantsByImage[(int)$img['id']] ?? [];
+                    $bestVariant = null;
+                    foreach ($variants as $variant) {
+                        $rank = $variantOrder[strtolower((string)($variant['variant'] ?? ''))] ?? 9;
+                        if ($bestVariant === null || $rank < $bestVariant['rank']) {
+                            $bestVariant = ['rank' => $rank, 'variant' => $variant];
                         }
                     }
-
-                    $variantsStmt = $pdo->prepare("SELECT variant, format, path, width FROM image_variants WHERE image_id = :id AND path NOT LIKE '/storage/%'");
-                    $variantsStmt->execute([':id' => $img['id']]);
-                    $variants = $variantsStmt->fetchAll() ?: [];
+                    if ($bestVariant && !empty($bestVariant['variant']['path'])) {
+                        // For protected albums, use protected media URL
+                        if ($isProtectedAlbum && !$isAdmin) {
+                            $bestUrl = '/media/protected/' . $img['id'] . '/' . $bestVariant['variant']['variant'] . '.' . $bestVariant['variant']['format'];
+                        } else {
+                            $bestUrl = $bestVariant['variant']['path'];
+                        }
+                    }
 
                     $chosen = $this->selectBestLightboxVariant($variants);
                     if ($chosen !== null) {
@@ -2189,6 +2209,91 @@ class PageController extends BaseController
         }
         
         return $image;
+    }
+
+    private function processImageSourcesBatch(array $images): array
+    {
+        if (empty($images)) {
+            return [];
+        }
+
+        $pdo = $this->db->pdo();
+        $imageIds = array_column($images, 'id');
+        $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
+        $variantsByImage = [];
+
+        try {
+            $variantsStmt = $pdo->prepare("
+                SELECT image_id, format, path, width, variant
+                FROM image_variants
+                WHERE image_id IN ($placeholders)
+                ORDER BY image_id, variant ASC
+            ");
+            $variantsStmt->execute($imageIds);
+            foreach ($variantsStmt->fetchAll() as $variant) {
+                $imageId = (int)$variant['image_id'];
+                if (!isset($variantsByImage[$imageId])) {
+                    $variantsByImage[$imageId] = [];
+                }
+                $variantsByImage[$imageId][] = $variant;
+            }
+        } catch (\Throwable $e) {
+            Logger::warning('PageController: Error processing image sources (batch)', ['error' => $e->getMessage()], 'frontend');
+            foreach ($images as &$image) {
+                $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
+                $image['variants'] = [];
+                $image['fallback_src'] = $image['original_path'];
+            }
+            unset($image);
+            return $images;
+        }
+
+        $publicDir = dirname(__DIR__, 3) . '/public';
+        foreach ($images as &$image) {
+            $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
+            $variants = $variantsByImage[(int)$image['id']] ?? [];
+
+            foreach ($variants as $variant) {
+                $format = $variant['format'] ?? 'jpg';
+                $path = $variant['path'] ?? '';
+                if (!isset($sources[$format]) || $path === '' || str_starts_with($path, '/storage/')) {
+                    continue;
+                }
+                if (is_file($publicDir . $path)) {
+                    $sources[$format][] = $path . ' ' . (int)$variant['width'] . 'w';
+                } elseif ($format === 'jpg') {
+                    $webpPath = preg_replace('/\.jpg$/i', '.webp', $path);
+                    if (is_file($publicDir . $webpPath)) {
+                        $sources['webp'][] = $webpPath . ' ' . (int)$variant['width'] . 'w';
+                    }
+                }
+            }
+
+            $fallbackUrl = $image['original_path'];
+            foreach ($variants as $variant) {
+                if (!empty($variant['path']) && !str_starts_with((string)$variant['path'], '/storage/')) {
+                    $fullPath = $publicDir . $variant['path'];
+                    if (is_file($fullPath)) {
+                        $fallbackUrl = $variant['path'];
+                        break;
+                    }
+                    if (($variant['format'] ?? '') === 'jpg') {
+                        $webpPath = preg_replace('/\.jpg$/i', '.webp', $variant['path']);
+                        if (is_file($publicDir . $webpPath)) {
+                            $fallbackUrl = $webpPath;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            $image['sources'] = $sources;
+            $image['variants'] = $variants;
+            $image['fallback_src'] = $fallbackUrl;
+        }
+        unset($image);
+
+        return $images;
     }
     
     private function getAvailableSocials(): array

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Support\Logger;
 use App\Services\SettingsService;
 use App\Services\NavigationService;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -566,7 +567,12 @@ class GalleriesController extends BaseController
         $cacheDir = dirname($cacheFile);
         if (is_dir($cacheDir) && is_writable($cacheDir)) {
             $cacheContent = json_encode(['expires' => time() + $cacheTtl, 'data' => $result]);
-            @file_put_contents($cacheFile, $cacheContent, LOCK_EX);
+            $written = @file_put_contents($cacheFile, $cacheContent, LOCK_EX);
+            if ($written === false) {
+                Logger::warning('GalleriesController: Failed to write filter options cache', [
+                    'cache_file' => $cacheFile
+                ], 'frontend');
+            }
         }
 
         return $result;

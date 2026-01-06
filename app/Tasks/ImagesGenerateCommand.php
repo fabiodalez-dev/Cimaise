@@ -35,6 +35,7 @@ class ImagesGenerateCommand extends Command
     {
         $pdo = $this->db->pdo();
         $settings = new SettingsService($this->db);
+        $settings->clearCache();
         $formats = $settings->get('image.formats');
         $quality = $settings->get('image.quality');
         $breakpoints = $settings->get('image.breakpoints');
