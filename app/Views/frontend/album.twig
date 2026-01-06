@@ -435,6 +435,7 @@ document.addEventListener('click', function(event) {
     <!-- Images gallery -->
     {% import 'frontend/_seo_macros.twig' as Seo %}
     {% import 'frontend/_caption.twig' as Caption %}
+    {% import 'frontend/_image_macros.twig' as ImageMacros %}
 
     {% set tpl_slug = template_settings.template_slug|default('') %}
     {% set layout = template_settings.layout|default('grid') %}
@@ -608,7 +609,7 @@ document.addEventListener('click', function(event) {
                         {% endif %}
 
                         <img src="{{ best_jpg_path }}"
-                             alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                             alt="{{ ImageMacros.smart_alt(image, album, site_title)|trim|e('html_attr') }}"
                              title="{{ seo_title|e('html_attr') }}"
                              loading="lazy"
                              decoding="async"
@@ -751,7 +752,7 @@ document.addEventListener('click', function(event) {
                                 {% endif %}
 
                                 <img src="{{ best_jpg_path }}"
-                                     alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                                     alt="{{ ImageMacros.smart_alt(image, album, site_title)|trim|e('html_attr') }}"
                                      title="{{ seo_title|e('html_attr') }}"
                                      loading="lazy"
                                      decoding="async"
@@ -864,7 +865,7 @@ document.addEventListener('click', function(event) {
                             {% endif %}
 
                             <img src="{{ best_jpg_path }}"
-                                 alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
+                                 alt="{{ ImageMacros.smart_alt(image, album, site_title)|trim|e('html_attr') }}"
                                  title="{{ seo_title|e('html_attr') }}"
                                  width="{{ image.width }}"
                                  height="{{ image.height }}"

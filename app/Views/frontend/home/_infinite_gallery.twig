@@ -107,5 +107,8 @@
     </div>
     {% endif %}
   </div>
+  <script>
+    window.initialGalleryImages = {{ all_images|json_encode|raw }};
+  </script>
 </section>
 {% endif %}
