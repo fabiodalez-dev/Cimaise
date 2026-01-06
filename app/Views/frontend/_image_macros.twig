@@ -1,0 +1,195 @@
+{#
+  Image SEO Macros
+  Centralized alt text and title generation for consistent SEO across templates
+#}
+
+{#
+  smart_alt - Generate optimized alt text for images
+
+  Priority:
+  1. image.alt_text (user-defined)
+  2. image.caption
+  3. Generated from metadata: "[Album Title] | [Location] | [Camera]"
+  4. Fallback: "[Album Title]" or "Photo"
+
+  @param image - Image object with metadata
+  @param album - Album object (optional)
+  @param site_title - Site title for fallback (optional)
+  @return string - Alt text (max ~125 chars for SEO)
+#}
+{% macro smart_alt(image, album, site_title) %}
+{%- spaceless %}
+  {# Priority 1: User-defined alt text #}
+  {% if image.alt_text is defined and image.alt_text %}
+    {{ image.alt_text }}
+
+  {# Priority 2: Caption #}
+  {% elseif image.caption is defined and image.caption %}
+    {{ image.caption }}
+
+  {# Priority 3: Generate from metadata #}
+  {% else %}
+    {% set parts = [] %}
+
+    {# Album title as base #}
+    {% set album_title = '' %}
+    {% if album is defined and album.title %}
+      {% set album_title = album.title %}
+    {% elseif image.album_title is defined and image.album_title %}
+      {% set album_title = image.album_title %}
+    {% endif %}
+
+    {% if album_title %}
+      {% set parts = parts|merge([album_title]) %}
+    {% endif %}
+
+    {# Location #}
+    {% if image.location_name is defined and image.location_name %}
+      {% set parts = parts|merge([image.location_name]) %}
+    {% endif %}
+
+    {# Camera (prefer custom, then camera_name, then EXIF) #}
+    {% set camera = '' %}
+    {% if image.custom_camera is defined and image.custom_camera %}
+      {% set camera = image.custom_camera %}
+    {% elseif image.camera_name is defined and image.camera_name %}
+      {% set camera = image.camera_name %}
+    {% elseif image.exif_make is defined or image.exif_model is defined %}
+      {% set camera = ((image.exif_make|default('')) ~ ' ' ~ (image.exif_model|default('')))|trim %}
+    {% endif %}
+
+    {% if camera %}
+      {% set parts = parts|merge([camera]) %}
+    {% endif %}
+
+    {# Output or fallback #}
+    {% if parts|length > 0 %}
+      {{ parts|join(' | ') }}
+    {% elseif site_title is defined and site_title %}
+      {{ trans('general.photo_by')|default('Photo by') }} {{ site_title }}
+    {% else %}
+      {{ trans('general.image')|default('Photo') }}
+    {% endif %}
+  {% endif %}
+{% endspaceless -%}
+{% endmacro %}
+
+{#
+  smart_title - Generate image title attribute (for tooltip/SEO)
+  Focuses on technical metadata, different from alt for accessibility
+
+  @param image - Image object with metadata
+  @param album - Album object (optional)
+  @return string - Title text
+#}
+{% macro smart_title(image, album) %}
+{%- spaceless %}
+  {% set parts = [] %}
+
+  {# Caption or image title #}
+  {% if image.caption is defined and image.caption %}
+    {% set parts = parts|merge([image.caption]) %}
+  {% elseif image.alt_text is defined and image.alt_text %}
+    {% set parts = parts|merge([image.alt_text]) %}
+  {% endif %}
+
+  {# Album title (if not already in parts) #}
+  {% set album_title = '' %}
+  {% if album is defined and album.title %}
+    {% set album_title = album.title %}
+  {% elseif image.album_title is defined and image.album_title %}
+    {% set album_title = image.album_title %}
+  {% endif %}
+
+  {% if album_title and album_title not in parts %}
+    {% set parts = parts|merge([album_title]) %}
+  {% endif %}
+
+  {# Technical metadata for richness #}
+  {% set tech = [] %}
+
+  {# Film stock #}
+  {% if image.film_name is defined and image.film_name %}
+    {% set tech = tech|merge([image.film_name]) %}
+  {% elseif image.custom_film is defined and image.custom_film %}
+    {% set tech = tech|merge([image.custom_film]) %}
+  {% endif %}
+
+  {# Lens #}
+  {% set lens = '' %}
+  {% if image.custom_lens is defined and image.custom_lens %}
+    {% set lens = image.custom_lens %}
+  {% elseif image.lens_name is defined and image.lens_name %}
+    {% set lens = image.lens_name %}
+  {% elseif image.exif_lens_model is defined and image.exif_lens_model %}
+    {% set lens = image.exif_lens_model %}
+  {% endif %}
+  {% if lens %}
+    {% set tech = tech|merge([lens]) %}
+  {% endif %}
+
+  {% if tech|length > 0 %}
+    {% set parts = parts|merge(tech) %}
+  {% endif %}
+
+  {{ parts|join(' — ') }}
+{% endspaceless -%}
+{% endmacro %}
+
+{#
+  sitemap_image_title - Clean title for sitemap (no HTML, shorter)
+
+  @param image - Image object
+  @param album - Album object
+  @return string - Clean title for sitemap
+#}
+{% macro sitemap_image_title(image, album) %}
+{%- spaceless %}
+  {% if image.caption is defined and image.caption %}
+    {{ image.caption|striptags }}
+  {% elseif image.alt_text is defined and image.alt_text %}
+    {{ image.alt_text|striptags }}
+  {% elseif album is defined and album.title %}
+    {{ album.title }}
+  {% else %}
+    Photo
+  {% endif %}
+{% endspaceless -%}
+{% endmacro %}
+
+{#
+  sitemap_image_caption - Description for sitemap
+
+  @param image - Image object
+  @param album - Album object
+  @return string - Caption/description for sitemap
+#}
+{% macro sitemap_image_caption(image, album) %}
+{%- spaceless %}
+  {% set parts = [] %}
+
+  {% if image.caption is defined and image.caption %}
+    {% set parts = parts|merge([image.caption|striptags]) %}
+  {% endif %}
+
+  {% if image.location_name is defined and image.location_name %}
+    {% set parts = parts|merge([image.location_name]) %}
+  {% endif %}
+
+  {% set camera = image.custom_camera|default(image.camera_name|default('')) %}
+  {% if camera %}
+    {% set parts = parts|merge([camera]) %}
+  {% endif %}
+
+  {% set film = image.custom_film|default(image.film_name|default('')) %}
+  {% if film %}
+    {% set parts = parts|merge([film]) %}
+  {% endif %}
+
+  {% if parts|length > 0 %}
+    {{ parts|join(' | ') }}
+  {% elseif album is defined and album.title %}
+    {{ album.title }}
+  {% endif %}
+{% endspaceless -%}
+{% endmacro %}

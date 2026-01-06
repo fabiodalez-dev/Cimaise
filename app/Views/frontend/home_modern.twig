@@ -64,6 +64,7 @@
 {% block content %}
 {# Modern Home Template - Grid-based layout with fixed sidebar #}
 {% import 'frontend/_seo_macros.twig' as Seo %}
+{% import 'frontend/_image_macros.twig' as ImageMacros %}
 
 {% set collection_url = canonical_url|default(base_path ~ '/') %}
 <script type="application/ld+json" nonce="{{ csp_nonce() }}">
@@ -421,7 +422,7 @@
                                         {% endif %}
                                         <img src="{{ img_src }}"
                                              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                                             alt="{{ image.alt_text|default(image.album_title)|default(site_title)|default('Image')|e('html_attr') }}"
+                                             alt="{{ ImageMacros.smart_alt(image, null, site_title)|trim|e('html_attr') }}"
                                              title="{{ seo_title|e('html_attr') }}"
                                              class="img-fill"
                                              loading="lazy"

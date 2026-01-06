@@ -26,7 +26,9 @@ class PagesController extends BaseController
         if ($aboutSlug === '') { $aboutSlug = 'about'; }
         $galleriesSlug = (string)($settings->get('galleries.slug', 'galleries') ?? 'galleries');
         if ($galleriesSlug === '') { $galleriesSlug = 'galleries'; }
-        
+        $licenseSlug = (string)($settings->get('license.slug', 'license') ?? 'license');
+        if ($licenseSlug === '') { $licenseSlug = 'license'; }
+
         $pages = [
             [
                 'slug' => 'home',
@@ -48,6 +50,13 @@ class PagesController extends BaseController
                 'description' => 'Galleries page with advanced filters and text management',
                 'edit_url' => '/admin/pages/galleries',
                 'public_url' => '/' . $galleriesSlug,
+            ],
+            [
+                'slug' => 'license',
+                'title' => trans('admin.pages.license.title_short'),
+                'description' => trans('admin.pages.license.description_short'),
+                'edit_url' => '/admin/pages/license',
+                'public_url' => '/' . $licenseSlug,
             ],
         ];
         return $this->view->render($response, 'admin/pages/index.twig', [
@@ -360,6 +369,54 @@ class PagesController extends BaseController
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.galleries_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);
+    }
+
+    public function licenseForm(Request $request, Response $response): Response
+    {
+        $svc = new SettingsService($this->db);
+        $settings = [
+            'license.title' => (string)($svc->get('license.title', 'License') ?? 'License'),
+            'license.slug' => (string)($svc->get('license.slug', 'license') ?? 'license'),
+            'license.content' => (string)($svc->get('license.content', '') ?? ''),
+            'license.show_in_footer' => (bool)($svc->get('license.show_in_footer', true) ?? true),
+        ];
+        return $this->view->render($response, 'admin/pages/license.twig', [
+            'settings' => $settings,
+            'csrf' => $_SESSION['csrf'] ?? ''
+        ]);
+    }
+
+    public function saveLicense(Request $request, Response $response): Response
+    {
+        $data = (array)$request->getParsedBody();
+        $csrf = (string)($data['csrf'] ?? '');
+
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
+            return $response->withHeader('Location', $this->redirect('/admin/pages/license'))->withStatus(302);
+        }
+
+        $svc = new SettingsService($this->db);
+
+        // Page title
+        $svc->set('license.title', trim((string)($data['license_title'] ?? 'License')) ?: 'License');
+
+        // Slug/permalink
+        $rawSlug = strtolower(trim((string)($data['license_slug'] ?? 'license')));
+        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug ?? 'license');
+        $cleanSlug = trim($cleanSlug, '-') ?: 'license';
+        $svc->set('license.slug', $cleanSlug);
+
+        // Content (sanitize HTML to prevent XSS)
+        $contentRaw = (string)($data['license_content'] ?? '');
+        $svc->set('license.content', \App\Support\Sanitizer::html($contentRaw));
+
+        // Show in footer toggle
+        $showInFooter = isset($data['show_in_footer']) && $data['show_in_footer'] === 'on';
+        $svc->set('license.show_in_footer', $showInFooter);
+
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.license_saved')];
+        return $response->withHeader('Location', $this->redirect('/admin/pages/license'))->withStatus(302);
     }
 
     private function getFilterSettings(): array

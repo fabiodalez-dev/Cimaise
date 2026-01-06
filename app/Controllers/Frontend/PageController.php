@@ -25,20 +25,20 @@ class PageController extends BaseController
     private function buildSeo(Request $request, string $title, string $description = '', ?string $imagePath = null): array
     {
         $svc = new \App\Services\SettingsService($this->db);
-        $siteName = (string)($svc->get('seo.site_title', 'Portfolio') ?? 'Portfolio');
-        $ogSite = (string)($svc->get('seo.og_site_name', $siteName) ?? $siteName);
-        $robots = (string)($svc->get('seo.robots_default', 'index,follow') ?? 'index,follow');
-        $canonicalBase = (string)($svc->get('seo.canonical_base_url', '') ?? '');
-        $logo = (string)($svc->get('site.logo', '') ?? '');
+        $siteName = (string) ($svc->get('seo.site_title', 'Portfolio') ?? 'Portfolio');
+        $ogSite = (string) ($svc->get('seo.og_site_name', $siteName) ?? $siteName);
+        $robots = (string) ($svc->get('seo.robots_default', 'index,follow') ?? 'index,follow');
+        $canonicalBase = (string) ($svc->get('seo.canonical_base_url', '') ?? '');
+        $logo = (string) ($svc->get('site.logo', '') ?? '');
         // Schema-related settings
         $schema = [
-            'author_name' => (string)($svc->get('seo.author_name', '') ?? ''),
-            'author_url' => (string)($svc->get('seo.author_url', '') ?? ''),
-            'organization_name' => (string)($svc->get('seo.organization_name', '') ?? ''),
-            'organization_url' => (string)($svc->get('seo.organization_url', '') ?? ''),
-            'photographer_job_title' => (string)($svc->get('seo.photographer_job_title', 'Professional Photographer') ?? 'Professional Photographer'),
-            'photographer_services' => (string)($svc->get('seo.photographer_services', 'Professional Photography Services') ?? 'Professional Photography Services'),
-            'photographer_same_as' => (string)($svc->get('seo.photographer_same_as', '') ?? ''),
+            'author_name' => (string) ($svc->get('seo.author_name', '') ?? ''),
+            'author_url' => (string) ($svc->get('seo.author_url', '') ?? ''),
+            'organization_name' => (string) ($svc->get('seo.organization_name', '') ?? ''),
+            'organization_url' => (string) ($svc->get('seo.organization_url', '') ?? ''),
+            'photographer_job_title' => (string) ($svc->get('seo.photographer_job_title', 'Professional Photographer') ?? 'Professional Photographer'),
+            'photographer_services' => (string) ($svc->get('seo.photographer_services', 'Professional Photography Services') ?? 'Professional Photography Services'),
+            'photographer_same_as' => (string) ($svc->get('seo.photographer_same_as', '') ?? ''),
         ];
 
         $uri = $request->getUri();
@@ -48,13 +48,18 @@ class PageController extends BaseController
 
         $pageTitle = trim($title) !== '' ? ($title . ' — ' . $siteName) : $siteName;
         $desc = trim(strip_tags($description));
-        if ($desc !== '') { $desc = mb_substr($desc, 0, 160); }
+        if ($desc !== '') {
+            $desc = mb_substr($desc, 0, 160);
+        }
 
         $metaImg = $imagePath ?: $logo;
         if ($metaImg) {
-            if (!str_starts_with((string)$metaImg, 'http')) {
-                if (str_starts_with((string)$metaImg, '/')) { $metaImg = $base . $metaImg; }
-                else { $metaImg = $base . '/' . ltrim((string)$metaImg, '/'); }
+            if (!str_starts_with((string) $metaImg, 'http')) {
+                if (str_starts_with((string) $metaImg, '/')) {
+                    $metaImg = $base . $metaImg;
+                } else {
+                    $metaImg = $base . '/' . ltrim((string) $metaImg, '/');
+                }
             }
         } else {
             $metaImg = '';
@@ -84,7 +89,7 @@ class PageController extends BaseController
                     while (is_array($value) && isset($value[$device])) {
                         $value = $value[$device];
                     }
-                    $intValue = (int)$value;
+                    $intValue = (int) $value;
                     $isValid = match ($device) {
                         'desktop' => $intValue >= 1 && $intValue <= 6,
                         'tablet' => $intValue >= 1 && $intValue <= 4,
@@ -94,7 +99,7 @@ class PageController extends BaseController
                     if ($isValid) {
                         $normalizedColumns[$device] = $intValue;
                     } else {
-                        $normalizedColumns[$device] = match($device) {
+                        $normalizedColumns[$device] = match ($device) {
                             'desktop' => 3,
                             'tablet' => 2,
                             'mobile' => 1,
@@ -107,11 +112,11 @@ class PageController extends BaseController
         }
         if (isset($templateSettings['creative_layout']) && is_array($templateSettings['creative_layout'])) {
             $creative = $templateSettings['creative_layout'];
-            $gap = isset($creative['gap']) ? (int)$creative['gap'] : 15;
+            $gap = isset($creative['gap']) ? (int) $creative['gap'] : 15;
             $gap = max(0, min(40, $gap));
             $templateSettings['creative_layout'] = [
                 'gap' => $gap,
-                'hover_tooltip' => array_key_exists('hover_tooltip', $creative) ? (bool)$creative['hover_tooltip'] : true
+                'hover_tooltip' => array_key_exists('hover_tooltip', $creative) ? (bool) $creative['hover_tooltip'] : true
             ];
         }
         if (isset($templateSettings['gallery_wall']) && is_array($templateSettings['gallery_wall'])) {
@@ -122,18 +127,18 @@ class PageController extends BaseController
 
             $templateSettings['gallery_wall'] = [
                 'desktop' => [
-                    'horizontal_ratio' => max(0.8, min(3.0, (float)($desktop['horizontal_ratio'] ?? 1.5))),
-                    'vertical_ratio' => max(0.4, min(1.5, (float)($desktop['vertical_ratio'] ?? 0.67))),
+                    'horizontal_ratio' => max(0.8, min(3.0, (float) ($desktop['horizontal_ratio'] ?? 1.5))),
+                    'vertical_ratio' => max(0.4, min(1.5, (float) ($desktop['vertical_ratio'] ?? 0.67))),
                 ],
                 'tablet' => [
-                    'horizontal_ratio' => max(0.8, min(3.0, (float)($tablet['horizontal_ratio'] ?? 1.3))),
-                    'vertical_ratio' => max(0.4, min(1.5, (float)($tablet['vertical_ratio'] ?? 0.6))),
+                    'horizontal_ratio' => max(0.8, min(3.0, (float) ($tablet['horizontal_ratio'] ?? 1.3))),
+                    'vertical_ratio' => max(0.4, min(1.5, (float) ($tablet['vertical_ratio'] ?? 0.6))),
                 ],
-                'divider' => max(0, min(10, (int)($wall['divider'] ?? 2))),
+                'divider' => max(0, min(10, (int) ($wall['divider'] ?? 2))),
                 'mobile' => [
-                    'columns' => max(1, min(4, (int)($mobile['columns'] ?? 2))),
-                    'gap' => max(0, min(40, (int)($mobile['gap'] ?? 8))),
-                    'wide_every' => max(0, min(10, (int)($mobile['wide_every'] ?? 5))),
+                    'columns' => max(1, min(4, (int) ($mobile['columns'] ?? 2))),
+                    'gap' => max(0, min(40, (int) ($mobile['gap'] ?? 8))),
+                    'wide_every' => max(0, min(10, (int) ($mobile['wide_every'] ?? 5))),
                 ],
             ];
         }
@@ -148,35 +153,35 @@ class PageController extends BaseController
 
         // Fetch home page settings
         $svc = new \App\Services\SettingsService($this->db);
-        $homeTemplate = (string)($svc->get('home.template', 'classic') ?? 'classic');
+        $homeTemplate = (string) ($svc->get('home.template', 'classic') ?? 'classic');
         $homeSettings = [
             'template' => $homeTemplate,
-            'hero_title' => (string)($svc->get('home.hero_title', 'Portfolio') ?? 'Portfolio'),
-            'hero_subtitle' => (string)($svc->get('home.hero_subtitle', 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.') ?? 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.'),
-            'albums_title' => (string)($svc->get('home.albums_title', 'Latest Albums') ?? 'Latest Albums'),
-            'albums_subtitle' => (string)($svc->get('home.albums_subtitle', 'Discover my recent photographic work, from analog experiments to digital explorations.') ?? 'Discover my recent photographic work, from analog experiments to digital explorations.'),
-            'empty_title' => (string)($svc->get('home.empty_title', 'No albums yet') ?? 'No albums yet'),
-            'empty_text' => (string)($svc->get('home.empty_text', 'Check back soon for new work.') ?? 'Check back soon for new work.'),
-            'gallery_scroll_direction' => (string)($svc->get('home.gallery_scroll_direction', 'vertical') ?? 'vertical'),
-            'gallery_text_title' => (string)($svc->get('home.gallery_text_title', '') ?? ''),
-            'gallery_text_content' => (string)($svc->get('home.gallery_text_content', '') ?? ''),
+            'hero_title' => (string) ($svc->get('home.hero_title', 'Portfolio') ?? 'Portfolio'),
+            'hero_subtitle' => (string) ($svc->get('home.hero_subtitle', 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.') ?? 'A collection of analog and digital photography exploring light, form, and the beauty of everyday moments.'),
+            'albums_title' => (string) ($svc->get('home.albums_title', 'Latest Albums') ?? 'Latest Albums'),
+            'albums_subtitle' => (string) ($svc->get('home.albums_subtitle', 'Discover my recent photographic work, from analog experiments to digital explorations.') ?? 'Discover my recent photographic work, from analog experiments to digital explorations.'),
+            'empty_title' => (string) ($svc->get('home.empty_title', 'No albums yet') ?? 'No albums yet'),
+            'empty_text' => (string) ($svc->get('home.empty_text', 'Check back soon for new work.') ?? 'Check back soon for new work.'),
+            'gallery_scroll_direction' => (string) ($svc->get('home.gallery_scroll_direction', 'vertical') ?? 'vertical'),
+            'gallery_text_title' => (string) ($svc->get('home.gallery_text_title', '') ?? ''),
+            'gallery_text_content' => (string) ($svc->get('home.gallery_text_content', '') ?? ''),
             // Masonry settings (with defensive clamping)
-            'masonry_gap_h' => max(0, min(40, (int)($svc->get('home.masonry_gap_h', 0) ?? 0))),
-            'masonry_gap_v' => max(0, min(40, (int)($svc->get('home.masonry_gap_v', 0) ?? 0))),
-            'masonry_col_desktop' => max(2, min(8, (int)($svc->get('home.masonry_col_desktop', 5) ?? 5))),
-            'masonry_col_tablet' => max(2, min(6, (int)($svc->get('home.masonry_col_tablet', 3) ?? 3))),
-            'masonry_col_mobile' => max(1, min(4, (int)($svc->get('home.masonry_col_mobile', 2) ?? 2))),
-            'masonry_layout_mode' => in_array((string)($svc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'), ['fullwidth', 'boxed'], true) ? (string)$svc->get('home.masonry_layout_mode', 'fullwidth') : 'fullwidth',
+            'masonry_gap_h' => max(0, min(40, (int) ($svc->get('home.masonry_gap_h', 0) ?? 0))),
+            'masonry_gap_v' => max(0, min(40, (int) ($svc->get('home.masonry_gap_v', 0) ?? 0))),
+            'masonry_col_desktop' => max(2, min(8, (int) ($svc->get('home.masonry_col_desktop', 5) ?? 5))),
+            'masonry_col_tablet' => max(2, min(6, (int) ($svc->get('home.masonry_col_tablet', 3) ?? 3))),
+            'masonry_col_mobile' => max(1, min(4, (int) ($svc->get('home.masonry_col_mobile', 2) ?? 2))),
+            'masonry_layout_mode' => in_array((string) ($svc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'), ['fullwidth', 'boxed'], true) ? (string) $svc->get('home.masonry_layout_mode', 'fullwidth') : 'fullwidth',
         ];
 
         // Pagination parameters (from settings)
-        $perPage = (int)$svc->get('pagination.limit', 12);
-        
+        $perPage = (int) $svc->get('pagination.limit', 12);
+
         // Get total count of published albums
         $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1');
         $countStmt->execute();
-        $totalAlbums = (int)$countStmt->fetchColumn();
-        
+        $totalAlbums = (int) $countStmt->fetchColumn();
+
         // Get latest published albums
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
@@ -189,18 +194,18 @@ class PageController extends BaseController
         $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
         $stmt->execute();
         $albums = $stmt->fetchAll();
-        
+
         // Enrich with cover images and tags + apply access filters
         $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
-        
+
         // Calculate pagination info
         $hasMore = $totalAlbums > $perPage;
-        
+
         // Get categories for navigation with hierarchy
         // Include NSFW albums in count if user has admin access or global NSFW consent
         $includeNsfw = $isAdmin || $nsfwConsent;
         $parentCategories = $this->getNavigationService()->getParentCategoriesForNavigation($includeNsfw);
-        
+
         // Keep flat list for backward compatibility
         $categories = [];
         foreach ($parentCategories as $parent) {
@@ -213,23 +218,18 @@ class PageController extends BaseController
                 }
             }
         }
-        
-        // Get popular tags
-        $stmt = $pdo->prepare('
-            SELECT t.*, COUNT(at.album_id) as albums_count
-            FROM tags t 
-            JOIN album_tag at ON at.tag_id = t.id
-            JOIN albums a ON a.id = at.album_id AND a.is_published = 1
-            GROUP BY t.id 
-            ORDER BY albums_count DESC, t.name ASC 
-            LIMIT 20
-        ');
-        $stmt->execute();
-        $tags = $stmt->fetchAll();
-        
-        // Get random images from all published albums for infinite scroll
-        // Include NSFW albums if user has global consent, always exclude password-protected albums
-        // Use junction table for multi-category albums, with fallback to legacy category_id
+
+        // Tags are already available globally via nav_tags (see index.php)
+        // Only fetch here if not in global scope (fallback)
+        $tags = [];
+
+        // Smart initial image loading strategy:
+        // 1. First, get 1 random image per album (ensures all albums represented)
+        // 2. If total < 48, fill with additional random images (ensures visual density)
+        // Additional images fetched via /api/home/gallery by home-infinite-loader.js
+        $minImages = 48;
+
+        // Step 1: Get one random image per album (using MIN to pick deterministically, then shuffle in PHP)
         $stmt = $pdo->prepare("
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description,
@@ -242,16 +242,67 @@ class PageController extends BaseController
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
-            GROUP BY i.id, a.id, a.title, a.slug, a.excerpt, a.category_id
-            ORDER BY RANDOM()
-            LIMIT 500
+              AND i.id = (
+                  SELECT i2.id FROM images i2
+                  WHERE i2.album_id = a.id
+                  ORDER BY RANDOM() LIMIT 1
+              )
+            GROUP BY a.id
         ");
-        $stmt->execute([':include_nsfw' => $includeNsfw ? 1 : 0]);
+        $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+        $stmt->execute();
         $allImages = $stmt->fetchAll();
-        
+
+        // Step 2: If we have fewer than minimum, fill with additional random images
+        $currentCount = count($allImages);
+        if ($currentCount < $minImages) {
+            $existingIds = array_column($allImages, 'id');
+            $need = $minImages - $currentCount;
+
+            // Build NOT IN clause for existing IDs
+            $notInClause = '';
+            $binds = [':include_nsfw2' => $includeNsfw ? 1 : 0, ':limit2' => $need];
+            if (!empty($existingIds)) {
+                $placeholders = [];
+                foreach ($existingIds as $k => $id) {
+                    $placeholders[] = ":exc{$k}";
+                    $binds[":exc{$k}"] = $id;
+                }
+                $notInClause = 'AND i.id NOT IN (' . implode(',', $placeholders) . ')';
+            }
+
+            $stmt2 = $pdo->prepare("
+                SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
+                       a.excerpt as album_description,
+                       GROUP_CONCAT(DISTINCT c.slug) as category_slugs,
+                       (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
+                FROM images i
+                JOIN albums a ON a.id = i.album_id
+                LEFT JOIN album_category ac ON ac.album_id = a.id
+                LEFT JOIN categories c ON c.id = ac.category_id
+                WHERE a.is_published = 1
+                  AND (:include_nsfw2 = 1 OR a.is_nsfw = 0)
+                  AND (a.password_hash IS NULL OR a.password_hash = '')
+                  {$notInClause}
+                GROUP BY i.id
+                ORDER BY RANDOM()
+                LIMIT :limit2
+            ");
+            foreach ($binds as $k => $v) {
+                $stmt2->bindValue($k, $v, \PDO::PARAM_INT);
+            }
+            $stmt2->execute();
+            $additionalImages = $stmt2->fetchAll();
+
+            $allImages = array_merge($allImages, $additionalImages);
+        }
+
+        // Shuffle to randomize the order
+        shuffle($allImages);
+
         // Process images with responsive sources (batch to avoid N+1 queries)
         $allImages = $this->processImageSourcesBatch($allImages);
-        
+
         $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
 
         // Select template based on home.template setting
@@ -265,7 +316,7 @@ class PageController extends BaseController
         $templateFile = $templateMap[$homeTemplate] ?? 'frontend/home.twig';
 
         // Get galleries slug for JSON-LD SearchAction
-        $galleriesSlug = (string)($svc->get('galleries.slug', 'galleries') ?? 'galleries');
+        $galleriesSlug = (string) ($svc->get('galleries.slug', 'galleries') ?? 'galleries');
 
         return $this->view->render($response, $templateFile, [
             'albums' => $albums,
@@ -289,14 +340,100 @@ class PageController extends BaseController
         ]);
     }
 
+    public function homeGalleryApi(Request $request, Response $response): Response
+    {
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
+        $includeNsfw = $isAdmin || $nsfwConsent;
+
+        $params = $request->getQueryParams();
+        $excludeIds = isset($params['exclude']) ? array_filter(array_map('intval', explode(',', $params['exclude']))) : [];
+        $limit = max(1, min(500, (int) ($params['limit'] ?? 100)));
+
+        $pdo = $this->db->pdo();
+
+        $sql = "
+            SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            WHERE a.is_published = 1
+              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
+              AND (a.password_hash IS NULL OR a.password_hash = '')
+        ";
+
+        // Build NOT IN clause manually for array of IDs
+        $binds = [':include_nsfw' => $includeNsfw ? 1 : 0, ':limit' => $limit];
+
+        if (!empty($excludeIds)) {
+            $inQuery = "";
+            foreach ($excludeIds as $k => $id) {
+                $p = ":exc$k";
+                $inQuery .= "$p,";
+                $binds[$p] = $id;
+            }
+            $inQuery = rtrim($inQuery, ',');
+            $sql .= " AND i.id NOT IN ($inQuery)";
+        }
+
+        $sql .= " ORDER BY RANDOM() LIMIT :limit";
+
+        $stmt = $pdo->prepare($sql);
+        foreach ($binds as $k => $v) {
+            $stmt->bindValue($k, $v, \PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $images = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Process images (sources etc)
+        $images = $this->processImageSourcesBatch($images);
+
+        // Prepare JSON response
+        $data = array_map(function ($img) {
+            $basePath = $this->basePath;
+            $fallbackSrc = $img['fallback_src'] ?? $img['original_path'];
+            return [
+                'id' => (int) $img['id'],
+                'url' => str_starts_with($img['original_path'], '/') ? $basePath . $img['original_path'] : $img['original_path'],
+                // Ensure fallback_src includes base path if it's relative
+                'fallback_src' => str_starts_with($fallbackSrc, '/') ? $basePath . $fallbackSrc : $fallbackSrc,
+                'width' => (int) $img['width'],
+                'height' => (int) $img['height'],
+                'alt' => $img['alt_text'] ?: $img['album_title'],
+                'album_slug' => $img['album_slug'],
+                'album_title' => $img['album_title'],
+                'sources' => $this->formatSourcesForJson($img['sources'] ?? [], $basePath)
+            ];
+        }, $images);
+
+        $response->getBody()->write(json_encode(['images' => $data]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    private function formatSourcesForJson(array $sources, string $basePath): array
+    {
+        $formatted = [];
+        foreach ($sources as $fmt => $srcs) {
+            $formatted[$fmt] = [];
+            foreach ($srcs as $src) {
+                $parts = explode(' ', $src);
+                $url = $parts[0];
+                if (str_starts_with($url, '/')) {
+                    $url = $basePath . $url;
+                }
+                $formatted[$fmt][] = $url . (isset($parts[1]) ? ' ' . $parts[1] : '');
+            }
+        }
+        return $formatted;
+    }
+
     public function album(Request $request, Response $response, array $args): Response
     {
         $slug = $args['slug'] ?? '';
         $params = $request->getQueryParams();
-        $templateId = isset($params['template']) ? (int)$params['template'] : null;
+        $templateId = isset($params['template']) ? (int) $params['template'] : null;
         $pdo = $this->db->pdo();
         $templateService = new \App\Services\TemplateService($this->db);
-        
+
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug,
                    t.name as template_name, t.slug as template_slug, t.settings as template_settings, t.libs as template_libs
@@ -307,7 +444,7 @@ class PageController extends BaseController
         ');
         $stmt->execute([':slug' => $slug]);
         $album = $stmt->fetch();
-        
+
         if (!$album) {
             return $this->view->render($response->withStatus(404), 'frontend/404.twig', [
                 'page_title' => '404 — Album not found',
@@ -321,7 +458,7 @@ class PageController extends BaseController
 
         // Password protection with session timeout - skip for admins
         if (!empty($album['password_hash']) && !$isAdmin) {
-            $allowed = $this->hasAlbumPasswordAccess((int)$album['id']);
+            $allowed = $this->hasAlbumPasswordAccess((int) $album['id']);
 
             if (!$allowed) {
                 // Categories for header menu
@@ -343,7 +480,7 @@ class PageController extends BaseController
         // NSFW server-side enforcement for albums WITHOUT password protection
         // Albums with password already handle NSFW through the unlock flow
         $isNsfw = !empty($album['is_nsfw']);
-        $nsfwConfirmed = $this->hasNsfwAlbumConsent((int)$album['id']);
+        $nsfwConfirmed = $this->hasNsfwAlbumConsent((int) $album['id']);
 
         if ($isNsfw && !$isAdmin && empty($album['password_hash']) && !$nsfwConfirmed) {
             // Show NSFW gate page - user must confirm they're 18+ to view
@@ -358,9 +495,9 @@ class PageController extends BaseController
             ]);
         }
 
-        $albumRef = $album['slug'] ?? (string)$album['id'];
+        $albumRef = $album['slug'] ?? (string) $album['id'];
 
-        $templateIdFromUrl = (int)($params['template'] ?? 0);
+        $templateIdFromUrl = (int) ($params['template'] ?? 0);
         $finalTemplateId = null;
         $template = null;
         $templateSettings = [];
@@ -377,9 +514,9 @@ class PageController extends BaseController
         // 2. If no valid URL template, use the one assigned to the album
         if ($finalTemplateId === null) {
             if (!empty($album['custom_template_id'])) {
-                $finalTemplateId = 1000 + (int)$album['custom_template_id'];
+                $finalTemplateId = 1000 + (int) $album['custom_template_id'];
             } elseif (!empty($album['template_id'])) {
-                $finalTemplateId = (int)$album['template_id'];
+                $finalTemplateId = (int) $album['template_id'];
             }
         }
 
@@ -388,7 +525,7 @@ class PageController extends BaseController
             $settingsService = new \App\Services\SettingsService($this->db);
             $defaultTemplateId = $settingsService->get('gallery.default_template_id');
             if ($defaultTemplateId) {
-                $finalTemplateId = (int)$defaultTemplateId;
+                $finalTemplateId = (int) $defaultTemplateId;
             }
         }
 
@@ -435,11 +572,12 @@ class PageController extends BaseController
             $cstmt = $pdo->prepare('SELECT c.id, c.name, c.slug FROM categories c JOIN album_category ac ON ac.category_id = c.id WHERE ac.album_id = :id ORDER BY c.sort_order, c.name');
             $cstmt->execute([':id' => $album['id']]);
             $cats = $cstmt->fetchAll() ?: [];
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         // Equipment (album-level pivot lists)
         // PERFORMANCE: Use batch loading (1 query) instead of 6 separate queries
-        $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
+        $equipment = ['cameras' => [], 'lenses' => [], 'film' => [], 'developers' => [], 'labs' => [], 'locations' => []];
 
         // 1. Check custom fields first (they take priority over DB relationships)
         if (!empty($album['custom_cameras'])) {
@@ -460,13 +598,13 @@ class PageController extends BaseController
 
         // 2. For any equipment types not set via custom fields, load from DB in ONE query
         $needsDbLookup = empty($equipment['cameras']) || empty($equipment['lenses']) ||
-                         empty($equipment['film']) || empty($equipment['developers']) ||
-                         empty($equipment['labs']) || empty($equipment['locations']);
+            empty($equipment['film']) || empty($equipment['developers']) ||
+            empty($equipment['labs']) || empty($equipment['locations']);
 
         if ($needsDbLookup) {
             try {
-                $dbEquipment = \App\Services\ImageVariantsService::eagerLoadEquipment($pdo, [(int)$album['id']]);
-                $albumEquip = $dbEquipment[(int)$album['id']] ?? [];
+                $dbEquipment = \App\Services\ImageVariantsService::eagerLoadEquipment($pdo, [(int) $album['id']]);
+                $albumEquip = $dbEquipment[(int) $album['id']] ?? [];
 
                 // Merge only empty equipment types (preserve custom field priority)
                 if (empty($equipment['cameras'])) {
@@ -491,7 +629,7 @@ class PageController extends BaseController
                 // Equipment tables might not exist yet
             }
         }
-        
+
         // Get album images
         $stmt = $pdo->prepare('
             SELECT i.*
@@ -509,13 +647,13 @@ class PageController extends BaseController
 
         // Attach variants to images and format EXIF
         foreach ($images as &$image) {
-            $image['variants'] = $variantsByImage[(int)$image['id']] ?? [];
+            $image['variants'] = $variantsByImage[(int) $image['id']] ?? [];
 
             // Format EXIF for display
             if (!empty($image['exif'])) {
                 $exif = is_array($image['exif'])
                     ? $image['exif']
-                    : (json_decode((string)$image['exif'], true) ?: []);
+                    : (json_decode((string) $image['exif'], true) ?: []);
                 $image['exif_display'] = $this->formatExifForDisplay($exif, $image);
             }
         }
@@ -561,8 +699,8 @@ class PageController extends BaseController
         // Enrich images with custom fields
         try {
             $customFieldService = new \App\Services\CustomFieldService($pdo);
-            $images = $customFieldService->enrichImagesWithCustomFields($images, (int)$album['id']);
-            $albumCustomFields = $customFieldService->getAlbumMetadata((int)$album['id']);
+            $images = $customFieldService->enrichImagesWithCustomFields($images, (int) $album['id']);
+            $albumCustomFields = $customFieldService->getAlbumMetadata((int) $album['id']);
         } catch (\Throwable) {
             // Custom fields tables may not exist yet
             $albumCustomFields = [];
@@ -580,7 +718,7 @@ class PageController extends BaseController
                 $cameras[] = $cam;
             }
         }
-        
+
         // Get related albums (same category, excluding current)
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
@@ -592,9 +730,9 @@ class PageController extends BaseController
         ');
         $stmt->execute([':category_id' => $album['category_id'], ':album_id' => $album['id']]);
         $relatedAlbums = $stmt->fetchAll();
-        
+
         $relatedAlbums = $this->filterAlbumsByAccess($relatedAlbums, $isAdmin, $nsfwConsent);
-        
+
         // Get template libraries from the resolved template
         $templateLibs = [];
         if ($template && !empty($template['libs'])) {
@@ -607,7 +745,7 @@ class PageController extends BaseController
                 $templateLibs = json_decode($rawLibs, true) ?: [];
             }
         }
-        
+
         // Categories for header menu
         $navCategories = $this->getNavigationService()->getNavigationCategories();
 
@@ -644,13 +782,15 @@ class PageController extends BaseController
             } else {
                 $lightboxUrl = $bestUrl;
                 // Always protect /storage/ paths for protected albums, regardless of allow_downloads
-                if ($isProtectedAlbum && !$isAdmin && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
+                if ($isProtectedAlbum && !$isAdmin && (empty($bestUrl) || str_starts_with((string) $bestUrl, '/storage/'))) {
                     $lightboxUrl = '/media/protected/' . $image['id'] . '/original';
                 }
             }
 
             // Final fallback: if still pointing to /storage, use grid URL
-            if (str_starts_with((string)$lightboxUrl, '/storage/')) { $lightboxUrl = $bestUrl; }
+            if (str_starts_with((string) $lightboxUrl, '/storage/')) {
+                $lightboxUrl = $bestUrl;
+            }
 
             // Build enhanced caption with equipment and location info
             // Use per-image data with album-level fallback for lightbox display
@@ -696,27 +836,43 @@ class PageController extends BaseController
             $image['developer_name'] = $developerDisp;
             $image['lab_name'] = $labDisp;
             $image['location_name'] = $locationDisp;
-            
-            if (!empty($cameraDisp)) { $equipBits[] = '<i class="fa-solid fa-camera mr-1"></i>' . htmlspecialchars((string)$cameraDisp, ENT_QUOTES); }
-            if (!empty($lensDisp)) { $equipBits[] = '<i class="fa-solid fa-dot-circle mr-1"></i>' . htmlspecialchars((string)$lensDisp, ENT_QUOTES); }
-            if (!empty($filmDisp)) { $equipBits[] = '<i class="fa-solid fa-film mr-1"></i>' . htmlspecialchars((string)$filmDisp, ENT_QUOTES); }
-            
-            // Add location information to PhotoSwipe caption
-            if (!empty($image['location_name'])) { 
-                $equipBits[] = '<i class="fa-solid fa-map-marker-alt mr-1"></i>' . htmlspecialchars((string)$image['location_name'], ENT_QUOTES); 
+
+            if (!empty($cameraDisp)) {
+                $equipBits[] = '<i class="fa-solid fa-camera mr-1"></i>' . htmlspecialchars((string) $cameraDisp, ENT_QUOTES);
             }
-            
-            if (!empty($image['developer_name'])) { $equipBits[] = '<i class="fa-solid fa-flask mr-1"></i>' . htmlspecialchars((string)$image['developer_name'], ENT_QUOTES); }
-            if (!empty($image['lab_name'])) { $equipBits[] = '<i class="fa-solid fa-industry mr-1"></i>' . htmlspecialchars((string)$image['lab_name'], ENT_QUOTES); }
-            if (!empty($image['iso'])) { $equipBits[] = '<i class="fa-solid fa-signal mr-1"></i>ISO ' . (int)$image['iso']; }
-            if (!empty($image['shutter_speed'])) { $equipBits[] = '<i class="fa-regular fa-clock mr-1"></i>' . htmlspecialchars($this->formatShutterSpeed($image['shutter_speed']) ?? (string)$image['shutter_speed'], ENT_QUOTES); }
-            if (!empty($image['aperture']) && is_numeric($image['aperture'])) { $equipBits[] = '<i class="fa-solid fa-circle-half-stroke mr-1"></i>f/' . number_format((float)$image['aperture'], 1); }
+            if (!empty($lensDisp)) {
+                $equipBits[] = '<i class="fa-solid fa-dot-circle mr-1"></i>' . htmlspecialchars((string) $lensDisp, ENT_QUOTES);
+            }
+            if (!empty($filmDisp)) {
+                $equipBits[] = '<i class="fa-solid fa-film mr-1"></i>' . htmlspecialchars((string) $filmDisp, ENT_QUOTES);
+            }
+
+            // Add location information to PhotoSwipe caption
+            if (!empty($image['location_name'])) {
+                $equipBits[] = '<i class="fa-solid fa-map-marker-alt mr-1"></i>' . htmlspecialchars((string) $image['location_name'], ENT_QUOTES);
+            }
+
+            if (!empty($image['developer_name'])) {
+                $equipBits[] = '<i class="fa-solid fa-flask mr-1"></i>' . htmlspecialchars((string) $image['developer_name'], ENT_QUOTES);
+            }
+            if (!empty($image['lab_name'])) {
+                $equipBits[] = '<i class="fa-solid fa-industry mr-1"></i>' . htmlspecialchars((string) $image['lab_name'], ENT_QUOTES);
+            }
+            if (!empty($image['iso'])) {
+                $equipBits[] = '<i class="fa-solid fa-signal mr-1"></i>ISO ' . (int) $image['iso'];
+            }
+            if (!empty($image['shutter_speed'])) {
+                $equipBits[] = '<i class="fa-regular fa-clock mr-1"></i>' . htmlspecialchars($this->formatShutterSpeed($image['shutter_speed']) ?? (string) $image['shutter_speed'], ENT_QUOTES);
+            }
+            if (!empty($image['aperture']) && is_numeric($image['aperture'])) {
+                $equipBits[] = '<i class="fa-solid fa-circle-half-stroke mr-1"></i>f/' . number_format((float) $image['aperture'], 1);
+            }
 
             // Add custom fields to caption (with show_in_lightbox=1)
             if (!empty($image['custom_fields'])) {
                 foreach ($image['custom_fields'] as $field) {
                     if (!empty($field['show_in_lightbox']) && !empty($field['values'])) {
-                        $icon = preg_replace('/[^a-zA-Z0-9\-_\s]/', '', (string)($field['icon'] ?? 'fa-tag'));
+                        $icon = preg_replace('/[^a-zA-Z0-9\-_\s]/', '', (string) ($field['icon'] ?? 'fa-tag'));
                         $valuesStr = htmlspecialchars(implode(', ', $field['values']), ENT_QUOTES);
                         $equipBits[] = '<i class="fa-solid ' . $icon . ' mr-1"></i>' . $valuesStr;
                     }
@@ -725,23 +881,24 @@ class PageController extends BaseController
 
             $captionHtml = '';
             if (!empty($image['caption'])) {
-                $captionHtml .= '<div class="mb-2">' . htmlspecialchars((string)$image['caption'], ENT_QUOTES) . '</div>';
+                $captionHtml .= '<div class="mb-2">' . htmlspecialchars((string) $image['caption'], ENT_QUOTES) . '</div>';
             }
             if ($equipBits) {
-                $captionHtml .= '<div class="flex flex-wrap gap-x-3 gap-y-1 justify-center text-sm">' . implode(' ', array_map(fn($x)=>'<span class="inline-flex items-center">'.$x.'</span>', $equipBits)) . '</div>';
+                $captionHtml .= '<div class="flex flex-wrap gap-x-3 gap-y-1 justify-center text-sm">' . implode(' ', array_map(fn($x) => '<span class="inline-flex items-center">' . $x . '</span>', $equipBits)) . '</div>';
             }
 
             // Build responsive sources for <picture>
-            $sources = ['avif'=>[], 'webp'=>[], 'jpg'=>[]];
+            $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
             foreach (($image['variants'] ?? []) as $v) {
-                if (!isset($sources[$v['format']])) continue;
-                if (!empty($v['path']) && !str_starts_with((string)$v['path'], '/storage/')) {
+                if (!isset($sources[$v['format']]))
+                    continue;
+                if (!empty($v['path']) && !str_starts_with((string) $v['path'], '/storage/')) {
                     // For protected albums, use protected media URLs
                     if ($isProtectedAlbum && !$isAdmin) {
                         $protectedUrl = '/media/protected/' . $image['id'] . '/' . $v['variant'] . '.' . $v['format'];
-                        $sources[$v['format']][] = $protectedUrl . ' ' . (int)$v['width'] . 'w';
+                        $sources[$v['format']][] = $protectedUrl . ' ' . (int) $v['width'] . 'w';
                     } else {
-                        $sources[$v['format']][] = $v['path'] . ' ' . (int)$v['width'] . 'w';
+                        $sources[$v['format']][] = $v['path'] . ' ' . (int) $v['width'] . 'w';
                     }
                 }
             }
@@ -764,7 +921,7 @@ class PageController extends BaseController
             'slug' => $album['slug'],
             'body' => $album['body'] ?? '',
             'shoot_date' => $album['shoot_date'] ?? '',
-            'show_date' => (int)($album['show_date'] ?? 1),
+            'show_date' => (int) ($album['show_date'] ?? 1),
             'tags' => $tags,
             'equipment' => $equipment,
             'allow_downloads' => !empty($album['allow_downloads']),
@@ -784,14 +941,17 @@ class PageController extends BaseController
                     $album['cover'] = $cover;
                 }
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         // Available templates for switcher (only if allow_template_switch is enabled)
         $availableTemplates = [];
         if (!empty($album['allow_template_switch'])) {
             try {
                 $availableTemplates = $templateService->getGalleryTemplatesForSwitcher();
-            } catch (\Throwable) { $availableTemplates = []; }
+            } catch (\Throwable) {
+                $availableTemplates = [];
+            }
         }
 
         $templateCustomCss = '';
@@ -804,11 +964,11 @@ class PageController extends BaseController
         ) {
             try {
                 $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
-                $templateCustomCss = $integration->loadTemplateCSS((int)$template['id'], $this->basePath);
-                $templateCustomJs = $integration->loadTemplateJS((int)$template['id'], $this->basePath);
-                $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
+                $templateCustomCss = $integration->loadTemplateCSS((int) $template['id'], $this->basePath);
+                $templateCustomJs = $integration->loadTemplateJS((int) $template['id'], $this->basePath);
+                $metadata = $integration->getTemplateMetadata((int) $template['custom_id']);
                 if ($metadata && !empty($metadata['twig_path'])) {
-                    $resolved = $integration->resolveTwigTemplatePath((string)$metadata['twig_path'], 'galleries');
+                    $resolved = $integration->resolveTwigTemplatePath((string) $metadata['twig_path'], 'galleries');
                     if ($resolved) {
                         $templateCustomTwig = $resolved;
                     }
@@ -822,9 +982,9 @@ class PageController extends BaseController
 
         // Choose page template (classic, hero, magazine, custom)
         $settingsServiceForPage = new \App\Services\SettingsService($this->db);
-        $pageTemplate = (string)($album['album_page_template'] ?? '');
+        $pageTemplate = (string) ($album['album_page_template'] ?? '');
         if ($pageTemplate === '') {
-            $pageTemplate = (string)($settingsServiceForPage->get('gallery.page_template', 'classic') ?? 'classic');
+            $pageTemplate = (string) ($settingsServiceForPage->get('gallery.page_template', 'classic') ?? 'classic');
         }
         $allowedPageTemplates = ['classic', 'hero', 'magazine'];
         try {
@@ -855,10 +1015,10 @@ class PageController extends BaseController
                     $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
                     foreach ($integration->getAlbumPageTemplatesForCore() as $tpl) {
                         if (($tpl['value'] ?? '') === $pageTemplate && !empty($tpl['twig_path'])) {
-                            $resolved = $integration->resolveTwigTemplatePath((string)$tpl['twig_path'], 'albums');
+                            $resolved = $integration->resolveTwigTemplatePath((string) $tpl['twig_path'], 'albums');
                             if ($resolved) {
                                 $customPageTemplate = $resolved;
-                                $customPageTemplateId = (int)($tpl['custom_id'] ?? 0);
+                                $customPageTemplateId = (int) ($tpl['custom_id'] ?? 0);
                                 break;
                             }
                         }
@@ -898,13 +1058,13 @@ class PageController extends BaseController
         if (!is_array($enabledSocials)) {
             $enabledSocials = ['behance', 'whatsapp', 'facebook', 'x', 'deviantart', 'instagram', 'pinterest', 'telegram', 'threads', 'bluesky'];
         }
-        
+
         // Get social order
         $socialOrder = $settingsServiceForSocial->get('social.order', []);
         if (!is_array($socialOrder)) {
             $socialOrder = $enabledSocials;
         }
-        
+
         // Use order for enabled socials
         $orderedSocials = [];
         foreach ($socialOrder as $social) {
@@ -918,14 +1078,14 @@ class PageController extends BaseController
                 $orderedSocials[] = $social;
             }
         }
-        
+
         $availableSocials = $this->getAvailableSocials();
 
         // Use selected page template
         // SEO for album page: use album title and excerpt; cover image as OG
         $coverPath = null;
         try {
-            $variants = (array)($album['cover']['variants'] ?? []);
+            $variants = (array) ($album['cover']['variants'] ?? []);
             foreach ($variants as $variant) {
                 if (($variant['variant'] ?? '') !== 'blur' && !empty($variant['path'])) {
                     $coverPath = $variant['path'];
@@ -935,8 +1095,9 @@ class PageController extends BaseController
             if (!$coverPath) {
                 $coverPath = $album['cover']['original_path'] ?? null;
             }
-        } catch (\Throwable) {}
-        $seoMeta = $this->buildSeo($request, (string)$album['title'], (string)($album['excerpt'] ?? ''), $coverPath);
+        } catch (\Throwable) {
+        }
+        $seoMeta = $this->buildSeo($request, (string) $album['title'], (string) ($album['excerpt'] ?? ''), $coverPath);
 
         // Compute album-specific robots directive from album fields (default both to true if null)
         // SECURITY: Force noindex for NSFW albums to prevent search engine indexing of adult content
@@ -946,12 +1107,12 @@ class PageController extends BaseController
         $albumRobots = $robotsIndex . ',' . $robotsFollow;
 
         $homeMasonry = [
-            'gap_h' => (int)($settingsServiceForPage->get('home.masonry_gap_h', 0) ?? 0),
-            'gap_v' => (int)($settingsServiceForPage->get('home.masonry_gap_v', 0) ?? 0),
-            'cols_desktop' => (int)($settingsServiceForPage->get('home.masonry_col_desktop', 5) ?? 5),
-            'cols_tablet' => (int)($settingsServiceForPage->get('home.masonry_col_tablet', 3) ?? 3),
-            'cols_mobile' => (int)($settingsServiceForPage->get('home.masonry_col_mobile', 2) ?? 2),
-            'layout_mode' => (string)($settingsServiceForPage->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'),
+            'gap_h' => (int) ($settingsServiceForPage->get('home.masonry_gap_h', 0) ?? 0),
+            'gap_v' => (int) ($settingsServiceForPage->get('home.masonry_gap_v', 0) ?? 0),
+            'cols_desktop' => (int) ($settingsServiceForPage->get('home.masonry_col_desktop', 5) ?? 5),
+            'cols_tablet' => (int) ($settingsServiceForPage->get('home.masonry_col_tablet', 3) ?? 3),
+            'cols_mobile' => (int) ($settingsServiceForPage->get('home.masonry_col_mobile', 2) ?? 2),
+            'layout_mode' => (string) ($settingsServiceForPage->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'),
         ];
 
         return $this->view->render($response, $twigTemplate, [
@@ -977,7 +1138,7 @@ class PageController extends BaseController
             'enabled_socials' => $orderedSocials,
             'available_socials' => $availableSocials,
             'csrf' => $_SESSION['csrf'] ?? '',
-            'current_album' => ['id' => (int)$album['id']],
+            'current_album' => ['id' => (int) $album['id']],
             'nsfw_consent' => $this->hasNsfwConsent(),
             'allow_downloads' => !empty($album['allow_downloads']),
             'album_custom_fields' => $albumCustomFields,
@@ -986,7 +1147,7 @@ class PageController extends BaseController
             'template_custom_js' => $templateCustomJs,
             'template_custom_twig' => $templateCustomTwig,
             'custom_page_template' => $customPageTemplate,
-            'page_custom_template_active' => (bool)$customPageTemplate,
+            'page_custom_template_active' => (bool) $customPageTemplate,
             'page_custom_css' => $pageCustomCss,
             'page_custom_js' => $pageCustomJs,
         ]);
@@ -994,7 +1155,7 @@ class PageController extends BaseController
 
     public function unlockAlbum(Request $request, Response $response, array $args): Response
     {
-        $slug = (string)($args['slug'] ?? '');
+        $slug = (string) ($args['slug'] ?? '');
         if (!$this->validateCsrf($request)) {
             return $response
                 ->withHeader('Location', $this->redirect('/album/' . $slug . '?error=1'))
@@ -1008,11 +1169,11 @@ class PageController extends BaseController
         if (!$album || empty($album['password_hash'])) {
             return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
         }
-        $data = (array)($request->getParsedBody() ?? []);
-        $password = (string)($data['password'] ?? '');
+        $data = (array) ($request->getParsedBody() ?? []);
+        $password = (string) ($data['password'] ?? '');
 
         // Verify password FIRST to avoid information disclosure about NSFW status
-        if ($password !== '' && password_verify($password, (string)$album['password_hash'])) {
+        if ($password !== '' && password_verify($password, (string) $album['password_hash'])) {
             // Password is correct - now check NSFW confirmation if needed
             $isNsfw = !empty($album['is_nsfw']);
             $nsfwConfirmed = !empty($data['nsfw_confirmed']);
@@ -1025,14 +1186,14 @@ class PageController extends BaseController
             // SECURITY: Regenerate session ID to prevent session fixation
             session_regenerate_id(true);
 
-            $this->grantAlbumPasswordAccess((int)$album['id']);
+            $this->grantAlbumPasswordAccess((int) $album['id']);
 
             // Store NSFW confirmation in session + cookie for server-side validation
             if ($isNsfw) {
-                $this->grantNsfwConsent((int)$album['id']);
+                $this->grantNsfwConsent((int) $album['id']);
             }
 
-            $sessionId = trim((string)($data['analytics_session_id'] ?? ''));
+            $sessionId = trim((string) ($data['analytics_session_id'] ?? ''));
             if ($sessionId !== '') {
                 $isValidSessionId = preg_match('/^sess_[0-9]{10,20}_[a-z0-9]+$/', $sessionId) === 1;
                 if (!$isValidSessionId || strlen($sessionId) > 128) {
@@ -1048,7 +1209,7 @@ class PageController extends BaseController
                     'event_action' => 'password_unlock',
                     'event_label' => $slug,
                     'page_url' => '/album/' . $slug,
-                    'album_id' => (int)$album['id'],
+                    'album_id' => (int) $album['id'],
                 ]);
             }
 
@@ -1087,7 +1248,7 @@ class PageController extends BaseController
         }
 
         // Check if NSFW confirmation checkbox was checked
-        $data = (array)$request->getParsedBody();
+        $data = (array) $request->getParsedBody();
         $nsfwConfirmed = !empty($data['nsfw_confirmed']);
 
         if (!$nsfwConfirmed) {
@@ -1099,7 +1260,7 @@ class PageController extends BaseController
         session_regenerate_id(true);
 
         // Store NSFW confirmation in session for server-side validation (per-album)
-        $this->grantNsfwConsent((int)$album['id']);
+        $this->grantNsfwConsent((int) $album['id']);
 
         return $response->withHeader('Location', $this->redirect('/album/' . $slug))->withStatus(302);
     }
@@ -1113,7 +1274,7 @@ class PageController extends BaseController
             return $response->withStatus(403);
         }
 
-        $data = (array)$request->getParsedBody();
+        $data = (array) $request->getParsedBody();
         $nsfwConfirmed = !empty($data['nsfw_confirmed']);
         if (!$nsfwConfirmed) {
             return $response->withStatus(400);
@@ -1132,10 +1293,10 @@ class PageController extends BaseController
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
-            
+
             $slug = $args['slug'] ?? '';
             $params = $request->getQueryParams();
-            $templateId = isset($params['template']) ? (int)$params['template'] : null;
+            $templateId = isset($params['template']) ? (int) $params['template'] : null;
             $templateService = new \App\Services\TemplateService($this->db);
 
             if (!$templateId || !$slug) {
@@ -1148,7 +1309,7 @@ class PageController extends BaseController
             // Resolve album (published only)
             $stmt = $pdo->prepare('SELECT a.*, a.template_id, c.name as category_name, c.slug as category_slug, t.settings as template_settings, t.name as template_name FROM albums a JOIN categories c ON c.id = a.category_id LEFT JOIN templates t ON t.id = a.template_id WHERE a.slug = :slug AND a.is_published = 1');
             $stmt->execute([':slug' => $slug]);
-            
+
             $album = $stmt->fetch();
             if (!$album) {
                 $response->getBody()->write('Album not found');
@@ -1159,7 +1320,7 @@ class PageController extends BaseController
             $isAdmin = $this->isAdmin();
 
             if (!empty($album['password_hash']) && !$isAdmin) {
-                $allowed = $this->hasAlbumPasswordAccess((int)$album['id']);
+                $allowed = $this->hasAlbumPasswordAccess((int) $album['id']);
                 if (!$allowed) {
                     $response->getBody()->write('Album locked');
                     return $response->withStatus(403);
@@ -1169,7 +1330,7 @@ class PageController extends BaseController
             // NSFW server-side enforcement: block API access for unconfirmed NSFW albums
             $isNsfw = !empty($album['is_nsfw']);
             if ($isNsfw && !$isAdmin) {
-                $nsfwConfirmed = $this->hasNsfwAlbumConsent((int)$album['id']);
+                $nsfwConfirmed = $this->hasNsfwAlbumConsent((int) $album['id']);
                 if (!$nsfwConfirmed) {
                     $response->getBody()->write('Age verification required');
                     return $response->withStatus(403);
@@ -1182,12 +1343,12 @@ class PageController extends BaseController
                 $response->getBody()->write('Template not found');
                 return $response->withStatus(404);
             }
-            
+
             $rawSettings = $template['settings'] ?? [];
             if (is_array($rawSettings)) {
                 $templateSettings = $rawSettings;
             } else {
-                $templateSettings = json_decode((string)$rawSettings, true) ?: [];
+                $templateSettings = json_decode((string) $rawSettings, true) ?: [];
             }
             if (($template['slug'] ?? '') === 'magazine-split') {
                 $templateSettings['layout'] = 'magazine';
@@ -1201,7 +1362,7 @@ class PageController extends BaseController
             }
             $templateSettings = $this->normalizeTemplateSettings($templateSettings);
 
-            $equipment = [ 'cameras'=>[], 'lenses'=>[], 'film'=>[], 'developers'=>[], 'labs'=>[], 'locations'=>[] ];
+            $equipment = ['cameras' => [], 'lenses' => [], 'film' => [], 'developers' => [], 'labs' => [], 'locations' => []];
             try {
                 if (!empty($album['custom_cameras'])) {
                     $equipment['cameras'] = array_filter(array_map('trim', explode("\n", $album['custom_cameras'])));
@@ -1266,7 +1427,7 @@ class PageController extends BaseController
 
             try {
                 $customFieldService = new \App\Services\CustomFieldService($pdo);
-                $imagesRows = $customFieldService->enrichImagesWithCustomFields($imagesRows, (int)$album['id']);
+                $imagesRows = $customFieldService->enrichImagesWithCustomFields($imagesRows, (int) $album['id']);
             } catch (\Throwable) {
                 // Custom fields tables may not exist yet
             }
@@ -1288,7 +1449,7 @@ class PageController extends BaseController
                 ");
                 $variantsStmt->execute($imageIds);
                 foreach ($variantsStmt->fetchAll() as $variant) {
-                    $imageId = (int)$variant['image_id'];
+                    $imageId = (int) $variant['image_id'];
                     if (!isset($variantsByImage[$imageId])) {
                         $variantsByImage[$imageId] = [];
                     }
@@ -1303,10 +1464,10 @@ class PageController extends BaseController
                 $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
 
                 try {
-                    $variants = $variantsByImage[(int)$img['id']] ?? [];
+                    $variants = $variantsByImage[(int) $img['id']] ?? [];
                     $bestVariant = null;
                     foreach ($variants as $variant) {
-                        $rank = $variantOrder[strtolower((string)($variant['variant'] ?? ''))] ?? 9;
+                        $rank = $variantOrder[strtolower((string) ($variant['variant'] ?? ''))] ?? 9;
                         if ($bestVariant === null || $rank < $bestVariant['rank']) {
                             $bestVariant = ['rank' => $rank, 'variant' => $variant];
                         }
@@ -1330,7 +1491,7 @@ class PageController extends BaseController
                     } else {
                         $lightboxUrl = $bestUrl;
                         // Always protect /storage/ paths for protected albums, regardless of allow_downloads
-                        if ($isProtectedAlbum && !$isAdmin && (empty($bestUrl) || str_starts_with((string)$bestUrl, '/storage/'))) {
+                        if ($isProtectedAlbum && !$isAdmin && (empty($bestUrl) || str_starts_with((string) $bestUrl, '/storage/'))) {
                             $lightboxUrl = '/media/protected/' . $img['id'] . '/original';
                         }
                     }
@@ -1347,16 +1508,16 @@ class PageController extends BaseController
                         if ($isProtectedAlbum && !$isAdmin) {
                             $srcPath = '/media/protected/' . $img['id'] . '/' . $variant['variant'] . '.' . $variant['format'];
                         }
-                        $sources[$fmt][] = $srcPath . ' ' . (int)($variant['width'] ?? 0) . 'w';
+                        $sources[$fmt][] = $srcPath . ' ' . (int) ($variant['width'] ?? 0) . 'w';
                     }
                 } catch (\Throwable $e) {
                     Logger::warning('PageController: Error fetching image variants', ['image_id' => $img['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
                 }
 
-                if (str_starts_with((string)$bestUrl, '/storage/')) {
+                if (str_starts_with((string) $bestUrl, '/storage/')) {
                     $bestUrl = $img['original_path'];
                 }
-                if (str_starts_with((string)$lightboxUrl, '/storage/')) {
+                if (str_starts_with((string) $lightboxUrl, '/storage/')) {
                     $lightboxUrl = $bestUrl;
                 }
 
@@ -1387,13 +1548,13 @@ class PageController extends BaseController
                 }
 
                 $images[] = [
-                    'id' => (int)$img['id'],
+                    'id' => (int) $img['id'],
                     'url' => $bestUrl,
                     'lightbox_url' => $lightboxUrl,
                     'alt' => $img['alt_text'] ?: $album['title'],
                     'alt_text' => $img['alt_text'] ?? '',
-                    'width' => (int)($img['width'] ?? 1200),
-                    'height' => (int)($img['height'] ?? 800),
+                    'width' => (int) ($img['width'] ?? 1200),
+                    'height' => (int) ($img['height'] ?? 800),
                     'caption' => $img['caption'] ?? '',
                     'original_path' => $img['original_path'] ?? '',
                     'custom_camera' => $img['custom_camera'] ?? '',
@@ -1406,9 +1567,9 @@ class PageController extends BaseController
                     'developer_name' => $developerDisp ?? '',
                     'lab_name' => $labDisp ?? '',
                     'location_name' => $locationDisp ?? '',
-                    'iso' => isset($img['iso']) ? (int)$img['iso'] : null,
+                    'iso' => isset($img['iso']) ? (int) $img['iso'] : null,
                     'shutter_speed' => $this->formatShutterSpeed($img['shutter_speed'] ?? null),
-                    'aperture' => isset($img['aperture']) && is_numeric($img['aperture']) ? (float)$img['aperture'] : null,
+                    'aperture' => isset($img['aperture']) && is_numeric($img['aperture']) ? (float) $img['aperture'] : null,
                     'process' => $img['process'] ?? null,
                     'custom_fields' => $img['custom_fields'] ?? [],
                     // Extended EXIF fields
@@ -1436,7 +1597,7 @@ class PageController extends BaseController
             ) {
                 try {
                     $integration = new \CustomTemplatesPro\Services\TemplateIntegrationService($this->db);
-                    $metadata = $integration->getTemplateMetadata((int)$template['custom_id']);
+                    $metadata = $integration->getTemplateMetadata((int) $template['custom_id']);
                     if ($metadata) {
                         foreach ($metadata['css_paths'] ?? [] as $path) {
                             $templateAssets['css'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
@@ -1445,7 +1606,7 @@ class PageController extends BaseController
                             $templateAssets['js'][] = rtrim($this->basePath, '/') . '/plugins/custom-templates-pro/' . ltrim($path, '/');
                         }
                         if (!empty($metadata['twig_path'])) {
-                            $resolved = $integration->resolveTwigTemplatePath((string)$metadata['twig_path'], 'galleries');
+                            $resolved = $integration->resolveTwigTemplatePath((string) $metadata['twig_path'], 'galleries');
                             if ($resolved) {
                                 $templateCustomTwig = $resolved;
                             }
@@ -1465,7 +1626,8 @@ class PageController extends BaseController
                 } elseif (($template['slug'] ?? '') === 'magazine-split') {
                     $partial = 'frontend/_gallery_magazine_content.twig';
                 }
-            } catch (\Throwable) {}
+            } catch (\Throwable) {
+            }
             return $this->view->render($response, $partial, [
                 'images' => $images,
                 'template_settings' => $templateSettings,
@@ -1478,7 +1640,7 @@ class PageController extends BaseController
                 ],
                 'base_path' => $this->basePath
             ]);
-            
+
         } catch (\Throwable $e) {
             Logger::critical('PageController::albumTemplate error', [
                 'error' => $e->getMessage(),
@@ -1498,16 +1660,16 @@ class PageController extends BaseController
         $pdo = $this->db->pdo();
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
-        
+
         // Get category
         $stmt = $pdo->prepare('SELECT * FROM categories WHERE slug = :slug');
         $stmt->execute([':slug' => $slug]);
         $category = $stmt->fetch();
-        
+
         if (!$category) {
             return $response->withStatus(404);
         }
-        
+
         // Get albums in category (supports both legacy category_id and junction table)
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
@@ -1526,15 +1688,15 @@ class PageController extends BaseController
         ');
         $stmt->execute([':slug' => $slug]);
         $albums = $stmt->fetchAll();
-        
+
         $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
-        
+
         // Get all categories for navigation
         $stmt = $pdo->prepare('SELECT * FROM categories ORDER BY COALESCE(parent_id, 0) ASC, sort_order ASC, name ASC');
         $stmt->execute();
         $categories = $stmt->fetchAll();
-        
-        $seo = $this->buildSeo($request, (string)$category['name'], 'Photography albums in category: ' . $category['name']);
+
+        $seo = $this->buildSeo($request, (string) $category['name'], 'Photography albums in category: ' . $category['name']);
         return $this->view->render($response, 'frontend/category.twig', [
             'category' => $category,
             'albums' => $albums,
@@ -1558,19 +1720,19 @@ class PageController extends BaseController
         $pdo = $this->db->pdo();
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
-        
+
         // Get tag
         $stmt = $pdo->prepare('SELECT * FROM tags WHERE slug = :slug');
         $stmt->execute([':slug' => $slug]);
         $tag = $stmt->fetch();
-        
+
         if (!$tag) {
             return $this->view->render($response->withStatus(404), 'frontend/404.twig', [
                 'page_title' => '404 — Tag not found',
                 'meta_description' => 'Tag not found'
             ]);
         }
-        
+
         // Get albums with this tag (supports both legacy category_id and junction table)
         $stmt = $pdo->prepare('
             SELECT a.*,
@@ -1595,9 +1757,9 @@ class PageController extends BaseController
         ');
         $stmt->execute([':slug' => $slug]);
         $albums = $stmt->fetchAll();
-        
+
         $albums = $this->filterAlbumsByAccess($albums, $isAdmin, $nsfwConsent);
-        
+
         // Get popular tags for navigation
         $stmt = $pdo->prepare('
             SELECT t.*, COUNT(at.album_id) as albums_count
@@ -1610,7 +1772,7 @@ class PageController extends BaseController
         ');
         $stmt->execute();
         $tags = $stmt->fetchAll();
-        
+
         // Categories for header menu
         $navCategories = $this->getNavigationService()->getNavigationCategories();
 
@@ -1642,18 +1804,18 @@ class PageController extends BaseController
 
         // settings
         $settings = new \App\Services\SettingsService($this->db);
-        $aboutText = (string)($settings->get('about.text', '') ?? '');
-        $aboutPhoto = (string)($settings->get('about.photo_url', '') ?? '');
-        $aboutFooter = (string)($settings->get('about.footer_text', '') ?? '');
-        $aboutSocials = (array)($settings->get('about.socials', []) ?? []);
-        $aboutTitle = (string)($settings->get('about.title', 'About') ?? 'About');
-        $aboutSubtitle = (string)($settings->get('about.subtitle', '') ?? '');
-        $contactTitle = (string)($settings->get('about.contact_title', 'Contatti') ?? 'Contatti');
-        $contactIntro = (string)($settings->get('about.contact_intro', '') ?? '');
+        $aboutText = (string) ($settings->get('about.text', '') ?? '');
+        $aboutPhoto = (string) ($settings->get('about.photo_url', '') ?? '');
+        $aboutFooter = (string) ($settings->get('about.footer_text', '') ?? '');
+        $aboutSocials = (array) ($settings->get('about.socials', []) ?? []);
+        $aboutTitle = (string) ($settings->get('about.title', 'About') ?? 'About');
+        $aboutSubtitle = (string) ($settings->get('about.subtitle', '') ?? '');
+        $contactTitle = (string) ($settings->get('about.contact_title', 'Contatti') ?? 'Contatti');
+        $contactIntro = (string) ($settings->get('about.contact_intro', '') ?? '');
 
         // reCAPTCHA settings
-        $recaptchaEnabled = (bool)($settings->get('recaptcha.enabled', false) ?? false);
-        $recaptchaSiteKey = (string)($settings->get('recaptcha.site_key', '') ?? '');
+        $recaptchaEnabled = (bool) ($settings->get('recaptcha.enabled', false) ?? false);
+        $recaptchaSiteKey = (string) ($settings->get('recaptcha.site_key', '') ?? '');
 
         $q = $request->getQueryParams();
         $contactSent = isset($q['sent']);
@@ -1661,7 +1823,9 @@ class PageController extends BaseController
 
         // About SEO: use about text trimmed, and about photo as OG; fallback to logo handled in builder
         $shortAbout = trim(strip_tags($aboutText));
-        if ($shortAbout !== '') { $shortAbout = mb_substr($shortAbout, 0, 160); }
+        if ($shortAbout !== '') {
+            $shortAbout = mb_substr($shortAbout, 0, 160);
+        }
         $seo = $this->buildSeo($request, $aboutTitle, $shortAbout, $aboutPhoto ?: null);
         return $this->view->render($response, 'frontend/about.twig', [
             'categories' => $navCategories,
@@ -1698,10 +1862,10 @@ class PageController extends BaseController
             return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
         }
 
-        $data = (array)($request->getParsedBody() ?? []);
-        $name = trim((string)($data['name'] ?? ''));
-        $email = trim((string)($data['email'] ?? ''));
-        $message = trim((string)($data['message'] ?? ''));
+        $data = (array) ($request->getParsedBody() ?? []);
+        $name = trim((string) ($data['name'] ?? ''));
+        $email = trim((string) ($data['email'] ?? ''));
+        $message = trim((string) ($data['message'] ?? ''));
 
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $message === '') {
             return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
@@ -1709,11 +1873,11 @@ class PageController extends BaseController
 
         // reCAPTCHA validation
         $settings = new \App\Services\SettingsService($this->db);
-        $recaptchaEnabled = (bool)($settings->get('recaptcha.enabled', false) ?? false);
-        $recaptchaSecretKey = (string)($settings->get('recaptcha.secret_key', '') ?? '');
+        $recaptchaEnabled = (bool) ($settings->get('recaptcha.enabled', false) ?? false);
+        $recaptchaSecretKey = (string) ($settings->get('recaptcha.secret_key', '') ?? '');
 
         if ($recaptchaEnabled && $recaptchaSecretKey !== '') {
-            $recaptchaToken = trim((string)($data['recaptcha_token'] ?? ''));
+            $recaptchaToken = trim((string) ($data['recaptcha_token'] ?? ''));
 
             if ($recaptchaToken === '') {
                 return $response->withHeader('Location', $this->redirect('/about?error=1'))->withStatus(302);
@@ -1749,11 +1913,11 @@ class PageController extends BaseController
             }
         }
 
-        $to = (string)($settings->get('about.contact_email', '') ?? '');
+        $to = (string) ($settings->get('about.contact_email', '') ?? '');
         if ($to === '') {
-            $to = (string)(\envv('CONTACT_EMAIL', \envv('MAIL_TO', 'webmaster@localhost')));
+            $to = (string) (\envv('CONTACT_EMAIL', \envv('MAIL_TO', 'webmaster@localhost')));
         }
-        $subjectPrefix = (string)($settings->get('about.contact_subject', 'Portfolio') ?? 'Portfolio');
+        $subjectPrefix = (string) ($settings->get('about.contact_subject', 'Portfolio') ?? 'Portfolio');
 
         // Strict header injection prevention
         // Remove ALL control characters (including tabs) from name and subject
@@ -1774,15 +1938,53 @@ class PageController extends BaseController
 
         // SECURITY: Use system email as From, user email only in Reply-To
         // This prevents email spoofing and header injection via From header
-        $systemFrom = (string)(\envv('MAIL_FROM', 'noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost')));
+        $systemFrom = (string) (\envv('MAIL_FROM', 'noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost')));
         $headers = 'From: ' . $systemFrom . "\r\n" .
-                   'Reply-To: ' . $email . "\r\n" .
-                   'Content-Type: text/plain; charset=UTF-8';
+            'Reply-To: ' . $email . "\r\n" .
+            'Content-Type: text/plain; charset=UTF-8';
 
         @mail($to, $subject, $body, $headers);
-        $slug = (string)($settings->get('about.slug', 'about') ?? 'about');
-        if ($slug === '') { $slug = 'about'; }
+        $slug = (string) ($settings->get('about.slug', 'about') ?? 'about');
+        if ($slug === '') {
+            $slug = 'about';
+        }
         return $response->withHeader('Location', $this->redirect('/' . $slug . '?sent=1'))->withStatus(302);
+    }
+
+    public function license(Request $request, Response $response): Response
+    {
+        // categories for header
+        $navCategories = $this->getNavigationService()->getNavigationCategories();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
+
+        // settings
+        $settings = new \App\Services\SettingsService($this->db);
+        $licenseTitle = (string) ($settings->get('license.title', 'License') ?? 'License');
+        $licenseContent = (string) ($settings->get('license.content', '') ?? '');
+
+        // License SEO
+        $shortContent = trim(strip_tags($licenseContent));
+        if ($shortContent !== '') {
+            $shortContent = mb_substr($shortContent, 0, 160);
+        }
+        $seo = $this->buildSeo($request, $licenseTitle, $shortContent ?: trans('frontend.license.default_description'));
+
+        return $this->view->render($response, 'frontend/license.twig', [
+            'categories' => $navCategories,
+            'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
+            'page_title' => $seo['page_title'],
+            'meta_description' => $seo['meta_description'],
+            'meta_image' => $seo['meta_image'],
+            'current_url' => $seo['current_url'],
+            'canonical_url' => $seo['canonical_url'],
+            'og_site_name' => $seo['og_site_name'],
+            'robots' => $seo['robots'],
+            'license_title' => $licenseTitle,
+            'license_content' => $licenseContent,
+            'is_admin' => $isAdmin,
+            'nsfw_consent' => $nsfwConsent
+        ]);
     }
 
     /**
@@ -1812,7 +2014,7 @@ class PageController extends BaseController
             $stmt = $pdo->prepare("SELECT * FROM images WHERE id IN ($coverPlaceholders)");
             $stmt->execute(array_values($coverImageIds));
             foreach ($stmt->fetchAll() as $img) {
-                $coverImages[(int)$img['id']] = $img;
+                $coverImages[(int) $img['id']] = $img;
             }
         }
 
@@ -1826,7 +2028,7 @@ class PageController extends BaseController
             ");
             $stmt->execute(array_values($coverImageIds));
             foreach ($stmt->fetchAll() as $variant) {
-                $imageId = (int)$variant['image_id'];
+                $imageId = (int) $variant['image_id'];
                 if (!isset($variantsByImage[$imageId])) {
                     $variantsByImage[$imageId] = [];
                 }
@@ -1845,7 +2047,7 @@ class PageController extends BaseController
         ");
         $stmt->execute($albumIds);
         foreach ($stmt->fetchAll() as $tag) {
-            $albumId = (int)$tag['album_id'];
+            $albumId = (int) $tag['album_id'];
             unset($tag['album_id']);
             if (!isset($tagsByAlbum[$albumId])) {
                 $tagsByAlbum[$albumId] = [];
@@ -1865,7 +2067,7 @@ class PageController extends BaseController
             ");
             $stmt->execute($albumIds);
             foreach ($stmt->fetchAll() as $loc) {
-                $albumId = (int)$loc['album_id'];
+                $albumId = (int) $loc['album_id'];
                 unset($loc['album_id']);
                 if (!isset($locationsByAlbum[$albumId])) {
                     $locationsByAlbum[$albumId] = [];
@@ -1886,13 +2088,13 @@ class PageController extends BaseController
         ");
         $stmt->execute($albumIds);
         foreach ($stmt->fetchAll() as $row) {
-            $countsByAlbum[(int)$row['album_id']] = (int)$row['cnt'];
+            $countsByAlbum[(int) $row['album_id']] = (int) $row['cnt'];
         }
 
         // Assemble enriched albums
         foreach ($albums as &$album) {
-            $albumId = (int)$album['id'];
-            $coverImageId = $album['cover_image_id'] ? (int)$album['cover_image_id'] : null;
+            $albumId = (int) $album['id'];
+            $coverImageId = $album['cover_image_id'] ? (int) $album['cover_image_id'] : null;
 
             // Cover image with variants
             if ($coverImageId && isset($coverImages[$coverImageId])) {
@@ -1918,13 +2120,13 @@ class PageController extends BaseController
     private function enrichAlbum(array $album): array
     {
         $pdo = $this->db->pdo();
-        
+
         // Cover image
         if ($album['cover_image_id']) {
             $stmt = $pdo->prepare('SELECT * FROM images WHERE id = :id');
             $stmt->execute([':id' => $album['cover_image_id']]);
             $cover = $stmt->fetch();
-            
+
             if ($cover) {
                 $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
                 $variantsStmt->execute([':id' => $cover['id']]);
@@ -1932,7 +2134,7 @@ class PageController extends BaseController
                 $album['cover'] = $cover;
             }
         }
-        
+
         // Tags
         $stmt = $pdo->prepare('
             SELECT t.* FROM tags t 
@@ -1950,12 +2152,12 @@ class PageController extends BaseController
         } catch (\Throwable) {
             $album['locations'] = [];
         }
-        
+
         // Images count
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM images WHERE album_id = :id');
         $stmt->execute([':id' => $album['id']]);
-        $album['images_count'] = (int)$stmt->fetchColumn();
-        
+        $album['images_count'] = (int) $stmt->fetchColumn();
+
         return $album;
     }
 
@@ -1973,7 +2175,7 @@ class PageController extends BaseController
             $album['is_password_protected'] = !empty($album['password_hash']);
             unset($album['password_hash']);
             // Mark password-protected albums as locked (but still show them in listings)
-            $album['is_locked'] = !$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int)$album['id']);
+            $album['is_locked'] = !$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int) $album['id']);
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $album = $this->ensureAlbumCoverImage($album);
             $needsProtectedPreview = !$isAdmin
@@ -1981,10 +2183,10 @@ class PageController extends BaseController
             if ($needsProtectedPreview && !empty($album['cover_image']['id'])) {
                 $blurPath = $album['cover_image']['blur_path'] ?? '';
                 $ext = 'jpg';
-                if ($blurPath && preg_match('/\\.([a-z0-9]+)$/i', (string)$blurPath, $matches)) {
+                if ($blurPath && preg_match('/\\.([a-z0-9]+)$/i', (string) $blurPath, $matches)) {
                     $ext = strtolower($matches[1]);
                 }
-                $album['cover_image']['blur_path'] = '/media/protected/' . (int)$album['cover_image']['id'] . '/blur.' . $ext;
+                $album['cover_image']['blur_path'] = '/media/protected/' . (int) $album['cover_image']['id'] . '/blur.' . $ext;
                 unset(
                     $album['cover_image']['preview_path'],
                     $album['cover_image']['original_path'],
@@ -2007,12 +2209,12 @@ class PageController extends BaseController
         $chosen = null;
 
         foreach ($variants as $variant) {
-            if (!isset($variant['path']) || str_starts_with((string)$variant['path'], '/storage/')) {
+            if (!isset($variant['path']) || str_starts_with((string) $variant['path'], '/storage/')) {
                 continue;
             }
-            $vVar = strtolower((string)($variant['variant'] ?? ''));
-            $vFmt = strtolower((string)($variant['format'] ?? ''));
-            $width = (int)($variant['width'] ?? 0);
+            $vVar = strtolower((string) ($variant['variant'] ?? ''));
+            $vFmt = strtolower((string) ($variant['format'] ?? ''));
+            $width = (int) ($variant['width'] ?? 0);
             $formatRank = $orderFormat[$vFmt] ?? 9;
             $variantRank = $orderVariant[$vVar] ?? 9;
 
@@ -2041,7 +2243,8 @@ class PageController extends BaseController
             }
 
             if ($width === $chosen['width']) {
-                if ($formatRank < $chosen['format_rank']
+                if (
+                    $formatRank < $chosen['format_rank']
                     || ($formatRank === $chosen['format_rank'] && $variantRank < $chosen['variant_rank'])
                 ) {
                     $chosen = [
@@ -2062,43 +2265,43 @@ class PageController extends BaseController
     private function formatExifForDisplay(array $exif, array $image): array
     {
         $display = [];
-        
+
         // Camera
         if (!empty($exif['Make']) && !empty($exif['Model'])) {
             $display['camera'] = trim($exif['Make'] . ' ' . $exif['Model']);
         } elseif ($image['custom_camera']) {
             $display['camera'] = $image['custom_camera'];
         }
-        
+
         // Lens
         if (!empty($exif['LensModel'])) {
             $display['lens'] = $exif['LensModel'];
         } elseif ($image['custom_lens']) {
             $display['lens'] = $image['custom_lens'];
         }
-        
+
         // Exposure
         if ($image['aperture']) {
             $display['aperture'] = 'f/' . number_format($image['aperture'], 1);
         }
-        
+
         if ($image['shutter_speed']) {
             $display['shutter'] = $this->formatShutterSpeed($image['shutter_speed']);
         }
-        
+
         if ($image['iso']) {
             $display['iso'] = 'ISO ' . $image['iso'];
         }
-        
+
         // Film/Process
         if ($image['custom_film']) {
             $display['film'] = $image['custom_film'];
         }
-        
+
         if ($image['process']) {
             $display['process'] = ucfirst($image['process']);
         }
-        
+
         return $display;
     }
 
@@ -2117,14 +2320,14 @@ class PageController extends BaseController
         if (str_contains($speed, '/')) {
             $parts = explode('/', $speed, 2);
             if (\count($parts) === 2) {
-                $num = (float)$parts[0];
-                $den = (float)$parts[1];
+                $num = (float) $parts[0];
+                $den = (float) $parts[1];
                 if ($den > 0 && $num > 0) {
                     $f = $num / $den;
                     if ($f >= 1) {
-                        return (int)round($f) . 's';
+                        return (int) round($f) . 's';
                     } else {
-                        return '1/' . (int)round(1 / $f) . 's';
+                        return '1/' . (int) round(1 / $f) . 's';
                     }
                 }
             }
@@ -2132,11 +2335,11 @@ class PageController extends BaseController
 
         // Numeric value (decimal seconds)
         if (is_numeric($speed)) {
-            $f = (float)$speed;
+            $f = (float) $speed;
             if ($f >= 1) {
-                return (int)round($f) . 's';
+                return (int) round($f) . 's';
             } elseif ($f > 0) {
-                return '1/' . (int)round(1 / $f) . 's';
+                return '1/' . (int) round(1 / $f) . 's';
             }
         }
 
@@ -2146,13 +2349,13 @@ class PageController extends BaseController
     private function processImageSources(array $image): array
     {
         $pdo = $this->db->pdo();
-        
+
         // Get image variants for responsive sources
         try {
             $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
             $variantsStmt->execute([':id' => $image['id']]);
             $variants = $variantsStmt->fetchAll();
-            
+
             // Build responsive sources (verify files exist, fallback to webp if jpg missing)
             // Go up 3 levels: Controllers/Frontend -> Controllers -> app -> project root
             $publicDir = dirname(__DIR__, 3) . '/public';
@@ -2163,17 +2366,17 @@ class PageController extends BaseController
                 if (isset($sources[$format]) && !empty($path) && !str_starts_with($path, '/storage/')) {
                     // Check if file exists
                     if (is_file($publicDir . $path)) {
-                        $sources[$format][] = $path . ' ' . (int)$variant['width'] . 'w';
+                        $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
                     } elseif ($format === 'jpg') {
                         // Try webp alternative if jpg doesn't exist
                         $webpPath = preg_replace('/\.jpg$/i', '.webp', $path);
                         if (is_file($publicDir . $webpPath)) {
-                            $sources['webp'][] = $webpPath . ' ' . (int)$variant['width'] . 'w';
+                            $sources['webp'][] = $webpPath . ' ' . (int) $variant['width'] . 'w';
                         }
                     }
                 }
             }
-            
+
             $image['sources'] = $sources;
             $image['variants'] = $variants;
 
@@ -2199,7 +2402,7 @@ class PageController extends BaseController
                 }
             }
             $image['fallback_src'] = $fallbackUrl;
-            
+
         } catch (\Throwable $e) {
             Logger::warning('PageController: Error processing image sources', ['image_id' => $image['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
             // Fallback to basic image data
@@ -2207,7 +2410,7 @@ class PageController extends BaseController
             $image['variants'] = [];
             $image['fallback_src'] = $image['original_path'];
         }
-        
+
         return $image;
     }
 
@@ -2231,7 +2434,7 @@ class PageController extends BaseController
             ");
             $variantsStmt->execute($imageIds);
             foreach ($variantsStmt->fetchAll() as $variant) {
-                $imageId = (int)$variant['image_id'];
+                $imageId = (int) $variant['image_id'];
                 if (!isset($variantsByImage[$imageId])) {
                     $variantsByImage[$imageId] = [];
                 }
@@ -2251,7 +2454,7 @@ class PageController extends BaseController
         $publicDir = dirname(__DIR__, 3) . '/public';
         foreach ($images as &$image) {
             $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
-            $variants = $variantsByImage[(int)$image['id']] ?? [];
+            $variants = $variantsByImage[(int) $image['id']] ?? [];
 
             foreach ($variants as $variant) {
                 $format = $variant['format'] ?? 'jpg';
@@ -2260,18 +2463,18 @@ class PageController extends BaseController
                     continue;
                 }
                 if (is_file($publicDir . $path)) {
-                    $sources[$format][] = $path . ' ' . (int)$variant['width'] . 'w';
+                    $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
                 } elseif ($format === 'jpg') {
                     $webpPath = preg_replace('/\.jpg$/i', '.webp', $path);
                     if (is_file($publicDir . $webpPath)) {
-                        $sources['webp'][] = $webpPath . ' ' . (int)$variant['width'] . 'w';
+                        $sources['webp'][] = $webpPath . ' ' . (int) $variant['width'] . 'w';
                     }
                 }
             }
 
             $fallbackUrl = $image['original_path'];
             foreach ($variants as $variant) {
-                if (!empty($variant['path']) && !str_starts_with((string)$variant['path'], '/storage/')) {
+                if (!empty($variant['path']) && !str_starts_with((string) $variant['path'], '/storage/')) {
                     $fullPath = $publicDir . $variant['path'];
                     if (is_file($fullPath)) {
                         $fallbackUrl = $variant['path'];
@@ -2295,7 +2498,7 @@ class PageController extends BaseController
 
         return $images;
     }
-    
+
     private function getAvailableSocials(): array
     {
         return [
@@ -2721,10 +2924,10 @@ class PageController extends BaseController
     {
         $svc = new \App\Services\SettingsService($this->db);
 
-        $siteName = (string)($svc->get('seo.site_title', 'Photography Portfolio') ?? 'Photography Portfolio');
-        $siteDescription = (string)($svc->get('seo.site_description', '') ?? '');
-        $themeColor = (string)($svc->get('pwa.theme_color', '#ffffff') ?? '#ffffff');
-        $backgroundColor = (string)($svc->get('pwa.background_color', '#ffffff') ?? '#ffffff');
+        $siteName = (string) ($svc->get('seo.site_title', 'Photography Portfolio') ?? 'Photography Portfolio');
+        $siteDescription = (string) ($svc->get('seo.site_description', '') ?? '');
+        $themeColor = (string) ($svc->get('pwa.theme_color', '#ffffff') ?? '#ffffff');
+        $backgroundColor = (string) ($svc->get('pwa.background_color', '#ffffff') ?? '#ffffff');
         $basePath = $this->basePath ?: '';
         $publicPath = dirname(__DIR__, 3) . '/public';
 

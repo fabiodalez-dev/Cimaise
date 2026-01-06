@@ -265,6 +265,12 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $galleriesSlug = (string)($settingsSvc->get('galleries.slug', 'galleries') ?? 'galleries');
         $galleriesSlug = $galleriesSlug !== '' ? $galleriesSlug : 'galleries';
         $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/' . $galleriesSlug);
+        // Expose license URL and visibility for footer
+        $licenseSlug = (string)($settingsSvc->get('license.slug', 'license') ?? 'license');
+        $licenseSlug = $licenseSlug !== '' ? $licenseSlug : 'license';
+        $twig->getEnvironment()->addGlobal('license_url', $basePath . '/' . $licenseSlug);
+        $twig->getEnvironment()->addGlobal('license_show_in_footer', (bool)$settingsSvc->get('license.show_in_footer', false));
+        $twig->getEnvironment()->addGlobal('license_title_footer', (string)($settingsSvc->get('license.title', 'License') ?? 'License'));
         // Expose site title and logo globally for layouts
         $siteTitle = (string)($settingsSvc->get('site.title', 'Cimaise') ?? 'Cimaise');
         $siteLogo = $settingsSvc->get('site.logo', null);

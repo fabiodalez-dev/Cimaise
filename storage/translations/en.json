@@ -192,6 +192,9 @@
     "footer.terms": "Terms of Service"
   },
   "frontend": {
+    "frontend.license.default_description": "Licensing and usage terms for content on this website.",
+    "frontend.license.no_content": "No license information has been configured yet.",
+    "frontend.license.title": "License",
     "frontend.nsfw_global.confirm": "I am 18+ - Enter",
     "frontend.nsfw_global.decline": "Exit",
     "frontend.nsfw_global.disclaimer": "By continuing, you confirm that you are of legal age in your jurisdiction.",
@@ -200,6 +203,8 @@
     "frontend.nsfw_global.title": "Adult Content Warning"
   },
   "galleries": {
+    "galleries.empty_text": "There are no published galleries yet.",
+    "galleries.empty_title": "No Galleries",
     "galleries.subtitle": "Explore our complete collection of photography galleries with advanced filtering options",
     "galleries.title": "All Galleries"
   },
@@ -331,6 +336,7 @@
     "nav.contact": "Contact",
     "nav.galleries": "Galleries",
     "nav.home": "Home",
+    "nav.license": "License",
     "nav.menu": "Menu",
     "nav.tags": "Tags"
   },
