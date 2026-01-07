@@ -9,8 +9,23 @@
 /* Home Infinite Scroll Styles - container always visible */
 .perspective { transform: perspective(1200px) rotateX(1deg); }
 
-/* Mobile masonry via CSS columns */
-.home-mobile-wrap { display:block; }
+/* Mobile masonry via CSS columns - scrollable and draggable */
+.home-mobile-wrap {
+  display: block;
+  max-height: 85vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  cursor: grab;
+  padding-bottom: 2rem;
+}
+.home-mobile-wrap:active { cursor: grabbing; }
+/* Hide scrollbar but keep functionality */
+.home-mobile-wrap::-webkit-scrollbar { width: 0; background: transparent; }
+.home-mobile-wrap { scrollbar-width: none; -ms-overflow-style: none; }
 .home-desktop-wrap { display:none; }
 @media (min-width:768px){
   .home-mobile-wrap { display:none !important; }
@@ -92,8 +107,9 @@
 @media (max-width: 767px) { .perspective { transform: none; } }
 
 /* Responsive heights for the section - Vertical mode */
-.home-vertical { height: 120vh; }
-@media (min-width: 768px) { .home-vertical { height: 150vh !important; } }
+/* Mobile: auto height with tall scrollable container inside */
+.home-vertical { height: auto; min-height: 90vh; }
+@media (min-width: 768px) { .home-vertical { height: 150vh !important; min-height: 0; } }
 @media (min-width: 1024px) { .home-vertical { height: 200vh !important; } }
 
 /* ===== HORIZONTAL SCROLL MODE ===== */

@@ -1,8 +1,7 @@
 {% if all_images|length > 0 %}
 {% set scroll_direction = home_settings.gallery_scroll_direction|default('vertical') %}
 <section class="home-infinite-section relative mb-32 overflow-hidden {{ scroll_direction == 'horizontal' ? 'home-horizontal' : 'home-vertical' }}"
-         data-scroll-direction="{{ scroll_direction }}"
-         style="{{ scroll_direction == 'horizontal' ? 'height: auto;' : 'height: 120vh;' }}">
+         data-scroll-direction="{{ scroll_direction }}">
   {% if scroll_direction == 'vertical' %}
   <div class="pointer-events-none absolute inset-x-0 top-0 h-10 z-20 home-veil-top"></div>
   <div class="pointer-events-none absolute inset-x-0 bottom-0 h-10 z-20 home-veil-bottom"></div>

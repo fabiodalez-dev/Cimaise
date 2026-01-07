@@ -30,13 +30,23 @@ class SettingsService
             $stmt = $this->db->query('SELECT `key`, `value` FROM settings');
             $dbSettings = [];
             foreach ($stmt->fetchAll() as $row) {
-                $dbSettings[$row['key']] = json_decode($row['value'] ?? 'null', true);
+                $dbSettings[$row['key']] = $this->decodeValue($row['value'] ?? null);
             }
             self::$cache = array_merge($this->defaults(), $dbSettings);
         } catch (\Throwable $e) {
             Logger::warning('SettingsService: Failed to load settings cache', ['error' => $e->getMessage()], 'settings');
             self::$cache = $this->defaults();
         }
+    }
+
+    private function decodeValue(?string $raw): mixed
+    {
+        $decoded = json_decode($raw ?? 'null', true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            return $decoded;
+        }
+
+        return $raw;
     }
 
     public function all(): array
@@ -53,6 +63,9 @@ class SettingsService
 
     public function set(string $key, mixed $value): void
     {
+        // Invalidate cache before writing to ensure fresh data on next get()
+        self::$cache = null;
+
         $replace = $this->db->replaceKeyword();
         $now = $this->db->nowExpression();
         $stmt = $this->db->pdo()->prepare("{$replace} INTO settings(`key`,`value`,`type`,`updated_at`) VALUES(:k, :v, :t, {$now})");
@@ -60,8 +73,8 @@ class SettingsService
         $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
         $stmt->execute([':k' => $key, ':v' => $encodedValue, ':t' => $type]);
 
+        // Reload cache with fresh data from database
         $this->loadCache();
-        self::$cache[$key] = $value;
     }
 
     public function defaults(): array

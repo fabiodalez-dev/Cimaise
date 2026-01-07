@@ -28,6 +28,10 @@ class PagesController extends BaseController
         if ($galleriesSlug === '') { $galleriesSlug = 'galleries'; }
         $licenseSlug = (string)($settings->get('license.slug', 'license') ?? 'license');
         if ($licenseSlug === '') { $licenseSlug = 'license'; }
+        $privacySlug = (string)($settings->get('privacy.slug', 'privacy-policy') ?? 'privacy-policy');
+        if ($privacySlug === '') { $privacySlug = 'privacy-policy'; }
+        $cookieSlug = (string)($settings->get('cookie.slug', 'cookie-policy') ?? 'cookie-policy');
+        if ($cookieSlug === '') { $cookieSlug = 'cookie-policy'; }
 
         $pages = [
             [
@@ -57,6 +61,20 @@ class PagesController extends BaseController
                 'description' => trans('admin.pages.license.description_short'),
                 'edit_url' => '/admin/pages/license',
                 'public_url' => '/' . $licenseSlug,
+            ],
+            [
+                'slug' => 'privacy',
+                'title' => trans('admin.pages.privacy.title_short'),
+                'description' => trans('admin.pages.privacy.description_short'),
+                'edit_url' => '/admin/pages/privacy',
+                'public_url' => '/' . $privacySlug,
+            ],
+            [
+                'slug' => 'cookie',
+                'title' => trans('admin.pages.cookie.title_short'),
+                'description' => trans('admin.pages.cookie.description_short'),
+                'edit_url' => '/admin/pages/cookie',
+                'public_url' => '/' . $cookieSlug,
             ],
         ];
         return $this->view->render($response, 'admin/pages/index.twig', [
@@ -417,6 +435,102 @@ class PagesController extends BaseController
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.license_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/license'))->withStatus(302);
+    }
+
+    public function privacyForm(Request $request, Response $response): Response
+    {
+        $svc = new SettingsService($this->db);
+        $settings = [
+            'privacy.title' => (string)($svc->get('privacy.title', 'Privacy Policy') ?? 'Privacy Policy'),
+            'privacy.slug' => (string)($svc->get('privacy.slug', 'privacy-policy') ?? 'privacy-policy'),
+            'privacy.content' => (string)($svc->get('privacy.content', '') ?? ''),
+            'privacy.show_in_footer' => (bool)($svc->get('privacy.show_in_footer', true) ?? true),
+        ];
+        return $this->view->render($response, 'admin/pages/privacy.twig', [
+            'settings' => $settings,
+            'csrf' => $_SESSION['csrf'] ?? ''
+        ]);
+    }
+
+    public function savePrivacy(Request $request, Response $response): Response
+    {
+        $data = (array)$request->getParsedBody();
+        $csrf = (string)($data['csrf'] ?? '');
+
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
+            return $response->withHeader('Location', $this->redirect('/admin/pages/privacy'))->withStatus(302);
+        }
+
+        $svc = new SettingsService($this->db);
+
+        // Page title
+        $svc->set('privacy.title', trim((string)($data['privacy_title'] ?? 'Privacy Policy')) ?: 'Privacy Policy');
+
+        // Slug/permalink
+        $rawSlug = strtolower(trim((string)($data['privacy_slug'] ?? 'privacy-policy')));
+        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug ?? 'privacy-policy');
+        $cleanSlug = trim($cleanSlug, '-') ?: 'privacy-policy';
+        $svc->set('privacy.slug', $cleanSlug);
+
+        // Content (sanitize HTML to prevent XSS)
+        $contentRaw = (string)($data['privacy_content'] ?? '');
+        $svc->set('privacy.content', \App\Support\Sanitizer::html($contentRaw));
+
+        // Show in footer toggle
+        $showInFooter = isset($data['show_in_footer']) && $data['show_in_footer'] === 'on';
+        $svc->set('privacy.show_in_footer', $showInFooter);
+
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.privacy_page_saved')];
+        return $response->withHeader('Location', $this->redirect('/admin/pages/privacy'))->withStatus(302);
+    }
+
+    public function cookieForm(Request $request, Response $response): Response
+    {
+        $svc = new SettingsService($this->db);
+        $settings = [
+            'cookie.title' => (string)($svc->get('cookie.title', 'Cookie Policy') ?? 'Cookie Policy'),
+            'cookie.slug' => (string)($svc->get('cookie.slug', 'cookie-policy') ?? 'cookie-policy'),
+            'cookie.content' => (string)($svc->get('cookie.content', '') ?? ''),
+            'cookie.show_in_footer' => (bool)($svc->get('cookie.show_in_footer', true) ?? true),
+        ];
+        return $this->view->render($response, 'admin/pages/cookie.twig', [
+            'settings' => $settings,
+            'csrf' => $_SESSION['csrf'] ?? ''
+        ]);
+    }
+
+    public function saveCookie(Request $request, Response $response): Response
+    {
+        $data = (array)$request->getParsedBody();
+        $csrf = (string)($data['csrf'] ?? '');
+
+        if (!isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
+            return $response->withHeader('Location', $this->redirect('/admin/pages/cookie'))->withStatus(302);
+        }
+
+        $svc = new SettingsService($this->db);
+
+        // Page title
+        $svc->set('cookie.title', trim((string)($data['cookie_title'] ?? 'Cookie Policy')) ?: 'Cookie Policy');
+
+        // Slug/permalink
+        $rawSlug = strtolower(trim((string)($data['cookie_slug'] ?? 'cookie-policy')));
+        $cleanSlug = preg_replace('/[^a-z0-9\-]+/', '-', $rawSlug ?? 'cookie-policy');
+        $cleanSlug = trim($cleanSlug, '-') ?: 'cookie-policy';
+        $svc->set('cookie.slug', $cleanSlug);
+
+        // Content (sanitize HTML to prevent XSS)
+        $contentRaw = (string)($data['cookie_content'] ?? '');
+        $svc->set('cookie.content', \App\Support\Sanitizer::html($contentRaw));
+
+        // Show in footer toggle
+        $showInFooter = isset($data['show_in_footer']) && $data['show_in_footer'] === 'on';
+        $svc->set('cookie.show_in_footer', $showInFooter);
+
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.cookie_saved')];
+        return $response->withHeader('Location', $this->redirect('/admin/pages/cookie'))->withStatus(302);
     }
 
     private function getFilterSettings(): array
