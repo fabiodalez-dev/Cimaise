@@ -80,7 +80,9 @@ $referer = $_SERVER['HTTP_REFERER'] ?? '';
 $originHost = $origin !== '' ? (parse_url($origin, PHP_URL_HOST) ?? '') : '';
 $refererHost = $referer !== '' ? (parse_url($referer, PHP_URL_HOST) ?? '') : '';
 
-if (($originHost !== '' && $originHost !== $host) || ($originHost === '' && $refererHost !== $host)) {
+// Check origin first, fall back to referer if origin not present
+$requestHost = $originHost !== '' ? $originHost : $refererHost;
+if ($requestHost !== '' && $requestHost !== $host) {
     http_response_code(403);
     die('Invalid origin');
 }
@@ -197,9 +199,6 @@ function fixPermissions($path, $root, &$results, $writableDirs, $writableFiles, 
     }
 }
 
-// Run the permission fix
-fixPermissions($root, $root, $results, $writableDirs, $writableFiles);
-
 // Create missing directories
 $requiredDirs = [
     'storage/cache',
@@ -214,14 +213,16 @@ foreach ($requiredDirs as $dir) {
     $fullPath = $root . '/' . $dir;
     if (!is_dir($fullPath)) {
         if (mkdir($fullPath, 0775, true)) {
-            $results['directories']++;
-            $results['writable']++;
+            // Directory will be counted during permission scan
         } else {
             $error = error_get_last();
             $results['errors'][] = "Failed to create directory: $dir" . ($error ? " ({$error['message']})" : '');
         }
     }
 }
+
+// Run the permission fix
+fixPermissions($root, $root, $results, $writableDirs, $writableFiles);
 
 // Output results
 header('Content-Type: text/html; charset=utf-8');
