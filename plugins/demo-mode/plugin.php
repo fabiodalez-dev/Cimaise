@@ -93,7 +93,7 @@ class DemoModePlugin
     /**
      * Hook: cimaise_init - Ensure demo user exists
      */
-    public function ensureDemoUserExists($db, $pluginManager = null): void
+    public function ensureDemoUserExists($db, $_pluginManager = null): void
     {
         if ($db instanceof \App\Support\Database) {
             $this->createDemoUserIfNotExists($db);
@@ -216,7 +216,6 @@ HTML;
     private function renderDesktopTemplateSwitcher(string $basePath, string $currentTemplate, string $cspNonce = ''): void
     {
         $nonceAttr = $cspNonce ? " nonce=\"{$cspNonce}\"" : '';
-        $currentLabel = self::TEMPLATES[$currentTemplate] ?? 'Classic';
 
         // Build menu items
         $menuItems = '';
@@ -337,7 +336,7 @@ HTML;
     /**
      * Render admin demo banner
      */
-    public function renderAdminBanner(array $context): void
+    public function renderAdminBanner(array $_context): void
     {
         echo <<<HTML
     <div class="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 text-center text-sm font-medium shadow-md relative z-40">
@@ -359,7 +358,7 @@ HTML;
     /**
      * Render login page credentials box
      */
-    public function renderLoginCredentials(array $context): void
+    public function renderLoginCredentials(array $_context): void
     {
         $email = self::DEMO_EMAIL;
         $password = self::DEMO_PASSWORD;
@@ -429,7 +428,7 @@ HTML;
     /**
      * Render footer demo mode notice
      */
-    public function renderFooterNotice(array $context): void
+    public function renderFooterNotice(array $_context): void
     {
         echo <<<HTML
         <div class="mt-4 pt-4 border-t border-neutral-200 text-center">
