@@ -1567,11 +1567,19 @@
     <footer class="border-t border-neutral-200 mt-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex flex-col md:flex-row justify-between items-center">
-                <div class="text-sm text-neutral-600 flex items-center gap-3">
+                <div class="text-sm text-neutral-600 flex items-center flex-wrap gap-3">
                     <span>{{ site_copyright|replace_year }}</span>
                     {% if license_show_in_footer|default(false) %}
                     <span class="text-neutral-300">|</span>
                     <a href="{{ license_url|default(base_path ~ '/license') }}" class="hover:text-black transition-colors">{{ license_title_footer|default(trans('nav.license')) }}</a>
+                    {% endif %}
+                    {% if privacy_show_in_footer|default(false) %}
+                    <span class="text-neutral-300">|</span>
+                    <a href="{{ privacy_url|default(base_path ~ '/privacy-policy') }}" class="hover:text-black transition-colors">{{ privacy_title_footer|default(trans('nav.privacy')) }}</a>
+                    {% endif %}
+                    {% if cookie_show_in_footer|default(false) %}
+                    <span class="text-neutral-300">|</span>
+                    <a href="{{ cookie_url|default(base_path ~ '/cookie-policy') }}" class="hover:text-black transition-colors">{{ cookie_title_footer|default(trans('nav.cookie')) }}</a>
                     {% endif %}
                 </div>
                 

@@ -257,6 +257,18 @@ return function (App $app, array $container) {
         return $controller->license($request, $response);
     });
 
+    // Privacy Policy page with dynamic slug from settings
+    $app->get('/privacy-policy', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+        return $controller->privacy($request, $response);
+    });
+
+    // Cookie Policy page with dynamic slug from settings
+    $app->get('/cookie-policy', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
+        return $controller->cookie($request, $response);
+    });
+
     // Contact submit for About page
     $app->post('/about/contact', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Frontend\PageController($container['db'], Twig::fromRequest($request));
@@ -744,6 +756,28 @@ return function (App $app, array $container) {
     $app->post('/admin/pages/license', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
         return $controller->saveLicense($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
+    // Privacy Policy page edit
+    $app->get('/admin/pages/privacy', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+        return $controller->privacyForm($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
+    $app->post('/admin/pages/privacy', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+        return $controller->savePrivacy($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
+    // Cookie Policy page edit
+    $app->get('/admin/pages/cookie', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+        return $controller->cookieForm($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
+    $app->post('/admin/pages/cookie', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\PagesController($container['db'], Twig::fromRequest($request));
+        return $controller->saveCookie($request, $response);
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         return $handler->handle($request); });
 

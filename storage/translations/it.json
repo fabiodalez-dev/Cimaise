@@ -192,9 +192,15 @@
     "footer.terms": "Termini di Servizio"
   },
   "frontend": {
+    "frontend.cookie.default_description": "Informazioni sull'utilizzo dei cookie e delle tecnologie di tracciamento su questo sito.",
+    "frontend.cookie.no_content": "Nessuna informazione sulla cookie policy è stata ancora configurata.",
+    "frontend.cookie.title": "Cookie Policy",
     "frontend.license.default_description": "Termini di licenza e utilizzo per i contenuti di questo sito.",
     "frontend.license.no_content": "Nessuna informazione sulla licenza è stata ancora configurata.",
     "frontend.license.title": "Licenza",
+    "frontend.privacy.default_description": "Informazioni su come raccogliamo e trattiamo i tuoi dati personali.",
+    "frontend.privacy.no_content": "Nessuna informazione sulla privacy è stata ancora configurata.",
+    "frontend.privacy.title": "Privacy Policy",
     "frontend.nsfw_global.confirm": "Ho 18+ anni - Entra",
     "frontend.nsfw_global.decline": "Esci",
     "frontend.nsfw_global.disclaimer": "Continuando, confermi di essere maggiorenne nella tua giurisdizione.",
@@ -336,8 +342,10 @@
     "nav.contact": "Contatti",
     "nav.galleries": "Gallerie",
     "nav.home": "Home",
+    "nav.cookie": "Cookie Policy",
     "nav.license": "Licenza",
     "nav.menu": "Menu",
+    "nav.privacy": "Privacy Policy",
     "nav.tags": "Tag"
   },
   "pagination": {
