@@ -179,8 +179,9 @@ class DemoModePlugin
                 Templates
                 <i class="fas fa-chevron-down text-xs transition-transform duration-200 group-hover:rotate-180"></i>
             </button>
-            <div class="absolute left-0 top-full mt-2 w-48 bg-white border border-gray-200 shadow-xl rounded-xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:visible group-hover:translate-y-0">
-                <div class="py-2">
+            <div class="absolute left-0 top-full pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible z-50">
+                <div class="bg-white border border-gray-200 shadow-xl rounded-xl overflow-hidden transform translate-y-2 transition-all duration-300 ease-out group-hover:translate-y-0">
+                    <div class="py-2">
 HTML;
         foreach (self::TEMPLATES as $slug => $label) {
             $isActive = $slug === $currentTemplate ? ' bg-gray-100 font-semibold' : '';
@@ -192,6 +193,7 @@ HTML;
 HTML;
         }
         echo <<<HTML
+                    </div>
                 </div>
             </div>
         </div>
