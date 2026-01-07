@@ -144,14 +144,15 @@
     </script>
     {% endif %}
 
-    <!-- Font Awesome (icons) -->
-    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css">
-
+    <!-- CRITICAL CSS (render blocking) -->
+    <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css">
     <!-- Classic frontend styles (mobile only) -->
     <link rel="stylesheet" href="{{ base_path }}/assets/app.css" media="(max-width: 767px)">
 
-    <!-- Typography (local fonts, GDPR compliant) -->
-    <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css">
+    <!-- NON-CRITICAL CSS (async load to avoid render blocking) -->
+    <!-- Font Awesome (~100KB - defer loading, icons appear after paint) -->
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css"></noscript>
 
     <!-- Custom CSS (Frontend Only) -->
     {% if custom_css|default('') is not empty %}
@@ -163,8 +164,103 @@
 
     <!-- Modern Home Styles -->
     {% block styles %}{% endblock %}
+
+    <!-- First-Visit Preloader Curtain Styles -->
+    <style nonce="{{ csp_nonce() }}">
+        .preloader-curtain {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translateY(0);
+            transition: transform 0.65s cubic-bezier(0.76, 0, 0.24, 1);
+            will-change: transform;
+        }
+        html.dark .preloader-curtain {
+            background: #171717;
+        }
+        .preloader-curtain.preloader-exit {
+            transform: translateY(-100%);
+        }
+        .preloader-curtain.preloader-hidden {
+            display: none;
+        }
+        .preloader-content {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .preloader-curtain.preloader-exit .preloader-content {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        .preloader-logo {
+            max-height: 80px;
+            width: auto;
+            max-width: 200px;
+        }
+        .preloader-title {
+            font-family: var(--font-headings);
+            font-weight: var(--font-headings-weight);
+            font-size: 1.25rem;
+            color: #171717;
+        }
+        html.dark .preloader-title {
+            color: #fafafa;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .preloader-curtain {
+                transition: opacity 0.2s ease;
+                transform: none !important;
+            }
+            .preloader-curtain.preloader-exit {
+                opacity: 0;
+                transform: none !important;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- First-Visit Preloader Curtain -->
+    <div id="preloader-curtain" class="preloader-curtain preloader-hidden" aria-hidden="true">
+        <div class="preloader-content">
+            {% if logo_type == 'image' and site_logo %}
+                <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Portfolio')|e }}" class="preloader-logo">
+            {% else %}
+                <span class="preloader-title">{{ site_title|default('Portfolio') }}</span>
+            {% endif %}
+        </div>
+    </div>
+    <script nonce="{{ csp_nonce() }}">
+    (function() {
+        var preloader = document.getElementById('preloader-curtain');
+        if (!preloader) return;
+        try {
+            if (!sessionStorage.getItem('cimaise_visited')) {
+                preloader.classList.remove('preloader-hidden');
+                sessionStorage.setItem('cimaise_visited', '1');
+                var dismiss = function() {
+                    preloader.classList.add('preloader-exit');
+                    setTimeout(function() {
+                        preloader.classList.add('preloader-hidden');
+                    }, 700);
+                };
+                if (document.readyState === 'complete') {
+                    setTimeout(dismiss, 400);
+                } else {
+                    window.addEventListener('load', function() {
+                        setTimeout(dismiss, 400);
+                    });
+                }
+            }
+        } catch (e) {
+            preloader.classList.add('preloader-hidden');
+        }
+    })();
+    </script>
     {% block content %}{% endblock %}
 
     {# Essential JavaScript - Always loaded (no consent required) #}

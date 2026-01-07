@@ -79,9 +79,6 @@ build-tmp/
 # Maintenance mode
 storage/.maintenance
 
-# Documentation (internal only)
-updater.md
-
 # Local database files (only database.sqlite, NOT template.sqlite)
 database/database.sqlite
 database/cimaise.sqlite
@@ -89,6 +86,7 @@ database/cimaise.sqlite
 # Local documentation files (not tracked)
 AGENTS.md
 CHANGELOG.md
+PERFORMANCE.md
 
 # Claude memory context files (anywhere in repo)
 **/CLAUDE.md
