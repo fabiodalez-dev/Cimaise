@@ -18,7 +18,7 @@
   @return string - Alt text (max ~125 chars for SEO)
 #}
 {% macro smart_alt(image, album, site_title) %}
-{%- spaceless %}
+{% apply spaceless %}
   {# Priority 1: User-defined alt text #}
   {% if image.alt_text is defined and image.alt_text %}
     {{ image.alt_text }}
@@ -71,7 +71,7 @@
       {{ trans('general.image')|default('Photo') }}
     {% endif %}
   {% endif %}
-{% endspaceless -%}
+{% endapply -%}
 {% endmacro %}
 
 {#
@@ -83,7 +83,7 @@
   @return string - Title text
 #}
 {% macro smart_title(image, album) %}
-{%- spaceless %}
+{%- apply spaceless %}
   {% set parts = [] %}
 
   {# Caption or image title #}
@@ -133,7 +133,7 @@
   {% endif %}
 
   {{ parts|join(' — ') }}
-{% endspaceless -%}
+{% endapply -%}
 {% endmacro %}
 
 {#
@@ -144,7 +144,7 @@
   @return string - Clean title for sitemap
 #}
 {% macro sitemap_image_title(image, album) %}
-{%- spaceless %}
+{%- apply spaceless %}
   {% if image.caption is defined and image.caption %}
     {{ image.caption|striptags }}
   {% elseif image.alt_text is defined and image.alt_text %}
@@ -154,7 +154,7 @@
   {% else %}
     Photo
   {% endif %}
-{% endspaceless -%}
+{% endapply -%}
 {% endmacro %}
 
 {#
@@ -165,7 +165,7 @@
   @return string - Caption/description for sitemap
 #}
 {% macro sitemap_image_caption(image, album) %}
-{%- spaceless %}
+{%- apply spaceless %}
   {% set parts = [] %}
 
   {% if image.caption is defined and image.caption %}
@@ -191,5 +191,5 @@
   {% elseif album is defined and album.title %}
     {{ album.title }}
   {% endif %}
-{% endspaceless -%}
+{% endapply -%}
 {% endmacro %}

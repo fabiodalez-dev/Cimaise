@@ -1,3 +1,7 @@
+# Universal .htaccess for Cimaise CMS
+# Works with: subdomain, subdirectory, or root installation
+# DocumentRoot can point to this folder (not public/)
+
 # PHP Upload Limits Override (per Apache)
 <IfModule mod_php.c>
     php_value upload_max_filesize 32M
@@ -9,46 +13,75 @@
 </IfModule>
 
 <IfModule mod_rewrite.c>
-  RewriteEngine On
-  
-  # Skip if already in public directory
-  RewriteRule ^public/ - [L]
-  
-  # If the request is not for an existing file or directory, route into /public
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^(.*)$ public/$1 [L]
+    RewriteEngine On
+
+    # Block access to sensitive files
+    RewriteRule ^\.env$ - [F,L]
+    RewriteRule ^\.htaccess$ - [F,L]
+    RewriteRule \.sqlite$ - [F,L]
+    RewriteRule \.log$ - [F,L]
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
+    RewriteRule ^package(-lock)?\.json$ - [F,L]
+
+    # Block access to sensitive directories
+    RewriteRule ^vendor/ - [F,L]
+    RewriteRule ^storage/ - [F,L]
+    RewriteRule ^app/ - [F,L]
+    RewriteRule ^database/ - [F,L]
+    RewriteRule ^config/ - [F,L]
+    RewriteRule ^bin/ - [F,L]
+
+    # If request is for public/ directory, serve directly (for direct access)
+    RewriteCond %{REQUEST_URI} ^/public/
+    RewriteRule ^public/(.*)$ public/$1 [L]
+
+    # Route everything through index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+
+    # If file exists in current directory, serve it (for existing static files)
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
 </IfModule>
 
+# Fallback: If mod_rewrite is not available
+<IfModule !mod_rewrite.c>
+    DirectoryIndex index.php
+    ErrorDocument 404 /index.php
+</IfModule>
 
+# Deny access to hidden files (dotfiles)
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
 
-# Protect sensitive files
-<Files ".env">
-    Order Allow,Deny
-    Deny from all
-</Files>
+# Deny access to sensitive file extensions
+<FilesMatch "\.(env|sqlite|log|sql|bak|old|orig|tmp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
 
-<Files ".env.*">
-    Order Allow,Deny
-    Deny from all
-</Files>
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
 
-<Files "composer.json">
-    Order Allow,Deny
-    Deny from all
-</Files>
+# Disable directory listing
+Options -Indexes
 
-<Files "composer.lock">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files "package.json">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-<Files "package-lock.json">
-    Order Allow,Deny
-    Deny from all
-</Files>
+# Set default charset
+AddDefaultCharset UTF-8

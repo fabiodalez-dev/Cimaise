@@ -153,7 +153,15 @@ class PageController extends BaseController
 
         // Fetch home page settings
         $svc = new \App\Services\SettingsService($this->db);
-        $homeTemplate = (string) ($svc->get('home.template', 'classic') ?? 'classic');
+
+        // Allow template override via query parameter (for demo/preview)
+        $queryParams = $request->getQueryParams();
+        $validTemplates = ['classic', 'modern', 'parallax', 'masonry', 'snap', 'gallery'];
+        $templateOverride = isset($queryParams['template']) && in_array($queryParams['template'], $validTemplates, true)
+            ? $queryParams['template']
+            : null;
+
+        $homeTemplate = $templateOverride ?? (string) ($svc->get('home.template', 'classic') ?? 'classic');
         $homeSettings = [
             'template' => $homeTemplate,
             'hero_title' => (string) ($svc->get('home.hero_title', 'Portfolio') ?? 'Portfolio'),
@@ -1982,6 +1990,78 @@ class PageController extends BaseController
             'robots' => $seo['robots'],
             'license_title' => $licenseTitle,
             'license_content' => $licenseContent,
+            'is_admin' => $isAdmin,
+            'nsfw_consent' => $nsfwConsent
+        ]);
+    }
+
+    public function privacy(Request $request, Response $response): Response
+    {
+        // categories for header
+        $navCategories = $this->getNavigationService()->getNavigationCategories();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
+
+        // settings
+        $settings = new \App\Services\SettingsService($this->db);
+        $privacyTitle = (string) ($settings->get('privacy.title', 'Privacy Policy') ?? 'Privacy Policy');
+        $privacyContent = (string) ($settings->get('privacy.content', '') ?? '');
+
+        // Privacy SEO
+        $shortContent = trim(strip_tags($privacyContent));
+        if ($shortContent !== '') {
+            $shortContent = mb_substr($shortContent, 0, 160);
+        }
+        $seo = $this->buildSeo($request, $privacyTitle, $shortContent ?: trans('frontend.privacy.default_description'));
+
+        return $this->view->render($response, 'frontend/privacy.twig', [
+            'categories' => $navCategories,
+            'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
+            'page_title' => $seo['page_title'],
+            'meta_description' => $seo['meta_description'],
+            'meta_image' => $seo['meta_image'],
+            'current_url' => $seo['current_url'],
+            'canonical_url' => $seo['canonical_url'],
+            'og_site_name' => $seo['og_site_name'],
+            'robots' => $seo['robots'],
+            'privacy_title' => $privacyTitle,
+            'privacy_content' => $privacyContent,
+            'is_admin' => $isAdmin,
+            'nsfw_consent' => $nsfwConsent
+        ]);
+    }
+
+    public function cookie(Request $request, Response $response): Response
+    {
+        // categories for header
+        $navCategories = $this->getNavigationService()->getNavigationCategories();
+        $isAdmin = $this->isAdmin();
+        $nsfwConsent = $this->hasNsfwConsent();
+
+        // settings
+        $settings = new \App\Services\SettingsService($this->db);
+        $cookieTitle = (string) ($settings->get('cookie.title', 'Cookie Policy') ?? 'Cookie Policy');
+        $cookieContent = (string) ($settings->get('cookie.content', '') ?? '');
+
+        // Cookie SEO
+        $shortContent = trim(strip_tags($cookieContent));
+        if ($shortContent !== '') {
+            $shortContent = mb_substr($shortContent, 0, 160);
+        }
+        $seo = $this->buildSeo($request, $cookieTitle, $shortContent ?: trans('frontend.cookie.default_description'));
+
+        return $this->view->render($response, 'frontend/cookie.twig', [
+            'categories' => $navCategories,
+            'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
+            'page_title' => $seo['page_title'],
+            'meta_description' => $seo['meta_description'],
+            'meta_image' => $seo['meta_image'],
+            'current_url' => $seo['current_url'],
+            'canonical_url' => $seo['canonical_url'],
+            'og_site_name' => $seo['og_site_name'],
+            'robots' => $seo['robots'],
+            'cookie_title' => $cookieTitle,
+            'cookie_content' => $cookieContent,
             'is_admin' => $isAdmin,
             'nsfw_consent' => $nsfwConsent
         ]);
