@@ -475,129 +475,305 @@ function patchHtaccess(string $demoRoot, bool $dryRun): void {
 }
 
 function patchRootHtaccess(string $demoRoot, bool $dryRun): void {
-    logMsg("Creating demo root .htaccess for subdirectory routing");
+    logMsg("Creating universal root .htaccess (no hardcoded paths)");
     if ($dryRun) return;
 
-    $file = "$demoRoot/.htaccess";
+    // Copy the universal htaccess from main project root
+    $srcFile = dirname(__DIR__) . '/.htaccess';
+    $dstFile = "$demoRoot/.htaccess";
 
-    // Create a simple .htaccess that redirects to public/
-    // Using same approach as main project - no RewriteBase needed
-    $content = <<<'HTACCESS'
-# Redirect all requests to public/ directory
-# For demo site at /cimaise/ subdirectory
+    if (file_exists($srcFile)) {
+        copy($srcFile, $dstFile);
+        logMsg("  Copied universal .htaccess from main project");
+    } else {
+        warnMsg("Universal .htaccess not found at $srcFile, creating fallback");
+        // Create universal htaccess without hardcoded paths
+        $content = <<<'HTACCESS'
+# Universal .htaccess for Cimaise CMS
+# Works with: subdomain, subdirectory, or root installation
+# DocumentRoot can point to this folder (not public/)
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Skip if already in public directory
-    RewriteRule ^public/ - [L]
+    # Block access to sensitive files
+    RewriteRule ^\.env$ - [F,L]
+    RewriteRule ^\.htaccess$ - [F,L]
+    RewriteRule \.sqlite$ - [F,L]
+    RewriteRule \.log$ - [F,L]
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
+    RewriteRule ^package(-lock)?\.json$ - [F,L]
 
-    # Route all requests to public/
-    RewriteRule ^(.*)$ public/$1 [L]
+    # Block access to sensitive directories
+    RewriteRule ^vendor/ - [F,L]
+    RewriteRule ^storage/ - [F,L]
+    RewriteRule ^app/ - [F,L]
+    RewriteRule ^database/ - [F,L]
+    RewriteRule ^config/ - [F,L]
+    RewriteRule ^bin/ - [F,L]
+
+    # If request is for public/ directory, serve directly
+    RewriteCond %{REQUEST_URI} ^/public/
+    RewriteRule ^public/(.*)$ public/$1 [L]
+
+    # Route everything through index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+
+    # If file exists in current directory, serve it
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
 </IfModule>
 
-# Fallback: If mod_rewrite fails, use index.php as router
-DirectoryIndex index.php
-ErrorDocument 404 /cimaise/index.php
+# Fallback: If mod_rewrite is not available
+<IfModule !mod_rewrite.c>
+    DirectoryIndex index.php
+    ErrorDocument 404 /index.php
+</IfModule>
 
-# Deny access to sensitive files
+# Deny access to hidden files (dotfiles)
 <FilesMatch "^\.">
-    Order allow,deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
-<FilesMatch "\.(env|sqlite|log)$">
-    Order allow,deny
-    Deny from all
+# Deny access to sensitive file extensions
+<FilesMatch "\.(env|sqlite|log|sql|bak|old|orig|tmp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
 HTACCESS;
-
-    file_put_contents($file, $content);
+        file_put_contents($dstFile, $content);
+    }
 }
 
 function createRootIndexPhp(string $demoRoot, bool $dryRun): void {
-    logMsg("Creating root index.php for subdirectory fallback");
+    logMsg("Creating universal root index.php (auto-detects base path)");
     if ($dryRun) return;
 
-    $file = "$demoRoot/index.php";
+    // Copy the universal router from main project root
+    $srcFile = dirname(__DIR__) . '/index.php';
+    $dstFile = "$demoRoot/index.php";
 
-    // Create a PHP router that handles all requests when AllowOverride is disabled
-    // This serves static files directly and forwards dynamic requests to the app
-    $content = <<<'PHP'
+    if (file_exists($srcFile)) {
+        copy($srcFile, $dstFile);
+        logMsg("  Copied universal router from main project");
+    } else {
+        warnMsg("Universal router not found at $srcFile, creating inline version");
+        // Create universal router inline as fallback
+        $content = file_get_contents(dirname(__DIR__) . '/index.php') ?: createUniversalRouterContent();
+        file_put_contents($dstFile, $content);
+    }
+}
+
+function createUniversalRouterContent(): string {
+    return <<<'PHP'
 <?php
+declare(strict_types=1);
 /**
- * Root index.php for subdirectory installations
- * Handles URL routing when AllowOverride is disabled
+ * Universal Router for Cimaise CMS
  *
- * This file catches all requests and forwards them to public/index.php
+ * Works with ANY installation type:
+ * - Subdomain (e.g., demo.example.com) - basePath = ""
+ * - Subdirectory (e.g., example.com/cimaise/) - basePath = "/cimaise"
+ * - Root installation (e.g., example.com/) - basePath = ""
+ *
+ * DocumentRoot can point to this folder (not public/)
+ *
+ * This file:
+ * 1. Auto-detects the base path for subdirectory installations
+ * 2. Serves static files from public/ with correct MIME types
+ * 3. Routes /media/* through PHP for access control (NSFW/password protection)
+ * 4. Forwards all other requests to public/index.php
  */
 
-// Get the request URI and strip the base path
-$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-$basePath = '/cimaise';
-
-// Remove base path from request URI
-$path = $requestUri;
-if (str_starts_with($path, $basePath)) {
-    $path = substr($path, strlen($basePath));
+// Detect base path from SCRIPT_NAME
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
+$basePath = dirname($scriptName);
+if ($basePath === '/' || $basePath === '\\' || $basePath === '.') {
+    $basePath = '';
 }
-if ($path === '' || $path === false) {
-    $path = '/';
+
+// Get the full request URI
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+$fullPath = parse_url($requestUri, PHP_URL_PATH);
+if ($fullPath === '' || $fullPath === false) {
+    $fullPath = '/';
+}
+
+// Remove base path from request to get the relative path
+$path = $fullPath;
+if ($basePath !== '' && str_starts_with($path, $basePath)) {
+    $path = substr($path, strlen($basePath));
+    if ($path === '' || $path === false) {
+        $path = '/';
+    }
+}
+
+// Ensure path starts with /
+if (!str_starts_with($path, '/')) {
+    $path = '/' . $path;
+}
+
+// Remove trailing slash except for root
+if ($path !== '/' && str_ends_with($path, '/')) {
+    $path = rtrim($path, '/');
+}
+
+// MIME types for static files
+$mimeTypes = [
+    'js' => 'application/javascript',
+    'mjs' => 'application/javascript',
+    'css' => 'text/css',
+    'json' => 'application/json',
+    'webmanifest' => 'application/manifest+json',
+    'png' => 'image/png',
+    'jpg' => 'image/jpeg',
+    'jpeg' => 'image/jpeg',
+    'gif' => 'image/gif',
+    'webp' => 'image/webp',
+    'avif' => 'image/avif',
+    'svg' => 'image/svg+xml',
+    'ico' => 'image/x-icon',
+    'bmp' => 'image/bmp',
+    'woff' => 'font/woff',
+    'woff2' => 'font/woff2',
+    'ttf' => 'font/ttf',
+    'otf' => 'font/otf',
+    'eot' => 'application/vnd.ms-fontobject',
+    'xml' => 'application/xml',
+    'txt' => 'text/plain',
+    'html' => 'text/html',
+    'htm' => 'text/html',
+    'pdf' => 'application/pdf',
+    'mp4' => 'video/mp4',
+    'webm' => 'video/webm',
+    'mp3' => 'audio/mpeg',
+    'ogg' => 'audio/ogg',
+    'wav' => 'audio/wav',
+    'zip' => 'application/zip',
+];
+
+// Security: Block access to sensitive files and directories
+$blockedPatterns = [
+    '/^\\/\\./',
+    '/\\.sqlite$/i',
+    '/\\.log$/i',
+    '/^\\/vendor\\//i',
+    '/^\\/storage\\//i',
+    '/^\\/app\\//i',
+    '/^\\/database\\//i',
+    '/^\\/config\\//i',
+    '/^\\/bin\\//i',
+    '/composer\\.(json|lock)$/i',
+    '/package(-lock)?\\.json$/i',
+];
+
+foreach ($blockedPatterns as $pattern) {
+    if (preg_match($pattern, $path)) {
+        http_response_code(403);
+        echo '403 Forbidden';
+        exit;
+    }
+}
+
+// /media/* requests MUST go through PHP for access control
+$forcePhpRoutes = [
+    '/^\\/media\\//',
+    '/^\\/fonts\\/typography\\.css$/',
+];
+
+$forcePhp = false;
+foreach ($forcePhpRoutes as $pattern) {
+    if (preg_match($pattern, $path)) {
+        $forcePhp = true;
+        break;
+    }
 }
 
 // Check if this is a request for a static file in public/
-$publicFile = __DIR__ . '/public' . parse_url($path, PHP_URL_PATH);
-if (is_file($publicFile)) {
-    // Serve static file with correct MIME type
-    $ext = strtolower(pathinfo($publicFile, PATHINFO_EXTENSION));
-    $mimeTypes = [
-        'js' => 'application/javascript',
-        'css' => 'text/css',
-        'json' => 'application/json',
-        'png' => 'image/png',
-        'jpg' => 'image/jpeg',
-        'jpeg' => 'image/jpeg',
-        'gif' => 'image/gif',
-        'webp' => 'image/webp',
-        'avif' => 'image/avif',
-        'svg' => 'image/svg+xml',
-        'ico' => 'image/x-icon',
-        'woff' => 'font/woff',
-        'woff2' => 'font/woff2',
-        'ttf' => 'font/ttf',
-        'eot' => 'application/vnd.ms-fontobject',
-        'webmanifest' => 'application/manifest+json',
-        'xml' => 'application/xml',
-        'txt' => 'text/plain',
-        'html' => 'text/html',
-        'htm' => 'text/html',
-    ];
+if (!$forcePhp) {
+    $publicFile = __DIR__ . '/public' . $path;
+    $realPath = realpath($publicFile);
+    $publicDir = realpath(__DIR__ . '/public');
 
-    $mimeType = $mimeTypes[$ext] ?? 'application/octet-stream';
-    header('Content-Type: ' . $mimeType);
-    header('Content-Length: ' . filesize($publicFile));
-    readfile($publicFile);
-    exit;
+    if ($realPath !== false && $publicDir !== false && str_starts_with($realPath, $publicDir) && is_file($realPath)) {
+        $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
+
+        if (isset($mimeTypes[$ext])) {
+            $mimeType = $mimeTypes[$ext];
+            $cacheableTypes = ['js', 'css', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'otf', 'eot'];
+            if (in_array($ext, $cacheableTypes)) {
+                header('Cache-Control: public, max-age=31536000, immutable');
+            }
+
+            header('Content-Type: ' . $mimeType);
+            header('Content-Length: ' . filesize($realPath));
+            header('X-Content-Type-Options: nosniff');
+
+            $etag = '"' . md5_file($realPath) . '"';
+            header('ETag: ' . $etag);
+
+            if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+                http_response_code(304);
+                exit;
+            }
+
+            readfile($realPath);
+            exit;
+        }
+    }
 }
 
-// Change working directory to public/
+// Route through PHP application
 chdir(__DIR__ . '/public');
+$_SERVER['SCRIPT_FILENAME'] = __DIR__ . '/public/index.php';
+$_SERVER['SCRIPT_NAME'] = $basePath . '/index.php';
+$_SERVER['PHP_SELF'] = $basePath . '/index.php';
 
-// Include the main application entry point
 require __DIR__ . '/public/index.php';
 PHP;
-
-    file_put_contents($file, $content);
 }
 
 function createDemoTemplateMenu(string $demoRoot, bool $dryRun): void {
-    logMsg("Creating demo-only file: _demo_template_menu.twig");
+    logMsg("Preserving demo-only file: _demo_template_menu.twig");
     if ($dryRun) return;
 
     $file = "$demoRoot/app/Views/frontend/_demo_template_menu.twig";
 
+    // If file already exists with demo content, skip (preserve manual edits)
+    if (file_exists($file) && str_contains(file_get_contents($file), 'Demo Mode')) {
+        logMsg("  Template menu already exists, preserving");
+        return;
+    }
+
+    // Create comprehensive demo menu with login link and detailed descriptions
     $content = <<<'TWIG'
-{# Demo Mode: Home Template Switcher Dropdown #}
+{# Demo Mode: Home Template Switcher Dropdown + Admin Login Link #}
 <style nonce="{{ csp_nonce() }}">
 #demo-home-templates .demo-dropdown {
     opacity: 0;
@@ -605,12 +781,14 @@ function createDemoTemplateMenu(string $demoRoot, bool $dryRun): void {
     transform: translateY(4px);
     transition: all 0.2s ease;
 }
-#demo-home-templates:hover .demo-dropdown {
+#demo-home-templates:hover .demo-dropdown,
+#demo-home-templates:focus-within .demo-dropdown {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
 }
-#demo-home-templates:hover .demo-chevron {
+#demo-home-templates:hover .demo-chevron,
+#demo-home-templates:focus-within .demo-chevron {
     transform: rotate(180deg);
 }
 .demo-menu-item:hover {
@@ -621,70 +799,102 @@ function createDemoTemplateMenu(string $demoRoot, bool $dryRun): void {
 }
 </style>
 <div class="relative" id="demo-home-templates">
-    <button class="flex items-center gap-2 text-sm font-medium hover:text-gray-600 dark:hover:text-gray-300 py-2 transition-colors">
-        <i class="fas fa-palette"></i>
-        <span>Home Templates</span>
+    <button class="flex items-center gap-2 text-sm font-medium hover:text-gray-600 dark:hover:text-gray-300 py-2 transition-colors" aria-haspopup="true" aria-expanded="false">
+        <i class="fas fa-flask text-amber-500"></i>
+        <span>Demo</span>
         <i class="fas fa-chevron-down text-xs transition-transform demo-chevron"></i>
     </button>
-    <div class="demo-dropdown absolute left-0 top-full mt-1 w-64 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 shadow-xl rounded-xl z-50">
+    <div class="demo-dropdown absolute left-0 top-full mt-1 w-80 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 shadow-xl rounded-xl z-50">
         <div class="p-3">
-            <div class="text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold mb-2 px-3">Home Templates</div>
+            {# Demo Info Header #}
+            <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-3 mb-3">
+                <div class="flex items-center gap-2 text-amber-800 dark:text-amber-200 font-medium text-sm mb-1">
+                    <i class="fas fa-info-circle"></i>
+                    Demo Mode Active
+                </div>
+                <p class="text-xs text-amber-700 dark:text-amber-300/80">
+                    This is a live demo of Cimaise CMS. Explore different homepage templates below or access the admin panel to test all features.
+                </p>
+            </div>
+
+            {# Admin Login Link #}
+            <a href="{{ base_path }}/admin/login" class="demo-menu-item flex items-center gap-3 px-3 py-3 text-sm rounded-lg transition-colors bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 mb-3">
+                <i class="fas fa-sign-in-alt w-5 text-center"></i>
+                <div class="flex-1">
+                    <div class="font-semibold">Access Admin Panel</div>
+                    <div class="text-xs opacity-80">demo@cimaise.local / password123</div>
+                </div>
+                <i class="fas fa-arrow-right text-xs opacity-60"></i>
+            </a>
+
+            {# Template Switcher Section #}
+            <div class="text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold mb-2 px-3">Choose a Homepage Template</div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 px-3 mb-3">Click any template to preview how your photography portfolio could look:</p>
+
             <ul class="space-y-1">
                 <li>
                     <a href="{{ base_path }}/?template=classic" class="demo-menu-item flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors">
                         <i class="fas fa-images text-gray-600 dark:text-gray-400 w-5 text-center"></i>
-                        <div>
+                        <div class="flex-1">
                             <div class="font-medium">Classic</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Hero + masonry + carousel</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Traditional portfolio layout with hero section, masonry photo grid, and album carousel. Perfect for professional photographers.</div>
                         </div>
                     </a>
                 </li>
                 <li>
                     <a href="{{ base_path }}/?template=modern" class="demo-menu-item flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors">
                         <i class="fas fa-th-large text-indigo-500 w-5 text-center"></i>
-                        <div>
+                        <div class="flex-1">
                             <div class="font-medium">Modern</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Sidebar + grid + smooth scroll</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Minimalist design with fixed sidebar, two-column infinite scroll grid, and Lenis smooth scrolling. Ultra-modern feel.</div>
                         </div>
                     </a>
                 </li>
                 <li>
                     <a href="{{ base_path }}/?template=parallax" class="demo-menu-item flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors">
                         <i class="fas fa-layer-group text-cyan-500 w-5 text-center"></i>
-                        <div>
+                        <div class="flex-1">
                             <div class="font-medium">Parallax</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Full-screen parallax effects</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Immersive full-screen sections with parallax depth effects. Each scroll reveals new stunning visuals with cinematic transitions.</div>
                         </div>
                     </a>
                 </li>
                 <li>
                     <a href="{{ base_path }}/?template=masonry" class="demo-menu-item flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors">
                         <i class="fas fa-grip-vertical text-pink-500 w-5 text-center"></i>
-                        <div>
+                        <div class="flex-1">
                             <div class="font-medium">Pure Masonry</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">True masonry grid layout</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Pinterest-style masonry grid showcasing photos in their native aspect ratios. No cropping, pure visual impact.</div>
                         </div>
                     </a>
                 </li>
                 <li>
                     <a href="{{ base_path }}/?template=snap" class="demo-menu-item flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors">
                         <i class="fas fa-arrows-alt-v text-amber-500 w-5 text-center"></i>
-                        <div>
+                        <div class="flex-1">
                             <div class="font-medium">Snap Albums</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Full-screen scroll-snap</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Full-screen album presentations with scroll-snap navigation. Each album gets a dedicated full-viewport showcase.</div>
                         </div>
                     </a>
                 </li>
                 <li>
                     <a href="{{ base_path }}/?template=gallery" class="demo-menu-item flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors">
                         <i class="fas fa-grip-horizontal text-green-500 w-5 text-center"></i>
-                        <div>
+                        <div class="flex-1">
                             <div class="font-medium">Gallery Wall</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Horizontal scroll animation</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Horizontal scrolling gallery wall with smooth animation. Like walking through a real photography exhibition.</div>
                         </div>
                     </a>
                 </li>
             </ul>
+
+            {# Reset Info #}
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-neutral-700">
+                <p class="text-xs text-gray-400 dark:text-gray-500 px-3 text-center">
+                    <i class="fas fa-sync-alt mr-1"></i>
+                    Demo resets automatically every 24 hours
+                </p>
+            </div>
         </div>
     </div>
 </div>

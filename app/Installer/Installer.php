@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Installer;
 
 use App\Support\Database;
+use App\Support\Logger;
 
 class Installer
 {
@@ -1014,7 +1015,13 @@ HTACCESS;
         foreach ($requiredDirs as $dir) {
             $fullPath = $this->rootPath . '/' . $dir;
             if (!is_dir($fullPath)) {
-                @mkdir($fullPath, 0775, true);
+                $created = mkdir($fullPath, 0775, true);
+                if (!$created && !is_dir($fullPath)) {
+                    Logger::warning('Installer: Failed to create directory', [
+                        'path' => $fullPath,
+                        'perm' => sprintf('%o', 0775),
+                    ], 'installer');
+                }
             }
         }
 
@@ -1022,7 +1029,9 @@ HTACCESS;
         $this->fixPermissionsRecursive(
             $this->rootPath,
             $writableDirs,
-            $writableFiles
+            $writableFiles,
+            0,
+            10
         );
     }
 
@@ -1032,7 +1041,9 @@ HTACCESS;
     private function fixPermissionsRecursive(
         string $path,
         array $writableDirs,
-        array $writableFiles
+        array $writableFiles,
+        int $depth = 0,
+        int $maxDepth = 10
     ): void {
         if (!file_exists($path)) {
             return;
@@ -1043,6 +1054,14 @@ HTACCESS;
             : ltrim(str_replace($this->rootPath, '', $path), '/');
 
         if (is_dir($path)) {
+            if ($depth > $maxDepth) {
+                Logger::warning('Installer: Permission scan depth limit reached', [
+                    'path' => $relativePath,
+                    'max_depth' => $maxDepth,
+                ], 'installer');
+                return;
+            }
+
             // Check if this directory should be writable
             $isWritable = false;
             foreach ($writableDirs as $dir) {
@@ -1053,26 +1072,38 @@ HTACCESS;
             }
 
             $targetPerm = $isWritable ? 0775 : 0755;
-            @chmod($path, $targetPerm);
+            if (!chmod($path, $targetPerm)) {
+                Logger::warning('Installer: Failed to set directory permissions', [
+                    'path' => $path,
+                    'perm' => sprintf('%o', $targetPerm),
+                ], 'installer');
+            }
 
-            // Skip vendor directory (too many files)
-            if ($relativePath === 'vendor') {
+            // Skip heavy directories
+            if ($relativePath === 'vendor' || str_starts_with($relativePath, 'storage/originals')) {
                 return;
             }
 
             // Process contents
-            $items = @scandir($path);
-            if ($items) {
-                foreach ($items as $item) {
-                    if ($item === '.' || $item === '..') {
-                        continue;
-                    }
-                    $this->fixPermissionsRecursive(
-                        $path . '/' . $item,
-                        $writableDirs,
-                        $writableFiles
-                    );
+            $items = scandir($path);
+            if ($items === false) {
+                Logger::warning('Installer: Failed to scan directory', [
+                    'path' => $path,
+                ], 'installer');
+                return;
+            }
+
+            foreach ($items as $item) {
+                if ($item === '.' || $item === '..') {
+                    continue;
                 }
+                $this->fixPermissionsRecursive(
+                    $path . '/' . $item,
+                    $writableDirs,
+                    $writableFiles,
+                    $depth + 1,
+                    $maxDepth
+                );
             }
         } else {
             // It's a file
@@ -1090,7 +1121,12 @@ HTACCESS;
             }
 
             $targetPerm = $isWritable ? 0664 : 0644;
-            @chmod($path, $targetPerm);
+            if (!chmod($path, $targetPerm)) {
+                Logger::warning('Installer: Failed to set file permissions', [
+                    'path' => $path,
+                    'perm' => sprintf('%o', $targetPerm),
+                ], 'installer');
+            }
         }
     }
 
