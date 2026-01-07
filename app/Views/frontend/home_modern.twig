@@ -98,7 +98,7 @@
                         <a href="{{ base_path }}/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.home') }}</a>
                         <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.galleries') }}</a>
                         <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.about') }}</a>
-                        {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'desktop'}) }}
+                        {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'desktop', 'csp_nonce': csp_nonce()}) }}
 
                         <!-- Categories Mega Menu -->
                         <div class="relative" id="categories-dropdown">
@@ -205,7 +205,7 @@
                     <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.home') }}</a>
                     <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.galleries') }}</a>
                     <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.about') }}</a>
-                    {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'mobile'}) }}
+                    {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'mobile', 'csp_nonce': csp_nonce()}) }}
                     {% if is_admin %}
                     <a href="{{ base_path }}/admin" class="block text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-md p-3 transition-colors duration-200">
                         <i class="fas fa-cog mr-2"></i>{{ trans('nav.admin_dashboard')|default('Admin Dashboard') }}
@@ -462,7 +462,7 @@
         <a href="{{ galleries_url|default(base_path ~ '/galleries') }}" class="mega-menu_link">{{ trans('nav.galleries')|default('Galleries') }}</a>
         {% set about_href = about_url|default('/about') %}
         <a href="{% if about_href starts with '/' %}{{ base_path }}{{ about_href }}{% else %}{{ about_href }}{% endif %}" class="mega-menu_link">{{ trans('nav.about')|default('About') }}</a>
-        {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'mega-menu'}) }}
+        {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'mega-menu', 'csp_nonce': csp_nonce()}) }}
     </nav>
 </div>
 
