@@ -8,6 +8,7 @@ use App\Services\SettingsService;
 use App\Services\VariantMaintenanceService;
 use App\Support\CookieHelper;
 use App\Support\Database;
+use App\Support\Hooks;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -300,6 +301,12 @@ class AuthController extends BaseController
 
         if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.csrf_invalid')];
+            return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
+        }
+
+        // Filter: auth_can_change_password - Plugins can return false and set a flash message to block
+        $canChange = Hooks::applyFilter('auth_can_change_password', true, $_SESSION['admin_id']);
+        if ($canChange === false) {
             return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
         }
 

@@ -173,16 +173,19 @@
 
     <!-- NON-CRITICAL CSS - Loaded async to avoid render blocking -->
     <!-- PhotoSwipe CSS (only needed when lightbox opens) -->
-    <link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css" media="print" id="photoswipe-css">
     <noscript><link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/photoswipe.css"></noscript>
 
     <!-- Swiper CSS (only needed for carousels) -->
-    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.css" media="print" id="swiper-css">
     <noscript><link rel="stylesheet" href="{{ base_path }}/assets/vendor/swiper/swiper-bundle.min.css"></noscript>
 
     <!-- Font Awesome (~100KB - defer loading, icons appear after paint) -->
-    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" media="print" id="fontawesome-css">
     <noscript><link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css"></noscript>
+
+    <!-- CSP-compliant async CSS loading (replaces inline onload handlers) -->
+    <script nonce="{{ csp_nonce() }}">['photoswipe-css','swiper-css','fontawesome-css'].forEach(function(id){var e=document.getElementById(id);if(e){if(e.sheet){e.media='all';}else{e.onload=function(){this.media='all';};}}});</script>
     
     <!-- Custom styles -->
     <style nonce="{{ csp_nonce() }}">
@@ -1385,7 +1388,9 @@
                         <a href="{{ base_path }}/" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.home') }}</a>
                         <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.galleries') }}</a>
                         <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.about') }}</a>
-                        
+
+                        {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'desktop'}) }}
+
                         <!-- Categories Mega Menu -->
                         <div class="static" id="categories-dropdown">
                             <button id="categories-toggle" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md" aria-haspopup="true" aria-expanded="false" aria-controls="categories-mega-menu">
@@ -1539,6 +1544,9 @@
                     <a href="{{ base_path }}/" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.home') }}</a>
                     <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.galleries') }}</a>
                     <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.about') }}</a>
+
+                    {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'mobile'}) }}
+
                     {% if is_admin %}
                     <a href="{{ base_path }}/admin" class="block text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-md p-3 transition-colors duration-200">
                         <i class="fas fa-cog mr-2"></i>Admin Dashboard
@@ -1700,6 +1708,8 @@
                 </div>
                 {% endif %}
             </div>
+            {# Hook: frontend_footer - For plugins to add footer notices #}
+            {{ hook('frontend_footer', {'base_path': base_path}) }}
         </div>
     </footer>
 
