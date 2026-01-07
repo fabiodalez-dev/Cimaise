@@ -153,7 +153,15 @@ class PageController extends BaseController
 
         // Fetch home page settings
         $svc = new \App\Services\SettingsService($this->db);
-        $homeTemplate = (string) ($svc->get('home.template', 'classic') ?? 'classic');
+
+        // Allow template override via query parameter (for demo/preview)
+        $queryParams = $request->getQueryParams();
+        $validTemplates = ['classic', 'modern', 'parallax', 'masonry', 'snap', 'gallery'];
+        $templateOverride = isset($queryParams['template']) && in_array($queryParams['template'], $validTemplates, true)
+            ? $queryParams['template']
+            : null;
+
+        $homeTemplate = $templateOverride ?? (string) ($svc->get('home.template', 'classic') ?? 'classic');
         $homeSettings = [
             'template' => $homeTemplate,
             'hero_title' => (string) ($svc->get('home.hero_title', 'Portfolio') ?? 'Portfolio'),
