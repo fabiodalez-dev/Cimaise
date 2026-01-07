@@ -14,6 +14,7 @@ class Installer
     private bool $envWritten = false;
     private bool $dbCreated = false;
     private ?string $createdDbPath = null;
+    private bool $permissionsFixed = false;
 
     public function __construct(string $rootPath)
     {
@@ -105,8 +106,11 @@ class Installer
         $this->envWritten = false;
         $this->dbCreated = false;
         $this->createdDbPath = null;
+        $this->permissionsFixed = false;
 
         try {
+            $this->createPermissionsFixTokenFile();
+            $this->fixPermissionsOnce();
             $this->verifyRequirements($data);
             $this->setupDatabase($data);
             $this->installSchema();
@@ -116,7 +120,6 @@ class Installer
             $this->generateFavicons($data);
             $this->createEnvFile($data);
             $this->configureHtaccess($data);
-            $this->fixPermissions();
             return true;
         } catch (\Throwable $e) {
             error_log('Installation failed: ' . $e->getMessage());
@@ -164,6 +167,71 @@ class Installer
             } catch (\Throwable) {
                 // Ignore cleanup errors
             }
+        }
+    }
+
+    private function createPermissionsFixTokenFile(): void
+    {
+        $tokenPath = $this->rootPath . '/storage/tmp/permissions_fix_token.txt';
+        if (is_file($tokenPath)) {
+            return;
+        }
+
+        $dir = dirname($tokenPath);
+        if (!is_dir($dir)) {
+            if (!mkdir($dir, 0775, true) && !is_dir($dir)) {
+                Logger::warning('Installer: Failed to create permissions token directory', [
+                    'path' => $dir,
+                ], 'installer');
+                return;
+            }
+        }
+
+        try {
+            $token = bin2hex(random_bytes(16));
+        } catch (\Throwable $e) {
+            Logger::warning('Installer: Failed to generate permissions token', [
+                'error' => $e->getMessage(),
+            ], 'installer');
+            return;
+        }
+
+        if (file_put_contents($tokenPath, $token) === false) {
+            Logger::warning('Installer: Failed to write permissions token file', [
+                'path' => $tokenPath,
+            ], 'installer');
+        }
+    }
+
+    private function fixPermissionsOnce(): void
+    {
+        if ($this->permissionsFixed) {
+            return;
+        }
+
+        $marker = $this->rootPath . '/storage/tmp/permissions_fix_done';
+        $dir = dirname($marker);
+        if (!is_dir($dir)) {
+            if (!mkdir($dir, 0775, true) && !is_dir($dir)) {
+                Logger::warning('Installer: Failed to create permissions marker directory', [
+                    'path' => $dir,
+                ], 'installer');
+                return;
+            }
+        }
+
+        if (is_file($marker)) {
+            $this->permissionsFixed = true;
+            return;
+        }
+
+        $this->fixPermissions();
+        $this->permissionsFixed = true;
+
+        if (file_put_contents($marker, (string)time()) === false) {
+            Logger::warning('Installer: Failed to write permissions marker file', [
+                'path' => $marker,
+            ], 'installer');
         }
     }
 
