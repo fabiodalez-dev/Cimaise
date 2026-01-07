@@ -170,9 +170,14 @@ function syncFile(string $src, string $dst, bool $dryRun): void {
 
     $dstDir = dirname($dst);
     if (!is_dir($dstDir)) {
-        mkdir($dstDir, 0755, true);
+        if (!mkdir($dstDir, 0755, true)) {
+            errorMsg("Failed to create directory: $dstDir");
+            return;
+        }
     }
-    copy($src, $dst);
+    if (!copy($src, $dst)) {
+        errorMsg("Failed to copy: $src to $dst");
+    }
 }
 
 function syncPublicAssets(string $projectRoot, string $demoRoot, bool $dryRun): void {
@@ -512,6 +517,12 @@ function patchRootHtaccess(string $demoRoot, bool $dryRun): void {
     RewriteRule ^config/ - [F,L]
     RewriteRule ^bin/ - [F,L]
 
+    # If file exists in current directory, serve it
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
     # If request is for public/ directory, serve directly
     RewriteCond %{REQUEST_URI} ^/public/
     RewriteRule ^public/(.*)$ public/$1 [L]
@@ -520,10 +531,6 @@ function patchRootHtaccess(string $demoRoot, bool $dryRun): void {
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^ index.php [L]
-
-    # If file exists in current directory, serve it
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule ^ - [L]
 </IfModule>
 
 # Fallback: If mod_rewrite is not available

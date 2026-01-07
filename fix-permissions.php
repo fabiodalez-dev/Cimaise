@@ -8,9 +8,81 @@
  * DELETE THIS FILE AFTER USE FOR SECURITY!
  */
 
-// Security: Only allow execution from browser (not CLI) and check referer
+// Security: Only allow execution from browser (not CLI) with auth and origin checks
 if (php_sapi_name() === 'cli') {
     die("This script must be run from a web browser.\n");
+}
+
+// Token-based auth (works before .env exists)
+$expectedToken = '';
+$fallbackToken = '';
+
+// Preferred: .env (if present)
+$envPath = __DIR__ . '/.env';
+if (is_readable($envPath)) {
+    $envContent = file_get_contents($envPath);
+    if ($envContent !== false) {
+        foreach (preg_split('/\r\n|\r|\n/', $envContent) as $line) {
+            if (str_starts_with($line, 'PERMISSIONS_FIX_TOKEN=')) {
+                $expectedToken = trim(substr($line, strlen('PERMISSIONS_FIX_TOKEN=')));
+                break;
+            }
+        }
+    }
+}
+
+// Fallback: token file (create manually before first run)
+if ($expectedToken === '') {
+    $tokenFileCandidates = [
+        __DIR__ . '/storage/tmp/permissions_fix_token.txt',
+        __DIR__ . '/storage/permissions_fix_token.txt',
+    ];
+    foreach ($tokenFileCandidates as $tokenFile) {
+        if (is_readable($tokenFile)) {
+            $tokenContent = trim((string)file_get_contents($tokenFile));
+            if ($tokenContent !== '') {
+                $expectedToken = $tokenContent;
+                break;
+            }
+        }
+    }
+}
+
+// Final fallback: hardcoded token (set manually, then remove)
+if ($expectedToken === '' && $fallbackToken !== '') {
+    $expectedToken = $fallbackToken;
+}
+
+if ($expectedToken === '') {
+    http_response_code(403);
+    die('Permissions token is not configured');
+}
+
+$authToken = '';
+if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+    if (preg_match('/Bearer\s+(.+)/i', $_SERVER['HTTP_AUTHORIZATION'], $matches)) {
+        $authToken = trim($matches[1]);
+    }
+}
+if ($authToken === '' && isset($_GET['token'])) {
+    $authToken = trim((string)$_GET['token']);
+}
+
+if (!hash_equals($expectedToken, $authToken)) {
+    http_response_code(401);
+    die('Access denied');
+}
+
+// Origin/Referer check (same-host)
+$host = $_SERVER['HTTP_HOST'] ?? '';
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$referer = $_SERVER['HTTP_REFERER'] ?? '';
+$originHost = $origin !== '' ? (parse_url($origin, PHP_URL_HOST) ?? '') : '';
+$refererHost = $referer !== '' ? (parse_url($referer, PHP_URL_HOST) ?? '') : '';
+
+if (($originHost !== '' && $originHost !== $host) || ($originHost === '' && $refererHost !== $host)) {
+    http_response_code(403);
+    die('Invalid origin');
 }
 
 // Set execution time limit (large sites may need more time)
@@ -45,14 +117,21 @@ $writableFiles = [
 /**
  * Recursively fix permissions
  */
-function fixPermissions($path, $root, &$results, $writableDirs, $writableFiles) {
+function fixPermissions($path, $root, &$results, $writableDirs, $writableFiles, $depth = 0, $maxDepth = 10) {
     if (!file_exists($path)) {
         return;
     }
 
-    $relativePath = str_replace($root . '/', '', $path);
+    $relativePath = (strpos($path, $root . '/') === 0)
+        ? substr($path, strlen($root) + 1)
+        : basename($path);
 
     if (is_dir($path)) {
+        if ($depth > $maxDepth) {
+            $results['errors'][] = "Max depth exceeded for: $relativePath";
+            return;
+        }
+
         // Check if this directory should be writable
         $isWritable = false;
         foreach ($writableDirs as $dir) {
@@ -64,26 +143,35 @@ function fixPermissions($path, $root, &$results, $writableDirs, $writableFiles) 
 
         $targetPerm = $isWritable ? 0775 : 0755;
 
-        if (@chmod($path, $targetPerm)) {
+        if (chmod($path, $targetPerm)) {
             $results['directories']++;
             if ($isWritable) {
                 $results['writable']++;
             }
         } else {
-            $results['errors'][] = "Failed to chmod directory: $relativePath";
+            $error = error_get_last();
+            $results['errors'][] = "Failed to chmod directory: $relativePath" . ($error ? " ({$error['message']})" : '');
+        }
+
+        if ($relativePath === 'vendor' || strpos($relativePath, 'storage/originals') === 0) {
+            return;
         }
 
         // Process contents
-        $items = @scandir($path);
-        if ($items) {
-            foreach ($items as $item) {
-                if ($item === '.' || $item === '..') continue;
-                fixPermissions($path . '/' . $item, $root, $results, $writableDirs, $writableFiles);
-            }
+        $items = scandir($path);
+        if ($items === false) {
+            $error = error_get_last();
+            $results['errors'][] = "Failed to scan directory: $relativePath" . ($error ? " ({$error['message']})" : '');
+            return;
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') continue;
+            fixPermissions($path . '/' . $item, $root, $results, $writableDirs, $writableFiles, $depth + 1, $maxDepth);
         }
     } else {
         // It's a file
-        $isWritable = in_array($relativePath, $writableFiles);
+        $isWritable = in_array($relativePath, $writableFiles, true);
 
         // SQLite files in database/ should be writable
         if (strpos($relativePath, 'database/') === 0 && pathinfo($path, PATHINFO_EXTENSION) === 'sqlite') {
@@ -97,13 +185,14 @@ function fixPermissions($path, $root, &$results, $writableDirs, $writableFiles) 
 
         $targetPerm = $isWritable ? 0664 : 0644;
 
-        if (@chmod($path, $targetPerm)) {
+        if (chmod($path, $targetPerm)) {
             $results['files']++;
             if ($isWritable) {
                 $results['writable']++;
             }
         } else {
-            $results['errors'][] = "Failed to chmod file: $relativePath";
+            $error = error_get_last();
+            $results['errors'][] = "Failed to chmod file: $relativePath" . ($error ? " ({$error['message']})" : '');
         }
     }
 }
@@ -124,11 +213,12 @@ $requiredDirs = [
 foreach ($requiredDirs as $dir) {
     $fullPath = $root . '/' . $dir;
     if (!is_dir($fullPath)) {
-        if (@mkdir($fullPath, 0775, true)) {
+        if (mkdir($fullPath, 0775, true)) {
             $results['directories']++;
             $results['writable']++;
         } else {
-            $results['errors'][] = "Failed to create directory: $dir";
+            $error = error_get_last();
+            $results['errors'][] = "Failed to create directory: $dir" . ($error ? " ({$error['message']})" : '');
         }
     }
 }
