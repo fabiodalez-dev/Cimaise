@@ -481,7 +481,7 @@ class PagesController extends BaseController
         $showInFooter = isset($data['show_in_footer']) && $data['show_in_footer'] === 'on';
         $svc->set('privacy.show_in_footer', $showInFooter);
 
-        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.privacy_saved')];
+        $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.privacy_page_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/privacy'))->withStatus(302);
     }
 

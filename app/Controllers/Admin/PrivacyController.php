@@ -70,7 +70,7 @@ class PrivacyController extends BaseController
             $svc->set('cookie_banner.show_analytics', !empty($customJsAnalytics));
             $svc->set('cookie_banner.show_marketing', !empty($customJsMarketing));
 
-            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.privacy_saved')];
+            $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.privacy_settings_saved')];
 
         } catch (\Throwable $e) {
             Logger::error('PrivacyController::save error', ['error' => $e->getMessage()], 'admin');
