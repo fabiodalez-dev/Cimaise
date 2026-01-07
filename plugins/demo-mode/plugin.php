@@ -172,31 +172,82 @@ class DemoModePlugin
     private function renderDesktopTemplateSwitcher(string $basePath, string $currentTemplate): void
     {
         $currentLabel = self::TEMPLATES[$currentTemplate] ?? 'Classic';
-        echo <<<HTML
-        <div class="relative group" id="template-switcher-desktop">
-            <button class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md">
-                <i class="fas fa-palette text-xs"></i>
-                Templates
-                <i class="fas fa-chevron-down text-xs transition-transform duration-200 group-hover:rotate-180"></i>
-            </button>
-            <div class="absolute left-0 top-full pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible z-50">
-                <div class="bg-white border border-gray-200 shadow-xl rounded-xl overflow-hidden transform translate-y-2 transition-all duration-300 ease-out group-hover:translate-y-0">
-                    <div class="py-2">
-HTML;
+
+        // Build menu items
+        $menuItems = '';
         foreach (self::TEMPLATES as $slug => $label) {
             $isActive = $slug === $currentTemplate ? ' bg-gray-100 font-semibold' : '';
             $checkIcon = $slug === $currentTemplate ? '<i class="fas fa-check text-xs text-green-600 ml-auto"></i>' : '';
-            echo <<<HTML
-                    <a href="{$basePath}/?template={$slug}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors{$isActive}">
-                        {$label}{$checkIcon}
-                    </a>
+            $menuItems .= <<<HTML
+                        <a href="{$basePath}/?template={$slug}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors{$isActive}">
+                            {$label}{$checkIcon}
+                        </a>
 HTML;
         }
+
         echo <<<HTML
-                    </div>
+        <div class="relative" id="template-switcher-wrapper">
+            <button id="template-switcher-toggle" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md">
+                <i class="fas fa-palette text-xs"></i>
+                Templates
+                <i class="fas fa-chevron-down text-xs transition-transform duration-200" id="template-switcher-icon"></i>
+            </button>
+            <div id="template-switcher-menu" class="absolute left-0 top-full mt-2 w-48 bg-white border border-gray-200 shadow-xl rounded-xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out">
+                <div class="py-2">
+                    {$menuItems}
                 </div>
             </div>
         </div>
+        <script>
+        (function(){
+            var wrapper = document.getElementById('template-switcher-wrapper');
+            var toggle = document.getElementById('template-switcher-toggle');
+            var menu = document.getElementById('template-switcher-menu');
+            var icon = document.getElementById('template-switcher-icon');
+            if (!wrapper || !toggle || !menu) return;
+
+            var isOpen = false;
+            var hoverTimeout;
+
+            function openMenu() {
+                clearTimeout(hoverTimeout);
+                isOpen = true;
+                menu.classList.remove('opacity-0', 'invisible', 'translate-y-2');
+                menu.classList.add('opacity-100', 'visible', 'translate-y-0');
+                if (icon) icon.classList.add('rotate-180');
+            }
+
+            function closeMenu() {
+                isOpen = false;
+                menu.classList.add('opacity-0', 'invisible', 'translate-y-2');
+                menu.classList.remove('opacity-100', 'visible', 'translate-y-0');
+                if (icon) icon.classList.remove('rotate-180');
+            }
+
+            function scheduleClose() {
+                clearTimeout(hoverTimeout);
+                hoverTimeout = setTimeout(closeMenu, 180);
+            }
+
+            function clearClose() {
+                clearTimeout(hoverTimeout);
+            }
+
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                isOpen ? closeMenu() : openMenu();
+            });
+
+            wrapper.addEventListener('mouseenter', openMenu);
+            wrapper.addEventListener('mouseleave', scheduleClose);
+            menu.addEventListener('mouseenter', clearClose);
+            menu.addEventListener('mouseleave', scheduleClose);
+
+            document.addEventListener('click', function(e) {
+                if (!wrapper.contains(e.target)) closeMenu();
+            });
+        })();
+        </script>
 HTML;
     }
 
