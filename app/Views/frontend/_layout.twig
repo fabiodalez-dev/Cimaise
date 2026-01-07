@@ -1389,7 +1389,7 @@
                         <a href="{{ base_path }}/galleries" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.galleries') }}</a>
                         <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="text-sm font-medium hover:text-gray-600 transition-colors duration-200 py-2">{{ trans('nav.about') }}</a>
 
-                        {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'desktop'}) }}
+                        {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'desktop', 'csp_nonce': csp_nonce()}) }}
 
                         <!-- Categories Mega Menu -->
                         <div class="static" id="categories-dropdown">
@@ -1545,7 +1545,7 @@
                     <a href="{{ base_path }}/galleries" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.galleries') }}</a>
                     <a href="{% if about_url starts with '/' %}{{ base_path }}{{ about_url }}{% else %}{{ about_url }}{% endif %}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">{{ trans('nav.about') }}</a>
 
-                    {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'mobile'}) }}
+                    {{ hook('frontend_nav_after_about', {'base_path': base_path, 'location': 'mobile', 'csp_nonce': csp_nonce()}) }}
 
                     {% if is_admin %}
                     <a href="{{ base_path }}/admin" class="block text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-md p-3 transition-colors duration-200">
