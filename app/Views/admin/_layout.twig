@@ -301,6 +301,8 @@
   <link rel="stylesheet" href="{{ base_path }}/assets/photoswipe/dist/photoswipe.css">
 </head>
 <body class="bg-gray-50">
+  {# Hook: admin_body_start - For banners at the very top of the admin panel #}
+  {{ hook('admin_body_start', {'base_path': base_path}) }}
   <!-- Header -->
   <nav class="bg-white border-b border-gray-200 fixed w-full z-30 top-0">
     <div class="px-6 py-4">

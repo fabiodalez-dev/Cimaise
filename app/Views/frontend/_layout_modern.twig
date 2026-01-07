@@ -151,8 +151,9 @@
 
     <!-- NON-CRITICAL CSS (async load to avoid render blocking) -->
     <!-- Font Awesome (~100KB - defer loading, icons appear after paint) -->
-    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css" media="print" id="fontawesome-css">
     <noscript><link rel="stylesheet" href="{{ base_path }}/assets/vendor/fontawesome/css/all.min.css"></noscript>
+    <script nonce="{{ csp_nonce() }}">(function(){var e=document.getElementById('fontawesome-css');if(e){if(e.sheet){e.media='all';}else{e.onload=function(){this.media='all';};}}})();</script>
 
     <!-- Custom CSS (Frontend Only) -->
     {% if custom_css|default('') is not empty %}
