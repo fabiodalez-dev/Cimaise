@@ -21,10 +21,12 @@ if (!defined('CIMAISE_VERSION')) {
  *
  * Features:
  * - Template switcher dropdown in frontend navigation
+ * - Login link in frontend navigation (desktop, mobile, mega-menu)
  * - Demo banner in admin panel with credentials
  * - Login page credentials box
  * - Password change protection for demo user
  * - Demo mode footer indicator
+ * - Auto-creates demo user on activation, removes on deactivation/uninstall
  */
 class DemoModePlugin
 {
@@ -160,11 +162,52 @@ class DemoModePlugin
 
         if ($location === 'desktop') {
             $this->renderDesktopTemplateSwitcher($basePath, $currentTemplate, $cspNonce);
+            $this->renderDesktopLoginLink($basePath);
         } elseif ($location === 'mobile') {
             $this->renderMobileTemplateSwitcher($basePath, $currentTemplate);
+            $this->renderMobileLoginLink($basePath);
         } elseif ($location === 'mega-menu') {
             $this->renderMegaMenuTemplateSwitcher($basePath, $currentTemplate);
+            $this->renderMegaMenuLoginLink($basePath);
         }
+    }
+
+    /**
+     * Render desktop login link
+     */
+    private function renderDesktopLoginLink(string $basePath): void
+    {
+        echo <<<HTML
+        <a href="{$basePath}/admin/login" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md">
+            <i class="fas fa-sign-in-alt text-xs"></i>
+            Login
+        </a>
+HTML;
+    }
+
+    /**
+     * Render mobile login link
+     */
+    private function renderMobileLoginLink(string $basePath): void
+    {
+        echo <<<HTML
+        <div class="border-t border-gray-200 pt-2 mt-2">
+            <a href="{$basePath}/admin/login" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">
+                <i class="fas fa-sign-in-alt mr-2"></i>
+                Admin Login
+            </a>
+        </div>
+HTML;
+    }
+
+    /**
+     * Render mega menu login link (for modern template)
+     */
+    private function renderMegaMenuLoginLink(string $basePath): void
+    {
+        echo <<<HTML
+        <a href="{$basePath}/admin/login" class="mega-menu_link">Login</a>
+HTML;
     }
 
     /**

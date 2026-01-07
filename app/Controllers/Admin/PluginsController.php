@@ -145,7 +145,7 @@ class PluginsController extends BaseController
         }
 
         $pluginManager = PluginManager::getInstance();
-        $result = $pluginManager->deactivatePlugin($slug);
+        $result = $pluginManager->deactivatePlugin($slug, $this->pluginsDir);
 
         $_SESSION['flash'][] = [
             'type' => $result['success'] ? 'success' : 'error',

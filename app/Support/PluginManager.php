@@ -576,13 +576,21 @@ class PluginManager
     /**
      * Deactivate a plugin
      */
-    public function deactivatePlugin(string $slug): array
+    public function deactivatePlugin(string $slug, string $pluginsDir = ''): array
     {
         if (!$this->db) {
             return ['success' => false, 'message' => 'Database not available'];
         }
 
         try {
+            // Execute deactivate hook if present
+            if ($pluginsDir) {
+                $deactivateHook = $pluginsDir . '/' . $slug . '/deactivate.php';
+                if (file_exists($deactivateHook)) {
+                    require_once $deactivateHook;
+                }
+            }
+
             $stmt = $this->db->pdo()->prepare('
                 UPDATE plugin_status
                 SET is_active = 0, updated_at = CURRENT_TIMESTAMP
