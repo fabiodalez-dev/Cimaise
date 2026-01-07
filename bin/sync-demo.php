@@ -306,6 +306,10 @@ function patchPageController(string $demoRoot, bool $dryRun): void {
     $file = "$demoRoot/app/Controllers/Frontend/PageController.php";
     $content = file_get_contents($file);
 
+    if (str_contains($content, 'Allow template override via query parameter')) {
+        return;
+    }
+
     // Add template override logic
     $templateOverride = <<<'PHP'
 
@@ -591,8 +595,7 @@ function createRootIndexPhp(string $demoRoot, bool $dryRun): void {
         logMsg("  Copied universal router from main project");
     } else {
         warnMsg("Universal router not found at $srcFile, creating inline version");
-        // Create universal router inline as fallback
-        $content = file_get_contents(dirname(__DIR__) . '/index.php') ?: createUniversalRouterContent();
+        $content = createUniversalRouterContent();
         file_put_contents($dstFile, $content);
     }
 }
