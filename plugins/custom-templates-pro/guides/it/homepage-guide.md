@@ -21,6 +21,32 @@ REQUISITI TECNICI:
 - Dark mode: includi override per html.dark oppure dichiara in README che il template è solo light
 - Background: mantieni trasparenti gli sfondi delle sezioni così il tema del sito decide i colori
 
+PRELOADER PRIMA VISITA (IMPORTANTE):
+I layout base (_layout.twig e _layout_modern.twig) includono un preloader che mostra
+il logo o il titolo del sito alla prima visita dell'utente per sessione.
+Per ereditare questo preloader, il template homepage custom DEVE estendere uno dei layout base:
+
+```twig
+{# All'inizio del file home.twig #}
+{% extends 'frontend/_layout.twig' %}
+
+{% block content %}
+{# Il tuo contenuto homepage personalizzato qui #}
+{% endblock %}
+```
+
+Oppure per template stile moderno:
+```twig
+{% extends 'frontend/_layout_modern.twig' %}
+```
+
+Il preloader:
+- Usa sessionStorage per mostrarsi solo alla prima visita per sessione browser
+- Mostra il logo del sito (se configurato) o il titolo con le impostazioni tipografiche
+- Animazione verso l'alto con easing cubic-bezier fluido
+- Rispetta prefers-reduced-motion per accessibilità
+- Supporta automaticamente il dark mode
+
 STRUTTURA FILE ZIP:
 
 ⚠️  IMPORTANTE: Il file ZIP deve contenere una cartella con il nome del template.
