@@ -61,15 +61,61 @@ $pdo = $db->pdo();
 $root = dirname(__DIR__, 2);
 $mediaPath = $root . '/public/media/seed';
 $storageOriginalsPath = $root . '/storage/originals';
+$publicMediaPath = $root . '/public/media';
 
-// Ensure storage/originals directory exists
-if (!is_dir($storageOriginalsPath)) {
-    $created = mkdir($storageOriginalsPath, 0755, true);
-    if (!$created && !is_dir($storageOriginalsPath)) {
-        echo "✗ Error: unable to create directory {$storageOriginalsPath}\n";
-        exit(1);
+// ============================================
+// PRE-FLIGHT CHECKS: Verify all directories and permissions
+// ============================================
+echo "\n🔍 Pre-flight checks...\n";
+echo "   Root: {$root}\n";
+echo "   PHP user: " . (function_exists('posix_getpwuid') ? posix_getpwuid(posix_geteuid())['name'] : get_current_user()) . "\n";
+echo "   PHP version: " . PHP_VERSION . "\n";
+echo "   GD available: " . (extension_loaded('gd') ? '✓' : '✗') . "\n";
+echo "   Imagick available: " . (class_exists('Imagick') ? '✓' : '✗') . "\n";
+echo "   cURL available: " . (function_exists('curl_init') ? '✓' : '✗') . "\n";
+echo "   exec() available: " . (function_exists('exec') ? '✓' : '✗') . "\n";
+
+// Check required directories
+$requiredDirs = [
+    'storage' => $root . '/storage',
+    'storage/originals' => $storageOriginalsPath,
+    'storage/tmp' => $root . '/storage/tmp',
+    'public/media' => $publicMediaPath,
+    'public/media/seed' => $mediaPath,
+];
+
+echo "\n📁 Directory checks:\n";
+foreach ($requiredDirs as $name => $path) {
+    $exists = is_dir($path);
+    $writable = $exists && is_writable($path);
+    $perms = $exists ? substr(sprintf('%o', fileperms($path)), -4) : '----';
+
+    if (!$exists) {
+        // Try to create it
+        $created = @mkdir($path, 0775, true);
+        if ($created) {
+            echo "   {$name}: CREATED (0775)\n";
+        } else {
+            echo "   {$name}: ✗ CANNOT CREATE\n";
+        }
+    } elseif (!$writable) {
+        echo "   {$name}: ✗ NOT WRITABLE (perms: {$perms})\n";
+    } else {
+        echo "   {$name}: ✓ OK (perms: {$perms})\n";
     }
 }
+
+// Final check on critical directories
+if (!is_dir($storageOriginalsPath) || !is_writable($storageOriginalsPath)) {
+    echo "\n✗ Error: storage/originals is not writable\n";
+    exit(1);
+}
+if (!is_dir($publicMediaPath) || !is_writable($publicMediaPath)) {
+    echo "\n✗ Error: public/media is not writable\n";
+    exit(1);
+}
+
+echo "\n✓ Pre-flight checks passed\n";
 
 // Helper functions
 function upsertById(PDO $pdo, string $table, array $data, string $uniqueField = 'slug'): int
@@ -1317,15 +1363,22 @@ foreach ($albums as $albumData) {
         $coverId = null;
         $sortOrder = 1;
         $albumSlug = $albumData['slug'];
+        $imgCount = count($albumImagesData);
+        $imgProcessed = 0;
         foreach ($albumImagesData as $imgData) {
+            $imgProcessed++;
             // Download image from Unsplash to temp location first
             $tempPath = $root . '/public/media/seed/albums/' . $albumSlug . '/' . $imgData['file'];
             $downloadedDimensions = null;
 
             if (isset($albumImages[$albumSlug][$imgData['file']])) {
                 $imgUrlData = $albumImages[$albumSlug][$imgData['file']];
+                echo "     [{$imgProcessed}/{$imgCount}] Downloading {$imgData['file']}... ";
                 if (downloadImage($imgUrlData[0], $tempPath)) {
                     $downloadedDimensions = ['width' => $imgUrlData[1], 'height' => $imgUrlData[2]];
+                    echo "OK\n";
+                } else {
+                    echo "FAILED\n";
                 }
             }
 
@@ -1355,13 +1408,18 @@ foreach ($albums as $albumData) {
             $storageRelativePath = '/storage/originals/' . $hash . $ext;
 
             if (!is_file($storageFilePath)) {
+                echo "     Copying to {$storageRelativePath}... ";
                 if (!copy($tempPath, $storageFilePath)) {
                     if (is_file($storageFilePath)) {
                         @unlink($storageFilePath);
                     }
+                    echo "FAILED\n";
                     echo "     ⚠ Failed to copy image from {$tempPath} to {$storageFilePath}, skipping\n";
                     continue;
                 }
+                echo "OK (" . round(filesize($storageFilePath) / 1024) . " KB)\n";
+            } else {
+                echo "     File already exists: {$storageRelativePath}\n";
             }
 
             // Find camera/lens/film IDs
@@ -1505,18 +1563,55 @@ if (!is_file($consolePath)) {
     exit(1);
 }
 
-// Run images:generate first
+// Verify source files exist before generating variants
+echo "   Verifying source files in storage/originals/...\n";
+$imageStmt = $pdo->query('SELECT id, original_path FROM images');
+$imagesToProcess = $imageStmt->fetchAll();
+$missingFiles = 0;
+$foundFiles = 0;
+foreach ($imagesToProcess as $img) {
+    $srcPath = $root . $img['original_path'];
+    if (is_file($srcPath)) {
+        $foundFiles++;
+    } else {
+        $missingFiles++;
+        echo "     ⚠ Missing: {$img['original_path']}\n";
+    }
+}
+echo "   Found {$foundFiles} source files" . ($missingFiles > 0 ? ", {$missingFiles} missing" : "") . "\n";
+
+// Verify public/media is writable
+$mediaDir = $root . '/public/media';
+if (!is_dir($mediaDir)) {
+    if (!mkdir($mediaDir, 0775, true)) {
+        echo "   ✗ Cannot create {$mediaDir}\n";
+        exit(1);
+    }
+    echo "   ✓ Created {$mediaDir}\n";
+}
+if (!is_writable($mediaDir)) {
+    echo "   ✗ Directory not writable: {$mediaDir}\n";
+    echo "   Current permissions: " . substr(sprintf('%o', fileperms($mediaDir)), -4) . "\n";
+    echo "   Owner: " . posix_getpwuid(fileowner($mediaDir))['name'] . "\n";
+    echo "   Current user: " . posix_getpwuid(posix_geteuid())['name'] . "\n";
+    exit(1);
+}
+
+// Run images:generate first (ALWAYS show output for debugging)
 echo "   Running: php {$consolePath} images:generate\n";
 $variantOutput = [];
 $variantReturn = 0;
 exec('php ' . escapeshellarg($consolePath) . ' images:generate 2>&1', $variantOutput, $variantReturn);
+
+// Always show output for debugging
+foreach ($variantOutput as $line) {
+    echo "     {$line}\n";
+}
+
 if ($variantReturn === 0) {
-    echo "   ✓ Image variants generated successfully\n";
+    echo "   ✓ Image variants generated (return code 0)\n";
 } else {
     echo "   ⚠ Image variant generation returned code {$variantReturn}\n";
-    foreach ($variantOutput as $line) {
-        echo "     {$line}\n";
-    }
 }
 
 // Run nsfw:generate-blur for protected albums
@@ -1524,13 +1619,16 @@ echo "   Running: php {$consolePath} nsfw:generate-blur --all\n";
 $blurOutput = [];
 $blurReturn = 0;
 exec('php ' . escapeshellarg($consolePath) . ' nsfw:generate-blur --all 2>&1', $blurOutput, $blurReturn);
+
+// Always show output for debugging
+foreach ($blurOutput as $line) {
+    echo "     {$line}\n";
+}
+
 if ($blurReturn === 0) {
-    echo "   ✓ Blur variants generated for protected albums\n";
+    echo "   ✓ Blur variants generated (return code 0)\n";
 } else {
     echo "   ⚠ Blur generation returned code {$blurReturn}\n";
-    foreach ($blurOutput as $line) {
-        echo "     {$line}\n";
-    }
 }
 
 // ============================================
@@ -1562,14 +1660,70 @@ if (is_dir($seedAlbumsDir) && str_contains($seedAlbumsDir, '/public/media/seed/a
     echo "   ✓ Temporary album files removed (category images preserved)\n";
 }
 
+// ============================================
+// FINAL SUMMARY: Database and file statistics
+// ============================================
+echo "\n📊 Final Summary:\n";
+
+// Database stats
+$albumCount = (int)$pdo->query('SELECT COUNT(*) FROM albums')->fetchColumn();
+$imageCount = (int)$pdo->query('SELECT COUNT(*) FROM images')->fetchColumn();
+$variantCount = (int)$pdo->query('SELECT COUNT(*) FROM image_variants')->fetchColumn();
+$categoryCount = (int)$pdo->query('SELECT COUNT(*) FROM categories')->fetchColumn();
+
+echo "   Database:\n";
+echo "     - Albums: {$albumCount}\n";
+echo "     - Images: {$imageCount}\n";
+echo "     - Variants: {$variantCount}\n";
+echo "     - Categories: {$categoryCount}\n";
+
+// Check for images without variants
+$imagesWithoutVariants = (int)$pdo->query('SELECT COUNT(*) FROM images i WHERE NOT EXISTS (SELECT 1 FROM image_variants iv WHERE iv.image_id = i.id)')->fetchColumn();
+if ($imagesWithoutVariants > 0) {
+    echo "     ⚠ Images without variants: {$imagesWithoutVariants}\n";
+}
+
+// File counts
+$originalsDir = $root . '/storage/originals';
+$mediaDir = $root . '/public/media';
+$originalsCount = is_dir($originalsDir) ? count(array_filter(scandir($originalsDir), fn($f) => !in_array($f, ['.', '..', '.gitkeep', '.htaccess']))) : 0;
+$mediaCount = is_dir($mediaDir) ? count(array_filter(scandir($mediaDir), fn($f) => !in_array($f, ['.', '..', '.gitkeep', '.htaccess', 'seed']))) : 0;
+
+echo "   Files:\n";
+echo "     - Originals in storage/originals/: {$originalsCount}\n";
+echo "     - Variants in public/media/: {$mediaCount}\n";
+
+// Verify first album cover works
+$firstAlbumCover = $pdo->query("
+    SELECT a.id, a.title, COALESCE(iv.path, i.original_path) AS cover_path
+    FROM albums a
+    LEFT JOIN images i ON i.id = a.cover_image_id
+    LEFT JOIN image_variants iv ON iv.id = (
+        SELECT iv2.id FROM image_variants iv2
+        WHERE iv2.image_id = i.id AND iv2.variant = 'sm'
+        ORDER BY CASE iv2.format WHEN 'jpg' THEN 1 WHEN 'webp' THEN 2 ELSE 3 END
+        LIMIT 1
+    )
+    LIMIT 1
+")->fetch();
+
+if ($firstAlbumCover) {
+    $coverType = str_starts_with($firstAlbumCover['cover_path'] ?? '', '/media/') ? 'VARIANT ✓' : 'ORIGINAL (403!) ⚠';
+    echo "   First album cover ({$firstAlbumCover['title']}): {$coverType}\n";
+    echo "     Path: {$firstAlbumCover['cover_path']}\n";
+}
+
 echo "\n";
-$postSeedingSuccess = ($variantReturn === 0 && $blurReturn === 0);
+$postSeedingSuccess = ($variantReturn === 0 && $blurReturn === 0 && $imagesWithoutVariants === 0);
 if ($postSeedingSuccess) {
     echo "✅ Demo data seeding complete!\n";
     echo "\n";
     exit(0);
 } else {
-    echo "⚠️  Demo data seeding completed with warnings. Check post-seeding command output above.\n";
+    echo "⚠️  Demo data seeding completed with warnings.\n";
+    if ($imagesWithoutVariants > 0) {
+        echo "   → {$imagesWithoutVariants} images have no variants - run: php bin/console images:generate\n";
+    }
     echo "\n";
     // Exit with error code for CI/CD pipelines
     exit(1);
