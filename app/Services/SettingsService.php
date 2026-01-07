@@ -30,13 +30,23 @@ class SettingsService
             $stmt = $this->db->query('SELECT `key`, `value` FROM settings');
             $dbSettings = [];
             foreach ($stmt->fetchAll() as $row) {
-                $dbSettings[$row['key']] = json_decode($row['value'] ?? 'null', true);
+                $dbSettings[$row['key']] = $this->decodeValue($row['value'] ?? null);
             }
             self::$cache = array_merge($this->defaults(), $dbSettings);
         } catch (\Throwable $e) {
             Logger::warning('SettingsService: Failed to load settings cache', ['error' => $e->getMessage()], 'settings');
             self::$cache = $this->defaults();
         }
+    }
+
+    private function decodeValue(?string $raw): mixed
+    {
+        $decoded = json_decode($raw ?? 'null', true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            return $decoded;
+        }
+
+        return $raw;
     }
 
     public function all(): array
