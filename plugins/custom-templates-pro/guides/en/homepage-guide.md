@@ -20,6 +20,32 @@ TECHNICAL REQUIREMENTS:
 - Dark mode: include html.dark overrides or explicitly mark the template as light-only in README
 - Backgrounds: keep sections transparent so the site theme controls page backgrounds
 
+FIRST-VISIT PRELOADER (IMPORTANT):
+The base layouts (_layout.twig and _layout_modern.twig) include a first-visit preloader
+curtain that shows the site logo or title on the user's first visit per session.
+To inherit this preloader, your custom homepage template MUST extend one of the base layouts:
+
+```twig
+{# At the top of your home.twig file #}
+{% extends 'frontend/_layout.twig' %}
+
+{% block content %}
+{# Your custom homepage content here #}
+{% endblock %}
+```
+
+Or for modern-style templates:
+```twig
+{% extends 'frontend/_layout_modern.twig' %}
+```
+
+The preloader:
+- Uses sessionStorage to show only on first visit per browser session
+- Displays site logo (if configured) or site title with typography settings
+- Animates upward with smooth cubic-bezier easing
+- Respects prefers-reduced-motion for accessibility
+- Supports dark mode automatically
+
 ZIP FILE STRUCTURE:
 
 ⚠️  IMPORTANT: The ZIP file must contain a folder with the template name.
