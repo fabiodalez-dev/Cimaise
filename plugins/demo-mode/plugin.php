@@ -133,11 +133,12 @@ class DemoModePlugin
             $now = $db->nowExpression();
 
             $stmt = $pdo->prepare("
-                INSERT INTO users (name, email, password_hash, is_admin, created_at, updated_at)
-                VALUES (:name, :email, :password, 1, {$now}, {$now})
+                INSERT INTO users (first_name, last_name, email, password_hash, role, is_active, created_at, updated_at)
+                VALUES (:first_name, :last_name, :email, :password, 'admin', 1, {$now}, {$now})
             ");
             $stmt->execute([
-                ':name' => 'Demo User',
+                ':first_name' => 'Demo',
+                ':last_name' => 'User',
                 ':email' => self::DEMO_EMAIL,
                 ':password' => $hashedPassword,
             ]);
@@ -157,8 +158,13 @@ class DemoModePlugin
         $location = $context['location'] ?? 'desktop';
         $cspNonce = $context['csp_nonce'] ?? '';
 
-        // Get current template from URL or default
-        $currentTemplate = $_GET['template'] ?? 'classic';
+        // Get current template from URL or default, with validation
+        $currentTemplate = isset($_GET['template']) && is_string($_GET['template'])
+            ? $_GET['template']
+            : 'classic';
+        if (!array_key_exists($currentTemplate, self::TEMPLATES)) {
+            $currentTemplate = 'classic';
+        }
 
         if ($location === 'desktop') {
             $this->renderDesktopTemplateSwitcher($basePath, $currentTemplate, $cspNonce);
@@ -339,19 +345,13 @@ HTML;
     public function renderAdminBanner(array $_context): void
     {
         echo <<<HTML
-    <div class="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 text-center text-sm font-medium shadow-md relative z-40">
-        <div class="flex items-center justify-center gap-3">
-            <i class="fas fa-flask"></i>
-            <span><strong>Demo Mode</strong> - Feel free to explore! Changes may be reset periodically.</span>
-            <span class="opacity-75">|</span>
-            <span class="text-white/90">
-                <i class="fas fa-user-circle mr-1"></i>
-                <code class="bg-white/20 px-2 py-0.5 rounded text-xs">demo@cimaise.local</code>
-                <span class="mx-1">/</span>
-                <code class="bg-white/20 px-2 py-0.5 rounded text-xs">password123</code>
-            </span>
-        </div>
+    <div id="demo-mode-banner" style="background: #111827; color: #fff; padding: 0.5rem 1rem; text-align: center; font-size: 0.75rem; position: fixed; top: 0; left: 0; right: 0; z-index: 9999;">
+        <span><strong>Demo Mode</strong> — demo@cimaise.local / password123</span>
     </div>
+    <style>
+        body:has(#demo-mode-banner) { padding-top: 36px; }
+        body:has(#demo-mode-banner) nav.fixed.top-0 { top: 36px !important; }
+    </style>
 HTML;
     }
 
@@ -364,18 +364,18 @@ HTML;
         $password = self::DEMO_PASSWORD;
 
         echo <<<HTML
-    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
-        <div class="flex items-start gap-3">
-            <div class="flex-shrink-0">
-                <i class="fas fa-info-circle text-blue-500 text-lg"></i>
+    <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+            <div style="flex-shrink: 0;">
+                <i class="fas fa-info-circle" style="color: #6b7280; font-size: 1.125rem;"></i>
             </div>
-            <div class="flex-1">
-                <h3 class="text-sm font-semibold text-blue-900 mb-2">Demo Credentials</h3>
-                <div class="space-y-1 text-sm text-blue-800">
-                    <p><strong>Email:</strong> <code class="bg-white/50 px-2 py-0.5 rounded text-blue-700">{$email}</code></p>
-                    <p><strong>Password:</strong> <code class="bg-white/50 px-2 py-0.5 rounded text-blue-700">{$password}</code></p>
+            <div style="flex: 1;">
+                <h3 style="font-size: 0.875rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem;">Demo Credentials</h3>
+                <div style="font-size: 0.875rem; color: #374151;">
+                    <p style="margin-bottom: 0.25rem;"><strong>Email:</strong> <code style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.125rem 0.5rem; border-radius: 0.25rem; color: #111827;">{$email}</code></p>
+                    <p><strong>Password:</strong> <code style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.125rem 0.5rem; border-radius: 0.25rem; color: #111827;">{$password}</code></p>
                 </div>
-                <p class="mt-2 text-xs text-blue-600">This is a demo instance. All data may be reset periodically.</p>
+                <p style="margin-top: 0.5rem; font-size: 0.75rem; color: #6b7280;">This is a demo instance. All data may be reset periodically.</p>
             </div>
         </div>
     </div>
@@ -431,16 +431,23 @@ HTML;
     public function renderFooterNotice(array $_context): void
     {
         echo <<<HTML
-        <div class="mt-4 pt-4 border-t border-neutral-200 text-center">
-            <div class="inline-flex items-center gap-2 text-xs text-neutral-500">
+        <div id="demo-footer" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; text-align: center;">
+            <div style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #737373;">
                 <i class="fas fa-flask"></i>
                 <span>Demo Mode Active</span>
-                <span class="text-neutral-300">|</span>
-                <a href="https://github.com/fabioferrero90/cimaise" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 transition-colors">
-                    <i class="fab fa-github mr-1"></i>Get Cimaise
+                <span id="demo-footer-sep" style="color: #d4d4d4;">|</span>
+                <a id="demo-footer-link" href="https://github.com/fabiodalez-dev/Cimaise/" target="_blank" rel="noopener noreferrer" style="color: #525252; text-decoration: underline;">
+                    <i class="fab fa-github" style="margin-right: 0.25rem;"></i>Get Cimaise
                 </a>
             </div>
         </div>
+        <style>
+            html.dark #demo-footer { border-top-color: #404040 !important; }
+            html.dark #demo-footer > div { color: #a3a3a3 !important; }
+            html.dark #demo-footer-sep { color: #525252 !important; }
+            html.dark #demo-footer-link { color: #a3a3a3 !important; }
+            html.dark #demo-footer-link:hover { color: #d4d4d4 !important; }
+        </style>
 HTML;
     }
 }
