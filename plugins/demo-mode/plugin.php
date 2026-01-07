@@ -153,12 +153,13 @@ class DemoModePlugin
     {
         $basePath = $context['base_path'] ?? '';
         $location = $context['location'] ?? 'desktop';
+        $cspNonce = $context['csp_nonce'] ?? '';
 
         // Get current template from URL or default
         $currentTemplate = $_GET['template'] ?? 'classic';
 
         if ($location === 'desktop') {
-            $this->renderDesktopTemplateSwitcher($basePath, $currentTemplate);
+            $this->renderDesktopTemplateSwitcher($basePath, $currentTemplate, $cspNonce);
         } elseif ($location === 'mobile') {
             $this->renderMobileTemplateSwitcher($basePath, $currentTemplate);
         } elseif ($location === 'mega-menu') {
@@ -169,8 +170,9 @@ class DemoModePlugin
     /**
      * Render desktop template switcher
      */
-    private function renderDesktopTemplateSwitcher(string $basePath, string $currentTemplate): void
+    private function renderDesktopTemplateSwitcher(string $basePath, string $currentTemplate, string $cspNonce = ''): void
     {
+        $nonceAttr = $cspNonce ? " nonce=\"{$cspNonce}\"" : '';
         $currentLabel = self::TEMPLATES[$currentTemplate] ?? 'Classic';
 
         // Build menu items
@@ -198,7 +200,7 @@ HTML;
                 </div>
             </div>
         </div>
-        <script>
+        <script{$nonceAttr}>
         (function(){
             var wrapper = document.getElementById('template-switcher-wrapper');
             var toggle = document.getElementById('template-switcher-toggle');
