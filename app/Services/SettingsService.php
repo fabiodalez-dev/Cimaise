@@ -53,6 +53,9 @@ class SettingsService
 
     public function set(string $key, mixed $value): void
     {
+        // Invalidate cache before writing to ensure fresh data on next get()
+        self::$cache = null;
+
         $replace = $this->db->replaceKeyword();
         $now = $this->db->nowExpression();
         $stmt = $this->db->pdo()->prepare("{$replace} INTO settings(`key`,`value`,`type`,`updated_at`) VALUES(:k, :v, :t, {$now})");
@@ -60,8 +63,8 @@ class SettingsService
         $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
         $stmt->execute([':k' => $key, ':v' => $encodedValue, ':t' => $type]);
 
+        // Reload cache with fresh data from database
         $this->loadCache();
-        self::$cache[$key] = $value;
     }
 
     public function defaults(): array

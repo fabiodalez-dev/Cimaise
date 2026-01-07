@@ -271,6 +271,18 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         $twig->getEnvironment()->addGlobal('license_url', $basePath . '/' . $licenseSlug);
         $twig->getEnvironment()->addGlobal('license_show_in_footer', (bool)$settingsSvc->get('license.show_in_footer', false));
         $twig->getEnvironment()->addGlobal('license_title_footer', (string)($settingsSvc->get('license.title', 'License') ?? 'License'));
+        // Expose privacy policy URL and visibility for footer
+        $privacySlug = (string)($settingsSvc->get('privacy.slug', 'privacy-policy') ?? 'privacy-policy');
+        $privacySlug = $privacySlug !== '' ? $privacySlug : 'privacy-policy';
+        $twig->getEnvironment()->addGlobal('privacy_url', $basePath . '/' . $privacySlug);
+        $twig->getEnvironment()->addGlobal('privacy_show_in_footer', (bool)$settingsSvc->get('privacy.show_in_footer', false));
+        $twig->getEnvironment()->addGlobal('privacy_title_footer', (string)($settingsSvc->get('privacy.title', 'Privacy Policy') ?? 'Privacy Policy'));
+        // Expose cookie policy URL and visibility for footer
+        $cookieSlug = (string)($settingsSvc->get('cookie.slug', 'cookie-policy') ?? 'cookie-policy');
+        $cookieSlug = $cookieSlug !== '' ? $cookieSlug : 'cookie-policy';
+        $twig->getEnvironment()->addGlobal('cookie_url', $basePath . '/' . $cookieSlug);
+        $twig->getEnvironment()->addGlobal('cookie_show_in_footer', (bool)$settingsSvc->get('cookie.show_in_footer', false));
+        $twig->getEnvironment()->addGlobal('cookie_title_footer', (string)($settingsSvc->get('cookie.title', 'Cookie Policy') ?? 'Cookie Policy'));
         // Expose site title and logo globally for layouts
         $siteTitle = (string)($settingsSvc->get('site.title', 'Cimaise') ?? 'Cimaise');
         $siteLogo = $settingsSvc->get('site.logo', null);
