@@ -911,7 +911,14 @@
       </div>
     </div>
 
+    {# Hook for plugins to add content inside the settings form #}
+    {{ hook('admin_settings_form_end', {'base_path': base_path, 'settings': settings, 'csp_nonce': csp_nonce()}) }}
+
     </form>
+
+    {# Hook for plugins to add standalone sections outside the form #}
+    {{ hook('admin_settings_after_form', {'base_path': base_path, 'settings': settings, 'csp_nonce': csp_nonce()}) }}
+
   </div>
 
   <!-- Sticky Footer with Action Buttons -->
