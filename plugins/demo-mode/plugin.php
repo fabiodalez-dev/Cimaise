@@ -13,7 +13,7 @@ use App\Support\Hooks;
 
 // Prevent direct access
 if (!defined('CIMAISE_VERSION')) {
-    define('CIMAISE_VERSION', '1.0.0');
+    exit('Direct access not permitted');
 }
 
 /**
@@ -431,7 +431,7 @@ HTML;
     public function renderFooterNotice(array $_context): void
     {
         echo <<<HTML
-        <div id="demo-footer" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; text-align: center;">
+        <div id="demo-footer" style="position: fixed; bottom: 0; left: 0; right: 0; padding: 0.5rem 1rem; text-align: center; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 40; border-top: 1px solid #e5e5e5;">
             <div style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #737373;">
                 <i class="fas fa-flask"></i>
                 <span>Demo Mode Active</span>
@@ -442,7 +442,7 @@ HTML;
             </div>
         </div>
         <style>
-            html.dark #demo-footer { border-top-color: #404040 !important; }
+            html.dark #demo-footer { background: rgba(23,23,23,0.95) !important; border-top-color: #404040 !important; }
             html.dark #demo-footer > div { color: #a3a3a3 !important; }
             html.dark #demo-footer-sep { color: #525252 !important; }
             html.dark #demo-footer-link { color: #a3a3a3 !important; }

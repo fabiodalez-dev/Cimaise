@@ -469,6 +469,9 @@
 <!-- Page Transition Overlay -->
 <div class="page-transition"></div>
 
+{# Hook: frontend_footer - For plugins to add footer notices (e.g., demo mode) #}
+{{ hook('frontend_footer', {'base_path': base_path, 'csp_nonce': csp_nonce()}) }}
+
 {% endblock %}
 
 {% block scripts %}
