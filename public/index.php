@@ -26,72 +26,32 @@ $isLoginRoute = strpos($requestUri, '/login') !== false;
 
 // Check if already installed (for all routes except installer itself)
 if (!$isInstallerRoute) {
-    // Check if installed by looking for .env file (not .env.example) and database
     $root = dirname(__DIR__);
     $installed = false;
-    
-    // Auto-repair: create .env file if missing but template database exists
-    if (!file_exists($root . '/.env') && file_exists($root . '/database/template.sqlite')) {
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
-        $basePath = $scriptDir === '/' ? '' : $scriptDir;
-        if (str_ends_with($basePath, '/public')) {
-            $basePath = substr($basePath, 0, -7);
-        }
-        $appUrl = $protocol . '://' . $host . $basePath;
-        
-        $envContent = "APP_ENV=production\n";
-        $envContent .= "APP_DEBUG=false\n";
-        $envContent .= "APP_URL=$appUrl\n";
-        $envContent .= "APP_TIMEZONE=Europe/Rome\n\n";
-        $envContent .= "DB_CONNECTION=sqlite\n";
-        $envContent .= "DB_DATABASE=database/database.sqlite\n\n";
-        $envContent .= "SESSION_SECRET=" . bin2hex(random_bytes(32)) . "\n";
-        
-        if (is_writable($root)) {
-            @file_put_contents($root . '/.env', $envContent);
-        }
-    }
-    
+
+    // Check installation status via Installer class
     if (file_exists($root . '/.env')) {
-        // Load environment variables from .env
-        $envContent = file_get_contents($root . '/.env');
-        if (!empty($envContent)) {
-            // Check if database file exists and is not empty
-            $dbPath = $root . '/database/database.sqlite';
-            $templatePath = $root . '/database/template.sqlite';
-            
-            // Auto-repair: if database is empty but template exists, copy template
-            if (file_exists($templatePath) && (!file_exists($dbPath) || filesize($dbPath) == 0)) {
-                if (is_writable(dirname($dbPath))) {
-                    @copy($templatePath, $dbPath);
-                }
+        try {
+            if (file_exists($root . '/app/Installer/Installer.php')) {
+                require_once $root . '/app/Installer/Installer.php';
+                $installer = new \App\Installer\Installer($root);
+                $installed = $installer->isInstalled();
             }
-            
-            // Try to load database configuration
-            try {
-                if (file_exists($root . '/app/Installer/Installer.php')) {
-                    require_once $root . '/app/Installer/Installer.php';
-                    $installer = new \App\Installer\Installer($root);
-                    $installed = $installer->isInstalled();
-                }
-            } catch (\Throwable $e) {
-                // If there's an error, we assume it's not installed
-                $installed = false;
-            }
+        } catch (\Throwable $e) {
+            // If there's an error, we assume it's not installed
+            $installed = false;
         }
     }
-    
+
     // If not installed, redirect to installer
     if (!$installed) {
-        // Avoid redirect loop - check if we're already on install page or accessing media
-        // Media files must be accessible during installation (e.g., uploaded logo preview)
+        // Avoid redirect loop - check if we're already on install page or accessing media/assets
         $uri = $_SERVER['REQUEST_URI'] ?? '';
         $isInstallerPath = strpos($uri, '/install') !== false;
         $isMediaPath = strpos($uri, '/media/') !== false;
+        $isAssetsPath = strpos($uri, '/assets/') !== false;
 
-        if (!$isInstallerPath && !$isMediaPath) {
+        if (!$isInstallerPath && !$isMediaPath && !$isAssetsPath) {
             $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
             $scriptDir = dirname($scriptPath);
             $basePath = $scriptDir === '/' ? '' : $scriptDir;
