@@ -530,7 +530,9 @@ class InstallerController
                 $pdo = new \PDO('sqlite:' . $dbPath);
                 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
                 $pdo->exec('PRAGMA foreign_keys = ON');
-                
+                $pdo->exec('PRAGMA journal_mode = WAL');
+                $pdo->exec('PRAGMA busy_timeout = 30000');
+
                 // Test simple query
                 $pdo->query('SELECT sqlite_version()')->fetch();
             } else {

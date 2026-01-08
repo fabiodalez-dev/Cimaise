@@ -38,6 +38,8 @@ class Database
             ];
             $this->pdo = new PDO($dsn, null, null, $options);
             $this->pdo->exec('PRAGMA foreign_keys = ON');
+            $this->pdo->exec('PRAGMA journal_mode = WAL');      // Write-Ahead Logging for better concurrency
+            $this->pdo->exec('PRAGMA busy_timeout = 30000');    // Wait up to 30 seconds on lock
         } else {
             // MySQL mode
             $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $this->host, $this->port, $this->database, $this->charset);
