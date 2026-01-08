@@ -208,6 +208,36 @@ class PluginsController extends BaseController
 
         $extractDir = $tempDir . '/extracted';
         mkdir($extractDir, 0755, true);
+
+        // Security: Validate all ZIP entry names before extraction to prevent path traversal
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entryName = $zip->getNameIndex($i);
+
+            // Check for path traversal sequences
+            if (str_contains($entryName, '../') || str_contains($entryName, '..\\')) {
+                $zip->close();
+                $this->cleanupTemp($tempDir);
+                $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_zip')]));
+                return $response->withStatus(400);
+            }
+
+            // Check for absolute paths (Unix or Windows)
+            if (str_starts_with($entryName, '/') || preg_match('/^[A-Za-z]:[\\\\\/]/', $entryName)) {
+                $zip->close();
+                $this->cleanupTemp($tempDir);
+                $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_zip')]));
+                return $response->withStatus(400);
+            }
+
+            // Check for null bytes
+            if (str_contains($entryName, "\0")) {
+                $zip->close();
+                $this->cleanupTemp($tempDir);
+                $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_zip')]));
+                return $response->withStatus(400);
+            }
+        }
+
         $zip->extractTo($extractDir);
         $zip->close();
 
