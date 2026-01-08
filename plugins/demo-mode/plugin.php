@@ -131,8 +131,19 @@ class DemoModePlugin
         // Decode URL-encoded characters to prevent bypass via %2F, %2e%2e, etc.
         $path = rawurldecode($path);
 
-        // Remove common base path prefixes
-        $path = preg_replace('#^(/public|/cimaise)?#', '', $path);
+        // Calculate base path the same way as index.php for subdirectory installations
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        $scriptDir = dirname($scriptName);
+        $isBuiltInServer = php_sapi_name() === 'cli-server';
+        $basePath = $isBuiltInServer ? '' : ($scriptDir === '/' ? '' : $scriptDir);
+        if (str_ends_with($basePath, '/public')) {
+            $basePath = substr($basePath, 0, -7);
+        }
+
+        // Remove base path from request path to get the route
+        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+            $path = substr($path, strlen($basePath));
+        }
 
         // Check if path matches any blocked endpoint
         foreach (self::BLOCKED_ENDPOINTS as $blockedPath => $message) {
@@ -762,7 +773,20 @@ HTML;
 
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
         $path = parse_url($requestUri, PHP_URL_PATH) ?? '';
-        $path = preg_replace('#^(/public|/cimaise)?#', '', $path);
+
+        // Calculate base path the same way as index.php for subdirectory installations
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        $scriptDir = dirname($scriptName);
+        $isBuiltInServer = php_sapi_name() === 'cli-server';
+        $basePath = $isBuiltInServer ? '' : ($scriptDir === '/' ? '' : $scriptDir);
+        if (str_ends_with($basePath, '/public')) {
+            $basePath = substr($basePath, 0, -7);
+        }
+
+        // Remove base path from request path to get the route
+        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+            $path = substr($path, strlen($basePath));
+        }
 
         if ($path !== '/admin/demo-seed') {
             return;
@@ -814,8 +838,9 @@ HTML;
             $returnCode = 0;
 
             // Use exec to run the script in a subprocess for better isolation
+            // IMPORTANT: Use --force flag to skip interactive confirmation prompt
             $phpBinary = PHP_BINARY;
-            $command = escapeshellarg($phpBinary) . ' ' . escapeshellarg($seedScript) . ' 2>&1';
+            $command = escapeshellarg($phpBinary) . ' ' . escapeshellarg($seedScript) . ' --force 2>&1';
             exec($command, $output, $returnCode);
 
             $outputText = implode("\n", $output);
