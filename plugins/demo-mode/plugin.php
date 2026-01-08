@@ -867,13 +867,17 @@ HTML;
                 ], 500);
             }
         } catch (\Throwable $e) {
-            ob_end_clean();
             // Log full exception server-side (prevents information disclosure)
             error_log('Demo mode seed script exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             $this->sendJsonResponse([
                 'success' => false,
                 'error' => 'An unexpected error occurred while seeding demo data. Check server logs for details.'
             ], 500);
+        } finally {
+            // Always clean up output buffer regardless of success/failure/exception
+            if (ob_get_level() > 0) {
+                ob_end_clean();
+            }
         }
 
         exit;
