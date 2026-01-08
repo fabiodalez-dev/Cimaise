@@ -69,6 +69,9 @@ class DemoModePlugin
         // Security: Block dangerous endpoints for demo user (high priority - runs first)
         Hooks::addAction('cimaise_init', [$this, 'blockRestrictedEndpoints'], 5, self::PLUGIN_NAME);
 
+        // Handle seed endpoint (must run before route matching)
+        Hooks::addAction('cimaise_init', [$this, 'handleSeedEndpoint'], 3, self::PLUGIN_NAME);
+
         // Create demo user on app init
         Hooks::addAction('cimaise_init', [$this, 'ensureDemoUserExists'], 10, self::PLUGIN_NAME);
 
@@ -86,6 +89,9 @@ class DemoModePlugin
 
         // Frontend footer - demo mode indicator
         Hooks::addAction('frontend_footer', [$this, 'renderFooterNotice'], 10, self::PLUGIN_NAME);
+
+        // Admin settings - seed database button
+        Hooks::addAction('admin_settings_after_form', [$this, 'renderSettingsSeedCard'], 10, self::PLUGIN_NAME);
 
         // Also try to create demo user immediately if database is available
         $this->tryCreateDemoUser();
@@ -222,19 +228,17 @@ HTML;
 
             // Create demo user
             $hashedPassword = password_hash(self::DEMO_PASSWORD, PASSWORD_ARGON2ID);
-            $now = date('Y-m-d H:i:s');
+            $nowExpr = $db->nowExpression(); // datetime('now') for SQLite, NOW() for MySQL
 
             $stmt = $pdo->prepare("
                 INSERT INTO users (first_name, last_name, email, password_hash, role, is_active, created_at, updated_at)
-                VALUES (:first_name, :last_name, :email, :password, 'admin', 1, :created_at, :updated_at)
+                VALUES (:first_name, :last_name, :email, :password, 'admin', 1, {$nowExpr}, {$nowExpr})
             ");
             $stmt->execute([
                 ':first_name' => 'Demo',
                 ':last_name' => 'User',
                 ':email' => self::DEMO_EMAIL,
                 ':password' => $hashedPassword,
-                ':created_at' => $now,
-                ':updated_at' => $now,
             ]);
 
             error_log("Demo Mode: Created demo user " . self::DEMO_EMAIL);
@@ -568,6 +572,243 @@ HTML;
             html.dark #demo-footer-link:hover { color: #d4d4d4 !important; }
         </style>
 HTML;
+    }
+
+    /**
+     * Hook: admin_settings_after_form - Render seed database card in settings
+     */
+    public function renderSettingsSeedCard(array $context): void
+    {
+        // Only show for logged-in admin users
+        if (!isset($_SESSION['admin_id'])) {
+            return;
+        }
+
+        $basePath = $context['base_path'] ?? '';
+        $cspNonce = $context['csp_nonce'] ?? '';
+
+        echo <<<HTML
+    <!-- Demo Mode: Seed Database -->
+    <div class="card mb-6">
+      <div class="p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-database mr-3 text-purple-600"></i>
+          Demo Data Seeder
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">
+          Populate the database with comprehensive demo data including categories, albums, images, equipment, and more.
+          This will download sample images from Unsplash and generate all necessary variants.
+        </p>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+          <div class="flex items-start">
+            <i class="fas fa-exclamation-triangle text-amber-600 mr-3 mt-0.5"></i>
+            <div class="text-sm text-amber-800">
+              <strong>Warning:</strong> This operation will add demo content to your database.
+              It may take several minutes to complete as it downloads images and generates variants.
+            </div>
+          </div>
+        </div>
+
+        <div id="demo-seed-section" class="border-t border-gray-200 pt-4">
+          <button id="demo-seed-btn" type="button" class="btn-secondary bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100">
+            <i id="demo-seed-icon" class="fas fa-seedling mr-2"></i>
+            <span id="demo-seed-text">Seed Demo Data</span>
+          </button>
+          <div id="demo-seed-status" class="mt-3 hidden">
+            <div class="text-sm text-purple-600 flex items-center">
+              <i class="fas fa-spinner fa-spin mr-2"></i>
+              <span id="demo-seed-status-text">Seeding database... This may take a few minutes.</span>
+            </div>
+          </div>
+          <div id="demo-seed-result" class="mt-3 hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <script nonce="{$cspNonce}">
+    document.addEventListener('DOMContentLoaded', function() {
+      const seedBtn = document.getElementById('demo-seed-btn');
+      if (!seedBtn) return;
+
+      seedBtn.addEventListener('click', async function() {
+        const confirmMsg = 'This will populate the database with demo content including categories, albums, images, and equipment.\\n\\nImages will be downloaded from Unsplash and variants will be generated.\\n\\nThis may take several minutes. Continue?';
+        if (!confirm(confirmMsg)) return;
+
+        const btn = document.getElementById('demo-seed-btn');
+        const icon = document.getElementById('demo-seed-icon');
+        const text = document.getElementById('demo-seed-text');
+        const status = document.getElementById('demo-seed-status');
+        const result = document.getElementById('demo-seed-result');
+
+        // Show loading state
+        btn.disabled = true;
+        icon.className = 'fas fa-spinner fa-spin mr-2';
+        text.textContent = 'Seeding...';
+        status.classList.remove('hidden');
+        result.classList.add('hidden');
+
+        try {
+          const response = await fetch('{$basePath}/admin/demo-seed', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-CSRF-Token': document.querySelector('input[name="csrf"]')?.value || ''
+            }
+          });
+
+          const data = await response.json();
+
+          status.classList.add('hidden');
+          result.classList.remove('hidden');
+
+          if (data.success) {
+            result.innerHTML = '<div class="text-sm text-green-600 flex items-start"><i class="fas fa-check-circle mr-2 mt-0.5"></i><div><strong>Success!</strong> ' + (data.message || 'Demo data seeded successfully.') + '</div></div>';
+            icon.className = 'fas fa-check mr-2';
+            text.textContent = 'Seeding Complete';
+          } else {
+            result.innerHTML = '<div class="text-sm text-red-600 flex items-start"><i class="fas fa-times-circle mr-2 mt-0.5"></i><div><strong>Error:</strong> ' + (data.error || 'An error occurred.') + '</div></div>';
+            icon.className = 'fas fa-seedling mr-2';
+            text.textContent = 'Seed Demo Data';
+            btn.disabled = false;
+          }
+        } catch (err) {
+          status.classList.add('hidden');
+          result.classList.remove('hidden');
+          result.innerHTML = '<div class="text-sm text-red-600 flex items-start"><i class="fas fa-times-circle mr-2 mt-0.5"></i><div><strong>Error:</strong> ' + err.message + '</div></div>';
+          icon.className = 'fas fa-seedling mr-2';
+          text.textContent = 'Seed Demo Data';
+          btn.disabled = false;
+        }
+      });
+    });
+    </script>
+HTML;
+    }
+
+    /**
+     * Hook: cimaise_init (priority 3) - Handle seed endpoint
+     */
+    public function handleSeedEndpoint($db, $_pluginManager = null): void
+    {
+        // Only handle POST requests to /admin/demo-seed
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return;
+        }
+
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $path = parse_url($requestUri, PHP_URL_PATH) ?? '';
+        $path = preg_replace('#^(/public|/cimaise)?#', '', $path);
+
+        if ($path !== '/admin/demo-seed') {
+            return;
+        }
+
+        // Check if user is logged in
+        if (!isset($_SESSION['admin_id'])) {
+            $this->sendJsonResponse(['success' => false, 'error' => 'Authentication required.'], 401);
+            exit;
+        }
+
+        // Validate CSRF token
+        $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        $sessionToken = $_SESSION['csrf'] ?? '';
+        if (!hash_equals($sessionToken, $csrfToken)) {
+            $this->sendJsonResponse(['success' => false, 'error' => 'Invalid CSRF token.'], 403);
+            exit;
+        }
+
+        // Execute the seed script
+        $this->executeSeedScript();
+    }
+
+    /**
+     * Execute the seed script and return JSON response
+     */
+    private function executeSeedScript(): void
+    {
+        $seedScript = dirname(__DIR__, 2) . '/bin/dev/seed_demo_data.php';
+
+        if (!is_file($seedScript)) {
+            $this->sendJsonResponse([
+                'success' => false,
+                'error' => 'Seed script not found. Please ensure bin/dev/seed_demo_data.php exists.'
+            ], 404);
+            exit;
+        }
+
+        // Increase time limit for long-running seed operation
+        set_time_limit(600); // 10 minutes
+
+        // Capture output from the seed script
+        ob_start();
+        $error = null;
+
+        try {
+            // The seed script expects to be run from the CLI, but we can include it
+            // We need to buffer output and capture any errors
+            $output = [];
+            $returnCode = 0;
+
+            // Use exec to run the script in a subprocess for better isolation
+            $phpBinary = PHP_BINARY;
+            $command = escapeshellarg($phpBinary) . ' ' . escapeshellarg($seedScript) . ' 2>&1';
+            exec($command, $output, $returnCode);
+
+            $outputText = implode("\n", $output);
+
+            if ($returnCode === 0) {
+                // Extract summary from output
+                $summary = $this->extractSeedSummary($outputText);
+                $this->sendJsonResponse([
+                    'success' => true,
+                    'message' => $summary ?: 'Demo data seeded successfully. Refresh the page to see the new content.'
+                ]);
+            } else {
+                $this->sendJsonResponse([
+                    'success' => false,
+                    'error' => 'Seed script returned an error (code ' . $returnCode . '). Check server logs for details.',
+                    'details' => substr($outputText, -500) // Last 500 chars of output
+                ], 500);
+            }
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            $this->sendJsonResponse([
+                'success' => false,
+                'error' => 'Exception: ' . $e->getMessage()
+            ], 500);
+        }
+
+        exit;
+    }
+
+    /**
+     * Extract a summary from the seed script output
+     */
+    private function extractSeedSummary(string $output): string
+    {
+        // Look for the summary section in output
+        if (preg_match('/Albums:\s*(\d+)/i', $output, $albumMatch) &&
+            preg_match('/Images:\s*(\d+)/i', $output, $imageMatch)) {
+            return "Seeded {$albumMatch[1]} albums with {$imageMatch[1]} images. Refresh to see the content.";
+        }
+
+        if (str_contains($output, 'SEEDING COMPLETE')) {
+            return 'Demo data seeded successfully. Refresh the page to see the new content.';
+        }
+
+        return '';
+    }
+
+    /**
+     * Send a JSON response and exit
+     */
+    private function sendJsonResponse(array $data, int $statusCode = 200): void
+    {
+        http_response_code($statusCode);
+        header('Content-Type: application/json');
+        echo json_encode($data);
     }
 }
 

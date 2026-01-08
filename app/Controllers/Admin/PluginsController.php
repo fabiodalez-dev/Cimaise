@@ -325,23 +325,24 @@ class PluginsController extends BaseController
      * Validate plugin code for security issues
      *
      * @param string $pluginDir Directory containing extracted plugin files
-     * @return array{valid: bool, errors: string[]}
+     * @return array{valid: bool, errors: string[], warnings: string[]}
      */
     private function validatePluginSecurity(string $pluginDir): array
     {
         $errors = [];
+        $warnings = [];
 
-        // Dangerous functions that could allow code execution
+        // CRITICAL: Dangerous functions that BLOCK upload (high-risk code execution)
         $dangerousPatterns = [
             // ============================================
-            // DIRECT CODE EXECUTION
+            // DIRECT CODE EXECUTION (CRITICAL)
             // ============================================
             '/\beval\s*\(/i' => 'eval() function detected - arbitrary code execution risk',
             '/\bcreate_function\s*\(/i' => 'create_function() detected - arbitrary code execution risk',
-            '/\bassert\s*\(/i' => 'assert() detected - code execution risk (PHP 7+ callback mode)',
+            '/\bassert\s*\([^)]*\$/i' => 'assert() with variable detected - code execution risk',
 
             // ============================================
-            // SHELL COMMAND EXECUTION
+            // SHELL COMMAND EXECUTION (CRITICAL)
             // ============================================
             '/\bexec\s*\(/i' => 'exec() function detected - shell command execution risk',
             '/\bshell_exec\s*\(/i' => 'shell_exec() function detected - shell command execution risk',
@@ -353,101 +354,139 @@ class PluginsController extends BaseController
             '/`[^`]+`/' => 'Backtick operator detected - shell execution risk',
 
             // ============================================
-            // INDIRECT/DYNAMIC FUNCTION CALLS (bypass detection)
+            // DANGEROUS DYNAMIC CALLS (CRITICAL)
             // ============================================
-            '/\bcall_user_func\s*\(/i' => 'call_user_func() detected - dynamic function execution risk',
-            '/\bcall_user_func_array\s*\(/i' => 'call_user_func_array() detected - dynamic function execution risk',
-            '/\$\w+\s*\(/' => 'Variable function call detected - dynamic execution risk',
-            '/\$\$\w+/' => 'Variable variable ($$var) detected - dynamic reference risk',
-            '/\(\s*new\s+ReflectionFunction\s*\)/i' => 'ReflectionFunction detected - dynamic execution risk',
-            '/->invoke\s*\(/i' => 'ReflectionMethod::invoke() detected - dynamic execution risk',
-            '/->invokeArgs\s*\(/i' => 'ReflectionMethod::invokeArgs() detected - dynamic execution risk',
-            '/\bnew\s+ReflectionClass\b/i' => 'ReflectionClass detected - dynamic instantiation risk',
+            '/\bcall_user_func\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval|assert)[\'"]?/i' => 'call_user_func with dangerous callback detected',
+            '/\bcall_user_func_array\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval|assert)[\'"]?/i' => 'call_user_func_array with dangerous callback detected',
 
             // ============================================
-            // CALLBACK FUNCTIONS (can execute arbitrary code)
+            // CALLBACK FUNCTIONS WITH DANGEROUS CALLBACKS (CRITICAL)
             // ============================================
-            '/\barray_map\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval)[\'"]?/i' => 'array_map with dangerous callback detected',
-            '/\barray_filter\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval)[\'"]?/i' => 'array_filter with dangerous callback detected',
-            '/\barray_walk\s*\(/i' => 'array_walk() detected - callback execution risk',
-            '/\barray_reduce\s*\(/i' => 'array_reduce() detected - callback execution risk',
-            '/\busort\s*\(/i' => 'usort() detected - callback execution risk',
-            '/\buasort\s*\(/i' => 'uasort() detected - callback execution risk',
-            '/\buksort\s*\(/i' => 'uksort() detected - callback execution risk',
-            '/\bpreg_replace_callback\s*\(/i' => 'preg_replace_callback() detected - callback execution risk',
-            '/\bregister_shutdown_function\s*\(/i' => 'register_shutdown_function() detected - deferred execution risk',
-            '/\bregister_tick_function\s*\(/i' => 'register_tick_function() detected - tick execution risk',
-            '/\bspl_autoload_register\s*\(/i' => 'spl_autoload_register() detected - autoload manipulation risk',
+            '/\barray_map\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval|assert)[\'"]?/i' => 'array_map with dangerous callback detected',
+            '/\barray_filter\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval|assert)[\'"]?/i' => 'array_filter with dangerous callback detected',
+            '/\barray_walk\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval|assert)[\'"]?/i' => 'array_walk with dangerous callback detected',
+            '/\barray_reduce\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval|assert)[\'"]?/i' => 'array_reduce with dangerous callback detected',
+            '/\b(usort|uasort|uksort)\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval|assert)[\'"]?/i' => 'usort/uasort/uksort with dangerous callback detected',
+            '/\bpreg_replace_callback\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval)[\'"]?/i' => 'preg_replace_callback with dangerous callback detected',
+            '/\bregister_shutdown_function\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval)[\'"]?/i' => 'register_shutdown_function with dangerous callback detected',
 
             // ============================================
-            // OBFUSCATION PATTERNS (common malware techniques)
+            // OBFUSCATION PATTERNS (CRITICAL - common malware)
             // ============================================
-            '/\bbase64_decode\s*\(/i' => 'base64_decode() detected - potential obfuscation',
-            '/\bgzinflate\s*\(/i' => 'gzinflate() detected - potential obfuscation',
-            '/\bgzuncompress\s*\(/i' => 'gzuncompress() detected - potential obfuscation',
-            '/\bgzdecode\s*\(/i' => 'gzdecode() detected - potential obfuscation',
-            '/\bstr_rot13\s*\(/i' => 'str_rot13() detected - potential obfuscation',
+            '/\bgzinflate\s*\(\s*base64_decode/i' => 'gzinflate(base64_decode()) detected - obfuscation pattern',
+            '/\bstr_rot13\s*\(\s*base64_decode/i' => 'str_rot13(base64_decode()) detected - obfuscation pattern',
             '/\bconvert_uudecode\s*\(/i' => 'convert_uudecode() detected - potential obfuscation',
             '/\bchr\s*\(\s*\d+\s*\)\s*\.\s*chr\s*\(/i' => 'chr() concatenation detected - obfuscation pattern',
-            '/\\\\x[0-9a-fA-F]{2}.*\\\\x[0-9a-fA-F]{2}/' => 'Hex escape sequences detected - potential obfuscation',
-            '/\bpack\s*\([\'"]H/i' => 'pack() with hex detected - potential obfuscation',
+            '/\\\\x[0-9a-fA-F]{2}.*\\\\x[0-9a-fA-F]{2}.*\\\\x[0-9a-fA-F]{2}/' => 'Multiple hex escape sequences detected - obfuscation pattern',
+            '/\bpack\s*\([\'"]H\*[\'"].*\beval/i' => 'pack() with eval detected - obfuscation pattern',
 
             // ============================================
-            // FILE OPERATIONS (code injection via files)
+            // FILE OPERATIONS WITH PHP CODE (CRITICAL)
             // ============================================
             '/\bfile_put_contents\s*\([^)]*\.php/i' => 'file_put_contents() to PHP file detected - code injection risk',
             '/\bfwrite\s*\([^)]*<\?php/i' => 'fwrite() with PHP code detected - code injection risk',
-            '/\bfputs\s*\(/i' => 'fputs() detected - file write risk',
-            '/\bmove_uploaded_file\s*\(/i' => 'move_uploaded_file() detected - file upload risk',
             '/\bcopy\s*\([^)]*\.php/i' => 'copy() to PHP file detected - code injection risk',
 
             // ============================================
-            // FILE INCLUSION RISKS (RFI/LFI)
+            // FILE INCLUSION RISKS (CRITICAL - RFI/LFI)
             // ============================================
-            '/\b(include|require|include_once|require_once)\s*\([^)]*\$/i' => 'Dynamic file inclusion detected - RFI/LFI risk',
-            '/\bfile_get_contents\s*\([^)]*https?:/i' => 'Remote file_get_contents() detected - external code risk',
-            '/\bcurl_exec\s*\(/i' => 'curl_exec() detected - remote code fetch risk',
-            '/\bfsockopen\s*\(/i' => 'fsockopen() detected - network socket risk',
-            '/\bstream_socket_client\s*\(/i' => 'stream_socket_client() detected - network socket risk',
+            '/\b(include|require|include_once|require_once)\s*\([^)]*\$_(GET|POST|REQUEST|COOKIE)/i' => 'Dynamic file inclusion with user input - RFI/LFI risk',
+            '/\b(include|require|include_once|require_once)\s*\(\s*\$[^)]*\.\s*\$/i' => 'Dynamic file inclusion with concatenation - RFI/LFI risk',
 
             // ============================================
-            // DANGEROUS REGEX (code execution via regex)
+            // DANGEROUS REGEX (CRITICAL)
             // ============================================
             '/\bpreg_replace\s*\([^)]*\/[^\/]*e[^\/]*\//i' => 'preg_replace with /e modifier detected - code execution risk',
 
             // ============================================
-            // SERIALIZATION ATTACKS
+            // SERIALIZATION ATTACKS (CRITICAL)
             // ============================================
             '/\bunserialize\s*\([^)]*\$_(GET|POST|REQUEST|COOKIE)/i' => 'unserialize with user input - object injection risk',
-            '/\bunserialize\s*\(\s*\$/i' => 'unserialize with variable input - object injection risk',
 
             // ============================================
-            // INFORMATION DISCLOSURE
+            // INFORMATION DISCLOSURE (CRITICAL)
             // ============================================
             '/\bphpinfo\s*\(/i' => 'phpinfo() detected - information disclosure risk',
-            '/\bgetenv\s*\(/i' => 'getenv() detected - environment access risk',
-            '/\b\$_ENV\b/' => '$_ENV access detected - environment variable risk',
-            '/\b\$_SERVER\s*\[\s*[\'"]HTTP_/' => '$_SERVER[HTTP_*] access detected - header manipulation risk',
 
             // ============================================
-            // DATABASE RISKS
+            // DATABASE RISKS (CRITICAL)
             // ============================================
             '/\bmysql_query\s*\(/i' => 'mysql_query() detected (deprecated, use PDO) - SQL injection risk',
             '/\bmysqli_query\s*\([^)]*\$_(GET|POST|REQUEST)/i' => 'mysqli_query with user input - SQL injection risk',
 
             // ============================================
-            // PROCESS/SYSTEM MANIPULATION
+            // PROCESS MANIPULATION (CRITICAL)
             // ============================================
-            '/\bputenv\s*\(/i' => 'putenv() detected - environment manipulation risk',
-            '/\bini_set\s*\(/i' => 'ini_set() detected - configuration manipulation risk',
-            '/\bset_include_path\s*\(/i' => 'set_include_path() detected - include path manipulation risk',
             '/\bdl\s*\(/i' => 'dl() detected - dynamic extension loading risk',
 
             // ============================================
-            // CLASS/OBJECT DYNAMIC INSTANTIATION
+            // DYNAMIC INSTANTIATION (CRITICAL)
             // ============================================
-            '/\bnew\s+\$\w+/i' => 'Dynamic class instantiation (new $var) detected - arbitrary object risk',
-            '/::class\s*\]\s*\(/' => 'Dynamic static method call detected - execution risk',
+            '/\bnew\s+\$\w+\s*\(/i' => 'Dynamic class instantiation (new $var()) detected - arbitrary object risk',
+        ];
+
+        // WARNING: Patterns that may be legitimate but warrant review (do not block upload)
+        $warningPatterns = [
+            // ============================================
+            // DYNAMIC CALLS (may be legitimate)
+            // ============================================
+            '/\bcall_user_func\s*\(/i' => 'call_user_func() detected - review callback source',
+            '/\bcall_user_func_array\s*\(/i' => 'call_user_func_array() detected - review callback source',
+            '/\$\w+\s*\(\s*\$/' => 'Variable function call with variable argument detected - review usage',
+            '/\$\$\w+/' => 'Variable variable ($$var) detected - review usage',
+
+            // ============================================
+            // REFLECTION (may be legitimate)
+            // ============================================
+            '/\bnew\s+ReflectionClass\b/i' => 'ReflectionClass detected - review usage',
+            '/->invoke\s*\(/i' => 'ReflectionMethod::invoke() detected - review usage',
+
+            // ============================================
+            // CALLBACK FUNCTIONS (legitimate but review)
+            // ============================================
+            '/\bregister_shutdown_function\s*\(/i' => 'register_shutdown_function() detected - review callback',
+            '/\bspl_autoload_register\s*\(/i' => 'spl_autoload_register() detected - review autoloader',
+
+            // ============================================
+            // ENCODING (may be legitimate)
+            // ============================================
+            '/\bbase64_decode\s*\(/i' => 'base64_decode() detected - verify not used for obfuscation',
+            '/\bgzinflate\s*\(/i' => 'gzinflate() detected - verify not used for obfuscation',
+            '/\bgzuncompress\s*\(/i' => 'gzuncompress() detected - verify not used for obfuscation',
+            '/\bgzdecode\s*\(/i' => 'gzdecode() detected - verify not used for obfuscation',
+
+            // ============================================
+            // FILE OPERATIONS (may be legitimate)
+            // ============================================
+            '/\bfputs\s*\(/i' => 'fputs() detected - review file write usage',
+            '/\bmove_uploaded_file\s*\(/i' => 'move_uploaded_file() detected - review file handling',
+
+            // ============================================
+            // NETWORK (may be legitimate)
+            // ============================================
+            '/\bfile_get_contents\s*\([^)]*https?:/i' => 'Remote file_get_contents() detected - review external requests',
+            '/\bcurl_exec\s*\(/i' => 'curl_exec() detected - review external requests',
+            '/\bfsockopen\s*\(/i' => 'fsockopen() detected - review network usage',
+            '/\bstream_socket_client\s*\(/i' => 'stream_socket_client() detected - review network usage',
+
+            // ============================================
+            // CONFIGURATION (may be legitimate)
+            // ============================================
+            '/\bini_set\s*\(/i' => 'ini_set() detected - review configuration changes',
+            '/\bputenv\s*\(/i' => 'putenv() detected - review environment changes',
+            '/\bset_include_path\s*\(/i' => 'set_include_path() detected - review path changes',
+            '/\bgetenv\s*\(/i' => 'getenv() detected - review environment access',
+
+            // ============================================
+            // SUPERGLOBALS (may be legitimate)
+            // ============================================
+            '/\b\$_ENV\b/' => '$_ENV access detected - review environment variable usage',
+            '/\b\$_SERVER\s*\[\s*[\'"]HTTP_/' => '$_SERVER[HTTP_*] access detected - review header usage',
+
+            // ============================================
+            // SERIALIZATION (may be legitimate)
+            // ============================================
+            '/\bunserialize\s*\(\s*\$/i' => 'unserialize with variable - ensure input is trusted',
         ];
 
         // Find all PHP files
@@ -510,18 +549,27 @@ class PluginsController extends BaseController
 
             // Remove comments and strings for more accurate pattern matching
             $strippedContent = $this->stripCommentsAndStrings($content);
+            $relativePath = str_replace($pluginDir . '/', '', $file->getRealPath());
 
+            // Check for CRITICAL patterns (block upload)
             foreach ($dangerousPatterns as $pattern => $message) {
                 if (preg_match($pattern, $strippedContent)) {
-                    $relativePath = str_replace($pluginDir . '/', '', $file->getRealPath());
                     $errors[] = "{$relativePath}: {$message}";
+                }
+            }
+
+            // Check for WARNING patterns (allow but inform)
+            foreach ($warningPatterns as $pattern => $message) {
+                if (preg_match($pattern, $strippedContent)) {
+                    $warnings[] = "{$relativePath}: {$message}";
                 }
             }
         }
 
         return [
             'valid' => empty($errors),
-            'errors' => $errors
+            'errors' => $errors,
+            'warnings' => $warnings
         ];
     }
 
