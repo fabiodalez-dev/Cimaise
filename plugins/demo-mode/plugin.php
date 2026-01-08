@@ -47,11 +47,6 @@ class DemoModePlugin
         'gallery' => 'Gallery',
     ];
 
-    public function __construct()
-    {
-        $this->init();
-    }
-
     // Blocked admin endpoints for demo user (security protection)
     private const BLOCKED_ENDPOINTS = [
         '/admin/commands' => 'System commands are disabled in demo mode.',
@@ -60,6 +55,11 @@ class DemoModePlugin
         '/admin/users/store' => 'Creating users is disabled in demo mode.',
         '/admin/users/delete' => 'Deleting users is disabled in demo mode.',
     ];
+
+    public function __construct()
+    {
+        $this->init();
+    }
 
     /**
      * Initialize plugin hooks
