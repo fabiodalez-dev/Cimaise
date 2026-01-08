@@ -333,30 +333,121 @@ class PluginsController extends BaseController
 
         // Dangerous functions that could allow code execution
         $dangerousPatterns = [
-            // Direct code execution
+            // ============================================
+            // DIRECT CODE EXECUTION
+            // ============================================
             '/\beval\s*\(/i' => 'eval() function detected - arbitrary code execution risk',
             '/\bcreate_function\s*\(/i' => 'create_function() detected - arbitrary code execution risk',
-            '/\bassert\s*\([^)]*\$[^)]*\)/i' => 'assert() with variable input detected - code execution risk',
+            '/\bassert\s*\(/i' => 'assert() detected - code execution risk (PHP 7+ callback mode)',
 
-            // Shell command execution
+            // ============================================
+            // SHELL COMMAND EXECUTION
+            // ============================================
             '/\bexec\s*\(/i' => 'exec() function detected - shell command execution risk',
             '/\bshell_exec\s*\(/i' => 'shell_exec() function detected - shell command execution risk',
             '/\bsystem\s*\(/i' => 'system() function detected - shell command execution risk',
             '/\bpassthru\s*\(/i' => 'passthru() function detected - shell command execution risk',
             '/\bpopen\s*\(/i' => 'popen() function detected - shell command execution risk',
             '/\bproc_open\s*\(/i' => 'proc_open() function detected - shell command execution risk',
-            '/`[^`]*\$[^`]*`/' => 'Backtick operator with variable detected - shell execution risk',
+            '/\bpcntl_exec\s*\(/i' => 'pcntl_exec() function detected - process execution risk',
+            '/`[^`]+`/' => 'Backtick operator detected - shell execution risk',
 
-            // Obfuscation patterns
-            '/\bbase64_decode\s*\([^)]*\beval\b/i' => 'base64_decode + eval pattern detected - obfuscated code risk',
-            '/\bgzinflate\s*\([^)]*\beval\b/i' => 'gzinflate + eval pattern detected - obfuscated code risk',
-            '/\bstr_rot13\s*\([^)]*\beval\b/i' => 'str_rot13 + eval pattern detected - obfuscated code risk',
+            // ============================================
+            // INDIRECT/DYNAMIC FUNCTION CALLS (bypass detection)
+            // ============================================
+            '/\bcall_user_func\s*\(/i' => 'call_user_func() detected - dynamic function execution risk',
+            '/\bcall_user_func_array\s*\(/i' => 'call_user_func_array() detected - dynamic function execution risk',
+            '/\$\w+\s*\(/' => 'Variable function call detected - dynamic execution risk',
+            '/\$\$\w+/' => 'Variable variable ($$var) detected - dynamic reference risk',
+            '/\(\s*new\s+ReflectionFunction\s*\)/i' => 'ReflectionFunction detected - dynamic execution risk',
+            '/->invoke\s*\(/i' => 'ReflectionMethod::invoke() detected - dynamic execution risk',
+            '/->invokeArgs\s*\(/i' => 'ReflectionMethod::invokeArgs() detected - dynamic execution risk',
+            '/\bnew\s+ReflectionClass\b/i' => 'ReflectionClass detected - dynamic instantiation risk',
 
-            // File inclusion with variables (potential RFI/LFI)
-            '/\b(include|require|include_once|require_once)\s*\([^)]*\$_(GET|POST|REQUEST|COOKIE)/i' => 'File inclusion with user input detected - RFI/LFI risk',
+            // ============================================
+            // CALLBACK FUNCTIONS (can execute arbitrary code)
+            // ============================================
+            '/\barray_map\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval)[\'"]?/i' => 'array_map with dangerous callback detected',
+            '/\barray_filter\s*\([^)]*[\'"]?(exec|system|passthru|shell_exec|eval)[\'"]?/i' => 'array_filter with dangerous callback detected',
+            '/\barray_walk\s*\(/i' => 'array_walk() detected - callback execution risk',
+            '/\barray_reduce\s*\(/i' => 'array_reduce() detected - callback execution risk',
+            '/\busort\s*\(/i' => 'usort() detected - callback execution risk',
+            '/\buasort\s*\(/i' => 'uasort() detected - callback execution risk',
+            '/\buksort\s*\(/i' => 'uksort() detected - callback execution risk',
+            '/\bpreg_replace_callback\s*\(/i' => 'preg_replace_callback() detected - callback execution risk',
+            '/\bregister_shutdown_function\s*\(/i' => 'register_shutdown_function() detected - deferred execution risk',
+            '/\bregister_tick_function\s*\(/i' => 'register_tick_function() detected - tick execution risk',
+            '/\bspl_autoload_register\s*\(/i' => 'spl_autoload_register() detected - autoload manipulation risk',
 
-            // Superglobal abuse in dangerous contexts
+            // ============================================
+            // OBFUSCATION PATTERNS (common malware techniques)
+            // ============================================
+            '/\bbase64_decode\s*\(/i' => 'base64_decode() detected - potential obfuscation',
+            '/\bgzinflate\s*\(/i' => 'gzinflate() detected - potential obfuscation',
+            '/\bgzuncompress\s*\(/i' => 'gzuncompress() detected - potential obfuscation',
+            '/\bgzdecode\s*\(/i' => 'gzdecode() detected - potential obfuscation',
+            '/\bstr_rot13\s*\(/i' => 'str_rot13() detected - potential obfuscation',
+            '/\bconvert_uudecode\s*\(/i' => 'convert_uudecode() detected - potential obfuscation',
+            '/\bchr\s*\(\s*\d+\s*\)\s*\.\s*chr\s*\(/i' => 'chr() concatenation detected - obfuscation pattern',
+            '/\\\\x[0-9a-fA-F]{2}.*\\\\x[0-9a-fA-F]{2}/' => 'Hex escape sequences detected - potential obfuscation',
+            '/\bpack\s*\([\'"]H/i' => 'pack() with hex detected - potential obfuscation',
+
+            // ============================================
+            // FILE OPERATIONS (code injection via files)
+            // ============================================
+            '/\bfile_put_contents\s*\([^)]*\.php/i' => 'file_put_contents() to PHP file detected - code injection risk',
+            '/\bfwrite\s*\([^)]*<\?php/i' => 'fwrite() with PHP code detected - code injection risk',
+            '/\bfputs\s*\(/i' => 'fputs() detected - file write risk',
+            '/\bmove_uploaded_file\s*\(/i' => 'move_uploaded_file() detected - file upload risk',
+            '/\bcopy\s*\([^)]*\.php/i' => 'copy() to PHP file detected - code injection risk',
+
+            // ============================================
+            // FILE INCLUSION RISKS (RFI/LFI)
+            // ============================================
+            '/\b(include|require|include_once|require_once)\s*\([^)]*\$/i' => 'Dynamic file inclusion detected - RFI/LFI risk',
+            '/\bfile_get_contents\s*\([^)]*https?:/i' => 'Remote file_get_contents() detected - external code risk',
+            '/\bcurl_exec\s*\(/i' => 'curl_exec() detected - remote code fetch risk',
+            '/\bfsockopen\s*\(/i' => 'fsockopen() detected - network socket risk',
+            '/\bstream_socket_client\s*\(/i' => 'stream_socket_client() detected - network socket risk',
+
+            // ============================================
+            // DANGEROUS REGEX (code execution via regex)
+            // ============================================
             '/\bpreg_replace\s*\([^)]*\/[^\/]*e[^\/]*\//i' => 'preg_replace with /e modifier detected - code execution risk',
+
+            // ============================================
+            // SERIALIZATION ATTACKS
+            // ============================================
+            '/\bunserialize\s*\([^)]*\$_(GET|POST|REQUEST|COOKIE)/i' => 'unserialize with user input - object injection risk',
+            '/\bunserialize\s*\(\s*\$/i' => 'unserialize with variable input - object injection risk',
+
+            // ============================================
+            // INFORMATION DISCLOSURE
+            // ============================================
+            '/\bphpinfo\s*\(/i' => 'phpinfo() detected - information disclosure risk',
+            '/\bgetenv\s*\(/i' => 'getenv() detected - environment access risk',
+            '/\b\$_ENV\b/' => '$_ENV access detected - environment variable risk',
+            '/\b\$_SERVER\s*\[\s*[\'"]HTTP_/' => '$_SERVER[HTTP_*] access detected - header manipulation risk',
+
+            // ============================================
+            // DATABASE RISKS
+            // ============================================
+            '/\bmysql_query\s*\(/i' => 'mysql_query() detected (deprecated, use PDO) - SQL injection risk',
+            '/\bmysqli_query\s*\([^)]*\$_(GET|POST|REQUEST)/i' => 'mysqli_query with user input - SQL injection risk',
+
+            // ============================================
+            // PROCESS/SYSTEM MANIPULATION
+            // ============================================
+            '/\bputenv\s*\(/i' => 'putenv() detected - environment manipulation risk',
+            '/\bini_set\s*\(/i' => 'ini_set() detected - configuration manipulation risk',
+            '/\bset_include_path\s*\(/i' => 'set_include_path() detected - include path manipulation risk',
+            '/\bdl\s*\(/i' => 'dl() detected - dynamic extension loading risk',
+
+            // ============================================
+            // CLASS/OBJECT DYNAMIC INSTANTIATION
+            // ============================================
+            '/\bnew\s+\$\w+/i' => 'Dynamic class instantiation (new $var) detected - arbitrary object risk',
+            '/::class\s*\]\s*\(/' => 'Dynamic static method call detected - execution risk',
         ];
 
         // Find all PHP files
@@ -369,9 +460,21 @@ class PluginsController extends BaseController
 
             $extension = strtolower(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
 
-            // Check for suspicious file extensions
-            if (in_array($extension, ['phtml', 'phar'])) {
-                $errors[] = "Suspicious file type detected: {$file->getFilename()}";
+            // Check for suspicious/dangerous file extensions
+            $dangerousExtensions = [
+                'phtml', 'phar', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps',
+                'inc', 'cgi', 'pl', 'py', 'sh', 'bash', 'exe', 'bat', 'cmd',
+                'asp', 'aspx', 'jsp', 'jspx', 'cfm', 'shtml'
+            ];
+            if (in_array($extension, $dangerousExtensions)) {
+                $errors[] = "Dangerous file type detected: {$file->getFilename()}";
+                continue;
+            }
+
+            // Check for double extensions (e.g., file.php.jpg)
+            $basename = $file->getFilename();
+            if (preg_match('/\.(php|phar|phtml)[^a-z]/i', $basename)) {
+                $errors[] = "Double extension with PHP detected: {$basename}";
                 continue;
             }
 
@@ -379,6 +482,23 @@ class PluginsController extends BaseController
             $filename = $file->getFilename();
             if (preg_match('/^\.ht/', $filename)) {
                 $errors[] = "Apache config file detected: {$filename}";
+                continue;
+            }
+
+            // Check for other dangerous config/hidden files
+            $dangerousFilenames = [
+                'web.config', '.user.ini', 'php.ini', '.php.ini', '.env',
+                '.git', '.gitignore', '.svn', '.hg'
+            ];
+            $lowercaseFilename = strtolower($filename);
+            if (in_array($lowercaseFilename, $dangerousFilenames)) {
+                $errors[] = "Dangerous config/hidden file detected: {$filename}";
+                continue;
+            }
+
+            // Check for null byte injection attempts in filename
+            if (strpos($filename, "\0") !== false || strpos($filename, '%00') !== false) {
+                $errors[] = "Null byte injection attempt in filename: {$filename}";
                 continue;
             }
 
@@ -415,15 +535,47 @@ class PluginsController extends BaseController
             $tokens = @token_get_all($code);
             $result = '';
 
+            // Token types to skip (comments and strings)
+            $skipTokens = [
+                T_COMMENT,
+                T_DOC_COMMENT,
+                T_CONSTANT_ENCAPSED_STRING,
+                T_ENCAPSED_AND_WHITESPACE,
+            ];
+
+            // Add heredoc/nowdoc tokens if they exist (PHP version dependent)
+            if (defined('T_START_HEREDOC')) {
+                $skipTokens[] = T_START_HEREDOC;
+                $skipTokens[] = T_END_HEREDOC;
+            }
+
+            $inHeredoc = false;
             foreach ($tokens as $token) {
                 if (is_array($token)) {
+                    // Track heredoc/nowdoc blocks
+                    if (defined('T_START_HEREDOC') && $token[0] === T_START_HEREDOC) {
+                        $inHeredoc = true;
+                        continue;
+                    }
+                    if (defined('T_END_HEREDOC') && $token[0] === T_END_HEREDOC) {
+                        $inHeredoc = false;
+                        continue;
+                    }
+
+                    // Skip content inside heredoc
+                    if ($inHeredoc) {
+                        continue;
+                    }
+
                     // Skip comments and strings
-                    if (in_array($token[0], [T_COMMENT, T_DOC_COMMENT, T_CONSTANT_ENCAPSED_STRING, T_ENCAPSED_AND_WHITESPACE])) {
+                    if (in_array($token[0], $skipTokens)) {
                         continue;
                     }
                     $result .= $token[1];
                 } else {
-                    $result .= $token;
+                    if (!$inHeredoc) {
+                        $result .= $token;
+                    }
                 }
             }
 
