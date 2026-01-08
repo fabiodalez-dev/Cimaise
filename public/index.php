@@ -30,17 +30,13 @@ if (!$isInstallerRoute) {
     $installed = false;
 
     // Check installation status via Installer class
-    if (file_exists($root . '/.env')) {
-        try {
-            if (file_exists($root . '/app/Installer/Installer.php')) {
-                require_once $root . '/app/Installer/Installer.php';
-                $installer = new \App\Installer\Installer($root);
-                $installed = $installer->isInstalled();
-            }
-        } catch (\Throwable $e) {
-            // If there's an error, we assume it's not installed
-            $installed = false;
-        }
+    // Note: Installer::isInstalled() already checks for .env internally
+    try {
+        $installer = new \App\Installer\Installer($root);
+        $installed = $installer->isInstalled();
+    } catch (\Throwable $e) {
+        // If there's an error, we assume it's not installed
+        $installed = false;
     }
 
     // If not installed, redirect to installer
