@@ -52,11 +52,23 @@ class DemoModePlugin
         $this->init();
     }
 
+    // Blocked admin endpoints for demo user (security protection)
+    private const BLOCKED_ENDPOINTS = [
+        '/admin/commands' => 'System commands are disabled in demo mode.',
+        '/admin/updates' => 'System updates are disabled in demo mode.',
+        '/admin/users/create' => 'Creating users is disabled in demo mode.',
+        '/admin/users/store' => 'Creating users is disabled in demo mode.',
+        '/admin/users/delete' => 'Deleting users is disabled in demo mode.',
+    ];
+
     /**
      * Initialize plugin hooks
      */
     public function init(): void
     {
+        // Security: Block dangerous endpoints for demo user (high priority - runs first)
+        Hooks::addAction('cimaise_init', [$this, 'blockRestrictedEndpoints'], 5, self::PLUGIN_NAME);
+
         // Create demo user on app init
         Hooks::addAction('cimaise_init', [$this, 'ensureDemoUserExists'], 10, self::PLUGIN_NAME);
 
@@ -88,6 +100,84 @@ class DemoModePlugin
         if ($container && isset($container['db'])) {
             $this->createDemoUserIfNotExists($container['db']);
         }
+    }
+
+    /**
+     * Hook: cimaise_init (priority 5) - Block restricted endpoints for demo user
+     * Only blocks access for the demo user, real admins have full access
+     */
+    public function blockRestrictedEndpoints($db, $_pluginManager = null): void
+    {
+        // Only check if user is logged in
+        if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_email'])) {
+            return;
+        }
+
+        // Only restrict the demo user, not real admins
+        if ($_SESSION['admin_email'] !== self::DEMO_EMAIL) {
+            return;
+        }
+
+        // Get current request path (normalize by removing query string and base path)
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $path = parse_url($requestUri, PHP_URL_PATH) ?? '';
+
+        // Remove common base path prefixes
+        $path = preg_replace('#^(/public|/cimaise)?#', '', $path);
+
+        // Check if path matches any blocked endpoint
+        foreach (self::BLOCKED_ENDPOINTS as $blockedPath => $message) {
+            if (str_starts_with($path, $blockedPath)) {
+                $this->renderBlockedPage($message);
+                exit;
+            }
+        }
+    }
+
+    /**
+     * Render blocked access page for demo user
+     */
+    private function renderBlockedPage(string $message): void
+    {
+        http_response_code(403);
+        $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+
+        echo <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Restricted - Demo Mode</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f9fafb; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .container { text-align: center; padding: 2rem; max-width: 500px; }
+        .icon { font-size: 4rem; color: #f59e0b; margin-bottom: 1.5rem; }
+        h1 { font-size: 1.5rem; color: #111827; margin-bottom: 0.75rem; }
+        p { color: #6b7280; margin-bottom: 1.5rem; line-height: 1.6; }
+        .back-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: #111827; color: #fff; text-decoration: none; border-radius: 0.5rem; font-size: 0.875rem; transition: background 0.2s; }
+        .back-btn:hover { background: #374151; }
+        .demo-note { margin-top: 2rem; padding: 1rem; background: #fef3c7; border-radius: 0.5rem; font-size: 0.875rem; color: #92400e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon"><i class="fas fa-shield-alt"></i></div>
+        <h1>Access Restricted</h1>
+        <p>{$safeMessage}</p>
+        <a href="javascript:history.back()" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Go Back
+        </a>
+        <div class="demo-note">
+            <i class="fas fa-info-circle"></i>
+            You are logged in as a demo user. Some features are restricted for security reasons.
+        </div>
+    </div>
+</body>
+</html>
+HTML;
     }
 
     /**
@@ -132,17 +222,19 @@ class DemoModePlugin
 
             // Create demo user
             $hashedPassword = password_hash(self::DEMO_PASSWORD, PASSWORD_ARGON2ID);
-            $now = $db->nowExpression();
+            $now = date('Y-m-d H:i:s');
 
             $stmt = $pdo->prepare("
                 INSERT INTO users (first_name, last_name, email, password_hash, role, is_active, created_at, updated_at)
-                VALUES (:first_name, :last_name, :email, :password, 'admin', 1, {$now}, {$now})
+                VALUES (:first_name, :last_name, :email, :password, 'admin', 1, :created_at, :updated_at)
             ");
             $stmt->execute([
                 ':first_name' => 'Demo',
                 ':last_name' => 'User',
                 ':email' => self::DEMO_EMAIL,
                 ':password' => $hashedPassword,
+                ':created_at' => $now,
+                ':updated_at' => $now,
             ]);
 
             error_log("Demo Mode: Created demo user " . self::DEMO_EMAIL);
@@ -185,8 +277,9 @@ class DemoModePlugin
      */
     private function renderDesktopLoginLink(string $basePath): void
     {
+        $safeBasePath = htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8');
         echo <<<HTML
-        <a href="{$basePath}/admin/login" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md">
+        <a href="{$safeBasePath}/admin/login" class="text-sm font-medium inline-flex items-center gap-2 hover:text-gray-600 transition-all duration-200 py-2 px-1 rounded-md">
             <i class="fas fa-sign-in-alt text-xs"></i>
             Login
         </a>
@@ -198,9 +291,10 @@ HTML;
      */
     private function renderMobileLoginLink(string $basePath): void
     {
+        $safeBasePath = htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8');
         echo <<<HTML
         <div class="border-t border-gray-200 pt-2 mt-2">
-            <a href="{$basePath}/admin/login" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">
+            <a href="{$safeBasePath}/admin/login" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200">
                 <i class="fas fa-sign-in-alt mr-2"></i>
                 Admin Login
             </a>
@@ -213,8 +307,9 @@ HTML;
      */
     private function renderMegaMenuLoginLink(string $basePath): void
     {
+        $safeBasePath = htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8');
         echo <<<HTML
-        <a href="{$basePath}/admin/login" class="mega-menu_link">Login</a>
+        <a href="{$safeBasePath}/admin/login" class="mega-menu_link">Login</a>
 HTML;
     }
 
@@ -223,16 +318,20 @@ HTML;
      */
     private function renderDesktopTemplateSwitcher(string $basePath, string $currentTemplate, string $cspNonce = ''): void
     {
-        $nonceAttr = $cspNonce ? " nonce=\"{$cspNonce}\"" : '';
+        $safeNonce = htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8');
+        $nonceAttr = $cspNonce ? " nonce=\"{$safeNonce}\"" : '';
+        $safeBasePath = htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8');
 
         // Build menu items
         $menuItems = '';
         foreach (self::TEMPLATES as $slug => $label) {
+            $safeSlug = htmlspecialchars($slug, ENT_QUOTES, 'UTF-8');
+            $safeLabel = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
             $isActive = $slug === $currentTemplate ? ' bg-gray-100 font-semibold' : '';
             $checkIcon = $slug === $currentTemplate ? '<i class="fas fa-check text-xs text-green-600 ml-auto"></i>' : '';
             $menuItems .= <<<HTML
-                        <a href="{$basePath}/?template={$slug}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors{$isActive}">
-                            {$label}{$checkIcon}
+                        <a href="{$safeBasePath}/?template={$safeSlug}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors{$isActive}">
+                            {$safeLabel}{$checkIcon}
                         </a>
 HTML;
         }
@@ -308,17 +407,20 @@ HTML;
      */
     private function renderMobileTemplateSwitcher(string $basePath, string $currentTemplate): void
     {
+        $safeBasePath = htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8');
         echo <<<HTML
         <div class="border-t border-gray-200 pt-2 mt-2">
             <p class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 px-3">Home Templates</p>
             <div class="space-y-1 px-2">
 HTML;
         foreach (self::TEMPLATES as $slug => $label) {
+            $safeSlug = htmlspecialchars($slug, ENT_QUOTES, 'UTF-8');
+            $safeLabel = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
             $isActive = $slug === $currentTemplate ? ' bg-gray-100 font-semibold' : '';
             $checkIcon = $slug === $currentTemplate ? '<i class="fas fa-check text-xs text-green-600 ml-2"></i>' : '';
             echo <<<HTML
-                <a href="{$basePath}/?template={$slug}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200{$isActive}">
-                    {$label}{$checkIcon}
+                <a href="{$safeBasePath}/?template={$safeSlug}" class="block text-sm font-medium text-gray-900 hover:bg-gray-100 rounded-md p-3 transition-colors duration-200{$isActive}">
+                    {$safeLabel}{$checkIcon}
                 </a>
 HTML;
         }
@@ -333,10 +435,13 @@ HTML;
      */
     private function renderMegaMenuTemplateSwitcher(string $basePath, string $currentTemplate): void
     {
+        $safeBasePath = htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8');
         foreach (self::TEMPLATES as $slug => $label) {
+            $safeSlug = htmlspecialchars($slug, ENT_QUOTES, 'UTF-8');
+            $safeLabel = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
             $isActive = $slug === $currentTemplate ? ' is-active' : '';
             echo <<<HTML
-        <a href="{$basePath}/?template={$slug}" class="mega-menu_link{$isActive}">{$label}</a>
+        <a href="{$safeBasePath}/?template={$safeSlug}" class="mega-menu_link{$isActive}">{$safeLabel}</a>
 HTML;
         }
     }
