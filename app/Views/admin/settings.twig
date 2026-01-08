@@ -915,7 +915,7 @@
     {% set sensitive_keys = ['recaptcha.secret_key', 'recaptcha.site_key', 'api.key', 'api.secret', 'smtp.password', 'mail.password'] %}
     {% set public_settings = {} %}
     {% for key, value in settings %}
-      {% if key not in sensitive_keys and not (key starts with 'secret') and not (key ends with '_secret') and not (key ends with '_key') %}
+      {% if key not in sensitive_keys and not (key starts with 'secret') and not (key ends with '_secret') and not (key ends with '_key' and 'recaptcha' in key) %}
         {% set public_settings = public_settings|merge({(key): value}) %}
       {% endif %}
     {% endfor %}
