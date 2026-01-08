@@ -831,6 +831,15 @@ HTML;
             exit;
         }
 
+        // Check if exec() is available
+        if (!function_exists('exec') || $this->isExecDisabled()) {
+            $this->sendJsonResponse([
+                'success' => false,
+                'error' => 'exec() is disabled on this server. Please run the seed script via SSH: php bin/dev/seed_demo_data.php --force && php bin/console images:generate && php bin/console nsfw:blur:generate'
+            ], 500);
+            exit;
+        }
+
         // Increase time limit for long-running seed operation
         set_time_limit(600); // 10 minutes
 
@@ -881,6 +890,22 @@ HTML;
         }
 
         exit;
+    }
+
+    /**
+     * Check if exec() function is disabled
+     */
+    private function isExecDisabled(): bool
+    {
+        $disabled = ini_get('disable_functions');
+        if ($disabled) {
+            $disabled = explode(',', $disabled);
+            $disabled = array_map('trim', $disabled);
+            if (in_array('exec', $disabled, true)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
