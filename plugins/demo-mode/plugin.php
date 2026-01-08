@@ -663,12 +663,32 @@ HTML;
           status.classList.add('hidden');
           result.classList.remove('hidden');
 
+          // Build result message safely using DOM nodes (XSS prevention)
+          function buildResultMessage(isSuccess, message) {
+            result.innerHTML = '';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'text-sm flex items-start ' + (isSuccess ? 'text-green-600' : 'text-red-600');
+
+            const iconEl = document.createElement('i');
+            iconEl.className = 'fas mr-2 mt-0.5 ' + (isSuccess ? 'fa-check-circle' : 'fa-times-circle');
+            wrapper.appendChild(iconEl);
+
+            const textDiv = document.createElement('div');
+            const strong = document.createElement('strong');
+            strong.textContent = isSuccess ? 'Success!' : 'Error:';
+            textDiv.appendChild(strong);
+            textDiv.appendChild(document.createTextNode(' ' + message));
+            wrapper.appendChild(textDiv);
+
+            result.appendChild(wrapper);
+          }
+
           if (data.success) {
-            result.innerHTML = '<div class="text-sm text-green-600 flex items-start"><i class="fas fa-check-circle mr-2 mt-0.5"></i><div><strong>Success!</strong> ' + (data.message || 'Demo data seeded successfully.') + '</div></div>';
+            buildResultMessage(true, data.message || 'Demo data seeded successfully.');
             icon.className = 'fas fa-check mr-2';
             text.textContent = 'Seeding Complete';
           } else {
-            result.innerHTML = '<div class="text-sm text-red-600 flex items-start"><i class="fas fa-times-circle mr-2 mt-0.5"></i><div><strong>Error:</strong> ' + (data.error || 'An error occurred.') + '</div></div>';
+            buildResultMessage(false, data.error || 'An error occurred.');
             icon.className = 'fas fa-seedling mr-2';
             text.textContent = 'Seed Demo Data';
             btn.disabled = false;
@@ -676,7 +696,22 @@ HTML;
         } catch (err) {
           status.classList.add('hidden');
           result.classList.remove('hidden');
-          result.innerHTML = '<div class="text-sm text-red-600 flex items-start"><i class="fas fa-times-circle mr-2 mt-0.5"></i><div><strong>Error:</strong> ' + err.message + '</div></div>';
+
+          // Build error message safely using DOM nodes (XSS prevention)
+          result.innerHTML = '';
+          const wrapper = document.createElement('div');
+          wrapper.className = 'text-sm text-red-600 flex items-start';
+          const iconEl = document.createElement('i');
+          iconEl.className = 'fas fa-times-circle mr-2 mt-0.5';
+          wrapper.appendChild(iconEl);
+          const textDiv = document.createElement('div');
+          const strong = document.createElement('strong');
+          strong.textContent = 'Error:';
+          textDiv.appendChild(strong);
+          textDiv.appendChild(document.createTextNode(' ' + err.message));
+          wrapper.appendChild(textDiv);
+          result.appendChild(wrapper);
+
           icon.className = 'fas fa-seedling mr-2';
           text.textContent = 'Seed Demo Data';
           btn.disabled = false;
@@ -711,10 +746,10 @@ HTML;
             exit;
         }
 
-        // Validate CSRF token
+        // Validate CSRF token (check for empty tokens first to prevent edge cases)
         $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         $sessionToken = $_SESSION['csrf'] ?? '';
-        if (!hash_equals($sessionToken, $csrfToken)) {
+        if (empty($csrfToken) || empty($sessionToken) || !hash_equals($sessionToken, $csrfToken)) {
             $this->sendJsonResponse(['success' => false, 'error' => 'Invalid CSRF token.'], 403);
             exit;
         }
@@ -743,7 +778,6 @@ HTML;
 
         // Capture output from the seed script
         ob_start();
-        $error = null;
 
         try {
             // The seed script expects to be run from the CLI, but we can include it
