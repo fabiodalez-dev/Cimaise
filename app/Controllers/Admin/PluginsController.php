@@ -241,6 +241,29 @@ class PluginsController extends BaseController
         $zip->extractTo($extractDir);
         $zip->close();
 
+        // Security: Verify all extracted files are within the expected directory (realpath validation)
+        $extractRealPath = realpath($extractDir);
+        if ($extractRealPath === false) {
+            $this->cleanupTemp($tempDir);
+            $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_zip')]));
+            return $response->withStatus(400);
+        }
+
+        $extractedFiles = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($extractDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($extractedFiles as $file) {
+            $fileRealPath = realpath($file->getPathname());
+            // Verify the file is actually within the extraction directory
+            if ($fileRealPath === false || !str_starts_with($fileRealPath, $extractRealPath . DIRECTORY_SEPARATOR)) {
+                $this->cleanupTemp($tempDir);
+                $response->getBody()->write(json_encode(['success' => false, 'message' => trans('admin.flash.plugin_invalid_zip')]));
+                return $response->withStatus(400);
+            }
+        }
+
         // Find plugin.json - could be in root or in a subdirectory
         $pluginJson = null;
         $pluginDir = null;
@@ -448,11 +471,6 @@ class PluginsController extends BaseController
             // PROCESS MANIPULATION (CRITICAL)
             // ============================================
             '/\bdl\s*\(/i' => 'dl() detected - dynamic extension loading risk',
-
-            // ============================================
-            // DYNAMIC INSTANTIATION (CRITICAL)
-            // ============================================
-            '/\bnew\s+\$\w+\s*\(/i' => 'Dynamic class instantiation (new $var()) detected - arbitrary object risk',
         ];
 
         // WARNING: Patterns that may be legitimate but warrant review (do not block upload)
@@ -464,6 +482,11 @@ class PluginsController extends BaseController
             '/\bcall_user_func_array\s*\(/i' => 'call_user_func_array() detected - review callback source',
             '/\$\w+\s*\(\s*\$/' => 'Variable function call with variable argument detected - review usage',
             '/\$\$\w+/' => 'Variable variable ($$var) detected - review usage',
+
+            // ============================================
+            // DYNAMIC INSTANTIATION (common in DI containers, factories)
+            // ============================================
+            '/\bnew\s+\$\w+\s*\(/i' => 'Dynamic class instantiation detected - review object source',
 
             // ============================================
             // REFLECTION (may be legitimate)
@@ -540,9 +563,9 @@ class PluginsController extends BaseController
                 continue;
             }
 
-            // Check for double extensions (e.g., file.php.jpg)
+            // Check for double extensions (e.g., file.php.jpg, file.php3.txt)
             $basename = $file->getFilename();
-            if (preg_match('/\.(php|phar|phtml)[^a-z]/i', $basename)) {
+            if (preg_match('/\.(php[3-8]?|phar|phtml)[^a-z]/i', $basename)) {
                 $errors[] = "Double extension with PHP detected: {$basename}";
                 continue;
             }

@@ -128,6 +128,9 @@ class DemoModePlugin
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
         $path = parse_url($requestUri, PHP_URL_PATH) ?? '';
 
+        // Decode URL-encoded characters to prevent bypass via %2F, %2e%2e, etc.
+        $path = rawurldecode($path);
+
         // Remove common base path prefixes
         $path = preg_replace('#^(/public|/cimaise)?#', '', $path);
 
@@ -831,9 +834,11 @@ HTML;
             }
         } catch (\Throwable $e) {
             ob_end_clean();
+            // Log full exception server-side (prevents information disclosure)
+            error_log('Demo mode seed script exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             $this->sendJsonResponse([
                 'success' => false,
-                'error' => 'Exception: ' . $e->getMessage()
+                'error' => 'An unexpected error occurred while seeding demo data. Check server logs for details.'
             ], 500);
         }
 
