@@ -1399,10 +1399,13 @@
                             </button>
 
                             <!-- Mega Menu Panel - fixed positioning to center in viewport -->
-                            <div id="categories-mega-menu" class="fixed left-1/2 top-[80px] w-[min(100vw-2rem,1040px)] -translate-x-1/2 bg-white border border-gray-200 shadow-2xl rounded-2xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out">
+                            {# Dynamic width based on category count: small when few items, larger when many #}
+                            {% set cat_count = filtered_parent_categories|length %}
+                            {% set menu_width = cat_count <= 1 ? '280px' : (cat_count == 2 ? '520px' : (cat_count == 3 ? '760px' : 'min(100vw-2rem,1040px)')) %}
+                            <div id="categories-mega-menu" class="fixed left-1/2 top-[80px] -translate-x-1/2 bg-white border border-gray-200 shadow-2xl rounded-2xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out" style="width: {{ menu_width }};">
                                 <div class="p-8 max-h-[70vh] overflow-y-auto">
                                     <!-- Parent Categories Grid -->
-                                    <div class="grid gap-8" id="parent-categories-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                                    <div class="grid gap-8" id="parent-categories-grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 220px)); justify-content: center;">
                                         {% for category in filtered_parent_categories %}
                                         <div class="group cursor-pointer category-parent-item relative" data-category-id="{{ category.id }}" data-category-slug="{{ category.slug }}" data-category-name="{{ category.name|e }}">
                                             <a href="{{ base_path }}/category/{{ category.slug }}" class="block hover:no-underline">
