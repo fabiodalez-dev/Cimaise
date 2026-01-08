@@ -960,14 +960,14 @@
         if (!document.querySelector('link[href*="leaflet"]')) {
           const leafletCss = document.createElement('link');
           leafletCss.rel = 'stylesheet';
-          leafletCss.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          leafletCss.href = window.basePath + '/assets/vendor/leaflet/leaflet.css';
           document.head.appendChild(leafletCss);
         }
 
         // Load Leaflet JS if not already loaded
         if (typeof L === 'undefined') {
           const script = document.createElement('script');
-          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.src = window.basePath + '/assets/vendor/leaflet/leaflet.js';
           script.onload = () => createMap(lat, lng);
           document.head.appendChild(script);
         } else {
