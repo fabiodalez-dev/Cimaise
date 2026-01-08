@@ -1400,8 +1400,9 @@
 
                             <!-- Mega Menu Panel - fixed positioning to center in viewport -->
                             {# Dynamic width based on category count: small when few items, larger when many #}
+                            {# Using min() with viewport units ensures proper sizing on small screens #}
                             {% set cat_count = filtered_parent_categories|length %}
-                            {% set menu_width = cat_count <= 1 ? '280px' : (cat_count == 2 ? '520px' : (cat_count == 3 ? '760px' : 'min(100vw-2rem,1040px)')) %}
+                            {% set menu_width = cat_count <= 1 ? 'min(90vw, 280px)' : (cat_count == 2 ? 'min(90vw, 520px)' : (cat_count == 3 ? 'min(90vw, 760px)' : 'min(100vw-2rem,1040px)')) %}
                             <div id="categories-mega-menu" class="fixed left-1/2 top-[80px] -translate-x-1/2 bg-white border border-gray-200 shadow-2xl rounded-2xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out" style="width: {{ menu_width }};">
                                 <div class="p-8 max-h-[70vh] overflow-y-auto">
                                     <!-- Parent Categories Grid -->
