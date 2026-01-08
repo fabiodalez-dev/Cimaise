@@ -19,6 +19,12 @@
             --step-completed: #2a2a2a;
             --btn-primary: #1a1a1a;
             --btn-primary-hover: #000000;
+            /* Override Bootstrap's blue color scheme completely */
+            --bs-primary: #1a1a1a;
+            --bs-primary-rgb: 26, 26, 26;
+            --bs-link-color: #1a1a1a;
+            --bs-link-hover-color: #000000;
+            --bs-focus-ring-color: rgba(64, 64, 64, 0.5);
         }
 
         body {
@@ -143,6 +149,8 @@
             padding: 0.625rem 0.875rem;
             font-size: 0.9375rem;
             transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            /* Override Bootstrap's CSS variables to remove blue focus */
+            --bs-focus-ring-color: rgba(64, 64, 64, 0.5);
         }
 
         .form-text {
@@ -156,6 +164,9 @@
             padding: 0.625rem 1.25rem;
             border-radius: 8px;
             transition: all 0.15s ease;
+            /* Override Bootstrap's CSS variables to remove blue focus */
+            --bs-btn-focus-box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.5);
+            --bs-btn-hover-border-color: var(--btn-primary-hover);
         }
 
         .btn-primary {
