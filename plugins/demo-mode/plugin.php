@@ -155,30 +155,41 @@ class DemoModePlugin
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Access Restricted - Demo Mode</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: system-ui, -apple-system, sans-serif; background: #f9fafb; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
         .container { text-align: center; padding: 2rem; max-width: 500px; }
-        .icon { font-size: 4rem; color: #f59e0b; margin-bottom: 1.5rem; }
+        .icon { margin-bottom: 1.5rem; }
+        .icon svg { width: 4rem; height: 4rem; color: #f59e0b; }
         h1 { font-size: 1.5rem; color: #111827; margin-bottom: 0.75rem; }
         p { color: #6b7280; margin-bottom: 1.5rem; line-height: 1.6; }
         .back-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: #111827; color: #fff; text-decoration: none; border-radius: 0.5rem; font-size: 0.875rem; transition: background 0.2s; }
         .back-btn:hover { background: #374151; }
-        .demo-note { margin-top: 2rem; padding: 1rem; background: #fef3c7; border-radius: 0.5rem; font-size: 0.875rem; color: #92400e; }
+        .back-btn svg { width: 1rem; height: 1rem; }
+        .demo-note { margin-top: 2rem; padding: 1rem; background: #fef3c7; border-radius: 0.5rem; font-size: 0.875rem; color: #92400e; display: flex; align-items: flex-start; gap: 0.5rem; text-align: left; }
+        .demo-note svg { width: 1.25rem; height: 1.25rem; flex-shrink: 0; margin-top: 0.125rem; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="icon"><i class="fas fa-shield-alt"></i></div>
+        <div class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 512 512">
+                <path d="M256 0c4.6 0 9.2 1 13.4 2.9L457.7 82.8c22 9.3 38.4 31 38.3 57.2c-.5 99.2-41.3 280.7-213.6 363.2c-16.7 8-36.1 8-52.8 0C57.3 420.7 16.5 239.2 16 140c-.1-26.2 16.3-47.9 38.3-57.2L242.7 2.9C246.8 1 251.4 0 256 0z"/>
+            </svg>
+        </div>
         <h1>Access Restricted</h1>
         <p>{$safeMessage}</p>
         <a href="javascript:history.back()" class="back-btn">
-            <i class="fas fa-arrow-left"></i> Go Back
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 448 512">
+                <path d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/>
+            </svg>
+            Go Back
         </a>
         <div class="demo-note">
-            <i class="fas fa-info-circle"></i>
-            You are logged in as a demo user. Some features are restricted for security reasons.
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 512 512">
+                <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/>
+            </svg>
+            <span>You are logged in as a demo user. Some features are restricted for security reasons.</span>
         </div>
     </div>
 </body>
@@ -455,14 +466,25 @@ HTML;
      */
     public function renderAdminBanner(array $_context): void
     {
+        // Get CSP nonce if available
+        $nonce = '';
+        if (class_exists('App\\Middlewares\\SecurityHeadersMiddleware')) {
+            $nonce = \App\Middlewares\SecurityHeadersMiddleware::getNonce();
+        }
+        $nonceAttr = $nonce ? ' nonce="' . htmlspecialchars($nonce, ENT_QUOTES, 'UTF-8') . '"' : '';
+
         echo <<<HTML
     <div id="demo-mode-banner" style="background: #111827; color: #fff; padding: 0.5rem 1rem; text-align: center; font-size: 0.75rem; position: fixed; top: 0; left: 0; right: 0; z-index: 9999;">
         <span><strong>Demo Mode</strong> — demo@cimaise.local / password123</span>
     </div>
-    <style>
-        body:has(#demo-mode-banner) { padding-top: 36px; }
-        body:has(#demo-mode-banner) nav.fixed.top-0 { top: 36px !important; }
-    </style>
+    <script{$nonceAttr}>
+    (function(){
+        // Apply padding via JavaScript for browser compatibility (replaces CSS :has())
+        document.body.style.paddingTop = '36px';
+        var nav = document.querySelector('nav.fixed.top-0');
+        if (nav) nav.style.top = '36px';
+    })();
+    </script>
 HTML;
     }
 
@@ -800,10 +822,11 @@ HTML;
                     'message' => $summary ?: 'Demo data seeded successfully. Refresh the page to see the new content.'
                 ]);
             } else {
+                // Log error details server-side only (prevents information disclosure)
+                error_log('Demo mode seed script failed (code ' . $returnCode . '): ' . substr($outputText, -1000));
                 $this->sendJsonResponse([
                     'success' => false,
-                    'error' => 'Seed script returned an error (code ' . $returnCode . '). Check server logs for details.',
-                    'details' => substr($outputText, -500) // Last 500 chars of output
+                    'error' => 'Seed script returned an error (code ' . $returnCode . '). Check server logs for details.'
                 ], 500);
             }
         } catch (\Throwable $e) {
