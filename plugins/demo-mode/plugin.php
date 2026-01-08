@@ -124,30 +124,17 @@ class DemoModePlugin
             return;
         }
 
-        // Get current request path (normalize by removing query string and base path)
-        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-        $path = parse_url($requestUri, PHP_URL_PATH) ?? '';
-
-        // Decode URL-encoded characters to prevent bypass via %2F, %2e%2e, etc.
-        $path = rawurldecode($path);
-
-        // Calculate base path the same way as index.php for subdirectory installations
-        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-        $scriptDir = dirname($scriptName);
-        $isBuiltInServer = php_sapi_name() === 'cli-server';
-        $basePath = $isBuiltInServer ? '' : ($scriptDir === '/' ? '' : $scriptDir);
-        if (str_ends_with($basePath, '/public')) {
-            $basePath = substr($basePath, 0, -7);
-        }
-
-        // Remove base path from request path to get the route
-        if ($basePath !== '' && str_starts_with($path, $basePath)) {
-            $path = substr($path, strlen($basePath));
-        }
+        // Get normalized request path (URL-decoded, lowercase, base path removed)
+        $path = $this->normalizeRequestPath();
 
         // Check if path matches any blocked endpoint
+        // Must be exact match or blocked path followed by '/' to avoid blocking legitimate routes
         foreach (self::BLOCKED_ENDPOINTS as $blockedPath => $message) {
-            if (str_starts_with($path, $blockedPath)) {
+            $blockedPathLower = strtolower($blockedPath);
+            if ($path === $blockedPathLower ||
+                (str_starts_with($path, $blockedPathLower) &&
+                 strlen($path) > strlen($blockedPathLower) &&
+                 $path[strlen($blockedPathLower)] === '/')) {
                 $this->renderBlockedPage($message);
                 exit;
             }
@@ -209,6 +196,39 @@ class DemoModePlugin
 </body>
 </html>
 HTML;
+    }
+
+    /**
+     * Normalize request path by removing base path, decoding URL, and converting to lowercase
+     *
+     * @return string The normalized path (e.g., "/admin/commands")
+     */
+    private function normalizeRequestPath(): string
+    {
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $path = parse_url($requestUri, PHP_URL_PATH) ?? '';
+
+        // Decode URL-encoded characters and normalize to lowercase
+        // This prevents bypass via %2F, %2e%2e, or case variations (e.g., /ADMIN/Commands)
+        $path = strtolower(rawurldecode($path));
+
+        // Calculate base path the same way as index.php for subdirectory installations
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        $scriptDir = dirname($scriptName);
+        $isBuiltInServer = php_sapi_name() === 'cli-server';
+        $basePath = $isBuiltInServer ? '' : ($scriptDir === '/' ? '' : $scriptDir);
+        if (str_ends_with($basePath, '/public')) {
+            $basePath = substr($basePath, 0, -7);
+        }
+        // Normalize base path to lowercase as well for consistent comparison
+        $basePath = strtolower($basePath);
+
+        // Remove base path from request path to get the route
+        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+            $path = substr($path, strlen($basePath));
+        }
+
+        return $path;
     }
 
     /**
@@ -771,22 +791,8 @@ HTML;
             return;
         }
 
-        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-        $path = parse_url($requestUri, PHP_URL_PATH) ?? '';
-
-        // Calculate base path the same way as index.php for subdirectory installations
-        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-        $scriptDir = dirname($scriptName);
-        $isBuiltInServer = php_sapi_name() === 'cli-server';
-        $basePath = $isBuiltInServer ? '' : ($scriptDir === '/' ? '' : $scriptDir);
-        if (str_ends_with($basePath, '/public')) {
-            $basePath = substr($basePath, 0, -7);
-        }
-
-        // Remove base path from request path to get the route
-        if ($basePath !== '' && str_starts_with($path, $basePath)) {
-            $path = substr($path, strlen($basePath));
-        }
+        // Get normalized request path (URL-decoded, lowercase, base path removed)
+        $path = $this->normalizeRequestPath();
 
         if ($path !== '/admin/demo-seed') {
             return;

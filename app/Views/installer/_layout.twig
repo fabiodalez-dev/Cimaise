@@ -145,11 +145,6 @@
             transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
-        .form-control:focus, .form-select:focus {
-            border-color: #a0a0a0;
-            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
-        }
-
         .form-text {
             font-size: 0.8125rem;
             color: var(--text-muted);
@@ -176,7 +171,7 @@
         }
 
         .btn-primary:focus, .btn-primary:focus-visible {
-            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.25);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.5);
         }
 
         .btn-outline-secondary {
@@ -191,7 +186,7 @@
         }
 
         .btn-outline-secondary:focus, .btn-outline-secondary:focus-visible {
-            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.15);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.5);
             border-color: var(--step-active);
         }
 
@@ -231,7 +226,7 @@
         .btn-success:focus, .btn-success:focus-visible {
             background-color: var(--btn-primary-hover);
             border-color: var(--btn-primary-hover);
-            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.25);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.5);
         }
 
         /* Override Bootstrap form-check (radio/checkbox) to use gray instead of blue */
@@ -242,36 +237,40 @@
 
         .form-check-input:focus {
             border-color: var(--step-active);
-            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.25);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.5);
         }
 
         .form-check-input:checked:focus {
-            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.25);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.5);
         }
 
         /* Override Bootstrap default blue focus ring on all buttons */
         .btn:focus, .btn:focus-visible {
-            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.25);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.5);
         }
 
         /* Remove any lingering Bootstrap blue from links */
         a {
             color: var(--text-primary);
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 2px;
         }
 
         a:hover {
             color: var(--text-secondary);
+            text-decoration-thickness: 2px;
         }
 
         /* Override Bootstrap form-control focus state */
         .form-control:focus {
             border-color: var(--step-active);
-            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.1);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.5);
         }
 
         .form-select:focus {
             border-color: var(--step-active);
-            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.1);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.5);
         }
 
         hr {
