@@ -169,9 +169,14 @@
             color: #ffffff;
         }
 
-        .btn-primary:hover, .btn-primary:focus {
+        .btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary.active {
             background-color: var(--btn-primary-hover);
             border-color: var(--btn-primary-hover);
+            box-shadow: none;
+        }
+
+        .btn-primary:focus, .btn-primary:focus-visible {
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.25);
         }
 
         .btn-outline-secondary {
@@ -179,10 +184,15 @@
             color: var(--text-secondary);
         }
 
-        .btn-outline-secondary:hover {
+        .btn-outline-secondary:hover, .btn-outline-secondary:active, .btn-outline-secondary.active {
             background-color: #f5f5f5;
             border-color: var(--border-color);
             color: var(--text-primary);
+        }
+
+        .btn-outline-secondary:focus, .btn-outline-secondary:focus-visible {
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.15);
+            border-color: var(--step-active);
         }
 
         .alert {
@@ -199,6 +209,69 @@
         .alert-success {
             background-color: #f0fdf4;
             color: #166534;
+        }
+
+        /* Override Bootstrap primary color (remove blue) */
+        .border-primary {
+            border-color: var(--step-active) !important;
+        }
+
+        .btn-success {
+            background-color: var(--btn-primary);
+            border-color: var(--btn-primary);
+            color: #ffffff;
+        }
+
+        .btn-success:hover, .btn-success:active, .btn-success.active {
+            background-color: var(--btn-primary-hover);
+            border-color: var(--btn-primary-hover);
+            box-shadow: none;
+        }
+
+        .btn-success:focus, .btn-success:focus-visible {
+            background-color: var(--btn-primary-hover);
+            border-color: var(--btn-primary-hover);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.25);
+        }
+
+        /* Override Bootstrap form-check (radio/checkbox) to use gray instead of blue */
+        .form-check-input:checked {
+            background-color: var(--step-active);
+            border-color: var(--step-active);
+        }
+
+        .form-check-input:focus {
+            border-color: var(--step-active);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.25);
+        }
+
+        .form-check-input:checked:focus {
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.25);
+        }
+
+        /* Override Bootstrap default blue focus ring on all buttons */
+        .btn:focus, .btn:focus-visible {
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.25);
+        }
+
+        /* Remove any lingering Bootstrap blue from links */
+        a {
+            color: var(--text-primary);
+        }
+
+        a:hover {
+            color: var(--text-secondary);
+        }
+
+        /* Override Bootstrap form-control focus state */
+        .form-control:focus {
+            border-color: var(--step-active);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.1);
+        }
+
+        .form-select:focus {
+            border-color: var(--step-active);
+            box-shadow: 0 0 0 0.2rem rgba(64, 64, 64, 0.1);
         }
 
         hr {
