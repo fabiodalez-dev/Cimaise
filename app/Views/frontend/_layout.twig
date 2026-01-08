@@ -1709,7 +1709,7 @@
                 {% endif %}
             </div>
             {# Hook: frontend_footer - For plugins to add footer notices #}
-            {{ hook('frontend_footer', {'base_path': base_path}) }}
+            {{ hook('frontend_footer', {'base_path': base_path, 'csp_nonce': csp_nonce()}) }}
         </div>
     </footer>
 
