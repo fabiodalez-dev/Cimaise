@@ -484,8 +484,8 @@ HTML;
     (function(){
         // Apply padding via JavaScript for browser compatibility (replaces CSS :has())
         document.body.style.paddingTop = '36px';
-        var nav = document.querySelector('nav.fixed.top-0');
-        if (nav) nav.style.top = '36px';
+        var header = document.getElementById('admin-header');
+        if (header) header.style.top = '36px';
     })();
     </script>
 HTML;
