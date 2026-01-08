@@ -482,10 +482,13 @@ HTML;
     </div>
     <script{$nonceAttr}>
     (function(){
-        // Apply padding via JavaScript for browser compatibility (replaces CSS :has())
+        // Apply body padding immediately (body exists at this point)
         document.body.style.paddingTop = '36px';
-        var header = document.getElementById('admin-header');
-        if (header) header.style.top = '36px';
+        // Wait for DOM to be ready before targeting the header (rendered after this hook)
+        document.addEventListener('DOMContentLoaded', function() {
+            var header = document.getElementById('admin-header');
+            if (header) header.style.top = '36px';
+        });
     })();
     </script>
 HTML;
