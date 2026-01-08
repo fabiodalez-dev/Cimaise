@@ -2,9 +2,13 @@
 
 **The photography portfolio CMS that gets out of your way.**
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![PHP](https://img.shields.io/badge/PHP-8.2%2B-purple.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
+![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php&logoColor=white)
+![Slim](https://img.shields.io/badge/Slim-4.x-74a045.svg?logo=slim&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-3-003B57.svg?logo=sqlite&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.x-4479A1.svg?logo=mysql&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.x-06B6D4.svg?logo=tailwindcss&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5.x-646CFF.svg?logo=vite&logoColor=white)
 
 ---
 
