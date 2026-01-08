@@ -102,19 +102,6 @@ class UploadController extends BaseController
             $svc = new UploadService($this->db);
             $meta = $svc->ingestAlbumUpload($albumId, $fArr);
 
-            // Generate blurred variant if album is NSFW or password-protected
-            if ($needsBlur && !empty($meta['id'])) {
-                try {
-                    $svc->generateBlurredVariant((int) $meta['id']);
-                } catch (\Throwable $blurError) {
-                    // Log but don't fail the upload
-                    \App\Support\Logger::warning('Failed to generate blur for protected album image', [
-                        'image_id' => $meta['id'],
-                        'error' => $blurError->getMessage()
-                    ], 'upload');
-                }
-            }
-
             // Also expose id at top-level for existing frontend logic
             $payload = [
                 'ok' => true,
@@ -125,25 +112,41 @@ class UploadController extends BaseController
             $response->getBody()->write($json);
             $response = $response->withHeader('Content-Type', 'application/json');
 
-            // Flush response to client to keep upload snappy
-            if (function_exists('fastcgi_finish_request')) {
-                fastcgi_finish_request();
-            } else {
-                @ob_end_flush();
-                @flush();
-            }
+            // FAST RESPONSE: Only generate variants in background if PHP-FPM is available
+            // fastcgi_finish_request() is the ONLY reliable way to send response and continue.
+            // Other approaches (flush, Connection: close) don't actually work.
+            // For non-FPM environments, VariantMaintenanceService cron will generate variants.
 
-            // Generate full variants in background (non-blocking for client)
-            if (!empty($meta['id'])) {
+            if (function_exists('fastcgi_finish_request') && !empty($meta['id'])) {
+                // Send response to client immediately
+                fastcgi_finish_request();
+
+                // BACKGROUND WORK: Now generate variants (client already has response)
+                ignore_user_abort(true);
+                set_time_limit(300);
+
                 try {
                     $svc->generateVariantsForImage((int) $meta['id'], false);
                 } catch (\Throwable $variantError) {
-                    \App\Support\Logger::warning('Failed to generate variants in background', [
+                    Logger::warning('Failed to generate variants in background', [
                         'image_id' => $meta['id'],
                         'error' => $variantError->getMessage()
                     ], 'upload');
                 }
+
+                // Generate blur only if album is NSFW or password-protected
+                if ($needsBlur) {
+                    try {
+                        $svc->generateBlurredVariant((int) $meta['id']);
+                    } catch (\Throwable $blurError) {
+                        Logger::warning('Failed to generate blur for protected album image', [
+                            'image_id' => $meta['id'],
+                            'error' => $blurError->getMessage()
+                        ], 'upload');
+                    }
+                }
             }
+            // For non-FPM: Response sent immediately, variants generated later by cron
 
             return $response;
         } catch (\Throwable $e) {

@@ -48,12 +48,12 @@
 <div class="card mb-6">
   <div class="p-6 border-b border-gray-200">
     <h2 class="text-lg font-semibold text-gray-900">
-      <i class="fas fa-upload text-blue-600 mr-2"></i>{{ trans('admin.plugins.upload_plugin') }}
+      <i class="fas fa-upload text-gray-700 mr-2"></i>{{ trans('admin.plugins.upload_plugin') }}
     </h2>
     <p class="text-sm text-gray-600 mt-1">{{ trans('admin.plugins.upload_description') }}</p>
   </div>
   <div class="p-6">
-    <div id="plugin-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
+    <div id="plugin-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-500 transition-colors cursor-pointer">
       <div id="plugin-upload-content">
         <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
         <p class="text-gray-600 mb-2">{{ trans('admin.plugins.drag_drop') }}</p>
@@ -61,14 +61,14 @@
       </div>
       <div id="plugin-upload-progress" class="hidden">
         <div class="flex items-center justify-center space-x-3">
-          <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-8 w-8 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           <span class="text-gray-600">{{ trans('admin.plugins.uploading') }}</span>
         </div>
         <div class="mt-4 w-full bg-gray-200 rounded-full h-2">
-          <div id="plugin-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+          <div id="plugin-progress-bar" class="bg-gray-700 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
         </div>
       </div>
     </div>
@@ -195,21 +195,21 @@
 <!-- Documentation -->
 <div class="mt-6 card p-6">
   <h3 class="text-lg font-semibold text-gray-900 mb-3">
-    <i class="fas fa-book text-blue-600 mr-2"></i>{{ trans('admin.plugins.documentation') }}
+    <i class="fas fa-book text-gray-700 mr-2"></i>{{ trans('admin.plugins.documentation') }}
   </h3>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <a href="{{ base_path }}/PLUGIN_DEVELOPMENT.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all">
-      <i class="fas fa-code text-blue-600 text-xl mb-2"></i>
+    <a href="{{ base_path }}/PLUGIN_DEVELOPMENT.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-gray-900 hover:shadow-md transition-all">
+      <i class="fas fa-code text-gray-700 text-xl mb-2"></i>
       <div class="font-medium text-gray-900">{{ trans('admin.plugins.dev_guide') }}</div>
       <div class="text-sm text-gray-600">{{ trans('admin.plugins.dev_guide_desc') }}</div>
     </a>
-    <a href="{{ base_path }}/HOOKS_REFERENCE.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:shadow-md transition-all">
-      <i class="fas fa-list text-green-600 text-xl mb-2"></i>
+    <a href="{{ base_path }}/HOOKS_REFERENCE.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-gray-900 hover:shadow-md transition-all">
+      <i class="fas fa-list text-gray-700 text-xl mb-2"></i>
       <div class="font-medium text-gray-900">{{ trans('admin.plugins.hooks_reference') }}</div>
       <div class="text-sm text-gray-600">60 {{ trans('admin.plugins.hooks_available') }}</div>
     </a>
-    <a href="{{ base_path }}/PLUGINS_AND_FEATURES_IDEAS.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-purple-500 hover:shadow-md transition-all">
-      <i class="fas fa-lightbulb text-purple-600 text-xl mb-2"></i>
+    <a href="{{ base_path }}/PLUGINS_AND_FEATURES_IDEAS.md" target="_blank" class="p-4 border border-gray-200 rounded-lg hover:border-gray-900 hover:shadow-md transition-all">
+      <i class="fas fa-lightbulb text-gray-700 text-xl mb-2"></i>
       <div class="font-medium text-gray-900">{{ trans('admin.plugins.ideas_features') }}</div>
       <div class="text-sm text-gray-600">25 {{ trans('admin.plugins.ideas_features_desc') }}</div>
     </a>
@@ -241,16 +241,16 @@
   // Drag & drop handlers
   area.addEventListener('dragover', (e) => {
     e.preventDefault();
-    area.classList.add('border-blue-400', 'bg-blue-50');
+    area.classList.add('border-gray-500', 'bg-gray-50');
   });
 
   area.addEventListener('dragleave', () => {
-    area.classList.remove('border-blue-400', 'bg-blue-50');
+    area.classList.remove('border-gray-500', 'bg-gray-50');
   });
 
   area.addEventListener('drop', (e) => {
     e.preventDefault();
-    area.classList.remove('border-blue-400', 'bg-blue-50');
+    area.classList.remove('border-gray-500', 'bg-gray-50');
     const file = e.dataTransfer?.files?.[0];
     if (file) uploadFile(file);
   });

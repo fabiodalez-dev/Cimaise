@@ -1547,38 +1547,10 @@ echo "📁 Originals stored in /storage/originals/ (like backend upload)\n";
 echo "\n";
 
 // ============================================
-// POST-SEEDING: Generate variants and blur
+// POST-SEEDING: Generate variants and blur using UploadService directly
 // ============================================
 echo "🔄 Generating image variants and blur previews...\n";
 echo "\n";
-
-if (!function_exists('exec')) {
-    echo "✗ Error: exec() is disabled in php.ini. Image variants and blur generation require exec() to be enabled.\n";
-    exit(1);
-}
-
-$consolePath = $root . '/bin/console';
-if (!is_file($consolePath)) {
-    echo "✗ Error: bin/console not found at {$consolePath}\n";
-    exit(1);
-}
-
-// Verify source files exist before generating variants
-echo "   Verifying source files in storage/originals/...\n";
-$imageStmt = $pdo->query('SELECT id, original_path FROM images');
-$imagesToProcess = $imageStmt->fetchAll();
-$missingFiles = 0;
-$foundFiles = 0;
-foreach ($imagesToProcess as $img) {
-    $srcPath = $root . $img['original_path'];
-    if (is_file($srcPath)) {
-        $foundFiles++;
-    } else {
-        $missingFiles++;
-        echo "     ⚠ Missing: {$img['original_path']}\n";
-    }
-}
-echo "   Found {$foundFiles} source files" . ($missingFiles > 0 ? ", {$missingFiles} missing" : "") . "\n";
 
 // Verify public/media is writable
 $mediaDir = $root . '/public/media';
@@ -1592,44 +1564,81 @@ if (!is_dir($mediaDir)) {
 if (!is_writable($mediaDir)) {
     echo "   ✗ Directory not writable: {$mediaDir}\n";
     echo "   Current permissions: " . substr(sprintf('%o', fileperms($mediaDir)), -4) . "\n";
-    echo "   Owner: " . posix_getpwuid(fileowner($mediaDir))['name'] . "\n";
-    echo "   Current user: " . posix_getpwuid(posix_geteuid())['name'] . "\n";
+    if (function_exists('posix_getpwuid') && function_exists('fileowner') && function_exists('posix_geteuid')) {
+        echo "   Owner: " . posix_getpwuid(fileowner($mediaDir))['name'] . "\n";
+        echo "   Current user: " . posix_getpwuid(posix_geteuid())['name'] . "\n";
+    }
     exit(1);
 }
 
-// Run images:generate first (ALWAYS show output for debugging)
-echo "   Running: php {$consolePath} images:generate\n";
-$variantOutput = [];
-$variantReturn = 0;
-exec('php ' . escapeshellarg($consolePath) . ' images:generate 2>&1', $variantOutput, $variantReturn);
+// Use UploadService directly (no exec() dependency)
+echo "   Using UploadService to generate variants directly...\n";
+$uploadService = new \App\Services\UploadService($db);
 
-// Always show output for debugging
-foreach ($variantOutput as $line) {
-    echo "     {$line}\n";
+// Get all images that need variants
+$imageStmt = $pdo->query('SELECT id, original_path, album_id FROM images ORDER BY id');
+$imagesToProcess = $imageStmt->fetchAll();
+$totalImages = count($imagesToProcess);
+
+echo "   Processing {$totalImages} images...\n";
+
+$variantStats = ['generated' => 0, 'skipped' => 0, 'failed' => 0];
+$blurStats = ['generated' => 0, 'skipped' => 0, 'failed' => 0];
+
+// Get albums that need blur (NSFW or password-protected)
+$protectedAlbumsStmt = $pdo->query("SELECT id FROM albums WHERE is_nsfw = 1 OR (password_hash IS NOT NULL AND password_hash != '')");
+$protectedAlbumIds = array_column($protectedAlbumsStmt->fetchAll(), 'id');
+
+foreach ($imagesToProcess as $i => $img) {
+    $imageId = (int)$img['id'];
+    $progress = $i + 1;
+
+    // Generate standard variants
+    try {
+        $result = $uploadService->generateVariantsForImage($imageId, false);
+        $variantStats['generated'] += $result['generated'];
+        $variantStats['skipped'] += $result['skipped'];
+        $variantStats['failed'] += $result['failed'];
+
+        if ($result['generated'] > 0) {
+            echo "   [{$progress}/{$totalImages}] Image #{$imageId}: {$result['generated']} variants generated\n";
+        }
+    } catch (\Throwable $e) {
+        $variantStats['failed']++;
+        echo "   [{$progress}/{$totalImages}] Image #{$imageId}: ERROR - {$e->getMessage()}\n";
+    }
+
+    // Generate blur variant if album is protected
+    if (in_array((int)$img['album_id'], $protectedAlbumIds)) {
+        try {
+            $blurResult = $uploadService->generateBlurredVariant($imageId);
+            if ($blurResult) {
+                $blurStats['generated']++;
+            } else {
+                $blurStats['skipped']++;
+            }
+        } catch (\Throwable $e) {
+            $blurStats['failed']++;
+            echo "   [{$progress}/{$totalImages}] Image #{$imageId}: BLUR ERROR - {$e->getMessage()}\n";
+        }
+    }
 }
 
-if ($variantReturn === 0) {
-    echo "   ✓ Image variants generated (return code 0)\n";
-} else {
-    echo "   ⚠ Image variant generation returned code {$variantReturn}\n";
+echo "\n";
+echo "   ✓ Variant generation complete:\n";
+echo "     - Generated: {$variantStats['generated']}\n";
+echo "     - Skipped (existing): {$variantStats['skipped']}\n";
+echo "     - Failed: {$variantStats['failed']}\n";
+
+if (count($protectedAlbumIds) > 0) {
+    echo "   ✓ Blur generation complete:\n";
+    echo "     - Generated: {$blurStats['generated']}\n";
+    echo "     - Skipped (existing): {$blurStats['skipped']}\n";
+    echo "     - Failed: {$blurStats['failed']}\n";
 }
 
-// Run nsfw:generate-blur for protected albums
-echo "   Running: php {$consolePath} nsfw:generate-blur --all\n";
-$blurOutput = [];
-$blurReturn = 0;
-exec('php ' . escapeshellarg($consolePath) . ' nsfw:generate-blur --all 2>&1', $blurOutput, $blurReturn);
-
-// Always show output for debugging
-foreach ($blurOutput as $line) {
-    echo "     {$line}\n";
-}
-
-if ($blurReturn === 0) {
-    echo "   ✓ Blur variants generated (return code 0)\n";
-} else {
-    echo "   ⚠ Blur generation returned code {$blurReturn}\n";
-}
+$variantReturn = $variantStats['failed'] > 0 ? 1 : 0;
+$blurReturn = $blurStats['failed'] > 0 ? 1 : 0;
 
 // ============================================
 // CLEANUP: Remove temp album seed files (keep category images)
