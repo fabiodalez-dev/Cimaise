@@ -911,13 +911,22 @@
       </div>
     </div>
 
+    {# Build sanitized settings for plugin hooks - exclude sensitive keys #}
+    {% set sensitive_keys = ['recaptcha.secret_key', 'recaptcha.site_key', 'api.key', 'api.secret', 'smtp.password', 'mail.password'] %}
+    {% set public_settings = {} %}
+    {% for key, value in settings %}
+      {% if key not in sensitive_keys and not (key starts with 'secret') and not (key ends with '_secret') and not (key ends with '_key' and 'recaptcha' in key) %}
+        {% set public_settings = public_settings|merge({(key): value}) %}
+      {% endif %}
+    {% endfor %}
+
     {# Hook for plugins to add content inside the settings form #}
-    {{ hook('admin_settings_form_end', {'base_path': base_path, 'settings': settings, 'csp_nonce': csp_nonce()}) }}
+    {{ hook('admin_settings_form_end', {'base_path': base_path, 'settings': public_settings, 'csp_nonce': csp_nonce()}) }}
 
     </form>
 
     {# Hook for plugins to add standalone sections outside the form #}
-    {{ hook('admin_settings_after_form', {'base_path': base_path, 'settings': settings, 'csp_nonce': csp_nonce()}) }}
+    {{ hook('admin_settings_after_form', {'base_path': base_path, 'settings': public_settings, 'csp_nonce': csp_nonce()}) }}
 
   </div>
 
