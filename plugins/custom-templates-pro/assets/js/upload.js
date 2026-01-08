@@ -215,6 +215,13 @@
             }
         }, false);
 
+        // Click anywhere in drop zone to open file picker
+        dropZone.addEventListener('click', function(e) {
+            // Don't trigger if clicking on the file input label (which already handles the click)
+            if (e.target.closest('label[for="template-zip"]')) return;
+            fileInput.click();
+        });
+
         // Form submission
         const form = document.getElementById('upload-form');
         if (form) {

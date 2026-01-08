@@ -836,6 +836,7 @@ html.dark .img-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 /* Dark mode - mega menu */
@@ -881,11 +882,28 @@ html.dark .mega-menu_link {
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
+    max-height: 100vh;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 2rem 1rem;
+    scroll-behavior: smooth;
+    /* Ensure flex child respects max-height */
+    flex: 0 1 auto;
+    /* Hide scrollbar but keep functionality */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.mega-menu::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
 }
 
 .mega-menu_link {
     font-family: var(--font-heading, inherit);
     font-size: clamp(3rem, 10vw, 8rem);
+    /* Prevent shrinking in flex container */
+    flex-shrink: 0;
     font-weight: 600;
     color: var(--modern-black);
     text-decoration: none;
