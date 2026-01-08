@@ -113,18 +113,20 @@ class DemoModePlugin
             $pdo = $db->pdo();
 
             // Check if demo user already exists
-            $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email');
+            $stmt = $pdo->prepare('SELECT id, password_hash FROM users WHERE email = :email');
             $stmt->execute([':email' => self::DEMO_EMAIL]);
             $existing = $stmt->fetch();
 
             if ($existing) {
-                // User exists, update password to ensure it's correct
-                $hashedPassword = password_hash(self::DEMO_PASSWORD, PASSWORD_ARGON2ID);
-                $stmt = $pdo->prepare('UPDATE users SET password_hash = :password WHERE email = :email');
-                $stmt->execute([
-                    ':password' => $hashedPassword,
-                    ':email' => self::DEMO_EMAIL
-                ]);
+                // User exists, verify password and update only if needed
+                if (!password_verify(self::DEMO_PASSWORD, $existing['password_hash'])) {
+                    $hashedPassword = password_hash(self::DEMO_PASSWORD, PASSWORD_ARGON2ID);
+                    $stmt = $pdo->prepare('UPDATE users SET password_hash = :password WHERE email = :email');
+                    $stmt->execute([
+                        ':password' => $hashedPassword,
+                        ':email' => self::DEMO_EMAIL
+                    ]);
+                }
                 return;
             }
 
@@ -385,6 +387,7 @@ HTML;
     /**
      * Check if user can change password (filter)
      * Returns false to block password change for demo user
+     * Uses fail-closed approach: denies password change if verification cannot be performed
      */
     public function checkCanChangePassword(bool $canChange, int $userId): bool
     {
@@ -393,36 +396,47 @@ HTML;
             return false;
         }
 
-        // Check if this is the demo user
-        global $db;
-        if (!isset($db)) {
-            // Try to get database from global container
-            $container = $GLOBALS['container'] ?? null;
-            if ($container && isset($container['db'])) {
-                $db = $container['db'];
-            }
+        // Try to get database connection
+        $database = null;
+        $container = $GLOBALS['container'] ?? null;
+        if ($container && isset($container['db'])) {
+            $database = $container['db'];
         }
 
-        if (isset($db) && $db instanceof \App\Support\Database) {
-            try {
-                $stmt = $db->pdo()->prepare('SELECT email FROM users WHERE id = :id');
-                $stmt->execute([':id' => $userId]);
-                $user = $stmt->fetch();
-
-                if ($user && $user['email'] === self::DEMO_EMAIL) {
-                    // Set flash message and block
-                    $_SESSION['flash'][] = [
-                        'type' => 'warning',
-                        'message' => 'Password changes are disabled in demo mode.'
-                    ];
-                    return false;
-                }
-            } catch (\Throwable $e) {
-                // Silently fail - allow password change if we can't verify
-            }
+        // Fail-closed: if database is unavailable, deny password change
+        if (!$database instanceof \App\Support\Database) {
+            $_SESSION['flash'][] = [
+                'type' => 'warning',
+                'message' => 'Password changes are disabled in demo mode.'
+            ];
+            return false;
         }
 
-        return $canChange;
+        try {
+            $stmt = $database->pdo()->prepare('SELECT email FROM users WHERE id = :id');
+            $stmt->execute([':id' => $userId]);
+            $user = $stmt->fetch();
+
+            if ($user && $user['email'] === self::DEMO_EMAIL) {
+                // Demo user - block password change
+                $_SESSION['flash'][] = [
+                    'type' => 'warning',
+                    'message' => 'Password changes are disabled in demo mode.'
+                ];
+                return false;
+            }
+
+            // Verified: not the demo user, allow password change
+            return $canChange;
+        } catch (\Throwable $e) {
+            // Fail-closed: on any error, deny password change to be safe
+            error_log("Demo Mode: Failed to verify user for password change - " . $e->getMessage());
+            $_SESSION['flash'][] = [
+                'type' => 'warning',
+                'message' => 'Password changes are disabled in demo mode.'
+            ];
+            return false;
+        }
     }
 
     /**
