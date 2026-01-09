@@ -131,9 +131,9 @@ if ($container['db'] !== null && !$isInstallerRoute) {
             if (file_exists($cacheFile)) {
                 $cached = @file_get_contents($cacheFile);
                 if ($cached !== false) {
-                    $data = @unserialize($cached);
+                    $data = @json_decode($cached, true);
                     if (is_array($data) && isset($data['time'], $data['active']) && (time() - $data['time']) < $cacheTtl) {
-                        $isActive = $data['active'];
+                        $isActive = (bool) $data['active'];
                     }
                 }
             }
@@ -144,7 +144,7 @@ if ($container['db'] !== null && !$isInstallerRoute) {
                 $pluginCheckStmt->execute(['maintenance-mode']);
                 $pluginStatus = $pluginCheckStmt->fetch(\PDO::FETCH_ASSOC);
                 $isActive = $pluginStatus && $pluginStatus['is_active'];
-                @file_put_contents($cacheFile, serialize(['time' => time(), 'active' => $isActive]), LOCK_EX);
+                @file_put_contents($cacheFile, json_encode(['time' => time(), 'active' => $isActive]), LOCK_EX);
             }
 
             if ($isActive) {

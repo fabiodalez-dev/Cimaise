@@ -135,6 +135,12 @@ class Installer
      */
     private function rollback(): void
     {
+        // Remove installed marker if it exists
+        $markerPath = $this->rootPath . '/storage/tmp/.installed';
+        if (file_exists($markerPath)) {
+            @unlink($markerPath);
+        }
+
         // Remove .env if we created it
         if ($this->envWritten) {
             $envPath = $this->rootPath . '/.env';
