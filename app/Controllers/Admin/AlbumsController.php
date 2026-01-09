@@ -32,7 +32,8 @@ class AlbumsController extends BaseController
         $offset = ($page - 1) * $perPage;
 
         $pdo = $this->db->pdo();
-        $total = (int)$pdo->query('SELECT COUNT(*) FROM albums')->fetchColumn();
+        // Count must match query JOIN to avoid pagination mismatch
+        $total = (int)$pdo->query('SELECT COUNT(*) FROM albums a JOIN categories c ON c.id = a.category_id')->fetchColumn();
         $orderParam = strtolower((string)($request->getQueryParams()['order'] ?? 'manual'));
         $orderParam = in_array($orderParam, ['manual','date'], true) ? $orderParam : 'manual';
         $orderBy = $orderParam === 'date'
