@@ -25,18 +25,27 @@ $isAdminRoute = strpos($requestUri, '/admin') !== false;
 $isLoginRoute = strpos($requestUri, '/login') !== false;
 
 // Check if already installed (for all routes except installer itself)
+// PERFORMANCE: Use file-based marker first (fast), only fall back to full check if needed
 if (!$isInstallerRoute) {
     $root = dirname(__DIR__);
+    $installedMarker = $root . '/storage/tmp/.installed';
     $installed = false;
 
-    // Check installation status via Installer class
-    // Note: Installer::isInstalled() already checks for .env internally
-    try {
-        $installer = new \App\Installer\Installer($root);
-        $installed = $installer->isInstalled();
-    } catch (\Throwable $e) {
-        // If there's an error, we assume it's not installed
-        $installed = false;
+    // Fast path: check for installed marker file (single stat() call)
+    if (file_exists($installedMarker)) {
+        $installed = true;
+    } elseif (file_exists($root . '/.env')) {
+        // Slow path: .env exists but no marker - verify installation properly
+        try {
+            $installer = new \App\Installer\Installer($root);
+            $installed = $installer->isInstalled();
+            // Create marker file for future fast checks
+            if ($installed) {
+                @file_put_contents($installedMarker, date('Y-m-d H:i:s'), LOCK_EX);
+            }
+        } catch (\Throwable $e) {
+            $installed = false;
+        }
     }
 
     // If not installed, redirect to installer
@@ -103,16 +112,36 @@ try {
 }
 
 // Maintenance mode check - must be after session_start() and before routing
+// PERFORMANCE: Cache plugin active status to avoid database query on every request
 if ($container['db'] !== null && !$isInstallerRoute) {
     $maintenancePluginFile = __DIR__ . '/../plugins/maintenance-mode/plugin.php';
     if (file_exists($maintenancePluginFile)) {
-        // Check if plugin is active
         try {
-            $pluginCheckStmt = $container['db']->pdo()->prepare('SELECT is_active FROM plugin_status WHERE slug = ? AND is_installed = 1');
-            $pluginCheckStmt->execute(['maintenance-mode']);
-            $pluginStatus = $pluginCheckStmt->fetch(\PDO::FETCH_ASSOC);
+            // Check cached status first (5 second TTL)
+            $cacheFile = __DIR__ . '/../storage/tmp/maintenance_plugin_status.cache';
+            $isActive = null;
+            $cacheTtl = 5;
 
-            if ($pluginStatus && $pluginStatus['is_active']) {
+            if (file_exists($cacheFile)) {
+                $cached = @file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    $data = @unserialize($cached);
+                    if (is_array($data) && isset($data['time'], $data['active']) && (time() - $data['time']) < $cacheTtl) {
+                        $isActive = $data['active'];
+                    }
+                }
+            }
+
+            // If not cached, query database and cache result
+            if ($isActive === null) {
+                $pluginCheckStmt = $container['db']->pdo()->prepare('SELECT is_active FROM plugin_status WHERE slug = ? AND is_installed = 1');
+                $pluginCheckStmt->execute(['maintenance-mode']);
+                $pluginStatus = $pluginCheckStmt->fetch(\PDO::FETCH_ASSOC);
+                $isActive = $pluginStatus && $pluginStatus['is_active'];
+                @file_put_contents($cacheFile, serialize(['time' => time(), 'active' => $isActive]), LOCK_EX);
+            }
+
+            if ($isActive) {
                 require_once $maintenancePluginFile;
 
                 if (MaintenanceModePlugin::shouldShowMaintenancePage($container['db'])) {

@@ -154,7 +154,7 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
     private function isFailedAttempt(Request $request, Response $response): bool
     {
         $path = $request->getUri()->getPath();
-        
+
         // For login endpoints handle precisely
         if (str_contains($path, '/login')) {
             $status = $response->getStatusCode();
@@ -167,14 +167,20 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
                 return false;
             }
 
-            // Check response body for error indicators
-            $body = (string)$response->getBody();
-            return str_contains($body, 'Credenziali non valide') ||
-                   str_contains($body, 'Invalid credentials') ||
-                   str_contains($body, 'Login failed') ||
-                   str_contains($body, 'Account disattivato');
+            // For non-redirect responses (rendered login page with error)
+            // IMPORTANT: Rewind stream after reading to avoid consuming response body
+            $body = $response->getBody();
+            $content = (string)$body;
+            if ($body->isSeekable()) {
+                $body->rewind();
+            }
+
+            return str_contains($content, 'Credenziali non valide') ||
+                   str_contains($content, 'Invalid credentials') ||
+                   str_contains($content, 'Login failed') ||
+                   str_contains($content, 'Account disattivato');
         }
-        
+
         // For other endpoints, consider 4xx errors as failed attempts
         return $response->getStatusCode() >= 400 && $response->getStatusCode() < 500;
     }

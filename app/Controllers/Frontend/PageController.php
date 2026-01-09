@@ -234,10 +234,10 @@ class PageController extends BaseController
         // Smart initial image loading strategy:
         // 1. First, get 1 random image per album (ensures all albums represented)
         // 2. If total < 48, fill with additional random images (ensures visual density)
-        // Additional images fetched via /api/home/gallery by home-infinite-loader.js
+        // PERFORMANCE: Avoid ORDER BY RANDOM() which is O(n log n) - use PHP randomization instead
         $minImages = 48;
 
-        // Step 1: Get one random image per album (using MIN to pick deterministically, then shuffle in PHP)
+        // Step 1: Fetch all images from published albums (no ORDER BY RANDOM - much faster)
         $stmt = $pdo->prepare("
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description,
@@ -250,62 +250,51 @@ class PageController extends BaseController
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
-              AND i.id = (
-                  SELECT i2.id FROM images i2
-                  WHERE i2.album_id = a.id
-                  ORDER BY RANDOM() LIMIT 1
-              )
-            GROUP BY a.id
+            GROUP BY i.id
         ");
         $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
         $stmt->execute();
-        $allImages = $stmt->fetchAll();
+        $rawImages = $stmt->fetchAll();
 
-        // Step 2: If we have fewer than minimum, fill with additional random images
-        $currentCount = count($allImages);
-        if ($currentCount < $minImages) {
-            $existingIds = array_column($allImages, 'id');
-            $need = $minImages - $currentCount;
-
-            // Build NOT IN clause for existing IDs
-            $notInClause = '';
-            $binds = [':include_nsfw2' => $includeNsfw ? 1 : 0, ':limit2' => $need];
-            if (!empty($existingIds)) {
-                $placeholders = [];
-                foreach ($existingIds as $k => $id) {
-                    $placeholders[] = ":exc{$k}";
-                    $binds[":exc{$k}"] = $id;
-                }
-                $notInClause = 'AND i.id NOT IN (' . implode(',', $placeholders) . ')';
+        // Step 2: Group by album and pick one random image per album in PHP (fast)
+        $imagesByAlbum = [];
+        foreach ($rawImages as $image) {
+            $albumId = (int) $image['album_id'];
+            if (!isset($imagesByAlbum[$albumId])) {
+                $imagesByAlbum[$albumId] = [];
             }
-
-            $stmt2 = $pdo->prepare("
-                SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
-                       a.excerpt as album_description,
-                       GROUP_CONCAT(DISTINCT c.slug) as category_slugs,
-                       (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
-                FROM images i
-                JOIN albums a ON a.id = i.album_id
-                LEFT JOIN album_category ac ON ac.album_id = a.id
-                LEFT JOIN categories c ON c.id = ac.category_id
-                WHERE a.is_published = 1
-                  AND (:include_nsfw2 = 1 OR a.is_nsfw = 0)
-                  AND (a.password_hash IS NULL OR a.password_hash = '')
-                  {$notInClause}
-                GROUP BY i.id
-                ORDER BY RANDOM()
-                LIMIT :limit2
-            ");
-            foreach ($binds as $k => $v) {
-                $stmt2->bindValue($k, $v, \PDO::PARAM_INT);
-            }
-            $stmt2->execute();
-            $additionalImages = $stmt2->fetchAll();
-
-            $allImages = array_merge($allImages, $additionalImages);
+            $imagesByAlbum[$albumId][] = $image;
         }
 
-        // Shuffle to randomize the order
+        // Pick one random image per album
+        $allImages = [];
+        $usedImageIds = [];
+        foreach ($imagesByAlbum as $albumImages) {
+            $randomIndex = array_rand($albumImages);
+            $selectedImage = $albumImages[$randomIndex];
+            $allImages[] = $selectedImage;
+            $usedImageIds[(int) $selectedImage['id']] = true;
+        }
+
+        // Step 3: If we need more images to reach minimum, fill from remaining pool
+        $currentCount = count($allImages);
+        if ($currentCount < $minImages) {
+            $need = $minImages - $currentCount;
+            $remainingPool = [];
+            foreach ($rawImages as $image) {
+                if (!isset($usedImageIds[(int) $image['id']])) {
+                    $remainingPool[] = $image;
+                }
+            }
+            // Shuffle and take what we need
+            if (!empty($remainingPool)) {
+                shuffle($remainingPool);
+                $additionalImages = array_slice($remainingPool, 0, $need);
+                $allImages = array_merge($allImages, $additionalImages);
+            }
+        }
+
+        // Final shuffle for visual variety
         shuffle($allImages);
 
         // Process images with responsive sources (batch to avoid N+1 queries)
@@ -356,10 +345,12 @@ class PageController extends BaseController
 
         $params = $request->getQueryParams();
         $excludeIds = isset($params['exclude']) ? array_filter(array_map('intval', explode(',', $params['exclude']))) : [];
+        $excludeIdsSet = array_flip($excludeIds); // Convert to set for O(1) lookup
         $limit = max(1, min(500, (int) ($params['limit'] ?? 100)));
 
         $pdo = $this->db->pdo();
 
+        // PERFORMANCE: Avoid ORDER BY RANDOM() - fetch all and randomize in PHP
         $sql = "
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id
             FROM images i
@@ -369,28 +360,21 @@ class PageController extends BaseController
               AND (a.password_hash IS NULL OR a.password_hash = '')
         ";
 
-        // Build NOT IN clause manually for array of IDs
-        $binds = [':include_nsfw' => $includeNsfw ? 1 : 0, ':limit' => $limit];
-
-        if (!empty($excludeIds)) {
-            $inQuery = "";
-            foreach ($excludeIds as $k => $id) {
-                $p = ":exc$k";
-                $inQuery .= "$p,";
-                $binds[$p] = $id;
-            }
-            $inQuery = rtrim($inQuery, ',');
-            $sql .= " AND i.id NOT IN ($inQuery)";
-        }
-
-        $sql .= " ORDER BY RANDOM() LIMIT :limit";
-
         $stmt = $pdo->prepare($sql);
-        foreach ($binds as $k => $v) {
-            $stmt->bindValue($k, $v, \PDO::PARAM_INT);
-        }
+        $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
         $stmt->execute();
-        $images = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $allImages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Filter out excluded IDs in PHP (O(n) with hash set)
+        if (!empty($excludeIdsSet)) {
+            $allImages = array_filter($allImages, function ($img) use ($excludeIdsSet) {
+                return !isset($excludeIdsSet[(int) $img['id']]);
+            });
+        }
+
+        // Shuffle in PHP (O(n)) and take limit
+        shuffle($allImages);
+        $images = array_slice($allImages, 0, $limit);
 
         // Process images (sources etc)
         $images = $this->processImageSourcesBatch($images);
@@ -2426,74 +2410,6 @@ class PageController extends BaseController
         return $speed;
     }
 
-    private function processImageSources(array $image): array
-    {
-        $pdo = $this->db->pdo();
-
-        // Get image variants for responsive sources
-        try {
-            $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
-            $variantsStmt->execute([':id' => $image['id']]);
-            $variants = $variantsStmt->fetchAll();
-
-            // Build responsive sources (verify files exist, fallback to webp if jpg missing)
-            // Go up 3 levels: Controllers/Frontend -> Controllers -> app -> project root
-            $publicDir = dirname(__DIR__, 3) . '/public';
-            $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
-            foreach ($variants as $variant) {
-                $format = $variant['format'] ?? 'jpg';
-                $path = $variant['path'] ?? '';
-                if (isset($sources[$format]) && !empty($path) && !str_starts_with($path, '/storage/')) {
-                    // Check if file exists
-                    if (is_file($publicDir . $path)) {
-                        $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
-                    } elseif ($format === 'jpg') {
-                        // Try webp alternative if jpg doesn't exist
-                        $webpPath = preg_replace('/\.jpg$/i', '.webp', $path);
-                        if (is_file($publicDir . $webpPath)) {
-                            $sources['webp'][] = $webpPath . ' ' . (int) $variant['width'] . 'w';
-                        }
-                    }
-                }
-            }
-
-            $image['sources'] = $sources;
-            $image['variants'] = $variants;
-
-            // Set fallback URL (best available variant that exists on disk)
-            $fallbackUrl = $image['original_path'];
-
-            // First try to find an existing variant
-            foreach ($variants as $variant) {
-                if (!empty($variant['path']) && !str_starts_with($variant['path'], '/storage/')) {
-                    $fullPath = $publicDir . $variant['path'];
-                    if (is_file($fullPath)) {
-                        $fallbackUrl = $variant['path'];
-                        break;
-                    }
-                    // Try webp alternative if jpg doesn't exist
-                    if (($variant['format'] ?? '') === 'jpg') {
-                        $webpPath = preg_replace('/\.jpg$/i', '.webp', $variant['path']);
-                        if (is_file($publicDir . $webpPath)) {
-                            $fallbackUrl = $webpPath;
-                            break;
-                        }
-                    }
-                }
-            }
-            $image['fallback_src'] = $fallbackUrl;
-
-        } catch (\Throwable $e) {
-            Logger::warning('PageController: Error processing image sources', ['image_id' => $image['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
-            // Fallback to basic image data
-            $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
-            $image['variants'] = [];
-            $image['fallback_src'] = $image['original_path'];
-        }
-
-        return $image;
-    }
-
     private function processImageSourcesBatch(array $images): array
     {
         if (empty($images)) {
@@ -2531,7 +2447,9 @@ class PageController extends BaseController
             return $images;
         }
 
-        $publicDir = dirname(__DIR__, 3) . '/public';
+        // PERFORMANCE: Trust database records instead of checking filesystem for every variant
+        // Variants are created during upload; if they exist in DB, assume files exist
+        // This eliminates hundreds of is_file() calls per page load
         foreach ($images as &$image) {
             $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
             $variants = $variantsByImage[(int) $image['id']] ?? [];
@@ -2542,31 +2460,16 @@ class PageController extends BaseController
                 if (!isset($sources[$format]) || $path === '' || str_starts_with($path, '/storage/')) {
                     continue;
                 }
-                if (is_file($publicDir . $path)) {
-                    $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
-                } elseif ($format === 'jpg') {
-                    $webpPath = preg_replace('/\.jpg$/i', '.webp', $path);
-                    if (is_file($publicDir . $webpPath)) {
-                        $sources['webp'][] = $webpPath . ' ' . (int) $variant['width'] . 'w';
-                    }
-                }
+                // Trust database - variant exists means file exists
+                $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
             }
 
-            $fallbackUrl = $image['original_path'];
+            // Find best fallback from variants (prefer smallest public variant)
+            $fallbackUrl = $image['original_path'] ?? '';
             foreach ($variants as $variant) {
                 if (!empty($variant['path']) && !str_starts_with((string) $variant['path'], '/storage/')) {
-                    $fullPath = $publicDir . $variant['path'];
-                    if (is_file($fullPath)) {
-                        $fallbackUrl = $variant['path'];
-                        break;
-                    }
-                    if (($variant['format'] ?? '') === 'jpg') {
-                        $webpPath = preg_replace('/\.jpg$/i', '.webp', $variant['path']);
-                        if (is_file($publicDir . $webpPath)) {
-                            $fallbackUrl = $webpPath;
-                            break;
-                        }
-                    }
+                    $fallbackUrl = $variant['path'];
+                    break;
                 }
             }
 
