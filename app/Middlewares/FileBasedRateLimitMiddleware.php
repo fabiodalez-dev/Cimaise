@@ -15,6 +15,14 @@ use Psr\Http\Server\RequestHandlerInterface as Handler;
  */
 class FileBasedRateLimitMiddleware implements MiddlewareInterface
 {
+    /** Error message patterns for failed login detection (multi-language support) */
+    private const ERROR_PATTERNS = [
+        'Credenziali non valide',   // Italian
+        'Invalid credentials',       // English
+        'Login failed',              // Generic English
+        'Account disattivato',       // Italian - account disabled
+    ];
+
     private string $storageDir;
     private int $maxAttempts;
     private int $windowSec;
@@ -151,7 +159,11 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         }
     }
 
-    private function isFailedAttempt(Request $request, Response $response): bool
+    /**
+     * Check if the request was a failed attempt (e.g., failed login).
+     * Note: Response is passed by reference as it may be rebuilt for non-seekable streams.
+     */
+    private function isFailedAttempt(Request $request, Response &$response): bool
     {
         $path = $request->getUri()->getPath();
 
@@ -168,17 +180,33 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
             }
 
             // For non-redirect responses (rendered login page with error)
-            // IMPORTANT: Rewind stream after reading to avoid consuming response body
+            // IMPORTANT: Read chunk and handle non-seekable streams properly
             $body = $response->getBody();
-            $content = (string)$body;
+            $content = $body->read(8192); // Read first 8KB - sufficient for login error detection
+
             if ($body->isSeekable()) {
                 $body->rewind();
+            } else {
+                // Non-seekable stream: recreate body so downstream can read it
+                $stream = fopen('php://temp', 'r+');
+                if ($stream !== false) {
+                    fwrite($stream, $content);
+                    // Read remainder of original body if any
+                    while (!$body->eof()) {
+                        fwrite($stream, $body->read(8192));
+                    }
+                    rewind($stream);
+                    $response = $response->withBody(new \Slim\Psr7\Stream($stream));
+                }
             }
 
-            return str_contains($content, 'Credenziali non valide') ||
-                   str_contains($content, 'Invalid credentials') ||
-                   str_contains($content, 'Login failed') ||
-                   str_contains($content, 'Account disattivato');
+            // Check for error patterns using class constants
+            foreach (self::ERROR_PATTERNS as $pattern) {
+                if (str_contains($content, $pattern)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         // For other endpoints, consider 4xx errors as failed attempts

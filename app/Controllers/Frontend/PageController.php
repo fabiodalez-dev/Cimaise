@@ -231,74 +231,20 @@ class PageController extends BaseController
         // Only fetch here if not in global scope (fallback)
         $tags = [];
 
-        // Smart initial image loading strategy:
-        // 1. First, get 1 random image per album (ensures all albums represented)
-        // 2. If total < 48, fill with additional random images (ensures visual density)
-        // PERFORMANCE: Avoid ORDER BY RANDOM() which is O(n log n) - use PHP randomization instead
-        $minImages = 48;
-
-        // Step 1: Fetch all images from published albums (no ORDER BY RANDOM - much faster)
-        $stmt = $pdo->prepare("
-            SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
-                   a.excerpt as album_description,
-                   GROUP_CONCAT(DISTINCT c.slug) as category_slugs,
-                   (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
-            FROM images i
-            JOIN albums a ON a.id = i.album_id
-            LEFT JOIN album_category ac ON ac.album_id = a.id
-            LEFT JOIN categories c ON c.id = ac.category_id
-            WHERE a.is_published = 1
-              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
-            GROUP BY i.id
-        ");
-        $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
-        $stmt->execute();
-        $rawImages = $stmt->fetchAll();
-
-        // Step 2: Group by album and pick one random image per album in PHP (fast)
-        $imagesByAlbum = [];
-        foreach ($rawImages as $image) {
-            $albumId = (int) $image['album_id'];
-            if (!isset($imagesByAlbum[$albumId])) {
-                $imagesByAlbum[$albumId] = [];
-            }
-            $imagesByAlbum[$albumId][] = $image;
-        }
-
-        // Pick one random image per album
-        $allImages = [];
-        $usedImageIds = [];
-        foreach ($imagesByAlbum as $albumImages) {
-            $randomIndex = array_rand($albumImages);
-            $selectedImage = $albumImages[$randomIndex];
-            $allImages[] = $selectedImage;
-            $usedImageIds[(int) $selectedImage['id']] = true;
-        }
-
-        // Step 3: If we need more images to reach minimum, fill from remaining pool
-        $currentCount = count($allImages);
-        if ($currentCount < $minImages) {
-            $need = $minImages - $currentCount;
-            $remainingPool = [];
-            foreach ($rawImages as $image) {
-                if (!isset($usedImageIds[(int) $image['id']])) {
-                    $remainingPool[] = $image;
-                }
-            }
-            // Shuffle and take what we need
-            if (!empty($remainingPool)) {
-                shuffle($remainingPool);
-                $additionalImages = array_slice($remainingPool, 0, $need);
-                $allImages = array_merge($allImages, $additionalImages);
-            }
-        }
-
-        // Final shuffle for visual variety
-        shuffle($allImages);
+        // Progressive image loading: load initial batch with album diversity
+        // Use HomeImageService for reusable album-diverse fetch logic
+        $homeImageService = new \App\Services\HomeImageService($this->db);
+        $initialLimit = 30; // Fast initial load - more images loaded via infinite scroll
+        $imageResult = $homeImageService->getInitialImages($initialLimit, $includeNsfw);
 
         // Process images with responsive sources (batch to avoid N+1 queries)
-        $allImages = $this->processImageSourcesBatch($allImages);
+        $allImages = $this->processImageSourcesBatch($imageResult['images']);
+
+        // Pass tracking data for progressive loading
+        $shownImageIds = $imageResult['shownImageIds'];
+        $shownAlbumIds = $imageResult['shownAlbumIds'];
+        $totalImagesCount = $imageResult['totalImages'];
+        $hasMoreImages = $totalImagesCount > count($allImages);
 
         $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
 
@@ -333,10 +279,25 @@ class PageController extends BaseController
             'og_site_name' => $seo['og_site_name'],
             'robots' => $seo['robots'],
             'nsfw_consent' => $nsfwConsent,
-            'is_admin' => $isAdmin
+            'is_admin' => $isAdmin,
+            // Progressive loading tracking data
+            'shown_image_ids' => $shownImageIds,
+            'shown_album_ids' => $shownAlbumIds,
+            'total_images' => $totalImagesCount,
+            'has_more_images' => $hasMoreImages
         ]);
     }
 
+    /**
+     * API endpoint for progressive image loading with album diversity priority.
+     *
+     * Query params:
+     * - exclude: comma-separated image IDs already shown
+     * - excludeAlbums: comma-separated album IDs already represented
+     * - limit: max images to return (default 20, max 100)
+     *
+     * Algorithm: prioritizes images from albums not yet shown, then fills with others.
+     */
     public function homeGalleryApi(Request $request, Response $response): Response
     {
         $isAdmin = $this->isAdmin();
@@ -344,49 +305,25 @@ class PageController extends BaseController
         $includeNsfw = $isAdmin || $nsfwConsent;
 
         $params = $request->getQueryParams();
-        $excludeIds = isset($params['exclude']) ? array_filter(array_map('intval', explode(',', $params['exclude']))) : [];
-        $excludeIdsSet = array_flip($excludeIds); // Convert to set for O(1) lookup
-        $limit = max(1, min(500, (int) ($params['limit'] ?? 100)));
+        $excludeImageIds = isset($params['exclude']) ? array_filter(array_map('intval', explode(',', $params['exclude']))) : [];
+        $excludeAlbumIds = isset($params['excludeAlbums']) ? array_filter(array_map('intval', explode(',', $params['excludeAlbums']))) : [];
+        $limit = max(1, min(100, (int) ($params['limit'] ?? 20)));
 
-        $pdo = $this->db->pdo();
-
-        // PERFORMANCE: Avoid ORDER BY RANDOM() - fetch all and randomize in PHP
-        $sql = "
-            SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id
-            FROM images i
-            JOIN albums a ON a.id = i.album_id
-            WHERE a.is_published = 1
-              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
-        ";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
-        $stmt->execute();
-        $allImages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-        // Filter out excluded IDs in PHP (O(n) with hash set)
-        if (!empty($excludeIdsSet)) {
-            $allImages = array_filter($allImages, function ($img) use ($excludeIdsSet) {
-                return !isset($excludeIdsSet[(int) $img['id']]);
-            });
-        }
-
-        // Shuffle in PHP (O(n)) and take limit
-        shuffle($allImages);
-        $images = array_slice($allImages, 0, $limit);
+        // Use HomeImageService for album-diverse progressive loading
+        $homeImageService = new \App\Services\HomeImageService($this->db);
+        $result = $homeImageService->getMoreImages($excludeImageIds, $excludeAlbumIds, $limit, $includeNsfw);
 
         // Process images (sources etc)
-        $images = $this->processImageSourcesBatch($images);
+        $images = $this->processImageSourcesBatch($result['images']);
 
         // Prepare JSON response
-        $data = array_map(function ($img) {
-            $basePath = $this->basePath;
+        $basePath = $this->basePath;
+        $data = array_map(function ($img) use ($basePath) {
             $fallbackSrc = $img['fallback_src'] ?? $img['original_path'];
             return [
                 'id' => (int) $img['id'],
+                'album_id' => (int) $img['album_id'],
                 'url' => str_starts_with($img['original_path'], '/') ? $basePath . $img['original_path'] : $img['original_path'],
-                // Ensure fallback_src includes base path if it's relative
                 'fallback_src' => str_starts_with($fallbackSrc, '/') ? $basePath . $fallbackSrc : $fallbackSrc,
                 'width' => (int) $img['width'],
                 'height' => (int) $img['height'],
@@ -397,7 +334,11 @@ class PageController extends BaseController
             ];
         }, $images);
 
-        $response->getBody()->write(json_encode(['images' => $data]));
+        $response->getBody()->write(json_encode([
+            'images' => $data,
+            'newAlbumIds' => $result['newAlbumIds'],
+            'hasMore' => $result['hasMore'],
+        ]));
         return $response->withHeader('Content-Type', 'application/json');
     }
 
