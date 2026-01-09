@@ -21,6 +21,7 @@ class VariantMaintenanceService
     public function runDaily(): void
     {
         $today = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d');
+        $this->ensureCacheDirectory();
 
         // FAST CHECK: Read last run from file cache first (no database query)
         $cacheFile = dirname(__DIR__, 2) . self::LAST_RUN_CACHE_FILE;
@@ -64,6 +65,15 @@ class VariantMaintenanceService
             Logger::warning('Variant maintenance failed', ['error' => $e->getMessage()], 'maintenance');
         } finally {
             $this->releaseLock($lockHandle);
+        }
+    }
+
+    private function ensureCacheDirectory(): void
+    {
+        $cacheFile = dirname(__DIR__, 2) . self::LAST_RUN_CACHE_FILE;
+        $cacheDir = dirname($cacheFile);
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0775, true);
         }
     }
 

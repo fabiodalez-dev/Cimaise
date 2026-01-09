@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface as Handler;
+use Slim\Psr7\Factory\StreamFactory;
 
 /**
  * File-based rate limiting middleware without Redis dependency
@@ -182,22 +183,35 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
             // For non-redirect responses (rendered login page with error)
             // IMPORTANT: Read chunk and handle non-seekable streams properly
             $body = $response->getBody();
-            $content = $body->read(8192); // Read first 8KB - sufficient for login error detection
+            $content = '';
 
             if ($body->isSeekable()) {
+                $content = $body->read(8192); // Read first 8KB - sufficient for login error detection
                 $body->rewind();
             } else {
                 // Non-seekable stream: recreate body so downstream can read it
-                $stream = fopen('php://temp', 'r+');
-                if ($stream !== false) {
-                    fwrite($stream, $content);
-                    // Read remainder of original body if any
-                    while (!$body->eof()) {
-                        fwrite($stream, $body->read(8192));
-                    }
-                    rewind($stream);
-                    $response = $response->withBody(new \Slim\Psr7\Stream($stream));
+                $streamFactory = new StreamFactory();
+                $resource = @fopen('php://temp', 'r+');
+                if ($resource === false) {
+                    $resource = @fopen('php://memory', 'r+');
                 }
+
+                if ($resource !== false) {
+                    $newStream = $streamFactory->createStreamFromResource($resource);
+                } else {
+                    $newStream = $streamFactory->createStream('');
+                }
+
+                $content = $body->read(8192); // Read first 8KB - sufficient for login error detection
+                $newStream->write($content);
+                // Read remainder of original body if any
+                while (!$body->eof()) {
+                    $newStream->write($body->read(8192));
+                }
+                if ($newStream->isSeekable()) {
+                    $newStream->rewind();
+                }
+                $response = $response->withBody($newStream);
             }
 
             // Check for error patterns using class constants

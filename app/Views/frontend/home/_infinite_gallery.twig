@@ -106,8 +106,18 @@
     </div>
     {% endif %}
   </div>
-  <script>
-    window.initialGalleryImages = {{ all_images|json_encode|raw }};
+  {# Progressive loading config for JavaScript #}
+  {% if has_more_images|default(false) %}
+  <script nonce="{{ csp_nonce() }}">
+    window.homeLoaderConfig = {
+      shownImageIds: {{ shown_image_ids|default([])|json_encode|raw }},
+      shownAlbumIds: {{ shown_album_ids|default([])|json_encode|raw }},
+      hasMore: true,
+      basePath: '{{ base_path }}'
+    };
   </script>
+  {# Trigger element for IntersectionObserver - loads more when visible #}
+  <div id="home-load-trigger" class="h-1 w-full pointer-events-none" aria-hidden="true"></div>
+  {% endif %}
 </section>
 {% endif %}

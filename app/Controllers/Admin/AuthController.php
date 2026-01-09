@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Middlewares\AuthMiddleware;
 use App\Services\SettingsService;
 use App\Services\VariantMaintenanceService;
 use App\Support\CookieHelper;
@@ -346,6 +347,7 @@ class AuthController extends BaseController
                 ':id' => $_SESSION['admin_id']
             ]);
 
+            AuthMiddleware::invalidateVerification();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.password_changed')];
         } catch (\Throwable $e) {
             Logger::error('AuthController::changePassword error', ['error' => $e->getMessage()], 'admin');

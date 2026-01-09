@@ -18,6 +18,9 @@ class AuthMiddleware implements MiddlewareInterface
     /** Session key to force immediate re-verification on next request */
     private const FORCE_VERIFY_KEY = 'force_admin_verify';
 
+    /** Verification cache TTL in seconds */
+    private const CACHE_TTL = 15;
+
     public function __construct(private Database $db)
     {
     }
@@ -29,6 +32,9 @@ class AuthMiddleware implements MiddlewareInterface
      */
     public static function invalidateVerification(): void
     {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
         unset($_SESSION[self::CACHE_KEY]);
         $_SESSION[self::FORCE_VERIFY_KEY] = true;
     }
@@ -71,7 +77,7 @@ class AuthMiddleware implements MiddlewareInterface
         // Verify user still exists and is active
         // PERFORMANCE: Cache verification for 15 seconds to avoid database query on every request
         // SECURITY: Short TTL limits window for stale session after user deactivation/role change
-        $cacheTtl = 15; // seconds
+        $cacheTtl = self::CACHE_TTL;
         $now = time();
 
         // Check if forced re-verification is required (e.g., after user update)
@@ -226,4 +232,3 @@ class AuthMiddleware implements MiddlewareInterface
         ]);
     }
 }
-

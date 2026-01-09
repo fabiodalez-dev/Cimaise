@@ -234,7 +234,7 @@ class PageController extends BaseController
         // Progressive image loading: load initial batch with album diversity
         // Use HomeImageService for reusable album-diverse fetch logic
         $homeImageService = new \App\Services\HomeImageService($this->db);
-        $initialLimit = 30; // Fast initial load - more images loaded via infinite scroll
+        $initialLimit = 15; // Viewport-only SSR load - rest via progressive loading API
         $imageResult = $homeImageService->getInitialImages($initialLimit, $includeNsfw);
 
         // Process images with responsive sources (batch to avoid N+1 queries)
@@ -305,8 +305,13 @@ class PageController extends BaseController
         $includeNsfw = $isAdmin || $nsfwConsent;
 
         $params = $request->getQueryParams();
-        $excludeImageIds = isset($params['exclude']) ? array_filter(array_map('intval', explode(',', $params['exclude']))) : [];
-        $excludeAlbumIds = isset($params['excludeAlbums']) ? array_filter(array_map('intval', explode(',', $params['excludeAlbums']))) : [];
+        $maxExcludes = 1000;
+        $excludeImageIds = isset($params['exclude'])
+            ? array_slice(array_filter(array_map('intval', explode(',', $params['exclude']))), 0, $maxExcludes)
+            : [];
+        $excludeAlbumIds = isset($params['excludeAlbums'])
+            ? array_slice(array_filter(array_map('intval', explode(',', $params['excludeAlbums']))), 0, $maxExcludes)
+            : [];
         $limit = max(1, min(100, (int) ($params['limit'] ?? 20)));
 
         // Use HomeImageService for album-diverse progressive loading

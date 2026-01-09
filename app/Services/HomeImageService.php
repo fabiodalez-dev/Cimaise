@@ -49,16 +49,13 @@ class HomeImageService
         $stmt = $pdo->prepare("
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description,
-                   GROUP_CONCAT(DISTINCT c.slug) as category_slugs,
                    (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
             FROM images i
             JOIN albums a ON a.id = i.album_id
-            LEFT JOIN album_category ac ON ac.album_id = a.id
-            LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
-            GROUP BY i.id
+            GROUP BY i.id, a.id, a.title, a.slug, a.excerpt
             ORDER BY a.id, i.sort_order
             LIMIT :max_fetch
         ");
@@ -232,9 +229,10 @@ class HomeImageService
             $selectedImages = array_merge($selectedImages, $additionalImages);
         }
 
-        // Calculate if there are more images available
-        $totalRemaining = count($fillerImages) + array_sum(array_map('count', $newAlbumImages));
-        $hasMore = $totalRemaining > count($selectedImages);
+        // Calculate remaining images after this batch
+        $totalAvailable = count($fillerImages) + array_sum(array_map('count', $newAlbumImages));
+        $totalRemaining = max(0, $totalAvailable - count($selectedImages));
+        $hasMore = $totalRemaining > 0;
 
         // Final shuffle for visual variety
         shuffle($selectedImages);
