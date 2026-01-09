@@ -55,7 +55,6 @@ class HomeImageService
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
-            GROUP BY i.id, a.id, a.title, a.slug, a.excerpt
             ORDER BY a.id, i.sort_order
             LIMIT :max_fetch
         ");
@@ -159,7 +158,8 @@ class HomeImageService
         // Fetch eligible images with LIMIT to prevent memory issues
         $stmt = $pdo->prepare("
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
-                   a.excerpt as album_description
+                   a.excerpt as album_description,
+                   (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
             FROM images i
             JOIN albums a ON a.id = i.album_id
             WHERE a.is_published = 1

@@ -145,7 +145,8 @@ Example:
     <a href="{{ base_path }}/album/{{ album.slug }}">
       <picture>
         {% if album.cover_image.sources.avif|length %}
-        <source type="image/avif" srcset="{{ base_path }}{{ album.cover_image.sources.avif|join(', ') }}">
+        <source type="image/avif"
+                srcset="{% for src in album.cover_image.sources.avif %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
         {% endif %}
         <img src="{{ base_path }}{{ album.cover_image.url }}"
              alt="{{ album.title|e }}"
@@ -203,7 +204,7 @@ Initial Render (SSR):
     shownImageIds: {{ shown_image_ids|json_encode|raw }},
     shownAlbumIds: {{ shown_album_ids|json_encode|raw }},
     hasMore: true,
-    basePath: '{{ base_path }}'
+    basePath: {{ base_path|json_encode|raw }}
   };
 </script>
 <div id="home-load-trigger" class="h-1"></div>
@@ -321,7 +322,9 @@ RECOMMENDED HTML STRUCTURE:
         <div class="aspect-square overflow-hidden rounded-lg mb-4">
           <picture>
             {% if album.cover_image.sources.avif|length %}
-            <source type="image/avif" srcset="{{ base_path }}{{ album.cover_image.sources.avif[0] }}">
+            <source type="image/avif"
+                    srcset="{% for src in album.cover_image.sources.avif %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
             {% endif %}
             <img src="{{ base_path }}{{ album.cover_image.url }}"
                  alt="{{ album.title|e }}"
