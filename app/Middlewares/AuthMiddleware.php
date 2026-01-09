@@ -52,22 +52,36 @@ class AuthMiddleware implements MiddlewareInterface
         }
 
         // Verify user still exists and is active
-        $stmt = $this->db->pdo()->prepare('SELECT id, email, role, is_active, first_name, last_name FROM users WHERE id = :id LIMIT 1');
-        $stmt->execute([':id' => $_SESSION['admin_id']]);
-        $user = $stmt->fetch();
+        // PERFORMANCE: Cache verification for 60 seconds to avoid database query on every request
+        $cacheKey = 'admin_verified_at';
+        $cacheTtl = 60; // seconds
+        $now = time();
 
-        if (!$user || !$user['is_active'] || $user['role'] !== 'admin') {
-            // User no longer exists, is inactive, or no longer admin - force logout
-            $this->clearRememberToken((int)($_SESSION['admin_id'] ?? 0));
-            session_destroy();
-            $response = new \Slim\Psr7\Response(302);
-            return $response->withHeader('Location', $basePath . '/admin/login');
+        $needsVerification = true;
+        if (isset($_SESSION[$cacheKey]) && ($now - $_SESSION[$cacheKey]) < $cacheTtl) {
+            // Recently verified, skip database check
+            $needsVerification = false;
         }
 
-        // Update session with current user data
-        $_SESSION['admin_email'] = $user['email'];
-        $_SESSION['admin_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
-        $_SESSION['admin_role'] = $user['role'];
+        if ($needsVerification) {
+            $stmt = $this->db->pdo()->prepare('SELECT id, email, role, is_active, first_name, last_name FROM users WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => $_SESSION['admin_id']]);
+            $user = $stmt->fetch();
+
+            if (!$user || !$user['is_active'] || $user['role'] !== 'admin') {
+                // User no longer exists, is inactive, or no longer admin - force logout
+                $this->clearRememberToken((int)($_SESSION['admin_id'] ?? 0));
+                session_destroy();
+                $response = new \Slim\Psr7\Response(302);
+                return $response->withHeader('Location', $basePath . '/admin/login');
+            }
+
+            // Update session with current user data
+            $_SESSION['admin_email'] = $user['email'];
+            $_SESSION['admin_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
+            $_SESSION['admin_role'] = $user['role'];
+            $_SESSION[$cacheKey] = $now;
+        }
 
         return $handler->handle($request);
     }
