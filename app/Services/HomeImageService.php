@@ -42,16 +42,18 @@ class HomeImageService
      */
     public function getInitialImages(int $limit = self::DEFAULT_INITIAL_LIMIT, bool $includeNsfw = false): array
     {
+        $limit = max(1, min($limit, self::MAX_FETCH_LIMIT));
         $pdo = $this->db->pdo();
 
         // Fetch images from published albums with LIMIT to prevent memory issues
         // Uses ORDER BY album_id to improve album distribution within the limit
         $stmt = $pdo->prepare("
-            SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
-                   a.excerpt as album_description,
-                   (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
+            SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
+                   a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
+                   c.slug as category_slug
             FROM images i
             JOIN albums a ON a.id = i.album_id
+            LEFT JOIN categories c ON c.id = a.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
@@ -153,15 +155,17 @@ class HomeImageService
         int $limit = self::DEFAULT_BATCH_LIMIT,
         bool $includeNsfw = false
     ): array {
+        $limit = max(1, min($limit, self::MAX_FETCH_LIMIT));
         $pdo = $this->db->pdo();
 
         // Fetch eligible images with LIMIT to prevent memory issues
         $stmt = $pdo->prepare("
-            SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
-                   a.excerpt as album_description,
-                   (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
+            SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
+                   a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
+                   c.slug as category_slug
             FROM images i
             JOIN albums a ON a.id = i.album_id
+            LEFT JOIN categories c ON c.id = a.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
@@ -205,6 +209,7 @@ class HomeImageService
 
         $selectedImages = [];
         $newAlbumIds = [];
+        $remainingNewImages = [];
 
         // Step 1: Pick one image from each new album
         $newAlbumIdList = array_keys($newAlbumImages);
@@ -218,14 +223,19 @@ class HomeImageService
             $randomIndex = array_rand($albumImages);
             $selectedImages[] = $albumImages[$randomIndex];
             $newAlbumIds[] = $albumId;
+            unset($albumImages[$randomIndex]);
+            if (!empty($albumImages)) {
+                $remainingNewImages = array_merge($remainingNewImages, array_values($albumImages));
+            }
         }
 
         // Step 2: If batch not full, fill with filler images
         $currentCount = count($selectedImages);
-        if ($currentCount < $limit && !empty($fillerImages)) {
+        $fillPool = array_merge($remainingNewImages, $fillerImages);
+        if ($currentCount < $limit && !empty($fillPool)) {
             $need = $limit - $currentCount;
-            shuffle($fillerImages);
-            $additionalImages = array_slice($fillerImages, 0, $need);
+            shuffle($fillPool);
+            $additionalImages = array_slice($fillPool, 0, $need);
             $selectedImages = array_merge($selectedImages, $additionalImages);
         }
 

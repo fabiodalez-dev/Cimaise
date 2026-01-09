@@ -308,7 +308,7 @@ class UsersController extends BaseController
         try {
             $stmt->execute([':id' => $id]);
             // Invalidate verification cache for deleted user
-            AuthMiddleware::invalidateVerification($id);
+            AuthMiddleware::invalidateVerification();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.user_deleted')];
         } catch (\Throwable $e) {
             Logger::error('UsersController::delete error', ['error' => $e->getMessage()], 'admin');

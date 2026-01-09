@@ -165,7 +165,7 @@ Usa l'array `all_images` quando la homepage mostra un mosaico/muro di foto
 con immagini diverse da tutti gli album.
 
 Variabili disponibili:
-- {{ all_images }} - Batch iniziale di immagini random (15 SSR, diversità album)
+- {{ all_images }} - Batch iniziale di immagini random (dimensione iniziale variabile; dipende da configurazione/template; default = HomeImageService::DEFAULT_INITIAL_LIMIT)
 - {{ has_more_images }} - Boolean: altre immagini disponibili via API
 - {{ shown_image_ids }} - Array: IDs per deduplicazione
 - {{ shown_album_ids }} - Array: IDs album già rappresentati
@@ -181,15 +181,15 @@ Ogni immagine in all_images ha:
 
 Render Iniziale (SSR):
 ```twig
-<div id="home-gallery">
+<div id="home-infinite-gallery">
   {% for image in all_images %}
     <picture data-image-id="{{ image.id }}">
       {% if image.sources.avif|length %}
       <source type="image/avif"
-              srcset="{% for src in image.sources.avif %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}"
+              srcset="{% for src in image.sources.avif %}{{ (base_path ~ src)|e('html_attr') }}{% if not loop.last %}, {% endif %}{% endfor %}"
               sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">
       {% endif %}
-      <img src="{{ base_path }}{{ image.fallback_src }}"
+      <img src="{{ (base_path ~ image.fallback_src)|e('html_attr') }}"
            alt="{{ image.alt|e }}"
            width="{{ image.width }}"
            height="{{ image.height }}"
