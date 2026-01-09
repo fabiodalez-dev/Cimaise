@@ -31,9 +31,15 @@ if (!$isInstallerRoute) {
     $installedMarker = $root . '/storage/tmp/.installed';
     $installed = false;
 
-    // Fast path: check for installed marker file (single stat() call)
+    // Fast path: check for installed marker file AND .env existence
+    // Both must exist - if .env is removed, marker is stale and should be cleared
     if (file_exists($installedMarker)) {
-        $installed = true;
+        if (file_exists($root . '/.env')) {
+            $installed = true;
+        } else {
+            // Stale marker: .env was removed after installation (e.g., reset)
+            @unlink($installedMarker);
+        }
     } elseif (file_exists($root . '/.env')) {
         // Slow path: .env exists but no marker - verify installation properly
         try {

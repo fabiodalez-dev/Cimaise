@@ -21,6 +21,13 @@ class HomeImageService
     private const DEFAULT_INITIAL_LIMIT = 30;
     private const DEFAULT_BATCH_LIMIT = 20;
 
+    /**
+     * Maximum images to fetch from database per query.
+     * Limits memory usage while still allowing album diversity for most portfolios.
+     * For very large libraries, some albums may not be represented in initial load.
+     */
+    private const MAX_FETCH_LIMIT = 500;
+
     public function __construct(private Database $db)
     {
     }
@@ -37,7 +44,8 @@ class HomeImageService
     {
         $pdo = $this->db->pdo();
 
-        // Fetch all images from published albums
+        // Fetch images from published albums with LIMIT to prevent memory issues
+        // Uses ORDER BY album_id to improve album distribution within the limit
         $stmt = $pdo->prepare("
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description,
@@ -51,8 +59,11 @@ class HomeImageService
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
             GROUP BY i.id
+            ORDER BY a.id, i.sort_order
+            LIMIT :max_fetch
         ");
         $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+        $stmt->bindValue(':max_fetch', self::MAX_FETCH_LIMIT, \PDO::PARAM_INT);
         $stmt->execute();
         $rawImages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -148,7 +159,7 @@ class HomeImageService
     ): array {
         $pdo = $this->db->pdo();
 
-        // Fetch all eligible images
+        // Fetch eligible images with LIMIT to prevent memory issues
         $stmt = $pdo->prepare("
             SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
                    a.excerpt as album_description
@@ -157,8 +168,11 @@ class HomeImageService
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
+            ORDER BY a.id, i.sort_order
+            LIMIT :max_fetch
         ");
         $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+        $stmt->bindValue(':max_fetch', self::MAX_FETCH_LIMIT, \PDO::PARAM_INT);
         $stmt->execute();
         $allImages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
