@@ -12,8 +12,25 @@ use Psr\Http\Server\RequestHandlerInterface as Handler;
 
 class AuthMiddleware implements MiddlewareInterface
 {
+    /** Session key for tracking when admin verification last occurred */
+    private const CACHE_KEY = 'admin_verified_at';
+
+    /** Session key to force immediate re-verification on next request */
+    private const FORCE_VERIFY_KEY = 'force_admin_verify';
+
     public function __construct(private Database $db)
     {
+    }
+
+    /**
+     * Invalidate the admin verification cache.
+     * Call this from user-update flows (password change, role change, deactivation)
+     * to force immediate re-verification on next request.
+     */
+    public static function invalidateVerification(): void
+    {
+        unset($_SESSION[self::CACHE_KEY]);
+        $_SESSION[self::FORCE_VERIFY_KEY] = true;
     }
 
     public function process(Request $request, Handler $handler): Response
@@ -52,14 +69,20 @@ class AuthMiddleware implements MiddlewareInterface
         }
 
         // Verify user still exists and is active
-        // PERFORMANCE: Cache verification for 60 seconds to avoid database query on every request
-        $cacheKey = 'admin_verified_at';
-        $cacheTtl = 60; // seconds
+        // PERFORMANCE: Cache verification for 15 seconds to avoid database query on every request
+        // SECURITY: Short TTL limits window for stale session after user deactivation/role change
+        $cacheTtl = 15; // seconds
         $now = time();
 
+        // Check if forced re-verification is required (e.g., after user update)
+        $forceVerify = !empty($_SESSION[self::FORCE_VERIFY_KEY]);
+        if ($forceVerify) {
+            unset($_SESSION[self::FORCE_VERIFY_KEY]);
+        }
+
         $needsVerification = true;
-        if (isset($_SESSION[$cacheKey]) && ($now - $_SESSION[$cacheKey]) < $cacheTtl) {
-            // Recently verified, skip database check
+        if (!$forceVerify && isset($_SESSION[self::CACHE_KEY]) && ($now - $_SESSION[self::CACHE_KEY]) < $cacheTtl) {
+            // Recently verified and not forced, skip database check
             $needsVerification = false;
         }
 
@@ -80,7 +103,7 @@ class AuthMiddleware implements MiddlewareInterface
             $_SESSION['admin_email'] = $user['email'];
             $_SESSION['admin_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
             $_SESSION['admin_role'] = $user['role'];
-            $_SESSION[$cacheKey] = $now;
+            $_SESSION[self::CACHE_KEY] = $now;
         }
 
         return $handler->handle($request);
