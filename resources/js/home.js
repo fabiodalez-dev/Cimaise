@@ -52,8 +52,10 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
    * @returns {HTMLElement} The created cell element
    */
   function createHomeItem(img, basePath, isHorizontal) {
-    const w = img.width || 1600;
-    const h = img.height || 1067;
+    const w = Number.parseInt(img.width, 10);
+    const h = Number.parseInt(img.height, 10);
+    const safeW = Number.isFinite(w) && w > 0 ? w : 1600;
+    const safeH = Number.isFinite(h) && h > 0 ? h : 1067;
 
     // Build srcset strings
     const buildSrcset = (sources) => {
@@ -78,21 +80,55 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     // Create picture element with responsive sources
     const cell = document.createElement('div');
     cell.className = isHorizontal ? 'home-cell-h' : 'home-cell';
-    cell.innerHTML = `
-      <div class="home-item home-item--revealed group rounded-xl overflow-hidden shadow-sm relative transition-transform hover:scale-105 duration-300" style="aspect-ratio: ${parseInt(w, 10)} / ${parseInt(h, 10)};" data-image-id="${parseInt(img.id, 10) || 0}">
-        <a href="${escapeAttr(albumUrl)}" class="block w-full h-full relative z-10" title="${escapeAttr(title)}">
-          <picture class="block w-full h-full">
-            ${avifSrcset ? `<source type="image/avif" srcset="${escapeAttr(avifSrcset)}" sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">` : ''}
-            ${webpSrcset ? `<source type="image/webp" srcset="${escapeAttr(webpSrcset)}" sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">` : ''}
-            ${jpgSrcset ? `<source type="image/jpeg" srcset="${escapeAttr(jpgSrcset)}" sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">` : ''}
-            <img src="${escapeAttr(imgSrc)}" alt="${escapeAttr(alt)}" width="${parseInt(w, 10)}" height="${parseInt(h, 10)}" loading="lazy" decoding="async" class="w-full h-full object-cover block">
-          </picture>
-          <div class="absolute inset-0 bg-black/70 text-white flex items-center justify-center transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-            <span class="px-4 text-base md:text-lg lg:text-xl font-medium tracking-tight text-center">${escapeHtml(title)}</span>
-          </div>
-        </a>
-      </div>
-    `;
+
+    const item = document.createElement('div');
+    item.className = 'home-item home-item--revealed group rounded-xl overflow-hidden shadow-sm relative transition-transform hover:scale-105 duration-300';
+    item.style.aspectRatio = `${safeW} / ${safeH}`;
+    item.dataset.imageId = String(parseInt(img.id, 10) || 0);
+
+    const link = document.createElement('a');
+    link.href = albumUrl;
+    link.className = 'block w-full h-full relative z-10';
+    link.title = title;
+
+    const picture = document.createElement('picture');
+    picture.className = 'block w-full h-full';
+
+    const addSource = (type, srcset) => {
+      if (!srcset) return;
+      const source = document.createElement('source');
+      source.type = type;
+      source.srcset = srcset;
+      source.sizes = '(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw';
+      picture.appendChild(source);
+    };
+
+    addSource('image/avif', avifSrcset);
+    addSource('image/webp', webpSrcset);
+    addSource('image/jpeg', jpgSrcset);
+
+    const imgEl = document.createElement('img');
+    imgEl.src = imgSrc;
+    imgEl.alt = alt;
+    imgEl.width = safeW;
+    imgEl.height = safeH;
+    imgEl.loading = 'lazy';
+    imgEl.decoding = 'async';
+    imgEl.className = 'w-full h-full object-cover block';
+    picture.appendChild(imgEl);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'absolute inset-0 bg-black/70 text-white flex items-center justify-center transform translate-y-full group-hover:translate-y-0 transition-transform duration-300';
+
+    const caption = document.createElement('span');
+    caption.className = 'px-4 text-base md:text-lg lg:text-xl font-medium tracking-tight text-center';
+    caption.textContent = title;
+    overlay.appendChild(caption);
+
+    link.appendChild(picture);
+    link.appendChild(overlay);
+    item.appendChild(link);
+    cell.appendChild(item);
 
     return cell;
   }

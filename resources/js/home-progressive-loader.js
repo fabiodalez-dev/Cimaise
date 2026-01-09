@@ -57,15 +57,19 @@ export class HomeProgressiveLoader {
   async loadMore() {
     if (this.loading || !this.hasMore) return;
     this.loading = true;
+    let timeoutId;
+    let controller;
 
     try {
+      controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 10000);
       const params = new URLSearchParams({
         exclude: Array.from(this.shownImageIds).join(','),
         excludeAlbums: Array.from(this.shownAlbumIds).join(','),
         limit: String(this.batchSize)
       });
 
-      const res = await fetch(`${this.apiUrl}?${params}`);
+      const res = await fetch(`${this.apiUrl}?${params}`, { signal: controller.signal });
 
       if (!res.ok) {
         console.error('[HomeLoader] API error:', res.status);
@@ -118,6 +122,9 @@ export class HomeProgressiveLoader {
       console.error('[HomeLoader] Fetch error:', error);
       this.hasMore = false;
     } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       this.loading = false;
     }
   }
@@ -139,7 +146,7 @@ export class HomeProgressiveLoader {
 
     this.observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && this.hasMore && !this.loading) {
+        if (entries.some(entry => entry.isIntersecting) && this.hasMore && !this.loading) {
           this.loadMore();
         }
       },
