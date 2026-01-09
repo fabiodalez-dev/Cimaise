@@ -113,7 +113,7 @@
       shownImageIds: {{ shown_image_ids|default([])|json_encode|raw }},
       shownAlbumIds: {{ shown_album_ids|default([])|json_encode|raw }},
       hasMore: true,
-      basePath: '{{ base_path }}'
+      basePath: {{ base_path|json_encode|raw }}
     };
   </script>
   {# Trigger element for IntersectionObserver - loads more when visible #}

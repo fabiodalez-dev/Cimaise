@@ -31,13 +31,22 @@ export class HomeProgressiveLoader {
     this.container = options.container;
     this.renderImage = options.renderImage;
     this.batchSize = options.batchSize || 20;
-    this.shownAlbumIds = options.shownAlbumIds || [];
     this.hasMore = true;
     this.loading = false;
+    this.observer = null;
 
-    // DEDUPLICATION: Use Set for O(1) lookup
+    // DEDUPLICATION: Use Set for O(1) lookup, filter out NaN values
     this.shownImageIds = new Set(
-      (options.shownImageIds || []).map(id => parseInt(id, 10))
+      (options.shownImageIds || [])
+        .map(id => parseInt(id, 10))
+        .filter(id => !isNaN(id) && id > 0)
+    );
+
+    // Use Set for album IDs too for O(1) lookup
+    this.shownAlbumIds = new Set(
+      (options.shownAlbumIds || [])
+        .map(id => parseInt(id, 10))
+        .filter(id => !isNaN(id) && id > 0)
     );
   }
 
@@ -52,7 +61,7 @@ export class HomeProgressiveLoader {
     try {
       const params = new URLSearchParams({
         exclude: Array.from(this.shownImageIds).join(','),
-        excludeAlbums: this.shownAlbumIds.join(','),
+        excludeAlbums: Array.from(this.shownAlbumIds).join(','),
         limit: String(this.batchSize)
       });
 
@@ -66,10 +75,16 @@ export class HomeProgressiveLoader {
 
       const data = await res.json();
 
-      // Append images via callback - SKIP DUPLICATES
+      // Append images via callback - SKIP DUPLICATES and invalid IDs
       if (Array.isArray(data.images)) {
         data.images.forEach(img => {
           const imgId = parseInt(img.id, 10);
+
+          // Skip invalid IDs (NaN, 0, negative)
+          if (isNaN(imgId) || imgId <= 0) {
+            console.warn('[HomeLoader] Skipping invalid image ID:', img.id);
+            return;
+          }
 
           // DEDUPLICATION CHECK: Skip if already shown
           if (this.shownImageIds.has(imgId)) {
@@ -86,9 +101,14 @@ export class HomeProgressiveLoader {
         });
       }
 
-      // Track new albums for diversity
+      // Track new albums for diversity (using Set to prevent duplicates)
       if (Array.isArray(data.newAlbumIds)) {
-        this.shownAlbumIds.push(...data.newAlbumIds);
+        data.newAlbumIds.forEach(id => {
+          const albumId = parseInt(id, 10);
+          if (!isNaN(albumId) && albumId > 0) {
+            this.shownAlbumIds.add(albumId);
+          }
+        });
       }
 
       // Update hasMore flag
@@ -112,7 +132,12 @@ export class HomeProgressiveLoader {
       return;
     }
 
-    const observer = new IntersectionObserver(
+    // Disconnect any existing observer
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+
+    this.observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && this.hasMore && !this.loading) {
           this.loadMore();
@@ -121,7 +146,18 @@ export class HomeProgressiveLoader {
       { rootMargin: '200px' }
     );
 
-    observer.observe(triggerElement);
+    this.observer.observe(triggerElement);
+  }
+
+  /**
+   * Disconnect the IntersectionObserver
+   * Call this when the component is destroyed or no longer needed
+   */
+  disconnect() {
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
+    }
   }
 
   /**

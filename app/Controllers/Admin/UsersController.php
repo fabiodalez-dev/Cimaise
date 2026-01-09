@@ -307,6 +307,8 @@ class UsersController extends BaseController
         $stmt = $this->db->pdo()->prepare('DELETE FROM users WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
+            // Invalidate verification cache for deleted user
+            AuthMiddleware::invalidateVerification($id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.user_deleted')];
         } catch (\Throwable $e) {
             Logger::error('UsersController::delete error', ['error' => $e->getMessage()], 'admin');
