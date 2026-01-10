@@ -962,6 +962,7 @@
     "admin.flash.cover_updated": "Cover updated",
     "admin.flash.csrf_invalid": "Invalid CSRF token",
     "admin.flash.csrf_invalid_try_again": "Invalid security token. Please try again.",
+    "admin.flash.session_expired": "Your session has expired. Please try again.",
     "admin.flash.developer_created": "Developer created",
     "admin.flash.developer_deleted": "Developer deleted",
     "admin.flash.developer_updated": "Developer updated",

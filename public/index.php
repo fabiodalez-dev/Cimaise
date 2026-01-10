@@ -31,23 +31,32 @@ if (!$isInstallerRoute) {
     $installedMarker = $root . '/storage/tmp/.installed';
     $installed = false;
 
-    // Fast path: check for installed marker file AND .env existence
-    // Both must exist - if .env is removed, marker is stale and should be cleared
+    // Fast path: check for installed marker file AND .env existence + validity
+    // Both must exist - if .env is removed or empty, marker is stale and should be cleared
+    $envFile = $root . '/.env';
     if (file_exists($installedMarker)) {
-        if (file_exists($root . '/.env')) {
+        // Validate .env exists and is not empty/corrupt (at least 10 bytes for minimal config)
+        if (file_exists($envFile) && filesize($envFile) >= 10) {
             $installed = true;
         } else {
-            // Stale marker: .env was removed after installation (e.g., reset)
+            // Stale marker: .env was removed or corrupted after installation (e.g., reset)
             @unlink($installedMarker);
         }
-    } elseif (file_exists($root . '/.env')) {
+    } elseif (file_exists($envFile) && filesize($envFile) >= 10) {
         // Slow path: .env exists but no marker - verify installation properly
         try {
             $installer = new \App\Installer\Installer($root);
             $installed = $installer->isInstalled();
             // Create marker file for future fast checks
             if ($installed) {
-                @file_put_contents($installedMarker, date('Y-m-d H:i:s'), LOCK_EX);
+                // Ensure storage/tmp directory exists before writing marker
+                $markerDir = dirname($installedMarker);
+                if (!is_dir($markerDir)) {
+                    @mkdir($markerDir, 0775, true);
+                }
+                if (is_dir($markerDir)) {
+                    @file_put_contents($installedMarker, date('Y-m-d H:i:s'), LOCK_EX);
+                }
             }
         } catch (\Throwable $e) {
             $installed = false;
@@ -144,7 +153,18 @@ if ($container['db'] !== null && !$isInstallerRoute) {
                 $pluginCheckStmt->execute(['maintenance-mode']);
                 $pluginStatus = $pluginCheckStmt->fetch(\PDO::FETCH_ASSOC);
                 $isActive = $pluginStatus && $pluginStatus['is_active'];
-                @file_put_contents($cacheFile, json_encode(['time' => time(), 'active' => $isActive]), LOCK_EX);
+                // Atomic write: ensure directory exists, write to temp file, then rename
+                $cacheDir = dirname($cacheFile);
+                if (!is_dir($cacheDir)) {
+                    @mkdir($cacheDir, 0775, true);
+                }
+                $payload = json_encode(['time' => time(), 'active' => (bool)$isActive]);
+                if ($payload !== false && is_dir($cacheDir)) {
+                    $tmpFile = $cacheFile . '.tmp';
+                    if (@file_put_contents($tmpFile, $payload, LOCK_EX) !== false) {
+                        @rename($tmpFile, $cacheFile);
+                    }
+                }
             }
 
             if ($isActive) {
