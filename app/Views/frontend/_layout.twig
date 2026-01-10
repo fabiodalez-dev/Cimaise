@@ -40,7 +40,14 @@
     <!-- Preload Critical Resources -->
     <link rel="preload" href="{{ base_path }}/fonts/typography.css" as="style">
     <link rel="preload" href="{{ base_path }}/assets/app.css" as="style">
-    
+
+    <!-- Preload Critical Fonts (user-selected) to prevent FOUT -->
+    {% if critical_fonts_preload is defined and critical_fonts_preload|length > 0 %}
+        {% for font in critical_fonts_preload %}
+    <link rel="preload" href="{{ font.url }}" as="font" type="font/woff2" crossorigin>
+        {% endfor %}
+    {% endif %}
+
     <!-- Open Graph -->
     <meta property="og:title" content="{{ page_title|e('html_attr') }}">
     {% if meta_description %}

@@ -460,6 +460,11 @@ if (!$isInstallerRoute && $container['db'] !== null) {
             ]);
             $twig->getEnvironment()->addGlobal('analytics_gtag', $settingsSvc->get('seo.analytics_gtag', ''));
             $twig->getEnvironment()->addGlobal('analytics_gtm', $settingsSvc->get('seo.analytics_gtm', ''));
+
+            // Font preloading for performance (prevent FOUT)
+            $typographyService = new \App\Services\TypographyService($settingsSvc);
+            $criticalFonts = $typographyService->getCriticalFontsForPreload($basePath);
+            $twig->getEnvironment()->addGlobal('critical_fonts_preload', $criticalFonts);
         }
     } catch (\Throwable) {
         $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
@@ -503,6 +508,8 @@ if (!$isInstallerRoute && $container['db'] !== null) {
             $twig->getEnvironment()->addGlobal('analytics_gtag', '');
             $twig->getEnvironment()->addGlobal('analytics_gtm', '');
         }
+        // Font preload fallback
+        $twig->getEnvironment()->addGlobal('critical_fonts_preload', []);
     }
 } else {
     $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
@@ -528,6 +535,8 @@ if (!$isInstallerRoute && $container['db'] !== null) {
     // Navigation tags defaults for installer
     $twig->getEnvironment()->addGlobal('show_tags_in_header', false);
     $twig->getEnvironment()->addGlobal('nav_tags', []);
+    // Font preload fallback for installer/error states
+    $twig->getEnvironment()->addGlobal('critical_fonts_preload', []);
 }
 
 // Register date format Twig extension
