@@ -170,10 +170,11 @@ body {
             {% if variants_webp %}
               <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
             {% endif %}
+            {# First 9 images (3x3 grid) load eagerly for instant display #}
             <img
               src="{{ best_jpg_path|e('html_attr') }}"
               alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
-              loading="lazy"
+              {% if loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
               decoding="async"
               data-fallback="hide"
               data-parallax-image
@@ -253,7 +254,16 @@ body {
     startScroll();
   }
 
-  window.addEventListener('load', updateScroll, false);
+  // Initialize immediately on DOMContentLoaded, don't wait for window.load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      updateScroll();
+      activateParallax();
+    });
+  } else {
+    updateScroll();
+    activateParallax();
+  }
   window.addEventListener('scroll', init, false);
   window.addEventListener('resize', updateScroll, false);
 })();
