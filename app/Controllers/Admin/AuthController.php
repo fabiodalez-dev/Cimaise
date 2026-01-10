@@ -34,9 +34,19 @@ class AuthController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
         }
 
+        // Ensure CSRF token exists for fresh sessions
+        if (!isset($_SESSION['csrf'])) {
+            $_SESSION['csrf'] = bin2hex(random_bytes(32));
+        }
+
+        // Get and clear flash messages
+        $flash = $_SESSION['flash'] ?? [];
+        unset($_SESSION['flash']);
+
         return $this->view->render($response, 'admin/login.twig', [
-            'csrf' => $_SESSION['csrf'] ?? '',
-            'admin_locale' => $this->getAdminLocale()
+            'csrf' => $_SESSION['csrf'],
+            'admin_locale' => $this->getAdminLocale(),
+            'session' => ['flash' => $flash]
         ]);
     }
 
@@ -49,10 +59,26 @@ class AuthController extends BaseController
         $rememberMe = !empty($data['remember_me']);
         $adminLocale = $this->getAdminLocale();
 
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        // Handle CSRF validation with graceful session expiration recovery
+        $csrfValid = is_string($csrf) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $csrf);
+
+        if (!$csrfValid) {
+            // Check if this is a session expiration (token was missing, not just wrong)
+            $sessionExpired = !isset($_SESSION['csrf']);
+
+            // Regenerate CSRF token for the new session
+            $_SESSION['csrf'] = bin2hex(random_bytes(32));
+
+            if ($sessionExpired) {
+                // Session expired - redirect back with a friendly message instead of error
+                $_SESSION['flash'][] = ['type' => 'warning', 'message' => trans('admin.flash.session_expired')];
+                return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
+            }
+
+            // CSRF mismatch (possible attack) - show error
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.csrf_invalid'),
-                'csrf' => $_SESSION['csrf'] ?? '',
+                'csrf' => $_SESSION['csrf'],
                 'admin_locale' => $adminLocale
             ]);
         }

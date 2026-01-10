@@ -232,16 +232,18 @@ class HomeImageService
         // Step 2: If batch not full, fill with filler images
         $currentCount = count($selectedImages);
         $fillPool = array_merge($remainingNewImages, $fillerImages);
+        $usedFromFillPool = 0;
         if ($currentCount < $limit && !empty($fillPool)) {
             $need = $limit - $currentCount;
             shuffle($fillPool);
             $additionalImages = array_slice($fillPool, 0, $need);
+            $usedFromFillPool = count($additionalImages);
             $selectedImages = array_merge($selectedImages, $additionalImages);
         }
 
         // Calculate remaining images after this batch
-        $totalAvailable = count($fillerImages) + array_sum(array_map('count', $newAlbumImages));
-        $totalRemaining = max(0, $totalAvailable - count($selectedImages));
+        // Use fillPool count minus what was consumed (fillPool already excludes step 1 selections)
+        $totalRemaining = max(0, count($fillPool) - $usedFromFillPool);
         $hasMore = $totalRemaining > 0;
 
         // Final shuffle for visual variety
