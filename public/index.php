@@ -215,7 +215,20 @@ $twigCacheDir = __DIR__ . '/../storage/cache/twig';
 if (!is_dir($twigCacheDir)) {
     @mkdir($twigCacheDir, 0755, true);
 }
-$twig = Twig::create(__DIR__ . '/../app/Views', ['cache' => $twigCacheDir]);
+
+// Twig configuration with performance optimizations
+$isProduction = !($_ENV['APP_DEBUG'] ?? false);
+$twigOptions = [
+    'cache' => $twigCacheDir,
+    // Disable auto_reload in production (huge performance gain - no file stat checks)
+    'auto_reload' => !$isProduction,
+    // Disable strict_variables in production (faster, less checks)
+    'strict_variables' => !$isProduction,
+    // Maximum optimization level (-1 = all optimizations enabled)
+    'optimizations' => -1,
+];
+
+$twig = Twig::create(__DIR__ . '/../app/Views', $twigOptions);
 
 // Add custom Twig extensions
 $twig->getEnvironment()->addExtension(new \App\Extensions\AnalyticsTwigExtension());
