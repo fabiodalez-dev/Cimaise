@@ -1070,6 +1070,7 @@ HTACCESS;
      * Sets appropriate permissions for:
      * - Directories: 755 (general) or 775 (writable)
      * - Files: 644 (general) or 664 (writable like .env, sqlite)
+     * - CLI scripts: 755 (executable like bin/console)
      */
     private function fixPermissions(): void
     {
@@ -1122,6 +1123,22 @@ HTACCESS;
             0,
             10
         );
+
+        // Make CLI scripts executable (755)
+        $executableFiles = [
+            'bin/console',
+            'bin/build-release.sh',
+        ];
+
+        foreach ($executableFiles as $file) {
+            $fullPath = $this->rootPath . '/' . $file;
+            if (file_exists($fullPath) && !chmod($fullPath, 0755)) {
+                Logger::warning('Installer: Failed to set executable permissions', [
+                    'path' => $fullPath,
+                    'perm' => '0755',
+                ], 'installer');
+            }
+        }
     }
 
     /**
