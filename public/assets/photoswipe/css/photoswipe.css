@@ -413,6 +413,8 @@ div.pswp__img--placeholder,
   color: var(--pswp-icon-color);
   text-shadow: 1px 1px 3px var(--pswp-icon-color-secondary);
   opacity: 0.85;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .pswp--one-slide .pswp__counter {
