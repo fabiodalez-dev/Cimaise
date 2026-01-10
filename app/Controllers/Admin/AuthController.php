@@ -6,7 +6,6 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Middlewares\AuthMiddleware;
 use App\Services\SettingsService;
-use App\Services\VariantMaintenanceService;
 use App\Support\CookieHelper;
 use App\Support\Database;
 use App\Support\Hooks;
@@ -115,7 +114,8 @@ class AuthController extends BaseController
         // rotate CSRF after login
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
 
-        $this->scheduleDailyVariantMaintenance();
+        // Note: Variant maintenance moved to cron job / manual trigger
+        // Was causing 503 on shared hosting without fastcgi_finish_request()
 
         return $response
             ->withHeader('Location', $this->redirect('/admin'))
@@ -355,24 +355,6 @@ class AuthController extends BaseController
         }
 
         return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
-    }
-
-    private function scheduleDailyVariantMaintenance(): void
-    {
-        $db = $this->db;
-        register_shutdown_function(function() use ($db) {
-            if (session_status() === PHP_SESSION_ACTIVE) {
-                session_write_close();
-            }
-            if (function_exists('fastcgi_finish_request')) {
-                @fastcgi_finish_request();
-            }
-            try {
-                (new VariantMaintenanceService($db))->runDaily();
-            } catch (\Throwable $e) {
-                Logger::warning('Variant maintenance skipped', ['error' => $e->getMessage()], 'maintenance');
-            }
-        });
     }
 
     private function getAdminLocale(): string
