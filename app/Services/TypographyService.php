@@ -442,7 +442,7 @@ class TypographyService
                 $css .= "  font-family: '{$fontName}';\n";
                 $css .= "  font-style: normal;\n";
                 $css .= "  font-weight: {$weight};\n";
-                $css .= "  font-display: swap;\n";
+                $css .= "  font-display: optional;\n";
                 $css .= "  src: url('{$basePath}/fonts/{$slug}/{$slug}-{$weight}.woff2') format('woff2');\n";
                 $css .= "}\n\n";
             }
@@ -558,6 +558,53 @@ class TypographyService
         }
 
         return $slug;
+    }
+
+    /**
+     * Get critical fonts for preloading (headings and body only)
+     * Returns array of font files to preload for optimal performance
+     */
+    public function getCriticalFontsForPreload(string $basePath = ''): array
+    {
+        $typography = $this->getTypography();
+        $preloadFonts = [];
+
+        // Only preload headings and body fonts (most critical)
+        $criticalContexts = ['headings', 'body'];
+
+        foreach ($criticalContexts as $context) {
+            if (!isset($typography[$context])) {
+                continue;
+            }
+
+            $config = $typography[$context];
+            $slug = $config['font'];
+            $weight = $config['weight'];
+
+            $fontData = $this->getFontBySlug($slug);
+            if (!$fontData) {
+                continue;
+            }
+
+            // Verify weight is available
+            if (!in_array($weight, $fontData['weights'])) {
+                $weight = $this->getClosestWeight($fontData['weights'], $weight);
+            }
+
+            $fontUrl = "{$basePath}/fonts/{$slug}/{$slug}-{$weight}.woff2";
+            $fontKey = "{$slug}-{$weight}";
+
+            // Avoid duplicates (if headings and body use same font/weight)
+            if (!isset($preloadFonts[$fontKey])) {
+                $preloadFonts[$fontKey] = [
+                    'url' => $fontUrl,
+                    'font' => $fontData['name'],
+                    'weight' => $weight,
+                ];
+            }
+        }
+
+        return array_values($preloadFonts);
     }
 
     /**
