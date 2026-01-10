@@ -87,7 +87,6 @@ database/cimaise.sqlite
 AGENTS.md
 CHANGELOG.md
 PERFORMANCE.md
-performance.md
 
 # Claude memory context files (anywhere in repo)
 **/CLAUDE.md
