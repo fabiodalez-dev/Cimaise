@@ -1019,12 +1019,13 @@
             inset: 0;
             background: #fff;
             opacity: 0;
-            pointer-events: none;
+            pointer-events: none !important;
             transition: opacity 0.15s ease;
             z-index: 9998;
         }
         #pswp-open-overlay.is-visible {
             opacity: 0.92;
+            pointer-events: none !important;
         }
         html.dark #pswp-open-overlay {
             background: #fff;
@@ -1063,6 +1064,21 @@
         .pswp__icn {
             width: 24px !important;
             height: 24px !important;
+        }
+
+        /* Mobile: constrain vertical image height to leave room for caption */
+        /* Uses !important to override PhotoSwipe inline styles */
+        @media (max-width: 767px) {
+            .pswp__img {
+                max-height: calc(90dvh - 140px) !important;
+                max-width: calc(100vw - 16px) !important;
+                object-fit: contain !important;
+            }
+            .pswp__zoom-wrap {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
         }
 
         /* Caption styling - inherit colors from parent for dark/light mode */
@@ -1265,6 +1281,26 @@
         .preloader-curtain.preloader-exit .preloader-content {
             opacity: 0;
             transform: translateY(-20px);
+        }
+        /* Mobile: use fadeout instead of slide-up */
+        @media (max-width: 767px) {
+            .preloader-curtain {
+                transform: none;
+                opacity: 1;
+                transition: opacity 0.5s ease-out;
+                will-change: opacity;
+            }
+            .preloader-curtain.preloader-exit {
+                transform: none;
+                opacity: 0;
+                pointer-events: none;
+            }
+            .preloader-content {
+                transform: none;
+            }
+            .preloader-curtain.preloader-exit .preloader-content {
+                transform: none;
+            }
         }
         .preloader-logo {
             max-height: 80px;
@@ -2791,29 +2827,32 @@
                         
                         // Modern image sizing and layout
                         bgOpacity: 0.95,
-                        spacing: (typeof psCfg.spacing === 'number') ? psCfg.spacing : 0.12,
+                        spacing: (typeof psCfg.spacing === 'number') ? psCfg.spacing : 0.08,
                         // Prevent accidental swipes while zooming
                         allowPanToNext: false,
                         loop: !!psCfg.loop,
-                        wheelToZoom: false,
-                        pinchToClose: true,
+                        wheelToZoom: true,
+                        pinchToClose: false,
                         closeOnVerticalDrag: false,
-                        
-                        // Padding to leave space for top icons and bottom captions
-                        padding: { top: 60, bottom: 100, left: 72, right: 72 },
-                        
+
+                        // Responsive padding: smaller on mobile for larger images
+                        // Bottom padding increased on mobile to avoid overlapping with captions on vertical photos
+                        padding: window.innerWidth < 768
+                            ? { top: 44, bottom: 90, left: 8, right: 8 }
+                            : { top: 60, bottom: 100, left: 48, right: 48 },
+
                         // Modern smooth animations
                         showHideAnimationType: 'none',
                         hideAnimationDuration: 0,
                         showAnimationDuration: 0,
-                        zoomAnimationDuration: 0,
-                        easing: 'linear',
-                        
-                        // Click/tap interactions (handled manually for centered zoom)
-                        imageClickAction: false,
+                        zoomAnimationDuration: 300,
+                        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+
+                        // Click/tap interactions: enable double-tap zoom on mobile
+                        imageClickAction: 'zoom-or-close',
                         bgClickAction: 'close',
-                        tapAction: false,
-                        doubleTapAction: false,
+                        tapAction: 'toggle-controls',
+                        doubleTapAction: 'zoom',
                         
                         // Performance optimizations
                         preloadFirstSlide: true,
@@ -3430,31 +3469,34 @@
                   const lb = new PhotoSwipeLightbox({
                     dataSource: items,
                     pswpModule: PhotoSwipe,
-                    
+
                     // Modern configuration matching main lightbox
                     bgOpacity: 0.97,
-                    spacing: 0.12,
+                    spacing: 0.08,
                     allowPanToNext: false,
                     loop: !!psCfg.loop,
-                    wheelToZoom: false,
-                    pinchToClose: true,
+                    wheelToZoom: true,
+                    pinchToClose: false,
                     closeOnVerticalDrag: false,
-                    
-                    // Padding consistent with main lightbox for captions
-                    padding: { top: 60, bottom: 100, left: 72, right: 72 },
-                    
+
+                    // Responsive padding: smaller on mobile for larger images
+                    // Bottom padding increased on mobile to avoid overlapping with captions on vertical photos
+                    padding: window.innerWidth < 768
+                        ? { top: 44, bottom: 90, left: 8, right: 8 }
+                        : { top: 60, bottom: 100, left: 48, right: 48 },
+
                     // Modern animations
                     showHideAnimationType: 'none',
                     hideAnimationDuration: 0,
                     showAnimationDuration: 0,
-                    zoomAnimationDuration: 0,
-                    easing: 'linear',
-                    
-                        // Custom interactions: zoom handled manually
-                        imageClickAction: false,
-                        bgClickAction: 'close',
-                        tapAction: false,
-                        doubleTapAction: false
+                    zoomAnimationDuration: 300,
+                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+
+                    // Click/tap interactions: enable double-tap zoom on mobile
+                    imageClickAction: 'zoom-or-close',
+                    bgClickAction: 'close',
+                    tapAction: 'toggle-controls',
+                    doubleTapAction: 'zoom'
                   });
                   let psCaptionEl;
                   const toggleZoomCentered = (pswp) => {

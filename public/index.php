@@ -139,10 +139,10 @@ if ($container['db'] !== null && !$isInstallerRoute) {
     $maintenancePluginFile = __DIR__ . '/../plugins/maintenance-mode/plugin.php';
     if (file_exists($maintenancePluginFile)) {
         try {
-            // Check cached status first (5 second TTL)
+            // Check cached status first (30 second TTL - plugin state rarely changes)
             $cacheFile = __DIR__ . '/../storage/tmp/maintenance_plugin_status.cache';
             $isActive = null;
-            $cacheTtl = 5;
+            $cacheTtl = 30;
 
             if (file_exists($cacheFile)) {
                 $cached = @file_get_contents($cacheFile);
@@ -211,7 +211,11 @@ $app->add(new CsrfMiddleware());
 $app->add(new FlashMiddleware());
 $app->add(new SecurityHeadersMiddleware());
 
-$twig = Twig::create(__DIR__ . '/../app/Views', ['cache' => false]);
+$twigCacheDir = __DIR__ . '/../storage/cache/twig';
+if (!is_dir($twigCacheDir)) {
+    @mkdir($twigCacheDir, 0755, true);
+}
+$twig = Twig::create(__DIR__ . '/../app/Views', ['cache' => $twigCacheDir]);
 
 // Add custom Twig extensions
 $twig->getEnvironment()->addExtension(new \App\Extensions\AnalyticsTwigExtension());
