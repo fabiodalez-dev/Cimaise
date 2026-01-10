@@ -82,7 +82,7 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     cell.className = isHorizontal ? 'home-cell-h' : 'home-cell';
 
     const item = document.createElement('div');
-    item.className = 'home-item home-item--revealed group rounded-xl overflow-hidden shadow-sm relative transition-transform hover:scale-105 duration-300';
+    item.className = 'home-item home-item--revealed loading group rounded-xl overflow-hidden shadow-sm relative transition-transform hover:scale-105 duration-300';
     item.style.aspectRatio = `${safeW} / ${safeH}`;
     item.dataset.imageId = String(parseInt(img.id, 10) || 0);
 
@@ -115,6 +115,17 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     imgEl.loading = 'lazy';
     imgEl.decoding = 'async';
     imgEl.className = 'w-full h-full object-cover block';
+
+    // Remove loading skeleton when image loads
+    imgEl.addEventListener('load', () => {
+      item.classList.remove('loading');
+    });
+
+    // Handle load errors gracefully
+    imgEl.addEventListener('error', () => {
+      item.classList.remove('loading');
+    });
+
     picture.appendChild(imgEl);
 
     const overlay = document.createElement('div');
@@ -136,31 +147,6 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
   onReady(() => {
     const gallery = document.getElementById('home-infinite-gallery');
     if (!gallery) return;
-
-    const mobileWrap = document.querySelector('.home-mobile-wrap');
-    const desktopWrap = document.querySelector('.home-desktop-wrap');
-    const syncLayout = () => {
-      if (!mobileWrap || !desktopWrap) return;
-      if (window.innerWidth >= 768) {
-        mobileWrap.style.display = 'none';
-        desktopWrap.style.display = 'flex';
-      } else {
-        mobileWrap.style.display = 'block';
-        desktopWrap.style.display = 'none';
-      }
-    };
-
-    syncLayout();
-
-    // Debounce resize with requestAnimationFrame for performance
-    let resizeRaf = null;
-    window.addEventListener('resize', () => {
-      if (resizeRaf) return;
-      resizeRaf = requestAnimationFrame(() => {
-        syncLayout();
-        resizeRaf = null;
-      });
-    });
 
     // Ensure the gallery is visible even if JS animations are disabled
     gallery.style.opacity = '1';

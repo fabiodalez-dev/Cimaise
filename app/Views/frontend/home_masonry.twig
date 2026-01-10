@@ -40,6 +40,8 @@
 /* Masonry item base styles */
 .masonry-item {
   overflow: hidden;
+  contain: layout style paint; /* Performance: isolate layout calculations */
+  content-visibility: auto; /* Render only visible items */
 }
 
 /* When using Masonry.js, items need absolute positioning support */
@@ -55,6 +57,18 @@
   display: block;
   width: 100%;
   height: auto;
+  aspect-ratio: attr(width) / attr(height); /* Prevent layout shift */
+}
+
+/* Fallback: use img width/height to reserve space before load */
+.masonry-item picture,
+.masonry-item a {
+  display: block;
+  position: relative;
+}
+
+.masonry-item img[width][height] {
+  aspect-ratio: var(--img-aspect, auto);
 }
 
 /* Fade-in animation for items */
@@ -158,11 +172,14 @@
         {% set img_src = image.fallback_src|default(image.original_path) %}
         {% set img_url = img_src starts with '/' ? base_path ~ img_src : img_src %}
         {# First 8 images load immediately, rest lazy #}
+        {% set img_width = image.width|default(800) %}
+        {% set img_height = image.height|default(600) %}
         <img
           src="{{ img_url|e('html_attr') }}"
           alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
-          width="{{ image.width|default(800) }}"
-          height="{{ image.height|default(600) }}"
+          width="{{ img_width }}"
+          height="{{ img_height }}"
+          style="aspect-ratio: {{ img_width }} / {{ img_height }};"
           {% if loop.index <= 8 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
         >
       </picture>
