@@ -35,14 +35,21 @@ if (!$isInstallerRoute) {
     // Both must exist - if .env is removed or empty, marker is stale and should be cleared
     $envFile = $root . '/.env';
     if (file_exists($installedMarker)) {
-        // Validate .env exists and is not empty/corrupt (at least 10 bytes for minimal config)
-        if (file_exists($envFile) && filesize($envFile) >= 10) {
-            $installed = true;
+        // Validate .env exists and is not empty (check for any content, not arbitrary size)
+        // Use @filesize to handle race condition where file could be deleted between checks
+        if (file_exists($envFile) && is_readable($envFile)) {
+            $size = @filesize($envFile);
+            if ($size !== false && $size > 0) {
+                $installed = true;
+            } else {
+                // Stale marker: .env is empty or unreadable
+                @unlink($installedMarker);
+            }
         } else {
             // Stale marker: .env was removed or corrupted after installation (e.g., reset)
             @unlink($installedMarker);
         }
-    } elseif (file_exists($envFile) && filesize($envFile) >= 10) {
+    } elseif (file_exists($envFile) && is_readable($envFile) && ($size = @filesize($envFile)) !== false && $size > 0) {
         // Slow path: .env exists but no marker - verify installation properly
         try {
             $installer = new \App\Installer\Installer($root);
