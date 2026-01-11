@@ -235,11 +235,11 @@ class PageController extends BaseController
         // Use HomeImageService for reusable fetch logic
         $homeImageService = new \App\Services\HomeImageService($this->db);
 
-        // Masonry template: load ALL images (no album diversity, more images)
+        // Masonry template: load images without album diversity
         // Other templates: use album diversity for variety
         if ($homeTemplate === 'masonry') {
-            // Load more images for masonry - fills the page immediately
-            $initialLimit = 100; // Fill page with unique images
+            // Load initial batch for masonry - progressive loading handles the rest
+            $initialLimit = 20; // Same as other templates, load more via scroll
             $imageResult = $homeImageService->getAllImages($initialLimit, $includeNsfw);
             $shownImageIds = array_column($imageResult['images'], 'id');
             $shownAlbumIds = array_unique(array_column($imageResult['images'], 'album_id'));
