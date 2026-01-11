@@ -741,7 +741,26 @@ class Installer
 
         $sessionSecret = bin2hex(random_bytes(32));
         $envContent .= "\nSESSION_SECRET=" . $sessionSecret . "\n";
-        $envContent .= "\n# Upload tuning\nFAST_UPLOAD=false\nSYNC_VARIANTS_ON_UPLOAD=true\n";
+
+        // Logging configuration
+        $envContent .= "\n# Logging Configuration\n";
+        $envContent .= "LOG_CHANNEL=file\n";
+        $envContent .= "LOG_ENABLED=true\n";
+        $envContent .= "LOG_LEVEL=warning\n";
+        $envContent .= "LOG_MAX_FILES=30\n";
+        $envContent .= "LOG_PATH=storage/logs\n";
+
+        // Upload and performance tuning
+        $envContent .= "\n# Upload Performance\n";
+        $envContent .= "FAST_UPLOAD=false\n";
+        $envContent .= "SYNC_VARIANTS_ON_UPLOAD=true\n";
+
+        // Debug flags (all false in production for maximum performance)
+        $envContent .= "\n# Debug Flags (disable in production for best performance)\n";
+        $envContent .= "DEBUG_PERFORMANCE=false\n";
+        $envContent .= "DEBUG_REQUESTS=false\n";
+        $envContent .= "DEBUG_SQL=false\n";
+        $envContent .= "DEBUG_TOOLBAR=false\n";
 
         $envFilePath = $this->rootPath . '/.env';
         if (file_put_contents($envFilePath, $envContent) === false) {
