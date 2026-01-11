@@ -437,6 +437,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================
 
     const setupFadeInObserver = () => {
+        // Helper to check if element is in viewport
+        const isInViewport = (el) => {
+            const rect = el.getBoundingClientRect();
+            return rect.top < window.innerHeight && rect.bottom > 0;
+        };
+
         const fadeInObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -454,7 +460,12 @@ document.addEventListener('DOMContentLoaded', function() {
         allItems.forEach(item => {
             // Only observe if not already visible (desktop infinite scroll makes them visible)
             if (!item.classList.contains('is-visible')) {
-                fadeInObserver.observe(item);
+                // Immediately show items already in viewport
+                if (isInViewport(item)) {
+                    item.classList.add('is-visible');
+                } else {
+                    fadeInObserver.observe(item);
+                }
             }
         });
     };
