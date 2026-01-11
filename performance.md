@@ -767,3 +767,98 @@ perf: comprehensive performance optimization suite
 ---
 
 _Tutti i commit sono stati pushati e sono pronti per review._
+
+---
+
+## 🔧 Configurazione Installer
+
+### File .env Generato Automaticamente
+
+L'installer **crea automaticamente** il file `.env` con configurazione ottimizzata:
+
+**File:** `app/Installer/Installer.php:709-763`
+
+```php
+private function createEnvFile(array $data): void
+{
+    $envContent = "APP_ENV=production\n";
+    $envContent .= "APP_DEBUG=false\n";  // ← Ottimizzazioni ATTIVE!
+    // ... logging, upload, debug flags
+}
+```
+
+### Configurazione Generata
+
+Dopo l'installazione, il file `.env` contiene:
+
+```ini
+# Application Environment
+APP_ENV=production
+APP_DEBUG=false           # ← Abilita ottimizzazioni Twig!
+APP_TIMEZONE=UTC
+APP_URL=https://tuosito.com
+
+# Database Configuration
+DB_CONNECTION=sqlite
+DB_DATABASE=database/database.sqlite
+
+SESSION_SECRET=<generato-automaticamente>
+
+# Logging Configuration
+LOG_CHANNEL=file
+LOG_ENABLED=true
+LOG_LEVEL=warning
+LOG_MAX_FILES=30
+LOG_PATH=storage/logs
+
+# Upload Performance
+FAST_UPLOAD=false
+SYNC_VARIANTS_ON_UPLOAD=true
+
+# Debug Flags (tutti false = max performance)
+DEBUG_PERFORMANCE=false
+DEBUG_REQUESTS=false
+DEBUG_SQL=false
+DEBUG_TOOLBAR=false
+```
+
+### Ottimizzazioni Attive di Default
+
+✅ **Dopo installazione, hai GIÀ:**
+- Twig `auto_reload: false` (nessun file stat)
+- Twig `strict_variables: false` (più veloce)
+- Twig `optimizations: -1` (massime ottimizzazioni)
+- Tutti i debug flags disabilitati
+
+**Non serve configurare nulla! È tutto ottimizzato out-of-the-box.** 🚀
+
+### Modalità Sviluppo
+
+Se vuoi sviluppare e vedere modifiche Twig immediatamente:
+
+```bash
+# Modifica .env
+nano .env
+
+# Cambia solo questa riga:
+APP_DEBUG=true   # ← Da false a true
+```
+
+**Effetto:**
+- ✅ Vedi modifiche template immediatamente
+- ✅ Errori Twig più dettagliati
+- ⚠️ Performance ridotte (normale in sviluppo)
+
+### Torna in Produzione
+
+```bash
+# .env
+APP_DEBUG=false   # ← Torna a false
+
+# Rigenera cache
+php scripts/twig-cache-warmup.php
+php scripts/cache-warmup.php
+```
+
+---
+
