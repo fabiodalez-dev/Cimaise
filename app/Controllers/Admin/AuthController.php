@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Middlewares\AuthMiddleware;
 use App\Services\SettingsService;
-use App\Services\VariantMaintenanceService;
 use App\Support\CookieHelper;
 use App\Support\Database;
 use App\Support\Hooks;
@@ -34,9 +34,19 @@ class AuthController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin'))->withStatus(302);
         }
 
+        // Ensure CSRF token exists for fresh sessions
+        if (!isset($_SESSION['csrf'])) {
+            $_SESSION['csrf'] = bin2hex(random_bytes(32));
+        }
+
+        // Get and clear flash messages
+        $flash = $_SESSION['flash'] ?? [];
+        unset($_SESSION['flash']);
+
         return $this->view->render($response, 'admin/login.twig', [
-            'csrf' => $_SESSION['csrf'] ?? '',
-            'admin_locale' => $this->getAdminLocale()
+            'csrf' => $_SESSION['csrf'],
+            'admin_locale' => $this->getAdminLocale(),
+            'session' => ['flash' => $flash]
         ]);
     }
 
@@ -49,10 +59,26 @@ class AuthController extends BaseController
         $rememberMe = !empty($data['remember_me']);
         $adminLocale = $this->getAdminLocale();
 
-        if (!is_string($csrf) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) {
+        // Handle CSRF validation with graceful session expiration recovery
+        $csrfValid = is_string($csrf) && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $csrf);
+
+        if (!$csrfValid) {
+            // Check if this is a session expiration (token was missing, not just wrong)
+            $sessionExpired = !isset($_SESSION['csrf']);
+
+            // Regenerate CSRF token for the new session
+            $_SESSION['csrf'] = bin2hex(random_bytes(32));
+
+            if ($sessionExpired) {
+                // Session expired - redirect back with a friendly message instead of error
+                $_SESSION['flash'][] = ['type' => 'warning', 'message' => trans('admin.flash.session_expired')];
+                return $response->withHeader('Location', $this->redirect('/admin/login'))->withStatus(302);
+            }
+
+            // CSRF mismatch (possible attack) - show error
             return $this->view->render($response, 'admin/login.twig', [
                 'error' => trans('admin.flash.csrf_invalid'),
-                'csrf' => $_SESSION['csrf'] ?? '',
+                'csrf' => $_SESSION['csrf'],
                 'admin_locale' => $adminLocale
             ]);
         }
@@ -114,7 +140,8 @@ class AuthController extends BaseController
         // rotate CSRF after login
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
 
-        $this->scheduleDailyVariantMaintenance();
+        // Note: Variant maintenance moved to cron job / manual trigger
+        // Was causing 503 on shared hosting without fastcgi_finish_request()
 
         return $response
             ->withHeader('Location', $this->redirect('/admin'))
@@ -346,6 +373,7 @@ class AuthController extends BaseController
                 ':id' => $_SESSION['admin_id']
             ]);
 
+            AuthMiddleware::invalidateVerification();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.password_changed')];
         } catch (\Throwable $e) {
             Logger::error('AuthController::changePassword error', ['error' => $e->getMessage()], 'admin');
@@ -353,24 +381,6 @@ class AuthController extends BaseController
         }
 
         return $response->withHeader('Location', $_SERVER['HTTP_REFERER'] ?? $this->redirect('/admin'))->withStatus(302);
-    }
-
-    private function scheduleDailyVariantMaintenance(): void
-    {
-        $db = $this->db;
-        register_shutdown_function(function() use ($db) {
-            if (session_status() === PHP_SESSION_ACTIVE) {
-                session_write_close();
-            }
-            if (function_exists('fastcgi_finish_request')) {
-                @fastcgi_finish_request();
-            }
-            try {
-                (new VariantMaintenanceService($db))->runDaily();
-            } catch (\Throwable $e) {
-                Logger::warning('Variant maintenance skipped', ['error' => $e->getMessage()], 'maintenance');
-            }
-        });
     }
 
     private function getAdminLocale(): string

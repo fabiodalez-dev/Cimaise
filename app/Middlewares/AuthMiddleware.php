@@ -12,8 +12,31 @@ use Psr\Http\Server\RequestHandlerInterface as Handler;
 
 class AuthMiddleware implements MiddlewareInterface
 {
+    /** Session key for tracking when admin verification last occurred */
+    private const CACHE_KEY = 'admin_verified_at';
+
+    /** Session key to force immediate re-verification on next request */
+    private const FORCE_VERIFY_KEY = 'force_admin_verify';
+
+    /** Verification cache TTL in seconds */
+    private const CACHE_TTL = 15;
+
     public function __construct(private Database $db)
     {
+    }
+
+    /**
+     * Invalidate the admin verification cache.
+     * Call this from user-update flows (password change, role change, deactivation)
+     * to force immediate re-verification on next request.
+     */
+    public static function invalidateVerification(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+        unset($_SESSION[self::CACHE_KEY]);
+        $_SESSION[self::FORCE_VERIFY_KEY] = true;
     }
 
     public function process(Request $request, Handler $handler): Response
@@ -52,22 +75,42 @@ class AuthMiddleware implements MiddlewareInterface
         }
 
         // Verify user still exists and is active
-        $stmt = $this->db->pdo()->prepare('SELECT id, email, role, is_active, first_name, last_name FROM users WHERE id = :id LIMIT 1');
-        $stmt->execute([':id' => $_SESSION['admin_id']]);
-        $user = $stmt->fetch();
+        // PERFORMANCE: Cache verification for 15 seconds to avoid database query on every request
+        // SECURITY: Short TTL limits window for stale session after user deactivation/role change
+        $cacheTtl = self::CACHE_TTL;
+        $now = time();
 
-        if (!$user || !$user['is_active'] || $user['role'] !== 'admin') {
-            // User no longer exists, is inactive, or no longer admin - force logout
-            $this->clearRememberToken((int)($_SESSION['admin_id'] ?? 0));
-            session_destroy();
-            $response = new \Slim\Psr7\Response(302);
-            return $response->withHeader('Location', $basePath . '/admin/login');
+        // Check if forced re-verification is required (e.g., after user update)
+        $forceVerify = !empty($_SESSION[self::FORCE_VERIFY_KEY]);
+        if ($forceVerify) {
+            unset($_SESSION[self::FORCE_VERIFY_KEY]);
         }
 
-        // Update session with current user data
-        $_SESSION['admin_email'] = $user['email'];
-        $_SESSION['admin_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
-        $_SESSION['admin_role'] = $user['role'];
+        $needsVerification = true;
+        if (!$forceVerify && isset($_SESSION[self::CACHE_KEY]) && ($now - $_SESSION[self::CACHE_KEY]) < $cacheTtl) {
+            // Recently verified and not forced, skip database check
+            $needsVerification = false;
+        }
+
+        if ($needsVerification) {
+            $stmt = $this->db->pdo()->prepare('SELECT id, email, role, is_active, first_name, last_name FROM users WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => $_SESSION['admin_id']]);
+            $user = $stmt->fetch();
+
+            if (!$user || !$user['is_active'] || $user['role'] !== 'admin') {
+                // User no longer exists, is inactive, or no longer admin - force logout
+                $this->clearRememberToken((int)($_SESSION['admin_id'] ?? 0));
+                session_destroy();
+                $response = new \Slim\Psr7\Response(302);
+                return $response->withHeader('Location', $basePath . '/admin/login');
+            }
+
+            // Update session with current user data
+            $_SESSION['admin_email'] = $user['email'];
+            $_SESSION['admin_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
+            $_SESSION['admin_role'] = $user['role'];
+            $_SESSION[self::CACHE_KEY] = $now;
+        }
 
         return $handler->handle($request);
     }
@@ -189,4 +232,3 @@ class AuthMiddleware implements MiddlewareInterface
         ]);
     }
 }
-

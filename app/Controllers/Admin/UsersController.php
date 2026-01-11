@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
+use App\Middlewares\AuthMiddleware;
 use App\Support\Database;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -255,6 +256,7 @@ class UsersController extends BaseController
         
         try {
             $stmt->execute($params);
+            AuthMiddleware::invalidateVerification();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.user_updated')];
             return $response->withHeader('Location', $this->redirect('/admin/users'))->withStatus(302);
         } catch (\Throwable $e) {
@@ -305,6 +307,8 @@ class UsersController extends BaseController
         $stmt = $this->db->pdo()->prepare('DELETE FROM users WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
+            // Invalidate verification cache for deleted user
+            AuthMiddleware::invalidateVerification();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.user_deleted')];
         } catch (\Throwable $e) {
             Logger::error('UsersController::delete error', ['error' => $e->getMessage()], 'admin');
@@ -358,6 +362,7 @@ class UsersController extends BaseController
         $stmt = $this->db->pdo()->prepare("UPDATE users SET is_active = :status, updated_at = {$now} WHERE id = :id");
         try {
             $stmt->execute([':status' => $newStatus, ':id' => $id]);
+            AuthMiddleware::invalidateVerification();
             $statusKey = $newStatus ? 'admin.flash.user_activated' : 'admin.flash.user_deactivated';
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans($statusKey)];
         } catch (\Throwable $e) {

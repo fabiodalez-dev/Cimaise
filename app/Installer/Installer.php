@@ -120,6 +120,7 @@ class Installer
             $this->generateFavicons($data);
             $this->createEnvFile($data);
             $this->configureHtaccess($data);
+            $this->createInstalledMarker();
             return true;
         } catch (\Throwable $e) {
             error_log('Installation failed: ' . $e->getMessage());
@@ -134,6 +135,12 @@ class Installer
      */
     private function rollback(): void
     {
+        // Remove installed marker if it exists
+        $markerPath = $this->rootPath . '/storage/tmp/.installed';
+        if (file_exists($markerPath)) {
+            @unlink($markerPath);
+        }
+
         // Remove .env if we created it
         if ($this->envWritten) {
             $envPath = $this->rootPath . '/.env';
@@ -168,6 +175,20 @@ class Installer
                 // Ignore cleanup errors
             }
         }
+    }
+
+    /**
+     * Create marker file for fast installation status checks
+     * PERFORMANCE: This allows index.php to skip full database verification
+     */
+    private function createInstalledMarker(): void
+    {
+        $markerPath = $this->rootPath . '/storage/tmp/.installed';
+        $dir = dirname($markerPath);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        @file_put_contents($markerPath, date('Y-m-d H:i:s'), LOCK_EX);
     }
 
     private function createPermissionsFixTokenFile(): void
@@ -720,7 +741,26 @@ class Installer
 
         $sessionSecret = bin2hex(random_bytes(32));
         $envContent .= "\nSESSION_SECRET=" . $sessionSecret . "\n";
-        $envContent .= "\n# Upload tuning\nFAST_UPLOAD=false\nSYNC_VARIANTS_ON_UPLOAD=true\n";
+
+        // Logging configuration
+        $envContent .= "\n# Logging Configuration\n";
+        $envContent .= "LOG_CHANNEL=file\n";
+        $envContent .= "LOG_ENABLED=true\n";
+        $envContent .= "LOG_LEVEL=warning\n";
+        $envContent .= "LOG_MAX_FILES=30\n";
+        $envContent .= "LOG_PATH=storage/logs\n";
+
+        // Upload and performance tuning
+        $envContent .= "\n# Upload Performance\n";
+        $envContent .= "FAST_UPLOAD=false\n";
+        $envContent .= "SYNC_VARIANTS_ON_UPLOAD=true\n";
+
+        // Debug flags (all false in production for maximum performance)
+        $envContent .= "\n# Debug Flags (disable in production for best performance)\n";
+        $envContent .= "DEBUG_PERFORMANCE=false\n";
+        $envContent .= "DEBUG_REQUESTS=false\n";
+        $envContent .= "DEBUG_SQL=false\n";
+        $envContent .= "DEBUG_TOOLBAR=false\n";
 
         $envFilePath = $this->rootPath . '/.env';
         if (file_put_contents($envFilePath, $envContent) === false) {
@@ -1049,6 +1089,7 @@ HTACCESS;
      * Sets appropriate permissions for:
      * - Directories: 755 (general) or 775 (writable)
      * - Files: 644 (general) or 664 (writable like .env, sqlite)
+     * - CLI scripts: 755 (executable like bin/console)
      */
     private function fixPermissions(): void
     {
@@ -1056,6 +1097,7 @@ HTACCESS;
         $writableDirs = [
             'storage',
             'storage/cache',
+            'storage/cache/twig',
             'storage/logs',
             'storage/tmp',
             'storage/translations',
@@ -1073,6 +1115,7 @@ HTACCESS;
         // Create required directories if missing
         $requiredDirs = [
             'storage/cache',
+            'storage/cache/twig',
             'storage/logs',
             'storage/tmp',
             'storage/translations',
@@ -1101,6 +1144,22 @@ HTACCESS;
             0,
             10
         );
+
+        // Make CLI scripts executable (755)
+        $executableFiles = [
+            'bin/console',
+            'bin/build-release.sh',
+        ];
+
+        foreach ($executableFiles as $file) {
+            $fullPath = $this->rootPath . '/' . $file;
+            if (file_exists($fullPath) && !chmod($fullPath, 0755)) {
+                Logger::warning('Installer: Failed to set executable permissions', [
+                    'path' => $fullPath,
+                    'perm' => '0755',
+                ], 'installer');
+            }
+        }
     }
 
     /**

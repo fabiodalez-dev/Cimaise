@@ -123,6 +123,167 @@ AVAILABLE VARIABLES:
 - home_settings.show_latest_albums
 - home_settings.albums_count
 
+================================================================================
+IMAGE SOURCES FOR HOMEPAGE
+================================================================================
+
+Your homepage can use TWO different image sources depending on your design:
+
+OPTION A: ALBUM COVER PHOTOS ONLY
+---------------------------------
+Use the `albums` array when your homepage shows album cards with cover images.
+This is the simpler approach - no progressive loading needed.
+
+Available variables:
+- {{ albums }} - Array of published albums (default: 12)
+- {{ album.cover_image }} - Cover image object with responsive sources
+
+Example:
+```twig
+{% for album in albums %}
+  <article class="album-card">
+    <a href="{{ base_path }}/album/{{ album.slug }}">
+      <picture>
+        {% if album.cover_image.sources.avif|length %}
+        <source type="image/avif"
+                srcset="{% for src in album.cover_image.sources.avif %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
+        {% endif %}
+        <img src="{{ base_path }}{{ album.cover_image.url }}"
+             alt="{{ album.title|e }}"
+             loading="lazy">
+      </picture>
+      <h2>{{ album.title|e }}</h2>
+    </a>
+  </article>
+{% endfor %}
+```
+
+OPTION B: RANDOM PHOTOS FROM ALL ALBUMS (with Progressive Loading)
+------------------------------------------------------------------
+Use the `all_images` array when your homepage shows a photo wall/mosaic
+with diverse images from across all albums.
+
+Available variables:
+- {{ all_images }} - Initial batch of random images (15 SSR, album-diverse)
+- {{ has_more_images }} - Boolean: more images available via API
+- {{ shown_image_ids }} - Array: IDs for deduplication
+- {{ shown_album_ids }} - Array: album IDs already represented
+
+Each image in all_images has:
+- image.id - Image ID
+- image.url - Original image URL
+- image.fallback_src - Fallback JPG URL
+- image.sources.avif, .webp, .jpg - Responsive srcsets
+- image.width, image.height - Dimensions
+- image.alt - Alt text
+- image.album_title, image.album_slug - Album info
+
+Initial Render (SSR):
+```twig
+<div id="home-gallery">
+  {% for image in all_images %}
+    <picture data-image-id="{{ image.id }}">
+      {% if image.sources.avif|length %}
+      <source type="image/avif"
+              srcset="{% for src in image.sources.avif %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}"
+              sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">
+      {% endif %}
+      <img src="{{ base_path }}{{ image.fallback_src }}"
+           alt="{{ image.alt|e }}"
+           width="{{ image.width }}"
+           height="{{ image.height }}"
+           loading="{{ loop.index <= 6 ? 'eager' : 'lazy' }}">
+    </picture>
+  {% endfor %}
+</div>
+
+{# Progressive loading config #}
+{% if has_more_images %}
+<script nonce="{{ csp_nonce() }}">
+  window.homeLoaderConfig = {
+    shownImageIds: {{ shown_image_ids|json_encode|raw }},
+    shownAlbumIds: {{ shown_album_ids|json_encode|raw }},
+    hasMore: true,
+    basePath: {{ base_path|json_encode|raw }}
+  };
+</script>
+<div id="home-load-trigger" class="h-1"></div>
+{% endif %}
+```
+
+Progressive Loading JavaScript (script.js):
+```javascript
+const config = window.homeLoaderConfig;
+if (config?.hasMore) {
+  const shownIds = new Set(config.shownImageIds);
+  let shownAlbumIds = [...config.shownAlbumIds];
+  let loading = false;
+  let hasMore = true;
+
+  const loadMore = async () => {
+    if (loading || !hasMore) return;
+    loading = true;
+
+    const params = new URLSearchParams({
+      exclude: Array.from(shownIds).join(','),
+      excludeAlbums: shownAlbumIds.join(','),
+      limit: 20
+    });
+
+    const res = await fetch(`${config.basePath}/api/home/gallery?${params}`);
+    const data = await res.json();
+
+    data.images.forEach(img => {
+      if (shownIds.has(img.id)) return; // Skip duplicates
+      shownIds.add(img.id);
+      appendImageToGallery(img); // Your DOM append function
+    });
+
+    shownAlbumIds.push(...data.newAlbumIds);
+    hasMore = data.hasMore;
+    loading = false;
+  };
+
+  // Load on scroll near trigger
+  new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) loadMore();
+  }, { rootMargin: '200px' }).observe(document.getElementById('home-load-trigger'));
+
+  // Start loading immediately
+  loadMore();
+}
+```
+
+API Response Format:
+GET /api/home/gallery?exclude=1,2,3&excludeAlbums=1,2&limit=20
+
+Response:
+```json
+{
+  "images": [
+    {
+      "id": 42,
+      "url": "/media/photos/img.jpg",
+      "fallback_src": "/media/photos/variants/img_lg.jpg",
+      "sources": {
+        "avif": ["/media/.../img_sm.avif 400w", ...],
+        "webp": [...],
+        "jpg": [...]
+      },
+      "width": 1600,
+      "height": 1067,
+      "alt": "...",
+      "album_title": "...",
+      "album_slug": "..."
+    }
+  ],
+  "newAlbumIds": [3, 4, 5],
+  "hasMore": true
+}
+```
+
+================================================================================
+
 TYPICAL LAYOUTS:
 
 1. HERO + GRID:
@@ -161,7 +322,9 @@ RECOMMENDED HTML STRUCTURE:
         <div class="aspect-square overflow-hidden rounded-lg mb-4">
           <picture>
             {% if album.cover_image.sources.avif|length %}
-            <source type="image/avif" srcset="{{ base_path }}{{ album.cover_image.sources.avif[0] }}">
+            <source type="image/avif"
+                    srcset="{% for src in album.cover_image.sources.avif %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
             {% endif %}
             <img src="{{ base_path }}{{ album.cover_image.url }}"
                  alt="{{ album.title|e }}"

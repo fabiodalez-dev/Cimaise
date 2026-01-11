@@ -422,12 +422,13 @@
                                         {% if srcset_jpg %}
                                         <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}">
                                         {% endif %}
+                                        {# First 6 images load eagerly for instant display #}
                                         <img src="{{ img_src }}"
                                              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                                              alt="{{ ImageMacros.smart_alt(image, null, site_title)|trim|e('html_attr') }}"
                                              title="{{ seo_title|e('html_attr') }}"
                                              class="img-fill"
-                                             loading="lazy"
+                                             {% if loop.index <= 6 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                                              data-fallback="hide">
                                     </picture>
                                 </div>

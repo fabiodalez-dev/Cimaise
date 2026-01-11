@@ -266,6 +266,56 @@ Variabili disponibili in `home.twig` per template di tipo `homepage`.
 | `home_settings.show_latest_albums` | bool | Mostra ultimi album |
 | `home_settings.albums_count` | int | Numero album da mostrare |
 
+### Array `all_images` (Progressive Loading)
+
+Per homepage con mosaico/muro di foto random da tutti gli album.
+
+| Variabile | Tipo | Descrizione |
+|-----------|------|-------------|
+| `all_images` | array | Immagini random da album diversi (15 iniziali) |
+
+#### Oggetto Immagine (all_images)
+
+| Variabile | Tipo | Descrizione |
+|-----------|------|-------------|
+| `image.id` | int | ID immagine |
+| `image.url` | string | URL immagine originale |
+| `image.fallback_src` | string | URL fallback JPG |
+| `image.sources` | object | Srcset per formato |
+| `image.sources.avif` | array | AVIF srcset |
+| `image.sources.webp` | array | WebP srcset |
+| `image.sources.jpg` | array | JPG srcset |
+| `image.width` | int | Larghezza |
+| `image.height` | int | Altezza |
+| `image.alt` | string | Testo alternativo |
+| `image.album_title` | string | Titolo album |
+| `image.album_slug` | string | Slug album |
+
+### Tracking Progressive Loading
+
+| Variabile | Tipo | Descrizione |
+|-----------|------|-------------|
+| `has_more_images` | bool | Altre immagini disponibili via API |
+| `shown_image_ids` | array | IDs immagini già mostrate (per deduplicazione) |
+| `shown_album_ids` | array | IDs album già rappresentati |
+
+### API Endpoint Progressive Loading
+
+```
+GET /api/home/gallery?exclude=1,2,3&excludeAlbums=1,2&limit=20
+```
+
+Restituisce batch di immagini diverse escludendo quelle già mostrate.
+
+Risposta:
+```json
+{
+  "images": [...],
+  "newAlbumIds": [3, 4, 5],
+  "hasMore": true
+}
+```
+
 ### Variabili Globali
 
 | Variabile | Tipo | Descrizione |
