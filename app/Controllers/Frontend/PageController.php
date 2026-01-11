@@ -231,20 +231,32 @@ class PageController extends BaseController
         // Only fetch here if not in global scope (fallback)
         $tags = [];
 
-        // Progressive image loading: load initial batch with album diversity
-        // Use HomeImageService for reusable album-diverse fetch logic
+        // Progressive image loading: load initial batch
+        // Use HomeImageService for reusable fetch logic
         $homeImageService = new \App\Services\HomeImageService($this->db);
-        $initialLimit = 20; // Viewport-only SSR load - rest via progressive loading API
-        $imageResult = $homeImageService->getInitialImages($initialLimit, $includeNsfw);
+
+        // Masonry template: load ALL images (no album diversity, more images)
+        // Other templates: use album diversity for variety
+        if ($homeTemplate === 'masonry') {
+            // Load more images for masonry - fills the page immediately
+            $initialLimit = 100; // Fill page with unique images
+            $imageResult = $homeImageService->getAllImages($initialLimit, $includeNsfw);
+            $shownImageIds = array_column($imageResult['images'], 'id');
+            $shownAlbumIds = array_unique(array_column($imageResult['images'], 'album_id'));
+            $totalImagesCount = $imageResult['totalImages'];
+            $hasMoreImages = $imageResult['hasMore'];
+        } else {
+            // Other templates: album diversity (1 image per album)
+            $initialLimit = 20; // Viewport-only SSR load - rest via progressive loading API
+            $imageResult = $homeImageService->getInitialImages($initialLimit, $includeNsfw);
+            $shownImageIds = $imageResult['shownImageIds'];
+            $shownAlbumIds = $imageResult['shownAlbumIds'];
+            $totalImagesCount = $imageResult['totalImages'];
+            $hasMoreImages = $totalImagesCount > count($imageResult['images']);
+        }
 
         // Process images with responsive sources (batch to avoid N+1 queries)
         $allImages = $this->processImageSourcesBatch($imageResult['images']);
-
-        // Pass tracking data for progressive loading
-        $shownImageIds = $imageResult['shownImageIds'];
-        $shownAlbumIds = $imageResult['shownAlbumIds'];
-        $totalImagesCount = $imageResult['totalImages'];
-        $hasMoreImages = $totalImagesCount > count($allImages);
 
         $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
 
@@ -289,14 +301,16 @@ class PageController extends BaseController
     }
 
     /**
-     * API endpoint for progressive image loading with album diversity priority.
+     * API endpoint for progressive image loading.
      *
      * Query params:
      * - exclude: comma-separated image IDs already shown
-     * - excludeAlbums: comma-separated album IDs already represented
+     * - excludeAlbums: comma-separated album IDs already represented (not used in masonry mode)
      * - limit: max images to return (default 20, max 100)
+     * - mode: 'masonry' for all images without album diversity (default: album diversity)
      *
      * Algorithm: prioritizes images from albums not yet shown, then fills with others.
+     * Masonry mode: loads any unique images without album diversity priority.
      */
     public function homeGalleryApi(Request $request, Response $response): Response
     {
@@ -313,10 +327,20 @@ class PageController extends BaseController
             ? array_slice(array_filter(array_map('intval', explode(',', $params['excludeAlbums']))), 0, $maxExcludes)
             : [];
         $limit = max(1, min(100, (int) ($params['limit'] ?? 20)));
+        $mode = ($params['mode'] ?? '') === 'masonry' ? 'masonry' : 'default';
 
-        // Use HomeImageService for album-diverse progressive loading
+        // Use HomeImageService for progressive loading
         $homeImageService = new \App\Services\HomeImageService($this->db);
-        $result = $homeImageService->getMoreImages($excludeImageIds, $excludeAlbumIds, $limit, $includeNsfw);
+
+        if ($mode === 'masonry') {
+            // Masonry mode: load unique images without album diversity
+            $result = $homeImageService->getMoreMasonryImages($excludeImageIds, $limit, $includeNsfw);
+            $newAlbumIds = []; // Not tracked in masonry mode
+        } else {
+            // Default mode: album-diverse progressive loading
+            $result = $homeImageService->getMoreImages($excludeImageIds, $excludeAlbumIds, $limit, $includeNsfw);
+            $newAlbumIds = $result['newAlbumIds'];
+        }
 
         // Process images (sources etc)
         $images = $this->processImageSourcesBatch($result['images']);
@@ -345,7 +369,7 @@ class PageController extends BaseController
 
         $response->getBody()->write(json_encode([
             'images' => $data,
-            'newAlbumIds' => $result['newAlbumIds'],
+            'newAlbumIds' => $newAlbumIds,
             'hasMore' => $result['hasMore'],
         ]));
         return $response->withHeader('Content-Type', 'application/json');

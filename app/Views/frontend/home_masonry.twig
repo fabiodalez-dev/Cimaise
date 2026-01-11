@@ -210,31 +210,26 @@
   var grid = document.querySelector('.masonry-grid');
   if (!grid) return;
 
-  // Configuration from data attributes
+  // Configuration
   var config = {
     gapH: parseInt(grid.dataset.gapH, 10) || 0,
     gapV: parseInt(grid.dataset.gapV, 10) || 0,
     colsMobile: parseInt(grid.dataset.colsMobile, 10) || 2,
     colsTablet: parseInt(grid.dataset.colsTablet, 10) || 3,
     colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5,
-    preloadBuffer: 3, // Reduced from 4.6x to 3x viewport for better performance
-    maxItemsInDom: 200 // Maximum items to keep in DOM to prevent memory leaks
+    basePath: {{ base_path|json_encode|raw }},
+    apiUrl: {{ (base_path ~ '/api/home/gallery')|json_encode|raw }},
+    batchSize: 30
   };
 
   var msnry = null;
   var isInitialized = false;
-  var sourceItems = [];
-  var shuffledQueue = []; // Randomized queue for clone selection
-  var isAppending = false;
+  var isLoading = false;
+  var hasMore = {{ has_more_images ? 'true' : 'false' }};
+  var shownImageIds = new Set({{ shown_image_ids|json_encode|raw }});
   var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var initialLoadComplete = false; // Track if initial images have loaded
 
-  // Performance: cache preloaded items to avoid re-processing
-  var preloadedItems = new WeakSet();
-  var viewportObserver = null;
-  var infiniteScrollObserver = null;
-
-  // Get current column count based on viewport
+  // Get current column count
   function getColumnCount() {
     var width = window.innerWidth;
     if (width >= 1025) return config.colsDesktop;
@@ -250,59 +245,114 @@
     return Math.floor((containerWidth - totalGaps) / cols);
   }
 
-  // Apply width to all items
-  function setItemWidths(itemsOverride) {
+  // Apply width to items
+  function setItemWidths(items) {
     var width = calculateItemWidth();
-    var items = itemsOverride || grid.querySelectorAll('.masonry-item');
+    items = items || grid.querySelectorAll('.masonry-item');
     for (var i = 0; i < items.length; i++) {
       items[i].style.width = width + 'px';
       items[i].style.marginBottom = config.gapV + 'px';
     }
   }
 
-  // IntersectionObserver for viewport visibility (content-visibility optimization)
-  function setupViewportObserver() {
-    if (!('IntersectionObserver' in window)) return;
+  // Create image element from API data
+  function createImageElement(img) {
+    var div = document.createElement('div');
+    div.className = 'masonry-item fade-in';
+    div.style.width = calculateItemWidth() + 'px';
+    div.style.marginBottom = config.gapV + 'px';
 
-    viewportObserver = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('in-viewport');
-          // Preload image when entering extended viewport
-          var img = entry.target.querySelector('img');
-          if (img && !preloadedItems.has(entry.target)) {
-            preloadedItems.add(entry.target);
-            img.loading = 'eager';
-          }
-        } else {
-          entry.target.classList.remove('in-viewport');
-        }
-      });
-    }, {
-      rootMargin: '200% 0px 200% 0px', // 2 viewports above and below for preload (balanced performance)
-      threshold: 0
+    var link = document.createElement('a');
+    link.href = config.basePath + '/album/' + encodeURIComponent(img.album_slug);
+
+    var picture = document.createElement('picture');
+
+    // Add sources (avif, webp, jpg)
+    ['avif', 'webp', 'jpg'].forEach(function(fmt) {
+      var sources = img.sources && img.sources[fmt];
+      if (sources && sources.length) {
+        var source = document.createElement('source');
+        source.type = 'image/' + (fmt === 'jpg' ? 'jpeg' : fmt);
+        source.srcset = sources.join(', ');
+        picture.appendChild(source);
+      }
     });
+
+    var imgEl = document.createElement('img');
+    imgEl.src = img.fallback_src || img.url;
+    imgEl.alt = img.alt || img.album_title || '';
+    imgEl.width = img.width || 800;
+    imgEl.height = img.height || 600;
+    imgEl.loading = 'lazy';
+    imgEl.style.aspectRatio = img.width + ' / ' + img.height;
+
+    picture.appendChild(imgEl);
+    link.appendChild(picture);
+    div.appendChild(link);
+
+    return div;
   }
 
-  // IntersectionObserver for infinite scroll trigger
-  function setupInfiniteScrollObserver() {
-    if (!('IntersectionObserver' in window)) return;
+  // Load more images from API
+  function loadMoreImages(callback) {
+    if (isLoading || !hasMore) {
+      if (callback) callback();
+      return;
+    }
 
-    var sentinel = document.createElement('div');
-    sentinel.id = 'masonry-sentinel';
-    sentinel.style.cssText = 'height:1px;width:100%;pointer-events:none;';
-    grid.parentNode.insertBefore(sentinel, grid.nextSibling);
+    isLoading = true;
+    var excludeIds = Array.from(shownImageIds).join(',');
+    var url = config.apiUrl + '?mode=masonry&limit=' + config.batchSize + '&exclude=' + excludeIds;
 
-    infiniteScrollObserver = new IntersectionObserver(function(entries) {
-      if (entries[0].isIntersecting && msnry && !isAppending) {
-        appendClones(Math.max(getColumnCount() * 2, 4), true, balanceColumns);
-      }
-    }, {
-      rootMargin: (window.innerHeight * config.preloadBuffer) + 'px 0px',
-      threshold: 0
-    });
+    fetch(url)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (!data.images || !data.images.length) {
+          hasMore = false;
+          isLoading = false;
+          if (callback) callback();
+          return;
+        }
 
-    infiniteScrollObserver.observe(sentinel);
+        hasMore = data.hasMore;
+        var newItems = [];
+
+        data.images.forEach(function(img) {
+          var id = parseInt(img.id, 10);
+          if (shownImageIds.has(id)) return;
+          shownImageIds.add(id);
+
+          var el = createImageElement(img);
+          newItems.push(el);
+        });
+
+        if (!newItems.length) {
+          isLoading = false;
+          if (callback) callback();
+          return;
+        }
+
+        // Append to DOM
+        var fragment = document.createDocumentFragment();
+        newItems.forEach(function(item) { fragment.appendChild(item); });
+        grid.appendChild(fragment);
+
+        // Add to Masonry after images load
+        imagesLoaded(newItems, function() {
+          if (msnry) {
+            msnry.appended(newItems);
+            msnry.layout();
+          }
+          isLoading = false;
+          if (window.lenisResize) window.lenisResize();
+          if (callback) callback();
+        });
+      })
+      .catch(function(err) {
+        console.error('Masonry load error:', err);
+        isLoading = false;
+        if (callback) callback();
+      });
   }
 
   // Initialize Masonry
@@ -310,323 +360,77 @@
     if (isInitialized) return;
     isInitialized = true;
 
-    // Switch from CSS Grid to Masonry mode
     grid.classList.add('masonry-active');
-
-    // Store initial items as clone source (shuffled for variety)
-    sourceItems = shuffleArray(Array.prototype.slice.call(grid.querySelectorAll('.masonry-item')));
-    // Set item widths before Masonry calculates
     setItemWidths();
 
-    // Setup IntersectionObservers for performance
-    setupViewportObserver();
-    setupInfiniteScrollObserver();
-
-    // Observe all initial items
-    if (viewportObserver) {
-      sourceItems.forEach(function(item) {
-        viewportObserver.observe(item);
-      });
-    }
-
-    // Create Masonry instance
     msnry = new Masonry(grid, {
       itemSelector: '.masonry-item',
       columnWidth: '.masonry-item',
       gutter: config.gapH,
       percentPosition: false,
-      horizontalOrder: false, // Disable to break predictable patterns - places in shortest column
+      horizontalOrder: false,
       transitionDuration: 0,
       initLayout: false,
       resize: false
     });
 
-    // Force layout
     msnry.layout();
 
-    // Double-check layout after a frame
     requestAnimationFrame(function() {
       msnry.layout();
       showGrid();
-      ensureViewportFilled();
-      balanceColumns();
     });
   }
 
-  // Show the grid with animation
+  // Show grid with animation
   function showGrid() {
     grid.classList.add('masonry-ready');
+    var items = grid.querySelectorAll('.masonry-item');
 
     if (prefersReducedMotion) {
-      // Show all items immediately
-      var items = grid.querySelectorAll('.masonry-item');
       for (var i = 0; i < items.length; i++) {
         items[i].classList.add('fade-in');
-        items[i].classList.add('in-viewport');
       }
     } else {
-      // Staggered fade-in (optimized - no getBoundingClientRect during animation)
-      animateItems();
+      // Staggered reveal
+      var viewportHeight = window.innerHeight;
+      var positions = [];
+      for (var j = 0; j < items.length; j++) {
+        var rect = items[j].getBoundingClientRect();
+        positions.push({
+          item: items[j],
+          top: rect.top,
+          left: rect.left,
+          inViewport: rect.top < viewportHeight && rect.bottom > 0
+        });
+      }
+
+      positions.sort(function(a, b) {
+        var rowA = Math.round(a.top / 50);
+        var rowB = Math.round(b.top / 50);
+        if (rowA !== rowB) return rowA - rowB;
+        return a.left - b.left;
+      });
+
+      var belowFoldIndex = 0;
+      positions.forEach(function(pos) {
+        if (pos.inViewport) {
+          pos.item.classList.add('fade-in');
+        } else {
+          setTimeout(function() {
+            pos.item.classList.add('fade-in');
+          }, belowFoldIndex * 25);
+          belowFoldIndex++;
+        }
+      });
     }
 
-    // Notify Lenis
     if (window.lenisResize) {
       setTimeout(window.lenisResize, 100);
     }
   }
 
-  // Animate items - optimized to batch read/write and avoid layout thrashing
-  function animateItems() {
-    var items = Array.prototype.slice.call(grid.querySelectorAll('.masonry-item'));
-    var viewportHeight = window.innerHeight;
-
-    // Batch read: collect all positions first
-    var positions = items.map(function(item) {
-      var rect = item.getBoundingClientRect();
-      return { item: item, top: rect.top, left: rect.left, inViewport: rect.top < viewportHeight && rect.bottom > 0 };
-    });
-
-    // Sort by visual position (top-left to bottom-right)
-    positions.sort(function(a, b) {
-      var rowA = Math.round(a.top / 50);
-      var rowB = Math.round(b.top / 50);
-      if (rowA !== rowB) return rowA - rowB;
-      return a.left - b.left;
-    });
-
-    // Show above-fold items immediately, stagger below-fold items
-    var belowFoldIndex = 0;
-    positions.forEach(function(pos) {
-      if (pos.inViewport) {
-        // Above-fold: show immediately
-        pos.item.classList.add('fade-in');
-        pos.item.classList.add('in-viewport');
-      } else {
-        // Below-fold: staggered animation
-        setTimeout(function() {
-          pos.item.classList.add('fade-in');
-          pos.item.classList.add('in-viewport');
-        }, belowFoldIndex * 35);
-        belowFoldIndex++;
-      }
-    });
-  }
-
-  function cloneItem(node) {
-    var clone = node.cloneNode(true);
-    if (clone.id) clone.removeAttribute('id');
-    var dupes = clone.querySelectorAll('[id]');
-    for (var i = 0; i < dupes.length; i++) {
-      dupes[i].removeAttribute('id');
-    }
-    clone.classList.remove('fade-in');
-    clone.classList.remove('in-viewport');
-    return clone;
-  }
-
-  // Fisher-Yates shuffle for randomized clone selection
-  function shuffleArray(array) {
-    var shuffled = array.slice();
-    for (var i = shuffled.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var temp = shuffled[i];
-      shuffled[i] = shuffled[j];
-      shuffled[j] = temp;
-    }
-    return shuffled;
-  }
-
-  // Get next random source item
-  function getRandomSourceItem() {
-    if (shuffledQueue.length === 0) {
-      shuffledQueue = shuffleArray(sourceItems);
-    }
-    return shuffledQueue.pop();
-  }
-
-  // Cleanup items far above viewport to prevent memory leaks
-  function cleanupOffscreenItems() {
-    if (!msnry) return;
-    var allItems = grid.querySelectorAll('.masonry-item');
-    var currentCount = allItems.length;
-
-    // Only cleanup if we exceed max items
-    if (currentCount <= config.maxItemsInDom) return;
-
-    var scrollY = window.scrollY || window.pageYOffset;
-    var cleanupThreshold = scrollY - (window.innerHeight * 3); // 3 viewports above
-    var itemsToRemove = [];
-
-    // Find items far above viewport (skip source items)
-    for (var i = 0; i < allItems.length; i++) {
-      var item = allItems[i];
-      // Don't remove original source items
-      if (sourceItems.indexOf(item) !== -1) continue;
-
-      var rect = item.getBoundingClientRect();
-      var itemBottom = scrollY + rect.bottom;
-
-      // Item is far above viewport
-      if (itemBottom < cleanupThreshold) {
-        itemsToRemove.push(item);
-      }
-
-      // Stop if we've marked enough for removal
-      if (currentCount - itemsToRemove.length <= config.maxItemsInDom) break;
-    }
-
-    // Remove items and add to pool for recycling
-    if (itemsToRemove.length > 0) {
-      itemsToRemove.forEach(function(item) {
-        // Unobserve from IntersectionObserver
-        if (viewportObserver) {
-          viewportObserver.unobserve(item);
-        }
-        // Remove from Masonry (this also removes from DOM)
-        if (msnry) {
-          msnry.remove(item);
-        }
-      });
-
-      // Re-layout after removal
-      if (msnry) {
-        msnry.layout();
-      }
-    }
-  }
-
-  function appendClones(count, animate, onDone) {
-    if (!msnry || !sourceItems.length || isAppending) return;
-
-    // Prevent infinite DOM growth - stop appending when we have enough items
-    var currentItems = grid.querySelectorAll('.masonry-item').length;
-    if (currentItems >= config.maxItemsInDom) {
-      if (typeof onDone === 'function') onDone();
-      return;
-    }
-
-    isAppending = true;
-    var newItems = [];
-    for (var i = 0; i < count; i++) {
-      var src = getRandomSourceItem(); // Randomized selection instead of sequential
-      if (!src) continue;
-      var clone = cloneItem(src);
-      if (animate) {
-        clone.classList.add('fade-in');
-      }
-      newItems.push(clone);
-    }
-    if (!newItems.length) {
-      isAppending = false;
-      return;
-    }
-
-    // Batch DOM writes
-    var fragment = document.createDocumentFragment();
-    for (var j = 0; j < newItems.length; j++) {
-      fragment.appendChild(newItems[j]);
-    }
-    grid.appendChild(fragment);
-
-    setItemWidths(newItems);
-
-    // Observe new items with IntersectionObserver
-    if (viewportObserver) {
-      newItems.forEach(function(item) {
-        viewportObserver.observe(item);
-      });
-    }
-
-    imagesLoaded(newItems, function() {
-      msnry.appended(newItems);
-      msnry.layout();
-      isAppending = false;
-
-      // Note: cleanupOffscreenItems() disabled to prevent visible layout shifts
-      // Memory usage is bounded by maxItemsInDom check in appendClones guard
-
-      // Notify Lenis that content height changed
-      if (window.lenisResize) {
-        window.lenisResize();
-      }
-      if (typeof onDone === 'function') {
-        onDone();
-      }
-    });
-  }
-
-  function averageItemHeight() {
-    var items = grid.querySelectorAll('.masonry-item');
-    if (!items.length) return 0;
-    var sample = Math.min(items.length, 12);
-    var total = 0;
-    for (var i = 0; i < sample; i++) {
-      total += items[i].offsetHeight; // Use offsetHeight instead of getBoundingClientRect
-    }
-    return total / sample;
-  }
-
-  var fillAttempts = 0;
-  var maxFillAttempts = 10;
-
-  function ensureViewportFilled() {
-    if (!msnry || isAppending) return;
-    if (fillAttempts >= maxFillAttempts) {
-      fillAttempts = 0;
-      return;
-    }
-    var targetHeight = window.innerHeight * config.preloadBuffer;
-    if (grid.scrollHeight >= targetHeight) {
-      fillAttempts = 0;
-      return;
-    }
-    fillAttempts++;
-    var count = Math.max(getColumnCount() * 4, 10);
-    appendClones(count, false, function() {
-      balanceColumns();
-      // Notify Lenis of height change
-      if (window.lenisResize) {
-        window.lenisResize();
-      }
-      if (grid.scrollHeight < targetHeight) {
-        setTimeout(ensureViewportFilled, 60);
-      } else {
-        fillAttempts = 0;
-      }
-    });
-  }
-
-  var balanceAttempts = 0;
-  var maxBalanceAttempts = 5;
-
-  function balanceColumns() {
-    if (!msnry || !msnry.colYs || !msnry.colYs.length || isAppending) return;
-    if (balanceAttempts >= maxBalanceAttempts) {
-      balanceAttempts = 0;
-      return;
-    }
-    var avgHeight = averageItemHeight() || 240;
-    var heights = msnry.colYs.slice();
-    var min = Math.min.apply(null, heights);
-    var max = Math.max.apply(null, heights);
-    var tolerance = avgHeight * 0.5; // More tolerant threshold
-    if ((max - min) <= tolerance) {
-      balanceAttempts = 0;
-      return;
-    }
-    balanceAttempts++;
-
-    // Calculate all needed items upfront and add in single batch
-    var gap = max - min;
-    var itemsNeeded = Math.min(Math.ceil(gap / avgHeight) + getColumnCount(), 12);
-
-    appendClones(itemsNeeded, false, function() {
-      // After clones added, recheck balance (with recursion guard via isAppending)
-      requestAnimationFrame(balanceColumns);
-    });
-  }
-
-  // Handle window resize with ResizeObserver if available
+  // Handle resize
   var resizeTimeout;
   function handleResize() {
     clearTimeout(resizeTimeout);
@@ -634,25 +438,34 @@
       if (msnry) {
         setItemWidths();
         msnry.layout();
-        ensureViewportFilled();
-        balanceColumns();
         if (window.lenisResize) window.lenisResize();
       }
     }, 150);
   }
 
-  // Initialize immediately - don't wait for all images
-  function initImmediately() {
-    // Initialize Masonry right away for instant layout
+  // Infinite scroll trigger
+  function checkScroll() {
+    if (isLoading || !hasMore) return;
+    var scrollY = window.scrollY || window.pageYOffset;
+    var windowHeight = window.innerHeight;
+    var docHeight = document.documentElement.scrollHeight;
+
+    // Load when within 2 viewports of bottom
+    if (scrollY + windowHeight >= docHeight - (windowHeight * 2)) {
+      loadMoreImages();
+    }
+  }
+
+  // Initialize
+  function init() {
     initMasonry();
 
-    // Progressive relayout as images load - ONLY during initial load
+    // Progressive layout as initial images load
     var imgLoad = imagesLoaded(grid);
     var layoutPending = false;
 
     imgLoad.on('progress', function() {
-      // Only relayout during initial load to prevent scroll jank
-      if (!initialLoadComplete && !layoutPending && msnry) {
+      if (!layoutPending && msnry) {
         layoutPending = true;
         requestAnimationFrame(function() {
           msnry.layout();
@@ -662,46 +475,32 @@
     });
 
     imgLoad.on('always', function() {
-      // Final layout when all initial images done
-      if (msnry) {
-        msnry.layout();
-        initialLoadComplete = true; // Stop relayout on scroll
-        balanceColumns();
-      }
+      if (msnry) msnry.layout();
     });
   }
 
-  // Start immediately on DOMContentLoaded (don't wait for window.load)
+  // Start
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initImmediately);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    initImmediately();
+    init();
   }
 
-  // Bind resize handler
   window.addEventListener('resize', handleResize, { passive: true });
 
-  // Fallback scroll listener for infinite scroll (backup for IntersectionObserver with Lenis)
+  // Throttled scroll listener
   var scrollThrottle = null;
-  function handleScroll() {
+  window.addEventListener('scroll', function() {
     if (scrollThrottle) return;
     scrollThrottle = setTimeout(function() {
       scrollThrottle = null;
-      if (!msnry || isAppending) return;
-      var scrollY = window.scrollY || window.pageYOffset;
-      var windowHeight = window.innerHeight;
-      var docHeight = document.documentElement.scrollHeight;
-      // Trigger when within 2 viewports of bottom
-      if (scrollY + windowHeight >= docHeight - (windowHeight * 2)) {
-        appendClones(Math.max(getColumnCount() * 2, 4), true, balanceColumns);
-      }
+      checkScroll();
     }, 100);
-  }
-  window.addEventListener('scroll', handleScroll, { passive: true });
+  }, { passive: true });
 
-  // Also listen to Lenis scroll events if available
+  // Lenis scroll support
   if (window.lenisInstance && window.lenisInstance.on) {
-    window.lenisInstance.on('scroll', handleScroll);
+    window.lenisInstance.on('scroll', checkScroll);
   }
 
 })();
