@@ -5,7 +5,7 @@
     <script nonce="{{ csp_nonce() }}">(function(){ document.documentElement.classList.remove('no-js'); document.documentElement.classList.add('js'); window.__showExifInLightbox = {{ lightbox_show_exif ? 'true' : 'false' }}; })();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page_title|e }}</title>
+    <title>{{ page_title|default(site_title|default('Cimaise'))|e }}</title>
 
     {% if meta_description %}
     <meta name="description" content="{{ meta_description|e('html_attr') }}">
