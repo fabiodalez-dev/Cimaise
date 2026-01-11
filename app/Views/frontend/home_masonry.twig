@@ -229,6 +229,9 @@
   var shownImageIds = new Set({{ shown_image_ids|json_encode|raw }});
   var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // DEBUG
+  console.log('[MASONRY DEBUG] Init - hasMore:', hasMore, 'shownImageIds:', shownImageIds.size, Array.from(shownImageIds));
+
   // Get current column count
   function getColumnCount() {
     var width = window.innerWidth;
@@ -295,7 +298,10 @@
 
   // Load more images from API
   function loadMoreImages(callback) {
+    console.log('[MASONRY DEBUG] loadMoreImages called - isLoading:', isLoading, 'hasMore:', hasMore);
+
     if (isLoading || !hasMore) {
+      console.log('[MASONRY DEBUG] loadMoreImages - SKIPPED');
       if (callback) callback();
       return;
     }
@@ -304,16 +310,22 @@
     var excludeIds = Array.from(shownImageIds).join(',');
     var url = config.apiUrl + '?mode=masonry&limit=' + config.batchSize + '&exclude=' + excludeIds;
 
+    console.log('[MASONRY DEBUG] loadMoreImages - fetching:', url);
+
     fetch(url)
       .then(function(res) { return res.json(); })
       .then(function(data) {
+        console.log('[MASONRY DEBUG] loadMoreImages - API response:', data);
+
         if (!data.images || !data.images.length) {
+          console.log('[MASONRY DEBUG] loadMoreImages - no images, setting hasMore=false');
           hasMore = false;
           isLoading = false;
           if (callback) callback();
           return;
         }
 
+        console.log('[MASONRY DEBUG] loadMoreImages - got', data.images.length, 'images, hasMore:', data.hasMore);
         hasMore = data.hasMore;
         var newItems = [];
 
@@ -405,13 +417,22 @@
 
   // Infinite scroll trigger
   function checkScroll() {
-    if (isLoading || !hasMore) return;
     var scrollY = window.scrollY || window.pageYOffset;
     var windowHeight = window.innerHeight;
     var docHeight = document.documentElement.scrollHeight;
+    var threshold = docHeight - (windowHeight * 2);
+    var shouldLoad = scrollY + windowHeight >= threshold;
+
+    console.log('[MASONRY DEBUG] checkScroll - scrollY:', scrollY, 'windowH:', windowHeight, 'docH:', docHeight, 'threshold:', threshold, 'shouldLoad:', shouldLoad, 'isLoading:', isLoading, 'hasMore:', hasMore);
+
+    if (isLoading || !hasMore) {
+      console.log('[MASONRY DEBUG] checkScroll - SKIPPED (isLoading:', isLoading, 'hasMore:', hasMore, ')');
+      return;
+    }
 
     // Load when within 2 viewports of bottom
-    if (scrollY + windowHeight >= docHeight - (windowHeight * 2)) {
+    if (shouldLoad) {
+      console.log('[MASONRY DEBUG] checkScroll - TRIGGERING loadMoreImages');
       loadMoreImages();
     }
   }
