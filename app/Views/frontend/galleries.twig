@@ -263,14 +263,15 @@
                data-album-url="{{ base_path }}/album/{{ album.slug }}"
                data-action="open-album"
                aria-label="{{ seo_title|e('html_attr') }}">
-        {% set can_show_nsfw = (nsfw_consent|default(false)) or (is_admin|default(false)) %}
-        {% set is_nsfw_unconfirmed = album.is_nsfw and not can_show_nsfw %}
+        {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
         {% set is_locked = album.is_locked|default(false) %}
+        {# NSFW albums always use blur cover as visual indicator (even with consent) #}
+        {% set should_blur_cover = (album.is_nsfw and not is_admin|default(false)) or is_locked %}
 
         <!-- Cover Image -->
         <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
           {% if album.cover_image %}
-            {% if is_nsfw_unconfirmed or is_locked %}
+            {% if should_blur_cover %}
               {% set blur_path = album.cover_image.blur_path|default(null) %}
               {% if blur_path %}
               <img src="{% if blur_path starts with '/' %}{{ base_path }}{{ blur_path }}{% else %}{{ blur_path }}{% endif %}"
@@ -306,13 +307,13 @@
           {% endif %}
 
           <!-- NSFW Overlay (skip for admins) - pointer-events-none to allow clicks through -->
-          {% if is_nsfw_unconfirmed %}
+          {% if album.is_nsfw and show_nsfw_overlay %}
           <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
             <i class="fas fa-eye-slash text-3xl mb-2"></i>
             <span class="text-sm font-medium">{{ trans('album.nsfw_warning_short') }}</span>
           </div>
           {% endif %}
-          {% if is_locked and not is_nsfw_unconfirmed %}
+          {% if is_locked and not (album.is_nsfw and show_nsfw_overlay) %}
           <div class="nsfw-overlay absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none z-10">
             <i class="fas fa-lock text-3xl mb-2"></i>
             <span class="text-sm font-medium">{{ trans('album.password_protected') }}</span>

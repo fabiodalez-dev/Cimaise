@@ -86,7 +86,7 @@ html.dark .preloader-title {
 <div id="preloader-curtain" class="preloader-curtain preloader-hidden" aria-hidden="true">
     <div class="preloader-content">
         {% if logo_type == 'image' and site_logo %}
-            <img src="{{ base_path ~ site_logo }}" alt="{{ site_title|default('Portfolio')|e }}" class="preloader-logo">
+            <img src="{% if site_logo starts with '/' %}{{ base_path }}{{ site_logo }}{% else %}{{ site_logo }}{% endif %}" alt="{{ site_title|default('Portfolio')|e }}" class="preloader-logo">
         {% else %}
             <span class="preloader-title">{{ site_title|default('Portfolio') }}</span>
         {% endif %}
