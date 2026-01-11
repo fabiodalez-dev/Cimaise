@@ -210,13 +210,15 @@ class HomeImageService
         $selectedImages = [];
         $newAlbumIds = [];
         $remainingNewImages = [];
+        $unprocessedNewAlbumIds = [];
 
         // Step 1: Pick one image from each new album
         $newAlbumIdList = array_keys($newAlbumImages);
         shuffle($newAlbumIdList);
 
-        foreach ($newAlbumIdList as $albumId) {
+        foreach ($newAlbumIdList as $index => $albumId) {
             if (count($selectedImages) >= $limit) {
+                $unprocessedNewAlbumIds = array_slice($newAlbumIdList, $index);
                 break;
             }
             $albumImages = $newAlbumImages[$albumId];
@@ -229,7 +231,7 @@ class HomeImageService
             }
         }
 
-        // Step 2: If batch not full, fill with filler images
+        // Step 2: If batch not full, fill with remaining new-album images then filler images
         $currentCount = count($selectedImages);
         $fillPool = array_merge($remainingNewImages, $fillerImages);
         $usedFromFillPool = 0;
@@ -242,8 +244,14 @@ class HomeImageService
         }
 
         // Calculate remaining images after this batch
-        // Use fillPool count minus what was consumed (fillPool already excludes step 1 selections)
-        $totalRemaining = max(0, count($fillPool) - $usedFromFillPool);
+        // Include any unprocessed new-album images when we hit the limit early
+        $remainingFromUnprocessed = 0;
+        if (!empty($unprocessedNewAlbumIds)) {
+            foreach ($unprocessedNewAlbumIds as $albumId) {
+                $remainingFromUnprocessed += count($newAlbumImages[$albumId] ?? []);
+            }
+        }
+        $totalRemaining = max(0, $remainingFromUnprocessed + count($fillPool) - $usedFromFillPool);
         $hasMore = $totalRemaining > 0;
 
         // Final shuffle for visual variety

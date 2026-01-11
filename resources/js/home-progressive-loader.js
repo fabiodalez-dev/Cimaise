@@ -130,7 +130,6 @@ export class HomeProgressiveLoader {
       }
     } catch (error) {
       console.error('[HomeLoader] Load error:', error);
-      this.hasMore = false;
     } finally {
       this.loading = false;
     }
@@ -169,7 +168,6 @@ export class HomeProgressiveLoader {
 
       if (!res.ok) {
         console.error('[HomeLoader] API error:', res.status);
-        this.hasMore = false;
         return null;
       }
 
@@ -186,7 +184,6 @@ export class HomeProgressiveLoader {
       if (error.name !== 'AbortError') {
         console.error('[HomeLoader] Fetch error:', error);
       }
-      this.hasMore = false;
       return null;
     } finally {
       if (timeoutId) {

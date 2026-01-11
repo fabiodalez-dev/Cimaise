@@ -57,7 +57,7 @@
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: attr(width) / attr(height); /* Prevent layout shift */
+  /* Browser uses width/height attributes automatically for aspect-ratio */
 }
 
 /* Fallback: use img width/height to reserve space before load */
@@ -67,9 +67,7 @@
   position: relative;
 }
 
-.masonry-item img[width][height] {
-  aspect-ratio: var(--img-aspect, auto);
-}
+/* Browser natively uses width/height attributes for layout shift prevention */
 
 /* Fade-in animation for items */
 .masonry-item.fade-in {

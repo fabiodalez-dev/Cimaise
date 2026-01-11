@@ -34,22 +34,41 @@ if (!$isInstallerRoute) {
     // Fast path: check for installed marker file AND .env existence + validity
     // Both must exist - if .env is removed or empty, marker is stale and should be cleared
     $envFile = $root . '/.env';
-    if (file_exists($installedMarker)) {
-        // Validate .env exists and is not empty (check for any content, not arbitrary size)
-        // Use @filesize to handle race condition where file could be deleted between checks
-        if (file_exists($envFile) && is_readable($envFile)) {
-            $size = @filesize($envFile);
-            if ($size !== false && $size > 0) {
-                $installed = true;
-            } else {
-                // Stale marker: .env is empty or unreadable
-                @unlink($installedMarker);
+    $hasEnv = file_exists($envFile) && is_readable($envFile) && ($size = @filesize($envFile)) !== false && $size > 0;
+    $markerPresent = file_exists($installedMarker);
+
+    if ($markerPresent && $hasEnv) {
+        $envContent = @file_get_contents($envFile) ?: '';
+        $env = [];
+        foreach (explode("\n", $envContent) as $line) {
+            if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
+                [$key, $value] = explode('=', $line, 2);
+                $env[trim($key)] = trim($value);
             }
-        } else {
-            // Stale marker: .env was removed or corrupted after installation (e.g., reset)
-            @unlink($installedMarker);
         }
-    } elseif (file_exists($envFile) && is_readable($envFile) && ($size = @filesize($envFile)) !== false && $size > 0) {
+
+        $connection = $env['DB_CONNECTION'] ?? 'sqlite';
+        if ($connection === 'sqlite') {
+            $dbPath = $env['DB_DATABASE'] ?? $root . '/database/database.sqlite';
+            if (!str_starts_with($dbPath, '/')) {
+                $dbPath = $root . '/' . $dbPath;
+            }
+            if (!file_exists($dbPath)) {
+                @unlink($installedMarker);
+                $markerPresent = false;
+            }
+        }
+    } elseif ($markerPresent && !$hasEnv) {
+        // Stale marker: .env was removed or corrupted after installation (e.g., reset)
+        @unlink($installedMarker);
+        $markerPresent = false;
+    }
+
+    if ($markerPresent && $hasEnv) {
+        $installed = true;
+    }
+
+    if (!$installed && $hasEnv) {
         // Slow path: .env exists but no marker - verify installation properly
         try {
             $installer = new \App\Installer\Installer($root);
@@ -221,7 +240,7 @@ if (is_dir($twigCacheDir) && is_writable($twigCacheDir)) {
 }
 
 // Twig configuration with performance optimizations
-$isProduction = !($_ENV['APP_DEBUG'] ?? false);
+$isProduction = !filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
 $twigOptions = [
     'cache' => $twigCache,
     // Disable auto_reload in production (huge performance gain - no file stat checks)

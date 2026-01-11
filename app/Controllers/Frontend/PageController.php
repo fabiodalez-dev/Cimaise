@@ -324,12 +324,16 @@ class PageController extends BaseController
         // Prepare JSON response
         $basePath = $this->basePath;
         $data = array_map(function ($img) use ($basePath) {
-            $fallbackSrc = $img['fallback_src'] ?? $img['original_path'];
+            // Security: never expose non-public storage paths
+            $fallbackSrc = $img['fallback_src'] ?? '';
+            if ($fallbackSrc === '' || str_starts_with((string) $fallbackSrc, '/storage/')) {
+                $fallbackSrc = '';
+            }
             return [
                 'id' => (int) $img['id'],
                 'album_id' => (int) $img['album_id'],
                 'url' => str_starts_with($img['original_path'], '/') ? $basePath . $img['original_path'] : $img['original_path'],
-                'fallback_src' => str_starts_with($fallbackSrc, '/') ? $basePath . $fallbackSrc : $fallbackSrc,
+                'fallback_src' => $fallbackSrc !== '' && str_starts_with($fallbackSrc, '/') ? $basePath . $fallbackSrc : $fallbackSrc,
                 'width' => (int) $img['width'],
                 'height' => (int) $img['height'],
                 'alt' => $img['alt_text'] ?: $img['album_title'],
@@ -2387,7 +2391,12 @@ class PageController extends BaseController
             foreach ($images as &$image) {
                 $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
                 $image['variants'] = [];
-                $image['fallback_src'] = $image['original_path'];
+                // Security: never expose non-public storage paths
+                $fallback = $image['original_path'] ?? '';
+                if (str_starts_with((string) $fallback, '/storage/')) {
+                    $fallback = '';
+                }
+                $image['fallback_src'] = $fallback;
             }
             unset($image);
             return $images;
@@ -2427,6 +2436,10 @@ class PageController extends BaseController
 
             $image['sources'] = $sources;
             $image['variants'] = $variants;
+            // Security: never expose non-public storage paths in fallback_src
+            if ($fallbackUrl !== '' && str_starts_with((string) $fallbackUrl, '/storage/')) {
+                $fallbackUrl = '';
+            }
             $image['fallback_src'] = $fallbackUrl;
         }
         unset($image);

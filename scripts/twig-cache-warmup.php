@@ -47,6 +47,9 @@ $templates = [];
 function findTemplates(string $dir, string $baseDir): array {
     $found = [];
     $items = scandir($dir);
+    if ($items === false) {
+        return [];
+    }
 
     foreach ($items as $item) {
         if ($item === '.' || $item === '..') {
