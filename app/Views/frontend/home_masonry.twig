@@ -219,7 +219,7 @@
     colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5,
     basePath: {{ base_path|json_encode|raw }},
     apiUrl: {{ (base_path ~ '/api/home/gallery')|json_encode|raw }},
-    batchSize: 30
+    batchSize: 20
   };
 
   var msnry = null;
