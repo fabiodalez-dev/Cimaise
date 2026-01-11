@@ -377,11 +377,12 @@
   // Animate items - optimized to batch read/write and avoid layout thrashing
   function animateItems() {
     var items = Array.prototype.slice.call(grid.querySelectorAll('.masonry-item'));
+    var viewportHeight = window.innerHeight;
 
     // Batch read: collect all positions first
     var positions = items.map(function(item) {
       var rect = item.getBoundingClientRect();
-      return { item: item, top: rect.top, left: rect.left };
+      return { item: item, top: rect.top, left: rect.left, inViewport: rect.top < viewportHeight && rect.bottom > 0 };
     });
 
     // Sort by visual position (top-left to bottom-right)
@@ -392,12 +393,21 @@
       return a.left - b.left;
     });
 
-    // Batch write: staggered animation using sorted order
-    positions.forEach(function(pos, index) {
-      setTimeout(function() {
+    // Show above-fold items immediately, stagger below-fold items
+    var belowFoldIndex = 0;
+    positions.forEach(function(pos) {
+      if (pos.inViewport) {
+        // Above-fold: show immediately
         pos.item.classList.add('fade-in');
         pos.item.classList.add('in-viewport');
-      }, index * 35); // Slightly faster stagger
+      } else {
+        // Below-fold: staggered animation
+        setTimeout(function() {
+          pos.item.classList.add('fade-in');
+          pos.item.classList.add('in-viewport');
+        }, belowFoldIndex * 35);
+        belowFoldIndex++;
+      }
     });
   }
 
