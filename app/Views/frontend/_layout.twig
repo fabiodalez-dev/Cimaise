@@ -1075,8 +1075,10 @@
 
         /* Mobile: constrain vertical image height to leave room for caption */
         /* Uses !important to override PhotoSwipe inline styles */
+        /* vh fallback for browsers that don't support dvh */
         @media (max-width: 767px) {
             .pswp__img {
+                max-height: calc(90vh - 140px) !important;
                 max-height: calc(90dvh - 140px) !important;
                 max-width: calc(100vw - 16px) !important;
                 object-fit: contain !important;

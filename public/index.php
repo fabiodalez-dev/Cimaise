@@ -212,14 +212,18 @@ $app->add(new FlashMiddleware());
 $app->add(new SecurityHeadersMiddleware());
 
 $twigCacheDir = __DIR__ . '/../storage/cache/twig';
+$twigCache = false;
 if (!is_dir($twigCacheDir)) {
     @mkdir($twigCacheDir, 0755, true);
+}
+if (is_dir($twigCacheDir) && is_writable($twigCacheDir)) {
+    $twigCache = $twigCacheDir;
 }
 
 // Twig configuration with performance optimizations
 $isProduction = !($_ENV['APP_DEBUG'] ?? false);
 $twigOptions = [
-    'cache' => $twigCacheDir,
+    'cache' => $twigCache,
     // Disable auto_reload in production (huge performance gain - no file stat checks)
     'auto_reload' => !$isProduction,
     // Disable strict_variables in production (faster, less checks)

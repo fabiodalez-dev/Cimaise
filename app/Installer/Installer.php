@@ -1097,6 +1097,7 @@ HTACCESS;
         $writableDirs = [
             'storage',
             'storage/cache',
+            'storage/cache/twig',
             'storage/logs',
             'storage/tmp',
             'storage/translations',
@@ -1114,6 +1115,7 @@ HTACCESS;
         // Create required directories if missing
         $requiredDirs = [
             'storage/cache',
+            'storage/cache/twig',
             'storage/logs',
             'storage/tmp',
             'storage/translations',
