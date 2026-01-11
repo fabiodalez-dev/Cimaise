@@ -1023,23 +1023,13 @@
   document.addEventListener('click', function(event) {
     const el = event.target.closest('.tpl-switch');
     if (!el) return;
-    console.log('[TPL-DEBUG] ========== TEMPLATE SWITCH START ==========');
-    console.log('[TPL-DEBUG] Click detected on:', el);
     event.preventDefault();
-    if (el.dataset.switchInProgress === '1') {
-      console.log('[TPL-DEBUG] Switch already in progress, aborting');
-      return;
-    }
+    if (el.dataset.switchInProgress === '1') return;
     el.dataset.switchInProgress = '1';
     const galleryContainer = document.getElementById('images-gallery');
     const templateId = el.getAttribute('data-template-id') || (new URL(el.href, window.location.origin)).searchParams.get('template');
     const albumRef = el.getAttribute('data-album-ref') || window.location.pathname.split('/').pop();
-    console.log('[TPL-DEBUG] galleryContainer:', galleryContainer);
-    console.log('[TPL-DEBUG] templateId:', templateId);
-    console.log('[TPL-DEBUG] albumRef:', albumRef);
-    console.log('[TPL-DEBUG] basePath:', typeof basePath !== 'undefined' ? basePath : 'UNDEFINED');
     if (!galleryContainer || !templateId || !albumRef) {
-      console.error('[TPL-DEBUG] Missing required element/data, aborting');
       delete el.dataset.switchInProgress;
       return;
     }
@@ -1049,62 +1039,37 @@
     document.querySelectorAll('.tpl-switch').forEach(btn => { btn.classList.remove('bg-black','text-white'); btn.classList.add('text-neutral-700','hover:bg-neutral-100'); });
     el.classList.remove('text-neutral-700','hover:bg-neutral-100'); el.classList.add('bg-black','text-white');
     const fetchUrl = `${basePath}/api/gallery/template?album=${encodeURIComponent(albumRef)}&template=${encodeURIComponent(templateId)}`;
-    console.log('[TPL-DEBUG] Fetch URL:', fetchUrl);
     fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
       .then(r => {
-        console.log('[TPL-DEBUG] Fetch response status:', r.status, r.statusText);
-        console.log('[TPL-DEBUG] Response headers:', [...r.headers.entries()]);
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.text();
       })
       .then(html => {
-        console.log('[TPL-DEBUG] HTML response length:', html.length);
-        console.log('[TPL-DEBUG] HTML preview (first 500 chars):', html.substring(0, 500));
+        // Use data-cimaise-tpl attribute to find OUR script (immune to extension injection)
         let parsedHtml = html;
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        const settingsScript = doc.querySelector('script');
-        console.log('[TPL-DEBUG] Found settings script:', !!settingsScript);
+        const settingsScript = doc.querySelector('script[data-cimaise-tpl]');
         if (settingsScript && settingsScript.textContent) {
-          console.log('[TPL-DEBUG] Script content preview:', settingsScript.textContent.substring(0, 300));
           const match = settingsScript.textContent.match(/window\.templateSettings\s*=\s*(\{[\s\S]*?\});/);
-          console.log('[TPL-DEBUG] templateSettings regex match:', !!match);
           if (match) {
-            console.log('[TPL-DEBUG] templateSettings JSON:', match[1].substring(0, 200));
-            try {
-              window.templateSettings = JSON.parse(match[1]);
-              console.log('[TPL-DEBUG] Parsed templateSettings:', window.templateSettings);
-            }
-            catch(e) { console.error('[TPL-DEBUG] Failed to parse templateSettings:', e); }
+            try { window.templateSettings = JSON.parse(match[1]); }
+            catch(e) { console.error('Failed to parse templateSettings:', e); }
           }
           const assetsMatch = settingsScript.textContent.match(/window\.templateAssets\s*=\s*(\{[\s\S]*?\});/);
-          console.log('[TPL-DEBUG] templateAssets regex match:', !!assetsMatch);
           if (assetsMatch) {
-            try {
-              window.templateAssets = JSON.parse(assetsMatch[1]);
-              console.log('[TPL-DEBUG] Parsed templateAssets:', window.templateAssets);
-            }
-            catch(e) { console.error('[TPL-DEBUG] Failed to parse templateAssets:', e); window.templateAssets = { css: [], js: [] }; }
+            try { window.templateAssets = JSON.parse(assetsMatch[1]); }
+            catch(e) { console.error('Failed to parse templateAssets:', e); window.templateAssets = { css: [], js: [] }; }
           }
           settingsScript.remove();
-        } else {
-          console.warn('[TPL-DEBUG] No script tag found in response!');
         }
         parsedHtml = doc.body ? doc.body.innerHTML : html;
-        console.log('[TPL-DEBUG] Parsed HTML length:', parsedHtml.length);
-        console.log('[TPL-DEBUG] Calling loadTemplateAssets with:', window.templateAssets);
         loadTemplateAssets(window.templateAssets);
 
         // Remove old dynamic styles before applying new ones
-        const oldStyles = document.querySelectorAll('[id$="-dynamic-style"]');
-        console.log('[TPL-DEBUG] Removing old dynamic styles, count:', oldStyles.length);
-        oldStyles.forEach(s => {
-          console.log('[TPL-DEBUG] Removing style:', s.id);
-          s.remove();
-        });
+        document.querySelectorAll('[id$="-dynamic-style"]').forEach(s => s.remove());
 
         galleryContainer.innerHTML = parsedHtml;
-        console.log('[TPL-DEBUG] Gallery container innerHTML set, length:', galleryContainer.innerHTML.length);
 
         // Match direct object assignment from _gallery_content.twig
         // Update container classes based on new template settings
@@ -1121,16 +1086,6 @@
               : (window.templateSettings?.layout || 'grid')));
         const newMasonry = !!window.templateSettings?.masonry;
 
-        console.log('[TPL-DEBUG] Layout calculation:');
-        console.log('[TPL-DEBUG]   templateSlug:', templateSlug);
-        console.log('[TPL-DEBUG]   isCustomTemplate:', isCustomTemplate);
-        console.log('[TPL-DEBUG]   cols:', cols);
-        console.log('[TPL-DEBUG]   gap:', gap);
-        console.log('[TPL-DEBUG]   newLayout:', newLayout);
-        console.log('[TPL-DEBUG]   newMasonry:', newMasonry);
-        console.log('[TPL-DEBUG]   window.templateSettings?.layout:', window.templateSettings?.layout);
-        console.log('[TPL-DEBUG]   window.templateSettings?.masonry:', window.templateSettings?.masonry);
-
         const idKeep = galleryContainer.id;
         galleryContainer.className = '';
         if (newLayout !== 'gallery_wall') {
@@ -1140,7 +1095,6 @@
         // Create dynamic style element for layout-specific CSS
         const styleEl = document.createElement('style');
         styleEl.id = `gallery-${newLayout}-dynamic-style`;
-        console.log('[TPL-DEBUG] Created style element with id:', styleEl.id);
 
         if (isCustomTemplate) {
           styleEl.textContent = '';
@@ -1305,19 +1259,7 @@
         }
 
         // Append dynamic styles to document head
-        console.log('[TPL-DEBUG] Style element textContent length:', styleEl.textContent.length);
-        console.log('[TPL-DEBUG] Style element textContent preview:', styleEl.textContent.substring(0, 200));
-        console.log('[TPL-DEBUG] Appending style element to head...');
         document.head.appendChild(styleEl);
-        console.log('[TPL-DEBUG] Style element appended. Verifying in DOM...');
-        const verifyStyle = document.getElementById(styleEl.id);
-        console.log('[TPL-DEBUG] Style element found in DOM:', !!verifyStyle);
-        if (verifyStyle) {
-          console.log('[TPL-DEBUG] Style element in DOM has content:', verifyStyle.textContent.length > 0);
-        }
-
-        console.log('[TPL-DEBUG] Gallery container className:', galleryContainer.className);
-        console.log('[TPL-DEBUG] Gallery container attributes:', [...galleryContainer.attributes].map(a => `${a.name}="${a.value}"`).join(', '));
 
         galleryContainer.classList.add('tpl-switching');
         galleryContainer.id = idKeep;
@@ -1325,18 +1267,9 @@
         // Update URL
         try { history.pushState(null, '', `${basePath}/album/${albumRef}?template=${templateId}`); } catch(e){}
 
-        console.log('[TPL-DEBUG] Starting re-initialization phase...');
-        console.log('[TPL-DEBUG] Available functions:');
-        console.log('[TPL-DEBUG]   initLightbox:', typeof initLightbox);
-        console.log('[TPL-DEBUG]   initGalleryMasonry:', typeof initGalleryMasonry);
-        console.log('[TPL-DEBUG]   initializeGalleryLayout:', typeof initializeGalleryLayout);
-        console.log('[TPL-DEBUG]   window.BalancedMasonryGrid:', typeof window.BalancedMasonryGrid);
-
         // Re-init
         setTimeout(() => {
-          console.log('[TPL-DEBUG] Re-init timeout fired, newLayout:', newLayout, 'newMasonry:', newMasonry);
           if (typeof initLightbox === 'function') {
-            console.log('[TPL-DEBUG] Calling initLightbox...');
             initLightbox();
           }
           if (window.gallerySwiper?.destroy) { window.gallerySwiper.destroy(true,true); window.gallerySwiper = null; }
@@ -1347,46 +1280,33 @@
             galleryContainer._masonryFitInstance = null;
           }
           if (newLayout === 'magazine') {
-            console.log('[TPL-DEBUG] Initializing Magazine Split template');
             setTimeout(() => { try { initMagazineAutoscroll(); } catch(e){ console.error('Magazine init error:', e); } }, 100);
           } else if (newLayout === 'gallery_wall') {
-            console.log('[TPL-DEBUG] Initializing Gallery Wall');
             initGalleryWallScroll(galleryContainer);
           } else if (newLayout === 'creative_layout') {
-            console.log('[TPL-DEBUG] Initializing Creative Layout');
             initCreativeLayout(galleryContainer);
           } else if (newLayout === 'masonry_portfolio') {
-            console.log('[TPL-DEBUG] Initializing Masonry Portfolio');
             initMasonryPortfolio(galleryContainer);
           } else if (newLayout === 'masonry_fit') {
-            console.log('[TPL-DEBUG] Initializing Masonry Fit template');
             if (typeof window.setupMasonryFitLayout === 'function') {
               window.setupMasonryFitLayout(galleryContainer);
             }
           } else if (newMasonry) {
-            console.log('[TPL-DEBUG] Initializing Masonry layout');
-            // Initialize masonry layout
             galleryContainer._masonryInitialized = false;
             if (typeof window.BalancedMasonryGrid !== 'undefined') {
-              console.log('[TPL-DEBUG] BalancedMasonryGrid available, calling initGalleryMasonry');
               window.galleryMasonry = initGalleryMasonry(galleryContainer);
             } else {
-              console.log('[TPL-DEBUG] BalancedMasonryGrid not available, dynamic importing...');
-              // Dynamic import the module
               import(`${window.basePath || basePath}/assets/vendor/masonry-grid/index.js`)
                 .then(module => {
-                  console.log('[TPL-DEBUG] Masonry module loaded:', module);
                   window.BalancedMasonryGrid = module.BalancedMasonryGrid;
                   window.RegularMasonryGrid = module.RegularMasonryGrid;
                   window._masonryGridReady = true;
                   window.galleryMasonry = initGalleryMasonry(galleryContainer);
                 })
-                .catch(err => console.error('[TPL-DEBUG] Failed to load masonry module:', err));
+                .catch(err => console.error('Failed to load masonry module:', err));
             }
           } else {
-            console.log('[TPL-DEBUG] Default grid layout, checking initializeGalleryLayout...');
             if (typeof initializeGalleryLayout === 'function') {
-              console.log('[TPL-DEBUG] Calling initializeGalleryLayout');
               initializeGalleryLayout();
             }
           }
@@ -1396,9 +1316,6 @@
           }
           // Show container after animation starts
           setTimeout(() => {
-            console.log('[TPL-DEBUG] Final visibility phase');
-            console.log('[TPL-DEBUG] Gallery container final className:', galleryContainer.className);
-            console.log('[TPL-DEBUG] Gallery container childElementCount:', galleryContainer.childElementCount);
             galleryContainer.classList.remove('tpl-switching');
             galleryContainer.style.transition = 'none';
             // Fallback: force items visible if animation failed
@@ -1412,16 +1329,11 @@
         }, 50);
       })
       .catch(err => {
-        console.error('[TPL-DEBUG] ========== TEMPLATE SWITCH ERROR ==========');
-        console.error('[TPL-DEBUG] Error object:', err);
-        console.error('[TPL-DEBUG] Error message:', err.message);
-        console.error('[TPL-DEBUG] Error stack:', err.stack);
-        console.log('[TPL-DEBUG] Restoring original HTML...');
+        console.error('Template switch error:', err);
         galleryContainer.innerHTML = original;
         galleryContainer.classList.remove('tpl-switching');
       })
       .finally(() => {
-        console.log('[TPL-DEBUG] ========== TEMPLATE SWITCH COMPLETE ==========');
         delete el.dataset.switchInProgress;
       });
   });
