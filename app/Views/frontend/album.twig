@@ -639,6 +639,13 @@ document.addEventListener('click', function(event) {
         .gallery-masonry.masonry-ready {
             opacity: 1;
         }
+        /* Mobile: show immediately to avoid breathing effect */
+        @media (max-width: 767px) {
+            .gallery-masonry {
+                opacity: 1;
+                transition: none;
+            }
+        }
         @media (min-width: 768px) {
             .gallery-masonry {
                 grid-template-columns: repeat({{ tablet_cols }}, 1fr);

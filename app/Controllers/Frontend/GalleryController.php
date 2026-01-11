@@ -945,9 +945,10 @@ class GalleryController extends BaseController
 
             // Prepend template settings as script tag for client-side parsing
             // The template switcher parses this to update window.templateSettings
+            // data-cimaise-tpl attribute ensures we find OUR script, not extension-injected ones
             $settingsJson = json_encode($templateSettings, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             $assetsJson = json_encode($templateAssets, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            $settingsScript = "<script>window.templateSettings = {$settingsJson}; window.templateAssets = {$assetsJson};</script>\n";
+            $settingsScript = "<script data-cimaise-tpl>window.templateSettings = {$settingsJson}; window.templateAssets = {$assetsJson};</script>\n";
 
             $response->getBody()->write($settingsScript . $renderedHtml);
             return $response->withHeader('Content-Type', 'text/html; charset=utf-8');

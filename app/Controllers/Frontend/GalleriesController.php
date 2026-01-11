@@ -443,7 +443,7 @@ class GalleriesController extends BaseController
             LEFT JOIN album_category ac ON ac.category_id = c.id
             LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
             GROUP BY c.id
-            HAVING albums_count > 0
+            HAVING COUNT(DISTINCT ac.album_id) > 0
             ORDER BY COALESCE(c.parent_id, 0) ASC, c.sort_order ASC, c.name ASC
         ');
         $stmt->execute();
@@ -456,7 +456,7 @@ class GalleriesController extends BaseController
             LEFT JOIN album_tag at ON at.tag_id = t.id
             LEFT JOIN albums a ON a.id = at.album_id AND a.is_published = 1
             GROUP BY t.id
-            HAVING albums_count > 0
+            HAVING COUNT(DISTINCT at.album_id) > 0
             ORDER BY albums_count DESC, t.name ASC
         ');
         $stmt->execute();
@@ -469,7 +469,7 @@ class GalleriesController extends BaseController
             LEFT JOIN album_camera ac ON ac.camera_id = cam.id
             LEFT JOIN albums a ON a.id = ac.album_id AND a.is_published = 1
             GROUP BY cam.id
-            HAVING albums_count > 0
+            HAVING COUNT(DISTINCT ac.album_id) > 0
             ORDER BY albums_count DESC, cam.make ASC, cam.model ASC
         ');
         $stmt->execute();
@@ -482,7 +482,7 @@ class GalleriesController extends BaseController
             LEFT JOIN album_lens al ON al.lens_id = l.id
             LEFT JOIN albums a ON a.id = al.album_id AND a.is_published = 1
             GROUP BY l.id
-            HAVING albums_count > 0
+            HAVING COUNT(DISTINCT al.album_id) > 0
             ORDER BY albums_count DESC, l.brand ASC, l.model ASC
         ');
         $stmt->execute();
@@ -495,7 +495,7 @@ class GalleriesController extends BaseController
             LEFT JOIN album_film af ON af.film_id = f.id
             LEFT JOIN albums a ON a.id = af.album_id AND a.is_published = 1
             GROUP BY f.id
-            HAVING albums_count > 0
+            HAVING COUNT(DISTINCT af.album_id) > 0
             ORDER BY albums_count DESC, f.brand ASC, f.name ASC
         ');
         $stmt->execute();
@@ -508,7 +508,7 @@ class GalleriesController extends BaseController
             LEFT JOIN album_developer ad ON ad.developer_id = d.id
             LEFT JOIN albums a ON a.id = ad.album_id AND a.is_published = 1
             GROUP BY d.id
-            HAVING albums_count > 0
+            HAVING COUNT(DISTINCT ad.album_id) > 0
             ORDER BY albums_count DESC, d.name ASC
         ');
         $stmt->execute();
@@ -521,7 +521,7 @@ class GalleriesController extends BaseController
             LEFT JOIN album_lab al ON al.lab_id = lab.id
             LEFT JOIN albums a ON a.id = al.album_id AND a.is_published = 1
             GROUP BY lab.id
-            HAVING albums_count > 0
+            HAVING COUNT(DISTINCT al.album_id) > 0
             ORDER BY albums_count DESC, lab.name ASC
         ');
         $stmt->execute();
@@ -534,7 +534,7 @@ class GalleriesController extends BaseController
             LEFT JOIN album_location al ON al.location_id = loc.id
             LEFT JOIN albums a ON a.id = al.album_id AND a.is_published = 1
             GROUP BY loc.id
-            HAVING albums_count > 0
+            HAVING COUNT(DISTINCT al.album_id) > 0
             ORDER BY albums_count DESC, loc.name ASC
         ');
         $stmt->execute();

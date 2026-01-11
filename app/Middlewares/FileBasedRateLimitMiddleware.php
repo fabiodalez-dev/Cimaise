@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface as Handler;
+use Slim\Psr7\Factory\StreamFactory;
 
 /**
  * File-based rate limiting middleware without Redis dependency
@@ -15,6 +16,14 @@ use Psr\Http\Server\RequestHandlerInterface as Handler;
  */
 class FileBasedRateLimitMiddleware implements MiddlewareInterface
 {
+    /** Error message patterns for failed login detection (multi-language support) */
+    private const ERROR_PATTERNS = [
+        'Credenziali non valide',   // Italian
+        'Invalid credentials',       // English
+        'Login failed',              // Generic English
+        'Account disattivato',       // Italian - account disabled
+    ];
+
     private string $storageDir;
     private int $maxAttempts;
     private int $windowSec;
@@ -151,10 +160,14 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
         }
     }
 
-    private function isFailedAttempt(Request $request, Response $response): bool
+    /**
+     * Check if the request was a failed attempt (e.g., failed login).
+     * Note: Response is passed by reference as it may be rebuilt for non-seekable streams.
+     */
+    private function isFailedAttempt(Request $request, Response &$response): bool
     {
         $path = $request->getUri()->getPath();
-        
+
         // For login endpoints handle precisely
         if (str_contains($path, '/login')) {
             $status = $response->getStatusCode();
@@ -167,14 +180,49 @@ class FileBasedRateLimitMiddleware implements MiddlewareInterface
                 return false;
             }
 
-            // Check response body for error indicators
-            $body = (string)$response->getBody();
-            return str_contains($body, 'Credenziali non valide') ||
-                   str_contains($body, 'Invalid credentials') ||
-                   str_contains($body, 'Login failed') ||
-                   str_contains($body, 'Account disattivato');
+            // For non-redirect responses (rendered login page with error)
+            // IMPORTANT: Read chunk and handle non-seekable streams properly
+            $body = $response->getBody();
+            $content = '';
+
+            if ($body->isSeekable()) {
+                $content = $body->read(8192); // Read first 8KB - sufficient for login error detection
+                $body->rewind();
+            } else {
+                // Non-seekable stream: recreate body so downstream can read it
+                $streamFactory = new StreamFactory();
+                $resource = @fopen('php://temp', 'r+');
+                if ($resource === false) {
+                    $resource = @fopen('php://memory', 'r+');
+                }
+
+                if ($resource !== false) {
+                    $newStream = $streamFactory->createStreamFromResource($resource);
+                } else {
+                    $newStream = $streamFactory->createStream('');
+                }
+
+                $content = $body->read(8192); // Read first 8KB - sufficient for login error detection
+                $newStream->write($content);
+                // Read remainder of original body if any
+                while (!$body->eof()) {
+                    $newStream->write($body->read(8192));
+                }
+                if ($newStream->isSeekable()) {
+                    $newStream->rewind();
+                }
+                $response = $response->withBody($newStream);
+            }
+
+            // Check for error patterns using class constants
+            foreach (self::ERROR_PATTERNS as $pattern) {
+                if (str_contains($content, $pattern)) {
+                    return true;
+                }
+            }
+            return false;
         }
-        
+
         // For other endpoints, consider 4xx errors as failed attempts
         return $response->getStatusCode() >= 400 && $response->getStatusCode() < 500;
     }

@@ -12,6 +12,7 @@ class VariantMaintenanceService
 {
     private const SETTINGS_KEY = 'maintenance.variants_daily_last_run';
     private const LOCK_FILE = '/storage/tmp/variants_daily.lock';
+    private const LAST_RUN_CACHE_FILE = '/storage/tmp/variants_daily_lastrun.txt';
 
     public function __construct(private Database $db)
     {
@@ -20,11 +21,34 @@ class VariantMaintenanceService
     public function runDaily(): void
     {
         $today = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d');
+        $this->ensureCacheDirectory();
         $settings = new SettingsService($this->db);
+
+        // FAST CHECK: Read last run from file cache first (no database query)
+        $cacheFile = dirname(__DIR__, 2) . self::LAST_RUN_CACHE_FILE;
+        $cachedLastRun = @file_get_contents($cacheFile);
+        if ($cachedLastRun !== false) {
+            $cachedLastRun = trim($cachedLastRun);
+        }
+        if ($cachedLastRun === $today) {
+            // Already ran today - only rerun if we detect missing variants
+            if (!$this->hasMissingVariants($settings)) {
+                return;
+            }
+        }
+
         $settings->clearCache();
         $lastRun = (string)$settings->get(self::SETTINGS_KEY, '');
-        if (!$this->shouldRun($settings, $today, $lastRun)) {
-            return;
+
+        // If already ran today (per database), just update file cache and return
+        if ($lastRun === $today) {
+            if (!$this->hasMissingVariants($settings)) {
+                $written = @file_put_contents($cacheFile, $today, LOCK_EX);
+                if ($written === false) {
+                    Logger::warning('Failed to write variant maintenance cache', ['cache_file' => $cacheFile], 'maintenance');
+                }
+                return;
+            }
         }
 
         $lockHandle = $this->acquireLock();
@@ -33,13 +57,26 @@ class VariantMaintenanceService
         }
 
         try {
+            // Clear cache to get fresh DB value and double-check after acquiring lock
+            $settings->clearCache();
             $lastRun = (string)$settings->get(self::SETTINGS_KEY, '');
-            if (!$this->shouldRun($settings, $today, $lastRun)) {
+            if ($lastRun === $today) {
+                $written = @file_put_contents($cacheFile, $today, LOCK_EX);
+                if ($written === false) {
+                    Logger::warning('Failed to write variant maintenance cache after lock', ['cache_file' => $cacheFile], 'maintenance');
+                }
                 return;
             }
 
             $stats = $this->generateMissingVariants($settings);
             $settings->set(self::SETTINGS_KEY, $today);
+
+            // Update file cache for fast subsequent checks
+            $written = @file_put_contents($cacheFile, $today, LOCK_EX);
+            if ($written === false) {
+                Logger::warning('Failed to update variant maintenance cache', ['cache_file' => $cacheFile], 'maintenance');
+            }
+
             Logger::info('Variant maintenance completed', $stats, 'maintenance');
         } catch (\Throwable $e) {
             Logger::warning('Variant maintenance failed', ['error' => $e->getMessage()], 'maintenance');
@@ -48,16 +85,31 @@ class VariantMaintenanceService
         }
     }
 
+    private function ensureCacheDirectory(): void
+    {
+        $cacheFile = dirname(__DIR__, 2) . self::LAST_RUN_CACHE_FILE;
+        $cacheDir = dirname($cacheFile);
+        if (!is_dir($cacheDir)) {
+            if (!@mkdir($cacheDir, 0775, true) && !is_dir($cacheDir)) {
+                Logger::warning('Failed to create cache directory for variant maintenance', ['directory' => $cacheDir], 'maintenance');
+            }
+        }
+    }
+
     private function acquireLock(): mixed
     {
         $lockPath = dirname(__DIR__, 2) . self::LOCK_FILE;
         $lockDir = dirname($lockPath);
         if (!is_dir($lockDir)) {
-            @mkdir($lockDir, 0775, true);
+            if (!@mkdir($lockDir, 0775, true) && !is_dir($lockDir)) {
+                Logger::warning('Failed to create lock directory for variant maintenance', ['directory' => $lockDir], 'maintenance');
+                return null;
+            }
         }
 
         $handle = @fopen($lockPath, 'c');
         if ($handle === false) {
+            Logger::warning('Failed to open lock file for variant maintenance', ['lock_file' => $lockPath], 'maintenance');
             return null;
         }
         if (!flock($handle, LOCK_EX | LOCK_NB)) {
@@ -104,7 +156,7 @@ class VariantMaintenanceService
                 AND iv.variant IN ({$variantPlaceholders})
                 AND iv.format IN ({$formatPlaceholders})
             GROUP BY i.id
-            HAVING variant_count < ?
+            HAVING COUNT(iv.id) < ?
         ";
 
         $stmt = $pdo->prepare($sql);
@@ -154,15 +206,6 @@ class VariantMaintenanceService
         }
 
         return $stats;
-    }
-
-    private function shouldRun(SettingsService $settings, string $today, string $lastRun): bool
-    {
-        if ($lastRun !== $today) {
-            return true;
-        }
-
-        return $this->hasMissingVariants($settings);
     }
 
     private function hasMissingVariants(SettingsService $settings): bool

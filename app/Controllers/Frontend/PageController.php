@@ -231,85 +231,20 @@ class PageController extends BaseController
         // Only fetch here if not in global scope (fallback)
         $tags = [];
 
-        // Smart initial image loading strategy:
-        // 1. First, get 1 random image per album (ensures all albums represented)
-        // 2. If total < 48, fill with additional random images (ensures visual density)
-        // Additional images fetched via /api/home/gallery by home-infinite-loader.js
-        $minImages = 48;
-
-        // Step 1: Get one random image per album (using MIN to pick deterministically, then shuffle in PHP)
-        $stmt = $pdo->prepare("
-            SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
-                   a.excerpt as album_description,
-                   GROUP_CONCAT(DISTINCT c.slug) as category_slugs,
-                   (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
-            FROM images i
-            JOIN albums a ON a.id = i.album_id
-            LEFT JOIN album_category ac ON ac.album_id = a.id
-            LEFT JOIN categories c ON c.id = ac.category_id
-            WHERE a.is_published = 1
-              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
-              AND i.id = (
-                  SELECT i2.id FROM images i2
-                  WHERE i2.album_id = a.id
-                  ORDER BY RANDOM() LIMIT 1
-              )
-            GROUP BY a.id
-        ");
-        $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
-        $stmt->execute();
-        $allImages = $stmt->fetchAll();
-
-        // Step 2: If we have fewer than minimum, fill with additional random images
-        $currentCount = count($allImages);
-        if ($currentCount < $minImages) {
-            $existingIds = array_column($allImages, 'id');
-            $need = $minImages - $currentCount;
-
-            // Build NOT IN clause for existing IDs
-            $notInClause = '';
-            $binds = [':include_nsfw2' => $includeNsfw ? 1 : 0, ':limit2' => $need];
-            if (!empty($existingIds)) {
-                $placeholders = [];
-                foreach ($existingIds as $k => $id) {
-                    $placeholders[] = ":exc{$k}";
-                    $binds[":exc{$k}"] = $id;
-                }
-                $notInClause = 'AND i.id NOT IN (' . implode(',', $placeholders) . ')';
-            }
-
-            $stmt2 = $pdo->prepare("
-                SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id,
-                       a.excerpt as album_description,
-                       GROUP_CONCAT(DISTINCT c.slug) as category_slugs,
-                       (SELECT c2.slug FROM categories c2 WHERE c2.id = a.category_id) as category_slug
-                FROM images i
-                JOIN albums a ON a.id = i.album_id
-                LEFT JOIN album_category ac ON ac.album_id = a.id
-                LEFT JOIN categories c ON c.id = ac.category_id
-                WHERE a.is_published = 1
-                  AND (:include_nsfw2 = 1 OR a.is_nsfw = 0)
-                  AND (a.password_hash IS NULL OR a.password_hash = '')
-                  {$notInClause}
-                GROUP BY i.id
-                ORDER BY RANDOM()
-                LIMIT :limit2
-            ");
-            foreach ($binds as $k => $v) {
-                $stmt2->bindValue($k, $v, \PDO::PARAM_INT);
-            }
-            $stmt2->execute();
-            $additionalImages = $stmt2->fetchAll();
-
-            $allImages = array_merge($allImages, $additionalImages);
-        }
-
-        // Shuffle to randomize the order
-        shuffle($allImages);
+        // Progressive image loading: load initial batch with album diversity
+        // Use HomeImageService for reusable album-diverse fetch logic
+        $homeImageService = new \App\Services\HomeImageService($this->db);
+        $initialLimit = 20; // Viewport-only SSR load - rest via progressive loading API
+        $imageResult = $homeImageService->getInitialImages($initialLimit, $includeNsfw);
 
         // Process images with responsive sources (batch to avoid N+1 queries)
-        $allImages = $this->processImageSourcesBatch($allImages);
+        $allImages = $this->processImageSourcesBatch($imageResult['images']);
+
+        // Pass tracking data for progressive loading
+        $shownImageIds = $imageResult['shownImageIds'];
+        $shownAlbumIds = $imageResult['shownAlbumIds'];
+        $totalImagesCount = $imageResult['totalImages'];
+        $hasMoreImages = $totalImagesCount > count($allImages);
 
         $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
 
@@ -344,10 +279,25 @@ class PageController extends BaseController
             'og_site_name' => $seo['og_site_name'],
             'robots' => $seo['robots'],
             'nsfw_consent' => $nsfwConsent,
-            'is_admin' => $isAdmin
+            'is_admin' => $isAdmin,
+            // Progressive loading tracking data
+            'shown_image_ids' => $shownImageIds,
+            'shown_album_ids' => $shownAlbumIds,
+            'total_images' => $totalImagesCount,
+            'has_more_images' => $hasMoreImages
         ]);
     }
 
+    /**
+     * API endpoint for progressive image loading with album diversity priority.
+     *
+     * Query params:
+     * - exclude: comma-separated image IDs already shown
+     * - excludeAlbums: comma-separated album IDs already represented
+     * - limit: max images to return (default 20, max 100)
+     *
+     * Algorithm: prioritizes images from albums not yet shown, then fills with others.
+     */
     public function homeGalleryApi(Request $request, Response $response): Response
     {
         $isAdmin = $this->isAdmin();
@@ -355,55 +305,35 @@ class PageController extends BaseController
         $includeNsfw = $isAdmin || $nsfwConsent;
 
         $params = $request->getQueryParams();
-        $excludeIds = isset($params['exclude']) ? array_filter(array_map('intval', explode(',', $params['exclude']))) : [];
-        $limit = max(1, min(500, (int) ($params['limit'] ?? 100)));
+        $maxExcludes = 1000;
+        $excludeImageIds = isset($params['exclude'])
+            ? array_slice(array_filter(array_map('intval', explode(',', $params['exclude']))), 0, $maxExcludes)
+            : [];
+        $excludeAlbumIds = isset($params['excludeAlbums'])
+            ? array_slice(array_filter(array_map('intval', explode(',', $params['excludeAlbums']))), 0, $maxExcludes)
+            : [];
+        $limit = max(1, min(100, (int) ($params['limit'] ?? 20)));
 
-        $pdo = $this->db->pdo();
-
-        $sql = "
-            SELECT i.*, a.title as album_title, a.slug as album_slug, a.id as album_id
-            FROM images i
-            JOIN albums a ON a.id = i.album_id
-            WHERE a.is_published = 1
-              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
-        ";
-
-        // Build NOT IN clause manually for array of IDs
-        $binds = [':include_nsfw' => $includeNsfw ? 1 : 0, ':limit' => $limit];
-
-        if (!empty($excludeIds)) {
-            $inQuery = "";
-            foreach ($excludeIds as $k => $id) {
-                $p = ":exc$k";
-                $inQuery .= "$p,";
-                $binds[$p] = $id;
-            }
-            $inQuery = rtrim($inQuery, ',');
-            $sql .= " AND i.id NOT IN ($inQuery)";
-        }
-
-        $sql .= " ORDER BY RANDOM() LIMIT :limit";
-
-        $stmt = $pdo->prepare($sql);
-        foreach ($binds as $k => $v) {
-            $stmt->bindValue($k, $v, \PDO::PARAM_INT);
-        }
-        $stmt->execute();
-        $images = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        // Use HomeImageService for album-diverse progressive loading
+        $homeImageService = new \App\Services\HomeImageService($this->db);
+        $result = $homeImageService->getMoreImages($excludeImageIds, $excludeAlbumIds, $limit, $includeNsfw);
 
         // Process images (sources etc)
-        $images = $this->processImageSourcesBatch($images);
+        $images = $this->processImageSourcesBatch($result['images']);
 
         // Prepare JSON response
-        $data = array_map(function ($img) {
-            $basePath = $this->basePath;
-            $fallbackSrc = $img['fallback_src'] ?? $img['original_path'];
+        $basePath = $this->basePath;
+        $data = array_map(function ($img) use ($basePath) {
+            // Security: never expose non-public storage paths
+            $fallbackSrc = $img['fallback_src'] ?? '';
+            if ($fallbackSrc === '' || str_starts_with((string) $fallbackSrc, '/storage/')) {
+                $fallbackSrc = '';
+            }
             return [
                 'id' => (int) $img['id'],
+                'album_id' => (int) $img['album_id'],
                 'url' => str_starts_with($img['original_path'], '/') ? $basePath . $img['original_path'] : $img['original_path'],
-                // Ensure fallback_src includes base path if it's relative
-                'fallback_src' => str_starts_with($fallbackSrc, '/') ? $basePath . $fallbackSrc : $fallbackSrc,
+                'fallback_src' => $fallbackSrc !== '' && str_starts_with($fallbackSrc, '/') ? $basePath . $fallbackSrc : $fallbackSrc,
                 'width' => (int) $img['width'],
                 'height' => (int) $img['height'],
                 'alt' => $img['alt_text'] ?: $img['album_title'],
@@ -413,7 +343,11 @@ class PageController extends BaseController
             ];
         }, $images);
 
-        $response->getBody()->write(json_encode(['images' => $data]));
+        $response->getBody()->write(json_encode([
+            'images' => $data,
+            'newAlbumIds' => $result['newAlbumIds'],
+            'hasMore' => $result['hasMore'],
+        ]));
         return $response->withHeader('Content-Type', 'application/json');
     }
 
@@ -2426,74 +2360,6 @@ class PageController extends BaseController
         return $speed;
     }
 
-    private function processImageSources(array $image): array
-    {
-        $pdo = $this->db->pdo();
-
-        // Get image variants for responsive sources
-        try {
-            $variantsStmt = $pdo->prepare('SELECT * FROM image_variants WHERE image_id = :id ORDER BY variant ASC');
-            $variantsStmt->execute([':id' => $image['id']]);
-            $variants = $variantsStmt->fetchAll();
-
-            // Build responsive sources (verify files exist, fallback to webp if jpg missing)
-            // Go up 3 levels: Controllers/Frontend -> Controllers -> app -> project root
-            $publicDir = dirname(__DIR__, 3) . '/public';
-            $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
-            foreach ($variants as $variant) {
-                $format = $variant['format'] ?? 'jpg';
-                $path = $variant['path'] ?? '';
-                if (isset($sources[$format]) && !empty($path) && !str_starts_with($path, '/storage/')) {
-                    // Check if file exists
-                    if (is_file($publicDir . $path)) {
-                        $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
-                    } elseif ($format === 'jpg') {
-                        // Try webp alternative if jpg doesn't exist
-                        $webpPath = preg_replace('/\.jpg$/i', '.webp', $path);
-                        if (is_file($publicDir . $webpPath)) {
-                            $sources['webp'][] = $webpPath . ' ' . (int) $variant['width'] . 'w';
-                        }
-                    }
-                }
-            }
-
-            $image['sources'] = $sources;
-            $image['variants'] = $variants;
-
-            // Set fallback URL (best available variant that exists on disk)
-            $fallbackUrl = $image['original_path'];
-
-            // First try to find an existing variant
-            foreach ($variants as $variant) {
-                if (!empty($variant['path']) && !str_starts_with($variant['path'], '/storage/')) {
-                    $fullPath = $publicDir . $variant['path'];
-                    if (is_file($fullPath)) {
-                        $fallbackUrl = $variant['path'];
-                        break;
-                    }
-                    // Try webp alternative if jpg doesn't exist
-                    if (($variant['format'] ?? '') === 'jpg') {
-                        $webpPath = preg_replace('/\.jpg$/i', '.webp', $variant['path']);
-                        if (is_file($publicDir . $webpPath)) {
-                            $fallbackUrl = $webpPath;
-                            break;
-                        }
-                    }
-                }
-            }
-            $image['fallback_src'] = $fallbackUrl;
-
-        } catch (\Throwable $e) {
-            Logger::warning('PageController: Error processing image sources', ['image_id' => $image['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
-            // Fallback to basic image data
-            $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
-            $image['variants'] = [];
-            $image['fallback_src'] = $image['original_path'];
-        }
-
-        return $image;
-    }
-
     private function processImageSourcesBatch(array $images): array
     {
         if (empty($images)) {
@@ -2525,13 +2391,20 @@ class PageController extends BaseController
             foreach ($images as &$image) {
                 $image['sources'] = ['avif' => [], 'webp' => [], 'jpg' => []];
                 $image['variants'] = [];
-                $image['fallback_src'] = $image['original_path'];
+                // Security: never expose non-public storage paths
+                $fallback = $image['original_path'] ?? '';
+                if (str_starts_with((string) $fallback, '/storage/')) {
+                    $fallback = '';
+                }
+                $image['fallback_src'] = $fallback;
             }
             unset($image);
             return $images;
         }
 
-        $publicDir = dirname(__DIR__, 3) . '/public';
+        // PERFORMANCE: Trust database records instead of checking filesystem for every variant
+        // Variants are created during upload; if they exist in DB, assume files exist
+        // This eliminates hundreds of is_file() calls per page load
         foreach ($images as &$image) {
             $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
             $variants = $variantsByImage[(int) $image['id']] ?? [];
@@ -2542,36 +2415,33 @@ class PageController extends BaseController
                 if (!isset($sources[$format]) || $path === '' || str_starts_with($path, '/storage/')) {
                     continue;
                 }
-                if (is_file($publicDir . $path)) {
-                    $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
-                } elseif ($format === 'jpg') {
-                    $webpPath = preg_replace('/\.jpg$/i', '.webp', $path);
-                    if (is_file($publicDir . $webpPath)) {
-                        $sources['webp'][] = $webpPath . ' ' . (int) $variant['width'] . 'w';
-                    }
-                }
+                // Trust database - variant exists means file exists
+                $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
             }
 
-            $fallbackUrl = $image['original_path'];
+            // Find best fallback from variants for initial grid display
+            // Prefer smallest public variant by width for faster initial load
+            // Progressive loader will fetch higher quality versions on demand
+            $fallbackUrl = $image['original_path'] ?? '';
+            $bestWidth = PHP_INT_MAX;
             foreach ($variants as $variant) {
-                if (!empty($variant['path']) && !str_starts_with((string) $variant['path'], '/storage/')) {
-                    $fullPath = $publicDir . $variant['path'];
-                    if (is_file($fullPath)) {
-                        $fallbackUrl = $variant['path'];
-                        break;
-                    }
-                    if (($variant['format'] ?? '') === 'jpg') {
-                        $webpPath = preg_replace('/\.jpg$/i', '.webp', $variant['path']);
-                        if (is_file($publicDir . $webpPath)) {
-                            $fallbackUrl = $webpPath;
-                            break;
-                        }
-                    }
+                $path = (string) ($variant['path'] ?? '');
+                $w = (int) ($variant['width'] ?? 0);
+                if ($path === '' || str_starts_with($path, '/storage/') || $w <= 0) {
+                    continue;
+                }
+                if ($w < $bestWidth) {
+                    $bestWidth = $w;
+                    $fallbackUrl = $path;
                 }
             }
 
             $image['sources'] = $sources;
             $image['variants'] = $variants;
+            // Security: never expose non-public storage paths in fallback_src
+            if ($fallbackUrl !== '' && str_starts_with((string) $fallbackUrl, '/storage/')) {
+                $fallbackUrl = '';
+            }
             $image['fallback_src'] = $fallbackUrl;
         }
         unset($image);

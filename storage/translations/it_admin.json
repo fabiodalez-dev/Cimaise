@@ -962,6 +962,7 @@
     "admin.flash.cover_updated": "Copertina aggiornata",
     "admin.flash.csrf_invalid": "Token CSRF non valido",
     "admin.flash.csrf_invalid_try_again": "Token di sicurezza non valido. Riprova.",
+    "admin.flash.session_expired": "La sessione è scaduta. Riprova.",
     "admin.flash.developer_created": "Sviluppatore creato",
     "admin.flash.developer_deleted": "Sviluppatore eliminato",
     "admin.flash.developer_updated": "Sviluppatore aggiornato",

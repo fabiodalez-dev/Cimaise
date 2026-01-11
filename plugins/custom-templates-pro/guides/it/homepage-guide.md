@@ -124,6 +124,167 @@ VARIABILI DISPONIBILI:
 - home_settings.show_latest_albums
 - home_settings.albums_count
 
+================================================================================
+FONTI IMMAGINI PER HOMEPAGE
+================================================================================
+
+La tua homepage può usare DUE diverse fonti di immagini a seconda del design:
+
+OPZIONE A: SOLO FOTO COPERTINA ALBUM
+------------------------------------
+Usa l'array `albums` quando la homepage mostra card album con immagini di copertina.
+Questo è l'approccio più semplice - non serve progressive loading.
+
+Variabili disponibili:
+- {{ albums }} - Array degli album pubblicati (default: 12)
+- {{ album.cover_image }} - Oggetto immagine copertina con sources responsive
+
+Esempio:
+```twig
+{% for album in albums %}
+  <article class="album-card">
+    <a href="{{ base_path }}/album/{{ album.slug }}">
+      <picture>
+        {% if album.cover_image.sources.avif|length %}
+        <source type="image/avif"
+                srcset="{% for src in album.cover_image.sources.avif %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
+        {% endif %}
+        <img src="{{ base_path }}{{ album.cover_image.url }}"
+             alt="{{ album.title|e }}"
+             loading="lazy">
+      </picture>
+      <h2>{{ album.title|e }}</h2>
+    </a>
+  </article>
+{% endfor %}
+```
+
+OPZIONE B: FOTO RANDOM DA TUTTI GLI ALBUM (con Progressive Loading)
+-------------------------------------------------------------------
+Usa l'array `all_images` quando la homepage mostra un mosaico/muro di foto
+con immagini diverse da tutti gli album.
+
+Variabili disponibili:
+- {{ all_images }} - Batch iniziale di immagini random (dimensione iniziale variabile; dipende da configurazione/template; default = HomeImageService::DEFAULT_INITIAL_LIMIT)
+- {{ has_more_images }} - Boolean: altre immagini disponibili via API
+- {{ shown_image_ids }} - Array: IDs per deduplicazione
+- {{ shown_album_ids }} - Array: IDs album già rappresentati
+
+Ogni immagine in all_images ha:
+- image.id - ID immagine
+- image.url - URL immagine originale
+- image.fallback_src - URL fallback JPG
+- image.sources.avif, .webp, .jpg - Srcset responsive
+- image.width, image.height - Dimensioni
+- image.alt - Testo alternativo
+- image.album_title, image.album_slug - Info album
+
+Render Iniziale (SSR):
+```twig
+<div id="home-infinite-gallery">
+  {% for image in all_images %}
+    <picture data-image-id="{{ image.id }}">
+      {% if image.sources.avif|length %}
+      <source type="image/avif"
+              srcset="{% for src in image.sources.avif %}{{ (base_path ~ src)|e('html_attr') }}{% if not loop.last %}, {% endif %}{% endfor %}"
+              sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">
+      {% endif %}
+      <img src="{{ (base_path ~ image.fallback_src)|e('html_attr') }}"
+           alt="{{ image.alt|e }}"
+           width="{{ image.width }}"
+           height="{{ image.height }}"
+           loading="{{ loop.index <= 6 ? 'eager' : 'lazy' }}">
+    </picture>
+  {% endfor %}
+</div>
+
+{# Configurazione progressive loading #}
+{% if has_more_images %}
+<script nonce="{{ csp_nonce() }}">
+  window.homeLoaderConfig = {
+    shownImageIds: {{ shown_image_ids|json_encode|raw }},
+    shownAlbumIds: {{ shown_album_ids|json_encode|raw }},
+    hasMore: true,
+    basePath: {{ base_path|json_encode|raw }}
+  };
+</script>
+<div id="home-load-trigger" class="h-1"></div>
+{% endif %}
+```
+
+JavaScript Progressive Loading (script.js):
+```javascript
+const config = window.homeLoaderConfig;
+if (config?.hasMore) {
+  const shownIds = new Set(config.shownImageIds);
+  let shownAlbumIds = [...config.shownAlbumIds];
+  let loading = false;
+  let hasMore = true;
+
+  const loadMore = async () => {
+    if (loading || !hasMore) return;
+    loading = true;
+
+    const params = new URLSearchParams({
+      exclude: Array.from(shownIds).join(','),
+      excludeAlbums: shownAlbumIds.join(','),
+      limit: 20
+    });
+
+    const res = await fetch(`${config.basePath}/api/home/gallery?${params}`);
+    const data = await res.json();
+
+    data.images.forEach(img => {
+      if (shownIds.has(img.id)) return; // Salta duplicati
+      shownIds.add(img.id);
+      appendImageToGallery(img); // La tua funzione di append al DOM
+    });
+
+    shownAlbumIds.push(...data.newAlbumIds);
+    hasMore = data.hasMore;
+    loading = false;
+  };
+
+  // Carica quando trigger diventa visibile
+  new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) loadMore();
+  }, { rootMargin: '200px' }).observe(document.getElementById('home-load-trigger'));
+
+  // Inizia caricamento immediato
+  loadMore();
+}
+```
+
+Formato Risposta API:
+GET /api/home/gallery?exclude=1,2,3&excludeAlbums=1,2&limit=20
+
+Risposta:
+```json
+{
+  "images": [
+    {
+      "id": 42,
+      "url": "/media/photos/img.jpg",
+      "fallback_src": "/media/photos/variants/img_lg.jpg",
+      "sources": {
+        "avif": ["/media/.../img_sm.avif 400w", ...],
+        "webp": [...],
+        "jpg": [...]
+      },
+      "width": 1600,
+      "height": 1067,
+      "alt": "...",
+      "album_title": "...",
+      "album_slug": "..."
+    }
+  ],
+  "newAlbumIds": [3, 4, 5],
+  "hasMore": true
+}
+```
+
+================================================================================
+
 LAYOUT TIPICI:
 
 1. HERO + GRID:
@@ -162,7 +323,9 @@ STRUTTURA HTML RACCOMANDATA:
         <div class="aspect-square overflow-hidden rounded-lg mb-4">
           <picture>
             {% if album.cover_image.sources.avif|length %}
-            <source type="image/avif" srcset="{{ base_path }}{{ album.cover_image.sources.avif[0] }}">
+            <source type="image/avif"
+                    srcset="{% for src in album.cover_image.sources.avif %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
             {% endif %}
             <img src="{{ base_path }}{{ album.cover_image.url }}"
                  alt="{{ album.title|e }}"

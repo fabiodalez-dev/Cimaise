@@ -38,6 +38,8 @@
     cursor: pointer;
     transition: opacity 0.3s ease, box-shadow 0.3s ease;
     opacity: 0;
+    contain: layout paint; /* Performance: isolate layout calculations */
+    content-visibility: auto; /* Render only visible items */
   }
   .masonry-portfolio-grid .photo-item.is-loaded {
     opacity: 1;

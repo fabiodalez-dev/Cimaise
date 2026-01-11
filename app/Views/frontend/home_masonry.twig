@@ -16,8 +16,7 @@
   display: grid;
   grid-template-columns: repeat({{ home_settings.masonry_col_mobile|default(2) }}, 1fr);
   gap: {{ home_settings.masonry_gap_v|default(0) }}px {{ home_settings.masonry_gap_h|default(0) }}px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  /* VISIBLE IMMEDIATELY - no opacity:0 wait */
 }
 
 @media (min-width: 641px) {
@@ -38,14 +37,11 @@
   position: relative;
 }
 
-/* Show grid when ready */
-.masonry-grid.masonry-ready {
-  opacity: 1;
-}
-
 /* Masonry item base styles */
 .masonry-item {
   overflow: hidden;
+  contain: layout paint; /* Performance: isolate layout calculations */
+  content-visibility: auto; /* Render only visible items */
 }
 
 /* When using Masonry.js, items need absolute positioning support */
@@ -61,7 +57,17 @@
   display: block;
   width: 100%;
   height: auto;
+  /* Browser uses width/height attributes automatically for aspect-ratio */
 }
+
+/* Fallback: use img width/height to reserve space before load */
+.masonry-item picture,
+.masonry-item a {
+  display: block;
+  position: relative;
+}
+
+/* Browser natively uses width/height attributes for layout shift prevention */
 
 /* Fade-in animation for items */
 .masonry-item.fade-in {
@@ -150,7 +156,7 @@
      data-cols-tablet="{{ home_settings.masonry_col_tablet|default(3) }}"
      data-cols-desktop="{{ home_settings.masonry_col_desktop|default(5) }}">
   {% for image in all_images %}
-  <div class="masonry-item">
+  <div class="masonry-item{% if loop.index <= 8 %} fade-in{% endif %}">
     <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
       {% set webp_sources = image.sources.webp|default([]) %}
       {% set jpg_sources = image.sources.jpg|default([]) %}
@@ -163,12 +169,16 @@
         {% endif %}
         {% set img_src = image.fallback_src|default(image.original_path) %}
         {% set img_url = img_src starts with '/' ? base_path ~ img_src : img_src %}
+        {# First 8 images load immediately, rest lazy #}
+        {% set img_width = image.width|default(800) %}
+        {% set img_height = image.height|default(600) %}
         <img
           src="{{ img_url|e('html_attr') }}"
           alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
-          width="{{ image.width|default(800) }}"
-          height="{{ image.height|default(600) }}"
-          loading="lazy"
+          width="{{ img_width }}"
+          height="{{ img_height }}"
+          style="aspect-ratio: {{ img_width }} / {{ img_height }};"
+          {% if loop.index <= 8 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
         >
       </picture>
     </a>
@@ -593,28 +603,40 @@
     }, 150);
   }
 
-  // Wait for all images to load, then initialize
-  function waitForImages() {
-    var imgLoad = imagesLoaded(grid);
+  // Initialize immediately - don't wait for all images
+  function initImmediately() {
+    // Initialize Masonry right away for instant layout
+    initMasonry();
 
-    imgLoad.on('always', function() {
-      initMasonry();
+    // Progressive relayout as images load
+    var imgLoad = imagesLoaded(grid);
+    var layoutPending = false;
+
+    imgLoad.on('progress', function() {
+      // Debounce layout calls during rapid image loads
+      if (!layoutPending && msnry) {
+        layoutPending = true;
+        requestAnimationFrame(function() {
+          msnry.layout();
+          layoutPending = false;
+        });
+      }
     });
 
-    // Fallback: if imagesLoaded takes too long, init anyway
-    setTimeout(function() {
-      if (!isInitialized) {
-        console.warn('Masonry: imagesLoaded timeout, forcing init');
-        initMasonry();
+    imgLoad.on('always', function() {
+      // Final layout when all images done
+      if (msnry) {
+        msnry.layout();
+        balanceColumns();
       }
-    }, 4000); // Reduced from 5000
+    });
   }
 
-  // Start initialization
-  if (document.readyState === 'complete') {
-    waitForImages();
+  // Start immediately on DOMContentLoaded (don't wait for window.load)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initImmediately);
   } else {
-    window.addEventListener('load', waitForImages);
+    initImmediately();
   }
 
   // Bind resize handler

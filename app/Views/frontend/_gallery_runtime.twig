@@ -703,20 +703,23 @@ document.addEventListener('click', function(event) {
     const fetchUrl = `${window.basePath}/api/gallery/template?album=${encodeURIComponent(albumRef)}&template=${encodeURIComponent(templateId)}`;
 
     fetch(fetchUrl, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.text();
+        })
         .then(html => {
             // STEP 2: Parse settings and strip script tag from response HTML
+            // Use data-cimaise-tpl attribute to find OUR script (immune to extension injection)
             let parsedHtml = html;
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const settingsScript = doc.querySelector('script');
+            const settingsScript = doc.querySelector('script[data-cimaise-tpl]');
             if (settingsScript && settingsScript.textContent) {
                 const match = settingsScript.textContent.match(/window\.templateSettings\s*=\s*(\{[\s\S]*?\});/);
                 if (match) {
                     try {
                         window.templateSettings = JSON.parse(match[1]);
                     } catch(e) {
-                        console.error('Failed to parse templateSettings:', e);
                         window.templateSettings = {};
                     }
                 }
@@ -725,12 +728,10 @@ document.addEventListener('click', function(event) {
                     try {
                         window.templateAssets = JSON.parse(assetsMatch[1]);
                     } catch (e) {
-                        console.error('Failed to parse templateAssets:', e);
                         debugWarn('templateAssets JSON invalid, using default:', assetsMatch[1].substring(0, 100));
                         window.templateAssets = { css: [], js: [] };
                     }
                 } else {
-                    debugLog('templateAssets not found in response, using default');
                     window.templateAssets = { css: [], js: [] };
                 }
                 settingsScript.remove();
@@ -1043,7 +1044,7 @@ document.addEventListener('click', function(event) {
             requestAnimationFrame(() => {
                 // Re-initialize lightbox first
                 if (typeof initLightbox === 'function') {
-                    try { initLightbox(); } catch(e) {}
+                    try { initLightbox(); } catch(e) { console.error('initLightbox error:', e); }
                 }
 
                 // Initialize layout-specific code (dense_grid is CSS-only, no JS needed)
@@ -1127,12 +1128,14 @@ document.addEventListener('click', function(event) {
             });
         })
         .catch(err => {
-            console.error('Template switch failed:', err);
+            console.error('Template switch error:', err);
             galleryContainer.className = originalClasses;
             galleryContainer.innerHTML = originalContent;
             galleryContainer.classList.remove('tpl-switching');
         })
-        .finally(() => { delete el.dataset.switchInProgress; });
+        .finally(() => {
+            delete el.dataset.switchInProgress;
+        });
 });
 
 // Download button handler
