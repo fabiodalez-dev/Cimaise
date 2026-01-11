@@ -745,10 +745,11 @@ html.dark .img-placeholder {
     color: #6b7280;
 }
 
-/* NSFW blur effect */
+/* NSFW blur effect - scale hides pixelation at edges */
 .nsfw-blur {
-    filter: blur(20px);
-    transition: filter 0.3s ease;
+    filter: blur(30px);
+    transform: scale(1.1);
+    transition: filter 0.3s ease, transform 0.3s ease;
 }
 
 .nsfw-blur:hover {
