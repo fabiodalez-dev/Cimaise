@@ -63,6 +63,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let y2 = 0;
     let itemHeight = 0;
     let wrapHeight = 0;
+    let lastScrollY = 0; // Track last scroll position for optimization
+    let needsRender = false; // Only render when needed
 
     // Minimum items for good infinite scroll effect
     const MIN_ITEMS_FOR_INFINITE = 8;
@@ -165,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const handleMouseWheel = (e) => {
             if (isMobile() || !useInfiniteScroll || isFiltered) return;
             scrollY -= e.deltaY;
+            needsRender = true; // Mark that we need to render
         };
 
         if ($scroller) {
@@ -172,33 +175,38 @@ document.addEventListener('DOMContentLoaded', function() {
             $scroller.addEventListener('wheel', handleMouseWheel, { passive: true });
         }
 
-        // Animation loop
+        // Animation loop - optimized to only run when needed
         const render = () => {
             if (isMobile() || !useInfiniteScroll || isFiltered) {
+                // Idle - check again in 500ms
                 setTimeout(() => requestAnimationFrame(render), 500);
                 return;
             }
-            requestAnimationFrame(render);
 
-            const allItems = cachedItems;
-            const $items = cachedItemsCol1;
-            const $items2 = cachedItemsCol2;
+            // Check if scroll has changed enough to warrant rendering
+            const scrollDelta = Math.abs(scrollY - lastScrollY);
+            const lerpDelta = Math.abs(scrollY - y) + Math.abs(scrollY - y2);
 
-            // Update dimensions if changed
-            if (cachedItems[0]) {
-                const newHeight = cachedItems[0].clientHeight;
-                if (newHeight !== itemHeight && newHeight > 0) {
-                    itemHeight = newHeight;
-                    wrapHeight = (cachedItems.length / 2) * itemHeight;
-                }
+            // Only process if there's actual movement or animation in progress
+            if (scrollDelta > 0.1 || lerpDelta > 0.5 || needsRender) {
+                needsRender = false;
+                lastScrollY = scrollY;
+
+                const $items = cachedItemsCol1;
+                const $items2 = cachedItemsCol2;
+
+                // Only update dimensions occasionally (not every frame)
+                // Moved to resize handler
+
+                // Lerp for smooth animation
+                y = y + (scrollY - y) * 0.09;
+                y2 = y2 + (scrollY - y2) * 0.08;
+
+                dispose(y, $items);
+                dispose(y2, $items2);
             }
 
-            // Lerp for smooth animation
-            y = y + (scrollY - y) * 0.09;
-            y2 = y2 + (scrollY - y2) * 0.08;
-
-            dispose(y, $items);
-            dispose(y2, $items2);
+            requestAnimationFrame(render);
         };
         render();
     };
@@ -480,7 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupPageTransition();
     setupFadeInObserver();
 
-    // Handle resize
+    // Handle resize - also updates dimensions for render loop
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
@@ -491,11 +499,20 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (!isFiltered) {
                 updateCachedItems();
                 if (cachedItems[0]) {
-                    itemHeight = cachedItems[0].clientHeight;
-                    wrapHeight = (cachedItems.length / 2) * itemHeight;
+                    const newHeight = cachedItems[0].clientHeight;
+                    if (newHeight > 0) {
+                        itemHeight = newHeight;
+                        wrapHeight = (cachedItems.length / 2) * itemHeight;
+                        needsRender = true; // Trigger re-render after dimension change
+                    }
                 }
             }
         }, 100);
+    });
+
+    // Add will-change optimization to items for smoother transforms
+    cachedItems.forEach(item => {
+        item.style.willChange = 'transform';
     });
 
 });
