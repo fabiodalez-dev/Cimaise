@@ -2412,7 +2412,9 @@ class PageController extends BaseController
             foreach ($variants as $variant) {
                 $format = $variant['format'] ?? 'jpg';
                 $path = $variant['path'] ?? '';
-                if (!isset($sources[$format]) || $path === '' || str_starts_with($path, '/storage/')) {
+                $variantType = $variant['variant'] ?? '';
+                // Skip blur variants and storage paths from srcset
+                if (!isset($sources[$format]) || $path === '' || str_starts_with($path, '/storage/') || $variantType === 'blur') {
                     continue;
                 }
                 // Trust database - variant exists means file exists
@@ -2422,12 +2424,15 @@ class PageController extends BaseController
             // Find best fallback from variants for initial grid display
             // Prefer smallest public variant by width for faster initial load
             // Progressive loader will fetch higher quality versions on demand
+            // IMPORTANT: Skip blur variants - they are for NSFW/protected previews only
             $fallbackUrl = $image['original_path'] ?? '';
             $bestWidth = PHP_INT_MAX;
             foreach ($variants as $variant) {
                 $path = (string) ($variant['path'] ?? '');
                 $w = (int) ($variant['width'] ?? 0);
-                if ($path === '' || str_starts_with($path, '/storage/') || $w <= 0) {
+                $variantType = $variant['variant'] ?? '';
+                // Skip blur variants, storage paths, and invalid widths
+                if ($path === '' || str_starts_with($path, '/storage/') || $w <= 0 || $variantType === 'blur') {
                     continue;
                 }
                 if ($w < $bestWidth) {

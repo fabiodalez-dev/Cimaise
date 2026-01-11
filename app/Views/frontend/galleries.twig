@@ -1555,14 +1555,16 @@ function debounce(func, wait) {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* NSFW Content Styles */
+/* NSFW Content Styles - scale hides pixelation at edges */
 .nsfw-blur {
-    filter: blur(20px);
-    transition: filter 0.3s ease;
+    filter: blur(30px);
+    transform: scale(1.1);
+    transition: filter 0.3s ease, transform 0.3s ease;
 }
 
 .nsfw-confirmed .nsfw-blur {
     filter: none;
+    transform: scale(1);
 }
 
 .nsfw-confirmed .nsfw-overlay {
