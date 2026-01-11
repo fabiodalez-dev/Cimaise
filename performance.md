@@ -148,7 +148,7 @@ public function getCriticalFontsForPreload(string $basePath = ''): array
 // resources/js/home-progressive-loader.js:65-76
 _detectConnectionSpeed() {
   const connection = navigator.connection;
-  if (connection.effectiveType === 'slow-2g' || '2g') return 'slow';
+  if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') return 'slow';
   if (connection.effectiveType === '3g') return 'medium';
   if (connection.effectiveType === '4g') return 'fast';
 }
