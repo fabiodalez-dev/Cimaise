@@ -647,8 +647,8 @@ echo "Hit rate: " . ($stats['hits'] / ($stats['hits'] + $stats['misses'])) . "\n
 
 ### Tools Consigliati
 
-- **Google PageSpeed Insights** (https://pagespeed.web.dev/)
-- **WebPageTest** (https://www.webpagetest.org/)
+- [**Google PageSpeed Insights**](https://pagespeed.web.dev/)
+- [**WebPageTest**](https://www.webpagetest.org/)
 - **Chrome DevTools Lighthouse**
 - **New Relic / Datadog** (produzione)
 

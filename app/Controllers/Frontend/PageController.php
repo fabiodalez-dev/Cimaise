@@ -234,7 +234,7 @@ class PageController extends BaseController
         // Progressive image loading: load initial batch with album diversity
         // Use HomeImageService for reusable album-diverse fetch logic
         $homeImageService = new \App\Services\HomeImageService($this->db);
-        $initialLimit = 15; // Viewport-only SSR load - rest via progressive loading API
+        $initialLimit = 20; // Viewport-only SSR load - rest via progressive loading API
         $imageResult = $homeImageService->getInitialImages($initialLimit, $includeNsfw);
 
         // Process images with responsive sources (batch to avoid N+1 queries)

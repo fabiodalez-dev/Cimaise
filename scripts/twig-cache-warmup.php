@@ -46,23 +46,16 @@ $templates = [];
 
 function findTemplates(string $dir, string $baseDir): array {
     $found = [];
-    $items = scandir($dir);
-    if ($items === false) {
-        return [];
-    }
 
-    foreach ($items as $item) {
-        if ($item === '.' || $item === '..') {
-            continue;
-        }
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::LEAVES_ONLY
+    );
 
-        $path = $dir . '/' . $item;
-
-        if (is_dir($path)) {
-            $found = array_merge($found, findTemplates($path, $baseDir));
-        } elseif (pathinfo($path, PATHINFO_EXTENSION) === 'twig') {
+    foreach ($iterator as $file) {
+        if ($file->isFile() && $file->getExtension() === 'twig') {
             // Get relative path from views directory
-            $relativePath = str_replace($baseDir . '/', '', $path);
+            $relativePath = str_replace($baseDir . '/', '', $file->getPathname());
             $found[] = $relativePath;
         }
     }
