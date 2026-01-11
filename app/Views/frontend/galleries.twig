@@ -277,7 +277,7 @@
                    alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
                    title="{{ seo_title|e('html_attr') }}"
                    class="nsfw-blur w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-                   loading="lazy"
+                   {% if loop.index <= 8 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                    data-fallback="hide">
               {% else %}
               <div class="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
@@ -291,7 +291,7 @@
                      alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
                      title="{{ seo_title|e('html_attr') }}"
                      class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-                     loading="lazy"
+                     {% if loop.index <= 8 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                      data-fallback="hide">
               {% else %}
                 <div class="w-full h-full flex items-center justify-center text-gray-400">
