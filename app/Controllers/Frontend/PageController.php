@@ -2419,7 +2419,9 @@ class PageController extends BaseController
                 $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
             }
 
-            // Find best fallback from variants (prefer smallest public variant by width)
+            // Find best fallback from variants for initial grid display
+            // Prefer smallest public variant by width for faster initial load
+            // Progressive loader will fetch higher quality versions on demand
             $fallbackUrl = $image['original_path'] ?? '';
             $bestWidth = PHP_INT_MAX;
             foreach ($variants as $variant) {
