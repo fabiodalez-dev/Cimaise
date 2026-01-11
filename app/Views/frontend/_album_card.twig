@@ -16,8 +16,8 @@
     <a href="{{ album_url }}" class="block aspect-[3/2] overflow-hidden bg-neutral-100 rounded-sm" title="{{ seo_title|e('html_attr') }}">
     {% set show_nsfw_overlay = not ((nsfw_consent|default(false)) or (is_admin|default(false))) %}
     {% set is_locked = album.is_locked|default(false) %}
-    {# NSFW albums always use blur cover as visual indicator (even with consent) #}
-    {% set should_blur_cover = (album.is_nsfw and not is_admin|default(false)) or is_locked %}
+    {# NSFW albums use blur cover until user accepts gate (admins always see clear) #}
+    {% set should_blur_cover = (album.is_nsfw and not nsfw_consent|default(false) and not is_admin|default(false)) or is_locked %}
     {% if has_cover %}
       {% if should_blur_cover %}
         {# Protected albums: use blur preview until consent/unlock is confirmed #}
