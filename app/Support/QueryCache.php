@@ -79,7 +79,7 @@ class QueryCache
             return null;
         }
 
-        $cached = @unserialize($data);
+        $cached = @unserialize($data, ['allowed_classes' => false]);
         if (!is_array($cached) || !isset($cached['expires'], $cached['data'])) {
             return null;
         }
@@ -202,7 +202,7 @@ class QueryCache
                 continue;
             }
 
-            $cached = @unserialize($data);
+            $cached = @unserialize($data, ['allowed_classes' => false]);
             if (!is_array($cached) || !isset($cached['expires'])) {
                 @unlink($file);
                 $deleted++;

@@ -80,11 +80,8 @@ echo "⚙️  Compiling templates...\n";
 
 foreach ($templates as $template) {
     try {
-        // Check if template is valid
-        $source = $environment->getLoader()->getSourceContext($template);
-
         // Compile the template (this writes to cache)
-        $environment->loadTemplate($source);
+        $environment->load($template);
 
         echo "   ✓ {$template}\n";
         $compiled++;

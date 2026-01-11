@@ -2410,12 +2410,18 @@ class PageController extends BaseController
                 $sources[$format][] = $path . ' ' . (int) $variant['width'] . 'w';
             }
 
-            // Find best fallback from variants (prefer smallest public variant)
+            // Find best fallback from variants (prefer smallest public variant by width)
             $fallbackUrl = $image['original_path'] ?? '';
+            $bestWidth = PHP_INT_MAX;
             foreach ($variants as $variant) {
-                if (!empty($variant['path']) && !str_starts_with((string) $variant['path'], '/storage/')) {
-                    $fallbackUrl = $variant['path'];
-                    break;
+                $path = (string) ($variant['path'] ?? '');
+                $w = (int) ($variant['width'] ?? 0);
+                if ($path === '' || str_starts_with($path, '/storage/') || $w <= 0) {
+                    continue;
+                }
+                if ($w < $bestWidth) {
+                    $bestWidth = $w;
+                    $fallbackUrl = $path;
                 }
             }
 

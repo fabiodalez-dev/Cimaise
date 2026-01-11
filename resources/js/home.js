@@ -178,9 +178,9 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
         renderImage: (img) => {
           const cell = createHomeItem(img, config.basePath, isHorizontal);
 
-          // Append to mobile layout (always use home-cell class for mobile)
+          // Append to mobile layout (create separate item to preserve event listeners)
           if (mobileCells) {
-            const mobileCell = cell.cloneNode(true);
+            const mobileCell = createHomeItem(img, config.basePath, false);
             mobileCell.className = 'home-cell';
             mobileCells.appendChild(mobileCell);
           }

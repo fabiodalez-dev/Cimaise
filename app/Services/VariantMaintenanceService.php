@@ -50,7 +50,8 @@ class VariantMaintenanceService
         }
 
         try {
-            // Double-check after acquiring lock
+            // Clear cache to get fresh DB value and double-check after acquiring lock
+            $settings->clearCache();
             $lastRun = (string)$settings->get(self::SETTINGS_KEY, '');
             if ($lastRun === $today) {
                 $written = @file_put_contents($cacheFile, $today, LOCK_EX);
@@ -148,7 +149,7 @@ class VariantMaintenanceService
                 AND iv.variant IN ({$variantPlaceholders})
                 AND iv.format IN ({$formatPlaceholders})
             GROUP BY i.id
-            HAVING variant_count < ?
+            HAVING COUNT(iv.id) < ?
         ";
 
         $stmt = $pdo->prepare($sql);

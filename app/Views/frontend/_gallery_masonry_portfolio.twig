@@ -38,7 +38,7 @@
     cursor: pointer;
     transition: opacity 0.3s ease, box-shadow 0.3s ease;
     opacity: 0;
-    contain: layout style paint; /* Performance: isolate layout calculations */
+    contain: layout paint; /* Performance: isolate layout calculations */
     content-visibility: auto; /* Render only visible items */
   }
   .masonry-portfolio-grid .photo-item.is-loaded {
@@ -58,10 +58,6 @@
     opacity: 0;
     transform: scale(1);
     transition: opacity 0.3s ease, transform 0.3s ease;
-  }
-  /* Preserve aspect ratio to prevent layout shift */
-  .masonry-portfolio-grid .photo-item img[width][height] {
-    aspect-ratio: attr(width) / attr(height);
   }
   .masonry-portfolio-grid[data-hover-scale="1"] .photo-item:hover {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
