@@ -2212,24 +2212,31 @@ class PageController extends BaseController
         foreach ($albums as $album) {
             $album['is_password_protected'] = !empty($album['password_hash']);
             unset($album['password_hash']);
-            // Mark password-protected albums as locked (but still show them in listings)
-            $album['is_locked'] = !$isAdmin && !empty($album['is_password_protected']) && !$this->hasAlbumPasswordAccess((int) $album['id']);
+
+            // Skip password-protected albums entirely (only accessible via direct link)
+            if (!$isAdmin && !empty($album['is_password_protected'])) {
+                continue;
+            }
+
+            // Skip NSFW albums if user hasn't consented
+            if (!$isAdmin && !empty($album['is_nsfw']) && !$nsfwConsent) {
+                continue;
+            }
+
+            $album['is_locked'] = false; // Password-protected albums are now filtered out
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $album = $this->ensureAlbumCoverImage($album);
-            $needsProtectedPreview = !$isAdmin
-                && ($album['is_locked'] || (!empty($album['is_nsfw']) && !$nsfwConsent));
-            if ($needsProtectedPreview && !empty($album['cover_image']['id'])) {
+
+            // NSFW albums always show blur cover even with consent (visual indicator)
+            if (!$isAdmin && !empty($album['is_nsfw']) && !empty($album['cover_image']['id'])) {
                 $blurPath = $album['cover_image']['blur_path'] ?? '';
                 $ext = 'jpg';
                 if ($blurPath && preg_match('/\\.([a-z0-9]+)$/i', (string) $blurPath, $matches)) {
                     $ext = strtolower($matches[1]);
                 }
                 $album['cover_image']['blur_path'] = '/media/protected/' . (int) $album['cover_image']['id'] . '/blur.' . $ext;
-                unset(
-                    $album['cover_image']['preview_path'],
-                    $album['cover_image']['original_path'],
-                    $album['cover_image']['path']
-                );
+                // Keep blur path but also keep other paths for NSFW with consent
+                // Templates should check is_nsfw and use blur_path accordingly
             }
             $visibleAlbums[] = $album;
         }

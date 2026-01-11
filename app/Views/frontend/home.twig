@@ -1,6 +1,7 @@
 {% extends "frontend/_layout.twig" %}
 
 {% block content %}
+{% include 'frontend/home/_preloader.twig' %}
 {# Hook: frontend_home_before - Before all home page content #}
 {{ do_action('frontend_home_before', {base_path: base_path}) }}
 

@@ -81,12 +81,13 @@
         <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1536px) 50vw, (min-width: 1280px) 55vw, (min-width: 1024px) 60vw, (min-width: 768px) 70vw, (min-width: 640px) 95vw, 100vw">
       {% endif %}
       
+{# First 9 images load eagerly for instant display - loop.index available from parent #}
       <img src="{{ best_jpg_path }}"
            alt="{{ ImageMacros.smart_alt(image, album, site_title)|trim|e('html_attr') }}"
            title="{{ seo_title|e('html_attr') }}"
            width="{{ image.width }}"
            height="{{ image.height }}"
-           loading="lazy"
+           {% if loop is defined and loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
            decoding="async"
            data-fallback="hide"
            class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">
