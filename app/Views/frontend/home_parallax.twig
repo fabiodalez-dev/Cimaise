@@ -54,6 +54,16 @@ body {
   object-fit: cover;
 }
 
+/* First 3 cards: instant visibility, no transitions */
+.card:nth-child(-n+3) {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.card:nth-child(-n+3) .card-image-wrapper img {
+  opacity: 1 !important;
+}
+
 .card-link {
   display: block;
   width: 100%;
@@ -170,12 +180,11 @@ body {
             {% if variants_webp %}
               <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
             {% endif %}
-            {# First 9 images (3x3 grid) load eagerly for instant display #}
+            {# First 3 images: instant display (no async decoding), 4-9: high priority, 10+: lazy #}
             <img
               src="{{ best_jpg_path|e('html_attr') }}"
               alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
-              {% if loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
-              decoding="async"
+              {% if loop.index <= 3 %}fetchpriority="high"{% elseif loop.index <= 9 %}fetchpriority="high" decoding="async"{% else %}loading="lazy" decoding="async"{% endif %}
               data-fallback="hide"
               data-parallax-image
             >
