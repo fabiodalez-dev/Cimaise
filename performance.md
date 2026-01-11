@@ -282,6 +282,10 @@ $twigOptions = [
 ];
 ```
 
+Nota: `strict_variables: false` migliora le performance ma variabili non definite
+nei template verranno ignorate invece di generare errori. Assicurati di testare
+i template in sviluppo con `strict_variables: true` prima del deploy.
+
 **Impatto:**
 - **auto_reload: false** → Elimina stat() su OGNI template ad OGNI richiesta
 - **strict_variables: false** → Riduce controlli runtime
@@ -296,7 +300,7 @@ php scripts/twig-cache-warmup.php
 ```
 
 **Output esempio:**
-```
+```text
 🔥 Twig Cache Warmup
 ====================
 
@@ -447,6 +451,11 @@ realpath_cache_ttl=600
 
 **Come applicare:**
 ```bash
+# Nota: I percorsi possono variare in base alla distribuzione
+# Debian/Ubuntu: /etc/php/8.2/fpm/conf.d/
+# CentOS/RHEL: /etc/php.d/
+# macOS (Homebrew): /usr/local/etc/php/8.2/conf.d/
+
 # 1. Copia config
 sudo cp docs/php-performance.ini /etc/php/8.2/fpm/conf.d/99-cimaise-performance.ini
 
@@ -574,6 +583,11 @@ sudo systemctl restart php8.2-fpm
 
 ### 3. Configura PHP
 ```bash
+# Nota: I percorsi possono variare in base alla distribuzione
+# Debian/Ubuntu: /etc/php/8.2/fpm/conf.d/
+# CentOS/RHEL: /etc/php.d/
+# macOS (Homebrew): /usr/local/etc/php/8.2/conf.d/
+
 sudo cp docs/php-performance.ini /etc/php/8.2/fpm/conf.d/99-cimaise-performance.ini
 sudo systemctl restart php8.2-fpm
 ```
@@ -600,6 +614,27 @@ php -m | grep apcu
 ```
 
 ### 7. Test Performance
+
+### Formato curl per test performance
+
+Crea il file `curl-format.txt` con questo contenuto:
+
+```text
+time_namelookup:    %{time_namelookup}s
+time_connect:       %{time_connect}s
+time_appconnect:    %{time_appconnect}s
+time_pretransfer:   %{time_pretransfer}s
+time_redirect:      %{time_redirect}s
+time_starttransfer: %{time_starttransfer}s
+time_total:         %{time_total}s
+```
+
+Oppure usa direttamente:
+
+```bash
+curl -w "\nTime: %{time_total}s\nSize: %{size_download} bytes\n" -o /dev/null -s "https://tuosito.com"
+```
+
 ```bash
 curl -w "@curl-format.txt" -o /dev/null -s "https://tuosito.com"
 ```
@@ -660,7 +695,8 @@ echo "Hit rate: " . ($stats['hits'] / ($stats['hits'] + $stats['misses'])) . "\n
 
 ```bash
 # Aggiungi a crontab
-0 * * * * php /path/to/cimaise/scripts/cache-cleanup.php
+0 * * * * rm -rf /path/to/cimaise/storage/cache/*
+0 * * * * php /path/to/cimaise/scripts/cache-warmup.php
 ```
 
 ### Database Maintenance
@@ -685,7 +721,7 @@ php -r "App\Support\QueryCache::getInstance()->flush();"
 ## 📝 Git Commits
 
 ### Commit 1: Mobile UI + FOUC fixes
-```
+```text
 SHA: c654df2
 perf: improve mobile UI performance and eliminate FOUC/layout shift
 ```
@@ -698,7 +734,7 @@ perf: improve mobile UI performance and eliminate FOUC/layout shift
 - Ajax prefetching e caching
 
 ### Commit 2: Font FOUT elimination
-```
+```text
 SHA: 3f305e2
 fix: eliminate FOUT with font-display optional and dynamic preloading
 ```
@@ -710,7 +746,7 @@ fix: eliminate FOUT with font-display optional and dynamic preloading
 - Template font preload
 
 ### Commit 3: Comprehensive performance suite
-```
+```text
 SHA: 51c8300
 perf: comprehensive performance optimization suite
 ```
@@ -861,4 +897,3 @@ php scripts/cache-warmup.php
 ```
 
 ---
-
