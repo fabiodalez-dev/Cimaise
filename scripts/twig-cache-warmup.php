@@ -10,7 +10,13 @@ declare(strict_types=1);
  * Usage: php scripts/twig-cache-warmup.php
  */
 
-require __DIR__ . '/../vendor/autoload.php';
+$autoloadPath = __DIR__ . '/../vendor/autoload.php';
+if (!file_exists($autoloadPath)) {
+    echo "❌ Error: Composer autoloader not found.\n";
+    echo "   Please run: composer install\n";
+    exit(1);
+}
+require $autoloadPath;
 
 use Slim\Views\Twig;
 use Dotenv\Dotenv;
@@ -27,7 +33,16 @@ if (file_exists($root . '/.env')) {
 // Setup Twig with production settings
 $twigCacheDir = $root . '/storage/cache/twig';
 if (!is_dir($twigCacheDir)) {
-    mkdir($twigCacheDir, 0755, true);
+    if (!mkdir($twigCacheDir, 0755, true)) {
+        echo "❌ Error: Cannot create cache directory: {$twigCacheDir}\n";
+        echo "   Please check permissions on storage/ directory.\n";
+        exit(1);
+    }
+}
+if (!is_writable($twigCacheDir)) {
+    echo "❌ Error: Cache directory is not writable: {$twigCacheDir}\n";
+    echo "   Please fix permissions: chmod 755 {$twigCacheDir}\n";
+    exit(1);
 }
 
 $twigOptions = [
@@ -43,6 +58,10 @@ $environment = $twig->getEnvironment();
 // Get all template files
 $viewsDir = $root . '/app/Views';
 $templates = [];
+if (!is_dir($viewsDir)) {
+    echo "❌ Error: Views directory not found: {$viewsDir}\n";
+    exit(1);
+}
 
 function findTemplates(string $dir, string $baseDir): array {
     $found = [];
@@ -76,6 +95,13 @@ echo "⚙️  Compiling templates...\n";
 
 foreach ($templates as $template) {
     try {
+        $templatePath = $viewsDir . '/' . $template;
+        if (!file_exists($templatePath)) {
+            echo "   ⊘ {$template} (not found on disk)\n";
+            $skipped++;
+            continue;
+        }
+
         // Compile the template (this writes to cache)
         $environment->load($template);
 
@@ -83,9 +109,9 @@ foreach ($templates as $template) {
         $compiled++;
 
     } catch (\Twig\Error\LoaderError $e) {
-        // Template not found or not accessible
-        echo "   ⊘ {$template} (not accessible)\n";
-        $skipped++;
+        echo "   ✗ {$template} - LoaderError: {$e->getMessage()}\n";
+        echo "     Trace: " . $e->getTraceAsString() . "\n";
+        $failed++;
     } catch (\Throwable $e) {
         echo "   ✗ {$template} - Error: {$e->getMessage()}\n";
         $failed++;
@@ -101,17 +127,20 @@ echo "Failed: {$failed}\n";
 
 // Cache directory size
 $cacheSize = 0;
-$cacheFiles = new RecursiveIteratorIterator(
-    new RecursiveDirectoryIterator($twigCacheDir, RecursiveDirectoryIterator::SKIP_DOTS)
-);
+try {
+    $cacheFiles = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($twigCacheDir, RecursiveDirectoryIterator::SKIP_DOTS)
+    );
 
-foreach ($cacheFiles as $file) {
-    if ($file->isFile()) {
-        $cacheSize += $file->getSize();
+    foreach ($cacheFiles as $file) {
+        if ($file->isFile()) {
+            $cacheSize += $file->getSize();
+        }
     }
+    echo "Cache size: " . round($cacheSize / 1024, 2) . " KB\n";
+} catch (\Exception $e) {
+    echo "⚠️  Warning: Could not calculate cache size: {$e->getMessage()}\n";
 }
-
-echo "Cache size: " . round($cacheSize / 1024, 2) . " KB\n";
 
 if ($failed > 0) {
     echo "\n⚠️  Some templates failed to compile. Please review errors above.\n";
