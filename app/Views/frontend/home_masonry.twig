@@ -224,9 +224,10 @@
   var msnry = null;
   var isInitialized = false;
   var sourceItems = [];
-  var cloneIndex = 0;
+  var shuffledQueue = []; // Randomized queue for clone selection
   var isAppending = false;
   var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var initialLoadComplete = false; // Track if initial images have loaded
 
   // Performance: cache preloaded items to avoid re-processing
   var preloadedItems = new WeakSet();
@@ -312,8 +313,8 @@
     // Switch from CSS Grid to Masonry mode
     grid.classList.add('masonry-active');
 
-    // Store initial items as clone source
-    sourceItems = Array.prototype.slice.call(grid.querySelectorAll('.masonry-item'));
+    // Store initial items as clone source (shuffled for variety)
+    sourceItems = shuffleArray(Array.prototype.slice.call(grid.querySelectorAll('.masonry-item')));
     // Set item widths before Masonry calculates
     setItemWidths();
 
@@ -334,7 +335,7 @@
       columnWidth: '.masonry-item',
       gutter: config.gapH,
       percentPosition: false,
-      horizontalOrder: true,
+      horizontalOrder: false, // Disable to break predictable patterns - places in shortest column
       transitionDuration: 0,
       initLayout: false,
       resize: false
@@ -423,6 +424,26 @@
     return clone;
   }
 
+  // Fisher-Yates shuffle for randomized clone selection
+  function shuffleArray(array) {
+    var shuffled = array.slice();
+    for (var i = shuffled.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = temp;
+    }
+    return shuffled;
+  }
+
+  // Get next random source item
+  function getRandomSourceItem() {
+    if (shuffledQueue.length === 0) {
+      shuffledQueue = shuffleArray(sourceItems);
+    }
+    return shuffledQueue.pop();
+  }
+
   // Cleanup items far above viewport to prevent memory leaks
   function cleanupOffscreenItems() {
     if (!msnry) return;
@@ -476,11 +497,18 @@
 
   function appendClones(count, animate, onDone) {
     if (!msnry || !sourceItems.length || isAppending) return;
+
+    // Prevent infinite DOM growth - stop appending when we have enough items
+    var currentItems = grid.querySelectorAll('.masonry-item').length;
+    if (currentItems >= config.maxItemsInDom) {
+      if (typeof onDone === 'function') onDone();
+      return;
+    }
+
     isAppending = true;
     var newItems = [];
     for (var i = 0; i < count; i++) {
-      var src = sourceItems[cloneIndex % sourceItems.length];
-      cloneIndex++;
+      var src = getRandomSourceItem(); // Randomized selection instead of sequential
       if (!src) continue;
       var clone = cloneItem(src);
       if (animate) {
@@ -514,8 +542,8 @@
       msnry.layout();
       isAppending = false;
 
-      // Cleanup old items to prevent memory leaks
-      cleanupOffscreenItems();
+      // Note: cleanupOffscreenItems() disabled to prevent visible layout shifts
+      // Memory usage is bounded by maxItemsInDom check in appendClones guard
 
       // Notify Lenis that content height changed
       if (window.lenisResize) {
@@ -618,13 +646,13 @@
     // Initialize Masonry right away for instant layout
     initMasonry();
 
-    // Progressive relayout as images load
+    // Progressive relayout as images load - ONLY during initial load
     var imgLoad = imagesLoaded(grid);
     var layoutPending = false;
 
     imgLoad.on('progress', function() {
-      // Debounce layout calls during rapid image loads
-      if (!layoutPending && msnry) {
+      // Only relayout during initial load to prevent scroll jank
+      if (!initialLoadComplete && !layoutPending && msnry) {
         layoutPending = true;
         requestAnimationFrame(function() {
           msnry.layout();
@@ -634,9 +662,10 @@
     });
 
     imgLoad.on('always', function() {
-      // Final layout when all images done
+      // Final layout when all initial images done
       if (msnry) {
         msnry.layout();
+        initialLoadComplete = true; // Stop relayout on scroll
         balanceColumns();
       }
     });
