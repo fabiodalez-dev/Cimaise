@@ -374,8 +374,18 @@
             <div class="inf-work_wrap w-dyn-list">
                 <div class="inf-work_list w-dyn-items">
                     {% for image in all_images %}
-                    {# Get best image URL (prefer md webp) #}
-                    {% set fallback_path = image.fallback_src ?? image.variants[0].path ?? image.original_path %}
+                    {# Get best image URL (prefer md webp, skip blur variants) #}
+                    {% set fallback_path = image.fallback_src ?? '' %}
+                    {% if fallback_path == '' and image.variants is defined %}
+                        {% for v in image.variants %}
+                            {% if fallback_path == '' and v.path and v.variant != 'blur' %}
+                                {% set fallback_path = v.path %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if fallback_path == '' %}
+                        {% set fallback_path = image.original_path ?? '' %}
+                    {% endif %}
                     {% set img_src = fallback_path starts with '/' ? base_path ~ fallback_path : fallback_path %}
                     {% set srcset_avif = [] %}
                     {% set srcset_webp = [] %}

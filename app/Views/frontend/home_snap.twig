@@ -426,13 +426,21 @@ html.dark .snap-indicator:hover {
         {# Reverse order for opposite scroll direction #}
         {% for album in albums|reverse %}
         <a href="{{ base_path }}/album/{{ album.slug|e('html_attr') }}" class="snap-cover">
+          {# Find best non-blur variant for cover image #}
+          {% set coverRaw = '' %}
           {% if album.cover and album.cover.variants|length > 0 %}
-            {% set coverRaw = (album.cover.variants|first).path %}
-          {% elseif album.cover_image and album.cover_image.preview_path %}
+            {% for variant in album.cover.variants %}
+              {% if coverRaw == '' and variant.path and variant.variant != 'blur' %}
+                {% set coverRaw = variant.path %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {% if coverRaw == '' and album.cover_image and album.cover_image.preview_path %}
             {% set coverRaw = album.cover_image.preview_path %}
-          {% elseif album.cover %}
+          {% elseif coverRaw == '' and album.cover %}
             {% set coverRaw = album.cover.original_path %}
-          {% else %}
+          {% endif %}
+          {% if coverRaw == '' %}
             {% set coverRaw = '/assets/img/placeholder.jpg' %}
           {% endif %}
           {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
@@ -449,13 +457,21 @@ html.dark .snap-indicator:hover {
     <div class="snap-mobile-track" id="snapMobileTrack">
       {% for album in albums %}
       <a href="{{ base_path }}/album/{{ album.slug|e('html_attr') }}" class="snap-mobile-slide">
+        {# Find best non-blur variant for cover image #}
+        {% set coverRaw = '' %}
         {% if album.cover and album.cover.variants|length > 0 %}
-          {% set coverRaw = (album.cover.variants|first).path %}
-        {% elseif album.cover_image and album.cover_image.preview_path %}
+          {% for variant in album.cover.variants %}
+            {% if coverRaw == '' and variant.path and variant.variant != 'blur' %}
+              {% set coverRaw = variant.path %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        {% if coverRaw == '' and album.cover_image and album.cover_image.preview_path %}
           {% set coverRaw = album.cover_image.preview_path %}
-        {% elseif album.cover %}
+        {% elseif coverRaw == '' and album.cover %}
           {% set coverRaw = album.cover.original_path %}
-        {% else %}
+        {% endif %}
+        {% if coverRaw == '' %}
           {% set coverRaw = '/assets/img/placeholder.jpg' %}
         {% endif %}
         {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
