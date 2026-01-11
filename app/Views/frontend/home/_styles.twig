@@ -107,6 +107,8 @@
 /* Entry state: hide items only when JS sets the hidden class */
 .home-item--hidden { opacity: 0; filter: blur(4px); transform: scale(0.985); transition: opacity .6s ease, filter .6s ease, transform .6s ease; }
 .home-item.home-item--revealed { opacity: 1; filter: blur(0); transform: scale(1); transition: opacity .6s ease, filter .6s ease, transform .6s ease; }
+/* Instant reveal for cached images - no transition */
+.home-item.home-item--instant { opacity: 1; filter: blur(0); transform: scale(1); transition: none !important; }
 /* Mobile: disable entry transitions to avoid breathing effect */
 @media (max-width: 767px) {
   .home-item--hidden,
