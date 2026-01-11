@@ -1265,7 +1265,7 @@
         galleryContainer.id = idKeep;
 
         // Update URL
-        try { history.pushState(null, '', `${basePath}/album/${albumRef}?template=${templateId}`); } catch(e){}
+        try { history.pushState(null, '', `${basePath}/album/${albumRef}?template=${templateId}`); } catch(e){ console.warn('history.pushState failed:', e); }
 
         // Re-init
         setTimeout(() => {
