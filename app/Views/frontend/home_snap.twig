@@ -436,8 +436,8 @@ html.dark .snap-indicator:hover {
             {% set coverRaw = '/assets/img/placeholder.jpg' %}
           {% endif %}
           {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
-          {# First and last album (visible on load) load eagerly #}
-          <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" {% if loop.first or loop.last %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+          {# First 10 albums load eagerly to prevent white space during snap navigation #}
+          <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" {% if loop.index <= 10 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
         </a>
         {% endfor %}
       </div>
@@ -459,8 +459,8 @@ html.dark .snap-indicator:hover {
           {% set coverRaw = '/assets/img/placeholder.jpg' %}
         {% endif %}
         {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
-        {# First album visible on mobile load, load eagerly #}
-        <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+        {# First 10 albums load eagerly to prevent white space during snap navigation #}
+        <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" {% if loop.index <= 10 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
         <div class="snap-mobile-info">
           <span class="snap-year">{{ album.shoot_date ? album.shoot_date|date('Y') : album.published_at|date('Y') }}</span>
           <h2>{{ album.title|e }}</h2>
