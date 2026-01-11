@@ -51,13 +51,13 @@ Branch: `claude/improve-performance-mobile-ui-6iOpd`
 
 **Soluzione:**
 
-**A. Cambiato font-display strategy**
+### A. Cambiato font-display strategy
 ```php
 // app/Services/TypographyService.php:445
 font-display: optional;  // era 'swap'
 ```
 
-**B. Preload dinamico font critici**
+### B. Preload dinamico font critici
 ```php
 // app/Services/TypographyService.php (nuovo metodo)
 public function getCriticalFontsForPreload(string $basePath = ''): array
@@ -67,7 +67,7 @@ public function getCriticalFontsForPreload(string $basePath = ''): array
 }
 ```
 
-**C. Template dinamico**
+### C. Template dinamico
 ```twig
 <!-- app/Views/frontend/_layout.twig:44-49 -->
 {% if critical_fonts_preload is defined and critical_fonts_preload|length > 0 %}
@@ -94,7 +94,7 @@ public function getCriticalFontsForPreload(string $basePath = ''): array
 
 **Soluzione:**
 
-**A. CSS aspect-ratio**
+### A. CSS aspect-ratio
 ```css
 /* app/Views/frontend/home_masonry.twig:60 */
 .masonry-item img {
@@ -106,7 +106,7 @@ public function getCriticalFontsForPreload(string $basePath = ''): array
 }
 ```
 
-**B. Inline aspect-ratio nei template**
+### B. Inline aspect-ratio nei template
 ```twig
 <!-- app/Views/frontend/home_masonry.twig:168 -->
 {% set img_width = image.width|default(800) %}
@@ -115,7 +115,7 @@ public function getCriticalFontsForPreload(string $basePath = ''): array
      style="aspect-ratio: {{ img_width }} / {{ img_height }};">
 ```
 
-**C. Skeleton loading states**
+### C. Skeleton loading states
 ```css
 /* app/Views/frontend/home/_styles.twig:87-105 */
 .home-item.loading {
@@ -143,7 +143,7 @@ public function getCriticalFontsForPreload(string $basePath = ''): array
 
 **Soluzione:**
 
-**A. Rilevamento velocità connessione**
+### A. Rilevamento velocità connessione
 ```javascript
 // resources/js/home-progressive-loader.js:65-76
 _detectConnectionSpeed() {
@@ -154,7 +154,7 @@ _detectConnectionSpeed() {
 }
 ```
 
-**B. Batch size adattivo**
+### B. Batch size adattivo
 ```javascript
 // resources/js/home-progressive-loader.js:83-90
 _calculateAdaptiveBatchSize() {
@@ -166,7 +166,7 @@ _calculateAdaptiveBatchSize() {
 }
 ```
 
-**C. Prefetching intelligente**
+### C. Prefetching intelligente
 ```javascript
 // resources/js/home-progressive-loader.js:246-272
 async _prefetchNextBatch() {
@@ -177,7 +177,7 @@ async _prefetchNextBatch() {
 }
 ```
 
-**D. Cache in memoria**
+### D. Cache in memoria
 ```javascript
 // resources/js/home-progressive-loader.js:40
 this.cache = new Map(); // Max 5 entries
@@ -260,8 +260,8 @@ sqlite3 database/database.sqlite < database/migrations/migrate_performance_index
 
 ### Problema
 
-Twig di default controlla se i template sono cambiati ad ogni richiesta (`auto_reload`), causando:
-- **File stat() calls** su ogni template ad ogni request
+Twig di default controlla se i template sono cambiati a ogni richiesta (`auto_reload`), causando:
+- **File stat() calls** su ogni template a ogni request
 - **Overhead inutile** in produzione dove i template non cambiano
 - **Variabili strict** che rallentano l'esecuzione
 
@@ -287,11 +287,11 @@ nei template verranno ignorate invece di generare errori. Assicurati di testare
 i template in sviluppo con `strict_variables: true` prima del deploy.
 
 **Impatto:**
-- **auto_reload: false** → Elimina stat() su OGNI template ad OGNI richiesta
+- **auto_reload: false** → Elimina stat() su OGNI template a OGNI richiesta
 - **strict_variables: false** → Riduce controlli runtime
 - **optimizations: -1** → Abilita tutte le ottimizzazioni del compilatore Twig
 
-**B. Script di warmup** (`scripts/twig-cache-warmup.php`)
+### B. Script di warmup (`scripts/twig-cache-warmup.php`)
 
 Pre-compila tutti i template dopo deployment:
 
@@ -335,7 +335,7 @@ Cache size: 245.67 KB
 - Template già compilati in cache
 - Overhead: **~0ms** ⚡
 
-**Performance gain: 5-15ms per richiesta**
+### Performance gain: 5-15ms per richiesta
 
 ### Sviluppo vs Produzione
 
@@ -484,7 +484,7 @@ php -i | grep -E "opcache|apcu"
 4. Quando arriva HTML, risorse già pronte!
 
 **Link headers inviati:**
-```
+```http
 Link: </assets/app.css>; rel=preload; as=style
 Link: </fonts/typography.css>; rel=preload; as=style
 Link: </assets/js/photoswipe.js>; rel=preload; as=script
@@ -525,6 +525,8 @@ server {
 | **Page Load Time** | 2.5s | 1.2s | **-52%** ⚡ |
 | **Lighthouse Score** | 70 | 95+ | **+25 punti** ⚡ |
 
+> **Metodologia**: Metriche misurate con Chrome DevTools Lighthouse (Performance audit) su connessione simulata 4G, CPU 4x slowdown. I valori rappresentano la mediana di 3 esecuzioni consecutive. Per misurazioni in produzione, utilizzare [PageSpeed Insights](https://pagespeed.web.dev/) o [WebPageTest](https://www.webpagetest.org/).
+
 ### Core Web Vitals
 
 - **LCP** (Largest Contentful Paint): <2.5s ✅
@@ -544,7 +546,7 @@ server {
 
 ### Nuovi File
 
-```
+```text
 app/Support/QueryCache.php                                    [Query caching]
 app/Middlewares/EarlyHintsMiddleware.php                     [HTTP/2 optimization]
 database/migrations/migrate_performance_indexes_sqlite.sql   [DB indexes]
@@ -555,7 +557,7 @@ scripts/cache-warmup.php                                     [Cache warmup]
 
 ### File Modificati (Frontend/FOUC)
 
-```
+```text
 app/Services/TypographyService.php                           [font-display: optional]
 app/Views/frontend/_layout.twig                              [font preload]
 public/index.php                                             [critical fonts]
