@@ -137,6 +137,133 @@ class HomeImageService
     }
 
     /**
+     * Get all images for masonry-style layouts (no album diversity, load all).
+     * Returns all available images shuffled for visual variety.
+     *
+     * @param int $limit Maximum images to return (0 = all up to MAX_FETCH_LIMIT)
+     * @param bool $includeNsfw Include NSFW albums
+     * @return array{images: array, totalImages: int, hasMore: bool}
+     */
+    public function getAllImages(int $limit = 0, bool $includeNsfw = false): array
+    {
+        $limit = $limit > 0 ? min($limit, self::MAX_FETCH_LIMIT) : self::MAX_FETCH_LIMIT;
+        $pdo = $this->db->pdo();
+
+        // Fetch ALL images from published albums
+        $stmt = $pdo->prepare("
+            SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
+                   a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
+                   c.slug as category_slug
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            LEFT JOIN categories c ON c.id = a.category_id
+            WHERE a.is_published = 1
+              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
+              AND (a.password_hash IS NULL OR a.password_hash = '')
+            ORDER BY RANDOM()
+            LIMIT :max_fetch
+        ");
+        $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+        $stmt->bindValue(':max_fetch', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        $images = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Get total count
+        $countStmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            WHERE a.is_published = 1
+              AND (:include_nsfw = 1 OR a.is_nsfw = 0)
+              AND (a.password_hash IS NULL OR a.password_hash = '')
+        ");
+        $countStmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+        $countStmt->execute();
+        $totalImages = (int) $countStmt->fetchColumn();
+
+        return [
+            'images' => $images,
+            'totalImages' => $totalImages,
+            'hasMore' => $totalImages > count($images),
+        ];
+    }
+
+    /**
+     * Get more images for masonry progressive loading.
+     *
+     * @param array $excludeImageIds Image IDs already shown
+     * @param int $limit Maximum images to return
+     * @param bool $includeNsfw Include NSFW albums
+     * @return array{images: array, hasMore: bool}
+     */
+    public function getMoreMasonryImages(
+        array $excludeImageIds = [],
+        int $limit = self::DEFAULT_BATCH_LIMIT,
+        bool $includeNsfw = false
+    ): array {
+        $limit = max(1, min($limit, self::MAX_FETCH_LIMIT));
+        $pdo = $this->db->pdo();
+
+        // Build exclude clause
+        $excludeClause = '';
+        $excludeIds = array_filter(array_map('intval', $excludeImageIds), fn($id) => $id > 0);
+        if (!empty($excludeIds)) {
+            $placeholders = implode(',', array_fill(0, count($excludeIds), '?'));
+            $excludeClause = " AND i.id NOT IN ({$placeholders})";
+        }
+
+        // Fetch more images excluding already shown
+        $sql = "
+            SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
+                   a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
+                   c.slug as category_slug
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            LEFT JOIN categories c ON c.id = a.category_id
+            WHERE a.is_published = 1
+              AND (? = 1 OR a.is_nsfw = 0)
+              AND (a.password_hash IS NULL OR a.password_hash = '')
+              {$excludeClause}
+            ORDER BY RANDOM()
+            LIMIT ?
+        ";
+
+        $stmt = $pdo->prepare($sql);
+        $paramIndex = 1;
+        $stmt->bindValue($paramIndex++, $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+        foreach ($excludeIds as $id) {
+            $stmt->bindValue($paramIndex++, $id, \PDO::PARAM_INT);
+        }
+        $stmt->bindValue($paramIndex, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        $images = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Check if there are more images
+        $countSql = "
+            SELECT COUNT(*)
+            FROM images i
+            JOIN albums a ON a.id = i.album_id
+            WHERE a.is_published = 1
+              AND (? = 1 OR a.is_nsfw = 0)
+              AND (a.password_hash IS NULL OR a.password_hash = '')
+              {$excludeClause}
+        ";
+        $countStmt = $pdo->prepare($countSql);
+        $paramIndex = 1;
+        $countStmt->bindValue($paramIndex++, $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+        foreach ($excludeIds as $id) {
+            $countStmt->bindValue($paramIndex++, $id, \PDO::PARAM_INT);
+        }
+        $countStmt->execute();
+        $remainingCount = (int) $countStmt->fetchColumn();
+
+        return [
+            'images' => $images,
+            'hasMore' => $remainingCount > count($images),
+        ];
+    }
+
+    /**
      * Get next batch of images prioritizing unrepresented albums.
      *
      * Algorithm:
