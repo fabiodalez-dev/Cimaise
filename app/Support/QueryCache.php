@@ -11,6 +11,7 @@ class QueryCache
 {
     private const DEFAULT_TTL = 300; // 5 minutes
     private const CACHE_PREFIX = 'cimaise_qcache_';
+    private const CACHE_MISS = "\x00__CACHE_MISS__\x00"; // Sentinel for cache miss detection
 
     private static ?self $instance = null;
     private bool $useApcu;
@@ -46,8 +47,8 @@ class QueryCache
      */
     public function remember(string $key, callable $callback, int $ttl = self::DEFAULT_TTL): mixed
     {
-        $cached = $this->get($key);
-        if ($cached !== null) {
+        $cached = $this->getRaw($key);
+        if ($cached !== self::CACHE_MISS) {
             return $cached;
         }
 
@@ -57,37 +58,47 @@ class QueryCache
     }
 
     /**
-     * Get cached value
+     * Get cached value (returns null on miss - use getRaw() to distinguish null values)
      */
     public function get(string $key): mixed
+    {
+        $result = $this->getRaw($key);
+        return $result === self::CACHE_MISS ? null : $result;
+    }
+
+    /**
+     * Get cached value with cache miss detection
+     * Returns CACHE_MISS sentinel on miss, actual value (including null) on hit
+     */
+    private function getRaw(string $key): mixed
     {
         $cacheKey = self::CACHE_PREFIX . $key;
 
         if ($this->useApcu) {
             $result = apcu_fetch($cacheKey, $success);
-            return $success ? $result : null;
+            return $success ? $result : self::CACHE_MISS;
         }
 
         // File cache fallback
         $file = $this->getCacheFilePath($key);
         if (!file_exists($file)) {
-            return null;
+            return self::CACHE_MISS;
         }
 
         $data = @file_get_contents($file);
         if ($data === false) {
-            return null;
+            return self::CACHE_MISS;
         }
 
         $cached = @unserialize($data, ['allowed_classes' => false]);
         if (!is_array($cached) || !isset($cached['expires'], $cached['data'])) {
-            return null;
+            return self::CACHE_MISS;
         }
 
         // Check expiration
         if ($cached['expires'] < time()) {
             @unlink($file);
-            return null;
+            return self::CACHE_MISS;
         }
 
         return $cached['data'];
