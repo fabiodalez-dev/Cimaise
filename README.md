@@ -757,6 +757,39 @@ PWA features are configured from Admin → Settings:
 - **Settings Cache** — Configuration values cached with automatic invalidation
 - **Efficient Pagination** — Server-side pagination for media library and galleries
 
+### Query Cache System
+
+Cimaise includes a multi-layer query caching system for expensive database queries:
+
+- **APCu Primary** — In-memory cache when APCu extension is available (fastest)
+- **File Fallback** — Automatic fallback to file-based cache on shared hosting
+- **Automatic Invalidation** — Cache cleared when albums, images, or settings change
+- **Configurable TTL** — Per-query cache duration (navigation: 1 hour, home images: 5 minutes)
+
+Cached queries include:
+- Navigation categories and subcategories
+- Home page image pools
+- Album metadata and counts
+- Settings and translations
+
+### Twig Template Caching
+
+Template compilation is cached for fast page rendering:
+
+- **Compiled Templates** — Twig templates compiled to PHP and cached in `storage/cache/twig/`
+- **Auto-Recompile** — Templates recompiled only when source files change
+- **Warmup Scripts** — Pre-compile all templates during deployment:
+
+```bash
+# Warm up Twig template cache
+php scripts/twig-cache-warmup.php
+
+# Warm up all caches (templates + queries)
+php scripts/cache-warmup.php
+```
+
+**Deployment Tip:** Run warmup scripts after deployment to eliminate first-request compilation delay.
+
 ### Installer Configuration
 
 During installation, you can enable:
