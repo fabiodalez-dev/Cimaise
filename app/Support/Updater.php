@@ -57,7 +57,18 @@ class Updater
         $this->db = $db;
         $this->rootPath = dirname(__DIR__, 2);
         $this->backupPath = $this->rootPath . '/storage/backups';
-        $this->tempPath = sys_get_temp_dir() . '/cimaise_update_' . uniqid('', true);
+        // Use storage/tmp instead of sys_get_temp_dir() for shared hosting compatibility
+        $storageTmp = $this->rootPath . '/storage/tmp';
+
+        // Ensure storage/tmp directory exists
+        if (!is_dir($storageTmp)) {
+            @mkdir($storageTmp, 0755, true);
+        }
+
+        // Clean up old update temp directories to free disk space
+        $this->cleanupOldTempDirs($storageTmp);
+
+        $this->tempPath = $storageTmp . '/cimaise_update_' . uniqid('', true);
 
         $this->debugLog('DEBUG', 'Updater initialized', [
             'rootPath' => $this->rootPath,
@@ -102,6 +113,74 @@ class Updater
         } else {
             Logger::info($fullMessage, $context, 'updater');
         }
+    }
+
+    /**
+     * Clean up old temporary update directories to free disk space.
+     * Removes directories older than 1 hour.
+     */
+    private function cleanupOldTempDirs(string $tmpDir): void
+    {
+        if (!is_dir($tmpDir)) {
+            return;
+        }
+
+        // Clean up old update temp directories
+        $dirs = @glob($tmpDir . '/cimaise_update_*', GLOB_ONLYDIR);
+        if ($dirs === false) {
+            return;
+        }
+
+        $now = time();
+        $maxAge = 3600; // 1 hour
+
+        foreach ($dirs as $dir) {
+            $mtime = @filemtime($dir);
+            if ($mtime !== false && ($now - $mtime) > $maxAge) {
+                $this->debugLog('DEBUG', 'Cleaning old temp directory', ['path' => $dir, 'age_hours' => round(($now - $mtime) / 3600, 2)]);
+                $this->deleteDirectorySafe($dir);
+            }
+        }
+
+        // Also clean up old app backup directories in storage/tmp (not storage/backups)
+        $appBackups = @glob($tmpDir . '/cimaise_app_backup_*', GLOB_ONLYDIR);
+        if ($appBackups !== false) {
+            foreach ($appBackups as $backup) {
+                $mtime = @filemtime($backup);
+                if ($mtime !== false && ($now - $mtime) > $maxAge) {
+                    $this->debugLog('DEBUG', 'Cleaning old app backup temp directory', ['path' => $backup]);
+                    $this->deleteDirectorySafe($backup);
+                }
+            }
+        }
+    }
+
+    /**
+     * Safely delete a directory (for cleanup, doesn't throw on failure)
+     */
+    private function deleteDirectorySafe(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $files = @scandir($dir);
+        if ($files === false) {
+            return;
+        }
+
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+            $path = $dir . DIRECTORY_SEPARATOR . $file;
+            if (is_dir($path)) {
+                $this->deleteDirectorySafe($path);
+            } else {
+                @unlink($path);
+            }
+        }
+        @rmdir($dir);
     }
 
     /**
@@ -336,6 +415,111 @@ class Updater
     }
 
     /**
+     * Download file using cURL with file_get_contents fallback
+     *
+     * @param string $url The URL to download
+     * @return array{success: bool, content: string|null, error: string|null, method: string}
+     */
+    private function downloadFile(string $url): array
+    {
+        // Try cURL first (preferred for reliability)
+        if (extension_loaded('curl')) {
+            $this->debugLog('DEBUG', 'Attempting download with cURL', ['url' => $url]);
+
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 300,
+                CURLOPT_CONNECTTIMEOUT => 30,
+                CURLOPT_USERAGENT => 'Cimaise-Updater/1.0',
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_BUFFERSIZE => 1024 * 1024,  // 1MB buffer
+                CURLOPT_HTTPHEADER => ['Accept: application/octet-stream'],
+            ]);
+
+            $content = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            $errno = curl_errno($ch);
+            curl_close($ch);
+
+            if ($content !== false && $httpCode >= 200 && $httpCode < 400) {
+                $this->debugLog('INFO', 'cURL download successful', [
+                    'http_code' => $httpCode,
+                    'size_bytes' => strlen($content)
+                ]);
+                return [
+                    'success' => true,
+                    'content' => $content,
+                    'error' => null,
+                    'method' => 'curl'
+                ];
+            }
+
+            $this->debugLog('WARNING', 'cURL download failed, trying fallback', [
+                'http_code' => $httpCode,
+                'error' => $error,
+                'errno' => $errno
+            ]);
+        }
+
+        // Fallback to file_get_contents
+        if (!ini_get('allow_url_fopen')) {
+            return [
+                'success' => false,
+                'content' => null,
+                'error' => 'Neither cURL nor allow_url_fopen is available for downloads',
+                'method' => 'none'
+            ];
+        }
+
+        $this->debugLog('DEBUG', 'Attempting download with file_get_contents', ['url' => $url]);
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'header' => [
+                    'User-Agent: Cimaise-Updater/1.0',
+                    'Accept: application/octet-stream'
+                ],
+                'timeout' => 300,
+                'follow_location' => true,
+                'ignore_errors' => true
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ]
+        ]);
+
+        $content = @file_get_contents($url, false, $context);
+
+        if ($content === false) {
+            $error = error_get_last();
+            return [
+                'success' => false,
+                'content' => null,
+                'error' => $error['message'] ?? 'Unknown download error',
+                'method' => 'file_get_contents'
+            ];
+        }
+
+        $this->debugLog('INFO', 'file_get_contents download successful', [
+            'size_bytes' => strlen($content)
+        ]);
+
+        return [
+            'success' => true,
+            'content' => $content,
+            'error' => null,
+            'method' => 'file_get_contents'
+        ];
+    }
+
+    /**
      * Get all releases for display
      * @return array<array>
      */
@@ -432,36 +616,24 @@ class Updater
 
             $zipPath = $this->tempPath . '/update.zip';
 
-            // Download the file
+            // Download the file using cURL with file_get_contents fallback
             $this->debugLog('INFO', 'Starting file download...', ['url' => $downloadUrl]);
 
-            $context = stream_context_create([
-                'http' => [
-                    'method' => 'GET',
-                    'header' => [
-                        'User-Agent: Cimaise-Updater/1.0',
-                        'Accept: application/octet-stream'
-                    ],
-                    'timeout' => 300,
-                    'follow_location' => true,
-                    'ignore_errors' => true
-                ]
-            ]);
-
             $startTime = microtime(true);
-            $fileContent = @file_get_contents($downloadUrl, false, $context);
+            $downloadResult = $this->downloadFile($downloadUrl);
             $downloadTime = round(microtime(true) - $startTime, 2);
 
-            if ($fileContent === false) {
-                $error = error_get_last();
-                throw new Exception('Download failed: ' . ($error['message'] ?? 'Unknown error'));
+            if (!$downloadResult['success']) {
+                throw new Exception('Download failed: ' . $downloadResult['error']);
             }
 
+            $fileContent = $downloadResult['content'];
             $fileSize = strlen($fileContent);
             $this->debugLog('INFO', 'Download completed', [
                 'size_bytes' => $fileSize,
                 'size_mb' => round($fileSize / 1024 / 1024, 2),
-                'time_seconds' => $downloadTime
+                'time_seconds' => $downloadTime,
+                'method' => $downloadResult['method']
             ]);
 
             if ($fileSize < 1000) {
@@ -474,38 +646,86 @@ class Updater
                 throw new Exception('Cannot save update file');
             }
 
-            // Verify it's a valid zip
-            $zip = new ZipArchive();
-            $zipOpenResult = $zip->open($zipPath);
-
-            if ($zipOpenResult !== true) {
-                $zipErrors = [
-                    ZipArchive::ER_EXISTS => 'File already exists',
-                    ZipArchive::ER_INCONS => 'Zip archive inconsistent',
-                    ZipArchive::ER_INVAL => 'Invalid argument',
-                    ZipArchive::ER_MEMORY => 'Malloc failure',
-                    ZipArchive::ER_NOENT => 'No such file',
-                    ZipArchive::ER_NOZIP => 'Not a zip archive',
-                    ZipArchive::ER_OPEN => 'Can\'t open file',
-                    ZipArchive::ER_READ => 'Read error',
-                    ZipArchive::ER_SEEK => 'Seek error',
-                ];
-                throw new Exception('Invalid update file: ' . ($zipErrors[$zipOpenResult] ?? 'Unknown error'));
-            }
-
-            $this->debugLog('INFO', 'ZIP valid', [
-                'num_files' => $zip->numFiles,
-                'status' => $zip->status
-            ]);
-
-            // Extract to temp directory
+            // Verify it's a valid zip and extract with retry mechanism
             $extractPath = $this->tempPath . '/extracted';
+            $maxRetries = 3;
+            $extractionSuccess = false;
+            $lastError = 'Unknown error';
 
-            if (!$zip->extractTo($extractPath)) {
-                $zip->close();
-                throw new Exception('Package extraction failed');
+            $zipErrors = [
+                ZipArchive::ER_EXISTS => 'File already exists',
+                ZipArchive::ER_INCONS => 'Zip archive inconsistent',
+                ZipArchive::ER_INVAL => 'Invalid argument',
+                ZipArchive::ER_MEMORY => 'Malloc failure',
+                ZipArchive::ER_NOENT => 'No such file',
+                ZipArchive::ER_NOZIP => 'Not a zip archive',
+                ZipArchive::ER_OPEN => 'Can\'t open file',
+                ZipArchive::ER_READ => 'Read error',
+                ZipArchive::ER_SEEK => 'Seek error',
+            ];
+
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                $this->debugLog('DEBUG', 'ZIP extraction attempt', [
+                    'attempt' => $attempt,
+                    'max_retries' => $maxRetries,
+                    'memory_limit' => ini_get('memory_limit')
+                ]);
+
+                $zip = new ZipArchive();
+                $zipOpenResult = $zip->open($zipPath);
+
+                if ($zipOpenResult !== true) {
+                    $lastError = 'Invalid update file: ' . ($zipErrors[$zipOpenResult] ?? 'Unknown error');
+                    $this->debugLog('WARNING', 'ZIP open failed', [
+                        'attempt' => $attempt,
+                        'error' => $lastError
+                    ]);
+                } else {
+                    $this->debugLog('INFO', 'ZIP valid', [
+                        'num_files' => $zip->numFiles,
+                        'status' => $zip->status
+                    ]);
+
+                    // Ensure extract directory exists
+                    if (!is_dir($extractPath)) {
+                        mkdir($extractPath, 0755, true);
+                    }
+
+                    if ($zip->extractTo($extractPath)) {
+                        $zip->close();
+                        $extractionSuccess = true;
+                        $this->debugLog('INFO', 'ZIP extraction successful', ['attempt' => $attempt]);
+                        break;
+                    }
+
+                    $lastError = 'Package extraction failed';
+                    $zip->close();
+                    $this->debugLog('WARNING', 'ZIP extraction failed', [
+                        'attempt' => $attempt,
+                        'error' => $lastError
+                    ]);
+                }
+
+                // If not last attempt, increase memory and retry
+                if ($attempt < $maxRetries) {
+                    $currentLimit = ini_get('memory_limit');
+                    if ($currentLimit !== '-1') {
+                        $currentBytes = $this->parseMemoryLimit($currentLimit);
+                        $newLimit = (int)($currentBytes / 1024 / 1024) * 2;
+                        @ini_set('memory_limit', $newLimit . 'M');
+                        $this->debugLog('DEBUG', 'Increased memory limit', [
+                            'from' => $currentLimit,
+                            'to' => $newLimit . 'M'
+                        ]);
+                    }
+                    // Small delay before retry
+                    sleep(2);
+                }
             }
-            $zip->close();
+
+            if (!$extractionSuccess) {
+                throw new Exception($lastError);
+            }
 
             // Find the actual content directory (GitHub adds a prefix)
             $dirs = glob($extractPath . '/*', GLOB_ONLYDIR);
@@ -992,7 +1212,8 @@ class Updater
     private function backupAppFiles(): string
     {
         $timestamp = date('Y-m-d_His');
-        $backupPath = sys_get_temp_dir() . '/cimaise_app_backup_' . $timestamp;
+        // Use storage/tmp instead of sys_get_temp_dir() for shared hosting compatibility
+        $backupPath = $this->rootPath . '/storage/tmp/cimaise_app_backup_' . $timestamp;
 
         if (!mkdir($backupPath, 0755, true) && !is_dir($backupPath)) {
             throw new Exception('Cannot create application backup directory');
@@ -1657,10 +1878,26 @@ class Updater
         ];
         if (!$zipMet) $allMet = false;
 
+        // Check download capability (cURL preferred, allow_url_fopen as fallback)
+        $curlAvailable = extension_loaded('curl');
+        $urlFopenEnabled = (bool)ini_get('allow_url_fopen');
+        $downloadMet = $curlAvailable || $urlFopenEnabled;
+        $downloadStatus = [];
+        if ($curlAvailable) $downloadStatus[] = 'cURL';
+        if ($urlFopenEnabled) $downloadStatus[] = 'allow_url_fopen';
+        $requirements[] = [
+            'name' => 'Download capability',
+            'required' => 'cURL or allow_url_fopen',
+            'current' => $downloadMet ? implode(' + ', $downloadStatus) : 'Not available',
+            'met' => $downloadMet
+        ];
+        if (!$downloadMet) $allMet = false;
+
         $writablePaths = [
             $this->rootPath,
             $this->backupPath,
             $this->rootPath . '/storage',
+            $this->rootPath . '/storage/tmp',  // Required for update extraction
         ];
 
         foreach ($writablePaths as $path) {
@@ -1678,11 +1915,11 @@ class Updater
         if ($freeSpace === false) {
             $freeSpace = 0;
         }
-        $minSpace = 100 * 1024 * 1024;
+        $minSpace = 200 * 1024 * 1024;
         $spaceMet = $freeSpace >= $minSpace;
         $requirements[] = [
             'name' => 'Free space',
-            'required' => '100MB',
+            'required' => '200MB',
             'current' => $freeSpace > 0 ? $this->formatBytes($freeSpace) : 'Not available',
             'met' => $spaceMet
         ];
