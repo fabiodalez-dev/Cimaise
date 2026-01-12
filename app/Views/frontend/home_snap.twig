@@ -450,7 +450,7 @@ html.dark .snap-indicator:hover {
           {% endif %}
           {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
           {# First 10 albums load eagerly to prevent white space during snap navigation #}
-          <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" {% if loop.index <= 10 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+          <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" {% if loop.index <= 10 %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async">
         </a>
         {% endfor %}
       </div>
@@ -485,7 +485,7 @@ html.dark .snap-indicator:hover {
         {% endif %}
         {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
         {# First 10 albums load eagerly to prevent white space during snap navigation #}
-        <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" {% if loop.index <= 10 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+        <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" {% if loop.index <= 10 %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async">
         <div class="snap-mobile-info">
           <span class="snap-year">{{ album.shoot_date ? album.shoot_date|date('Y') : album.published_at|date('Y') }}</span>
           <h2>{{ album.title|e }}</h2>
