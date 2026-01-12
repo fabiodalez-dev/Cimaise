@@ -34,6 +34,8 @@ class UploadController extends BaseController
             }
         } catch (\Throwable $e) {
             Logger::error('UploadController: DB error checking album', ['error' => $e->getMessage()], 'upload');
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Database error']));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
         // CSRF is enforced by middleware; here we only handle the payload
 
