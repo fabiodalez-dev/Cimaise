@@ -82,7 +82,7 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     cell.className = isHorizontal ? 'home-cell-h' : 'home-cell';
 
     const item = document.createElement('div');
-    item.className = 'home-item home-item--revealed loading group rounded-xl overflow-hidden shadow-sm relative transition-transform hover:scale-105 duration-300';
+    item.className = 'home-item home-item--instant group rounded-xl overflow-hidden shadow-sm relative transition-transform hover:scale-105 duration-300';
     item.style.aspectRatio = `${safeW} / ${safeH}`;
     item.dataset.imageId = String(parseInt(img.id, 10) || 0);
 
@@ -112,7 +112,7 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     imgEl.alt = alt;
     imgEl.width = safeW;
     imgEl.height = safeH;
-    imgEl.loading = 'lazy';
+    imgEl.loading = 'eager';
     imgEl.decoding = 'async';
     imgEl.className = 'w-full h-full object-cover block';
 
@@ -151,21 +151,10 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     // Ensure the gallery is visible even if JS animations are disabled
     gallery.style.opacity = '1';
 
-    // Get all home-item elements and reveal them
-    // For cached images (already complete), use instant reveal (no animation)
-    // For non-cached images, use normal reveal with transition
+    // Show all items immediately without entry animations
     const items = Array.from(gallery.querySelectorAll('.home-item'));
     items.forEach((item) => {
-      const img = item.querySelector('img');
-      // Check if image is already loaded (from browser cache)
-      // img.complete is true if loaded, naturalWidth > 0 confirms it's a valid image
-      if (img && img.complete && img.naturalWidth > 0) {
-        // Cached image - instant reveal without animation
-        item.classList.add('home-item--instant');
-      } else {
-        // Not cached - reveal with animation
-        item.classList.add('home-item--revealed');
-      }
+      item.classList.add('home-item--instant');
     });
 
     // Progressive Loading: Load more images via API

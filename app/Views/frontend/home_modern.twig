@@ -376,33 +376,28 @@
                 <div class="inf-work_list w-dyn-items">
                     {% for image in all_images %}
                     {# Get best image URL (prefer md webp, skip blur variants) #}
-                    {% set fallback_path = image.fallback_src ?? '' %}
-                    {% if fallback_path == '' and image.variants is defined %}
-                        {% for v in image.variants %}
-                            {% if fallback_path == '' and v.path and v.variant != 'blur' %}
-                                {% set fallback_path = v.path %}
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-                    {% if fallback_path == '' %}
-                        {% set fallback_path = image.original_path ?? '' %}
-                    {% endif %}
+                    {% set fallback_path = image.fallback_src ?? image.original_path ?? '' %}
                     {% set img_src = fallback_path starts with '/' ? base_path ~ fallback_path : fallback_path %}
                     {% set srcset_avif = [] %}
                     {% set srcset_webp = [] %}
                     {% set srcset_jpg = [] %}
-                    {% for variant in image.variants %}
-                        {% if variant.path and not (variant.path starts with '/storage/') %}
-                            {% set variant_url = variant.path starts with '/' ? base_path ~ variant.path : base_path ~ '/' ~ variant.path %}
-                            {% set srcset_entry = variant_url ~ ' ' ~ variant.width ~ 'w' %}
-                            {% if variant.format == 'avif' %}
-                                {% set srcset_avif = srcset_avif|merge([srcset_entry]) %}
-                            {% elseif variant.format == 'webp' %}
-                                {% set srcset_webp = srcset_webp|merge([srcset_entry]) %}
-                            {% elseif variant.format == 'jpg' or variant.format == 'jpeg' %}
-                                {% set srcset_jpg = srcset_jpg|merge([srcset_entry]) %}
-                            {% endif %}
-                        {% endif %}
+                    {% for src in image.sources.avif|default([]) %}
+                        {% set src_url = src|split(' ')|first %}
+                        {% set src_rest = src|split(' ')|slice(1)|join(' ')|trim %}
+                        {% set src_rest = src_rest == '' ? '1x' : src_rest %}
+                        {% set srcset_avif = srcset_avif|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+                    {% endfor %}
+                    {% for src in image.sources.webp|default([]) %}
+                        {% set src_url = src|split(' ')|first %}
+                        {% set src_rest = src|split(' ')|slice(1)|join(' ')|trim %}
+                        {% set src_rest = src_rest == '' ? '1x' : src_rest %}
+                        {% set srcset_webp = srcset_webp|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+                    {% endfor %}
+                    {% for src in image.sources.jpg|default([]) %}
+                        {% set src_url = src|split(' ')|first %}
+                        {% set src_rest = src|split(' ')|slice(1)|join(' ')|trim %}
+                        {% set src_rest = src_rest == '' ? '1x' : src_rest %}
+                        {% set srcset_jpg = srcset_jpg|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
                     {% endfor %}
 
                     {% set seo_title = Seo.seo_title(image, {'title': image.album_title}, site_title)|trim %}
@@ -415,7 +410,7 @@
                     {% elseif image.category_slug %}
                         {% set cat_classes = ' category-' ~ image.category_slug %}
                     {% endif %}
-                    <div data-inf-item class="inf-work_item{{ cat_classes|e('html_attr') }}{% if loop.index <= 6 %} is-visible{% endif %}"
+                    <div data-inf-item class="inf-work_item{{ cat_classes|e('html_attr') }} is-visible"
                          data-main-title="{{ image.album_title|e('html_attr') }}"
                          data-work-title="{{ image.album_title|e('html_attr') }}"
                          data-work-copy="{{ image.album_description|striptags|slice(0, 200)|e('html_attr') }}"
@@ -425,13 +420,13 @@
                                 <div class="work-grid_img-height">
                                     <picture>
                                         {% if srcset_avif %}
-                                        <source type="image/avif" srcset="{{ srcset_avif|join(', ')|e('html_attr') }}">
+                                        <source type="image/avif" srcset="{{ srcset_avif|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
                                         {% if srcset_webp %}
-                                        <source type="image/webp" srcset="{{ srcset_webp|join(', ')|e('html_attr') }}">
+                                        <source type="image/webp" srcset="{{ srcset_webp|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
                                         {% if srcset_jpg %}
-                                        <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}">
+                                        <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
                                         {# First 6 images load eagerly for instant display #}
                                         <img src="{{ img_src }}"
@@ -439,7 +434,8 @@
                                              alt="{{ ImageMacros.smart_alt(image, null, site_title)|trim|e('html_attr') }}"
                                              title="{{ seo_title|e('html_attr') }}"
                                              class="img-fill"
-                                             {% if loop.index <= 6 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                                             loading="eager"
+                                             {% if loop.index <= 6 %}fetchpriority="high"{% endif %}
                                              decoding="async"
                                              data-fallback="hide">
                                     </picture>
@@ -656,7 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const img = document.createElement('img');
           img.src = coverUrl;
           img.alt = album.title || '';
-          img.loading = 'lazy';
+          img.loading = 'eager';
           img.className = 'w-full h-full object-cover';
           img.addEventListener('error', () => {
             img.remove();

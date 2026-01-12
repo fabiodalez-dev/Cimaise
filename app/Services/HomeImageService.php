@@ -47,13 +47,15 @@ class HomeImageService
 
         // Fetch images from published albums with LIMIT to prevent memory issues
         // Uses ORDER BY album_id to improve album distribution within the limit
+        // Uses subquery for category_slugs from junction table (supports multi-category albums)
         $stmt = $pdo->prepare("
             SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
                    a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
-                   c.slug as category_slug
+                   (SELECT GROUP_CONCAT(c.slug, ',') FROM album_category ac
+                    JOIN categories c ON c.id = ac.category_id
+                    WHERE ac.album_id = a.id) as category_slugs
             FROM images i
             JOIN albums a ON a.id = i.album_id
-            LEFT JOIN categories c ON c.id = a.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
@@ -150,13 +152,15 @@ class HomeImageService
         $pdo = $this->db->pdo();
 
         // Fetch ALL images from published albums
+        // Uses subquery for category_slugs from junction table (supports multi-category albums)
         $stmt = $pdo->prepare("
             SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
                    a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
-                   c.slug as category_slug
+                   (SELECT GROUP_CONCAT(c.slug, ',') FROM album_category ac
+                    JOIN categories c ON c.id = ac.category_id
+                    WHERE ac.album_id = a.id) as category_slugs
             FROM images i
             JOIN albums a ON a.id = i.album_id
-            LEFT JOIN categories c ON c.id = a.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
@@ -213,13 +217,15 @@ class HomeImageService
         }
 
         // Fetch more images excluding already shown
+        // Uses subquery for category_slugs from junction table (supports multi-category albums)
         $sql = "
             SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
                    a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
-                   c.slug as category_slug
+                   (SELECT GROUP_CONCAT(c.slug, ',') FROM album_category ac
+                    JOIN categories c ON c.id = ac.category_id
+                    WHERE ac.album_id = a.id) as category_slugs
             FROM images i
             JOIN albums a ON a.id = i.album_id
-            LEFT JOIN categories c ON c.id = a.category_id
             WHERE a.is_published = 1
               AND (? = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
@@ -286,13 +292,15 @@ class HomeImageService
         $pdo = $this->db->pdo();
 
         // Fetch eligible images with LIMIT to prevent memory issues
+        // Uses subquery for category_slugs from junction table (supports multi-category albums)
         $stmt = $pdo->prepare("
             SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
                    a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
-                   c.slug as category_slug
+                   (SELECT GROUP_CONCAT(c.slug, ',') FROM album_category ac
+                    JOIN categories c ON c.id = ac.category_id
+                    WHERE ac.album_id = a.id) as category_slugs
             FROM images i
             JOIN albums a ON a.id = i.album_id
-            LEFT JOIN categories c ON c.id = a.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')

@@ -181,11 +181,12 @@ body {
             {% if variants_webp %}
               <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
             {% endif %}
-            {# First 3 images: instant display (no async decoding), 4-9: high priority, 10+: lazy #}
             <img
               src="{{ best_jpg_path|e('html_attr') }}"
               alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
-              {% if loop.index <= 3 %}fetchpriority="high"{% elseif loop.index <= 9 %}fetchpriority="high" decoding="async"{% else %}loading="lazy" decoding="async"{% endif %}
+              loading="eager"
+              {% if loop.index <= 3 %}fetchpriority="high"{% endif %}
+              decoding="async"
               data-fallback="hide"
               data-parallax-image
             >
