@@ -681,6 +681,11 @@ html.dark .modern-search-suggestions__subtitle {
     opacity: 1;
 }
 
+/* First 6 items visible immediately for instant display (CSS fallback) */
+.inf-work_item:nth-child(-n+6) {
+    opacity: 1;
+}
+
 /* Even items offset to right */
 .inf-work_item:nth-child(2n) {
     left: calc(50% + 5px);
@@ -1080,6 +1085,11 @@ html.lenis {
     }
 
     .inf-work_item.is-visible {
+        opacity: 1;
+    }
+
+    /* First 6 items visible immediately for instant display (CSS fallback) */
+    .inf-work_item:nth-child(-n+6) {
         opacity: 1;
     }
 
