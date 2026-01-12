@@ -415,7 +415,7 @@
                     {% elseif image.category_slug %}
                         {% set cat_classes = ' category-' ~ image.category_slug %}
                     {% endif %}
-                    <div data-inf-item class="inf-work_item{{ cat_classes|e('html_attr') }}"
+                    <div data-inf-item class="inf-work_item{{ cat_classes|e('html_attr') }}{% if loop.index <= 6 %} is-visible{% endif %}"
                          data-main-title="{{ image.album_title|e('html_attr') }}"
                          data-work-title="{{ image.album_title|e('html_attr') }}"
                          data-work-copy="{{ image.album_description|striptags|slice(0, 200)|e('html_attr') }}"
@@ -440,6 +440,7 @@
                                              title="{{ seo_title|e('html_attr') }}"
                                              class="img-fill"
                                              {% if loop.index <= 6 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                                             decoding="async"
                                              data-fallback="hide">
                                     </picture>
                                 </div>
