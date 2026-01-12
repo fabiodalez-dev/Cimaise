@@ -239,7 +239,7 @@ html.dark .gallery-wall-item::after {
             {% set imgSrc = image.fallback_src|default(image.original_path) %}
             {% set imgUrl = imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
             {# First 6 images load eagerly for instant display #}
-            <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" {% if loop.index <= 6 %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async" data-fallback="hide">
+            <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="eager" {% if loop.index <= 6 %}fetchpriority="high"{% endif %} decoding="async" data-fallback="hide">
             <div class="gallery-wall-overlay">
               <h3>{{ image.album_title|e }}</h3>
               <p>{{ image.category_name|e }}</p>
@@ -261,7 +261,7 @@ html.dark .gallery-wall-item::after {
           {% set imgSrc = image.fallback_src|default(image.original_path) %}
           {% set imgUrl = imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
           {# First 8 images load eagerly for instant mobile display #}
-          <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" {% if loop.index <= 8 %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async" data-fallback="hide">
+          <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="eager" {% if loop.index <= 8 %}fetchpriority="high"{% endif %} decoding="async" data-fallback="hide">
         </a>
       </div>
       {% endfor %}

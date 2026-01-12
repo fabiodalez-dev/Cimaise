@@ -22,9 +22,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let lenis = null;
     let rafId = null;
+    const enableLenis = false;
 
     // Only initialize Lenis on desktop for smooth scrolling
-    if (!isMobile()) {
+    if (enableLenis && !isMobile()) {
         lenis = new Lenis({
             duration: 2.0,
             easing: (t) => 1 - Math.pow(1 - t, 4),
@@ -65,6 +66,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let wrapHeight = 0;
     let lastScrollY = 0; // Track last scroll position for optimization
     let needsRender = false; // Only render when needed
+    const LERP_COL1 = 0.08;
+    const LERP_COL2 = 0.07;
+    const SCROLL_DELTA_THRESHOLD = 0.05;
+    const LERP_DELTA_THRESHOLD = 0.2;
+    let triggerRender = null;
 
     // Minimum items for good infinite scroll effect
     const MIN_ITEMS_FOR_INFINITE = 8;
@@ -163,59 +169,68 @@ document.addEventListener('DOMContentLoaded', function() {
         // Make all visible
         allItems.forEach(item => item.classList.add('is-visible'));
 
-        // Handle mouse wheel
-        const handleMouseWheel = (e) => {
-            if (isMobile() || !useInfiniteScroll || isFiltered) return;
-            scrollY -= e.deltaY;
-            needsRender = true; // Mark that we need to render
-        };
-
-        if ($scroller) {
-            $scroller.removeEventListener('wheel', handleMouseWheel);
-            $scroller.addEventListener('wheel', handleMouseWheel, { passive: true });
-        }
-
-        // Animation loop - optimized to only run when needed
+        // Animation loop - run only while movement is in progress
+        let rafActive = false;
+        let lastInputTime = 0;
         const render = () => {
             if (isMobile() || !useInfiniteScroll || isFiltered) {
-                // Idle - check again in 500ms
-                setTimeout(() => requestAnimationFrame(render), 500);
+                rafActive = false;
                 return;
             }
 
-            // Check if scroll has changed enough to warrant rendering
             const scrollDelta = Math.abs(scrollY - lastScrollY);
             const lerpDelta = Math.abs(scrollY - y) + Math.abs(scrollY - y2);
+            const isRecentInput = (performance.now() - lastInputTime) < 200;
 
-            // Only process if there's actual movement or animation in progress
-            if (scrollDelta > 0.1 || lerpDelta > 0.5 || needsRender) {
+            if (scrollDelta > SCROLL_DELTA_THRESHOLD || lerpDelta > LERP_DELTA_THRESHOLD || needsRender || isRecentInput) {
                 needsRender = false;
                 lastScrollY = scrollY;
 
                 const $items = cachedItemsCol1;
                 const $items2 = cachedItemsCol2;
 
-                // Only update dimensions occasionally (not every frame)
-                // Moved to resize handler
-
                 // Lerp for smooth animation
-                y = y + (scrollY - y) * 0.09;
-                y2 = y2 + (scrollY - y2) * 0.08;
+                y = y + (scrollY - y) * LERP_COL1;
+                y2 = y2 + (scrollY - y2) * LERP_COL2;
 
                 dispose(y, $items);
                 dispose(y2, $items2);
-            }
 
+                requestAnimationFrame(render);
+            } else {
+                rafActive = false;
+            }
+        };
+
+        const startRender = () => {
+            if (rafActive) return;
+            rafActive = true;
             requestAnimationFrame(render);
         };
-        render();
+
+        startRender();
+        triggerRender = startRender;
+
+        // Handle mouse wheel
+        const handleMouseWheel = (e) => {
+            if (isMobile() || !useInfiniteScroll || isFiltered) return;
+            scrollY -= e.deltaY;
+            needsRender = true; // Mark that we need to render
+            lastInputTime = performance.now();
+            startRender();
+        };
+
+        if ($scroller) {
+            $scroller.removeEventListener('wheel', handleMouseWheel);
+            $scroller.addEventListener('wheel', handleMouseWheel, { passive: true });
+        }
     };
 
     // ============================================
     // CATEGORY FILTER
     // ============================================
 
-    const filterItems = document.querySelectorAll('.grid-toggle_item[data-filter]');
+    const filterItems = Array.from(document.querySelectorAll('.grid-toggle_item[data-filter]'));
 
     const enableFilteredMode = () => {
         if (!$menu) return;
@@ -244,50 +259,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    filterItems.forEach(filterItem => {
-        filterItem.addEventListener('click', function(e) {
-            const filter = this.getAttribute('data-filter');
+    const applyFilter = (filter, activeEl) => {
+        // Update active state
+        filterItems.forEach(f => f.classList.remove('is-active'));
+        if (activeEl) activeEl.classList.add('is-active');
 
-            if (filter !== 'all' && this.tagName.toLowerCase() === 'a') {
-                return;
-            }
+        const allItems = Array.from(document.querySelectorAll('.inf-work_item'));
 
-            e.preventDefault();
-
-            // Update active state
-            filterItems.forEach(f => f.classList.remove('is-active'));
-            this.classList.add('is-active');
-
-            const allItems = Array.from(document.querySelectorAll('.inf-work_item'));
-
-            if (filter === 'all') {
-                // Show all items
-                allItems.forEach(item => {
+        if (filter === 'all') {
+            allItems.forEach(item => {
+                item.style.display = '';
+            });
+            disableFilteredMode();
+        } else {
+            enableFilteredMode();
+            allItems.forEach(item => {
+                if (item.classList.contains('category-' + filter)) {
                     item.style.display = '';
-                });
-                disableFilteredMode();
-            } else {
-                // Enable filtered mode (CSS grid)
-                enableFilteredMode();
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
 
-                // Hide/show items based on category
-                allItems.forEach(item => {
-                    if (item.classList.contains('category-' + filter)) {
-                        item.style.display = '';
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
-            }
+        const counter = document.querySelector('.photos_total');
+        if (counter) {
+            const visibleItems = document.querySelectorAll('.inf-work_item:not([style*="display: none"])');
+            counter.textContent = visibleItems.length;
+        }
+    };
 
-            // Update counter
-            const counter = document.querySelector('.photos_total');
-            if (counter) {
-                const visibleItems = document.querySelectorAll('.inf-work_item:not([style*="display: none"])');
-                counter.textContent = visibleItems.length;
-            }
+    const filterRoot = filterItems.length
+        ? filterItems[0].closest('.work-toggle_holder')
+        : null;
+
+    if (filterRoot) {
+        filterRoot.addEventListener('click', (e) => {
+            const target = e.target.closest('.grid-toggle_item[data-filter]');
+            if (!target) return;
+            const filter = target.getAttribute('data-filter') || 'all';
+            if (filter !== 'all' && target.tagName.toLowerCase() === 'a') return;
+            e.preventDefault();
+            applyFilter(filter, target);
         });
-    });
+    }
 
     // ============================================
     // WORK GRID HOVER EFFECTS (desktop only)
@@ -424,57 +439,16 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ============================================
-    // DYNAMIC IMAGE LOADING OPTIMIZATION
+    // FORCE IMMEDIATE IMAGE DISPLAY
     // ============================================
 
-    const optimizeImages = () => {
-        const allImages = document.querySelectorAll('.inf-work_item img');
-        const viewportHeight = window.innerHeight;
-
-        allImages.forEach(img => {
-            const rect = img.getBoundingClientRect();
-            if (rect.top < viewportHeight && rect.bottom > 0) {
-                img.setAttribute('fetchpriority', 'high');
-                img.removeAttribute('loading');
-            }
-        });
-    };
-
-    // ============================================
-    // FADE-IN IMAGES (Intersection Observer for mobile)
-    // ============================================
-
-    const setupFadeInObserver = () => {
-        // Helper to check if element is in viewport
-        const isInViewport = (el) => {
-            const rect = el.getBoundingClientRect();
-            return rect.top < window.innerHeight && rect.bottom > 0;
-        };
-
-        const fadeInObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                    fadeInObserver.unobserve(entry.target);
-                }
-            });
-        }, {
-            threshold: 0.15,
-            rootMargin: '0px 0px -50px 0px'
-        });
-
-        // Observe all work items (for mobile fade-in effect)
+    const forceImmediateImages = () => {
         const allItems = document.querySelectorAll('.inf-work_item');
-        allItems.forEach(item => {
-            // Only observe if not already visible (desktop infinite scroll makes them visible)
-            if (!item.classList.contains('is-visible')) {
-                // Immediately show items already in viewport
-                if (isInViewport(item)) {
-                    item.classList.add('is-visible');
-                } else {
-                    fadeInObserver.observe(item);
-                }
-            }
+        allItems.forEach(item => item.classList.add('is-visible'));
+
+        const allImages = document.querySelectorAll('.inf-work_item img');
+        allImages.forEach(img => {
+            img.loading = 'eager';
         });
     };
 
@@ -482,11 +456,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // INITIALIZATION
     // ============================================
 
-    optimizeImages();
+    forceImmediateImages();
     initInfiniteScroll();
     setupHoverEffects();
     setupPageTransition();
-    setupFadeInObserver();
 
     // Handle resize - also updates dimensions for render loop
     let resizeTimeout;
@@ -504,6 +477,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         itemHeight = newHeight;
                         wrapHeight = (cachedItems.length / 2) * itemHeight;
                         needsRender = true; // Trigger re-render after dimension change
+                        if (typeof triggerRender === 'function') {
+                            triggerRender();
+                        }
                     }
                 }
             }

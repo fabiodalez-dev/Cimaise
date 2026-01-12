@@ -258,6 +258,51 @@ class PageController extends BaseController
         // Process images with responsive sources (batch to avoid N+1 queries)
         $allImages = $this->processImageSourcesBatch($imageResult['images']);
 
+        // Build categories dynamically from loaded images (not from NavigationService)
+        // This ensures categories only appear in filter if they have visible images
+        // (respects NSFW filtering, progressive loading limits, etc.)
+        $loadedCategorySlugs = [];
+        foreach ($allImages as $image) {
+            if (!empty($image['category_slugs'])) {
+                foreach (explode(',', $image['category_slugs']) as $slug) {
+                    $slug = trim($slug);
+                    if ($slug !== '') {
+                        $loadedCategorySlugs[$slug] = true;
+                    }
+                }
+            }
+        }
+
+        // Filter categories to only include those with loaded images
+        $categories = array_filter($categories, function ($cat) use ($loadedCategorySlugs) {
+            return isset($loadedCategorySlugs[$cat['slug']]);
+        });
+        $categories = array_values($categories); // Re-index array
+
+        // Also filter parent_categories for mega menu consistency
+        $parentCategories = array_filter($parentCategories, function ($parent) use ($loadedCategorySlugs) {
+            // Check if parent has loaded images
+            if (isset($loadedCategorySlugs[$parent['slug']])) {
+                return true;
+            }
+            // Check if any child has loaded images
+            foreach ($parent['children'] as $child) {
+                if (isset($loadedCategorySlugs[$child['slug']])) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        // Filter children within each parent category
+        foreach ($parentCategories as &$parent) {
+            $parent['children'] = array_filter($parent['children'], function ($child) use ($loadedCategorySlugs) {
+                return isset($loadedCategorySlugs[$child['slug']]);
+            });
+            $parent['children'] = array_values($parent['children']);
+        }
+        unset($parent); // Break reference
+        $parentCategories = array_values($parentCategories); // Re-index array
+
         $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
 
         // Select template based on home.template setting

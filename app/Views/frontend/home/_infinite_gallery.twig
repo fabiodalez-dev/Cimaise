@@ -25,7 +25,8 @@
       <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"
            alt="{{ image.alt|default(image.album_title)|e }}"
            width="{{ image.width|default(1600) }}" height="{{ image.height|default(1067) }}"
-           {% if priority %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
+           loading="eager"
+           {% if priority %}fetchpriority="high"{% endif %}
            decoding="async" class="w-full h-full object-cover block">
     </picture>
   {% endmacro %}

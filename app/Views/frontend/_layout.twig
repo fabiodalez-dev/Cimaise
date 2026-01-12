@@ -2343,6 +2343,11 @@
         
         // Enhanced image loading animations
         document.addEventListener('DOMContentLoaded', () => {
+            const skipImageAnimations = document.querySelector(
+                '.home-infinite-section, .gallery-wall, .masonry-grid, .snap-gallery, [data-parallax-gallery]'
+            );
+            if (skipImageAnimations) return;
+
             const images = document.querySelectorAll('img[data-src], img:not([data-src])');
             
             const imageObserver = new IntersectionObserver((entries, observer) => {
