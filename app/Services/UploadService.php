@@ -122,7 +122,10 @@ class UploadService
         if (!@move_uploaded_file($tmp, $dest)) {
             // Fallback for CLI env
             if (!@rename($tmp, $dest)) {
-                throw new RuntimeException('Failed to move uploaded file');
+                // Final fallback: copy+unlink (works across filesystems)
+                if (!@copy($tmp, $dest) || !@unlink($tmp)) {
+                    throw new RuntimeException('Failed to move uploaded file');
+                }
             }
         }
         
@@ -292,7 +295,12 @@ class UploadService
             $ok = $im->writeImage($dest);
             $im->clear();
             return (bool)$ok;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Logger::warning('UploadService: Imagick resize failed', [
+                'src' => $src,
+                'format' => $format,
+                'error' => $e->getMessage()
+            ], 'upload');
             return false;
         }
     }
