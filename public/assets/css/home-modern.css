@@ -913,6 +913,10 @@ html.dark .mega-menu_link {
     -ms-overflow-style: none;
 }
 
+.mega-menu::-webkit-scrollbar {
+    display: none;
+}
+
 /* Enable interaction only when menu is open */
 .menu-component.is-open .mega-menu {
     pointer-events: auto;
