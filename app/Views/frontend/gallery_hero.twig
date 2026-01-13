@@ -71,7 +71,7 @@
   {# --- HERO WRAPPER: much taller, content centered, padding added --- #}
   <div class="relative overflow-hidden bg-neutral-900" style="min-height:50vh">
     {% if hero_has_image %}
-      <img src="{{ hero_url }}" alt="{{ album.title|e }}" class="js-hero-parallax absolute inset-0 w-full h-full object-cover object-center select-none blur-sm md:blur md:scale-105" loading="eager" fetchpriority="high" decoding="async">
+      <img src="{{ hero_url }}" alt="{{ album.title|e }}" class="js-hero-parallax absolute inset-0 w-full h-full object-cover object-center select-none blur-sm md:blur md:scale-105" loading="lazy" decoding="async" data-hero-image="1">
     {% else %}
       <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-900"></div>
     {% endif %}
@@ -79,7 +79,7 @@
     {# Subtle light overlay for readability on top of blurred image #}
     <div class="absolute inset-0 z-10 pointer-events-none backdrop-blur-[1px]" style="background: linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.90) 83%, rgba(255,255,255,0.95) 100%);"></div>
 
-    <div class="relative z-20 flex flex-col items-center max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 text-center text-black preserve-light-text" style="min-height:50vh; padding-top:3rem; padding-bottom:3rem">
+  <div class="relative z-20 flex flex-col items-center max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 text-center text-black preserve-light-text" style="min-height:50vh; padding-top:3rem; padding-bottom:3rem">
       <div class="flex-grow flex flex-col items-center justify-center">
         <div class="mb-3 flex flex-wrap justify-center gap-2">
           {% if album.categories is defined and album.categories|length > 0 %}
@@ -196,8 +196,25 @@
         {% endfor %}
       </div>
       {% endif %}
-    </div>
   </div>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  if (!('IntersectionObserver' in window)) return;
+  const img = document.querySelector('[data-hero-image="1"]');
+  if (!img) return;
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      img.setAttribute('fetchpriority', 'high');
+      img.removeAttribute('loading');
+      obs.unobserve(img);
+    });
+  }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
+  observer.observe(img);
+})();
+</script>
 </section>
 
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 lg:pt-48 pb-24 md:pb-32 lg:pb-40">

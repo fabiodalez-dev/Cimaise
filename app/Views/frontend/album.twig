@@ -612,7 +612,7 @@ document.addEventListener('click', function(event) {
                         <img src="{{ best_jpg_path }}"
                              alt="{{ ImageMacros.smart_alt(image, album, site_title)|trim|e('html_attr') }}"
                              title="{{ seo_title|e('html_attr') }}"
-                             {% if loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                             loading="lazy"
                              decoding="async"
                              data-fallback="hide">
                     </picture>
@@ -763,7 +763,7 @@ document.addEventListener('click', function(event) {
                                 <img src="{{ best_jpg_path }}"
                                      alt="{{ ImageMacros.smart_alt(image, album, site_title)|trim|e('html_attr') }}"
                                      title="{{ seo_title|e('html_attr') }}"
-                                     {% if loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                                     loading="lazy"
                                      decoding="async"
                                      data-fallback="hide">
                             </picture>
@@ -879,7 +879,7 @@ document.addEventListener('click', function(event) {
                                  title="{{ seo_title|e('html_attr') }}"
                                  width="{{ image.width }}"
                                  height="{{ image.height }}"
-                                 {% if loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                                 loading="lazy"
                                  decoding="async"
                                  data-fallback="hide"
                                  class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">

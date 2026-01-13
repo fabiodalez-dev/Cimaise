@@ -238,7 +238,8 @@
     "general.yes": "Yes"
   },
   "home": {
-    "home.scroll_to_explore": "Scroll to explore"
+    "home.scroll_to_explore": "Scroll to explore",
+    "home.masonry_loading": "Loading more photos..."
   },
   "home_gallery": {
     "home_gallery.empty_text": "Check back soon for new content.",

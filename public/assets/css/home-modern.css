@@ -832,16 +832,17 @@ html.dark .img-placeholder {
 .menu-component {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: 100;
     background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.5s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* RESET FLEX LAYOUT */
+    display: block; /* Removed flex to avoid complications */
+    padding-top: 5rem;
+    padding-bottom: 2rem;
     overflow: hidden;
 }
 
@@ -864,19 +865,14 @@ html.dark .mega-menu_link {
 }
 
 .menu-close {
-    position: fixed;
+    position: absolute;
     top: 1.25rem;
     right: 1.25rem;
     cursor: pointer;
-    z-index: 51;
+    z-index: 101;
     opacity: 0;
     transform: translateY(-10px);
     transition: opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s;
-}
-
-.menu-component.is-open .menu-close {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 .menu-close .menu-btn_text {
@@ -887,22 +883,25 @@ html.dark .mega-menu_link {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
     gap: 0.5rem;
-    max-height: 100vh;
     width: 100%;
-    overflow-y: auto;
+    
+    /* FORCE EXPLICIT HEIGHT CALCULATION */
+    height: calc(100vh - 7rem); /* 100vh minus top padding (5rem) and bottom padding (2rem) */
+    
+    overflow-y: scroll; /* Force scrollbar capability */
     overflow-x: hidden;
-    padding: 2rem 1rem;
-    scroll-behavior: smooth;
-    /* Ensure flex child respects max-height */
-    flex: 0 1 auto;
-    /* Hide scrollbar but keep functionality */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-}
-
-.mega-menu::-webkit-scrollbar {
-    display: none; /* Chrome/Safari/Opera */
+    padding: 1rem;
+    
+    /* ENSURE INTERACTION */
+    pointer-events: auto;
+    overscroll-behavior: contain; /* Prevent scroll chaining to body */
+    -webkit-overflow-scrolling: touch;
+    
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .mega-menu_link {
@@ -919,6 +918,37 @@ html.dark .mega-menu_link {
     transform: translateY(30px);
     transition: opacity 0.3s ease, transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
     display: block;
+    overflow: hidden; /* Hide the scrolling text */
+    height: 1.1em; /* Match line-height */
+}
+
+.mega-menu_scroll-wrapper {
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.mega-menu_link:hover .mega-menu_scroll-wrapper {
+    transform: translateY(-50%);
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Continuous scrolling animation on hover if preferred, 
+   but the simple "slide up to reveal clone" is often cleaner for menus. 
+   Uncomment below for continuous loop. */
+/*
+@keyframes scrollText {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
+}
+.mega-menu_link:hover .mega-menu_scroll-wrapper {
+    animation: scrollText 1s linear infinite;
+}
+*/
+
+.mega-menu_text {
+    display: block;
+    height: 100%; /* Ensure it takes full height of parent line-height */
 }
 
 .menu-component.is-open .mega-menu_link {

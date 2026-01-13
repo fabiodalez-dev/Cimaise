@@ -25,8 +25,7 @@
       <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"
            alt="{{ image.alt|default(image.album_title)|e }}"
            width="{{ image.width|default(1600) }}" height="{{ image.height|default(1067) }}"
-           loading="eager"
-           {% if priority %}fetchpriority="high"{% endif %}
+           loading="lazy"
            decoding="async" class="w-full h-full object-cover block">
     </picture>
   {% endmacro %}
@@ -61,7 +60,6 @@
     <div class="home-mobile-wrap">
       <div class="home-mobile">
         {% for image in all_images %}
-          {# First 6 images load eagerly for instant mobile display #}
           <div class="home-cell">{{ H.home_item(image, base_path, site_title, loop.index0 < 6) }}</div>
         {% endfor %}
       </div>

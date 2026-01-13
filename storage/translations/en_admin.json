@@ -1391,6 +1391,8 @@
     "admin.pages.home.masonry_layout_desc": "True CSS columns masonry with natural flow",
     "admin.pages.home.masonry_layout_mode": "Layout Mode (Desktop)",
     "admin.pages.home.masonry_layout_mode_hint": "Mobile always uses full-width layout",
+    "admin.pages.home.masonry_max_images": "Maximum images (0 = unlimited)",
+    "admin.pages.home.masonry_max_images_hint": "Limit total masonry images loaded on the homepage",
     "admin.pages.home.masonry_proportions": "Original Proportions",
     "admin.pages.home.masonry_proportions_desc": "Images displayed at their natural aspect ratio",
     "admin.pages.home.masonry_responsive": "Responsive Grid",

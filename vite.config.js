@@ -26,6 +26,7 @@ export default defineConfig({
       input: {
         'js/hero': path.resolve(__dirname, 'resources/js/hero.js'),
         'js/home': path.resolve(__dirname, 'resources/js/home.js'),
+        'js/home-masonry': path.resolve(__dirname, 'resources/js/home-masonry.js'),
         'js/home-modern': path.resolve(__dirname, 'resources/js/home-modern.js'),
         'js/home-gallery': path.resolve(__dirname, 'resources/js/home-gallery.js'),
         'js/smooth-scroll': path.resolve(__dirname, 'resources/js/smooth-scroll.js'),
@@ -37,6 +38,7 @@ export default defineConfig({
         entryFileNames: (chunk) => {
           if (chunk.name === 'js/hero') return 'js/hero.js'
           if (chunk.name === 'js/home') return 'js/home.js'
+          if (chunk.name === 'js/home-masonry') return 'js/home-masonry.js'
           if (chunk.name === 'js/home-modern') return 'js/home-modern.js'
           if (chunk.name === 'js/home-gallery') return 'js/home-gallery.js'
           if (chunk.name === 'js/smooth-scroll') return 'js/smooth-scroll.js'

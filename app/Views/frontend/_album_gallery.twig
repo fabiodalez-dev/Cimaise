@@ -101,7 +101,7 @@
 {# First 9 images load eagerly for instant display #}
             <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                  alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
-                 {% if loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                 loading="lazy"
                  decoding="async"
                  class="dense-grid-img">
           </picture>
@@ -185,7 +185,7 @@
               <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                    alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                    title="{{ seo_title|e('html_attr') }}"
-                   {% if loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                   loading="lazy"
                    decoding="async"
                    data-fallback="hide">
             </picture>
@@ -271,7 +271,7 @@
                  title="{{ seo_title|e('html_attr') }}"
                  width="{{ image.width }}"
                  height="{{ image.height }}"
-                 {% if loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                 loading="lazy"
                  decoding="async"
                  data-fallback="hide"
                  class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">

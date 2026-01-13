@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const enableLenis = false;
 
     // Only initialize Lenis on desktop for smooth scrolling
+    /*
     if (enableLenis && !isMobile()) {
         lenis = new Lenis({
             duration: 2.0,
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         rafId = requestAnimationFrame(raf);
     }
+    */
 
     // ============================================
     // INFINITE SCROLL GRID
@@ -84,10 +86,53 @@ document.addEventListener('DOMContentLoaded', function() {
 
     updateCachedItems();
 
+    const updateDimensions = () => {
+        if (!cachedItems[0]) return;
+        const newHeight = cachedItems[0].clientHeight;
+        if (newHeight > 0 && newHeight !== itemHeight) {
+            itemHeight = newHeight;
+            wrapHeight = (cachedItems.length / 2) * itemHeight;
+            needsRender = true;
+            if (typeof triggerRender === 'function') {
+                triggerRender();
+            }
+        }
+    };
+
+    let dimensionUpdateTimer = null;
+    const scheduleDimensionUpdate = () => {
+        if (dimensionUpdateTimer) return;
+        dimensionUpdateTimer = setTimeout(() => {
+            dimensionUpdateTimer = null;
+            updateCachedItems();
+            updateDimensions();
+        }, 0);
+    };
+
+    const bindImageLoadHandlers = () => {
+        const images = document.querySelectorAll('.inf-work_item img');
+        images.forEach(img => {
+            if (img.dataset.dimensionsSetup) return;
+            img.dataset.dimensionsSetup = 'true';
+            const onLoad = () => scheduleDimensionUpdate();
+            img.addEventListener('load', onLoad, { once: true });
+            img.addEventListener('error', onLoad, { once: true });
+            if (img.complete) {
+                onLoad();
+            }
+        });
+    };
+
     // Clear transforms
     const clearTransforms = (items) => {
         items.forEach(item => {
             item.style.transform = '';
+        });
+    };
+
+    const applyWillChange = (items, enabled) => {
+        items.forEach(item => {
+            item.style.willChange = enabled ? 'transform' : '';
         });
     };
 
@@ -137,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $menu.classList.add('simple-layout');
                 clearTransforms($allItems);
             }
+            applyWillChange($allItems, false);
             return;
         }
 
@@ -151,16 +197,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (allItems.length < 4) {
             $menu.classList.add('simple-layout');
             allItems.forEach(item => item.classList.add('is-visible'));
+            applyWillChange(allItems, false);
             return;
         }
 
         useInfiniteScroll = true;
         $menu.classList.remove('simple-layout');
         $menu.classList.remove('filtered-layout');
+        applyWillChange(allItems, true);
 
         // Calculate dimensions
         itemHeight = allItems[0].clientHeight || 400;
         wrapHeight = (allItems.length / 2) * itemHeight;
+        bindImageLoadHandlers();
 
         // Initial positioning
         dispose(0, $items);
@@ -238,6 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
         clearTransforms($allItems);
         $menu.classList.add('filtered-layout');
         $menu.classList.remove('simple-layout');
+        applyWillChange($allItems, false);
     };
 
     const disableFilteredMode = () => {
@@ -255,6 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (useInfiniteScroll) {
                 dispose(y, $items);
                 dispose(y2, $items2);
+                applyWillChange(allItems, true);
             }
         }
     };
@@ -403,6 +454,34 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ============================================
+    // DYNAMIC MEGA MENU SCROLL
+    // ============================================
+    
+    const megaMenuLinks = document.querySelectorAll('.mega-menu_link');
+    
+    megaMenuLinks.forEach(link => {
+        // Create wrapper for the text
+        const text = link.textContent;
+        link.innerHTML = '';
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mega-menu_scroll-wrapper';
+        
+        // Create two spans for infinite scroll effect
+        const span1 = document.createElement('span');
+        span1.textContent = text;
+        span1.className = 'mega-menu_text';
+        
+        const span2 = document.createElement('span');
+        span2.textContent = text;
+        span2.className = 'mega-menu_text';
+        
+        wrapper.appendChild(span1);
+        wrapper.appendChild(span2);
+        link.appendChild(wrapper);
+    });
+
+    // ============================================
     // PAGE TRANSITION
     // ============================================
 
@@ -445,11 +524,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const forceImmediateImages = () => {
         const allItems = document.querySelectorAll('.inf-work_item');
         allItems.forEach(item => item.classList.add('is-visible'));
+    };
 
-        const allImages = document.querySelectorAll('.inf-work_item img');
-        allImages.forEach(img => {
-            img.loading = 'eager';
-        });
+    // ============================================
+    // DYNAMIC FETCHPRIORITY (only above-the-fold)
+    // ============================================
+
+    const setupFetchPriorityObserver = () => {
+        if (!('IntersectionObserver' in window)) return;
+
+        const images = Array.from(document.querySelectorAll('.inf-work_item img'));
+        if (!images.length) return;
+
+        const MAX_HIGH = 3;
+        let highCount = 0;
+
+        const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                const img = entry.target;
+                if (highCount < MAX_HIGH) {
+                    img.setAttribute('fetchpriority', 'high');
+                    img.removeAttribute('loading');
+                    highCount += 1;
+                }
+                obs.unobserve(img);
+            });
+        }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
+
+        images.forEach(img => observer.observe(img));
     };
 
     // ============================================
@@ -457,6 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================
 
     forceImmediateImages();
+    setupFetchPriorityObserver();
     initInfiniteScroll();
     setupHoverEffects();
     setupPageTransition();
@@ -469,26 +573,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isMobile()) {
                 clearTransforms($allItems);
                 $menu?.classList.add('simple-layout');
+                applyWillChange($allItems, false);
             } else if (!isFiltered) {
                 updateCachedItems();
-                if (cachedItems[0]) {
-                    const newHeight = cachedItems[0].clientHeight;
-                    if (newHeight > 0) {
-                        itemHeight = newHeight;
-                        wrapHeight = (cachedItems.length / 2) * itemHeight;
-                        needsRender = true; // Trigger re-render after dimension change
-                        if (typeof triggerRender === 'function') {
-                            triggerRender();
-                        }
-                    }
-                }
+                updateDimensions();
+                applyWillChange(cachedItems, useInfiniteScroll && !isFiltered);
             }
         }, 100);
     });
-
-    // Add will-change optimization to items for smoother transforms
-    cachedItems.forEach(item => {
-        item.style.willChange = 'transform';
-    });
-
 });

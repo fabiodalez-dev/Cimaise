@@ -550,7 +550,7 @@ class GalleryController extends BaseController
             'gap_v' => (int)($homeSvc->get('home.masonry_gap_v', 0) ?? 0),
             'cols_desktop' => (int)($homeSvc->get('home.masonry_col_desktop', 5) ?? 5),
             'cols_tablet' => (int)($homeSvc->get('home.masonry_col_tablet', 3) ?? 3),
-            'cols_mobile' => (int)($homeSvc->get('home.masonry_col_mobile', 2) ?? 2),
+            'cols_mobile' => (int)($homeSvc->get('home.masonry_col_mobile', 1) ?? 1),
             'layout_mode' => (string)($homeSvc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'),
         ];
 

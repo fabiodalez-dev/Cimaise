@@ -155,7 +155,7 @@ html.dark .gallery-wall-item::after {
 
   .gallery-mobile-grid-inner {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 0.5rem;
   }
 
@@ -166,8 +166,8 @@ html.dark .gallery-wall-item::after {
   }
 
   .gallery-mobile-item.wide {
-    grid-column: span 2;
-    aspect-ratio: 16/9;
+    grid-column: span 1;
+    aspect-ratio: 4/3;
   }
 
   .gallery-mobile-item a {
@@ -239,7 +239,7 @@ html.dark .gallery-wall-item::after {
             {% set imgSrc = image.fallback_src|default(image.original_path) %}
             {% set imgUrl = imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
             {# First 6 images load eagerly for instant display #}
-            <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="eager" {% if loop.index <= 6 %}fetchpriority="high"{% endif %} decoding="async" data-fallback="hide">
+            <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy" decoding="async" data-fallback="hide">
             <div class="gallery-wall-overlay">
               <h3>{{ image.album_title|e }}</h3>
               <p>{{ image.category_name|e }}</p>
@@ -261,7 +261,7 @@ html.dark .gallery-wall-item::after {
           {% set imgSrc = image.fallback_src|default(image.original_path) %}
           {% set imgUrl = imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
           {# First 8 images load eagerly for instant mobile display #}
-          <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="eager" {% if loop.index <= 8 %}fetchpriority="high"{% endif %} decoding="async" data-fallback="hide">
+          <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy" decoding="async" data-fallback="hide">
         </a>
       </div>
       {% endfor %}
