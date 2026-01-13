@@ -359,7 +359,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const target = e.target.closest('.grid-toggle_item[data-filter]');
             if (!target) return;
             const filter = target.getAttribute('data-filter') || 'all';
-            if (filter !== 'all' && target.tagName.toLowerCase() === 'a') return;
             e.preventDefault();
             applyFilter(filter, target);
         });
@@ -473,6 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (link.querySelector('.mega-menu_scroll-wrapper')) return;
         // Create wrapper for the text
         const text = link.textContent;
+        if (!text || !text.trim()) return;
         link.innerHTML = '';
         
         const wrapper = document.createElement('span');

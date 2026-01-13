@@ -67,12 +67,6 @@
   }
 }
 
-@media (max-width: 640px) {
-  .masonry-grid {
-    column-count: {{ home_settings.masonry_col_mobile|default(1) }};
-  }
-}
-
 @media (min-width: 1025px) {
   .masonry-grid {
     column-count: {{ home_settings.masonry_col_desktop|default(5) }};
