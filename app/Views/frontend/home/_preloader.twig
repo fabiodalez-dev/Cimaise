@@ -116,11 +116,11 @@ html.dark .preloader-title {
                 }, 700);
             };
 
-            // Wait for page to be ready, then dismiss
-            if (document.readyState === 'complete') {
+            // Wait for DOM to be ready, then dismiss (don't wait for all images)
+            if (document.readyState !== 'loading') {
                 setTimeout(dismiss, 400);
             } else {
-                window.addEventListener('load', function() {
+                document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(dismiss, 400);
                 });
             }
