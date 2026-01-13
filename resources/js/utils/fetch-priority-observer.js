@@ -5,13 +5,13 @@ export function createFetchPriorityObserver(maxHigh = 3) {
   const observer = new IntersectionObserver((entries, obs) => {
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
-      const img = entry.target;
+      const el = entry.target;
       if (highCount < maxHigh) {
-        img.setAttribute('fetchpriority', 'high');
-        img.removeAttribute('loading');
+        el.setAttribute('fetchpriority', 'high');
+        el.removeAttribute('loading');
         highCount += 1;
       }
-      obs.unobserve(img);
+      obs.unobserve(el);
     });
   }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
 

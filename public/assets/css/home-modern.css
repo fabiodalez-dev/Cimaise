@@ -922,6 +922,20 @@ html.dark .mega-menu_link {
     display: none;
 }
 
+.mega-menu::after {
+    content: "";
+    position: sticky;
+    bottom: 0;
+    display: block;
+    height: 24px;
+    background: linear-gradient(0deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
+html.dark .mega-menu::after {
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0));
+}
+
 /* Enable interaction only when menu is open */
 .menu-component.is-open .mega-menu {
     pointer-events: auto;
