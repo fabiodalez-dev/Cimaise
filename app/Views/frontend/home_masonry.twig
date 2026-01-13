@@ -144,7 +144,7 @@
           width="{{ img_width }}"
           height="{{ img_height }}"
           style="aspect-ratio: {{ img_width }} / {{ img_height }};"
-          loading="lazy"
+          {% if loop.index0 < 6 %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
         >
       </picture>
     </a>
@@ -153,7 +153,7 @@
 </div>
 </div>
 {% if has_more_images|default(false) %}
-<div id="masonry-loading" class="masonry-loading" aria-live="polite" aria-hidden="true">
+<div id="masonry-loading" class="masonry-loading" aria-live="polite" aria-hidden="true" role="status">
   <span class="spinner" aria-hidden="true"></span>
   <span>{{ trans('home.masonry_loading') }}</span>
 </div>

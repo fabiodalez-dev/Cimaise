@@ -77,7 +77,6 @@
           <div class="home-track-h">
             {% for r in 1..repeat_times %}
               {% for image in row %}
-                {# First repeat of each row: eager load first 6 images #}
                 <div class="home-cell-h">{{ H.home_item(image, base_path, site_title) }}</div>
               {% endfor %}
             {% endfor %}
@@ -97,7 +96,6 @@
           <div class="home-track">
             {% for r in 1..repeat_times %}
               {% for image in col %}
-                {# First repeat: eager load first 4 images per column (12 total above-fold) #}
                 <div class="home-cell">{{ H.home_item(image, base_path, site_title) }}</div>
               {% endfor %}
             {% endfor %}
