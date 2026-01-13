@@ -27,6 +27,7 @@ if (typeof window !== 'undefined') {
     
         let rafId = null
         let resizeTimeout
+        let mutationTimeout
         let recalcInterval
         let loadHandler = null
         let resizeHandler = null
@@ -88,8 +89,8 @@ if (typeof window !== 'undefined') {
     
         // MutationObserver for dynamic content changes
         mutationObserver = new MutationObserver(() => {
-          clearTimeout(resizeTimeout)
-          resizeTimeout = setTimeout(recalculate, 100)
+          clearTimeout(mutationTimeout)
+          mutationTimeout = setTimeout(recalculate, 100)
         })
         if (document.body) {
           mutationObserver.observe(document.body, { childList: true, subtree: true })
@@ -105,6 +106,7 @@ if (typeof window !== 'undefined') {
           if (mutationObserver) mutationObserver.disconnect()
           clearInterval(recalcInterval)
           clearTimeout(resizeTimeout)
+          clearTimeout(mutationTimeout)
           if (rafId) cancelAnimationFrame(rafId)
           if (gsapTickHandler && window.gsap && window.gsap.ticker) {
             window.gsap.ticker.remove(gsapTickHandler)
