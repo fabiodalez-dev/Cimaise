@@ -1,0 +1,1 @@
+function e(e=3){if(!("IntersectionObserver"in window))return null;let t=0;return new IntersectionObserver((r,n)=>{r.forEach(r=>{if(!r.isIntersecting)return;const i=r.target;t<e&&(i.setAttribute("fetchpriority","high"),i.removeAttribute("loading"),t+=1),n.unobserve(i)})},{rootMargin:"200px 0px 200px 0px",threshold:.1})}export{e as c};

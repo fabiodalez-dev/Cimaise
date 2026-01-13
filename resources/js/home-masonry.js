@@ -1,4 +1,5 @@
 import { HomeProgressiveLoader } from './home-progressive-loader.js';
+import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js';
 
 (function () {
   'use strict';
@@ -8,23 +9,9 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js';
     else document.addEventListener('DOMContentLoaded', fn);
   }
 
-  function createFetchPriorityObserver(maxHigh = 3) {
-    if (!('IntersectionObserver' in window)) return null;
-    let highCount = 0;
-
-    const observer = new IntersectionObserver((entries, obs) => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        const img = entry.target;
-        if (highCount < maxHigh) {
-          img.setAttribute('fetchpriority', 'high');
-          img.removeAttribute('loading');
-          highCount += 1;
-        }
-        obs.unobserve(img);
-      });
-    }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
-
+  function createFetchPriorityObserverWrapper(maxHigh = 3) {
+    const observer = createFetchPriorityObserver(maxHigh);
+    if (!observer) return null;
     return {
       observe(images) {
         const list = Array.from(images || []);
@@ -46,7 +33,7 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js';
 
     const config = window.homeLoaderConfig || null;
     if (!config || !config.hasMore) {
-      const observer = createFetchPriorityObserver(3);
+      const observer = createFetchPriorityObserverWrapper(3);
       if (observer) {
         observer.observe(grid.querySelectorAll('img'));
       }
@@ -58,7 +45,7 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js';
     const basePath = config.basePath || '';
     const maxImages = Number.parseInt(config.maxImages, 10) || 0;
 
-    const fetchPriorityObserver = createFetchPriorityObserver(3);
+    const fetchPriorityObserver = createFetchPriorityObserverWrapper(3);
     if (fetchPriorityObserver) {
       fetchPriorityObserver.observe(grid.querySelectorAll('img'));
     }

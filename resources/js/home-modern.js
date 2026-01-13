@@ -2,6 +2,7 @@
  * Modern Home Template
  * JavaScript: Infinite scroll grid + hover effects + Lenis smooth scroll
  */
+import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js';
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -548,27 +549,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================
 
     const setupFetchPriorityObserver = () => {
-        if (!('IntersectionObserver' in window)) return;
-
+        const observer = createFetchPriorityObserver(3);
+        if (!observer) return;
         const images = Array.from(document.querySelectorAll('.inf-work_item img'));
         if (!images.length) return;
-
-        const MAX_HIGH = 3;
-        let highCount = 0;
-
-        const observer = new IntersectionObserver((entries, obs) => {
-            entries.forEach(entry => {
-                if (!entry.isIntersecting) return;
-                const img = entry.target;
-                if (highCount < MAX_HIGH) {
-                    img.setAttribute('fetchpriority', 'high');
-                    img.removeAttribute('loading');
-                    highCount += 1;
-                }
-                obs.unobserve(img);
-            });
-        }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
-
         images.forEach(img => observer.observe(img));
     };
 
