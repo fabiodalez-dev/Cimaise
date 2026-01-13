@@ -223,8 +223,9 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.pages.home.masonry_max_images') }}</label>
-                  <input type="number" name="masonry_max_images" min="0" max="5000" class="form-input w-full" value="{{ settings['home.masonry_max_images']|default(0) }}">
+                  <label for="masonry-max-images" class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.pages.home.masonry_max_images') }}</label>
+                  <input id="masonry-max-images" type="number" name="masonry_max_images" min="0" max="5000" step="1" inputmode="numeric"
+                         class="form-input w-full" value="{{ settings['home.masonry_max_images']|default(0) }}">
                   <p class="text-xs text-gray-500 mt-2">{{ trans('admin.pages.home.masonry_max_images_hint') }}</p>
                 </div>
 

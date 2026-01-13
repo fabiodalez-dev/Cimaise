@@ -449,7 +449,7 @@ html.dark .snap-indicator:hover {
             {% set coverRaw = '/assets/img/placeholder.jpg' %}
           {% endif %}
           {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
-          {# First 10 albums load eagerly to prevent white space during snap navigation #}
+          {# Images start lazy; IntersectionObserver upgrades up to 3 visible images to high priority #}
           <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="lazy" decoding="async">
         </a>
         {% endfor %}
@@ -484,7 +484,7 @@ html.dark .snap-indicator:hover {
           {% set coverRaw = '/assets/img/placeholder.jpg' %}
         {% endif %}
         {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
-        {# First 10 albums load eagerly to prevent white space during snap navigation #}
+        {# Images start lazy; IntersectionObserver upgrades up to 3 visible images to high priority #}
         <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="lazy" decoding="async">
         <div class="snap-mobile-info">
           <span class="snap-year">{{ album.shoot_date ? album.shoot_date|date('Y') : album.published_at|date('Y') }}</span>

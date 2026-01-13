@@ -3,10 +3,6 @@
  * JavaScript: Infinite scroll grid + hover effects + Lenis smooth scroll
  */
 
-// Import Lenis and its CSS
-import Lenis from 'lenis';
-import 'lenis/dist/lenis.css';
-
 document.addEventListener('DOMContentLoaded', function() {
 
     // ============================================
@@ -20,32 +16,42 @@ document.addEventListener('DOMContentLoaded', function() {
     // LENIS SMOOTH SCROLL (desktop only)
     // ============================================
 
-    let lenis = null;
-    let rafId = null;
     const enableLenis = false;
+    let lenisInstance = null;
 
     // Only initialize Lenis on desktop for smooth scrolling
-    /*
     if (enableLenis && !isMobile()) {
-        lenis = new Lenis({
-            duration: 2.0,
-            easing: (t) => 1 - Math.pow(1 - t, 4),
-            direction: 'vertical',
-            gestureDirection: 'vertical',
-            smooth: true,
-            smoothTouch: false,
-            touchMultiplier: 1.5,
-            wheelMultiplier: 0.8
-        });
+        Promise.all([
+            import('lenis'),
+            import('lenis/dist/lenis.css')
+        ]).then(([module]) => {
+            const Lenis = module.default;
+            lenisInstance = new Lenis({
+                duration: 2.0,
+                easing: (t) => 1 - Math.pow(1 - t, 4),
+                direction: 'vertical',
+                gestureDirection: 'vertical',
+                smooth: true,
+                smoothTouch: false,
+                touchMultiplier: 1.5,
+                wheelMultiplier: 0.8
+            });
 
-        function raf(time) {
-            lenis.raf(time);
+            let rafId = null;
+            const raf = (time) => {
+                lenisInstance.raf(time);
+                rafId = requestAnimationFrame(raf);
+            };
+
             rafId = requestAnimationFrame(raf);
-        }
-
-        rafId = requestAnimationFrame(raf);
+            window.addEventListener('beforeunload', () => {
+                if (rafId) cancelAnimationFrame(rafId);
+                if (lenisInstance && typeof lenisInstance.destroy === 'function') {
+                    lenisInstance.destroy();
+                }
+            }, { once: true });
+        });
     }
-    */
 
     // ============================================
     // INFINITE SCROLL GRID
@@ -76,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Minimum items for good infinite scroll effect
     const MIN_ITEMS_FOR_INFINITE = 8;
+    let scrollerWheelHandler = null;
 
     const updateCachedItems = () => {
         cachedItems = Array.from(document.querySelectorAll('.inf-work_item'));
@@ -270,8 +277,11 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         if ($scroller) {
-            $scroller.removeEventListener('wheel', handleMouseWheel);
-            $scroller.addEventListener('wheel', handleMouseWheel, { passive: true });
+            if (scrollerWheelHandler) {
+                $scroller.removeEventListener('wheel', scrollerWheelHandler);
+            }
+            scrollerWheelHandler = handleMouseWheel;
+            $scroller.addEventListener('wheel', scrollerWheelHandler, { passive: true });
         }
     };
 
@@ -425,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (menuOverlay) {
             menuOverlay.classList.add('is-open');
             document.body.style.overflow = 'hidden';
-            if (lenis) lenis.stop();
+            if (lenisInstance) lenisInstance.stop();
         }
     }
 
@@ -433,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (menuOverlay) {
             menuOverlay.classList.remove('is-open');
             document.body.style.overflow = '';
-            if (lenis) lenis.start();
+            if (lenisInstance) lenisInstance.start();
         }
     }
 
@@ -460,11 +470,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const megaMenuLinks = document.querySelectorAll('.mega-menu_link');
     
     megaMenuLinks.forEach(link => {
+        if (link.querySelector('.mega-menu_scroll-wrapper')) return;
         // Create wrapper for the text
         const text = link.textContent;
         link.innerHTML = '';
         
-        const wrapper = document.createElement('div');
+        const wrapper = document.createElement('span');
         wrapper.className = 'mega-menu_scroll-wrapper';
         
         // Create two spans for infinite scroll effect
@@ -475,6 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const span2 = document.createElement('span');
         span2.textContent = text;
         span2.className = 'mega-menu_text';
+        span2.setAttribute('aria-hidden', 'true');
         
         wrapper.appendChild(span1);
         wrapper.appendChild(span2);

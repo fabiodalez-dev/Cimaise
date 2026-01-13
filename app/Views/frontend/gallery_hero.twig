@@ -208,7 +208,7 @@
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
       img.setAttribute('fetchpriority', 'high');
-      img.removeAttribute('loading');
+      img.setAttribute('loading', 'eager');
       obs.unobserve(img);
     });
   }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });

@@ -8,7 +8,7 @@ if (typeof window !== 'undefined') {
   // Only initialize if not already done
   if (!window.lenisInstance) {
     // CONDITIONAL DISABLE: Skip if 'no-lenis' class is present on html or body
-    if (document.documentElement.classList.contains('no-lenis') || document.body.classList.contains('no-lenis')) {
+    if (document.documentElement.classList.contains('no-lenis') || (document.body && document.body.classList.contains('no-lenis'))) {
         // console.log('Lenis disabled by class');
     } else {
         const lenis = new Lenis({
@@ -25,17 +25,27 @@ if (typeof window !== 'undefined') {
     
         window.lenisInstance = lenis
     
+        let rafId = null
+        let resizeTimeout
+        let recalcInterval
+        let loadHandler = null
+        let resizeHandler = null
+        let imageLoadHandler = null
+        let mutationObserver = null
+        let gsapTickHandler = null
+
         // GSAP integration if available
         if (typeof window.gsap !== 'undefined' && window.gsap.ticker) {
           lenis.on('scroll', window.gsap.updateRoot)
-          window.gsap.ticker.add((time) => { lenis.raf(time * 1000) })
+          gsapTickHandler = (time) => { lenis.raf(time * 1000) }
+          window.gsap.ticker.add(gsapTickHandler)
           window.gsap.ticker.lagSmoothing(0)
         } else {
           function raf(time) {
             lenis.raf(time)
-            requestAnimationFrame(raf)
+            rafId = requestAnimationFrame(raf)
           }
-          requestAnimationFrame(raf)
+          rafId = requestAnimationFrame(raf)
         }
     
         // Recalculate scroll height after page load and content changes
@@ -49,46 +59,60 @@ if (typeof window !== 'undefined') {
         if (document.readyState === 'complete') {
           recalculate()
         } else {
-          window.addEventListener('load', recalculate)
+          loadHandler = () => recalculate()
+          window.addEventListener('load', loadHandler)
         }
     
         // Recalculate on resize
-        let resizeTimeout
-        window.addEventListener('resize', () => {
+        resizeHandler = () => {
           clearTimeout(resizeTimeout)
           resizeTimeout = setTimeout(recalculate, 100)
-        })
+        }
+        window.addEventListener('resize', resizeHandler)
     
         // Recalculate periodically for first few seconds (for lazy-loaded content)
         let recalcCount = 0
-        const recalcInterval = setInterval(() => {
+        recalcInterval = setInterval(() => {
           recalculate()
           recalcCount++
           if (recalcCount >= 20) clearInterval(recalcInterval) // Stop after 10 seconds
         }, 500)
     
         // Recalculate when images load
-        document.addEventListener('load', (e) => {
+        imageLoadHandler = (e) => {
           if (e.target.tagName === 'IMG') {
             recalculate()
           }
-        }, true)
+        }
+        document.addEventListener('load', imageLoadHandler, true)
     
         // MutationObserver for dynamic content changes
-        const observer = new MutationObserver(() => {
+        mutationObserver = new MutationObserver(() => {
           clearTimeout(resizeTimeout)
           resizeTimeout = setTimeout(recalculate, 100)
         })
-        observer.observe(document.body, { childList: true, subtree: true })
+        if (document.body) {
+          mutationObserver.observe(document.body, { childList: true, subtree: true })
+        }
     
         // Expose recalculate function globally
         window.lenisResize = recalculate
-        window.lenisMutationObserver = observer
+        window.lenisMutationObserver = mutationObserver
         window.lenisCleanup = () => {
-          if (window.lenisMutationObserver) {
-            window.lenisMutationObserver.disconnect()
-          }
+          if (loadHandler) window.removeEventListener('load', loadHandler)
+          if (resizeHandler) window.removeEventListener('resize', resizeHandler)
+          if (imageLoadHandler) document.removeEventListener('load', imageLoadHandler, true)
+          if (mutationObserver) mutationObserver.disconnect()
           clearInterval(recalcInterval)
+          clearTimeout(resizeTimeout)
+          if (rafId) cancelAnimationFrame(rafId)
+          if (gsapTickHandler && window.gsap && window.gsap.ticker) {
+            window.gsap.ticker.remove(gsapTickHandler)
+          }
+          if (window.lenisInstance && typeof window.lenisInstance.destroy === 'function') {
+            window.lenisInstance.destroy()
+          }
+          window.lenisInstance = null
         }
     }
   }

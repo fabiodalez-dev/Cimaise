@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endif %}
 
 <script nonce="{{ csp_nonce() }}">
-(function() {
+const initAboutPhotoPriority = () => {
   if (!('IntersectionObserver' in window)) return;
   const img = document.querySelector('[data-about-photo="1"]');
   if (!img) return;
@@ -74,7 +74,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
   observer.observe(img);
-})();
+};
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAboutPhotoPriority);
+} else {
+  initAboutPhotoPriority();
+}
 </script>
 {% endblock %}
 

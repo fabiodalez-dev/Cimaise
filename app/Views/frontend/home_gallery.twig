@@ -238,7 +238,7 @@ html.dark .gallery-wall-item::after {
           <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
             {% set imgSrc = image.fallback_src|default(image.original_path) %}
             {% set imgUrl = imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
-            {# First 6 images load eagerly for instant display #}
+            {# Images are lazy-loaded; priority handled by browser/IO #}
             <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy" decoding="async" data-fallback="hide">
             <div class="gallery-wall-overlay">
               <h3>{{ image.album_title|e }}</h3>
@@ -260,7 +260,7 @@ html.dark .gallery-wall-item::after {
         <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
           {% set imgSrc = image.fallback_src|default(image.original_path) %}
           {% set imgUrl = imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
-          {# First 8 images load eagerly for instant mobile display #}
+          {# Images are lazy-loaded; priority handled by browser/IO #}
           <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy" decoding="async" data-fallback="hide">
         </a>
       </div>

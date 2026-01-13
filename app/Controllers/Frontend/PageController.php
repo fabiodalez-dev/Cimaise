@@ -2279,21 +2279,6 @@ class PageController extends BaseController
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $album = $this->ensureAlbumCoverImage($album);
 
-            // NSFW albums show blur cover only when consent is missing
-            if (
-                !$isAdmin
-                && !empty($album['is_nsfw'])
-                && !$nsfwConsent
-                && !empty($album['cover_image']['id'])
-            ) {
-                $blurPath = $album['cover_image']['blur_path'] ?? '';
-                $ext = 'jpg';
-                if ($blurPath && preg_match('/\\.([a-z0-9]+)$/i', (string) $blurPath, $matches)) {
-                    $ext = strtolower($matches[1]);
-                }
-                $album['cover_image']['blur_path'] = '/media/protected/' . (int) $album['cover_image']['id'] . '/blur.' . $ext;
-                // Keep blur path for unconsented NSFW
-            }
             $visibleAlbums[] = $album;
         }
         return $visibleAlbums;

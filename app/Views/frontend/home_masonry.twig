@@ -69,7 +69,7 @@
 
 @media (max-width: 640px) {
   .masonry-grid {
-    column-count: 1;
+    column-count: {{ home_settings.masonry_col_mobile|default(1) }};
   }
 }
 
@@ -125,7 +125,7 @@
 <div class="masonry-grid"
      data-gap-h="{{ home_settings.masonry_gap_h|default(0) }}"
      data-gap-v="{{ home_settings.masonry_gap_v|default(0) }}"
-     data-cols-mobile="{{ home_settings.masonry_col_mobile|default(2) }}"
+     data-cols-mobile="{{ home_settings.masonry_col_mobile|default(1) }}"
      data-cols-tablet="{{ home_settings.masonry_col_tablet|default(3) }}"
      data-cols-desktop="{{ home_settings.masonry_col_desktop|default(5) }}">
   {% for image in all_images %}
