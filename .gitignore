@@ -118,3 +118,8 @@ public/assets/vendor/**/*.md
 bin/dev/seed_full_demo.php
 storage/database.db
 screenshot/rabbit-pinterest.png
+
+# Claude Code MCP plugins (semantic search)
+models/
+config.json
+vectors.db
