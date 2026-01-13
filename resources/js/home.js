@@ -82,7 +82,7 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     cell.className = isHorizontal ? 'home-cell-h' : 'home-cell';
 
     const item = document.createElement('div');
-    item.className = 'home-item home-item--instant group rounded-xl overflow-hidden shadow-sm relative transition-transform hover:scale-105 duration-300';
+    item.className = 'home-item group rounded-xl overflow-hidden shadow-sm relative transition-transform hover:scale-105 duration-300';
     item.style.aspectRatio = `${safeW} / ${safeH}`;
     item.dataset.imageId = String(parseInt(img.id, 10) || 0);
 
@@ -152,10 +152,6 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     gallery.style.opacity = '1';
 
     // Show all items immediately without entry animations
-    const items = Array.from(gallery.querySelectorAll('.home-item'));
-    items.forEach((item) => {
-      item.classList.add('home-item--instant');
-    });
 
     const createFetchPriorityObserver = (maxHigh = 3) => {
       if (!('IntersectionObserver' in window)) return null;
