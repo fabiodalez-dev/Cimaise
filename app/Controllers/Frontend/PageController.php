@@ -178,8 +178,9 @@ class PageController extends BaseController
             'masonry_gap_v' => max(0, min(40, (int) ($svc->get('home.masonry_gap_v', 0) ?? 0))),
             'masonry_col_desktop' => max(2, min(8, (int) ($svc->get('home.masonry_col_desktop', 5) ?? 5))),
             'masonry_col_tablet' => max(2, min(6, (int) ($svc->get('home.masonry_col_tablet', 3) ?? 3))),
-            'masonry_col_mobile' => max(1, min(4, (int) ($svc->get('home.masonry_col_mobile', 2) ?? 2))),
+            'masonry_col_mobile' => max(1, min(4, (int) ($svc->get('home.masonry_col_mobile', 1) ?? 1))),
             'masonry_layout_mode' => in_array((string) ($svc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'), ['fullwidth', 'boxed'], true) ? (string) $svc->get('home.masonry_layout_mode', 'fullwidth') : 'fullwidth',
+            'masonry_max_images' => max(0, min(5000, (int) ($svc->get('home.masonry_max_images', 0) ?? 0))),
         ];
 
         // Pagination parameters (from settings)
@@ -238,13 +239,19 @@ class PageController extends BaseController
         // Masonry template: load images without album diversity
         // Other templates: use album diversity for variety
         if ($homeTemplate === 'masonry') {
-            // Load initial batch for masonry - progressive loading handles the rest
-            $initialLimit = 20; // Same as other templates, load more via scroll
+            // Masonry: load initial batch, then progressive load the rest
+            $masonryMaxImages = $homeSettings['masonry_max_images'] ?? 0;
+            $initialLimit = 40;
+            if ($masonryMaxImages > 0) {
+                $initialLimit = min($initialLimit, $masonryMaxImages);
+            }
             $imageResult = $homeImageService->getAllImages($initialLimit, $includeNsfw);
             $shownImageIds = array_column($imageResult['images'], 'id');
             $shownAlbumIds = array_unique(array_column($imageResult['images'], 'album_id'));
             $totalImagesCount = $imageResult['totalImages'];
-            $hasMoreImages = $imageResult['hasMore'];
+            $hasMoreImages = $masonryMaxImages > 0
+                ? $masonryMaxImages > count($imageResult['images'])
+                : $totalImagesCount > count($imageResult['images']);
         } else {
             // Other templates: album diversity (1 image per album)
             $initialLimit = 20; // Viewport-only SSR load - rest via progressive loading API
@@ -1122,7 +1129,7 @@ class PageController extends BaseController
             'gap_v' => (int) ($settingsServiceForPage->get('home.masonry_gap_v', 0) ?? 0),
             'cols_desktop' => (int) ($settingsServiceForPage->get('home.masonry_col_desktop', 5) ?? 5),
             'cols_tablet' => (int) ($settingsServiceForPage->get('home.masonry_col_tablet', 3) ?? 3),
-            'cols_mobile' => (int) ($settingsServiceForPage->get('home.masonry_col_mobile', 2) ?? 2),
+            'cols_mobile' => (int) ($settingsServiceForPage->get('home.masonry_col_mobile', 1) ?? 1),
             'layout_mode' => (string) ($settingsServiceForPage->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'),
         ];
 
@@ -2272,16 +2279,20 @@ class PageController extends BaseController
             $album = $this->sanitizeAlbumCoverForNsfw($album, $isAdmin, $nsfwConsent);
             $album = $this->ensureAlbumCoverImage($album);
 
-            // NSFW albums always show blur cover even with consent (visual indicator)
-            if (!$isAdmin && !empty($album['is_nsfw']) && !empty($album['cover_image']['id'])) {
+            // NSFW albums show blur cover only when consent is missing
+            if (
+                !$isAdmin
+                && !empty($album['is_nsfw'])
+                && !$nsfwConsent
+                && !empty($album['cover_image']['id'])
+            ) {
                 $blurPath = $album['cover_image']['blur_path'] ?? '';
                 $ext = 'jpg';
                 if ($blurPath && preg_match('/\\.([a-z0-9]+)$/i', (string) $blurPath, $matches)) {
                     $ext = strtolower($matches[1]);
                 }
                 $album['cover_image']['blur_path'] = '/media/protected/' . (int) $album['cover_image']['id'] . '/blur.' . $ext;
-                // Keep blur path but also keep other paths for NSFW with consent
-                // Templates should check is_nsfw and use blur_path accordingly
+                // Keep blur path for unconsented NSFW
             }
             $visibleAlbums[] = $album;
         }

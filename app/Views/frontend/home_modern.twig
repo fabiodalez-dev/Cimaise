@@ -57,12 +57,17 @@
     .inf-work_wrap {
       padding-right: 0;
     }
+    .inf-work_list {
+      display: block;
+    }
+    .inf-work_item {
+      width: 100%;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-{% include 'frontend/home/_preloader.twig' %}
 {# Modern Home Template - Grid-based layout with fixed sidebar #}
 {% import 'frontend/_seo_macros.twig' as Seo %}
 {% import 'frontend/_image_macros.twig' as ImageMacros %}
@@ -428,14 +433,12 @@
                                         {% if srcset_jpg %}
                                         <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
-                                        {# First 6 images load eagerly for instant display #}
                                         <img src="{{ img_src }}"
                                              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                                              alt="{{ ImageMacros.smart_alt(image, null, site_title)|trim|e('html_attr') }}"
                                              title="{{ seo_title|e('html_attr') }}"
                                              class="img-fill"
-                                             loading="eager"
-                                             {% if loop.index <= 6 %}fetchpriority="high"{% endif %}
+                                             loading="lazy"
                                              decoding="async"
                                              data-fallback="hide">
                                     </picture>

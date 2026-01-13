@@ -15,6 +15,31 @@ import Lenis from 'lenis';
   let isMobile = window.innerWidth <= 768;
   let lenis = null;
 
+  function setupFetchPriorityObserver() {
+    if (!('IntersectionObserver' in window)) return;
+
+    const images = Array.from(document.querySelectorAll('#galleryWallSection img, .gallery-mobile-grid img'));
+    if (!images.length) return;
+
+    const MAX_HIGH = 3;
+    let highCount = 0;
+
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const img = entry.target;
+        if (highCount < MAX_HIGH) {
+          img.setAttribute('fetchpriority', 'high');
+          img.removeAttribute('loading');
+          highCount += 1;
+        }
+        obs.unobserve(img);
+      });
+    }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
+
+    images.forEach(img => observer.observe(img));
+  }
+
   function initDesktopGallery() {
     if (isMobile) return;
 
@@ -112,6 +137,7 @@ import Lenis from 'lenis';
   });
 
   init();
+  setupFetchPriorityObserver();
 
   // Cleanup on page unload (for SPA)
   window.addEventListener('beforeunload', function() {

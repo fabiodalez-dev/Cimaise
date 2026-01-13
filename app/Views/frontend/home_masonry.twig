@@ -2,121 +2,93 @@
 
 {% block styles %}
 <style nonce="{{ csp_nonce() }}">
-/* Pure Masonry - Wall of Photos - Performance Optimized */
-
-/* Ensure mobile search toggle hidden on desktop (reinforce Tailwind md:hidden) */
-@media (min-width: 768px) {
-  #mobile-search-toggle {
-    display: none !important;
-  }
+/* Pure CSS Masonry (Columns) - Instant & Jank-free */
+.masonry-container {
+  width: 100%;
+  max-width: 100%;
+  padding: 0 10px; /* Safe padding */
+  box-sizing: border-box;
 }
 
-/* Base: CSS Grid layout (works without JS, enhanced by Masonry.js) */
 .masonry-grid {
-  display: grid;
-  grid-template-columns: repeat({{ home_settings.masonry_col_mobile|default(2) }}, 1fr);
-  gap: {{ home_settings.masonry_gap_v|default(0) }}px {{ home_settings.masonry_gap_h|default(0) }}px;
-  /* VISIBLE IMMEDIATELY - no opacity:0 wait */
+  /* Default Mobile: 1 Column */
+  column-count: {{ home_settings.masonry_col_mobile|default(1) }};
+  column-gap: {{ home_settings.masonry_gap_h|default(10) }}px;
+  width: 100%;
+}
+
+.masonry-item {
+  /* Prevent items from splitting across columns */
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  
+  margin-bottom: {{ home_settings.masonry_gap_v|default(10) }}px;
+  display: block;
+  width: 100%;
+  /* Force hardware acceleration to prevent rendering glitches */
+  transform: translateZ(0);
+}
+
+.masonry-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 4px; /* Optional polish */
+}
+
+.masonry-loading {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 2rem auto 0;
+  color: #444;
+  font-size: 0.95rem;
+}
+.masonry-loading.is-visible {
+  display: flex;
+}
+.masonry-loading .spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-top-color: rgba(0, 0, 0, 0.6);
+  border-radius: 9999px;
+  animation: masonrySpin 0.8s linear infinite;
+}
+@keyframes masonrySpin {
+  to { transform: rotate(360deg); }
 }
 
 @media (min-width: 641px) {
   .masonry-grid {
-    grid-template-columns: repeat({{ home_settings.masonry_col_tablet|default(3) }}, 1fr);
+    column-count: {{ home_settings.masonry_col_tablet|default(3) }};
+  }
+}
+
+@media (max-width: 640px) {
+  .masonry-grid {
+    column-count: 1;
   }
 }
 
 @media (min-width: 1025px) {
   .masonry-grid {
-    grid-template-columns: repeat({{ home_settings.masonry_col_desktop|default(5) }}, 1fr);
+    column-count: {{ home_settings.masonry_col_desktop|default(5) }};
+  }
+  .masonry-container.masonry-boxed {
+    max-width: 1400px; /* Reduced from 1600px for more boxed feel */
+    margin: 0 auto;
+    padding: 0 80px; /* Doubled padding for more whitespace */
   }
 }
 
-/* When Masonry.js takes over */
+/* Remove JS-specific classes */
 .masonry-grid.masonry-active {
-  display: block;
-  position: relative;
+  display: block; /* Just block, columns handle the rest */
 }
-
-/* Masonry item base styles */
-.masonry-item {
-  overflow: hidden;
-  contain: layout paint; /* Performance: isolate layout calculations */
-  content-visibility: auto; /* Render only visible items */
-}
-
-/* When using Masonry.js, items need absolute positioning support */
-.masonry-active .masonry-item {
-  float: left;
-}
-
-.masonry-item a {
-  display: block;
-}
-
-.masonry-item img {
-  display: block;
-  width: 100%;
-  height: auto;
-  /* Browser uses width/height attributes automatically for aspect-ratio */
-}
-
-/* Fallback: use img width/height to reserve space before load */
-.masonry-item picture,
-.masonry-item a {
-  display: block;
-  position: relative;
-}
-
-/* Browser natively uses width/height attributes for layout shift prevention */
-
-/* Fade-in animation for items */
-.masonry-item.fade-in {
-  animation: masonryFadeIn 0.2s ease-out forwards;
-}
-
-@keyframes masonryFadeIn {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 8px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-/* Reduced motion: no animations */
-@media (prefers-reduced-motion: reduce) {
-  .masonry-grid {
-    opacity: 1 !important;
-    transition: none !important;
-  }
-  .masonry-item {
-    animation: none !important;
-    opacity: 1 !important;
-  }
-}
-
-/* No-JS fallback: show grid immediately */
-.no-js .masonry-grid {
-  opacity: 1 !important;
-}
-
-/* Layout container styles */
-.masonry-container {
-  width: 100%;
-}
-
-/* Boxed mode: add max-width and padding on desktop only */
-@media (min-width: 1025px) {
-  .masonry-boxed {
-    max-width: 1400px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-}
+.masonry-grid::after { content: none; } /* Remove clearfix */
 </style>
 {% endblock %}
 
@@ -178,8 +150,7 @@
           width="{{ img_width }}"
           height="{{ img_height }}"
           style="aspect-ratio: {{ img_width }} / {{ img_height }};"
-          loading="eager"
-          {% if loop.index <= 8 %}fetchpriority="high"{% endif %}
+          loading="lazy"
         >
       </picture>
     </a>
@@ -187,6 +158,22 @@
   {% endfor %}
 </div>
 </div>
+{% if has_more_images|default(false) %}
+<div id="masonry-loading" class="masonry-loading" aria-live="polite" aria-hidden="true">
+  <span class="spinner" aria-hidden="true"></span>
+  <span>{{ trans('home.masonry_loading') }}</span>
+</div>
+<script nonce="{{ csp_nonce() }}">
+  window.homeLoaderConfig = {
+    shownImageIds: {{ shown_image_ids|default([])|json_encode|raw }},
+    shownAlbumIds: {{ shown_album_ids|default([])|json_encode|raw }},
+    hasMore: true,
+    basePath: {{ base_path|json_encode|raw }},
+    maxImages: {{ home_settings.masonry_max_images|default(0)|json_encode|raw }}
+  };
+</script>
+<div id="home-load-trigger" class="h-1 w-full pointer-events-none" aria-hidden="true"></div>
+{% endif %}
 {% else %}
 {# Empty state #}
 <div class="min-h-screen flex items-center justify-center">
@@ -203,269 +190,5 @@
 {% endblock %}
 
 {% block scripts %}
-{# Masonry and imagesLoaded are already loaded in _layout.twig #}
-<script nonce="{{ csp_nonce() }}">
-(function() {
-  'use strict';
-
-  var grid = document.querySelector('.masonry-grid');
-  if (!grid) return;
-
-  // Configuration
-  var config = {
-    gapH: parseInt(grid.dataset.gapH, 10) || 0,
-    gapV: parseInt(grid.dataset.gapV, 10) || 0,
-    colsMobile: parseInt(grid.dataset.colsMobile, 10) || 2,
-    colsTablet: parseInt(grid.dataset.colsTablet, 10) || 3,
-    colsDesktop: parseInt(grid.dataset.colsDesktop, 10) || 5,
-    basePath: {{ base_path|json_encode|raw }},
-    apiUrl: {{ (base_path ~ '/api/home/gallery')|json_encode|raw }},
-    batchSize: 20
-  };
-
-  var msnry = null;
-  var isInitialized = false;
-  var isLoading = false;
-  var hasMore = {{ has_more_images ? 'true' : 'false' }};
-  var shownImageIds = new Set({{ shown_image_ids|json_encode|raw }});
-  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // Get current column count
-  function getColumnCount() {
-    var width = window.innerWidth;
-    if (width >= 1025) return config.colsDesktop;
-    if (width >= 641) return config.colsTablet;
-    return config.colsMobile;
-  }
-
-  // Calculate item width
-  function calculateItemWidth() {
-    var cols = getColumnCount();
-    var containerWidth = grid.offsetWidth;
-    var totalGaps = config.gapH * (cols - 1);
-    return Math.floor((containerWidth - totalGaps) / cols);
-  }
-
-  // Apply width to items
-  function setItemWidths(items) {
-    var width = calculateItemWidth();
-    items = items || grid.querySelectorAll('.masonry-item');
-    for (var i = 0; i < items.length; i++) {
-      items[i].style.width = width + 'px';
-      items[i].style.marginBottom = config.gapV + 'px';
-    }
-  }
-
-  // Create image element from API data
-  function createImageElement(img) {
-    var div = document.createElement('div');
-    div.className = 'masonry-item';
-    div.style.width = calculateItemWidth() + 'px';
-    div.style.marginBottom = config.gapV + 'px';
-
-    var link = document.createElement('a');
-    link.href = config.basePath + '/album/' + encodeURIComponent(img.album_slug);
-
-    var picture = document.createElement('picture');
-
-    // Add sources (avif, webp, jpg)
-    ['avif', 'webp', 'jpg'].forEach(function(fmt) {
-      var sources = img.sources && img.sources[fmt];
-      if (sources && sources.length) {
-        var source = document.createElement('source');
-        source.type = 'image/' + (fmt === 'jpg' ? 'jpeg' : fmt);
-        source.srcset = sources.join(', ');
-        picture.appendChild(source);
-      }
-    });
-
-    var imgEl = document.createElement('img');
-    imgEl.src = img.fallback_src || img.url;
-    imgEl.alt = img.alt || img.album_title || '';
-    imgEl.width = img.width || 800;
-    imgEl.height = img.height || 600;
-    imgEl.loading = 'eager';
-    imgEl.style.aspectRatio = img.width + ' / ' + img.height;
-
-    picture.appendChild(imgEl);
-    link.appendChild(picture);
-    div.appendChild(link);
-
-    return div;
-  }
-
-  // Load more images from API
-  function loadMoreImages(callback) {
-    if (isLoading || !hasMore) {
-      if (callback) callback();
-      return;
-    }
-
-    isLoading = true;
-    var excludeIds = Array.from(shownImageIds).join(',');
-    var url = config.apiUrl + '?mode=masonry&limit=' + config.batchSize + '&exclude=' + excludeIds;
-
-    fetch(url)
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if (!data.images || !data.images.length) {
-          hasMore = false;
-          isLoading = false;
-          if (callback) callback();
-          return;
-        }
-
-        hasMore = data.hasMore;
-        var newItems = [];
-
-        data.images.forEach(function(img) {
-          var id = parseInt(img.id, 10);
-          if (shownImageIds.has(id)) return;
-          shownImageIds.add(id);
-
-          var el = createImageElement(img);
-          newItems.push(el);
-        });
-
-        if (!newItems.length) {
-          isLoading = false;
-          if (callback) callback();
-          return;
-        }
-
-        // Append to DOM
-        var fragment = document.createDocumentFragment();
-        newItems.forEach(function(item) { fragment.appendChild(item); });
-        grid.appendChild(fragment);
-
-        // Add to Masonry after images load
-        imagesLoaded(newItems, function() {
-          if (msnry) {
-            msnry.appended(newItems);
-            msnry.layout();
-          }
-          isLoading = false;
-          if (window.lenisResize) window.lenisResize();
-          if (callback) callback();
-        });
-      })
-      .catch(function(err) {
-        console.error('Masonry load error:', err);
-        isLoading = false;
-        if (callback) callback();
-      });
-  }
-
-  // Initialize Masonry
-  function initMasonry() {
-    if (isInitialized) return;
-    isInitialized = true;
-
-    grid.classList.add('masonry-active');
-    setItemWidths();
-
-    msnry = new Masonry(grid, {
-      itemSelector: '.masonry-item',
-      columnWidth: '.masonry-item',
-      gutter: config.gapH,
-      percentPosition: false,
-      horizontalOrder: false,
-      transitionDuration: 0,
-      initLayout: false,
-      resize: false
-    });
-
-    msnry.layout();
-
-    requestAnimationFrame(function() {
-      msnry.layout();
-      showGrid();
-    });
-  }
-
-  // Show grid - no animation for initial images, they're visible immediately
-  function showGrid() {
-    grid.classList.add('masonry-ready');
-    if (window.lenisResize) {
-      setTimeout(window.lenisResize, 100);
-    }
-  }
-
-  // Handle resize
-  var resizeTimeout;
-  function handleResize() {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(function() {
-      if (msnry) {
-        setItemWidths();
-        msnry.layout();
-        if (window.lenisResize) window.lenisResize();
-      }
-    }, 150);
-  }
-
-  // Infinite scroll trigger
-  function checkScroll() {
-    if (isLoading || !hasMore) return;
-
-    var scrollY = window.scrollY || window.pageYOffset;
-    var windowHeight = window.innerHeight;
-    var docHeight = document.documentElement.scrollHeight;
-    var threshold = docHeight - (windowHeight * 2);
-
-    // Load when within 2 viewports of bottom
-    if (scrollY + windowHeight >= threshold) {
-      loadMoreImages();
-    }
-  }
-
-  // Initialize
-  function init() {
-    initMasonry();
-
-    // Progressive layout as initial images load
-    var imgLoad = imagesLoaded(grid);
-    var layoutPending = false;
-
-    imgLoad.on('progress', function() {
-      if (!layoutPending && msnry) {
-        layoutPending = true;
-        requestAnimationFrame(function() {
-          msnry.layout();
-          layoutPending = false;
-        });
-      }
-    });
-
-    imgLoad.on('always', function() {
-      if (msnry) msnry.layout();
-    });
-  }
-
-  // Start
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
-  window.addEventListener('resize', handleResize, { passive: true });
-
-  // Throttled scroll listener
-  var scrollThrottle = null;
-  window.addEventListener('scroll', function() {
-    if (scrollThrottle) return;
-    scrollThrottle = setTimeout(function() {
-      scrollThrottle = null;
-      checkScroll();
-    }, 100);
-  }, { passive: true });
-
-  // Lenis scroll support
-  if (window.lenisInstance && window.lenisInstance.on) {
-    window.lenisInstance.on('scroll', checkScroll);
-  }
-
-})();
-</script>
+<script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/home-masonry.js"></script>
 {% endblock %}

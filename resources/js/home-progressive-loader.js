@@ -32,6 +32,7 @@ export class HomeProgressiveLoader {
     this.container = options.container;
     this.renderImage = options.renderImage;
     this.batchSize = options.batchSize || 20;
+    this.extraParams = options.extraParams || {};
     this.hasMore = true;
     this.loading = false;
     this.observer = null;
@@ -97,7 +98,7 @@ export class HomeProgressiveLoader {
    * @private
    */
   _getCacheKey(offset) {
-    return `${this.apiUrl}:${offset}:${this.adaptiveBatchSize}`;
+    return `${this.apiUrl}:${offset}:${this.adaptiveBatchSize}:${JSON.stringify(this.extraParams)}`;
   }
 
   /**
@@ -155,13 +156,18 @@ export class HomeProgressiveLoader {
       controller = new AbortController();
       timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const params = new URLSearchParams({
-        exclude: Array.from(this.shownImageIds).join(','),
-        excludeAlbums: Array.from(this.shownAlbumIds).join(','),
-        limit: String(this.adaptiveBatchSize) // Use adaptive size
+      const url = new URL(this.apiUrl, window.location.origin);
+      const params = url.searchParams;
+      params.set('exclude', Array.from(this.shownImageIds).join(','));
+      params.set('excludeAlbums', Array.from(this.shownAlbumIds).join(','));
+      params.set('limit', String(this.adaptiveBatchSize));
+
+      Object.entries(this.extraParams).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '') return;
+        params.set(key, String(value));
       });
 
-      const res = await fetch(`${this.apiUrl}?${params}`, {
+      const res = await fetch(url.toString(), {
         signal: controller.signal,
         priority: 'high' // Fetch priority hint
       });

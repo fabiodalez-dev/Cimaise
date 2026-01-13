@@ -59,6 +59,23 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endif %}
+
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  if (!('IntersectionObserver' in window)) return;
+  const img = document.querySelector('[data-about-photo="1"]');
+  if (!img) return;
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      img.setAttribute('fetchpriority', 'high');
+      img.removeAttribute('loading');
+      obs.unobserve(img);
+    });
+  }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
+  observer.observe(img);
+})();
+</script>
 {% endblock %}
 
 {% block content %}
@@ -132,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="lg:col-span-1 order-1 lg:order-2">
         <div class="max-w-md ml-auto bg-neutral-100 overflow-hidden border border-neutral-200">
           {% if about_photo_url %}
-            <img src="{% if about_photo_url starts with '/' %}{{ base_path }}{{ about_photo_url }}{% else %}{{ about_photo_url }}{% endif %}" alt="{{ trans('about.portrait_alt')|e('html_attr') }}" class="w-full h-auto object-cover" loading="eager" fetchpriority="high"/>
+            <img src="{% if about_photo_url starts with '/' %}{{ base_path }}{{ about_photo_url }}{% else %}{{ about_photo_url }}{% endif %}" alt="{{ trans('about.portrait_alt')|e('html_attr') }}" class="w-full h-auto object-cover" loading="lazy" data-about-photo="1"/>
           {% else %}
             <div class="aspect-[3/4] w-full h-full flex items-center justify-center text-neutral-400">{{ trans('about.portrait_alt') }}</div>
           {% endif %}

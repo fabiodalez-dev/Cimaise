@@ -1391,6 +1391,8 @@
     "admin.pages.home.masonry_layout_desc": "Masonry CSS con flusso naturale delle colonne",
     "admin.pages.home.masonry_layout_mode": "Modalità Layout (Desktop)",
     "admin.pages.home.masonry_layout_mode_hint": "Sul mobile è sempre a larghezza piena",
+    "admin.pages.home.masonry_max_images": "Numero massimo immagini (0 = senza limite)",
+    "admin.pages.home.masonry_max_images_hint": "Limita il totale di immagini caricate nella home masonry",
     "admin.pages.home.masonry_proportions": "Proporzioni Originali",
     "admin.pages.home.masonry_proportions_desc": "Immagini mostrate con le loro proporzioni naturali",
     "admin.pages.home.masonry_responsive": "Griglia Responsive",

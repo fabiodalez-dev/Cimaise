@@ -105,13 +105,7 @@ body {
   font-weight: 500;
 }
 
-@media (width < 800px) {
-  .gallery-track {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (width < 550px) {
+@media (max-width: 767px) {
   .gallery-track {
     grid-template-columns: repeat(1, 1fr);
   }
@@ -184,8 +178,7 @@ body {
             <img
               src="{{ best_jpg_path|e('html_attr') }}"
               alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
-              loading="eager"
-              {% if loop.index <= 3 %}fetchpriority="high"{% endif %}
+              loading="lazy"
               decoding="async"
               data-fallback="hide"
               data-parallax-image
@@ -227,6 +220,31 @@ body {
 
   if (!gallery || !track || !cards.length) return;
 
+  function setupFetchPriorityObserver() {
+    if (!('IntersectionObserver' in window)) return;
+
+    const images = Array.from(document.querySelectorAll('[data-parallax-card] img'));
+    if (!images.length) return;
+
+    const MAX_HIGH = 3;
+    let highCount = 0;
+
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const img = entry.target;
+        if (highCount < MAX_HIGH) {
+          img.setAttribute('fetchpriority', 'high');
+          img.removeAttribute('loading');
+          highCount += 1;
+        }
+        obs.unobserve(img);
+      });
+    }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
+
+    images.forEach(img => observer.observe(img));
+  }
+
   const easing = 0.05;
   let startY = 0;
   let endY = 0;
@@ -264,6 +282,8 @@ body {
     activateParallax();
     startScroll();
   }
+
+  setupFetchPriorityObserver();
 
   // Initialize immediately on DOMContentLoaded, don't wait for window.load
   if (document.readyState === 'loading') {

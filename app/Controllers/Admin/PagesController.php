@@ -101,8 +101,9 @@ class PagesController extends BaseController
             'home.masonry_gap_v' => (int)($svc->get('home.masonry_gap_v', 0) ?? 0),
             'home.masonry_col_desktop' => (int)($svc->get('home.masonry_col_desktop', 5) ?? 5),
             'home.masonry_col_tablet' => (int)($svc->get('home.masonry_col_tablet', 3) ?? 3),
-            'home.masonry_col_mobile' => (int)($svc->get('home.masonry_col_mobile', 2) ?? 2),
+            'home.masonry_col_mobile' => (int)($svc->get('home.masonry_col_mobile', 1) ?? 1),
             'home.masonry_layout_mode' => (string)($svc->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'),
+            'home.masonry_max_images' => (int)($svc->get('home.masonry_max_images', 0) ?? 0),
         ];
         return $this->view->render($response, 'admin/pages/home.twig', [
             'settings' => $settings,
@@ -140,7 +141,7 @@ class PagesController extends BaseController
         // Masonry columns per device
         $masonryColDesktop = (int)($data['masonry_col_desktop'] ?? 5);
         $masonryColTablet = (int)($data['masonry_col_tablet'] ?? 3);
-        $masonryColMobile = (int)($data['masonry_col_mobile'] ?? 2);
+        $masonryColMobile = (int)($data['masonry_col_mobile'] ?? 1);
         $masonryColDesktop = max(2, min(8, $masonryColDesktop)); // 2-8 columns (matches UI)
         $masonryColTablet = max(2, min(6, $masonryColTablet)); // 2-6 columns (matches UI)
         $masonryColMobile = max(1, min(4, $masonryColMobile)); // 1-4 columns
@@ -154,6 +155,11 @@ class PagesController extends BaseController
             $masonryLayoutMode = 'fullwidth';
         }
         $svc->set('home.masonry_layout_mode', $masonryLayoutMode);
+
+        // Masonry max images (0 = no limit)
+        $masonryMaxImages = (int)($data['masonry_max_images'] ?? 0);
+        $masonryMaxImages = max(0, min(5000, $masonryMaxImages));
+        $svc->set('home.masonry_max_images', $masonryMaxImages);
 
         // Hero section
         $svc->set('home.hero_title', trim((string)($data['hero_title'] ?? 'Portfolio')) ?: 'Portfolio');

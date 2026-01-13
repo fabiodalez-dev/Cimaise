@@ -112,7 +112,7 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     imgEl.alt = alt;
     imgEl.width = safeW;
     imgEl.height = safeH;
-    imgEl.loading = 'eager';
+    imgEl.loading = 'lazy';
     imgEl.decoding = 'async';
     imgEl.className = 'w-full h-full object-cover block';
 
@@ -157,6 +157,31 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
       item.classList.add('home-item--instant');
     });
 
+    const createFetchPriorityObserver = (maxHigh = 3) => {
+      if (!('IntersectionObserver' in window)) return null;
+      let highCount = 0;
+
+      const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          const img = entry.target;
+          if (highCount < maxHigh) {
+            img.setAttribute('fetchpriority', 'high');
+            img.removeAttribute('loading');
+            highCount += 1;
+          }
+          obs.unobserve(img);
+        });
+      }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
+
+      return observer;
+    };
+
+    const observer = createFetchPriorityObserver(3);
+    if (observer) {
+      gallery.querySelectorAll('img').forEach(img => observer.observe(img));
+    }
+
     // Progressive Loading: Load more images via API
     const config = window.homeLoaderConfig;
     if (config && config.hasMore) {
@@ -184,6 +209,9 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
             const mobileCell = createHomeItem(img, config.basePath, false);
             mobileCell.className = 'home-cell';
             mobileCells.appendChild(mobileCell);
+            if (observer) {
+              mobileCell.querySelectorAll('img').forEach(imgEl => observer.observe(imgEl));
+            }
           }
 
           // Append to desktop layout (distribute across columns/rows)
@@ -191,6 +219,9 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
             const targetTrack = tracks[appendIndex % tracks.length];
             targetTrack.appendChild(cell);
             appendIndex++;
+            if (observer) {
+              cell.querySelectorAll('img').forEach(imgEl => observer.observe(imgEl));
+            }
           }
         }
       });

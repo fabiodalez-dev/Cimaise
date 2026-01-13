@@ -1097,8 +1097,9 @@ document.addEventListener('click', function(event) {
 
             // STEP 10: Make visible and animate items
             setTimeout(() => {
-                galleryContainer.classList.remove('tpl-switching');
-
+                // Restore scroll position first to avoid visual jump
+                window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' });
+                
                 // Force visibility on all items as fallback
                 // But DON'T touch masonry-frame transforms - the masonry library manages those!
                 const allItems = galleryContainer.querySelectorAll('.gallery-item, .masonry-frame, .dense-grid-item, .photo-item');
@@ -1122,9 +1123,10 @@ document.addEventListener('click', function(event) {
                 if (window.lenisResize) {
                     setTimeout(window.lenisResize, 100);
                 }
-                // Restore scroll position (template 2 was jumping to top)
-                window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' });
-            }, 50);
+                
+                // Finally reveal the container after layout is stable
+                galleryContainer.classList.remove('tpl-switching');
+            }, 150); // Increased delay to 150ms to ensure CSS application
             });
         })
         .catch(err => {

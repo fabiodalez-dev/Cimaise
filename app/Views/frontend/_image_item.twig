@@ -87,7 +87,7 @@
            title="{{ seo_title|e('html_attr') }}"
            width="{{ image.width }}"
            height="{{ image.height }}"
-           {% if loop is defined and loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+           loading="lazy"
            decoding="async"
            data-fallback="hide"
            class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105">

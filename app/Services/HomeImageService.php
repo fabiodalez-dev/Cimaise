@@ -47,18 +47,19 @@ class HomeImageService
 
         // Fetch images from published albums with LIMIT to prevent memory issues
         // Uses ORDER BY album_id to improve album distribution within the limit
-        // Uses subquery for category_slugs from junction table (supports multi-category albums)
+        // REFACTORED: Use LEFT JOIN + GROUP BY instead of correlated subquery to avoid N+1 performance hit
         $stmt = $pdo->prepare("
             SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
                    a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
-                   (SELECT GROUP_CONCAT(c.slug, ',') FROM album_category ac
-                    JOIN categories c ON c.id = ac.category_id
-                    WHERE ac.album_id = a.id) as category_slugs
+                   GROUP_CONCAT(c.slug) as category_slugs
             FROM images i
             JOIN albums a ON a.id = i.album_id
+            LEFT JOIN album_category ac ON ac.album_id = a.id
+            LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
+            GROUP BY i.id
             ORDER BY a.id, i.sort_order
             LIMIT :max_fetch
         ");
@@ -139,40 +140,77 @@ class HomeImageService
     }
 
     /**
-     * Get all images for masonry-style layouts (no album diversity, load all).
-     * Returns all available images shuffled for visual variety.
+     * Get all images for masonry-style layouts.
+     * Ordered by newest albums first.
+     * Implements infinite looping: if limit exceeds available images, it restarts from the beginning.
      *
-     * @param int $limit Maximum images to return (0 = all up to MAX_FETCH_LIMIT)
+     * @param int $limit Maximum images to return (0 = no limit)
      * @param bool $includeNsfw Include NSFW albums
      * @return array{images: array, totalImages: int, hasMore: bool}
      */
     public function getAllImages(int $limit = 0, bool $includeNsfw = false): array
     {
-        $limit = $limit > 0 ? min($limit, self::MAX_FETCH_LIMIT) : self::MAX_FETCH_LIMIT;
+        $limit = $limit > 0 ? min($limit, self::MAX_FETCH_LIMIT) : 0;
         $pdo = $this->db->pdo();
 
-        // Fetch ALL images from published albums
-        // Uses subquery for category_slugs from junction table (supports multi-category albums)
-        $stmt = $pdo->prepare("
+        // Base query for reuse
+        $baseQuery = "
             SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
                    a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
-                   (SELECT GROUP_CONCAT(c.slug, ',') FROM album_category ac
-                    JOIN categories c ON c.id = ac.category_id
-                    WHERE ac.album_id = a.id) as category_slugs
+                   GROUP_CONCAT(c.slug) as category_slugs
             FROM images i
             JOIN albums a ON a.id = i.album_id
+            LEFT JOIN album_category ac ON ac.album_id = a.id
+            LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
-            ORDER BY RANDOM()
-            LIMIT :max_fetch
-        ");
+        ";
+
+        // Query 1: Fetch initial batch
+        // REFACTORED: Removed subquery, used LEFT JOIN + GROUP BY, Sorted by Date
+        $sql = $baseQuery . "
+            GROUP BY i.id
+            ORDER BY a.published_at DESC, a.id DESC, i.sort_order ASC
+        ";
+        if ($limit > 0) {
+            $sql .= " LIMIT :max_fetch";
+        }
+
+        $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
-        $stmt->bindValue(':max_fetch', $limit, \PDO::PARAM_INT);
+        if ($limit > 0) {
+            $stmt->bindValue(':max_fetch', $limit, \PDO::PARAM_INT);
+        }
         $stmt->execute();
         $images = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Get total count
+        // Calculate if we need to loop (only if we didn't get enough images)
+        if ($limit > 0 && count($images) < $limit) {
+            $needed = $limit - count($images);
+            
+            // To loop, we essentially fetch from the beginning again.
+            // Since getAllImages starts from the beginning anyway, we just fetch top N again.
+            // Note: This simple looping strategy works for a single wraparound.
+            // If needed > total_db_images, we might return duplicates.
+            
+            // However, we must ensure we actually HAVE images in the DB to avoid infinite loops in logic
+            if (count($images) > 0) {
+                 // Reuse the same query logic (fetching from top)
+                 // We can just slice the existing result if we have enough, or re-query if we really need to.
+                 // Optimization: If we fetched ALL images (count < limit implies we exhausted DB), 
+                 // we can just append duplicates from the start of $images array.
+                 
+                 $pool = $images;
+                 while (count($images) < $limit) {
+                     $batch = array_slice($pool, 0, $limit - count($images));
+                     if (empty($batch)) break; // Safety
+                     $images = array_merge($images, $batch);
+                 }
+            }
+        }
+
+        // Get total count of UNIQUE images
         $countStmt = $pdo->prepare("
             SELECT COUNT(*)
             FROM images i
@@ -188,12 +226,14 @@ class HomeImageService
         return [
             'images' => $images,
             'totalImages' => $totalImages,
-            'hasMore' => $totalImages > count($images),
+            'hasMore' => $limit > 0, // No limit means everything is already loaded
         ];
     }
 
     /**
      * Get more images for masonry progressive loading.
+     * Ordered by newest albums first.
+     * Implements infinite looping.
      *
      * @param array $excludeImageIds Image IDs already shown
      * @param int $limit Maximum images to return
@@ -216,21 +256,25 @@ class HomeImageService
             $excludeClause = " AND i.id NOT IN ({$placeholders})";
         }
 
-        // Fetch more images excluding already shown
-        // Uses subquery for category_slugs from junction table (supports multi-category albums)
-        $sql = "
+        // Base Query Structure
+        $baseSql = "
             SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
                    a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
-                   (SELECT GROUP_CONCAT(c.slug, ',') FROM album_category ac
-                    JOIN categories c ON c.id = ac.category_id
-                    WHERE ac.album_id = a.id) as category_slugs
+                   GROUP_CONCAT(c.slug) as category_slugs
             FROM images i
             JOIN albums a ON a.id = i.album_id
+            LEFT JOIN album_category ac ON ac.album_id = a.id
+            LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (? = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
+        ";
+
+        // 1. Try to fetch new images (respecting exclusions)
+        $sql = $baseSql . "
               {$excludeClause}
-            ORDER BY RANDOM()
+            GROUP BY i.id
+            ORDER BY a.published_at DESC, a.id DESC, i.sort_order ASC
             LIMIT ?
         ";
 
@@ -244,28 +288,33 @@ class HomeImageService
         $stmt->execute();
         $images = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Check if there are more images
-        $countSql = "
-            SELECT COUNT(*)
-            FROM images i
-            JOIN albums a ON a.id = i.album_id
-            WHERE a.is_published = 1
-              AND (? = 1 OR a.is_nsfw = 0)
-              AND (a.password_hash IS NULL OR a.password_hash = '')
-              {$excludeClause}
-        ";
-        $countStmt = $pdo->prepare($countSql);
-        $paramIndex = 1;
-        $countStmt->bindValue($paramIndex++, $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
-        foreach ($excludeIds as $id) {
-            $countStmt->bindValue($paramIndex++, $id, \PDO::PARAM_INT);
+        // 2. Loop logic: If we didn't get enough images, fetch from the start
+        // ignoring exclusions (simulating a loop back to the top)
+        if (count($images) < $limit) {
+            $needed = $limit - count($images);
+            
+            $loopSql = $baseSql . "
+                GROUP BY i.id
+                ORDER BY a.published_at DESC, a.id DESC, i.sort_order ASC
+                LIMIT ?
+            ";
+            
+            $loopStmt = $pdo->prepare($loopSql);
+            $loopStmt->bindValue(1, $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
+            $loopStmt->bindValue(2, $needed, \PDO::PARAM_INT);
+            $loopStmt->execute();
+            $loopImages = $loopStmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            $images = array_merge($images, $loopImages);
+            
+            // Edge case: If DB has very few images (fewer than needed), we might still be short.
+            // Duplicate them to fill the request if necessary, or just return what we have.
+            // For now, returning what we found (partial + wrap-around) is usually sufficient.
         }
-        $countStmt->execute();
-        $remainingCount = (int) $countStmt->fetchColumn();
 
         return [
             'images' => $images,
-            'hasMore' => $remainingCount > count($images),
+            'hasMore' => true, // Infinite loop
         ];
     }
 
@@ -292,18 +341,19 @@ class HomeImageService
         $pdo = $this->db->pdo();
 
         // Fetch eligible images with LIMIT to prevent memory issues
-        // Uses subquery for category_slugs from junction table (supports multi-category albums)
+        // REFACTORED: Use LEFT JOIN + GROUP BY instead of correlated subquery to avoid N+1 performance hit
         $stmt = $pdo->prepare("
             SELECT i.id, i.album_id, i.original_path, i.width, i.height, i.alt_text, i.caption,
                    a.title as album_title, a.slug as album_slug, a.excerpt as album_description,
-                   (SELECT GROUP_CONCAT(c.slug, ',') FROM album_category ac
-                    JOIN categories c ON c.id = ac.category_id
-                    WHERE ac.album_id = a.id) as category_slugs
+                   GROUP_CONCAT(c.slug) as category_slugs
             FROM images i
             JOIN albums a ON a.id = i.album_id
+            LEFT JOIN album_category ac ON ac.album_id = a.id
+            LEFT JOIN categories c ON c.id = ac.category_id
             WHERE a.is_published = 1
               AND (:include_nsfw = 1 OR a.is_nsfw = 0)
               AND (a.password_hash IS NULL OR a.password_hash = '')
+            GROUP BY i.id
             ORDER BY a.id, i.sort_order
             LIMIT :max_fetch
         ");

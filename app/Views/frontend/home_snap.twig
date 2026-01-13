@@ -450,7 +450,7 @@ html.dark .snap-indicator:hover {
           {% endif %}
           {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
           {# First 10 albums load eagerly to prevent white space during snap navigation #}
-          <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="eager" {% if loop.index <= 10 %}fetchpriority="high"{% endif %} decoding="async">
+          <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="lazy" decoding="async">
         </a>
         {% endfor %}
       </div>
@@ -485,7 +485,7 @@ html.dark .snap-indicator:hover {
         {% endif %}
         {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
         {# First 10 albums load eagerly to prevent white space during snap navigation #}
-        <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="eager" {% if loop.index <= 10 %}fetchpriority="high"{% endif %} decoding="async">
+        <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="lazy" decoding="async">
         <div class="snap-mobile-info">
           <span class="snap-year">{{ album.shoot_date ? album.shoot_date|date('Y') : album.published_at|date('Y') }}</span>
           <h2>{{ album.title|e }}</h2>
@@ -527,6 +527,33 @@ html.dark .snap-indicator:hover {
   const indicatorsContainer = document.getElementById('snapIndicators');
 
   if (!leftTrack || !rightTrack || !indicatorsContainer || !mobileTrack) return;
+
+  function setupFetchPriorityObserver() {
+    if (!('IntersectionObserver' in window)) return;
+
+    const images = Array.from(document.querySelectorAll('.snap-cover img, .snap-mobile-slide img'));
+    if (!images.length) return;
+
+    const MAX_HIGH = 3;
+    let highCount = 0;
+
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const img = entry.target;
+        if (highCount < MAX_HIGH) {
+          img.setAttribute('fetchpriority', 'high');
+          img.removeAttribute('loading');
+          highCount += 1;
+        }
+        obs.unobserve(img);
+      });
+    }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
+
+    images.forEach(img => observer.observe(img));
+  }
+
+  setupFetchPriorityObserver();
 
   const albumCount = leftTrack.querySelectorAll('.snap-album-info').length;
   if (albumCount === 0) return;
