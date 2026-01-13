@@ -3,6 +3,7 @@
 import './home-gallery.js'
 import './albums-carousel.js'
 import { HomeProgressiveLoader } from './home-progressive-loader.js'
+import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
 
 /**
  * Home Infinite Gallery - Entry animation reveal + Progressive Loading
@@ -89,16 +90,6 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     imgEl.decoding = 'async';
     imgEl.className = 'w-full h-full object-cover block';
 
-    // Remove loading skeleton when image loads
-    imgEl.addEventListener('load', () => {
-      item.classList.remove('loading');
-    });
-
-    // Handle load errors gracefully
-    imgEl.addEventListener('error', () => {
-      item.classList.remove('loading');
-    });
-
     picture.appendChild(imgEl);
 
     const overlay = document.createElement('div');
@@ -125,26 +116,6 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
     gallery.style.opacity = '1';
 
     // Show all items immediately without entry animations
-
-    const createFetchPriorityObserver = (maxHigh = 3) => {
-      if (!('IntersectionObserver' in window)) return null;
-      let highCount = 0;
-
-      const observer = new IntersectionObserver((entries, obs) => {
-        entries.forEach(entry => {
-          if (!entry.isIntersecting) return;
-          const img = entry.target;
-          if (highCount < maxHigh) {
-            img.setAttribute('fetchpriority', 'high');
-            img.removeAttribute('loading');
-            highCount += 1;
-          }
-          obs.unobserve(img);
-        });
-      }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });
-
-      return observer;
-    };
 
     const observer = createFetchPriorityObserver(3);
     if (observer) {
