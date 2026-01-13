@@ -608,7 +608,7 @@ document.addEventListener('click', function(event) {
                             <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
                         {% endif %}
 
-                        {# First 9 images load eagerly for instant display #}
+                        {# Images are lazy-loaded; priority handled by browser/IO #}
                         <img src="{{ best_jpg_path }}"
                              alt="{{ ImageMacros.smart_alt(image, album, site_title)|trim|e('html_attr') }}"
                              title="{{ seo_title|e('html_attr') }}"
@@ -759,7 +759,7 @@ document.addEventListener('click', function(event) {
                                     <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
                                 {% endif %}
 
-                                {# First 9 images load eagerly for instant display #}
+                                {# Images are lazy-loaded; priority handled by browser/IO #}
                                 <img src="{{ best_jpg_path }}"
                                      alt="{{ ImageMacros.smart_alt(image, album, site_title)|trim|e('html_attr') }}"
                                      title="{{ seo_title|e('html_attr') }}"
@@ -873,7 +873,7 @@ document.addEventListener('click', function(event) {
                                 <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
                             {% endif %}
 
-                            {# First 9 images load eagerly for instant display #}
+                            {# Images are lazy-loaded; priority handled by browser/IO #}
                             <img src="{{ best_jpg_path }}"
                                  alt="{{ ImageMacros.smart_alt(image, album, site_title)|trim|e('html_attr') }}"
                                  title="{{ seo_title|e('html_attr') }}"

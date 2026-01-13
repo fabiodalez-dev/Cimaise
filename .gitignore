@@ -118,10 +118,3 @@ public/assets/vendor/**/*.md
 bin/dev/seed_full_demo.php
 storage/database.db
 screenshot/rabbit-pinterest.png
-
-# AI/ML models (too large for git)
-models/
-
-# Local AI/development configs
-config.json
-vectors.db

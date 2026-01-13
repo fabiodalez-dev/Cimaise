@@ -123,8 +123,14 @@ class UploadService
             // Fallback for CLI env
             if (!@rename($tmp, $dest)) {
                 // Final fallback: copy+unlink (works across filesystems)
-                if (!@copy($tmp, $dest) || !@unlink($tmp)) {
+                if (!@copy($tmp, $dest)) {
                     throw new RuntimeException('Failed to move uploaded file');
+                }
+                if (!@unlink($tmp)) {
+                    Logger::warning('UploadService: Failed to cleanup temp file after copy', [
+                        'tmp' => $tmp,
+                        'dest' => $dest,
+                    ], 'upload');
                 }
             }
         }

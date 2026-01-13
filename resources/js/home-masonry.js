@@ -72,6 +72,7 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js';
     };
 
     const renderImage = (img) => {
+      if (!loader) return;
       if (maxImages > 0 && loader.shownImageIds.size >= maxImages) {
         loader.hasMore = false;
         loader.disconnect();
@@ -95,18 +96,21 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js';
         const source = document.createElement('source');
         source.type = 'image/avif';
         source.srcset = avif;
+        source.sizes = '(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw';
         picture.appendChild(source);
       }
       if (webp) {
         const source = document.createElement('source');
         source.type = 'image/webp';
         source.srcset = webp;
+        source.sizes = '(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw';
         picture.appendChild(source);
       }
       if (jpg) {
         const source = document.createElement('source');
         source.type = 'image/jpeg';
         source.srcset = jpg;
+        source.sizes = '(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw';
         picture.appendChild(source);
       }
 
@@ -117,6 +121,7 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js';
       imgEl.width = img.width || 800;
       imgEl.height = img.height || 600;
       imgEl.loading = 'lazy';
+      imgEl.decoding = 'async';
       imgEl.style.aspectRatio = `${imgEl.width} / ${imgEl.height}`;
 
       picture.appendChild(imgEl);

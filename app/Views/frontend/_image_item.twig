@@ -81,7 +81,7 @@
         <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1536px) 50vw, (min-width: 1280px) 55vw, (min-width: 1024px) 60vw, (min-width: 768px) 70vw, (min-width: 640px) 95vw, 100vw">
       {% endif %}
       
-{# First 9 images load eagerly for instant display - loop.index available from parent #}
+{# Images are lazy-loaded; priority handled by browser/IO #}
       <img src="{{ best_jpg_path }}"
            alt="{{ ImageMacros.smart_alt(image, album, site_title)|trim|e('html_attr') }}"
            title="{{ seo_title|e('html_attr') }}"

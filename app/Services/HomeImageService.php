@@ -202,10 +202,14 @@ class HomeImageService
                  // we can just append duplicates from the start of $images array.
                  
                  $pool = $images;
-                 while (count($images) < $limit) {
-                     $batch = array_slice($pool, 0, $limit - count($images));
-                     if (empty($batch)) break; // Safety
+                 while ($needed > 0) {
+                     $batchSize = min($needed, count($pool));
+                     if ($batchSize === 0) {
+                         break;
+                     }
+                     $batch = array_slice($pool, 0, $batchSize);
                      $images = array_merge($images, $batch);
+                     $needed -= count($batch);
                  }
             }
         }

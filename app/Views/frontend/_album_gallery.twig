@@ -98,7 +98,7 @@
             {% if image.sources.webp|length %}
               <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
             {% endif %}
-{# First 9 images load eagerly for instant display #}
+{# Images are lazy-loaded; priority handled by browser/IO #}
             <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                  alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                  loading="lazy"
@@ -181,7 +181,7 @@
               {% if image.sources.webp|length %}
                 <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
               {% endif %}
-{# First 9 images load eagerly for instant display #}
+{# Images are lazy-loaded; priority handled by browser/IO #}
               <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                    alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                    title="{{ seo_title|e('html_attr') }}"
@@ -265,7 +265,7 @@
             {% if variants_webp %}
               <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
             {% endif %}
-{# First 9 images load eagerly for instant display #}
+{# Images are lazy-loaded; priority handled by browser/IO #}
             <img src="{{ best_jpg_path }}"
                  alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                  title="{{ seo_title|e('html_attr') }}"

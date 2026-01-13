@@ -2346,7 +2346,17 @@
             const skipImageAnimations = document.querySelector(
                 '.home-infinite-section, .gallery-wall, .masonry-grid, .snap-gallery, [data-parallax-gallery]'
             );
-            if (skipImageAnimations) return;
+            if (skipImageAnimations) {
+                document.querySelectorAll('img[data-src]').forEach(img => {
+                    const dataSrc = img.getAttribute('data-src');
+                    if (dataSrc) {
+                        img.setAttribute('src', dataSrc);
+                        img.removeAttribute('data-src');
+                        img.style.opacity = '1';
+                    }
+                });
+                return;
+            }
 
             const images = document.querySelectorAll('img[data-src], img:not([data-src])');
             
