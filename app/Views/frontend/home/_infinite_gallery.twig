@@ -52,7 +52,7 @@
   {% set col1 = all_images %}
   {% set col2 = all_images|slice(o2, totalImages - o2)|merge(all_images|slice(0, o2)) %}
   {% set col3 = all_images|slice(o3, totalImages - o3)|merge(all_images|slice(0, o3)) %}
-  {% set minItems = 30 %}
+  {% set minItems = 15 %}
   {% set repeat_times = (minItems / totalImages)|round(0, 'ceil') %}
   {% set repeat_times = repeat_times < 2 ? 2 : (repeat_times > 5 ? 5 : repeat_times) %}
 
