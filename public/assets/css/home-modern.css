@@ -885,6 +885,11 @@ html.dark .mega-menu_link {
     transition: opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s;
 }
 
+.menu-component.is-open .menu-close {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 .menu-close .menu-btn_text {
     color: var(--modern-black);
 }
