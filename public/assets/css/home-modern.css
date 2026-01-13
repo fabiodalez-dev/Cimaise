@@ -203,10 +203,19 @@ html.dark .modern-search-toggle:hover {
     backdrop-filter: blur(10px);
     border: 0;
     padding: 2.5rem 1.5rem;
-    pointer-events: auto;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modern-search-panel:not(.hidden) {
+    pointer-events: auto;
+    opacity: 1;
+    visibility: visible;
 }
 
 /* Dark mode - search panel */
@@ -480,6 +489,7 @@ html.dark .modern-search-suggestions__subtitle {
     position: fixed;
     top: 0;
     left: 0;
+    z-index: 10;
     display: flex;
     flex-direction: column;
     justify-content: center;
