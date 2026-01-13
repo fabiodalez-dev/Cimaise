@@ -96,22 +96,7 @@
 }
 
 .home-item.loading img {
-  opacity: 0;
-}
-
-.home-item img[loading="lazy"] {
-  transition: opacity 0.15s ease-in-out;
-}
-
-/* Entry state: hide items only when JS sets the hidden class */
-.home-item--hidden { opacity: 0; filter: blur(4px); transform: scale(0.985); transition: opacity .25s ease, filter .25s ease, transform .25s ease; }
-.home-item.home-item--revealed { opacity: 1; filter: blur(0); transform: scale(1); transition: opacity .25s ease, filter .25s ease, transform .25s ease; }
-/* Instant reveal for cached images - no transition */
-.home-item.home-item--instant { opacity: 1; filter: blur(0); transform: scale(1); transition: none !important; }
-/* Mobile: disable entry transitions to avoid breathing effect */
-@media (max-width: 767px) {
-  .home-item--hidden,
-  .home-item.home-item--revealed { transition: none; }
+  opacity: 1;
 }
 
 /* Albums Horizontal Infinite Carousel */
