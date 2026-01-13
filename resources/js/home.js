@@ -18,33 +18,6 @@ import { HomeProgressiveLoader } from './home-progressive-loader.js'
   }
 
   /**
-   * Escape HTML special characters to prevent XSS
-   * @param {string} str - String to escape
-   * @returns {string} Escaped string safe for HTML insertion
-   */
-  function escapeHtml(str) {
-    if (str == null) return '';
-    const div = document.createElement('div');
-    div.textContent = String(str);
-    return div.innerHTML;
-  }
-
-  /**
-   * Escape string for use in HTML attributes
-   * @param {string} str - String to escape
-   * @returns {string} Escaped string safe for attribute values
-   */
-  function escapeAttr(str) {
-    if (str == null) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
-
-  /**
    * Create a home-item element from API image data
    * @param {Object} img - Image data from API
    * @param {string} basePath - Base URL path
