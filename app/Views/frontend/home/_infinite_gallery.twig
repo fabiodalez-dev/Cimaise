@@ -10,7 +10,7 @@
   <div class="pointer-events-none absolute inset-y-0 right-0 w-10 z-20 home-veil-right"></div>
   {% endif %}
 
-{% macro home_pic(image, base_path, site_title) %}
+{% macro home_pic(image, base_path, site_title, eager=false) %}
     <picture class="block w-full h-full">
       {% if image.sources is defined and image.sources.avif is defined and image.sources.avif|length %}
         <source type="image/avif" srcset="{% for s in image.sources.avif %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1024px) 50vw, (min-width:640px) 70vw, 100vw">
@@ -25,17 +25,17 @@
       <img src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"
            alt="{{ image.alt|default(image.album_title)|e }}"
            width="{{ image.width|default(1600) }}" height="{{ image.height|default(1067) }}"
-           loading="lazy"
+           {% if eager %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
            decoding="async" class="w-full h-full object-cover block">
     </picture>
   {% endmacro %}
 
-{% macro home_item(image, base_path, site_title) %}
+{% macro home_item(image, base_path, site_title, eager=false) %}
     {% set w = image.width|default(1600) %}
     {% set h = image.height|default(1067) %}
     <div class="home-item group rounded-xl overflow-hidden shadow-sm relative transition-transform hover:scale-105 duration-300" style="aspect-ratio: {{ w }} / {{ h }};">
       <a href="{{ base_path }}/album/{{ image.album_slug }}" class="block w-full h-full relative z-10" title="{{ image.album_title|default('')|e('html_attr') }}">
-        {{ _self.home_pic(image, base_path, site_title) }}
+        {{ _self.home_pic(image, base_path, site_title, eager) }}
         <div class="absolute inset-0 bg-black/70 text-white flex items-center justify-center transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
           <span class="px-4 text-base md:text-lg lg:text-xl font-medium tracking-tight text-center">{{ image.album_title|e }}</span>
         </div>
@@ -60,7 +60,7 @@
     <div class="home-mobile-wrap">
       <div class="home-mobile">
         {% for image in all_images %}
-          <div class="home-cell">{{ H.home_item(image, base_path, site_title) }}</div>
+          <div class="home-cell">{{ H.home_item(image, base_path, site_title, loop.index0 < 6) }}</div>
         {% endfor %}
       </div>
     </div>
@@ -77,7 +77,7 @@
           <div class="home-track-h">
             {% for r in 1..repeat_times %}
               {% for image in row %}
-                <div class="home-cell-h">{{ H.home_item(image, base_path, site_title) }}</div>
+                <div class="home-cell-h">{{ H.home_item(image, base_path, site_title, loop.parent.loop.index0 == 0 and loop.index0 < 6) }}</div>
               {% endfor %}
             {% endfor %}
           </div>
@@ -96,7 +96,7 @@
           <div class="home-track">
             {% for r in 1..repeat_times %}
               {% for image in col %}
-                <div class="home-cell">{{ H.home_item(image, base_path, site_title) }}</div>
+                <div class="home-cell">{{ H.home_item(image, base_path, site_title, loop.parent.loop.index0 == 0 and loop.index0 < 4) }}</div>
               {% endfor %}
             {% endfor %}
           </div>
