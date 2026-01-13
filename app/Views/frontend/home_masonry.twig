@@ -127,12 +127,15 @@
     <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
       {% set webp_sources = image.sources.webp|default([]) %}
       {% set jpg_sources = image.sources.jpg|default([]) %}
+      {% set desktop_vw = (100 / home_settings.masonry_col_desktop|default(5))|round %}
+      {% set tablet_vw = (100 / home_settings.masonry_col_tablet|default(3))|round %}
+      {% set mobile_vw = (100 / home_settings.masonry_col_mobile|default(1))|round %}
       <picture>
         {% if webp_sources|length > 0 %}
-        <source type="image/webp" sizes="(min-width: 1025px) 20vw, (min-width: 641px) 33vw, 100vw" srcset="{% for src in webp_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
+        <source type="image/webp" sizes="(min-width: 1025px) {{ desktop_vw }}vw, (min-width: 641px) {{ tablet_vw }}vw, {{ mobile_vw }}vw" srcset="{% for src in webp_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
         {% endif %}
         {% if jpg_sources|length > 0 %}
-        <source type="image/jpeg" sizes="(min-width: 1025px) 20vw, (min-width: 641px) 33vw, 100vw" srcset="{% for src in jpg_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
+        <source type="image/jpeg" sizes="(min-width: 1025px) {{ desktop_vw }}vw, (min-width: 641px) {{ tablet_vw }}vw, {{ mobile_vw }}vw" srcset="{% for src in jpg_sources %}{{ base_path }}{{ src }}{% if not loop.last %}, {% endif %}{% endfor %}">
         {% endif %}
         {% set img_src = image.fallback_src|default(image.original_path) %}
         {% set img_url = img_src starts with '/' ? base_path ~ img_src : img_src %}
