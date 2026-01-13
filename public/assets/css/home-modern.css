@@ -896,22 +896,26 @@ html.dark .mega-menu_link {
     justify-content: flex-start;
     gap: 0.5rem;
     width: 100%;
-    
+
     /* FORCE EXPLICIT HEIGHT CALCULATION */
     height: calc(100vh - 7rem); /* 100vh minus top padding (5rem) and bottom padding (2rem) */
-    
+
     overflow-y: scroll; /* Force scrollbar capability */
     overflow-x: hidden;
     padding: 1rem;
-    
-    /* ENSURE INTERACTION */
-    pointer-events: auto;
+
+    /* pointer-events inherited from parent (.menu-component) */
     overscroll-behavior: contain; /* Prevent scroll chaining to body */
     -webkit-overflow-scrolling: touch;
-    
+
     /* Hide scrollbar */
     scrollbar-width: none;
     -ms-overflow-style: none;
+}
+
+/* Enable interaction only when menu is open */
+.menu-component.is-open .mega-menu {
+    pointer-events: auto;
 }
 
 .mega-menu_link {
