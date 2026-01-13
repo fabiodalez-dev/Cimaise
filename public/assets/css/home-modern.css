@@ -876,7 +876,7 @@ html.dark .mega-menu_link {
 
 .menu-close {
     position: absolute;
-    top: 1.25rem;
+    top: 5.5rem;
     right: 1.25rem;
     cursor: pointer;
     z-index: 101;
