@@ -50,6 +50,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     lenisInstance.destroy();
                 }
             }, { once: true });
+        }).catch(err => {
+            console.warn('Lenis smooth scroll could not be loaded:', err);
         });
     }
 
@@ -330,6 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (filter === 'all') {
             allItems.forEach(item => {
                 item.style.display = '';
+                item.classList.remove('is-hidden');
             });
             disableFilteredMode();
         } else {
@@ -337,15 +340,17 @@ document.addEventListener('DOMContentLoaded', function() {
             allItems.forEach(item => {
                 if (item.classList.contains('category-' + filter)) {
                     item.style.display = '';
+                    item.classList.remove('is-hidden');
                 } else {
                     item.style.display = 'none';
+                    item.classList.add('is-hidden');
                 }
             });
         }
 
         const counter = document.querySelector('.photos_total');
         if (counter) {
-            const visibleItems = document.querySelectorAll('.inf-work_item:not([style*="display: none"])');
+            const visibleItems = document.querySelectorAll('.inf-work_item:not(.is-hidden)');
             counter.textContent = visibleItems.length;
         }
     };
