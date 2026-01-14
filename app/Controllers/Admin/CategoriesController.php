@@ -2,7 +2,11 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
+use App\Services\NavigationService;
+use App\Services\PageCacheService;
+use App\Services\SettingsService;
 use App\Support\Database;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -13,6 +17,21 @@ class CategoriesController extends BaseController
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
+    }
+
+    /**
+     * Invalidate caches related to categories.
+     */
+    private function invalidateCategoryCache(): void
+    {
+        // Invalidate navigation cache
+        NavigationService::invalidateCache();
+
+        // Invalidate page caches
+        $settings = new SettingsService($this->db);
+        $pageCache = new PageCacheService($settings);
+        $pageCache->invalidateHome();
+        $pageCache->invalidateGalleries();
     }
 
     public function index(Request $request, Response $response): Response
@@ -167,6 +186,7 @@ class CategoriesController extends BaseController
         $stmt = $this->db->pdo()->prepare('INSERT INTO categories(name, slug, sort_order, parent_id, image_path) VALUES(:n, :s, :o, :p, :i)');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath]);
+            $this->invalidateCategoryCache();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.category_created')];
             return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
         } catch (\Throwable $e) {
@@ -294,6 +314,7 @@ class CategoriesController extends BaseController
         $stmt = $this->db->pdo()->prepare('UPDATE categories SET name=:n, slug=:s, sort_order=:o, parent_id=:p, image_path=:i WHERE id=:id');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath, ':id' => $id]);
+            $this->invalidateCategoryCache();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.category_updated')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
@@ -324,6 +345,7 @@ class CategoriesController extends BaseController
         $stmt = $pdo->prepare('DELETE FROM categories WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
+            $this->invalidateCategoryCache();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.category_deleted')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];

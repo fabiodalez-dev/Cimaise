@@ -33,6 +33,10 @@ if ($isInstallCommand) {
     $cli->add(new App\Tasks\InitCommand($container['db']));
     $cli->add(new App\Tasks\NormalizeMediaPathsCommand($container['db']));
     $cli->add(new App\Tasks\NsfwBlurGenerateCommand($container['db']));
+    $cli->add(new App\Tasks\MaintenanceRunCommand($container['db']));
+    $cli->add(new App\Tasks\CacheWarmCommand($container['db']));
+    $cli->add(new App\Tasks\AnalyticsCleanupCommand($container['db']));
+    $cli->add(new App\Tasks\AnalyticsSummarizeCommand($container['db']));
     $cli->add(new App\Tasks\InstallCommand());
 }
 

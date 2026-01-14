@@ -21,8 +21,8 @@ use Symfony\Component\Console\Output\OutputInterface;
  * Recommended cron setup (daily at 3 AM):
  *   0 3 * * * cd /path/to/cimaise && php bin/console maintenance:run --quiet-mode
  *
- * For high-traffic sites, run more frequently:
- *   0 */6 * * * cd /path/to/cimaise && php bin/console maintenance:run --quiet-mode
+ * For high-traffic sites, run more frequently (every 6 hours):
+ *   0 0,6,12,18 * * * cd /path/to/cimaise && php bin/console maintenance:run --quiet-mode
  */
 #[AsCommand(name: 'maintenance:run')]
 class MaintenanceRunCommand extends Command

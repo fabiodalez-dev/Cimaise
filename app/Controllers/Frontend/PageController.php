@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Services\AnalyticsService;
 use App\Services\ImagesService;
 use App\Services\NavigationService;
+use App\Services\PageCacheService;
 use App\Support\Database;
 use App\Support\Hooks;
 use App\Support\Logger;
@@ -16,10 +17,23 @@ use Slim\Views\Twig;
 class PageController extends BaseController
 {
     private ?NavigationService $navigationService = null;
+    private ?PageCacheService $pageCacheService = null;
 
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
+    }
+
+    /**
+     * Get or create PageCacheService instance (lazy loading).
+     */
+    private function getPageCacheService(): PageCacheService
+    {
+        if ($this->pageCacheService === null) {
+            $settings = new \App\Services\SettingsService($this->db);
+            $this->pageCacheService = new PageCacheService($settings);
+        }
+        return $this->pageCacheService;
     }
 
     private function buildSeo(Request $request, string $title, string $description = '', ?string $imagePath = null): array
@@ -151,15 +165,39 @@ class PageController extends BaseController
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
 
-        // Fetch home page settings
-        $svc = new \App\Services\SettingsService($this->db);
-
         // Allow template override via query parameter (for demo/preview)
         $queryParams = $request->getQueryParams();
         $validTemplates = ['classic', 'modern', 'parallax', 'masonry', 'snap', 'gallery'];
         $templateOverride = isset($queryParams['template']) && in_array($queryParams['template'], $validTemplates, true)
             ? $queryParams['template']
             : null;
+
+        // Cache is only used for public view (no admin, no NSFW consent, no template override)
+        // This ensures cached data matches what anonymous users see
+        $canUseCache = !$isAdmin && !$nsfwConsent && $templateOverride === null;
+
+        // Try cache first for public view
+        if ($canUseCache) {
+            $cached = $this->getPageCacheService()->get('home');
+            if ($cached !== null) {
+                // Cache hit - render with cached data + session-specific vars
+                $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
+                return $this->view->render($response, $cached['template_file'], array_merge($cached['data'], [
+                    'page_title' => $seo['page_title'],
+                    'meta_description' => $seo['meta_description'],
+                    'meta_image' => $seo['meta_image'],
+                    'current_url' => $seo['current_url'],
+                    'canonical_url' => $seo['canonical_url'],
+                    'og_site_name' => $seo['og_site_name'],
+                    'robots' => $seo['robots'],
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                ]));
+            }
+        }
+
+        // Fetch home page settings
+        $svc = new \App\Services\SettingsService($this->db);
 
         $homeTemplate = $templateOverride ?? (string) ($svc->get('home.template', 'classic') ?? 'classic');
         $homeSettings = [
@@ -325,7 +363,8 @@ class PageController extends BaseController
         // Get galleries slug for JSON-LD SearchAction
         $galleriesSlug = (string) ($svc->get('galleries.slug', 'galleries') ?? 'galleries');
 
-        return $this->view->render($response, $templateFile, [
+        // Build cacheable data (excludes session-specific vars like nsfw_consent, is_admin)
+        $cacheableData = [
             'albums' => $albums,
             'categories' => $categories,
             'parent_categories' => $parentCategories,
@@ -335,6 +374,22 @@ class PageController extends BaseController
             'total_albums' => $totalAlbums,
             'home_settings' => $homeSettings,
             'galleries_slug' => $galleriesSlug,
+            // Progressive loading tracking data
+            'shown_image_ids' => $shownImageIds,
+            'shown_album_ids' => $shownAlbumIds,
+            'total_images' => $totalImagesCount,
+            'has_more_images' => $hasMoreImages,
+        ];
+
+        // Save to cache for future public requests (excludes admin/NSFW users)
+        if ($canUseCache) {
+            $this->getPageCacheService()->set('home', [
+                'template_file' => $templateFile,
+                'data' => $cacheableData,
+            ]);
+        }
+
+        return $this->view->render($response, $templateFile, array_merge($cacheableData, [
             'page_title' => $seo['page_title'],
             'meta_description' => $seo['meta_description'],
             'meta_image' => $seo['meta_image'],
@@ -344,12 +399,7 @@ class PageController extends BaseController
             'robots' => $seo['robots'],
             'nsfw_consent' => $nsfwConsent,
             'is_admin' => $isAdmin,
-            // Progressive loading tracking data
-            'shown_image_ids' => $shownImageIds,
-            'shown_album_ids' => $shownAlbumIds,
-            'total_images' => $totalImagesCount,
-            'has_more_images' => $hasMoreImages
-        ]);
+        ]));
     }
 
     /**

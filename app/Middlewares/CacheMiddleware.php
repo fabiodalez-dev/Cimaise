@@ -8,12 +8,17 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface as Handler;
 use App\Services\SettingsService;
+use App\Services\PageCacheService;
 
 class CacheMiddleware implements MiddlewareInterface
 {
+    private ?PageCacheService $pageCacheService = null;
+
     public function __construct(
         private SettingsService $settings
-    ) {}
+    ) {
+        $this->pageCacheService = new PageCacheService($this->settings);
+    }
 
     public function process(Request $request, Handler $handler): Response
     {
@@ -56,10 +61,10 @@ class CacheMiddleware implements MiddlewareInterface
             return $this->addMediaCache($response);
         }
 
-        // For HTML pages, use short cache with validation
+        // For HTML pages, use short cache with validation and ETag
         $contentType = $response->getHeaderLine('Content-Type');
         if (str_contains($contentType, 'text/html')) {
-            return $this->addHtmlCache($response);
+            return $this->addHtmlCache($response, $request);
         }
 
         return $response;
@@ -124,14 +129,67 @@ class CacheMiddleware implements MiddlewareInterface
             ->withHeader('Pragma', 'no-cache');
     }
 
-    private function addHtmlCache(Response $response): Response
+    private function addHtmlCache(Response $response, Request $request): Response
     {
         $maxAge = $this->settings->get('performance.html_cache_max_age', 300); // 5 minutes default
 
+        // Try to generate ETag from page cache file if available
+        $path = $request->getUri()->getPath();
+        $etag = $this->generateHtmlEtag($path);
+
+        // Check If-None-Match header for 304 response
+        if ($etag) {
+            $ifNoneMatch = $request->getHeaderLine('If-None-Match');
+            if ($ifNoneMatch && ($ifNoneMatch === $etag || $ifNoneMatch === 'W/' . $etag)) {
+                return $response
+                    ->withStatus(304)
+                    ->withHeader('ETag', $etag)
+                    ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate");
+            }
+        }
+
         // For HTML, use shorter cache with must-revalidate
-        return $response
+        $result = $response
             ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate")
             ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT');
+
+        if ($etag) {
+            $result = $result->withHeader('ETag', $etag);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Generate ETag for HTML pages based on cache file stats.
+     */
+    private function generateHtmlEtag(string $path): ?string
+    {
+        if (!$this->pageCacheService) {
+            return null;
+        }
+
+        // Map URL path to cache type
+        $cacheFile = null;
+        $basePath = rtrim($this->settings->get('site.base_path', ''), '/');
+        $path = preg_replace('#^' . preg_quote($basePath, '#') . '#', '', $path);
+
+        if ($path === '/' || $path === '') {
+            $cacheFile = $this->pageCacheService->getCacheFilePath('home');
+        } elseif ($path === '/galleries' || $path === '/galleries/') {
+            $cacheFile = $this->pageCacheService->getCacheFilePath('galleries');
+        } elseif (preg_match('#^/gallery/([^/]+)/?$#', $path, $matches)) {
+            $slug = $matches[1];
+            $cacheFile = $this->pageCacheService->getCacheFilePath('album', $slug);
+        }
+
+        if ($cacheFile && file_exists($cacheFile)) {
+            $mtime = filemtime($cacheFile);
+            $size = filesize($cacheFile);
+            return '"' . md5($mtime . '-' . $size) . '"';
+        }
+
+        return null;
     }
 
     private function addNoCacheHeaders(Response $response): Response
