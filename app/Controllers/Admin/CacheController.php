@@ -119,6 +119,16 @@ class CacheController extends BaseController
                 $cleared = 1;
                 break;
             default:
+                // Handle individual album cache keys (album:slug-name)
+                if (str_starts_with($type, 'album:')) {
+                    // Validate slug format to prevent path traversal
+                    $slug = substr($type, 6); // Remove 'album:' prefix
+                    if (preg_match('/^[a-z0-9\-]+$/', $slug)) {
+                        $cleared = $this->pageCacheService->invalidate($type);
+                        break;
+                    }
+                }
+
                 // Reject unknown types to prevent path traversal
                 if ($this->isAjaxRequest($request)) {
                     $response->getBody()->write(json_encode([
