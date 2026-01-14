@@ -141,8 +141,11 @@ class CacheMiddleware implements MiddlewareInterface
         if ($etag) {
             $ifNoneMatch = $request->getHeaderLine('If-None-Match');
             if ($ifNoneMatch && ($ifNoneMatch === $etag || $ifNoneMatch === 'W/' . $etag)) {
+                // Create empty body for 304 response to avoid sending stale content
+                $emptyBody = new \Slim\Psr7\Stream(fopen('php://temp', 'r+'));
                 return $response
                     ->withStatus(304)
+                    ->withBody($emptyBody)
                     ->withHeader('ETag', $etag)
                     ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate");
             }
@@ -178,7 +181,7 @@ class CacheMiddleware implements MiddlewareInterface
             $cacheFile = $this->pageCacheService->getCacheFilePath('home');
         } elseif ($path === '/galleries' || $path === '/galleries/') {
             $cacheFile = $this->pageCacheService->getCacheFilePath('galleries');
-        } elseif (preg_match('#^/gallery/([^/]+)/?$#', $path, $matches)) {
+        } elseif (preg_match('#^/album/([^/]+)/?$#', $path, $matches)) {
             $slug = $matches[1];
             $cacheFile = $this->pageCacheService->getCacheFilePath('album', $slug);
         }

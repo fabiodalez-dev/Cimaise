@@ -102,17 +102,17 @@ class CacheWarmService
         // Pagination parameters
         $perPage = (int) $this->settings->get('pagination.limit', 12);
 
-        // Get total count of published albums (public view = exclude NSFW)
-        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1 AND a.is_nsfw = 0');
+        // Get total count of published albums (public view = exclude NSFW and password-protected)
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM albums a WHERE a.is_published = 1 AND a.is_nsfw = 0 AND (a.password_hash IS NULL OR a.password_hash = \'\')');
         $countStmt->execute();
         $totalAlbums = (int) $countStmt->fetchColumn();
 
-        // Get latest published albums (public view = exclude NSFW)
+        // Get latest published albums (public view = exclude NSFW and password-protected)
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
             FROM albums a
             JOIN categories c ON c.id = a.category_id
-            WHERE a.is_published = 1 AND a.is_nsfw = 0
+            WHERE a.is_published = 1 AND a.is_nsfw = 0 AND (a.password_hash IS NULL OR a.password_hash = \'\')
             ORDER BY a.published_at DESC
             LIMIT :limit
         ');
@@ -567,6 +567,11 @@ class CacheWarmService
         $bestWidth = 0;
 
         foreach ($variants as $var) {
+            // Skip blur variants - they're for NSFW/protected album previews only
+            if (!empty($var['is_blur']) || str_contains($var['path'] ?? '', '_blur')) {
+                continue;
+            }
+
             $format = strtolower($var['format'] ?? 'jpg');
             if ($format === 'jpeg') $format = 'jpg';
 
@@ -611,9 +616,15 @@ class CacheWarmService
     {
         $pdo = $this->db->pdo();
 
-        $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
-        $stmt->execute();
-        $settings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+        // filter_settings table may not exist in older installations
+        try {
+            $stmt = $pdo->prepare('SELECT setting_key, setting_value FROM filter_settings ORDER BY sort_order ASC');
+            $stmt->execute();
+            $settings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+        } catch (\PDOException $e) {
+            // Table doesn't exist, use defaults
+            $settings = [];
+        }
 
         return [
             'enabled' => (bool) ($settings['enabled'] ?? true),
@@ -660,13 +671,14 @@ class CacheWarmService
         $tagStmt->execute();
         $tags = $tagStmt->fetchAll();
 
-        // Years
-        $yearStmt = $pdo->prepare('
-            SELECT DISTINCT strftime("%Y", shoot_date) as year
+        // Years (use Database::yearExpression for MySQL/SQLite compatibility)
+        $yearExpr = $this->db->yearExpression('shoot_date');
+        $yearStmt = $pdo->prepare("
+            SELECT DISTINCT {$yearExpr} as year
             FROM albums
             WHERE is_published = 1 AND is_nsfw = 0 AND shoot_date IS NOT NULL
             ORDER BY year DESC
-        ');
+        ");
         $yearStmt->execute();
         $years = $yearStmt->fetchAll(\PDO::FETCH_COLUMN);
 

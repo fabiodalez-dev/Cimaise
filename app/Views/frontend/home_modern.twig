@@ -387,22 +387,35 @@
                     {% set srcset_webp = [] %}
                     {% set srcset_jpg = [] %}
                     {% for src in image.sources.avif|default([]) %}
-                        {% set src_url = src|split(' ')|first %}
-                        {% set src_rest = src|split(' ')|slice(1)|join(' ')|trim %}
+                        {# Defensive: handle both string and array srcset entries #}
+                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('')) : src %}
+                        {% set src_parts = src_str|split(' ') %}
+                        {% set src_url = src_parts|first|default('') %}
+                        {% set src_rest = src_parts|slice(1)|join(' ')|trim %}
                         {% set src_rest = src_rest == '' ? '1x' : src_rest %}
-                        {% set srcset_avif = srcset_avif|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+                        {% if src_url != '' %}
+                            {% set srcset_avif = srcset_avif|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+                        {% endif %}
                     {% endfor %}
                     {% for src in image.sources.webp|default([]) %}
-                        {% set src_url = src|split(' ')|first %}
-                        {% set src_rest = src|split(' ')|slice(1)|join(' ')|trim %}
+                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('')) : src %}
+                        {% set src_parts = src_str|split(' ') %}
+                        {% set src_url = src_parts|first|default('') %}
+                        {% set src_rest = src_parts|slice(1)|join(' ')|trim %}
                         {% set src_rest = src_rest == '' ? '1x' : src_rest %}
-                        {% set srcset_webp = srcset_webp|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+                        {% if src_url != '' %}
+                            {% set srcset_webp = srcset_webp|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+                        {% endif %}
                     {% endfor %}
                     {% for src in image.sources.jpg|default([]) %}
-                        {% set src_url = src|split(' ')|first %}
-                        {% set src_rest = src|split(' ')|slice(1)|join(' ')|trim %}
+                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('')) : src %}
+                        {% set src_parts = src_str|split(' ') %}
+                        {% set src_url = src_parts|first|default('') %}
+                        {% set src_rest = src_parts|slice(1)|join(' ')|trim %}
                         {% set src_rest = src_rest == '' ? '1x' : src_rest %}
-                        {% set srcset_jpg = srcset_jpg|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+                        {% if src_url != '' %}
+                            {% set srcset_jpg = srcset_jpg|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+                        {% endif %}
                     {% endfor %}
 
                     {% set seo_title = Seo.seo_title(image, {'title': image.album_title}, site_title)|trim %}

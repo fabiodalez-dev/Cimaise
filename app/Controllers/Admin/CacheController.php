@@ -154,10 +154,16 @@ class CacheController extends BaseController
         // Build summary message
         $cached = ($stats['home'] ? 1 : 0) + ($stats['galleries'] ? 1 : 0) + $stats['albums'];
         $message = "Cache warmed: {$cached} pages cached";
-        if ($stats['home']) $message .= ' (home';
-        if ($stats['galleries']) $message .= $stats['home'] ? ', galleries' : ' (galleries';
-        if ($stats['albums'] > 0) $message .= ($stats['home'] || $stats['galleries']) ? ", {$stats['albums']} albums" : " ({$stats['albums']} albums";
-        $message .= ')';
+
+        // Build details list to avoid unbalanced parentheses
+        $details = [];
+        if ($stats['home']) $details[] = 'home';
+        if ($stats['galleries']) $details[] = 'galleries';
+        if ($stats['albums'] > 0) $details[] = "{$stats['albums']} albums";
+
+        if (!empty($details)) {
+            $message .= ' (' . implode(', ', $details) . ')';
+        }
 
         if (!empty($stats['errors'])) {
             $message .= '. Errors: ' . count($stats['errors']);
