@@ -139,10 +139,21 @@ class CacheMiddleware implements MiddlewareInterface
         $path = $request->getUri()->getPath();
         $etag = $this->generateHtmlEtag($path);
         if (!$etag) {
-            $body = (string) $response->getBody();
-            if ($response->getBody()->isSeekable()) {
-                $response->getBody()->rewind();
+            $stream = $response->getBody();
+            $body = (string) $stream;
+
+            // If stream is seekable, just rewind it
+            // If not seekable, create a new temporary stream to preserve the body for the client
+            if ($stream->isSeekable()) {
+                $stream->rewind();
+            } else {
+                // Non-seekable stream: copy contents to a new seekable stream
+                $newStream = new \Slim\Psr7\Stream(fopen('php://temp', 'r+'));
+                $newStream->write($body);
+                $newStream->rewind();
+                $response = $response->withBody($newStream);
             }
+
             if ($body !== '') {
                 $etag = '"' . sha1($body) . '"';
             }
