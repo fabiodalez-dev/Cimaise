@@ -97,13 +97,17 @@ class CacheController extends BaseController
 
         $type = $args['type'] ?? '';
         $cleared = 0;
+        $regenerated = false;
+        $cacheService = new CacheWarmService($this->db);
 
         switch ($type) {
             case 'home':
                 $cleared = $this->pageCacheService->invalidateHome();
+                $regenerated = $cacheService->buildHomeCache();
                 break;
             case 'galleries':
                 $cleared = $this->pageCacheService->invalidateGalleries();
+                $regenerated = $cacheService->buildGalleriesCache();
                 break;
             case 'albums':
                 // Clear all album caches
@@ -113,6 +117,9 @@ class CacheController extends BaseController
                         $cleared += $this->pageCacheService->invalidate($item['type']);
                     }
                 }
+                // Regenerate all album caches
+                $albumsRegenerated = $cacheService->buildAlbumCaches();
+                $regenerated = $albumsRegenerated > 0;
                 break;
             case 'query':
                 QueryCache::getInstance()->flush();
@@ -125,6 +132,7 @@ class CacheController extends BaseController
                     $slug = substr($type, 6); // Remove 'album:' prefix
                     if (preg_match('/^[a-z0-9\-]+$/', $slug)) {
                         $cleared = $this->pageCacheService->invalidate($type);
+                        $regenerated = $cacheService->buildAlbumCache($slug);
                         break;
                     }
                 }
@@ -144,18 +152,23 @@ class CacheController extends BaseController
                 return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
         }
 
+        $statusMsg = $regenerated
+            ? "Cache '{$type}' refreshed"
+            : "Cache '{$type}' cleared";
+
         if ($this->isAjaxRequest($request)) {
             $response->getBody()->write(json_encode([
                 'success' => true,
                 'cleared' => $cleared,
-                'message' => "Cleared {$cleared} cache entries for: {$type}",
+                'regenerated' => $regenerated,
+                'message' => $statusMsg,
             ]));
             return $response->withHeader('Content-Type', 'application/json');
         }
 
         $_SESSION['flash'][] = [
             'type' => 'success',
-            'message' => "Cache '{$type}' cleared. {$cleared} entries deleted.",
+            'message' => $statusMsg,
         ];
 
         return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
