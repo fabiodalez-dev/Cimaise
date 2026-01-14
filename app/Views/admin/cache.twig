@@ -39,6 +39,9 @@
         <div class="bg-white border border-gray-200 rounded-lg p-6">
             <div class="text-3xl font-bold text-gray-900">{{ (page_stats.total_size / 1024)|round(1) }} KB</div>
             <div class="text-sm text-gray-600">{{ trans('admin.cache.total_size') }}</div>
+            {% if page_stats.compressed_size is defined and page_stats.compressed_size > 0 %}
+            <div class="text-xs text-gray-500 mt-1">{{ trans('admin.cache.compressed') }}: {{ (page_stats.compressed_size / 1024)|round(1) }} KB</div>
+            {% endif %}
         </div>
         <div class="bg-white border border-gray-200 rounded-lg p-6">
             <div class="text-3xl font-bold text-gray-900">{{ query_stats.entries }}</div>
@@ -49,6 +52,7 @@
                 {% if page_stats.enabled %}{{ trans('admin.cache.enabled') }}{% else %}{{ trans('admin.cache.disabled') }}{% endif %}
             </div>
             <div class="text-sm text-gray-600">{{ trans('admin.cache.status') }}</div>
+            <div class="text-xs text-gray-500 mt-1">{{ trans('admin.cache.backend') }}: {{ page_stats.backend|default('file') }}</div>
         </div>
     </div>
 
@@ -84,6 +88,33 @@
                     <div class="flex items-center">
                         <input type="checkbox" name="auto_warm" id="auto_warm" class="h-4 w-4 text-black focus:ring-black border-gray-300 rounded" {% if auto_warm %}checked{% endif %}>
                         <label for="auto_warm" class="ml-2 text-sm text-gray-700">{{ trans('admin.cache.auto_warm') }}</label>
+                    </div>
+
+                    <hr class="border-gray-200">
+
+                    <div>
+                        <label for="storage_backend" class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.cache.storage_backend') }}</label>
+                        <select name="storage_backend" id="storage_backend" class="w-full border border-gray-300 rounded px-3 py-2">
+                            <option value="database" {% if storage_backend == 'database' %}selected{% endif %}>{{ trans('admin.cache.backend_database') }}</option>
+                            <option value="file" {% if storage_backend == 'file' %}selected{% endif %}>{{ trans('admin.cache.backend_file') }}</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">{{ trans('admin.cache.storage_backend_desc') }}</p>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input type="checkbox" name="compression_enabled" id="compression_enabled" class="h-4 w-4 text-black focus:ring-black border-gray-300 rounded" {% if compression_enabled %}checked{% endif %}>
+                        <label for="compression_enabled" class="ml-2 text-sm text-gray-700">{{ trans('admin.cache.enable_compression') }}</label>
+                    </div>
+
+                    <div>
+                        <label for="compression_level" class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.cache.compression_level') }}</label>
+                        <select name="compression_level" id="compression_level" class="w-full border border-gray-300 rounded px-3 py-2">
+                            <option value="1" {% if compression_level == 1 %}selected{% endif %}>1 ({{ trans('admin.cache.fastest') }})</option>
+                            <option value="3" {% if compression_level == 3 %}selected{% endif %}>3</option>
+                            <option value="6" {% if compression_level == 6 %}selected{% endif %}>6 ({{ trans('admin.cache.balanced') }})</option>
+                            <option value="9" {% if compression_level == 9 %}selected{% endif %}>9 ({{ trans('admin.cache.smallest') }})</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">{{ trans('admin.cache.compression_level_desc') }}</p>
                     </div>
                 </div>
 

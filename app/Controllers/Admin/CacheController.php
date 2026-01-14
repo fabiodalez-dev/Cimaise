@@ -23,7 +23,7 @@ class CacheController extends BaseController
         private SettingsService $settings
     ) {
         parent::__construct();
-        $this->pageCacheService = new PageCacheService($this->settings);
+        $this->pageCacheService = new PageCacheService($this->settings, $this->db);
     }
 
     /**
@@ -39,6 +39,11 @@ class CacheController extends BaseController
         $cacheTtl = (int) $this->settings->get('cache.pages_ttl', 3600);
         $autoWarm = (bool) $this->settings->get('cache.auto_warm', false);
 
+        // Database storage settings
+        $storageBackend = (string) $this->settings->get('cache.storage_backend', 'database');
+        $compressionEnabled = (bool) $this->settings->get('cache.compression_enabled', true);
+        $compressionLevel = (int) $this->settings->get('cache.compression_level', 6);
+
         return $this->view->render($response, 'admin/cache.twig', [
             'page_title' => 'Cache Management',
             'page_stats' => $pageStats,
@@ -46,6 +51,9 @@ class CacheController extends BaseController
             'cache_enabled' => $cacheEnabled,
             'cache_ttl' => $cacheTtl,
             'auto_warm' => $autoWarm,
+            'storage_backend' => $storageBackend,
+            'compression_enabled' => $compressionEnabled,
+            'compression_level' => $compressionLevel,
             'csrf' => $_SESSION['csrf'] ?? '',
         ]);
     }
@@ -214,9 +222,20 @@ class CacheController extends BaseController
         $ttl = max(60, min(86400, (int) ($body['cache_ttl'] ?? 3600))); // 1 min to 24 hours
         $autoWarm = isset($body['auto_warm']) && $body['auto_warm'] === 'on';
 
+        // Storage backend settings
+        $storageBackend = (string) ($body['storage_backend'] ?? 'database');
+        if (!in_array($storageBackend, ['database', 'file'], true)) {
+            $storageBackend = 'database';
+        }
+        $compressionEnabled = isset($body['compression_enabled']) && $body['compression_enabled'] === 'on';
+        $compressionLevel = max(1, min(9, (int) ($body['compression_level'] ?? 6)));
+
         $this->settings->set('cache.pages_enabled', $enabled);
         $this->settings->set('cache.pages_ttl', $ttl);
         $this->settings->set('cache.auto_warm', $autoWarm);
+        $this->settings->set('cache.storage_backend', $storageBackend);
+        $this->settings->set('cache.compression_enabled', $compressionEnabled);
+        $this->settings->set('cache.compression_level', $compressionLevel);
 
         if ($this->isAjaxRequest($request)) {
             $response->getBody()->write(json_encode([

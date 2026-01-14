@@ -465,6 +465,31 @@ CREATE TABLE IF NOT EXISTS filter_settings (
 );
 
 -- ============================================
+-- PAGE CACHE TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS page_cache (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cache_key VARCHAR(255) NOT NULL UNIQUE,
+  cache_type VARCHAR(50) NOT NULL,
+  related_id INTEGER DEFAULT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  data BLOB NOT NULL,
+  data_hash VARCHAR(64) NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  is_compressed INTEGER NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL,
+  expires_at DATETIME NOT NULL,
+  last_accessed_at DATETIME DEFAULT NULL,
+  access_count INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_page_cache_key ON page_cache(cache_key);
+CREATE INDEX IF NOT EXISTS idx_page_cache_type ON page_cache(cache_type);
+CREATE INDEX IF NOT EXISTS idx_page_cache_expires ON page_cache(expires_at);
+CREATE INDEX IF NOT EXISTS idx_page_cache_related ON page_cache(related_id);
+
+-- ============================================
 -- ANALYTICS TABLES
 -- ============================================
 

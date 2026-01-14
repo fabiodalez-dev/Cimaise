@@ -29,7 +29,7 @@ class CategoriesController extends BaseController
 
         // Invalidate page caches
         $settings = new SettingsService($this->db);
-        $pageCache = new PageCacheService($settings);
+        $pageCache = new PageCacheService($settings, $this->db);
         $pageCache->invalidateHome();
         $pageCache->invalidateGalleries();
     }

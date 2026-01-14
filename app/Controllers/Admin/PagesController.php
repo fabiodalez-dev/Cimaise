@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\ImagesService;
+use App\Services\PageCacheService;
 use App\Services\SettingsService;
 use App\Support\Database;
 use App\Support\Hooks;
@@ -143,7 +144,7 @@ class PagesController extends BaseController
         $masonryColTablet = (int)($data['masonry_col_tablet'] ?? 3);
         $masonryColMobile = (int)($data['masonry_col_mobile'] ?? 1);
         $masonryColDesktop = max(2, min(8, $masonryColDesktop)); // 2-8 columns (matches UI)
-        $masonryColTablet = max(2, min(6, $masonryColTablet)); // 2-6 columns (matches UI)
+        $masonryColTablet = max(1, min(6, $masonryColTablet)); // 1-6 columns (matches UI)
         $masonryColMobile = max(1, min(4, $masonryColMobile)); // 1-4 columns
         $svc->set('home.masonry_col_desktop', $masonryColDesktop);
         $svc->set('home.masonry_col_tablet', $masonryColTablet);
@@ -183,6 +184,9 @@ class PagesController extends BaseController
         // Gallery text section (sanitize HTML content to prevent XSS)
         $svc->set('home.gallery_text_title', trim((string)($data['gallery_text_title'] ?? '')));
         $svc->set('home.gallery_text_content', \App\Support\Sanitizer::html((string)($data['gallery_text_content'] ?? '')));
+
+        // Invalidate home page cache
+        (new PageCacheService($svc, $this->db))->invalidateHome();
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.home_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/home'))->withStatus(302);

@@ -9,15 +9,17 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface as Handler;
 use App\Services\SettingsService;
 use App\Services\PageCacheService;
+use App\Support\Database;
 
 class CacheMiddleware implements MiddlewareInterface
 {
     private ?PageCacheService $pageCacheService = null;
 
     public function __construct(
-        private SettingsService $settings
+        private SettingsService $settings,
+        private ?Database $database = null
     ) {
-        $this->pageCacheService = new PageCacheService($this->settings);
+        $this->pageCacheService = new PageCacheService($this->settings, $this->database);
     }
 
     public function process(Request $request, Handler $handler): Response

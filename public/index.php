@@ -222,7 +222,7 @@ $app->addBodyParsingMiddleware();
 $settingsService = null;
 if ($container['db'] !== null) {
     $settingsService = new \App\Services\SettingsService($container['db']);
-    $app->add(new \App\Middlewares\CacheMiddleware($settingsService));
+    $app->add(new \App\Middlewares\CacheMiddleware($settingsService, $container['db']));
     $app->add(new \App\Middlewares\CompressionMiddleware($settingsService));
 }
 
