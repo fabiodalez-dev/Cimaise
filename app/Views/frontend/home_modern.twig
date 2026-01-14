@@ -388,7 +388,7 @@
                     {% set srcset_jpg = [] %}
                     {% for src in image.sources.avif|default([]) %}
                         {# Defensive: handle both string and array srcset entries #}
-                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('')) : src %}
+                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('') ~ 'w') : src %}
                         {% set src_parts = src_str|split(' ') %}
                         {% set src_url = src_parts|first|default('') %}
                         {% set src_rest = src_parts|slice(1)|join(' ')|trim %}
@@ -398,7 +398,7 @@
                         {% endif %}
                     {% endfor %}
                     {% for src in image.sources.webp|default([]) %}
-                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('')) : src %}
+                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('') ~ 'w') : src %}
                         {% set src_parts = src_str|split(' ') %}
                         {% set src_url = src_parts|first|default('') %}
                         {% set src_rest = src_parts|slice(1)|join(' ')|trim %}
@@ -408,7 +408,7 @@
                         {% endif %}
                     {% endfor %}
                     {% for src in image.sources.jpg|default([]) %}
-                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('')) : src %}
+                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('') ~ 'w') : src %}
                         {% set src_parts = src_str|split(' ') %}
                         {% set src_url = src_parts|first|default('') %}
                         {% set src_rest = src_parts|slice(1)|join(' ')|trim %}
@@ -428,7 +428,7 @@
                     {% elseif image.category_slug %}
                         {% set cat_classes = ' category-' ~ image.category_slug %}
                     {% endif %}
-                    <div data-inf-item class="inf-work_item{{ cat_classes|e('html_attr') }} is-visible"
+                    <div data-inf-item class="inf-work_item{{ cat_classes|e('html_attr') }}"
                          data-main-title="{{ image.album_title|e('html_attr') }}"
                          data-work-title="{{ image.album_title|e('html_attr') }}"
                          data-work-copy="{{ image.album_description|striptags|slice(0, 200)|e('html_attr') }}"

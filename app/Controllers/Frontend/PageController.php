@@ -210,7 +210,7 @@ class PageController extends BaseController
             $cacheService = $this->getPageCacheService();
             $cached = $cacheService->get('home');
 
-            if ($cached !== null) {
+            if ($cached !== null && isset($cached['template_file'], $cached['data']) && is_array($cached['data'])) {
                 // Fresh cache hit - render with cached data + session-specific vars
                 $svc = new \App\Services\SettingsService($this->db);
                 $siteDescription = (string) ($svc->get('site.description', '') ?? '');
@@ -223,6 +223,7 @@ class PageController extends BaseController
                     'canonical_url' => $seo['canonical_url'],
                     'og_site_name' => $seo['og_site_name'],
                     'robots' => $seo['robots'],
+                    'schema' => $seo['schema'],
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
                 ]));
@@ -230,7 +231,7 @@ class PageController extends BaseController
 
             // Lazy regeneration: try stale cache while regenerating
             $staleCached = $cacheService->get('home', allowStale: true);
-            if ($staleCached !== null) {
+            if ($staleCached !== null && isset($staleCached['template_file'], $staleCached['data']) && is_array($staleCached['data'])) {
                 // Serve stale data immediately for fast response
                 $svc = new \App\Services\SettingsService($this->db);
                 $siteDescription = (string) ($svc->get('site.description', '') ?? '');
@@ -247,6 +248,7 @@ class PageController extends BaseController
                     'canonical_url' => $seo['canonical_url'],
                     'og_site_name' => $seo['og_site_name'],
                     'robots' => $seo['robots'],
+                    'schema' => $seo['schema'],
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
                 ]));

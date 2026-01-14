@@ -264,7 +264,7 @@ class CacheWarmService
         // Get filter settings
         $filterSettings = $this->getFilterSettings();
 
-        // Get albums (public view = exclude NSFW, check password protection)
+        // Get albums (public view = exclude NSFW and password-protected)
         $stmt = $pdo->prepare('
             SELECT
                 a.*,
@@ -273,7 +273,7 @@ class CacheWarmService
                 (SELECT COUNT(*) FROM images WHERE album_id = a.id) as images_count
             FROM albums a
             JOIN categories c ON c.id = a.category_id
-            WHERE a.is_published = 1 AND a.is_nsfw = 0
+            WHERE a.is_published = 1 AND a.is_nsfw = 0 AND (a.password_hash IS NULL OR a.password_hash = \'\')
             ORDER BY a.published_at DESC
         ');
         $stmt->execute();
