@@ -1037,6 +1037,29 @@ Caches are automatically invalidated when:
 
 You can also manually clear caches from **Admin → System → Cache Management**.
 
+#### Auto-Warm on Save
+
+Enable **Auto-Warm** in Cache Management settings to automatically regenerate caches whenever content changes. This ensures visitors always see fresh data without waiting for the next scheduled cron run.
+
+When enabled, the following caches are regenerated after each album save/delete:
+- Home page cache
+- Galleries listing cache
+- The specific album cache (if applicable)
+
+**Recommended for:** Sites with infrequent updates (< 10 updates/day).
+
+#### Lazy Regeneration (Stale-While-Revalidate)
+
+Even without auto-warm or scheduled crons, Cimaise uses **lazy regeneration** to serve fast responses:
+
+1. When cache expires, the first visitor receives **stale data** (instant response)
+2. Cache regenerates in the background after the response is sent
+3. Subsequent visitors receive the fresh cache
+
+This ensures pages never "feel slow" even when cache expires — visitors always get an instant response while fresh data is generated behind the scenes.
+
+**Cache TTL:** 24 hours by default (configurable in settings).
+
 ---
 
 ### Maintenance (`maintenance:run`)

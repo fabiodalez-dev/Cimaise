@@ -36,6 +36,35 @@ class PageController extends BaseController
         return $this->pageCacheService;
     }
 
+    /**
+     * Schedule home page cache regeneration after response is sent.
+     * Uses register_shutdown_function for deferred execution.
+     */
+    private function scheduleHomeRegeneration(): void
+    {
+        static $scheduled = false;
+        if ($scheduled) {
+            return; // Prevent multiple regenerations per request
+        }
+        $scheduled = true;
+
+        $db = $this->db;
+        register_shutdown_function(function () use ($db) {
+            try {
+                // Flush output to client first (if possible)
+                if (function_exists('fastcgi_finish_request')) {
+                    fastcgi_finish_request();
+                }
+
+                $cacheService = new \App\Services\CacheWarmService($db);
+                $cacheService->warmHome();
+                Logger::info('Home cache regenerated via lazy regeneration');
+            } catch (\Throwable $e) {
+                Logger::warning('Home cache lazy regeneration failed: ' . $e->getMessage());
+            }
+        });
+    }
+
     private function buildSeo(Request $request, string $title, string $description = '', ?string $imagePath = null): array
     {
         $svc = new \App\Services\SettingsService($this->db);
@@ -178,13 +207,39 @@ class PageController extends BaseController
 
         // Try cache first for public view
         if ($canUseCache) {
-            $cached = $this->getPageCacheService()->get('home');
+            $cacheService = $this->getPageCacheService();
+            $cached = $cacheService->get('home');
+
             if ($cached !== null) {
-                // Cache hit - render with cached data + session-specific vars
+                // Fresh cache hit - render with cached data + session-specific vars
                 $svc = new \App\Services\SettingsService($this->db);
                 $siteDescription = (string) ($svc->get('site.description', '') ?? '');
                 $seo = $this->buildSeo($request, 'Home', $siteDescription);
                 return $this->view->render($response, $cached['template_file'], array_merge($cached['data'], [
+                    'page_title' => $seo['page_title'],
+                    'meta_description' => $seo['meta_description'],
+                    'meta_image' => $seo['meta_image'],
+                    'current_url' => $seo['current_url'],
+                    'canonical_url' => $seo['canonical_url'],
+                    'og_site_name' => $seo['og_site_name'],
+                    'robots' => $seo['robots'],
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                ]));
+            }
+
+            // Lazy regeneration: try stale cache while regenerating
+            $staleCached = $cacheService->get('home', allowStale: true);
+            if ($staleCached !== null) {
+                // Serve stale data immediately for fast response
+                $svc = new \App\Services\SettingsService($this->db);
+                $siteDescription = (string) ($svc->get('site.description', '') ?? '');
+                $seo = $this->buildSeo($request, 'Home', $siteDescription);
+
+                // Schedule regeneration after response is sent
+                $this->scheduleHomeRegeneration();
+
+                return $this->view->render($response, $staleCached['template_file'], array_merge($staleCached['data'], [
                     'page_title' => $seo['page_title'],
                     'meta_description' => $seo['meta_description'],
                     'meta_image' => $seo['meta_image'],
