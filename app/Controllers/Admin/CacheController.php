@@ -78,7 +78,7 @@ class CacheController extends BaseController
             return $response->withHeader('Content-Type', 'application/json');
         }
 
-        $_SESSION['flash'] = [
+        $_SESSION['flash'][] = [
             'type' => 'success',
             'message' => "Cache cleared successfully. {$pageCleared} entries deleted.",
         ];
@@ -127,7 +127,7 @@ class CacheController extends BaseController
                     ]));
                     return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
                 }
-                $_SESSION['flash'] = [
+                $_SESSION['flash'][] = [
                     'type' => 'error',
                     'message' => 'Unknown cache type.',
                 ];
@@ -143,7 +143,7 @@ class CacheController extends BaseController
             return $response->withHeader('Content-Type', 'application/json');
         }
 
-        $_SESSION['flash'] = [
+        $_SESSION['flash'][] = [
             'type' => 'success',
             'message' => "Cache '{$type}' cleared. {$cleared} entries deleted.",
         ];
@@ -199,7 +199,7 @@ class CacheController extends BaseController
             return $response->withHeader('Content-Type', 'application/json');
         }
 
-        $_SESSION['flash'] = [
+        $_SESSION['flash'][] = [
             'type' => empty($stats['errors']) ? 'success' : 'warning',
             'message' => $message,
         ];
@@ -245,7 +245,7 @@ class CacheController extends BaseController
             return $response->withHeader('Content-Type', 'application/json');
         }
 
-        $_SESSION['flash'] = [
+        $_SESSION['flash'][] = [
             'type' => 'success',
             'message' => 'Cache settings saved successfully.',
         ];

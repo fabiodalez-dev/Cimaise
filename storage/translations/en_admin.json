@@ -474,7 +474,7 @@
     "admin.cache.hour": "hour",
     "admin.cache.hours": "hours",
     "admin.cache.how_it_works": "How Page Cache Works",
-    "admin.cache.how_it_works_desc": "Page caching stores pre-rendered page data as JSON files, eliminating database queries for cached pages. When content changes, the relevant cache is automatically invalidated.",
+    "admin.cache.how_it_works_desc": "Page caching stores pre-rendered page data, eliminating repeated database queries for cached pages. When content changes, the relevant cache is automatically invalidated.",
     "admin.cache.minutes": "minutes",
     "admin.cache.page": "Page",
     "admin.cache.page_entries": "Page cache entries",

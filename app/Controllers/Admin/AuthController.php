@@ -5,6 +5,8 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Middlewares\AuthMiddleware;
+use App\Services\CacheWarmService;
+use App\Services\PageCacheService;
 use App\Services\SettingsService;
 use App\Support\CookieHelper;
 use App\Support\Database;
@@ -142,6 +144,53 @@ class AuthController extends BaseController
 
         // Note: Variant maintenance moved to cron job / manual trigger
         // Was causing 503 on shared hosting without fastcgi_finish_request()
+
+        // Schedule deferred cache warmup (runs after response sent to browser)
+        // This ensures the admin dashboard loads immediately, then cache warms in background
+        $db = $this->db;
+        $settings = $this->settings;
+        register_shutdown_function(function () use ($db, $settings) {
+            // Flush response to browser first (if supported)
+            if (function_exists('fastcgi_finish_request')) {
+                fastcgi_finish_request();
+            }
+
+            try {
+                // Check if auto_warm is enabled
+                $autoWarm = (bool) $settings->get('cache.auto_warm', false);
+                if (!$autoWarm) {
+                    return;
+                }
+
+                // Check for expired caches and warm them
+                $pageCacheService = new PageCacheService($settings, $db);
+                $stats = $pageCacheService->getStats();
+
+                // Count expired entries
+                $expiredCount = 0;
+                foreach ($stats['items'] as $item) {
+                    if ($item['is_expired'] ?? false) {
+                        $expiredCount++;
+                    }
+                }
+
+                // If any expired, warm all caches
+                if ($expiredCount > 0) {
+                    Logger::info('Post-login cache warmup triggered', ['expired_count' => $expiredCount], 'cache');
+                    $pageCacheService->clearAll();
+                    $cacheService = new CacheWarmService($db);
+                    $warmStats = $cacheService->warmAll();
+                    Logger::info('Post-login cache warmup complete', [
+                        'home' => $warmStats['home'],
+                        'galleries' => $warmStats['galleries'],
+                        'albums' => $warmStats['albums'],
+                        'errors' => count($warmStats['errors'] ?? [])
+                    ], 'cache');
+                }
+            } catch (\Throwable $e) {
+                Logger::warning('Post-login cache warmup failed', ['error' => $e->getMessage()], 'cache');
+            }
+        });
 
         return $response
             ->withHeader('Location', $this->redirect('/admin'))

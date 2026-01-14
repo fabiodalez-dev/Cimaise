@@ -71,7 +71,7 @@
   {# --- HERO WRAPPER: much taller, content centered, padding added --- #}
   <div class="relative overflow-hidden bg-neutral-900" style="min-height:50vh">
     {% if hero_has_image %}
-      <img src="{{ hero_url }}" alt="{{ album.title|e }}" class="js-hero-parallax absolute inset-0 w-full h-full object-cover object-center select-none blur-sm md:blur md:scale-105" loading="lazy" decoding="async" data-hero-image="1">
+      <img src="{{ hero_url }}" alt="{{ album.title|e }}" class="js-hero-parallax absolute inset-0 w-full h-full object-cover object-center select-none blur-sm md:blur md:scale-105" loading="eager" decoding="async" data-hero-image="1">
     {% else %}
       <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-900"></div>
     {% endif %}
@@ -208,7 +208,6 @@
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
       img.setAttribute('fetchpriority', 'high');
-      img.setAttribute('loading', 'eager');
       obs.unobserve(img);
     });
   }, { rootMargin: '200px 0px 200px 0px', threshold: 0.1 });

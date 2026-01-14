@@ -451,7 +451,7 @@ CREATE TABLE IF NOT EXISTS `page_cache` (
   `data_hash` CHAR(64) NOT NULL,
   `size_bytes` INT UNSIGNED NOT NULL,
   `is_compressed` TINYINT(1) NOT NULL DEFAULT 1,
-  `created_at` DATETIME NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `expires_at` DATETIME NOT NULL,
   `last_accessed_at` DATETIME DEFAULT NULL,
   `access_count` INT UNSIGNED NOT NULL DEFAULT 0,
@@ -939,7 +939,14 @@ INSERT INTO `settings` (`key`, `value`, `type`) VALUES
 ('performance.cache_enabled', 'true', 'boolean'),
 ('performance.static_cache_max_age', '31536000', 'integer'),
 ('performance.media_cache_max_age', '86400', 'integer'),
-('performance.html_cache_max_age', '300', 'integer');
+('performance.html_cache_max_age', '300', 'integer'),
+-- Page cache settings
+('cache.pages_enabled', 'true', 'boolean'),
+('cache.pages_ttl', '86400', 'integer'),
+('cache.auto_warm', 'false', 'boolean'),
+('cache.storage_backend', 'database', 'string'),
+('cache.compression_enabled', 'true', 'boolean'),
+('cache.compression_level', '6', 'integer');
 
 -- Default filter settings
 INSERT INTO `filter_settings` (`setting_key`, `setting_value`, `description`, `sort_order`) VALUES

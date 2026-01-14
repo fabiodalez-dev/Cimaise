@@ -273,6 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Handle mouse wheel
         const handleMouseWheel = (e) => {
             if (isMobile() || !useInfiniteScroll || isFiltered) return;
+            e.preventDefault();
             scrollY -= e.deltaY;
             needsRender = true; // Mark that we need to render
             lastInputTime = performance.now();
@@ -284,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $scroller.removeEventListener('wheel', scrollerWheelHandler);
             }
             scrollerWheelHandler = handleMouseWheel;
-            $scroller.addEventListener('wheel', scrollerWheelHandler, { passive: true });
+            $scroller.addEventListener('wheel', scrollerWheelHandler);
         }
     };
 
@@ -351,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const counter = document.querySelector('.photos_total');
         if (counter) {
-            const visibleItems = document.querySelectorAll('.inf-work_item:not(.is-hidden)');
+            const visibleItems = document.querySelectorAll('.inf-work_item:not(.is-hidden):not(.is-clone)');
             counter.textContent = visibleItems.length;
         }
     };
@@ -551,7 +552,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const setupFetchPriorityObserver = () => {
         const observer = createFetchPriorityObserver(3);
         if (!observer) return;
-        const images = Array.from(document.querySelectorAll('.inf-work_item img'));
+        const images = Array.from(document.querySelectorAll('.inf-work_item:not(.is-clone) img'));
         if (!images.length) return;
         images.forEach(img => observer.observe(img));
     };
