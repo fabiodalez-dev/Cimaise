@@ -627,7 +627,12 @@ class PageCacheService
 
         // Atomic write: write to temp file first, then rename
         $tmpFile = $file . '.tmp';
-        $result = @file_put_contents($tmpFile, json_encode($cached, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
+        $jsonString = json_encode($cached, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($jsonString === false) {
+            Logger::warning("Failed to JSON encode page cache file: {$type} - " . json_last_error_msg());
+            return false;
+        }
+        $result = @file_put_contents($tmpFile, $jsonString, LOCK_EX);
 
         if ($result === false) {
             Logger::warning("Failed to write page cache: {$type}");
