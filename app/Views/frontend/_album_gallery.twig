@@ -98,10 +98,10 @@
             {% if image.sources.webp|length %}
               <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}">
             {% endif %}
-{# Images are lazy-loaded; priority handled by browser/IO #}
+{# First 5 images get priority loading for faster LCP #}
             <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                  alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
-                 loading="lazy"
+                 {% if loop.index <= 5 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                  decoding="async"
                  class="dense-grid-img">
           </picture>
@@ -181,11 +181,11 @@
               {% if image.sources.webp|length %}
                 <source type="image/webp" srcset="{% for src in image.sources.webp %}{% set src_url = src|split(' ')|first %}{% if src_url starts with '/' %}{{ base_path }}{{ src_url }}{% else %}{{ src_url }}{% endif %} {{ src|split(' ')|slice(1)|join(' ') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
               {% endif %}
-{# Images are lazy-loaded; priority handled by browser/IO #}
+{# First 5 images get priority loading for faster LCP #}
               <img src="{% set img_src = image.fallback_src|default(image.url) %}{% if img_src starts with '/' %}{{ base_path }}{{ img_src }}{% else %}{{ img_src }}{% endif %}"
                    alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                    title="{{ seo_title|e('html_attr') }}"
-                   loading="lazy"
+                   {% if loop.index <= 5 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                    decoding="async"
                    data-fallback="hide">
             </picture>
@@ -265,13 +265,13 @@
             {% if variants_webp %}
               <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
             {% endif %}
-{# Images are lazy-loaded; priority handled by browser/IO #}
+{# First 5 images get priority loading for faster LCP #}
             <img src="{{ best_jpg_path }}"
                  alt="{{ image.alt_text|default(image.alt)|default('')|e }}"
                  title="{{ seo_title|e('html_attr') }}"
                  width="{{ image.width }}"
                  height="{{ image.height }}"
-                 loading="lazy"
+                 {% if loop.index <= 5 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                  decoding="async"
                  data-fallback="hide"
                  class="w-full h-full object-cover transition-transform duration-300 {{ hover_class }}">

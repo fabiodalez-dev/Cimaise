@@ -291,7 +291,7 @@
     <link rel="stylesheet" href="{{ base_path }}/assets/css/masonry-fit.css">
     <div id="images-gallery" class="masonry-fit-grid pswp-gallery" data-layout="masonry_fit" data-gap="{{ gap_h }}" data-gap-v="{{ gap_v }}" data-cols-desktop="{{ desktop_cols }}" data-cols-tablet="{{ tablet_cols }}" data-cols-mobile="{{ mobile_cols }}" data-hover-fade="{{ style.hover_fade is not defined or style.hover_fade ? '1' : '0' }}">
       {% for image in images %}
-        {% include "frontend/_image_item_masonry.twig" %}
+        {% include "frontend/_image_item_masonry.twig" with { item_index: loop.index } %}
       {% endfor %}
     </div>
   {% else %}

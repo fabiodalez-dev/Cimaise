@@ -1,5 +1,5 @@
 {# Magazine Split gallery content (partial) - Improved Responsive Version #}
-{% macro pic(image, base_path, album, seo_title, defer_sources, smart_alt) %}
+{% macro pic(image, base_path, album, seo_title, defer_sources, smart_alt, is_priority) %}
   {% set use_defer = defer_sources ? true : false %}
   {% set placeholder = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' %}
   <picture class="block w-full h-full">
@@ -13,12 +13,13 @@
       <source type="image/jpeg" {% if use_defer %}data-srcset{% else %}srcset{% endif %}="{% for s in image.sources.jpg %}{% set p = s|split(' ') %}{{ p[0] starts with('/') ? (base_path ~ p[0]) : p[0] }} {{ p[1]|default('1x') }}{% if not loop.last %}, {% endif %}{% endfor %}" sizes="(min-width:1200px) 50vw, (min-width:768px) 70vw, 100vw">
     {% endif %}
     {% set img_src = image.fallback_src|default(image.url) %}
+    {# First 5 images get priority loading for faster LCP #}
     <img {% if use_defer %}data-src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"{% else %}src="{{ img_src starts with('/') ? (base_path ~ img_src) : img_src }}"{% endif %}
          src="{{ use_defer ? placeholder : (img_src starts with('/') ? (base_path ~ img_src) : img_src) }}"
          alt="{{ smart_alt|default(image.alt)|e('html_attr') }}"
          title="{{ seo_title|e('html_attr') }}"
          class="w-full h-full object-cover"
-         loading="lazy"
+         {% if is_priority %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
          decoding="async"
          data-fallback="hide">
   </picture>
@@ -104,7 +105,7 @@
             {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
             {% set smart_alt = ImageMacros.smart_alt(image, album, site_title)|trim %}
             <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ smart_alt|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ loop.index0 }}">
-              {{ G.pic(image, base_path, album, seo_title, false, smart_alt) }}
+              {{ G.pic(image, base_path, album, seo_title, false, smart_alt, (r == 1 and loop.index <= 5)) }}
             </a>
           </div>
           {% endfor %}
@@ -134,7 +135,7 @@
                 {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
                 {% set smart_alt = ImageMacros.smart_alt(image, album, site_title)|trim %}
                 <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item{% if r > 1 %} pswp-is-duplicate{% endif %} block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ smart_alt|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ image.original_index|default(loop.index0) }}">
-                  {{ G.pic(image, base_path, album, seo_title, true, smart_alt) }}
+                  {{ G.pic(image, base_path, album, seo_title, true, smart_alt, (r == 1 and image.original_index < 5)) }}
                 </a>
               </div>
             {% endfor %}
@@ -165,7 +166,7 @@
                 {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
                 {% set smart_alt = ImageMacros.smart_alt(image, album, site_title)|trim %}
                 <a href="{% set lightbox_url = image.lightbox_url|default(image.url) %}{% if lightbox_url starts with '/' %}{{ base_path }}{{ lightbox_url }}{% else %}{{ lightbox_url }}{% endif %}" class="pswp-link m-item{% if r > 1 %} pswp-is-duplicate{% endif %} block overflow-hidden rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 ease-out bg-white" title="{{ seo_title|e('html_attr') }}" data-image-id="{{ image.id }}" data-pswp-width="{{ image.width|default(1600) }}" data-pswp-height="{{ image.height|default(1067) }}" data-pswp-caption="{{ Caption.build(image)|e('html_attr') }}" data-title="{{ image.caption|default('')|e }}" data-alt="{{ smart_alt|e }}" data-camera="{{ image.custom_camera|default(image.camera_name)|default('')|e }}" data-lens="{{ image.custom_lens|default(image.lens_name)|default('')|e }}" data-film="{{ image.custom_film|default(image.film_name)|default('')|e }}" data-developer="{{ image.developer_name|default('')|e }}" data-lab="{{ image.lab_name|default('')|e }}" data-location="{{ image.location_name|default('')|e }}" data-iso="{{ image.iso|default('') }}" data-shutter="{{ image.shutter_speed|default('')|e }}" data-aperture="{{ image.aperture|default('') }}" data-focal-length="{{ image.focal_length|default('') }}" data-exif-make="{{ image.exif_make|default('')|e }}" data-exif-model="{{ image.exif_model|default('')|e }}" data-exif-lens="{{ image.exif_lens_model|default('')|e }}" data-gps-lat="{{ image.gps_lat|default('') }}" data-gps-lng="{{ image.gps_lng|default('') }}" data-date-original="{{ image.date_original|default('')|e }}" data-artist="{{ image.artist|default('')|e }}" data-copyright="{{ image.copyright|default('')|e }}" {% if image.custom_fields is defined and image.custom_fields|length > 0 %}data-custom-fields="{{ image.custom_fields|json_encode|e('html_attr') }}"{% endif %} data-pswp-index="{{ image.original_index|default(loop.index0) }}">
-                  {{ G.pic(image, base_path, album, seo_title, true, smart_alt) }}
+                  {{ G.pic(image, base_path, album, seo_title, true, smart_alt, (r == 1 and image.original_index < 5)) }}
                   {% if r == 1 %}<div class="hidden-caption-content">{{ G.caption(image) }}</div>{% endif %}
                 </a>
               </div>
