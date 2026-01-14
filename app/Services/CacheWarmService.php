@@ -429,8 +429,22 @@ class CacheWarmService
             'template_settings' => $templateSettings,
         ];
 
+        // Determine page template (hero, magazine, or classic)
+        $pageTemplate = (string) ($album['album_page_template'] ?? '');
+        if ($pageTemplate === '') {
+            $pageTemplate = (string) ($this->settings->get('gallery.page_template', 'classic') ?? 'classic');
+        }
+        if (!in_array($pageTemplate, ['classic', 'hero', 'magazine'], true)) {
+            $pageTemplate = 'classic';
+        }
+        $templateFile = match ($pageTemplate) {
+            'hero' => 'frontend/gallery_hero.twig',
+            'magazine' => 'frontend/gallery_magazine.twig',
+            default => 'frontend/album.twig',
+        };
+
         return $this->pageCacheService->set("album:{$slug}", [
-            'template_file' => 'frontend/album.twig',
+            'template_file' => $templateFile,
             'data' => $cacheableData,
         ]);
     }
@@ -554,6 +568,7 @@ class CacheWarmService
 
     /**
      * Build image sources array from variants.
+     * Uses string format "path 800w" to match PageController::processImageSourcesBatch().
      */
     private function buildImageSources(array $image, array $variants): array
     {
@@ -567,8 +582,15 @@ class CacheWarmService
         $bestWidth = 0;
 
         foreach ($variants as $var) {
-            // Skip blur variants - they're for NSFW/protected album previews only
-            if (!empty($var['is_blur']) || str_contains($var['path'] ?? '', '_blur')) {
+            $path = (string) ($var['path'] ?? '');
+            $width = (int) ($var['width'] ?? 0);
+            $variantType = $var['variant'] ?? '';
+
+            // Skip blur variants, storage paths, and invalid entries
+            if (!empty($var['is_blur']) || str_contains($path, '_blur') || $variantType === 'blur') {
+                continue;
+            }
+            if ($path === '' || str_starts_with($path, '/storage/') || $width <= 0) {
                 continue;
             }
 
@@ -579,30 +601,17 @@ class CacheWarmService
                 $sources[$format] = [];
             }
 
-            $sources[$format][] = [
-                'url' => $var['path'],
-                'width' => (int) $var['width'],
-            ];
+            // Use string format "path 800w" like PageController
+            $sources[$format][] = $path . ' ' . $width . 'w';
 
             // Track best fallback (largest jpg)
-            if ($format === 'jpg' && (int) $var['width'] > $bestWidth) {
-                $bestWidth = (int) $var['width'];
-                $fallbackSrc = $var['path'];
-            }
-        }
-
-        // Build srcset strings
-        $srcsets = [];
-        foreach ($sources as $format => $srcs) {
-            if (!empty($srcs)) {
-                $srcsets[$format] = implode(', ', array_map(function ($s) {
-                    return $s['url'] . ' ' . $s['width'] . 'w';
-                }, $srcs));
+            if ($format === 'jpg' && $width > $bestWidth) {
+                $bestWidth = $width;
+                $fallbackSrc = $path;
             }
         }
 
         $image['sources'] = $sources;
-        $image['srcsets'] = $srcsets;
         $image['fallback_src'] = $fallbackSrc ?: ($image['original_path'] ?? '');
         $image['variants'] = $variants;
 
@@ -646,11 +655,12 @@ class CacheWarmService
     {
         $pdo = $this->db->pdo();
 
-        // Categories with album counts
+        // Categories with album counts (exclude NSFW and password-protected)
         $catStmt = $pdo->prepare('
             SELECT c.id, c.name, c.slug, COUNT(DISTINCT a.id) as count
             FROM categories c
             LEFT JOIN albums a ON a.category_id = c.id AND a.is_published = 1 AND a.is_nsfw = 0
+                AND (a.password_hash IS NULL OR a.password_hash = \'\')
             GROUP BY c.id
             HAVING count > 0
             ORDER BY c.name ASC
@@ -658,12 +668,13 @@ class CacheWarmService
         $catStmt->execute();
         $categories = $catStmt->fetchAll();
 
-        // Tags with album counts
+        // Tags with album counts (exclude NSFW and password-protected)
         $tagStmt = $pdo->prepare('
             SELECT t.id, t.name, t.slug, COUNT(DISTINCT at.album_id) as count
             FROM tags t
             JOIN album_tag at ON at.tag_id = t.id
             JOIN albums a ON a.id = at.album_id AND a.is_published = 1 AND a.is_nsfw = 0
+                AND (a.password_hash IS NULL OR a.password_hash = \'\')
             GROUP BY t.id
             HAVING count > 0
             ORDER BY t.name ASC
@@ -672,11 +683,13 @@ class CacheWarmService
         $tags = $tagStmt->fetchAll();
 
         // Years (use Database::yearExpression for MySQL/SQLite compatibility)
+        // Exclude NSFW and password-protected albums
         $yearExpr = $this->db->yearExpression('shoot_date');
         $yearStmt = $pdo->prepare("
             SELECT DISTINCT {$yearExpr} as year
             FROM albums
             WHERE is_published = 1 AND is_nsfw = 0 AND shoot_date IS NOT NULL
+                AND (password_hash IS NULL OR password_hash = '')
             ORDER BY year DESC
         ");
         $yearStmt->execute();

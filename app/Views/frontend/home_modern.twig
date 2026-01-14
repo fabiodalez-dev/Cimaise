@@ -388,7 +388,7 @@
                     {% set srcset_jpg = [] %}
                     {% for src in image.sources.avif|default([]) %}
                         {# Defensive: handle both string and array srcset entries #}
-                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('') ~ 'w') : src %}
+                        {% set src_str = src is iterable ? (src.url|default('') ~ (src.width ? (' ' ~ src.width ~ 'w') : '')) : src %}
                         {% set src_parts = src_str|split(' ') %}
                         {% set src_url = src_parts|first|default('') %}
                         {% set src_rest = src_parts|slice(1)|join(' ')|trim %}
@@ -398,7 +398,7 @@
                         {% endif %}
                     {% endfor %}
                     {% for src in image.sources.webp|default([]) %}
-                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('') ~ 'w') : src %}
+                        {% set src_str = src is iterable ? (src.url|default('') ~ (src.width ? (' ' ~ src.width ~ 'w') : '')) : src %}
                         {% set src_parts = src_str|split(' ') %}
                         {% set src_url = src_parts|first|default('') %}
                         {% set src_rest = src_parts|slice(1)|join(' ')|trim %}
@@ -408,7 +408,7 @@
                         {% endif %}
                     {% endfor %}
                     {% for src in image.sources.jpg|default([]) %}
-                        {% set src_str = src is iterable ? (src.url|default('') ~ ' ' ~ src.width|default('') ~ 'w') : src %}
+                        {% set src_str = src is iterable ? (src.url|default('') ~ (src.width ? (' ' ~ src.width ~ 'w') : '')) : src %}
                         {% set src_parts = src_str|split(' ') %}
                         {% set src_url = src_parts|first|default('') %}
                         {% set src_rest = src_parts|slice(1)|join(' ')|trim %}
@@ -451,7 +451,7 @@
                                              alt="{{ ImageMacros.smart_alt(image, null, site_title)|trim|e('html_attr') }}"
                                              title="{{ seo_title|e('html_attr') }}"
                                              class="img-fill"
-                                             loading="lazy"
+                                             {% if loop.index <= 6 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                                              decoding="async"
                                              data-fallback="hide">
                                     </picture>
