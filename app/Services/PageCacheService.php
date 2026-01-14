@@ -318,7 +318,6 @@ class PageCacheService
         }
 
         $cacheKey = $this->getCacheKey($type);
-        $now = $this->db->isSqlite() ? "datetime('now')" : 'NOW()';
 
         $stmt = $this->db->query(
             "SELECT id, data, is_compressed, expires_at FROM page_cache WHERE cache_key = ? AND version = ?",
@@ -380,6 +379,10 @@ class PageCacheService
         $relatedId = $this->getRelatedId($type);
 
         $jsonString = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($jsonString === false) {
+            Logger::warning("Failed to JSON encode page cache data: {$type} - " . json_last_error_msg());
+            return false;
+        }
         $sizeBytes = strlen($jsonString);
         $dataHash = hash('sha256', $jsonString);
 
@@ -781,22 +784,36 @@ class PageCacheService
 
     /**
      * Extract related ID (album_id) from type string.
-     * Returns null for non-album types.
+     * Looks up album.id by slug for album:* cache types.
+     * Returns null for non-album types or if album not found.
      */
     private function getRelatedId(string $type): ?int
     {
-        // Album related_id would need to be looked up from database
-        // For now, we don't have the album_id in the type string
-        // This could be enhanced later if needed for cascade deletes
-        return null;
-    }
+        // Only album types have related IDs
+        if (!str_starts_with($type, 'album:')) {
+            return null;
+        }
 
-    /**
-     * Generate SHA256 hash for data integrity/ETag.
-     */
-    private function generateHash(string $data): string
-    {
-        return hash('sha256', $data);
+        // Extract slug from type (album:slug-name -> slug-name)
+        $slug = substr($type, 6);
+        if (empty($slug) || $this->db === null) {
+            return null;
+        }
+
+        try {
+            $stmt = $this->db->query(
+                'SELECT id FROM albums WHERE slug = ? LIMIT 1',
+                [$slug]
+            );
+            $row = $stmt->fetch();
+            $stmt->closeCursor();
+
+            return $row ? (int) $row['id'] : null;
+        } catch (\Throwable $e) {
+            // Non-critical - cache will still work without related_id
+            Logger::warning("Failed to lookup album id for cache related_id: {$slug} - " . $e->getMessage());
+            return null;
+        }
     }
 
     /**

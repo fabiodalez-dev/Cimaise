@@ -142,7 +142,7 @@ class CacheMiddleware implements MiddlewareInterface
         // Check If-None-Match header for 304 response
         if ($etag) {
             $ifNoneMatch = $request->getHeaderLine('If-None-Match');
-            if ($ifNoneMatch && ($ifNoneMatch === $etag || $ifNoneMatch === 'W/' . $etag)) {
+            if ($ifNoneMatch && $this->matchesEtag($etag, $ifNoneMatch)) {
                 // Create empty body for 304 response to avoid sending stale content
                 $emptyBody = new \Slim\Psr7\Stream(fopen('php://temp', 'r+'));
                 return $response
@@ -166,7 +166,7 @@ class CacheMiddleware implements MiddlewareInterface
     }
 
     /**
-     * Generate ETag for HTML pages based on cache file stats.
+     * Generate ETag for HTML pages based on cache (database or file).
      */
     private function generateHtmlEtag(string $path): ?string
     {
@@ -175,19 +175,37 @@ class CacheMiddleware implements MiddlewareInterface
         }
 
         // Map URL path to cache type
-        $cacheFile = null;
         $basePath = rtrim($this->settings->get('site.base_path', ''), '/');
         $path = preg_replace('#^' . preg_quote($basePath, '#') . '#', '', $path);
 
+        // Get configurable galleries slug (default: /galleries)
+        $galleriesPath = '/' . ltrim($this->settings->get('galleries.slug', 'galleries'), '/');
+
+        $cacheType = null;
         if ($path === '/' || $path === '') {
-            $cacheFile = $this->pageCacheService->getCacheFilePath('home');
-        } elseif ($path === '/galleries' || $path === '/galleries/') {
-            $cacheFile = $this->pageCacheService->getCacheFilePath('galleries');
+            $cacheType = 'home';
+        } elseif ($path === $galleriesPath || $path === $galleriesPath . '/') {
+            $cacheType = 'galleries';
         } elseif (preg_match('#^/album/([^/]+)/?$#', $path, $matches)) {
-            $slug = $matches[1];
-            $cacheFile = $this->pageCacheService->getCacheFilePath('album', $slug);
+            $cacheType = 'album:' . $matches[1];
         }
 
+        if (!$cacheType) {
+            return null;
+        }
+
+        // Use database hash when backend is database
+        $backend = $this->settings->get('cache.storage_backend', 'database');
+        if ($backend === 'database') {
+            $hash = $this->pageCacheService->getHash($cacheType);
+            if ($hash) {
+                return '"' . $hash . '"';
+            }
+            return null;
+        }
+
+        // Fall back to file-based ETag
+        $cacheFile = $this->pageCacheService->getCacheFilePath($cacheType);
         if ($cacheFile && file_exists($cacheFile)) {
             $mtime = filemtime($cacheFile);
             $size = filesize($cacheFile);
@@ -195,6 +213,56 @@ class CacheMiddleware implements MiddlewareInterface
         }
 
         return null;
+    }
+
+    /**
+     * Check if an ETag matches the If-None-Match header value.
+     * Handles weak ETags (W/"..."), multiple comma-separated values, and quote stripping.
+     */
+    private function matchesEtag(string $etag, string $ifNoneMatch): bool
+    {
+        // Wildcard match
+        if (trim($ifNoneMatch) === '*') {
+            return true;
+        }
+
+        // Normalize our ETag (strip weak prefix and quotes for comparison)
+        $normalizedEtag = $this->normalizeEtag($etag);
+
+        // Parse If-None-Match header (can contain comma-separated values)
+        $candidates = array_map('trim', explode(',', $ifNoneMatch));
+
+        foreach ($candidates as $candidate) {
+            if ($candidate === '' || $candidate === '*') {
+                continue;
+            }
+
+            // Normalize candidate ETag
+            $normalizedCandidate = $this->normalizeEtag($candidate);
+
+            // Compare normalized values
+            if ($normalizedEtag === $normalizedCandidate) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Normalize an ETag by stripping W/ prefix and surrounding quotes.
+     */
+    private function normalizeEtag(string $etag): string
+    {
+        // Strip weak prefix
+        if (str_starts_with($etag, 'W/')) {
+            $etag = substr($etag, 2);
+        }
+
+        // Strip surrounding quotes
+        $etag = trim($etag, '"');
+
+        return $etag;
     }
 
     private function addNoCacheHeaders(Response $response): Response

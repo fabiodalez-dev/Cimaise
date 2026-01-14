@@ -2347,7 +2347,7 @@
                 '.home-infinite-section, .gallery-wall, .masonry-grid, .snap-gallery, [data-parallax-gallery]'
             );
             if (skipImageAnimations) {
-                document.querySelectorAll('img[data-src]').forEach(img => {
+                skipImageAnimations.querySelectorAll('img[data-src]').forEach(img => {
                     const dataSrc = img.getAttribute('data-src');
                     if (dataSrc) {
                         img.setAttribute('src', dataSrc);

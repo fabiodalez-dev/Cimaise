@@ -503,9 +503,10 @@ class CacheWarmService
                 $album['cover_image'] = $this->processImageSources($album['cover_image']);
             }
 
-            // Set locked status for password-protected albums
-            $album['is_locked'] = !empty($album['password_hash']);
-            $album['is_password_protected'] = !empty($album['password_hash']);
+            // Note: is_locked and is_password_protected flags are not set here because
+            // all queries feeding enrichAlbums() filter out password-protected albums
+            // (using WHERE password_hash IS NULL OR password_hash = '').
+            // If enrichAlbums() is later called with unfiltered data, add the flag logic here.
         }
         unset($album);
 
@@ -695,15 +696,95 @@ class CacheWarmService
         $yearStmt->execute();
         $years = $yearStmt->fetchAll(\PDO::FETCH_COLUMN);
 
+        // Cameras with album counts (exclude NSFW and password-protected)
+        // Note: cameras table has no slug column - filtering by id
+        // Uses album_camera junction table for many-to-many relationship
+        $cameraStmt = $pdo->prepare('
+            SELECT c.id, TRIM(COALESCE(c.make, \'\') || \' \' || COALESCE(c.model, \'\')) as name,
+                   COUNT(DISTINCT a.id) as count
+            FROM cameras c
+            JOIN album_camera ac ON ac.camera_id = c.id
+            JOIN albums a ON a.id = ac.album_id AND a.is_published = 1 AND a.is_nsfw = 0
+                AND (a.password_hash IS NULL OR a.password_hash = \'\')
+            GROUP BY c.id
+            HAVING count > 0
+            ORDER BY name ASC
+        ');
+        $cameraStmt->execute();
+        $cameras = $cameraStmt->fetchAll();
+
+        // Lenses with album counts (exclude NSFW and password-protected)
+        // Note: lenses table has no slug column - filtering by id
+        // Uses album_lens junction table for many-to-many relationship
+        $lensStmt = $pdo->prepare('
+            SELECT l.id, TRIM(COALESCE(l.brand, \'\') || \' \' || COALESCE(l.model, \'\')) as name,
+                   COUNT(DISTINCT a.id) as count
+            FROM lenses l
+            JOIN album_lens al ON al.lens_id = l.id
+            JOIN albums a ON a.id = al.album_id AND a.is_published = 1 AND a.is_nsfw = 0
+                AND (a.password_hash IS NULL OR a.password_hash = \'\')
+            GROUP BY l.id
+            HAVING count > 0
+            ORDER BY name ASC
+        ');
+        $lensStmt->execute();
+        $lenses = $lensStmt->fetchAll();
+
+        // Films with album counts (exclude NSFW and password-protected)
+        // Note: films table has no slug column - filtering by id
+        // Uses album_film junction table for many-to-many relationship
+        $filmStmt = $pdo->prepare('
+            SELECT f.id, TRIM(COALESCE(f.brand, \'\') || \' \' || COALESCE(f.name, \'\')) as name,
+                   COUNT(DISTINCT a.id) as count
+            FROM films f
+            JOIN album_film af ON af.film_id = f.id
+            JOIN albums a ON a.id = af.album_id AND a.is_published = 1 AND a.is_nsfw = 0
+                AND (a.password_hash IS NULL OR a.password_hash = \'\')
+            GROUP BY f.id
+            HAVING count > 0
+            ORDER BY name ASC
+        ');
+        $filmStmt->execute();
+        $films = $filmStmt->fetchAll();
+
+        // Locations with album counts (exclude NSFW and password-protected)
+        $locStmt = $pdo->prepare('
+            SELECT loc.id, loc.name, loc.slug, COUNT(DISTINCT a.id) as count
+            FROM locations loc
+            JOIN albums a ON a.location_id = loc.id AND a.is_published = 1 AND a.is_nsfw = 0
+                AND (a.password_hash IS NULL OR a.password_hash = \'\')
+            GROUP BY loc.id
+            HAVING count > 0
+            ORDER BY loc.name ASC
+        ');
+        $locStmt->execute();
+        $locations = $locStmt->fetchAll();
+
         return [
             'categories' => $categories,
             'tags' => $tags,
             'years' => $years,
-            'cameras' => [],
-            'lenses' => [],
-            'films' => [],
-            'locations' => [],
+            'cameras' => $cameras,
+            'lenses' => $lenses,
+            'films' => $films,
+            'locations' => $locations,
         ];
+    }
+
+    /**
+     * Warm home page cache (wrapper for lazy regeneration).
+     */
+    public function warmHome(): bool
+    {
+        return $this->buildHomeCache();
+    }
+
+    /**
+     * Warm galleries page cache (wrapper for lazy regeneration).
+     */
+    public function warmGalleries(): bool
+    {
+        return $this->buildGalleriesCache();
     }
 
     /**

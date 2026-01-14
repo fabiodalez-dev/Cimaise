@@ -32,8 +32,11 @@ class AlbumsController extends BaseController
      * Invalidate page caches when album content changes.
      * Called after album create/update/delete to ensure fresh data.
      * If auto_warm is enabled, regenerates cache immediately after invalidation.
+     *
+     * @param string|null $albumSlug Current album slug to invalidate
+     * @param string|null $oldAlbumSlug Previous slug (for rename cases) to also invalidate
      */
-    private function invalidatePageCaches(?string $albumSlug = null): void
+    private function invalidatePageCaches(?string $albumSlug = null, ?string $oldAlbumSlug = null): void
     {
         try {
             $settings = new SettingsService($this->db);
@@ -41,11 +44,18 @@ class AlbumsController extends BaseController
                 $this->pageCacheService = new PageCacheService($settings, $this->db);
             }
 
-            // Always invalidate home cache (albums are displayed there)
+            // Always invalidate home and galleries caches (albums are displayed there)
             $this->pageCacheService->invalidate('home');
+            $this->pageCacheService->invalidate('galleries');
+
             // Invalidate specific album if slug provided
             if ($albumSlug !== null) {
                 $this->pageCacheService->invalidateAlbum($albumSlug);
+            }
+
+            // Invalidate old slug cache when album is renamed (prevents orphaned cache)
+            if ($oldAlbumSlug !== null && $oldAlbumSlug !== $albumSlug) {
+                $this->pageCacheService->invalidate("album:{$oldAlbumSlug}");
             }
 
             // Auto-warm: regenerate cache if setting is enabled
@@ -623,11 +633,12 @@ class AlbumsController extends BaseController
             return $response->withHeader('Location', $this->redirect('/admin/albums/'.$id.'/edit'))->withStatus(302);
         }
 
-        // Get old album data to detect protection status changes (NSFW or password)
+        // Get old album data to detect protection status changes (NSFW or password) and slug changes
         $pdo = $this->db->pdo();
-        $oldAlbum = $pdo->prepare('SELECT is_nsfw, password_hash FROM albums WHERE id = ?');
+        $oldAlbum = $pdo->prepare('SELECT slug, is_nsfw, password_hash FROM albums WHERE id = ?');
         $oldAlbum->execute([$id]);
         $oldAlbumData = $oldAlbum->fetch(\PDO::FETCH_ASSOC) ?: [];
+        $oldAlbumSlug = $oldAlbumData['slug'] ?? null;
         $oldNsfw = (int)($oldAlbumData['is_nsfw'] ?? 0);
         $oldHasPassword = !empty($oldAlbumData['password_hash']);
         $wasProtected = $oldNsfw === 1 || $oldHasPassword;
@@ -885,8 +896,8 @@ class AlbumsController extends BaseController
                 }
             }
 
-            // Invalidate page caches
-            $this->invalidatePageCaches($slug);
+            // Invalidate page caches (pass old slug if renamed to prevent orphaned cache)
+            $this->invalidatePageCaches($slug, $oldAlbumSlug);
 
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_updated')];
         } catch (\Throwable $e) {

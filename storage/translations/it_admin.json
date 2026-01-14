@@ -474,7 +474,7 @@
     "admin.cache.hour": "ora",
     "admin.cache.hours": "ore",
     "admin.cache.how_it_works": "Come Funziona la Cache",
-    "admin.cache.how_it_works_desc": "La cache delle pagine memorizza i dati pre-renderizzati come file JSON, eliminando le query al database per le pagine in cache. Quando il contenuto cambia, la cache relativa viene automaticamente invalidata.",
+    "admin.cache.how_it_works_desc": "La cache delle pagine memorizza i dati pre-renderizzati, eliminando le query ripetute al database per le pagine in cache. Quando il contenuto cambia, la cache relativa viene automaticamente invalidata.",
     "admin.cache.minutes": "minuti",
     "admin.cache.page": "Pagina",
     "admin.cache.page_entries": "Voci cache pagine",
