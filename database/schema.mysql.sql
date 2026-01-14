@@ -438,6 +438,31 @@ CREATE TABLE IF NOT EXISTS `filter_settings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
+-- PAGE CACHE TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `page_cache` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `cache_key` VARCHAR(255) NOT NULL,
+  `cache_type` VARCHAR(50) NOT NULL,
+  `related_id` INT UNSIGNED DEFAULT NULL,
+  `version` TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  `data` MEDIUMBLOB NOT NULL,
+  `data_hash` CHAR(64) NOT NULL,
+  `size_bytes` INT UNSIGNED NOT NULL,
+  `is_compressed` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME NOT NULL,
+  `expires_at` DATETIME NOT NULL,
+  `last_accessed_at` DATETIME DEFAULT NULL,
+  `access_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_cache_key` (`cache_key`),
+  KEY `idx_cache_type` (`cache_type`),
+  KEY `idx_expires` (`expires_at`),
+  KEY `idx_related` (`related_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- ANALYTICS TABLES
 -- ============================================
 

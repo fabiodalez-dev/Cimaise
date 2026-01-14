@@ -38,7 +38,7 @@ class AlbumsController extends BaseController
         try {
             $settings = new SettingsService($this->db);
             if ($this->pageCacheService === null) {
-                $this->pageCacheService = new PageCacheService($settings);
+                $this->pageCacheService = new PageCacheService($settings, $this->db);
             }
 
             // Always invalidate home cache (albums are displayed there)

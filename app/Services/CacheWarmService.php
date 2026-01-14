@@ -21,7 +21,7 @@ class CacheWarmService
     public function __construct(private Database $db)
     {
         $this->settings = new SettingsService($this->db);
-        $this->pageCacheService = new PageCacheService($this->settings);
+        $this->pageCacheService = new PageCacheService($this->settings, $this->db);
         $this->navigationService = new NavigationService($this->db);
     }
 

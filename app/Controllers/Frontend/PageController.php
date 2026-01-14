@@ -31,7 +31,7 @@ class PageController extends BaseController
     {
         if ($this->pageCacheService === null) {
             $settings = new \App\Services\SettingsService($this->db);
-            $this->pageCacheService = new PageCacheService($settings);
+            $this->pageCacheService = new PageCacheService($settings, $this->db);
         }
         return $this->pageCacheService;
     }
