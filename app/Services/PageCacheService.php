@@ -14,7 +14,7 @@ use App\Support\Logger;
 class PageCacheService
 {
     private const CACHE_VERSION = 1;
-    private const DEFAULT_TTL = 3600; // 1 hour
+    private const DEFAULT_TTL = 86400; // 24 hours
 
     private string $cacheDir;
     private bool $enabled;
@@ -37,9 +37,10 @@ class PageCacheService
      * Get cached page data.
      *
      * @param string $type Page type: 'home', 'galleries', or 'album:{slug}'
+     * @param bool $allowStale If true, returns stale data instead of null when expired
      * @return array|null Cached data or null on miss
      */
-    public function get(string $type): ?array
+    public function get(string $type, bool $allowStale = false): ?array
     {
         if (!$this->enabled) {
             return null;
@@ -68,12 +69,43 @@ class PageCacheService
         }
 
         // Check expiration
-        if (strtotime($cached['expires_at']) < time()) {
+        $isExpired = strtotime($cached['expires_at']) < time();
+        if ($isExpired && !$allowStale) {
             @unlink($file);
             return null;
         }
 
         return $cached['data'];
+    }
+
+    /**
+     * Check if cache is expired (but may still have stale data).
+     *
+     * @param string $type Page type
+     * @return bool True if expired or missing
+     */
+    public function isExpired(string $type): bool
+    {
+        if (!$this->enabled) {
+            return true;
+        }
+
+        $file = $this->getCacheFilePath($type);
+        if (!file_exists($file)) {
+            return true;
+        }
+
+        $content = @file_get_contents($file);
+        if ($content === false) {
+            return true;
+        }
+
+        $cached = json_decode($content, true);
+        if (!is_array($cached) || !isset($cached['expires_at'])) {
+            return true;
+        }
+
+        return strtotime($cached['expires_at']) < time();
     }
 
     /**

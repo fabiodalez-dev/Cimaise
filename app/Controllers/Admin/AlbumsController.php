@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Services\CacheWarmService;
 use App\Services\CustomFieldService;
 use App\Services\PageCacheService;
 use App\Services\SettingsService;
@@ -30,22 +31,35 @@ class AlbumsController extends BaseController
     /**
      * Invalidate page caches when album content changes.
      * Called after album create/update/delete to ensure fresh data.
+     * If auto_warm is enabled, regenerates cache immediately after invalidation.
      */
     private function invalidatePageCaches(?string $albumSlug = null): void
     {
         try {
+            $settings = new SettingsService($this->db);
             if ($this->pageCacheService === null) {
-                $settings = new SettingsService($this->db);
                 $this->pageCacheService = new PageCacheService($settings);
             }
+
             // Always invalidate home cache (albums are displayed there)
             $this->pageCacheService->invalidate('home');
             // Invalidate specific album if slug provided
             if ($albumSlug !== null) {
                 $this->pageCacheService->invalidateAlbum($albumSlug);
             }
+
+            // Auto-warm: regenerate cache if setting is enabled
+            $autoWarm = (bool) $settings->get('cache.auto_warm', false);
+            if ($autoWarm) {
+                $warmService = new CacheWarmService($this->db);
+                $warmService->warmHome();
+                $warmService->warmGalleries();
+                if ($albumSlug !== null) {
+                    $warmService->warmAlbum($albumSlug);
+                }
+            }
         } catch (\Throwable) {
-            // Cache invalidation failure should not break admin operations
+            // Cache invalidation/warming failure should not break admin operations
         }
     }
 
