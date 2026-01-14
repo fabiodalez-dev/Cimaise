@@ -22,7 +22,8 @@ class CommandsController extends BaseController
         
         return $this->view->render($response, 'admin/commands.twig', [
             'page_title' => 'System Commands',
-            'detected_base_url' => $baseUrl
+            'detected_base_url' => $baseUrl,
+            'csrf' => $_SESSION['csrf'] ?? ''
         ]);
     }
 

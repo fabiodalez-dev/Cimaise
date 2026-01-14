@@ -664,6 +664,33 @@ return function (App $app, array $container) {
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         return $handler->handle($request); });
 
+    // Cache Management
+    $app->get('/admin/cache', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\CacheController($container['db'], Twig::fromRequest($request), new \App\Services\SettingsService($container['db']));
+        return $controller->index($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
+    $app->post('/admin/cache/clear', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\CacheController($container['db'], Twig::fromRequest($request), new \App\Services\SettingsService($container['db']));
+        return $controller->clearAll($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
+    $app->post('/admin/cache/clear/{type}', function (Request $request, Response $response, array $args) use ($container) {
+        $controller = new \App\Controllers\Admin\CacheController($container['db'], Twig::fromRequest($request), new \App\Services\SettingsService($container['db']));
+        return $controller->clearType($request, $response, $args);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
+    $app->post('/admin/cache/warm', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\CacheController($container['db'], Twig::fromRequest($request), new \App\Services\SettingsService($container['db']));
+        return $controller->warmAll($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
+    $app->post('/admin/cache/settings', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\CacheController($container['db'], Twig::fromRequest($request), new \App\Services\SettingsService($container['db']));
+        return $controller->saveSettings($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
+
     // Commands
     $app->get('/admin/commands', function (Request $request, Response $response) use ($container) {
         $controller = new \App\Controllers\Admin\CommandsController($container['db'], Twig::fromRequest($request));

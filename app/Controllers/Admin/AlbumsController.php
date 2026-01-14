@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
 use App\Services\CustomFieldService;
+use App\Services\PageCacheService;
 use App\Services\SettingsService;
 use App\Support\Hooks;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -14,6 +15,7 @@ use Slim\Views\Twig;
 class AlbumsController extends BaseController
 {
     private ?CustomFieldService $customFieldService = null;
+    private ?PageCacheService $pageCacheService = null;
 
     public function __construct(private Database $db, private Twig $view)
     {
@@ -22,6 +24,28 @@ class AlbumsController extends BaseController
             $this->customFieldService = new CustomFieldService($this->db->pdo());
         } catch (\Throwable) {
             // Service unavailable, continue without custom fields
+        }
+    }
+
+    /**
+     * Invalidate page caches when album content changes.
+     * Called after album create/update/delete to ensure fresh data.
+     */
+    private function invalidatePageCaches(?string $albumSlug = null): void
+    {
+        try {
+            if ($this->pageCacheService === null) {
+                $settings = new SettingsService($this->db);
+                $this->pageCacheService = new PageCacheService($settings);
+            }
+            // Always invalidate home cache (albums are displayed there)
+            $this->pageCacheService->invalidate('home');
+            // Invalidate specific album if slug provided
+            if ($albumSlug !== null) {
+                $this->pageCacheService->invalidateAlbum($albumSlug);
+            }
+        } catch (\Throwable) {
+            // Cache invalidation failure should not break admin operations
         }
     }
 
@@ -335,6 +359,9 @@ class AlbumsController extends BaseController
                     // Custom fields table may not exist yet
                 }
             }
+
+            // Invalidate page caches
+            $this->invalidatePageCaches($slug);
 
             // If client expects JSON, return album id for AJAX flows (e.g., upload on create)
             $accept = $request->getHeaderLine('Accept');
@@ -844,6 +871,9 @@ class AlbumsController extends BaseController
                 }
             }
 
+            // Invalidate page caches
+            $this->invalidatePageCaches($slug);
+
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_updated')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => 'Error: '.$e->getMessage()];
@@ -861,6 +891,11 @@ class AlbumsController extends BaseController
 
         $id = (int)($args['id'] ?? 0);
         $pdo = $this->db->pdo();
+
+        // Get album slug BEFORE deleting (for cache invalidation)
+        $slugStmt = $pdo->prepare('SELECT slug FROM albums WHERE id = ?');
+        $slugStmt->execute([$id]);
+        $albumSlug = $slugStmt->fetchColumn() ?: null;
 
         // Collect all file paths BEFORE deleting from DB (CASCADE will delete images/variants records)
         $files = [];
@@ -885,6 +920,10 @@ class AlbumsController extends BaseController
         $stmt = $pdo->prepare('DELETE FROM albums WHERE id=:id');
         try {
             $stmt->execute([':id'=>$id]);
+
+            // Invalidate page caches
+            $this->invalidatePageCaches($albumSlug);
+
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_deleted')];
 
             // Clean up files (best-effort, after successful DB deletion)
@@ -909,9 +948,20 @@ class AlbumsController extends BaseController
         }
 
         $id = (int)($args['id'] ?? 0);
+        $pdo = $this->db->pdo();
+
+        // Get album slug for cache invalidation
+        $slugStmt = $pdo->prepare('SELECT slug FROM albums WHERE id = ?');
+        $slugStmt->execute([$id]);
+        $albumSlug = $slugStmt->fetchColumn() ?: null;
+
         // Use portable CURRENT_TIMESTAMP instead of MySQL-specific NOW()
-        $stmt = $this->db->pdo()->prepare('UPDATE albums SET is_published=1, published_at=CURRENT_TIMESTAMP WHERE id=:id');
+        $stmt = $pdo->prepare('UPDATE albums SET is_published=1, published_at=CURRENT_TIMESTAMP WHERE id=:id');
         $stmt->execute([':id'=>$id]);
+
+        // Invalidate page caches
+        $this->invalidatePageCaches($albumSlug);
+
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_published')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
     }
@@ -925,8 +975,19 @@ class AlbumsController extends BaseController
         }
 
         $id = (int)($args['id'] ?? 0);
-        $stmt = $this->db->pdo()->prepare('UPDATE albums SET is_published=0, published_at=NULL WHERE id=:id');
+        $pdo = $this->db->pdo();
+
+        // Get album slug for cache invalidation
+        $slugStmt = $pdo->prepare('SELECT slug FROM albums WHERE id = ?');
+        $slugStmt->execute([$id]);
+        $albumSlug = $slugStmt->fetchColumn() ?: null;
+
+        $stmt = $pdo->prepare('UPDATE albums SET is_published=0, published_at=NULL WHERE id=:id');
         $stmt->execute([':id'=>$id]);
+
+        // Invalidate page caches
+        $this->invalidatePageCaches($albumSlug);
+
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.album_unpublished')];
         return $response->withHeader('Location', $this->redirect('/admin/albums'))->withStatus(302);
     }

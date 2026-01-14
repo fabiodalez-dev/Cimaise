@@ -2,7 +2,10 @@
 declare(strict_types=1);
 
 namespace App\Controllers\Admin;
+
 use App\Controllers\BaseController;
+use App\Services\PageCacheService;
+use App\Services\SettingsService;
 use App\Support\Database;
 use App\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -14,6 +17,20 @@ class TagsController extends BaseController
     public function __construct(private Database $db, private Twig $view)
     {
         parent::__construct();
+    }
+
+    /**
+     * Invalidate caches related to tags.
+     */
+    private function invalidateTagCache(): void
+    {
+        unset($_SESSION['nav_tags_cache']);
+
+        // Invalidate page caches
+        $settings = new SettingsService($this->db);
+        $pageCache = new PageCacheService($settings);
+        $pageCache->invalidateHome();
+        $pageCache->invalidateGalleries();
     }
 
     public function index(Request $request, Response $response): Response
@@ -73,7 +90,7 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('INSERT INTO tags(name, slug) VALUES(:n, :s)');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug]);
-            unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
+            $this->invalidateTagCache();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.tag_created')];
             return $response->withHeader('Location', $this->redirect('/admin/tags'))->withStatus(302);
         } catch (\Throwable $e) {
@@ -124,7 +141,7 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('UPDATE tags SET name=:n, slug=:s WHERE id=:id');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':id' => $id]);
-            unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
+            $this->invalidateTagCache();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.tag_updated')];
         } catch (\Throwable $e) {
             Logger::error('TagsController::update error', ['error' => $e->getMessage()], 'admin');
@@ -145,7 +162,7 @@ class TagsController extends BaseController
         $stmt = $this->db->pdo()->prepare('DELETE FROM tags WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
-            unset($_SESSION['nav_tags_cache']); // Invalidate navigation tags cache
+            $this->invalidateTagCache();
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.tag_deleted')];
         } catch (\Throwable $e) {
             Logger::error('TagsController::delete error', ['error' => $e->getMessage()], 'admin');

@@ -979,36 +979,84 @@ Demo features:
 
 ## Scheduled Maintenance (Cron)
 
-Cimaise includes a maintenance system that automatically generates missing image variants and blur previews for protected albums. This runs automatically on each page request, but for best performance, you can schedule it via cron.
+Cimaise includes two CLI commands for scheduled tasks: **cache warming** for faster page loads, and **maintenance** for image variant generation. For best performance, schedule both via cron.
 
 ### Recommended Cron Setup
 
 Add this to your crontab (`crontab -e`):
 
 ```bash
-# Run maintenance daily at 3 AM
-0 3 * * * cd /path/to/cimaise && php bin/console maintenance:run --quiet
+# Pre-generate page caches every 6 hours
+0 0,6,12,18 * * * cd /path/to/cimaise && php bin/console cache:warm --quiet-mode
 
-# For high-traffic sites, run every 6 hours
-0 */6 * * * cd /path/to/cimaise && php bin/console maintenance:run --quiet
+# Run maintenance daily at 3 AM
+0 3 * * * cd /path/to/cimaise && php bin/console maintenance:run --quiet-mode
+
+# Alternative: Combined schedule for high-traffic sites
+0 */6 * * * cd /path/to/cimaise && php bin/console cache:warm --quiet-mode && php bin/console maintenance:run --quiet-mode --force
 ```
 
-### What Maintenance Does
+---
 
-The `maintenance:run` command performs these tasks:
+### Cache Warming (`cache:warm`)
+
+Pre-generates JSON caches for all public pages, dramatically reducing load times for visitors.
+
+#### What Gets Cached
+
+- **Home page** — All images with srcsets, categories, and settings
+- **Galleries page** — Album listings with filters and metadata
+- **Individual albums** — Full album data with images, equipment info, and srcsets
+  - Excludes NSFW and password-protected albums (served dynamically for security)
+
+#### Cache Warming Options
+
+```bash
+# Warm all caches
+php bin/console cache:warm
+
+# Clear existing caches before warming
+php bin/console cache:warm --clear
+
+# Warm only specific caches
+php bin/console cache:warm --home
+php bin/console cache:warm --galleries
+php bin/console cache:warm --albums
+
+# Quiet mode for cron (no output)
+php bin/console cache:warm --quiet-mode
+```
+
+#### Cache Invalidation
+
+Caches are automatically invalidated when:
+- Albums are created, updated, or deleted
+- Images are added or removed from albums
+- Categories or tags are modified
+- Home page settings are changed
+
+You can also manually clear caches from **Admin → System → Cache Management**.
+
+---
+
+### Maintenance (`maintenance:run`)
+
+Generates missing image variants and blur previews for protected albums.
+
+#### What Maintenance Does
 
 1. **Image Variant Generation** — Creates missing responsive variants (AVIF, WebP, JPEG) for all uploaded images
 2. **Blur Variant Generation** — Creates blurred preview images for:
    - NSFW albums (for age-gated content)
    - Password-protected albums (for locked content previews)
 
-### Maintenance Features
+#### Maintenance Features
 
 - **File-based locking** — Prevents concurrent execution if the cron runs while another is still processing
 - **Date tracking** — Skips execution if already run today (unless `--force` is used)
 - **Graceful failure** — Logs errors without blocking other operations
 
-### Manual Execution
+#### Maintenance Options
 
 ```bash
 # Normal run (skips if already run today)
@@ -1018,17 +1066,19 @@ php bin/console maintenance:run
 php bin/console maintenance:run --force
 
 # Quiet mode for cron (no output)
-php bin/console maintenance:run --quiet
+php bin/console maintenance:run --quiet-mode
 ```
 
-### When to Use Cron vs. Automatic
+---
+
+### When to Use Cron
 
 | Scenario | Recommendation |
 |----------|----------------|
-| Small portfolio (<100 images) | Automatic is fine |
-| Large portfolio (1000+ images) | Use cron to avoid request delays |
-| High traffic site | Use cron during off-peak hours |
-| Frequent uploads | Run cron more often (every 6 hours) |
+| Small portfolio (<100 images) | Optional, automatic cache works fine |
+| Large portfolio (1000+ images) | Use cron to pre-warm caches |
+| High traffic site | Essential — run both commands during off-peak hours |
+| Frequent uploads | Run `cache:warm` after content updates |
 
 ---
 
