@@ -111,8 +111,19 @@ class CacheController extends BaseController
                 $cleared = 1;
                 break;
             default:
-                // Try as specific page type
-                $cleared = $this->pageCacheService->invalidate($type);
+                // Reject unknown types to prevent path traversal
+                if ($this->isAjaxRequest($request)) {
+                    $response->getBody()->write(json_encode([
+                        'success' => false,
+                        'message' => 'Unknown cache type',
+                    ]));
+                    return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+                }
+                $_SESSION['flash'] = [
+                    'type' => 'error',
+                    'message' => 'Unknown cache type.',
+                ];
+                return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
         }
 
         if ($this->isAjaxRequest($request)) {
@@ -197,7 +208,7 @@ class CacheController extends BaseController
             return $this->csrfErrorJson($response);
         }
 
-        $body = $request->getParsedBody();
+        $body = (array) ($request->getParsedBody() ?? []);
 
         $enabled = isset($body['cache_enabled']) && $body['cache_enabled'] === 'on';
         $ttl = max(60, min(86400, (int) ($body['cache_ttl'] ?? 3600))); // 1 min to 24 hours
@@ -223,17 +234,4 @@ class CacheController extends BaseController
         return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
     }
 
-    /**
-     * Format bytes to human readable size.
-     */
-    private function formatBytes(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $i = 0;
-        while ($bytes >= 1024 && $i < count($units) - 1) {
-            $bytes /= 1024;
-            $i++;
-        }
-        return round($bytes, 2) . ' ' . $units[$i];
-    }
 }
