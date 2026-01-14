@@ -699,8 +699,9 @@ class CacheWarmService
         // Cameras with album counts (exclude NSFW and password-protected)
         // Note: cameras table has no slug column - filtering by id
         // Uses album_camera junction table for many-to-many relationship
+        // Note: Select raw columns and build name in PHP for MySQL compatibility (|| is OR in MySQL)
         $cameraStmt = $pdo->prepare('
-            SELECT c.id, TRIM(COALESCE(c.make, \'\') || \' \' || COALESCE(c.model, \'\')) as name,
+            SELECT c.id, c.make, c.model,
                    COUNT(DISTINCT a.id) as count
             FROM cameras c
             JOIN album_camera ac ON ac.camera_id = c.id
@@ -708,16 +709,22 @@ class CacheWarmService
                 AND (a.password_hash IS NULL OR a.password_hash = \'\')
             GROUP BY c.id
             HAVING count > 0
-            ORDER BY name ASC
+            ORDER BY c.make ASC, c.model ASC
         ');
         $cameraStmt->execute();
-        $cameras = $cameraStmt->fetchAll();
+        $cameras = array_map(static function (array $r): array {
+            $make = trim((string)($r['make'] ?? ''));
+            $model = trim((string)($r['model'] ?? ''));
+            $r['name'] = trim($make . ' ' . $model);
+            return $r;
+        }, $cameraStmt->fetchAll());
 
         // Lenses with album counts (exclude NSFW and password-protected)
         // Note: lenses table has no slug column - filtering by id
         // Uses album_lens junction table for many-to-many relationship
+        // Note: Select raw columns and build name in PHP for MySQL compatibility (|| is OR in MySQL)
         $lensStmt = $pdo->prepare('
-            SELECT l.id, TRIM(COALESCE(l.brand, \'\') || \' \' || COALESCE(l.model, \'\')) as name,
+            SELECT l.id, l.brand, l.model,
                    COUNT(DISTINCT a.id) as count
             FROM lenses l
             JOIN album_lens al ON al.lens_id = l.id
@@ -725,16 +732,22 @@ class CacheWarmService
                 AND (a.password_hash IS NULL OR a.password_hash = \'\')
             GROUP BY l.id
             HAVING count > 0
-            ORDER BY name ASC
+            ORDER BY l.brand ASC, l.model ASC
         ');
         $lensStmt->execute();
-        $lenses = $lensStmt->fetchAll();
+        $lenses = array_map(static function (array $r): array {
+            $brand = trim((string)($r['brand'] ?? ''));
+            $model = trim((string)($r['model'] ?? ''));
+            $r['name'] = trim($brand . ' ' . $model);
+            return $r;
+        }, $lensStmt->fetchAll());
 
         // Films with album counts (exclude NSFW and password-protected)
         // Note: films table has no slug column - filtering by id
         // Uses album_film junction table for many-to-many relationship
+        // Note: Select raw columns and build name in PHP for MySQL compatibility (|| is OR in MySQL)
         $filmStmt = $pdo->prepare('
-            SELECT f.id, TRIM(COALESCE(f.brand, \'\') || \' \' || COALESCE(f.name, \'\')) as name,
+            SELECT f.id, f.brand, f.name as film_name,
                    COUNT(DISTINCT a.id) as count
             FROM films f
             JOIN album_film af ON af.film_id = f.id
@@ -742,10 +755,15 @@ class CacheWarmService
                 AND (a.password_hash IS NULL OR a.password_hash = \'\')
             GROUP BY f.id
             HAVING count > 0
-            ORDER BY name ASC
+            ORDER BY f.brand ASC, f.name ASC
         ');
         $filmStmt->execute();
-        $films = $filmStmt->fetchAll();
+        $films = array_map(static function (array $r): array {
+            $brand = trim((string)($r['brand'] ?? ''));
+            $filmName = trim((string)($r['film_name'] ?? ''));
+            $r['name'] = trim($brand . ' ' . $filmName);
+            return $r;
+        }, $filmStmt->fetchAll());
 
         // Locations with album counts (exclude NSFW and password-protected)
         $locStmt = $pdo->prepare('

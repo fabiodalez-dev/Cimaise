@@ -47,10 +47,14 @@ class PageCacheService
         $this->cacheDir = dirname(__DIR__, 2) . '/storage/cache/pages';
         if ($this->enabled && $this->backend === 'file') {
             if (!is_dir($this->cacheDir)) {
-                @mkdir($this->cacheDir, 0775, true);
+                if (!mkdir($this->cacheDir, 0775, true) && !is_dir($this->cacheDir)) {
+                    Logger::warning("PageCacheService: Failed to create cache directory: {$this->cacheDir}");
+                }
             }
             if (!is_dir($this->cacheDir . '/albums')) {
-                @mkdir($this->cacheDir . '/albums', 0775, true);
+                if (!mkdir($this->cacheDir . '/albums', 0775, true) && !is_dir($this->cacheDir . '/albums')) {
+                    Logger::warning("PageCacheService: Failed to create albums cache directory: {$this->cacheDir}/albums");
+                }
             }
         }
     }
@@ -330,13 +334,14 @@ class PageCacheService
             return null;
         }
 
-        // Check expiration
-        $isExpired = strtotime($row['expires_at']) < time();
+        // Check expiration (parse as UTC to match gmdate() storage)
+        $expiresTs = strtotime($row['expires_at'] . ' UTC');
+        $isExpired = ($expiresTs !== false ? $expiresTs : 0) < time();
         if ($isExpired && !$allowStale) {
             return null;
         }
 
-        // Update access stats asynchronously (non-blocking)
+        // Update access stats (inline, low overhead)
         $this->updateAccessStats((int) $row['id']);
 
         // Decompress data
@@ -364,7 +369,9 @@ class PageCacheService
             return true;
         }
 
-        return strtotime($row['expires_at']) < time();
+        // Parse as UTC to match gmdate() storage
+        $expiresTs = strtotime($row['expires_at'] . ' UTC');
+        return ($expiresTs !== false ? $expiresTs : 0) < time();
     }
 
     private function setToDatabase(string $type, array $data, ?int $ttl): bool
@@ -487,8 +494,8 @@ class PageCacheService
                 $stats['compression_ratio'] = round((1 - $stats['total_size_compressed'] / $stats['total_size']) * 100, 1);
             }
 
-            // Get items
-            $now = $this->db->isSqlite() ? "datetime('now')" : 'NOW()';
+            // Get items (use UTC for consistency with gmdate() storage)
+            $now = $this->db->isSqlite() ? "datetime('now')" : 'UTC_TIMESTAMP()';
             $stmt = $this->db->query("
                 SELECT
                     cache_key as type,
@@ -531,7 +538,8 @@ class PageCacheService
         }
 
         try {
-            $now = $this->db->isSqlite() ? "datetime('now')" : 'NOW()';
+            // Use UTC for consistency with gmdate() storage
+            $now = $this->db->isSqlite() ? "datetime('now')" : 'UTC_TIMESTAMP()';
             $this->db->execute(
                 "UPDATE page_cache SET last_accessed_at = {$now}, access_count = access_count + 1 WHERE id = ?",
                 [$id]
@@ -825,7 +833,8 @@ class PageCacheService
             return 0;
         }
 
-        $now = $this->db->isSqlite() ? "datetime('now')" : 'NOW()';
+        // Use UTC for consistency with gmdate() storage
+        $now = $this->db->isSqlite() ? "datetime('now')" : 'UTC_TIMESTAMP()';
         return $this->db->execute("DELETE FROM page_cache WHERE expires_at < {$now}");
     }
 
