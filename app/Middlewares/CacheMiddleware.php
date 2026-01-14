@@ -135,9 +135,18 @@ class CacheMiddleware implements MiddlewareInterface
     {
         $maxAge = $this->settings->get('performance.html_cache_max_age', 300); // 5 minutes default
 
-        // Try to generate ETag from page cache file if available
+        // Try to generate ETag from page cache (database or file) if available
         $path = $request->getUri()->getPath();
         $etag = $this->generateHtmlEtag($path);
+        if (!$etag) {
+            $body = (string) $response->getBody();
+            if ($response->getBody()->isSeekable()) {
+                $response->getBody()->rewind();
+            }
+            if ($body !== '') {
+                $etag = '"' . sha1($body) . '"';
+            }
+        }
 
         // Check If-None-Match header for 304 response
         if ($etag) {
