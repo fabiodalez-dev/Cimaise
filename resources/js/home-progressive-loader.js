@@ -162,8 +162,13 @@ export class HomeProgressiveLoader {
       params.set('excludeAlbums', Array.from(this.shownAlbumIds).join(','));
       params.set('limit', String(this.adaptiveBatchSize));
 
+      // Reserved params that cannot be overwritten by extraParams
+      const reservedParams = new Set(['exclude', 'excludeAlbums', 'limit']);
+
       Object.entries(this.extraParams).forEach(([key, value]) => {
         if (value === undefined || value === null || value === '') return;
+        // Skip reserved params to prevent accidental overwriting
+        if (reservedParams.has(key)) return;
         params.set(key, String(value));
       });
 

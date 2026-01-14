@@ -181,7 +181,9 @@ class PageController extends BaseController
             $cached = $this->getPageCacheService()->get('home');
             if ($cached !== null) {
                 // Cache hit - render with cached data + session-specific vars
-                $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
+                $svc = new \App\Services\SettingsService($this->db);
+                $siteDescription = (string) ($svc->get('site.description', '') ?? '');
+                $seo = $this->buildSeo($request, 'Home', $siteDescription);
                 return $this->view->render($response, $cached['template_file'], array_merge($cached['data'], [
                     'page_title' => $seo['page_title'],
                     'meta_description' => $seo['meta_description'],
@@ -348,7 +350,8 @@ class PageController extends BaseController
         unset($parent); // Break reference
         $parentCategories = array_values($parentCategories); // Re-index array
 
-        $seo = $this->buildSeo($request, 'Home', 'Photography portfolio showcasing analog and digital work');
+        $siteDescription = (string) ($svc->get('site.description', '') ?? '');
+        $seo = $this->buildSeo($request, 'Home', $siteDescription);
 
         // Select template based on home.template setting
         $templateMap = [
