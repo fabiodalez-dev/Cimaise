@@ -28,7 +28,7 @@ onReady(() => {
     startPos = getPositionX(e);
     previousTranslate = currentTranslate;
     if (autoPlayId) { cancelAnimationFrame(autoPlayId); autoPlayId = null; }
-    carousel.classList.add('dragging');
+    // Don't add 'dragging' class here - wait until user actually moves
     document.body.style.userSelect = 'none';
   };
 
@@ -41,7 +41,10 @@ onReady(() => {
     if (Math.abs(diff) > DRAG_THRESHOLD) {
       e.preventDefault();
       e.stopPropagation();
-      hasMoved = true;
+      if (!hasMoved) {
+        hasMoved = true;
+        carousel.classList.add('dragging'); // Only add class when actually dragging
+      }
       currentTranslate = previousTranslate + diff;
       setSliderPosition();
     }
