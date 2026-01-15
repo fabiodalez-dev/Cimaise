@@ -832,7 +832,7 @@ html.dark .img-placeholder {
 .menu-component {
     position: fixed;
     inset: 0;
-    z-index: 100;
+    z-index: 200; /* Higher than .page-transition (100) to ensure menu is always on top */
     background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
