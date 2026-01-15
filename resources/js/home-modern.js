@@ -413,19 +413,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (infoHolder) infoHolder.classList.remove('show');
             });
 
-            // Mobile click to toggle description
-            item.addEventListener('click', function(e) {
-                if (!isMobile()) return;
-
-                const isShowingDescription = this.classList.contains('show-description');
-                if (!isShowingDescription) {
-                    e.preventDefault();
-                    infItems.forEach(otherItem => {
-                        otherItem.classList.remove('show-description');
-                    });
-                    this.classList.add('show-description');
-                }
-            });
+            // Mobile tap shows description but doesn't block navigation
+            // (navigation handled separately in page transition setup)
         });
     };
 
@@ -514,13 +503,6 @@ document.addEventListener('DOMContentLoaded', function() {
             link.dataset.transitionSetup = 'true';
 
             link.addEventListener('click', function(e) {
-                if (isMobile()) {
-                    const parentItem = this.closest('.inf-work_item');
-                    if (!parentItem || !parentItem.classList.contains('show-description')) {
-                        return;
-                    }
-                }
-
                 e.preventDefault();
                 const href = this.getAttribute('href');
 
@@ -535,6 +517,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     };
+
+    // Handle browser back/forward navigation (bfcache)
+    // Reset page transition overlay when page is shown from cache
+    window.addEventListener('pageshow', function(event) {
+        if (pageTransition) {
+            pageTransition.classList.remove('is-active');
+        }
+    });
 
     // ============================================
     // FORCE IMMEDIATE IMAGE DISPLAY
