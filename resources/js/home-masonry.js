@@ -142,6 +142,10 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
       loader.observe(trigger);
     }
 
-    loader.startBackgroundLoading();
+    // PERFORMANCE: Delay background loading to let initial images load first
+    // This prevents network contention between initial render and progressive loading
+    setTimeout(() => {
+      loader.startBackgroundLoading();
+    }, 1500);
   });
 })();
