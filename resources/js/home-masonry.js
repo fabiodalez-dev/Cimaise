@@ -142,7 +142,9 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
       try {
         await originalLoadMore();
       } finally {
-        setLoading(loader.hasMore);
+        // Always hide loader after batch completes
+        // IntersectionObserver on trigger will fire next load when user scrolls down
+        setLoading(false);
       }
     };
 

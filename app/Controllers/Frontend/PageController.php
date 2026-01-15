@@ -52,7 +52,7 @@ class PageController extends BaseController
         register_shutdown_function(function () use ($db) {
             try {
                 // File lock to prevent thundering herd on concurrent requests
-                $lockFile = dirname(__DIR__, 2) . '/storage/tmp/home_cache_warm.lock';
+                $lockFile = dirname(__DIR__, 3) . '/storage/tmp/home_cache_warm.lock';
                 $lockDir = dirname($lockFile);
                 if (!is_dir($lockDir)) {
                     @mkdir($lockDir, 0775, true);
