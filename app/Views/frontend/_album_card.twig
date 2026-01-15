@@ -111,12 +111,12 @@
             {% endif %}
           {% endfor %}
           {# Fallback to first jpg variant if none found #}
-          {% if card_img_url is null %}
-            {% for variant in variants_jpg|first|default('')|split(' ') %}
-              {% if card_img_url is null and variant %}
-                {% set card_img_url = variant %}
-              {% endif %}
-            {% endfor %}
+          {% if card_img_url is null and variants_jpg|length > 0 %}
+            {# variants_jpg entries are "url widthw" format, extract only the URL part #}
+            {% set parts = variants_jpg|first|default('')|split(' ') %}
+            {% if parts|length > 0 and parts[0] %}
+              {% set card_img_url = parts[0] %}
+            {% endif %}
           {% endif %}
           {% set original_url = card_img_url ? (card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url) : '' %}
 

@@ -440,7 +440,7 @@ class CacheWarmService
         $templateFile = match ($pageTemplate) {
             'hero' => 'frontend/gallery_hero.twig',
             'magazine' => 'frontend/gallery_magazine.twig',
-            default => 'frontend/album.twig',
+            default => 'frontend/gallery.twig',
         };
 
         return $this->pageCacheService->set("album:{$slug}", [

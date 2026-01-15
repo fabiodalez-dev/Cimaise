@@ -197,7 +197,8 @@ class CategoriesController extends BaseController
         $stmt = $this->db->pdo()->prepare('INSERT INTO categories(name, slug, sort_order, parent_id, image_path) VALUES(:n, :s, :o, :p, :i)');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath]);
-            $this->invalidateCategoryCache();
+            $newId = (int) $this->db->pdo()->lastInsertId();
+            $this->invalidateCategoryCache($newId);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.category_created')];
             return $response->withHeader('Location', $this->redirect('/admin/categories'))->withStatus(302);
         } catch (\Throwable $e) {
@@ -325,7 +326,7 @@ class CategoriesController extends BaseController
         $stmt = $this->db->pdo()->prepare('UPDATE categories SET name=:n, slug=:s, sort_order=:o, parent_id=:p, image_path=:i WHERE id=:id');
         try {
             $stmt->execute([':n' => $name, ':s' => $slug, ':o' => $sort, ':p' => $parentId, ':i' => $imagePath, ':id' => $id]);
-            $this->invalidateCategoryCache();
+            $this->invalidateCategoryCache($id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.category_updated')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
@@ -356,7 +357,7 @@ class CategoriesController extends BaseController
         $stmt = $pdo->prepare('DELETE FROM categories WHERE id = :id');
         try {
             $stmt->execute([':id' => $id]);
-            $this->invalidateCategoryCache();
+            $this->invalidateCategoryCache($id);
             $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.category_deleted')];
         } catch (\Throwable $e) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.error_generic') . ': ' . $e->getMessage()];
