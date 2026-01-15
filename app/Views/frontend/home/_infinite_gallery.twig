@@ -56,7 +56,7 @@
   {% set repeat_times = (minItems / totalImages)|round(0, 'ceil') %}
   {% set repeat_times = repeat_times < 2 ? 2 : (repeat_times > 5 ? 5 : repeat_times) %}
 
-  <div id="home-infinite-gallery" class="relative h-full">
+  <div id="home-infinite-gallery" class="relative md:h-full">
     <div class="home-mobile-wrap">
       <div class="home-mobile">
         {% for image in all_images %}

@@ -126,9 +126,12 @@
 
 /* Responsive heights for the section - Vertical mode */
 /* Mobile: auto height with tall scrollable container inside */
-.home-vertical { height: auto; min-height: 90vh; }
+.home-vertical { height: auto; min-height: 90vh; position: relative; z-index: 1; }
 @media (min-width: 768px) { .home-vertical { height: 150vh !important; min-height: 0; } }
 @media (min-width: 1024px) { .home-vertical { height: 200vh !important; } }
+
+/* Ensure infinite gallery doesn't overlap on mobile */
+.home-infinite-section { contain: layout; }
 
 /* ===== HORIZONTAL SCROLL MODE ===== */
 .home-horizontal { height: auto !important; width: 100%; overflow: hidden; }
