@@ -177,14 +177,11 @@ class MediaController extends BaseController
             return null;
         }
 
-        // Stream the blur file
-        $streamed = $this->streamFile($response, $blurPath, 'image/jpeg');
-        if ($streamed === null) {
+        // Check ETag BEFORE streaming (avoid writing body for 304 responses)
+        $filesize = filesize($blurPath);
+        if ($filesize === false) {
             return null;
         }
-
-        // Aggressive cache for blur variants (unique filenames, content never changes)
-        $filesize = filesize($blurPath);
         $etag = $this->generateEtag($blurPath, $filesize);
         $clientEtag = $request->getHeaderLine('If-None-Match');
 
@@ -193,6 +190,12 @@ class MediaController extends BaseController
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
                 ->withHeader('Cache-Control', 'public, max-age=' . self::BLUR_CACHE_SECONDS . ', immutable');
+        }
+
+        // Stream the blur file
+        $streamed = $this->streamFile($response, $blurPath, 'image/jpeg');
+        if ($streamed === null) {
+            return null;
         }
 
         return $streamed
@@ -440,12 +443,12 @@ class MediaController extends BaseController
             return $response
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
-                ->withHeader('Cache-Control', 'private, max-age=31536000, immutable');
+                ->withHeader('Cache-Control', 'private, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable');
         }
 
         // Cache headers for originals: long cache (originals are immutable)
         return $streamed
-            ->withHeader('Cache-Control', 'private, max-age=31536000, immutable')
+            ->withHeader('Cache-Control', 'private, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable')
             ->withHeader('ETag', $etag);
     }
 

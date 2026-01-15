@@ -50,6 +50,7 @@ class PageController extends BaseController
 
         $db = $this->db;
         register_shutdown_function(function () use ($db) {
+            $fh = null;
             try {
                 // File lock to prevent thundering herd on concurrent requests
                 $lockFile = dirname(__DIR__, 3) . '/storage/tmp/home_cache_warm.lock';
@@ -62,6 +63,7 @@ class PageController extends BaseController
                     // Another process already warming cache
                     if ($fh !== false) {
                         @fclose($fh);
+                        $fh = null;
                     }
                     return;
                 }
@@ -74,11 +76,13 @@ class PageController extends BaseController
                 $cacheService = new \App\Services\CacheWarmService($db);
                 $cacheService->warmHome();
                 Logger::info('Home cache regenerated via lazy regeneration');
-
-                @flock($fh, LOCK_UN);
-                @fclose($fh);
             } catch (\Throwable $e) {
                 Logger::warning('Home cache lazy regeneration failed: ' . $e->getMessage());
+            } finally {
+                if (isset($fh) && is_resource($fh)) {
+                    @flock($fh, LOCK_UN);
+                    @fclose($fh);
+                }
             }
         });
     }
