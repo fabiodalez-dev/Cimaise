@@ -287,8 +287,9 @@
               </div>
               {% endif %}
             {% else %}
-              {% if album.cover_image.preview_path or album.cover_image.original_path %}
-                {% set cover_path = album.cover_image.preview_path|default(album.cover_image.original_path) %}
+              {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+              {% if album.cover_image.preview_path %}
+                {% set cover_path = album.cover_image.preview_path %}
                 <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
                      alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
                      title="{{ seo_title|e('html_attr') }}"
@@ -998,7 +999,8 @@ const esc = escapeHtml; // Alias for brevity
 function generateGalleryCard(album) {
     const coverImage = album.cover_image || {};
     const tags = Array.isArray(album.tags) ? album.tags : [];
-    const imgPath = (coverImage.preview_path || coverImage.original_path || '');
+    // Security: never use original_path (points to /storage/originals/ which is not web-accessible)
+    const imgPath = (coverImage.preview_path || '');
     const blurPath = coverImage.blur_path || '';
     const safeSrc = imgPath.startsWith('/') && window.basePath ? (window.basePath + imgPath) : imgPath;
     const safeBlurSrc = blurPath.startsWith('/') && window.basePath ? (window.basePath + blurPath) : blurPath;

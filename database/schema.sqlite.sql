@@ -490,6 +490,20 @@ CREATE INDEX IF NOT EXISTS idx_page_cache_expires ON page_cache(expires_at);
 CREATE INDEX IF NOT EXISTS idx_page_cache_related ON page_cache(related_id);
 
 -- ============================================
+-- CACHE TAGS TABLE (Tag-Based Invalidation)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS cache_tags (
+  cache_key VARCHAR(255) NOT NULL,
+  tag VARCHAR(100) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (cache_key, tag),
+  FOREIGN KEY (cache_key) REFERENCES page_cache(cache_key) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_cache_tags_tag ON cache_tags(tag);
+
+-- ============================================
 -- ANALYTICS TABLES
 -- ============================================
 

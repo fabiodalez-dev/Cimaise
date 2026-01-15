@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Services\CacheTags;
 use App\Services\PageCacheService;
 use App\Services\SettingsService;
 use App\Support\Database;
@@ -21,14 +22,24 @@ class TagsController extends BaseController
 
     /**
      * Invalidate caches related to tags.
+     * Uses tag-based invalidation for efficient bulk cache clearing.
+     *
+     * @param int|null $tagId Tag ID for tag-based invalidation
      */
-    private function invalidateTagCache(): void
+    private function invalidateTagCache(?int $tagId = null): void
     {
         unset($_SESSION['nav_tags_cache']);
 
-        // Invalidate page caches
+        // Invalidate page caches using tags
         $settings = new SettingsService($this->db);
         $pageCache = new PageCacheService($settings, $this->db);
+
+        if ($tagId !== null) {
+            // Use tag-based invalidation for related content
+            $pageCache->invalidateByTag(CacheTags::contentTag($tagId));
+        }
+
+        // Always invalidate home and galleries (tags affect navigation)
         $pageCache->invalidateHome();
         $pageCache->invalidateGalleries();
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Support\Database;
+use App\Services\CacheTags;
 use App\Services\CacheWarmService;
 use App\Services\CustomFieldService;
 use App\Services\PageCacheService;
@@ -31,12 +32,14 @@ class AlbumsController extends BaseController
     /**
      * Invalidate page caches when album content changes.
      * Called after album create/update/delete to ensure fresh data.
+     * Uses tag-based invalidation for efficient bulk cache clearing.
      * If auto_warm is enabled, regenerates cache immediately after invalidation.
      *
      * @param string|null $albumSlug Current album slug to invalidate
      * @param string|null $oldAlbumSlug Previous slug (for rename cases) to also invalidate
+     * @param int|null $albumId Album ID for tag-based invalidation
      */
-    private function invalidatePageCaches(?string $albumSlug = null, ?string $oldAlbumSlug = null): void
+    private function invalidatePageCaches(?string $albumSlug = null, ?string $oldAlbumSlug = null, ?int $albumId = null): void
     {
         try {
             $settings = new SettingsService($this->db);
@@ -44,9 +47,14 @@ class AlbumsController extends BaseController
                 $this->pageCacheService = new PageCacheService($settings, $this->db);
             }
 
-            // Always invalidate home and galleries caches (albums are displayed there)
-            $this->pageCacheService->invalidate('home');
-            $this->pageCacheService->invalidate('galleries');
+            // Use tag-based invalidation for efficient bulk clearing
+            if ($albumId !== null) {
+                $this->pageCacheService->invalidateByTags(CacheTags::albumRelated($albumId));
+            } else {
+                // Fallback to direct invalidation if no album ID
+                $this->pageCacheService->invalidate('home');
+                $this->pageCacheService->invalidate('galleries');
+            }
 
             // Invalidate specific album if slug provided
             if ($albumSlug !== null) {
@@ -88,7 +96,7 @@ class AlbumsController extends BaseController
             ? ($this->db->orderByNullsLast('a.published_at') . ' DESC, a.sort_order ASC')
             : ('a.sort_order ASC, ' . $this->db->orderByNullsLast('a.published_at') . ' DESC');
         $stmt = $pdo->prepare("SELECT a.id, a.title, a.slug, a.is_published, a.published_at, c.name AS category,
-                               COALESCE(iv.path, i.original_path) AS cover_path
+                               iv.path AS cover_path
                                FROM albums a JOIN categories c ON c.id = a.category_id
                                LEFT JOIN images i ON i.id = a.cover_image_id
                                LEFT JOIN image_variants iv ON iv.id = (
@@ -523,9 +531,9 @@ class AlbumsController extends BaseController
                                    i.camera_id, i.lens_id, i.film_id, i.developer_id, i.lab_id, i.location_id,
                                    i.custom_camera, i.custom_lens, i.custom_film,
                                    i.iso, i.shutter_speed, i.aperture,
-                                   COALESCE(iv.path, i.original_path) AS preview_path
+                                   iv.path AS preview_path
                                    FROM images i
-                                   LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
+                                   LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
                                    WHERE i.album_id=:a
                                    ORDER BY i.sort_order ASC, i.id ASC");
         $imgsStmt->execute([':a'=>$id]);

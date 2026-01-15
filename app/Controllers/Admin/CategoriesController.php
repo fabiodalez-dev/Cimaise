@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Services\CacheTags;
 use App\Services\NavigationService;
 use App\Services\PageCacheService;
 use App\Services\SettingsService;
@@ -21,17 +22,27 @@ class CategoriesController extends BaseController
 
     /**
      * Invalidate caches related to categories.
+     * Uses tag-based invalidation for efficient bulk cache clearing.
+     *
+     * @param int|null $categoryId Category ID for tag-based invalidation
      */
-    private function invalidateCategoryCache(): void
+    private function invalidateCategoryCache(?int $categoryId = null): void
     {
         // Invalidate navigation cache
         NavigationService::invalidateCache();
 
-        // Invalidate page caches
+        // Invalidate page caches using tags
         $settings = new SettingsService($this->db);
         $pageCache = new PageCacheService($settings, $this->db);
-        $pageCache->invalidateHome();
-        $pageCache->invalidateGalleries();
+
+        if ($categoryId !== null) {
+            // Use tag-based invalidation for efficient bulk clearing
+            $pageCache->invalidateByTags(CacheTags::categoryRelated($categoryId));
+        } else {
+            // Fallback to direct invalidation
+            $pageCache->invalidateHome();
+            $pageCache->invalidateGalleries();
+        }
     }
 
     public function index(Request $request, Response $response): Response

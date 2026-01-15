@@ -477,18 +477,18 @@ class GalleryController extends BaseController
         // Get cover image for Open Graph
         $coverImage = null;
         if (!empty($album['cover_image_id'])) {
-            // Use designated cover image
+            // Use designated cover image (never use original_path - not web-accessible)
             try {
                 $stmt = $pdo->prepare("
-                    SELECT i.*, COALESCE(iv.path, i.original_path) AS preview_path
+                    SELECT i.*, iv.path AS preview_path
                     FROM images i
-                    LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'lg'
+                    LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'lg' AND iv.format = 'jpg'
                     WHERE i.id = :id
                 ");
                 $stmt->execute([':id' => $album['cover_image_id']]);
                 $cover = $stmt->fetch();
-                if ($cover) {
-                    $coverImage = $cover['preview_path'] ?: $cover['original_path'];
+                if ($cover && !empty($cover['preview_path'])) {
+                    $coverImage = $cover['preview_path'];
                 }
             } catch (\Throwable) {}
         }

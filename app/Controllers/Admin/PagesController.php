@@ -3,9 +3,11 @@ declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
+use App\Services\CacheTags;
 use App\Services\ImagesService;
 use App\Services\PageCacheService;
 use App\Services\SettingsService;
+use App\Services\TwigGlobalsCache;
 use App\Support\Database;
 use App\Support\Hooks;
 use finfo;
@@ -185,8 +187,13 @@ class PagesController extends BaseController
         $svc->set('home.gallery_text_title', trim((string)($data['gallery_text_title'] ?? '')));
         $svc->set('home.gallery_text_content', \App\Support\Sanitizer::html((string)($data['gallery_text_content'] ?? '')));
 
-        // Invalidate home page cache
-        (new PageCacheService($svc, $this->db))->invalidateHome();
+        // Invalidate home page cache and related caches
+        $pageCache = new PageCacheService($svc, $this->db);
+        $pageCache->invalidateByTags(CacheTags::homeRelated());
+        $pageCache->invalidateHome();
+
+        // Invalidate Twig globals cache (home settings affect layout)
+        TwigGlobalsCache::invalidate();
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.home_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/home'))->withStatus(302);
@@ -300,6 +307,11 @@ class PagesController extends BaseController
             }
         }
 
+        // Invalidate about page cache and Twig globals (slug may have changed)
+        $pageCache = new PageCacheService($svc, $this->db);
+        $pageCache->invalidateByTag(CacheTags::ABOUT);
+        TwigGlobalsCache::invalidate();
+
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.about_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/about'))->withStatus(302);
     }
@@ -394,6 +406,12 @@ class PagesController extends BaseController
 
         // Default gallery template selector moved to global Settings page.
         // Intentionally ignore any incoming default_template_id here to keep a single source of truth.
+
+        // Invalidate galleries page cache and Twig globals (slug may have changed)
+        $pageCache = new PageCacheService($svc, $this->db);
+        $pageCache->invalidateByTag(CacheTags::GALLERIES);
+        $pageCache->invalidateGalleries();
+        TwigGlobalsCache::invalidate();
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.galleries_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/galleries'))->withStatus(302);

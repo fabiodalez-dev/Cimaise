@@ -183,7 +183,7 @@
       {% set idx = loop.index0 %}
       {% set w_class = widths[idx % widths|length] %}
       {% set h_class = heights[idx % heights|length] %}
-      {% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
+      {% set lightbox_href = image.lightbox_url|default(image.url|default('')) %}
       {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
       <figure class="img-container {{ w_class }} {{ h_class }}">
         <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
@@ -211,7 +211,7 @@
             {% set variants_avif = [] %}
             {% set variants_webp = [] %}
             {% set variants_jpg = [] %}
-            {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+            {% set best_jpg_path = image.fallback_src|default(image.url|default('')) %}
             {% if best_jpg_path starts with '/' %}
               {% set best_jpg_path = base_path ~ best_jpg_path %}
             {% endif %}
