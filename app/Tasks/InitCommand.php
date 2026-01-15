@@ -48,20 +48,10 @@ class InitCommand extends Command
             return Command::FAILURE;
         }
         
-        // Step 2: Run migrations
-        $output->writeln('');
-        $output->writeln('2️⃣  Running database migrations...');
-        $result = $this->runCommand('migrate', $output);
-        if ($result !== 0) {
-            $output->writeln('   ❌ <error>Migration failed</error>');
-            return Command::FAILURE;
-        }
-        $output->writeln('   ✅ Migrations completed');
-        
-        // Step 3: Seed data (optional)
+        // Step 2: Seed data (optional)
         if (!$input->getOption('skip-seed')) {
             $output->writeln('');
-            $output->writeln('3️⃣  Seeding demo data...');
+            $output->writeln('2️⃣  Seeding demo data...');
             $result = $this->runCommand('seed', $output);
             if ($result !== 0) {
                 $output->writeln('   ⚠️  <comment>Seeding failed, but continuing...</comment>');
@@ -70,9 +60,9 @@ class InitCommand extends Command
             }
         }
         
-        // Step 4: Create admin user
+        // Step 3: Create admin user
         $output->writeln('');
-        $output->writeln('4️⃣  Creating admin user...');
+        $output->writeln('3️⃣  Creating admin user...');
         
         $adminEmail = $input->getOption('admin-email');
         if (!$adminEmail) {
@@ -99,14 +89,14 @@ class InitCommand extends Command
             return Command::FAILURE;
         }
         
-        // Step 5: Create directories
+        // Step 4: Create directories
         $output->writeln('');
-        $output->writeln('5️⃣  Creating storage directories...');
+        $output->writeln('4️⃣  Creating storage directories...');
         $this->createDirectories($output);
         
-        // Step 6: Generate sitemap
+        // Step 5: Generate sitemap
         $output->writeln('');
-        $output->writeln('6️⃣  Generating sitemap...');
+        $output->writeln('5️⃣  Generating sitemap...');
         $baseUrl = $input->getOption('base-url');
         $result = $this->runSitemapCommand($baseUrl, $output);
         if ($result !== 0) {
