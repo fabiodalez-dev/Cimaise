@@ -1622,16 +1622,6 @@
                     <a href="{{ cookie_url|default(base_path ~ '/cookie-policy') }}" class="hover:text-black transition-colors">{{ cookie_title_footer|default(trans('nav.cookie')) }}</a>
                     {% endif %}
                 </div>
-                
-                {% if tags|default([])|length > 0 %}
-                <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
-                    {% for tag in tags|slice(0, 10) %}
-                    <a href="{{ base_path }}/tag/{{ tag.slug }}" class="text-xs text-neutral-500 hover:text-black border border-neutral-200 rounded px-2 py-1 transition-colors">
-                        #{{ tag.name|e }}
-                    </a>
-                    {% endfor %}
-                </div>
-                {% endif %}
             </div>
             {# Hook: frontend_footer - For plugins to add footer notices #}
             {{ hook('frontend_footer', {'base_path': base_path, 'csp_nonce': csp_nonce()}) }}
