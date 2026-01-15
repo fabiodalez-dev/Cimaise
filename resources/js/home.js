@@ -45,8 +45,8 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
     const webpSrcset = buildSrcset(img.sources?.webp);
     const jpgSrcset = buildSrcset(img.sources?.jpg);
 
-    const fallbackSrc = img.fallback_src || img.url;
-    const imgSrc = fallbackSrc.startsWith('/') ? basePath + fallbackSrc : fallbackSrc;
+    const fallbackSrc = img.fallback_src || img.url || '';
+    const imgSrc = fallbackSrc && fallbackSrc.startsWith('/') ? basePath + fallbackSrc : fallbackSrc;
     const albumUrl = `${basePath}/album/${encodeURIComponent(img.album_slug || '')}`;
     const alt = img.alt || img.album_title || '';
     const title = img.album_title || '';
