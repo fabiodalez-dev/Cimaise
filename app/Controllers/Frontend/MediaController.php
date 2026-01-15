@@ -17,7 +17,9 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  */
 class MediaController extends BaseController
 {
-    private const BLUR_CACHE_SECONDS = 3600; // 1 hour for blur variants
+    private const BLUR_CACHE_SECONDS = 86400; // 24 hours for blur variants
+    private const PUBLIC_CACHE_SECONDS = 31536000; // 1 year for public images
+    private const PROTECTED_CACHE_SECONDS = 604800; // 1 week for protected variants
 
     public function __construct(private Database $db, private UploadService $uploadService)
     {
@@ -181,7 +183,7 @@ class MediaController extends BaseController
             return null;
         }
 
-        // Use private cache for NSFW blur content (not public CDN cacheable)
+        // Aggressive cache for blur variants (unique filenames, content never changes)
         $filesize = filesize($blurPath);
         $etag = $this->generateEtag($blurPath, $filesize);
         $clientEtag = $request->getHeaderLine('If-None-Match');
@@ -190,11 +192,11 @@ class MediaController extends BaseController
             return $response
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
-                ->withHeader('Cache-Control', 'private, max-age=' . self::BLUR_CACHE_SECONDS . ', must-revalidate');
+                ->withHeader('Cache-Control', 'public, max-age=' . self::BLUR_CACHE_SECONDS . ', immutable');
         }
 
         return $streamed
-            ->withHeader('Cache-Control', 'private, max-age=' . self::BLUR_CACHE_SECONDS . ', must-revalidate')
+            ->withHeader('Cache-Control', 'public, max-age=' . self::BLUR_CACHE_SECONDS . ', immutable')
             ->withHeader('ETag', $etag);
     }
 
@@ -340,12 +342,12 @@ class MediaController extends BaseController
             return $response
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
-                ->withHeader('Cache-Control', 'private, max-age=3600, must-revalidate');
+                ->withHeader('Cache-Control', 'private, max-age=' . self::PROTECTED_CACHE_SECONDS . ', immutable');
         }
 
-        // Cache headers for variants: shorter cache with ETag validation
+        // Cache headers for protected variants: 1 week cache (session-gated, variants have unique filenames)
         return $streamed
-            ->withHeader('Cache-Control', 'private, max-age=3600, must-revalidate')
+            ->withHeader('Cache-Control', 'private, max-age=' . self::PROTECTED_CACHE_SECONDS . ', immutable')
             ->withHeader('ETag', $etag);
     }
 
@@ -557,7 +559,7 @@ class MediaController extends BaseController
             return $response
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
-                ->withHeader('Cache-Control', 'public, max-age=86400, must-revalidate');
+                ->withHeader('Cache-Control', 'public, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable');
         }
 
         $streamed = $this->streamFile($response, $realPath, $detectedMime);
@@ -565,9 +567,9 @@ class MediaController extends BaseController
             return $response->withStatus(500);
         }
 
-        // Cache headers for public variants: use ETag for revalidation
+        // Cache headers for public images: aggressive 1-year cache (variants have unique filenames)
         return $streamed
-            ->withHeader('Cache-Control', 'public, max-age=86400, must-revalidate')
+            ->withHeader('Cache-Control', 'public, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable')
             ->withHeader('ETag', $etag);
     }
 

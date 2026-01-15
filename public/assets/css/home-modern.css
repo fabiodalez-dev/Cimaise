@@ -683,17 +683,7 @@ html.dark .modern-search-suggestions__subtitle {
     width: calc(50% - 5px);
     position: absolute;
     cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-}
-
-.inf-work_item.is-visible {
-    opacity: 1;
-}
-
-/* First 6 items visible immediately for instant display (CSS fallback) */
-.inf-work_item:nth-child(-n+6) {
-    opacity: 1;
+    opacity: 1; /* Instant visibility - no fade-in */
 }
 
 /* Even items offset to right */
@@ -1148,17 +1138,8 @@ html.lenis {
     .inf-work_item {
         width: 100%;
         position: relative;
-        opacity: 0;
-        transition: opacity 0.4s ease, transform 0.4s ease;
-    }
-
-    .inf-work_item.is-visible {
-        opacity: 1;
-    }
-
-    /* First 6 items visible immediately for instant display (CSS fallback) */
-    .inf-work_item:nth-child(-n+6) {
-        opacity: 1;
+        opacity: 1; /* Instant visibility - no fade-in */
+        transition: transform 0.4s ease;
     }
 
     .inf-work_item:nth-child(2n) {

@@ -234,15 +234,50 @@ html.dark .gallery-wall-item::after {
       <div class="gallery-wall-track" id="galleryWallTrack">
         {% for image in all_images %}
         {% set isHorizontal = (image.width|default(1600) / image.height|default(1000)) > 1.2 %}
+        {# Build high-quality srcsets from sources #}
+        {% set srcset_avif = [] %}
+        {% set srcset_webp = [] %}
+        {% set srcset_jpg = [] %}
+        {% for src in image.sources.avif|default([]) %}
+          {% set src_parts = src|split(' ') %}
+          {% set src_url = src_parts[0]|default('') %}
+          {% set src_rest = src_parts[1]|default('') %}
+          {% if src_url != '' %}
+            {% set srcset_avif = srcset_avif|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+          {% endif %}
+        {% endfor %}
+        {% for src in image.sources.webp|default([]) %}
+          {% set src_parts = src|split(' ') %}
+          {% set src_url = src_parts[0]|default('') %}
+          {% set src_rest = src_parts[1]|default('') %}
+          {% if src_url != '' %}
+            {% set srcset_webp = srcset_webp|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+          {% endif %}
+        {% endfor %}
+        {% for src in image.sources.jpg|default([]) %}
+          {% set src_parts = src|split(' ') %}
+          {% set src_url = src_parts[0]|default('') %}
+          {% set src_rest = src_parts[1]|default('') %}
+          {% if src_url != '' %}
+            {% set srcset_jpg = srcset_jpg|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+          {% endif %}
+        {% endfor %}
+        {% set imgSrc = image.fallback_src|default('') %}
+        {% set imgUrl = imgSrc != '' and imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
         <div class="gallery-wall-item {{ isHorizontal ? 'horizontal' : 'vertical' }}">
           <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
-            {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
-            {% set imgSrc = image.fallback_src|default('') %}
-            {% set imgUrl = imgSrc != '' and imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
-            {# Images are lazy-loaded; priority handled by browser/IO #}
-            {% if imgUrl != '' %}
-            <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy" decoding="async" data-fallback="hide">
-            {% endif %}
+            <picture>
+              {% if srcset_avif %}
+              <source type="image/avif" srcset="{{ srcset_avif|join(', ')|e('html_attr') }}" sizes="100vw">
+              {% endif %}
+              {% if srcset_webp %}
+              <source type="image/webp" srcset="{{ srcset_webp|join(', ')|e('html_attr') }}" sizes="100vw">
+              {% endif %}
+              {% if srcset_jpg %}
+              <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="100vw">
+              {% endif %}
+              <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" width="{{ image.width|default(1600) }}" height="{{ image.height|default(1000) }}" {% if loop.index <= 6 %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async" data-fallback="hide">
+            </picture>
             <div class="gallery-wall-overlay">
               <h3>{{ image.album_title|e }}</h3>
               <p>{{ image.category_name|e }}</p>
@@ -259,15 +294,50 @@ html.dark .gallery-wall-item::after {
     <div class="gallery-mobile-grid-inner">
       {% for image in all_images|slice(0, 50) %}
       {% set isHorizontal = (image.width|default(1600) / image.height|default(1000)) > 1.2 %}
+      {# Build srcsets for mobile #}
+      {% set srcset_avif = [] %}
+      {% set srcset_webp = [] %}
+      {% set srcset_jpg = [] %}
+      {% for src in image.sources.avif|default([]) %}
+        {% set src_parts = src|split(' ') %}
+        {% set src_url = src_parts[0]|default('') %}
+        {% set src_rest = src_parts[1]|default('') %}
+        {% if src_url != '' %}
+          {% set srcset_avif = srcset_avif|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+        {% endif %}
+      {% endfor %}
+      {% for src in image.sources.webp|default([]) %}
+        {% set src_parts = src|split(' ') %}
+        {% set src_url = src_parts[0]|default('') %}
+        {% set src_rest = src_parts[1]|default('') %}
+        {% if src_url != '' %}
+          {% set srcset_webp = srcset_webp|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+        {% endif %}
+      {% endfor %}
+      {% for src in image.sources.jpg|default([]) %}
+        {% set src_parts = src|split(' ') %}
+        {% set src_url = src_parts[0]|default('') %}
+        {% set src_rest = src_parts[1]|default('') %}
+        {% if src_url != '' %}
+          {% set srcset_jpg = srcset_jpg|merge([(src_url starts with '/' ? base_path ~ src_url : src_url) ~ ' ' ~ src_rest]) %}
+        {% endif %}
+      {% endfor %}
+      {% set imgSrc = image.fallback_src|default('') %}
+      {% set imgUrl = imgSrc != '' and imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
       <div class="gallery-mobile-item {{ isHorizontal and loop.index % 5 == 1 ? 'wide' : '' }}">
         <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
-          {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
-          {% set imgSrc = image.fallback_src|default('') %}
-          {% set imgUrl = imgSrc != '' and imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
-          {# Images are lazy-loaded; priority handled by browser/IO #}
-          {% if imgUrl != '' %}
-          <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy" decoding="async" data-fallback="hide">
-          {% endif %}
+          <picture>
+            {% if srcset_avif %}
+            <source type="image/avif" srcset="{{ srcset_avif|join(', ')|e('html_attr') }}" sizes="100vw">
+            {% endif %}
+            {% if srcset_webp %}
+            <source type="image/webp" srcset="{{ srcset_webp|join(', ')|e('html_attr') }}" sizes="100vw">
+            {% endif %}
+            {% if srcset_jpg %}
+            <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="100vw">
+            {% endif %}
+            <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" width="{{ image.width|default(1600) }}" height="{{ image.height|default(1000) }}" {% if loop.index <= 8 %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async" data-fallback="hide">
+          </picture>
         </a>
       </div>
       {% endfor %}
