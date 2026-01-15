@@ -139,20 +139,29 @@ class CacheMiddleware implements MiddlewareInterface
         $path = $request->getUri()->getPath();
         $etag = $this->generateHtmlEtag($path);
         if (!$etag) {
-            $stream = $response->getBody();
-            if ($stream->isSeekable()) {
-                $body = (string) $stream;
-                $stream->rewind();
-            } else {
-                $body = $stream->getContents();
-                $newStream = new \Slim\Psr7\Stream(fopen('php://temp', 'r+'));
-                $newStream->write($body);
-                $newStream->rewind();
-                $response = $response->withBody($newStream);
-            }
+            // Only hash body for small responses to avoid O(size) CPU/memory overhead
+            // For large pages without cache ETags, skip hashing entirely
+            $maxHashSize = 256 * 1024; // 256 KB threshold
+            $contentLength = $response->getHeaderLine('Content-Length');
+            $shouldHash = $contentLength === '' || (int) $contentLength <= $maxHashSize;
 
-            if ($body !== '') {
-                $etag = '"' . sha1($body) . '"';
+            if ($shouldHash) {
+                $stream = $response->getBody();
+                if ($stream->isSeekable()) {
+                    $body = (string) $stream;
+                    $stream->rewind();
+                } else {
+                    $body = $stream->getContents();
+                    $newStream = new \Slim\Psr7\Stream(fopen('php://temp', 'r+'));
+                    $newStream->write($body);
+                    $newStream->rewind();
+                    $response = $response->withBody($newStream);
+                }
+
+                // Double-check size after reading (Content-Length may be missing)
+                if ($body !== '' && strlen($body) <= $maxHashSize) {
+                    $etag = '"' . sha1($body) . '"';
+                }
             }
         }
 
