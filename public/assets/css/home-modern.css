@@ -985,7 +985,8 @@ html.dark .mega-menu::after {
 
 .mega-menu_text {
     display: block;
-    height: 100%; /* Ensure it takes full height of parent line-height */
+    height: 1.1em; /* Match parent's line-height exactly so second span is hidden below overflow */
+    line-height: 1.1; /* Match parent link's line-height */
 }
 
 .menu-component.is-open .mega-menu_link {
