@@ -337,8 +337,10 @@ class PageController extends BaseController
         // Other templates: use album diversity for variety
         if ($homeTemplate === 'masonry') {
             // Masonry: load initial batch, then progressive load the rest
+            // PERFORMANCE: Reduced from 40 to 20 for faster initial page load
+            // Progressive loader handles additional images on scroll
             $masonryMaxImages = $homeSettings['masonry_max_images'] ?? 0;
-            $initialLimit = 40;
+            $initialLimit = 20;
             if ($masonryMaxImages > 0) {
                 $initialLimit = min($initialLimit, $masonryMaxImages);
             }
