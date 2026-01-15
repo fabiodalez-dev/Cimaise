@@ -368,7 +368,9 @@ class PageController extends BaseController
             $hasMoreImages = false;
         } else {
             // Other templates: album diversity (1 image per album)
-            $initialLimit = 20; // Viewport-only SSR load - rest via progressive loading API
+            // Classic infinite gallery duplicates images 2-5x for CSS animation looping.
+            // Keep initial load small to reduce DOM elements (12 images × 2 reps × 3 cols = 72 elements)
+            $initialLimit = 12;
             $imageResult = $homeImageService->getInitialImages($initialLimit, $includeNsfw);
             $shownImageIds = $imageResult['shownImageIds'];
             $shownAlbumIds = $imageResult['shownAlbumIds'];
