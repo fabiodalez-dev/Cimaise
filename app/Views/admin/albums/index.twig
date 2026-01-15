@@ -213,11 +213,11 @@
   </script>
 
   {% if pagination.pages > 1 %}
-    <div class="flex items-center justify-between mt-6">
-      <div class="text-sm text-gray-700">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-6">
+      <div class="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
         {{ trans('admin.albums.showing_results')|replace({'{from}': (pagination.page - 1) * pagination.per_page + 1, '{to}': min(pagination.page * pagination.per_page, pagination.total), '{total}': pagination.total}) }}
       </div>
-      <div class="flex space-x-1">
+      <div class="flex flex-wrap justify-center sm:justify-end gap-1">
         {% if pagination.has_prev %}
           <a href="?page={{ pagination.page - 1 }}&order={{ order_mode|e('url') }}" class="px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">{{ trans('admin.albums.previous') }}</a>
         {% endif %}

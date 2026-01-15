@@ -1,10 +1,10 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.pages.title') }} — Cimaise{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-8">
-    <div>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div class="min-w-0">
       <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.pages.title') }}</h1>
-      <p class="text-gray-600 mt-1">{{ trans('admin.pages.description') }}</p>
+      <p class="text-gray-600 mt-1 text-sm sm:text-base">{{ trans('admin.pages.description') }}</p>
     </div>
   </div>
 

@@ -1,7 +1,7 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.settings.title') }} — Cimaise{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-8">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.settings.title') }}</h1>
       <p class="text-gray-600 mt-1">{{ trans('admin.settings.description') }}</p>
@@ -44,7 +44,7 @@
             </label>
           </div>
 
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.settings.avif_quality') }}</label>
               <input type="number" name="q_avif" min="1" max="100" value="{{ settings['image.quality'].avif }}" class="form-input">
@@ -433,12 +433,12 @@
         </h3>
         <p class="text-sm text-gray-600 mb-4">{{ trans('admin.privacy.nsfw_warning_hint') }}</p>
 
-        <div class="flex items-center justify-between">
-          <div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="min-w-0 flex-1">
             <label class="block text-sm font-medium text-gray-700">{{ trans('admin.privacy.enable_nsfw_warning') }}</label>
             <p class="text-xs text-gray-500 mt-1">{{ trans('admin.privacy.enable_nsfw_warning_hint') }}</p>
           </div>
-          <label class="relative inline-flex items-center cursor-pointer">
+          <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
             <input type="checkbox" name="nsfw_global_warning" class="sr-only peer" {{ settings['privacy.nsfw_global_warning']|default(false) ? 'checked' : '' }}>
             <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
           </label>
@@ -809,12 +809,12 @@
 
         <div class="space-y-6">
           <!-- Enable Maintenance Mode Toggle -->
-          <div class="flex items-center justify-between">
-            <div>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="min-w-0 flex-1">
               <label class="block text-sm font-medium text-gray-700">{{ trans('admin.maintenance.enabled') }}</label>
               <p class="text-xs text-gray-500 mt-1">{{ trans('admin.maintenance.enabled_hint') }}</p>
             </div>
-            <label class="relative inline-flex items-center cursor-pointer">
+            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
               <input type="checkbox" name="maintenance_enabled" class="sr-only peer" {{ settings['maintenance.enabled']|default(false) ? 'checked' : '' }}>
               <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
@@ -932,20 +932,20 @@
 
   <!-- Sticky Footer with Action Buttons -->
   <div class="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-gray-200 shadow-lg admin-sticky-actions">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <button type="submit" form="settings-form" class="btn-primary">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <button type="submit" form="settings-form" class="btn-primary text-sm sm:text-base">
             <i class="fas fa-save mr-2"></i>
             {{ trans('admin.common.save') }}
           </button>
-          <a href="{{ base_path }}/admin" class="btn-secondary">
+          <a href="{{ base_path }}/admin" class="btn-secondary text-sm sm:text-base">
             <i class="fas fa-arrow-left mr-2"></i>
             {{ trans('admin.common.dashboard') }}
           </a>
         </div>
 
-        <div class="text-sm text-gray-500">
+        <div class="text-xs sm:text-sm text-gray-500 hidden sm:block">
           <i class="fas fa-info-circle mr-1"></i>
           {{ trans('admin.settings.configure_hint') }}
         </div>
