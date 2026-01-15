@@ -104,7 +104,17 @@ class InitCommand extends Command
         } else {
             $output->writeln('   ✅ Sitemap generated');
         }
-        
+
+        // Step 6: Warm cache (optional)
+        $output->writeln('');
+        $output->writeln('6️⃣  Warming page cache...');
+        $result = $this->runCommand('cache:warm', $output);
+        if ($result !== 0) {
+            $output->writeln('   ⚠️  <comment>Cache warmup failed, but continuing...</comment>');
+        } else {
+            $output->writeln('   ✅ Page cache warmed');
+        }
+
         // Success summary
         $output->writeln('');
         $output->writeln('🎉 <info>Cimaise initialization completed successfully!</info>');
