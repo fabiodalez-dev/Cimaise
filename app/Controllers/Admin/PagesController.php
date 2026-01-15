@@ -461,6 +461,9 @@ class PagesController extends BaseController
         $showInFooter = isset($data['show_in_footer']) && $data['show_in_footer'] === 'on';
         $svc->set('license.show_in_footer', $showInFooter);
 
+        // Invalidate Twig globals cache since footer links may have changed
+        TwigGlobalsCache::invalidate();
+
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.license_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/license'))->withStatus(302);
     }
@@ -509,6 +512,9 @@ class PagesController extends BaseController
         $showInFooter = isset($data['show_in_footer']) && $data['show_in_footer'] === 'on';
         $svc->set('privacy.show_in_footer', $showInFooter);
 
+        // Invalidate Twig globals cache since footer links may have changed
+        TwigGlobalsCache::invalidate();
+
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.privacy_page_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/privacy'))->withStatus(302);
     }
@@ -556,6 +562,9 @@ class PagesController extends BaseController
         // Show in footer toggle
         $showInFooter = isset($data['show_in_footer']) && $data['show_in_footer'] === 'on';
         $svc->set('cookie.show_in_footer', $showInFooter);
+
+        // Invalidate Twig globals cache since footer links may have changed
+        TwigGlobalsCache::invalidate();
 
         $_SESSION['flash'][] = ['type' => 'success', 'message' => trans('admin.flash.cookie_saved')];
         return $response->withHeader('Location', $this->redirect('/admin/pages/cookie'))->withStatus(302);
