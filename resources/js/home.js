@@ -166,10 +166,12 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
         }
       });
 
-      // Start loading more images immediately
-      loader.startBackgroundLoading();
+      // NOTE: Background loading disabled for classic infinite gallery template
+      // The CSS animation-based infinite scroll already duplicates images for seamless looping.
+      // Loading more images would only add to bandwidth without visual benefit.
+      // Instead, rely solely on IntersectionObserver - loads more only when user scrolls to trigger.
 
-      // Also load when trigger element becomes visible
+      // Load more when trigger element becomes visible (user scrolled to bottom)
       const trigger = document.getElementById('home-load-trigger');
       if (trigger) {
         loader.observe(trigger);
