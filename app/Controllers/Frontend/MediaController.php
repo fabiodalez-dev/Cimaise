@@ -333,12 +333,11 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        $streamed = $this->streamFile($response, $realPath, $detectedMime);
-        if ($streamed === null) {
+        // Check ETag BEFORE streaming to avoid sending body on 304 responses
+        $filesize = filesize($realPath);
+        if ($filesize === false) {
             return $response->withStatus(500);
         }
-
-        $filesize = filesize($realPath);
         $etag = $this->generateEtag($realPath, $filesize);
         $clientEtag = $request->getHeaderLine('If-None-Match');
         if ($clientEtag !== '' && $clientEtag === $etag) {
@@ -346,6 +345,11 @@ class MediaController extends BaseController
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
                 ->withHeader('Cache-Control', 'private, max-age=' . self::PROTECTED_CACHE_SECONDS . ', immutable');
+        }
+
+        $streamed = $this->streamFile($response, $realPath, $detectedMime);
+        if ($streamed === null) {
+            return $response->withStatus(500);
         }
 
         // Cache headers for protected variants: 1 week cache (session-gated, variants have unique filenames)
@@ -431,12 +435,11 @@ class MediaController extends BaseController
             return $response->withStatus(403);
         }
 
-        $streamed = $this->streamFile($response, $realPath, $detectedMime);
-        if ($streamed === null) {
+        // Check ETag BEFORE streaming to avoid sending body on 304 responses
+        $filesize = filesize($realPath);
+        if ($filesize === false) {
             return $response->withStatus(500);
         }
-
-        $filesize = filesize($realPath);
         $etag = $this->generateEtag($realPath, $filesize);
         $clientEtag = $request->getHeaderLine('If-None-Match');
         if ($clientEtag !== '' && $clientEtag === $etag) {
@@ -444,6 +447,11 @@ class MediaController extends BaseController
                 ->withStatus(304)
                 ->withHeader('ETag', $etag)
                 ->withHeader('Cache-Control', 'private, max-age=' . self::PUBLIC_CACHE_SECONDS . ', immutable');
+        }
+
+        $streamed = $this->streamFile($response, $realPath, $detectedMime);
+        if ($streamed === null) {
+            return $response->withStatus(500);
         }
 
         // Cache headers for originals: long cache (originals are immutable)
