@@ -51,6 +51,21 @@ class PageController extends BaseController
         $db = $this->db;
         register_shutdown_function(function () use ($db) {
             try {
+                // File lock to prevent thundering herd on concurrent requests
+                $lockFile = dirname(__DIR__, 2) . '/storage/tmp/home_cache_warm.lock';
+                $lockDir = dirname($lockFile);
+                if (!is_dir($lockDir)) {
+                    @mkdir($lockDir, 0775, true);
+                }
+                $fh = @fopen($lockFile, 'c');
+                if ($fh === false || !@flock($fh, LOCK_EX | LOCK_NB)) {
+                    // Another process already warming cache
+                    if ($fh !== false) {
+                        @fclose($fh);
+                    }
+                    return;
+                }
+
                 // Flush output to client first (if possible)
                 if (function_exists('fastcgi_finish_request')) {
                     fastcgi_finish_request();
@@ -59,6 +74,9 @@ class PageController extends BaseController
                 $cacheService = new \App\Services\CacheWarmService($db);
                 $cacheService->warmHome();
                 Logger::info('Home cache regenerated via lazy regeneration');
+
+                @flock($fh, LOCK_UN);
+                @fclose($fh);
             } catch (\Throwable $e) {
                 Logger::warning('Home cache lazy regeneration failed: ' . $e->getMessage());
             }
@@ -336,21 +354,18 @@ class PageController extends BaseController
         // Masonry template: load images without album diversity
         // Other templates: use album diversity for variety
         if ($homeTemplate === 'masonry') {
-            // Masonry: load initial batch, then progressive load the rest
-            // PERFORMANCE: Reduced from 40 to 20 for faster initial page load
-            // Progressive loader handles additional images on scroll
+            // Masonry: load ALL unique images at once (no progressive loading, no looping/duplicates)
+            // CSS columns reflow ALL items when appending, causing jarring visual shifts.
+            // Loading everything upfront provides stable, predictable layout.
+            // Use limit=0 to get all unique images without the infinite loop duplication.
+            // If masonry_max_images is set, use it as a cap (but still no duplication).
             $masonryMaxImages = $homeSettings['masonry_max_images'] ?? 0;
-            $initialLimit = 20;
-            if ($masonryMaxImages > 0) {
-                $initialLimit = min($initialLimit, $masonryMaxImages);
-            }
-            $imageResult = $homeImageService->getAllImages($initialLimit, $includeNsfw);
+            $imageResult = $homeImageService->getAllImages($masonryMaxImages, $includeNsfw);
             $shownImageIds = array_column($imageResult['images'], 'id');
-            $shownAlbumIds = array_unique(array_column($imageResult['images'], 'album_id'));
+            $shownAlbumIds = array_values(array_unique(array_column($imageResult['images'], 'album_id')));
             $totalImagesCount = $imageResult['totalImages'];
-            $hasMoreImages = $masonryMaxImages > 0
-                ? $masonryMaxImages > count($imageResult['images'])
-                : $totalImagesCount > count($imageResult['images']);
+            // Disable progressive loading for masonry - CSS columns can't handle it
+            $hasMoreImages = false;
         } else {
             // Other templates: album diversity (1 image per album)
             $initialLimit = 20; // Viewport-only SSR load - rest via progressive loading API

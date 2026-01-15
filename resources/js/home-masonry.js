@@ -60,6 +60,12 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
 
     const renderImage = (img) => {
       if (!loader) return;
+      // Skip images without valid album link (prevents broken /album/ links)
+      if (!img.album_slug) return;
+      // Skip images without valid source (prevents broken img elements)
+      const src = img.fallback_src || img.url;
+      if (!src) return;
+
       if (maxImages > 0 && loader.shownImageIds.size >= maxImages) {
         loader.hasMore = false;
         loader.disconnect();
@@ -71,7 +77,7 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
       item.className = 'masonry-item';
 
       const link = document.createElement('a');
-      link.href = `${basePath}/album/${encodeURIComponent(img.album_slug || '')}`;
+      link.href = `${basePath}/album/${encodeURIComponent(img.album_slug)}`;
 
       const picture = document.createElement('picture');
 
@@ -102,7 +108,6 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
       }
 
       const imgEl = document.createElement('img');
-      const src = img.fallback_src || img.url || '';
       imgEl.src = src;
       imgEl.alt = img.alt || img.album_title || '';
       imgEl.width = img.width || 800;
@@ -134,18 +139,20 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
     const originalLoadMore = loader.loadMore.bind(loader);
     loader.loadMore = async () => {
       setLoading(true);
-      await originalLoadMore();
-      setLoading(loader.hasMore);
+      try {
+        await originalLoadMore();
+      } finally {
+        setLoading(loader.hasMore);
+      }
     };
 
     if (trigger) {
       loader.observe(trigger);
     }
 
-    // PERFORMANCE: Delay background loading to let initial images load first
-    // This prevents network contention between initial render and progressive loading
-    setTimeout(() => {
-      loader.startBackgroundLoading();
-    }, 1500);
+    // NOTE: Background loading disabled for masonry template
+    // CSS columns reflow ALL items when new ones are added, causing jarring visual shifts.
+    // Instead, we rely solely on IntersectionObserver to load more when user scrolls to bottom.
+    // This provides a better UX: images only load when user explicitly scrolls down.
   });
 })();
