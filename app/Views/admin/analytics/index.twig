@@ -391,16 +391,14 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-6">{{ trans('admin.analytics.top_pages_today') }}</h3>
         <div class="space-y-4">
           {% for page in stats.top_pages %}
-            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-              <div class="flex-1 min-w-0">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3 border-b border-gray-100 last:border-b-0">
+              <div class="min-w-0 flex-1">
                 <p class="text-sm font-medium text-gray-900 truncate">{{ page.page_title|default(trans('admin.analytics.untitled'))|e }}</p>
                 <p class="text-xs text-gray-500 truncate mt-1">{{ page.page_url|e }}</p>
               </div>
-              <div class="flex-shrink-0 ml-4">
-                <div class="text-right">
-                  <p class="text-sm font-semibold text-gray-900">{{ page.views }}</p>
-                  <p class="text-xs text-gray-500">{{ trans('admin.analytics.views') }}</p>
-                </div>
+              <div class="flex-shrink-0 flex items-center gap-2 sm:ml-4">
+                <span class="text-sm font-semibold text-gray-900">{{ page.views }}</span>
+                <span class="text-xs text-gray-500">{{ trans('admin.analytics.views') }}</span>
               </div>
             </div>
           {% else %}
@@ -419,19 +417,17 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-6">{{ trans('admin.analytics.top_countries_today') }}</h3>
         <div class="space-y-4">
           {% for country in stats.top_countries %}
-            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-              <div class="flex items-center">
-                <span class="text-2xl mr-4">{{ country.country_code|country_flag }}</span>
-                <div>
-                  <p class="text-sm font-medium text-gray-900">{{ country.country_code|country_name }}</p>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3 border-b border-gray-100 last:border-b-0">
+              <div class="flex items-center min-w-0">
+                <span class="text-2xl mr-3 sm:mr-4 flex-shrink-0">{{ country.country_code|country_flag }}</span>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-gray-900 truncate">{{ country.country_code|country_name }}</p>
                   <p class="text-xs text-gray-500 mt-1">{{ country.country_code|upper }}</p>
                 </div>
               </div>
-              <div class="flex-shrink-0">
-                <div class="text-right">
-                  <p class="text-sm font-semibold text-gray-900">{{ country.sessions }}</p>
-                  <p class="text-xs text-gray-500">{{ trans('admin.analytics.sessions') }}</p>
-                </div>
+              <div class="flex-shrink-0 flex items-center gap-2 pl-9 sm:pl-0">
+                <span class="text-sm font-semibold text-gray-900">{{ country.sessions }}</span>
+                <span class="text-xs text-gray-500">{{ trans('admin.analytics.sessions') }}</span>
               </div>
             </div>
           {% else %}

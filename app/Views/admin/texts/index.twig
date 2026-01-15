@@ -1,20 +1,20 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.texts.title') }} — {{ site_title|default('Cimaise')|e }}{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-8">
-    <div>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div class="min-w-0">
       <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.texts.heading') }}</h1>
-      <p class="text-gray-600 mt-1">{{ trans('admin.texts.description') }}</p>
+      <p class="text-gray-600 mt-1 text-sm sm:text-base">{{ trans('admin.texts.description') }}</p>
     </div>
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2 flex-shrink-0">
       <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline" data-confirm="{{ trans('admin.texts.seed_confirm')|e('html_attr') }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button type="submit" class="btn-secondary">
-          <i class="fas fa-seedling mr-2"></i>{{ trans('admin.texts.seed_defaults') }}
+        <button type="submit" class="btn-secondary text-sm sm:text-base">
+          <i class="fas fa-seedling mr-2"></i><span class="hidden sm:inline">{{ trans('admin.texts.seed_defaults') }}</span><span class="sm:hidden">Seed</span>
         </button>
       </form>
-      <a href="{{ base_path }}/admin/texts/create" class="btn-primary">
-        <i class="fas fa-plus mr-2"></i>{{ trans('admin.texts.add_text') }}
+      <a href="{{ base_path }}/admin/texts/create" class="btn-primary text-sm sm:text-base">
+        <i class="fas fa-plus mr-2"></i><span class="hidden sm:inline">{{ trans('admin.texts.add_text') }}</span><span class="sm:hidden">{{ trans('admin.common.add') }}</span>
       </a>
     </div>
   </div>

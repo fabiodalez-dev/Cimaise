@@ -1,11 +1,11 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.media.title') }} — Cimaise{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <h1 class="text-2xl font-bold text-black">{{ trans('admin.media.title') }}</h1>
-    <form method="get" class="flex items-center gap-2">
-      <input type="text" name="q" value="{{ app.request.getQueryParams.q|default('') }}" class="form-input w-64" placeholder="{{ trans('admin.media.search') }}">
-      <button class="btn-secondary">
+    <form method="get" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+      <input type="text" name="q" value="{{ app.request.getQueryParams.q|default('') }}" class="form-input w-full sm:w-64" placeholder="{{ trans('admin.media.search') }}">
+      <button class="btn-secondary text-sm sm:text-base">
         <i class="fas fa-search mr-2"></i>{{ trans('admin.media.search_button') }}
       </button>
     </form>

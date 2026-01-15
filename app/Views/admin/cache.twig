@@ -12,18 +12,18 @@
     </div>
     {% endif %}
 
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
         <h1 class="text-2xl font-semibold text-gray-900">{{ trans('admin.cache.title') }}</h1>
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
             <form method="post" action="{{ base_path }}/admin/cache/warm" class="inline">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
-                <button type="submit" class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 transition-colors">
+                <button type="submit" class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 transition-colors text-sm sm:text-base">
                     <i class="fas fa-fire mr-2"></i>{{ trans('admin.cache.warm_all') }}
                 </button>
             </form>
             <form method="post" action="{{ base_path }}/admin/cache/clear" class="inline">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
-                <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors">
+                <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors text-sm sm:text-base">
                     <i class="fas fa-trash mr-2"></i>{{ trans('admin.cache.clear_all') }}
                 </button>
             </form>
@@ -131,40 +131,40 @@
             <h2 class="text-lg font-medium text-gray-900 mb-4">{{ trans('admin.cache.quick_actions') }}</h2>
 
             <div class="space-y-3">
-                <form method="post" action="{{ base_path }}/admin/cache/clear/home" class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <form method="post" action="{{ base_path }}/admin/cache/clear/home" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 rounded">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <div class="font-medium text-gray-900">{{ trans('admin.cache.home_cache') }}</div>
                         <div class="text-sm text-gray-600">{{ trans('admin.cache.home_cache_desc') }}</div>
                     </div>
-                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">{{ trans('admin.cache.clear') }}</button>
+                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium whitespace-nowrap self-start sm:self-center">{{ trans('admin.cache.clear') }}</button>
                 </form>
 
-                <form method="post" action="{{ base_path }}/admin/cache/clear/galleries" class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <form method="post" action="{{ base_path }}/admin/cache/clear/galleries" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 rounded">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <div class="font-medium text-gray-900">{{ trans('admin.cache.galleries_cache') }}</div>
                         <div class="text-sm text-gray-600">{{ trans('admin.cache.galleries_cache_desc') }}</div>
                     </div>
-                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">{{ trans('admin.cache.clear') }}</button>
+                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium whitespace-nowrap self-start sm:self-center">{{ trans('admin.cache.clear') }}</button>
                 </form>
 
-                <form method="post" action="{{ base_path }}/admin/cache/clear/albums" class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <form method="post" action="{{ base_path }}/admin/cache/clear/albums" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 rounded">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <div class="font-medium text-gray-900">{{ trans('admin.cache.albums_cache') }}</div>
                         <div class="text-sm text-gray-600">{{ trans('admin.cache.albums_cache_desc') }}</div>
                     </div>
-                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">{{ trans('admin.cache.clear') }}</button>
+                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium whitespace-nowrap self-start sm:self-center">{{ trans('admin.cache.clear') }}</button>
                 </form>
 
-                <form method="post" action="{{ base_path }}/admin/cache/clear/query" class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <form method="post" action="{{ base_path }}/admin/cache/clear/query" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 rounded">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <div class="font-medium text-gray-900">{{ trans('admin.cache.query_cache') }}</div>
                         <div class="text-sm text-gray-600">{{ trans('admin.cache.query_cache_desc') }}</div>
                     </div>
-                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">{{ trans('admin.cache.clear') }}</button>
+                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium whitespace-nowrap self-start sm:self-center">{{ trans('admin.cache.clear') }}</button>
                 </form>
             </div>
         </div>
@@ -173,47 +173,48 @@
     {# Cache Entries List #}
     {% if page_stats.items|length > 0 %}
     <div class="mt-8 bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
             <h2 class="text-lg font-medium text-gray-900">{{ trans('admin.cache.cached_pages') }}</h2>
         </div>
-        <div class="overflow-x-auto">
+        {# Desktop table view #}
+        <div class="hidden sm:block overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.cache.page') }}</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.cache.size') }}</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.cache.generated') }}</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.cache.expires') }}</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.cache.status') }}</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.cache.actions') }}</th>
+                        <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.cache.page') }}</th>
+                        <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.cache.size') }}</th>
+                        <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">{{ trans('admin.cache.generated') }}</th>
+                        <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">{{ trans('admin.cache.expires') }}</th>
+                        <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.cache.status') }}</th>
+                        <th class="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{{ trans('admin.cache.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     {% for item in page_stats.items %}
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 sm:px-6 py-4">
                             <div class="text-sm font-medium text-gray-900">{{ item.type }}</div>
                             {% if item.slug is defined %}
-                            <div class="text-xs text-gray-500">{{ item.slug }}</div>
+                            <div class="text-xs text-gray-500 truncate max-w-[150px]">{{ item.slug }}</div>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ (item.size / 1024)|round(1) }} KB
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
                             {{ item.generated_at|date('Y-m-d H:i') }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
                             {{ item.expires_at|date('Y-m-d H:i') }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
                             {% if item.expired %}
                             <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">{{ trans('admin.cache.expired') }}</span>
                             {% else %}
                             <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">{{ trans('admin.cache.valid') }}</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                        <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
                             <form method="post" action="{{ base_path }}/admin/cache/clear/{{ item.type }}" class="inline">
                                 <input type="hidden" name="csrf" value="{{ csrf }}">
                                 <button type="submit" class="text-red-600 hover:text-red-800 text-sm">{{ trans('admin.cache.clear') }}</button>
@@ -223,6 +224,36 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+        {# Mobile card view #}
+        <div class="sm:hidden divide-y divide-gray-200">
+            {% for item in page_stats.items %}
+            <div class="p-4">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-medium text-gray-900">{{ item.type }}</div>
+                        {% if item.slug is defined %}
+                        <div class="text-xs text-gray-500 truncate">{{ item.slug }}</div>
+                        {% endif %}
+                    </div>
+                    {% if item.expired %}
+                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 ml-2">{{ trans('admin.cache.expired') }}</span>
+                    {% else %}
+                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 ml-2">{{ trans('admin.cache.valid') }}</span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center justify-between text-xs text-gray-500">
+                    <span>{{ (item.size / 1024)|round(1) }} KB</span>
+                    <span>{{ item.generated_at|date('d/m H:i') }}</span>
+                </div>
+                <div class="mt-2">
+                    <form method="post" action="{{ base_path }}/admin/cache/clear/{{ item.type }}" class="inline">
+                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                        <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">{{ trans('admin.cache.clear') }}</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
     {% endif %}

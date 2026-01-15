@@ -1,12 +1,12 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.tags.title') }} — Cimaise{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-8">
-    <div>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div class="min-w-0">
       <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.tags.title') }}</h1>
-      <p class="text-gray-600 mt-1">{{ trans('admin.tags.page_description') }}</p>
+      <p class="text-gray-600 mt-1 text-sm sm:text-base">{{ trans('admin.tags.page_description') }}</p>
     </div>
-    <a href="{{ base_path }}/admin/tags/create" class="btn-primary">
+    <a href="{{ base_path }}/admin/tags/create" class="btn-primary flex-shrink-0 text-sm sm:text-base">
       <i class="fas fa-plus mr-2"></i>{{ trans('admin.tags.new') }}
     </a>
   </div>

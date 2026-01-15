@@ -3,41 +3,42 @@
 {% block title %}{{ trans('admin.typography.title') }} — Cimaise{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-8">
-    <div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div class="min-w-0">
         <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.typography.title') }}</h1>
-        <p class="text-gray-600 mt-1">{{ trans('admin.typography.description') }}</p>
+        <p class="text-gray-600 mt-1 text-sm sm:text-base">{{ trans('admin.typography.description') }}</p>
     </div>
-    <div class="flex items-center gap-3">
-        <button type="submit" form="typography-form" class="btn-primary">
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
+        <button type="submit" form="typography-form" class="btn-primary text-sm sm:text-base">
             <i class="fas fa-save mr-2"></i>
             {{ trans('admin.typography.save') }}
         </button>
-        <a href="{{ base_path }}/admin" class="btn-secondary">
+        <a href="{{ base_path }}/admin" class="btn-secondary text-sm sm:text-base">
             <i class="fas fa-arrow-left mr-2"></i>
-            {{ trans('admin.common.dashboard') }}
+            <span class="hidden sm:inline">{{ trans('admin.common.dashboard') }}</span>
+            <span class="sm:hidden">{{ trans('admin.common.back') }}</span>
         </a>
     </div>
 </div>
 
 <!-- Sticky Footer -->
 <div class="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-gray-200 shadow-lg admin-sticky-actions">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <button type="submit" form="typography-form" class="btn-primary">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <button type="submit" form="typography-form" class="btn-primary text-sm sm:text-base">
                     <i class="fas fa-save mr-2"></i>
                     {{ trans('admin.typography.save') }}
                 </button>
                 <form action="{{ base_path }}/admin/typography/reset" method="post" class="inline" onsubmit="return confirm('{{ trans('admin.typography.reset_confirm') }}');">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <button type="submit" class="btn-secondary">
+                    <button type="submit" class="btn-secondary text-sm sm:text-base">
                         <i class="fas fa-undo mr-2"></i>
                         {{ trans('admin.typography.reset') }}
                     </button>
                 </form>
             </div>
-            <div class="text-sm text-gray-500">
+            <div class="text-xs sm:text-sm text-gray-500 text-center sm:text-right">
                 <i class="fas fa-font mr-1"></i>
                 {{ trans('admin.typography.gdpr_note') }}
             </div>

@@ -1,22 +1,22 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ type.label }} — {{ trans('admin.custom_fields.values') }} — Cimaise{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-8">
-    <div>
-      <div class="flex items-center text-sm text-gray-500 mb-2">
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+    <div class="min-w-0">
+      <div class="flex flex-wrap items-center text-sm text-gray-500 mb-2">
         <a href="{{ base_path }}/admin/custom-field-types" class="hover:text-gray-700">{{ trans('admin.custom_fields.title') }}</a>
         <i class="fas fa-chevron-right mx-2 text-xs"></i>
         <span>{{ type.label }}</span>
       </div>
-      <h1 class="text-2xl font-bold text-gray-900">
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-900">
         <i class="fas {{ type.icon }} mr-2 text-gray-600"></i>
         {{ trans('admin.custom_fields.values_for') }} "{{ type.label }}"
       </h1>
       {% if type.description %}
-        <p class="text-gray-600 mt-1">{{ type.description }}</p>
+        <p class="text-gray-600 mt-1 text-sm sm:text-base">{{ type.description }}</p>
       {% endif %}
     </div>
-    <a href="{{ base_path }}/admin/custom-field-types/{{ type.id }}/edit" class="btn-secondary">
+    <a href="{{ base_path }}/admin/custom-field-types/{{ type.id }}/edit" class="btn-secondary flex-shrink-0 text-sm sm:text-base">
       <i class="fas fa-edit mr-2"></i>{{ trans('admin.custom_fields.edit_type') }}
     </a>
   </div>

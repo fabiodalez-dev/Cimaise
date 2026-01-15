@@ -1,12 +1,12 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.lenses.title') }} — Cimaise{% endblock %}
 {% block content %}
-  <div class="flex items-center justify-between mb-8">
-    <div>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div class="min-w-0">
       <h1 class="text-2xl font-bold text-gray-900">{{ trans('admin.lenses.title') }}</h1>
-      <p class="text-gray-600 mt-1">{{ trans('admin.lenses.description') }}</p>
+      <p class="text-gray-600 mt-1 text-sm sm:text-base">{{ trans('admin.lenses.description') }}</p>
     </div>
-    <a href="{{ base_path }}/admin/lenses/create" class="btn-primary">
+    <a href="{{ base_path }}/admin/lenses/create" class="btn-primary flex-shrink-0 text-sm sm:text-base">
       <i class="fas fa-plus mr-2"></i>{{ trans('admin.lenses.new') }}
     </a>
   </div>
