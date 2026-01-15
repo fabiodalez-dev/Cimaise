@@ -199,7 +199,7 @@ class CacheMiddleware implements MiddlewareInterface
         $path = preg_replace('#^' . preg_quote($basePath, '#') . '#', '', $path);
 
         // Get configurable galleries slug (default: /galleries)
-        $galleriesPath = '/' . ltrim($this->settings->get('galleries.slug', 'galleries'), '/');
+        $galleriesPath = '/' . trim($this->settings->get('galleries.slug', 'galleries'), '/');
 
         $cacheType = null;
         if ($path === '/' || $path === '') {
