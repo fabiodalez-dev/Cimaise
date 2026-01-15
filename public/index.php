@@ -312,68 +312,41 @@ $autoDetectedUrl = $protocol . '://' . $host . $autoBasePath;
 $twig->getEnvironment()->addGlobal('app_url', $_ENV['APP_URL'] ?? $autoDetectedUrl);
 $twig->getEnvironment()->addGlobal('base_path', $basePath);
 
-// Expose about URL from settings (only if not installer route and database exists)
+// Load Twig globals from cache (APCu/file) - reduces ~50 settings queries to ~1
+// Cache is invalidated when settings change via TwigGlobalsCache::invalidate()
 if (!$isInstallerRoute && $container['db'] !== null) {
     try {
-        $settingsSvc = new \App\Services\SettingsService($container['db']);
-        $aboutSlug = (string)($settingsSvc->get('about.slug', 'about') ?? 'about');
-        $aboutSlug = $aboutSlug !== '' ? $aboutSlug : 'about';
-        $twig->getEnvironment()->addGlobal('about_url', $basePath . '/' . $aboutSlug);
-        // Expose galleries URL
-        $galleriesSlug = (string)($settingsSvc->get('galleries.slug', 'galleries') ?? 'galleries');
-        $galleriesSlug = $galleriesSlug !== '' ? $galleriesSlug : 'galleries';
-        $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/' . $galleriesSlug);
-        // Expose license URL and visibility for footer
-        $licenseSlug = (string)($settingsSvc->get('license.slug', 'license') ?? 'license');
-        $licenseSlug = $licenseSlug !== '' ? $licenseSlug : 'license';
-        $twig->getEnvironment()->addGlobal('license_url', $basePath . '/' . $licenseSlug);
-        $twig->getEnvironment()->addGlobal('license_show_in_footer', (bool)$settingsSvc->get('license.show_in_footer', false));
-        $twig->getEnvironment()->addGlobal('license_title_footer', (string)($settingsSvc->get('license.title', 'License') ?? 'License'));
-        // Expose privacy policy URL and visibility for footer
-        $privacySlug = (string)($settingsSvc->get('privacy.slug', 'privacy-policy') ?? 'privacy-policy');
-        $privacySlug = $privacySlug !== '' ? $privacySlug : 'privacy-policy';
-        $twig->getEnvironment()->addGlobal('privacy_url', $basePath . '/' . $privacySlug);
-        $twig->getEnvironment()->addGlobal('privacy_show_in_footer', (bool)$settingsSvc->get('privacy.show_in_footer', false));
-        $twig->getEnvironment()->addGlobal('privacy_title_footer', (string)($settingsSvc->get('privacy.title', 'Privacy Policy') ?? 'Privacy Policy'));
-        // Expose cookie policy URL and visibility for footer
-        $cookieSlug = (string)($settingsSvc->get('cookie.slug', 'cookie-policy') ?? 'cookie-policy');
-        $cookieSlug = $cookieSlug !== '' ? $cookieSlug : 'cookie-policy';
-        $twig->getEnvironment()->addGlobal('cookie_url', $basePath . '/' . $cookieSlug);
-        $twig->getEnvironment()->addGlobal('cookie_show_in_footer', (bool)$settingsSvc->get('cookie.show_in_footer', false));
-        $twig->getEnvironment()->addGlobal('cookie_title_footer', (string)($settingsSvc->get('cookie.title', 'Cookie Policy') ?? 'Cookie Policy'));
-        // Expose site title and logo globally for layouts
-        $siteTitle = (string)($settingsSvc->get('site.title', 'Cimaise') ?? 'Cimaise');
-        $siteLogo = $settingsSvc->get('site.logo', null);
-        $logoType = (string)($settingsSvc->get('site.logo_type', 'text') ?? 'text');
-        $twig->getEnvironment()->addGlobal('site_title', $siteTitle);
-        $twig->getEnvironment()->addGlobal('site_logo', $siteLogo);
-        $twig->getEnvironment()->addGlobal('logo_type', $logoType);
-        $siteCopyright = (string)($settingsSvc->get('site.copyright', '') ?? '');
-        $twig->getEnvironment()->addGlobal('site_copyright', $siteCopyright);
-        // Initialize date format from settings
-        $dateFormat = $settingsSvc->get('date.format', 'Y-m-d');
+        // Load cached globals (most settings come from here)
+        $cachedGlobals = \App\Services\TwigGlobalsCache::getGlobals(
+            $container['db'],
+            $basePath,
+            $isAdminRoute
+        );
+
+        // Add all cached globals to Twig
+        foreach ($cachedGlobals as $key => $value) {
+            $twig->getEnvironment()->addGlobal($key, $value);
+        }
+
+        // Initialize date format from cached globals
+        $dateFormat = $cachedGlobals['date_format'] ?? 'Y-m-d';
         \App\Support\DateHelper::setDisplayFormat($dateFormat);
-        $twig->getEnvironment()->addGlobal('date_format', $dateFormat);
-        // Initialize language from settings
-        $siteLanguage = (string)($settingsSvc->get('site.language', 'en') ?? 'en');
-        $adminLanguage = (string)($settingsSvc->get('admin.language', 'en') ?? 'en');
+
+        // Initialize translation service with cached language settings
+        $siteLanguage = $cachedGlobals['site_language'] ?? 'en';
+        $adminLanguage = $cachedGlobals['admin_language'] ?? 'en';
         if ($translationService !== null) {
             $translationService->setLanguage($siteLanguage);
             $translationService->setAdminLanguage($adminLanguage);
-            // Set scope based on current route
             if ($isAdminRoute) {
                 $translationService->setScope('admin');
             }
         }
-        $twig->getEnvironment()->addGlobal('site_language', $siteLanguage);
-        $twig->getEnvironment()->addGlobal('admin_language', $adminLanguage);
-        $twig->getEnvironment()->addGlobal('admin_debug', (bool)$settingsSvc->get('admin.debug_logs', false));
+
+        // App debug flag (from environment, not cached)
         $twig->getEnvironment()->addGlobal('app_debug', (bool)($_ENV['APP_DEBUG'] ?? false));
-        // Dark mode setting
-        $twig->getEnvironment()->addGlobal('dark_mode', (bool)$settingsSvc->get('frontend.dark_mode', false));
-        // Custom CSS (frontend only, already sanitized in controller)
-        $twig->getEnvironment()->addGlobal('custom_css', (string)$settingsSvc->get('frontend.custom_css', ''));
-        // Expose translation maps for JS bundles (admin/frontend)
+
+        // Translation maps for JS bundles (request-specific, not cached)
         if ($translationService !== null) {
             if ($isAdminRoute) {
                 $twig->getEnvironment()->addGlobal('admin_translations', $translationService->all());
@@ -381,29 +354,21 @@ if (!$isInstallerRoute && $container['db'] !== null) {
                 $twig->getEnvironment()->addGlobal('frontend_translations', $translationService->all());
             }
         }
-        // Cookie banner settings
-        $twig->getEnvironment()->addGlobal('cookie_banner_enabled', $settingsSvc->get('privacy.cookie_banner_enabled', true));
-        $twig->getEnvironment()->addGlobal('custom_js_essential', $settingsSvc->get('privacy.custom_js_essential', ''));
-        $twig->getEnvironment()->addGlobal('custom_js_analytics', $settingsSvc->get('privacy.custom_js_analytics', ''));
-        $twig->getEnvironment()->addGlobal('custom_js_marketing', $settingsSvc->get('privacy.custom_js_marketing', ''));
-        $twig->getEnvironment()->addGlobal('show_analytics', $settingsSvc->get('cookie_banner.show_analytics', false));
-        $twig->getEnvironment()->addGlobal('show_marketing', $settingsSvc->get('cookie_banner.show_marketing', false));
-        // NSFW global warning - only show if enabled AND there are published NSFW albums
+
+        // NSFW global warning check (requires db query, not cached)
+        $nsfwGlobalWarning = false;
+        $settingsSvc = new \App\Services\SettingsService($container['db']);
         $nsfwGlobalEnabled = (bool)$settingsSvc->get('privacy.nsfw_global_warning', false);
-        $hasNsfwAlbums = false;
         if ($nsfwGlobalEnabled) {
             $nsfwCheck = $container['db']->pdo()->query('SELECT 1 FROM albums WHERE is_published = 1 AND is_nsfw = 1 LIMIT 1');
-            $hasNsfwAlbums = $nsfwCheck && $nsfwCheck->fetchColumn() !== false;
+            $nsfwGlobalWarning = $nsfwCheck && $nsfwCheck->fetchColumn() !== false;
         }
-        $twig->getEnvironment()->addGlobal('nsfw_global_warning', $nsfwGlobalEnabled && $hasNsfwAlbums);
-        // Lightbox settings
-        $twig->getEnvironment()->addGlobal('lightbox_show_exif', $settingsSvc->get('lightbox.show_exif', true));
-        $twig->getEnvironment()->addGlobal('disable_right_click', (bool)$settingsSvc->get('frontend.disable_right_click', true));
-        // Social profiles for header (frontend only)
+        $twig->getEnvironment()->addGlobal('nsfw_global_warning', $nsfwGlobalWarning);
+
+        // Social profiles for header (frontend only, requires iteration)
         if (!$isAdminRoute) {
             $rawProfiles = $settingsSvc->get('social.profiles', []);
             $socialProfiles = is_array($rawProfiles) ? $rawProfiles : [];
-            // Filter and sanitize profiles for security
             $safeProfiles = [];
             $profileNetworks = [
                 'instagram' => ['name' => 'Instagram', 'icon' => 'fab fa-instagram'],
@@ -428,7 +393,6 @@ if (!$isInstallerRoute && $container['db'] !== null) {
             foreach ($socialProfiles as $profile) {
                 if (!isset($profile['network'], $profile['url'])) continue;
                 $url = trim($profile['url']);
-                // Only allow http/https URLs
                 if (!preg_match('#^https?://#i', $url)) continue;
                 $network = $profile['network'];
                 if (!isset($profileNetworks[$network])) continue;
@@ -441,13 +405,11 @@ if (!$isInstallerRoute && $container['db'] !== null) {
             }
             $twig->getEnvironment()->addGlobal('social_profiles', $safeProfiles);
         }
-        // Navigation tags for header (frontend only, with session cache)
-        // Cache invalidation: see TagsController::store/update/delete
-        $showTagsInHeader = (bool)$settingsSvc->get('navigation.show_tags_in_header', false);
-        $twig->getEnvironment()->addGlobal('show_tags_in_header', $showTagsInHeader);
+
+        // Navigation tags (has its own session-based caching)
+        $showTagsInHeader = $cachedGlobals['show_tags_in_header'] ?? false;
         if (!$isAdminRoute && $showTagsInHeader) {
             $navTags = [];
-            // Check if cached in session and not expired (5 minutes TTL)
             if (isset($_SESSION['nav_tags_cache']) &&
                 isset($_SESSION['nav_tags_cache_time']) &&
                 (time() - $_SESSION['nav_tags_cache_time']) < 300) {
@@ -464,7 +426,6 @@ if (!$isInstallerRoute && $container['db'] !== null) {
                         LIMIT 20
                     ');
                     $navTags = $tagsQuery->fetchAll(\PDO::FETCH_ASSOC);
-                    // Cache results in session
                     $_SESSION['nav_tags_cache'] = $navTags;
                     $_SESSION['nav_tags_cache_time'] = time();
                 } catch (\Throwable) {
@@ -475,103 +436,39 @@ if (!$isInstallerRoute && $container['db'] !== null) {
         } else {
             $twig->getEnvironment()->addGlobal('nav_tags', []);
         }
-        // SEO settings for frontend
-        if (!$isAdminRoute) {
-            $twig->getEnvironment()->addGlobal('og_site_name', $settingsSvc->get('seo.og_site_name', $siteTitle));
-            $twig->getEnvironment()->addGlobal('og_type', $settingsSvc->get('seo.og_type', 'website'));
-            $twig->getEnvironment()->addGlobal('og_locale', $settingsSvc->get('seo.og_locale', 'en_US'));
-            $twig->getEnvironment()->addGlobal('twitter_card', $settingsSvc->get('seo.twitter_card', 'summary_large_image'));
-            $twig->getEnvironment()->addGlobal('twitter_site', $settingsSvc->get('seo.twitter_site', ''));
-            $twig->getEnvironment()->addGlobal('twitter_creator', $settingsSvc->get('seo.twitter_creator', ''));
-            $twig->getEnvironment()->addGlobal('robots', $settingsSvc->get('seo.robots_default', 'index,follow'));
-            // Schema/structured data settings
-            $twig->getEnvironment()->addGlobal('schema', [
-                'enabled' => (bool)$settingsSvc->get('seo.schema_enabled', true),
-                'author_name' => $settingsSvc->get('seo.author_name', ''),
-                'author_url' => $settingsSvc->get('seo.author_url', ''),
-                'organization_name' => $settingsSvc->get('seo.organization_name', ''),
-                'organization_url' => $settingsSvc->get('seo.organization_url', ''),
-                'image_copyright_notice' => $settingsSvc->get('seo.image_copyright_notice', ''),
-                'image_license_url' => $settingsSvc->get('seo.image_license_url', ''),
-            ]);
-            $twig->getEnvironment()->addGlobal('analytics_gtag', $settingsSvc->get('seo.analytics_gtag', ''));
-            $twig->getEnvironment()->addGlobal('analytics_gtm', $settingsSvc->get('seo.analytics_gtm', ''));
 
-            // Font preloading for performance (prevent FOUT)
+        // Font preloading (frontend only, requires service)
+        if (!$isAdminRoute) {
             $typographyService = new \App\Services\TypographyService($settingsSvc);
             $criticalFonts = $typographyService->getCriticalFontsForPreload($basePath);
             $twig->getEnvironment()->addGlobal('critical_fonts_preload', $criticalFonts);
         }
     } catch (\Throwable) {
-        $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
-        $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/galleries');
-        $twig->getEnvironment()->addGlobal('site_title', 'Cimaise');
-        $twig->getEnvironment()->addGlobal('site_logo', null);
-        $twig->getEnvironment()->addGlobal('logo_type', 'text');
-        $twig->getEnvironment()->addGlobal('site_copyright', '');
+        // Fallback: use TwigGlobalsCache defaults on error
+        $defaults = \App\Services\TwigGlobalsCache::getDefaults($basePath);
+        foreach ($defaults as $key => $value) {
+            $twig->getEnvironment()->addGlobal($key, $value);
+        }
         \App\Support\DateHelper::setDisplayFormat('Y-m-d');
-        $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
-        $twig->getEnvironment()->addGlobal('site_language', 'en');
-        $twig->getEnvironment()->addGlobal('admin_language', 'en');
-        $twig->getEnvironment()->addGlobal('admin_debug', false);
         $twig->getEnvironment()->addGlobal('app_debug', (bool)($_ENV['APP_DEBUG'] ?? false));
-        // Cookie banner defaults on error
-        $twig->getEnvironment()->addGlobal('cookie_banner_enabled', true);
-        $twig->getEnvironment()->addGlobal('custom_js_essential', '');
-        $twig->getEnvironment()->addGlobal('custom_js_analytics', '');
-        $twig->getEnvironment()->addGlobal('custom_js_marketing', '');
-        $twig->getEnvironment()->addGlobal('show_analytics', false);
-        $twig->getEnvironment()->addGlobal('show_marketing', false);
-        $twig->getEnvironment()->addGlobal('lightbox_show_exif', true);
-        $twig->getEnvironment()->addGlobal('disable_right_click', true);
-        // Social profiles default on error
+        $twig->getEnvironment()->addGlobal('nsfw_global_warning', false);
         if (!$isAdminRoute) {
             $twig->getEnvironment()->addGlobal('social_profiles', []);
         }
-        // Navigation tags defaults on error
-        $twig->getEnvironment()->addGlobal('show_tags_in_header', false);
         $twig->getEnvironment()->addGlobal('nav_tags', []);
-        // SEO defaults on error
-        if (!$isAdminRoute) {
-            $twig->getEnvironment()->addGlobal('og_site_name', 'Cimaise');
-            $twig->getEnvironment()->addGlobal('og_type', 'website');
-            $twig->getEnvironment()->addGlobal('og_locale', 'en_US');
-            $twig->getEnvironment()->addGlobal('twitter_card', 'summary_large_image');
-            $twig->getEnvironment()->addGlobal('twitter_site', '');
-            $twig->getEnvironment()->addGlobal('twitter_creator', '');
-            $twig->getEnvironment()->addGlobal('robots', 'index,follow');
-            $twig->getEnvironment()->addGlobal('schema', ['enabled' => true, 'author_name' => '', 'author_url' => '', 'organization_name' => '', 'organization_url' => '', 'image_copyright_notice' => '', 'image_license_url' => '']);
-            $twig->getEnvironment()->addGlobal('analytics_gtag', '');
-            $twig->getEnvironment()->addGlobal('analytics_gtm', '');
-        }
-        // Font preload fallback
         $twig->getEnvironment()->addGlobal('critical_fonts_preload', []);
     }
 } else {
-    $twig->getEnvironment()->addGlobal('about_url', $basePath . '/about');
-    $twig->getEnvironment()->addGlobal('galleries_url', $basePath . '/galleries');
-    $twig->getEnvironment()->addGlobal('site_title', 'Cimaise');
-    $twig->getEnvironment()->addGlobal('site_logo', null);
-    $twig->getEnvironment()->addGlobal('logo_type', 'text');
-    $twig->getEnvironment()->addGlobal('site_copyright', '');
+    // Installer route: use defaults
+    $defaults = \App\Services\TwigGlobalsCache::getDefaults($basePath);
+    foreach ($defaults as $key => $value) {
+        $twig->getEnvironment()->addGlobal($key, $value);
+    }
     \App\Support\DateHelper::setDisplayFormat('Y-m-d');
-    $twig->getEnvironment()->addGlobal('date_format', 'Y-m-d');
-    $twig->getEnvironment()->addGlobal('site_language', 'en');
-    $twig->getEnvironment()->addGlobal('admin_language', 'en');
-    $twig->getEnvironment()->addGlobal('admin_debug', false);
-    // Cookie banner defaults for installer
+    $twig->getEnvironment()->addGlobal('app_debug', (bool)($_ENV['APP_DEBUG'] ?? false));
     $twig->getEnvironment()->addGlobal('cookie_banner_enabled', false);
-    $twig->getEnvironment()->addGlobal('custom_js_essential', '');
-    $twig->getEnvironment()->addGlobal('custom_js_analytics', '');
-    $twig->getEnvironment()->addGlobal('custom_js_marketing', '');
-    $twig->getEnvironment()->addGlobal('show_analytics', false);
-    $twig->getEnvironment()->addGlobal('show_marketing', false);
-    $twig->getEnvironment()->addGlobal('lightbox_show_exif', true);
-    $twig->getEnvironment()->addGlobal('disable_right_click', true);
-    // Navigation tags defaults for installer
-    $twig->getEnvironment()->addGlobal('show_tags_in_header', false);
+    $twig->getEnvironment()->addGlobal('nsfw_global_warning', false);
     $twig->getEnvironment()->addGlobal('nav_tags', []);
-    // Font preload fallback for installer/error states
     $twig->getEnvironment()->addGlobal('critical_fonts_preload', []);
 }
 

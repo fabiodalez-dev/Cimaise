@@ -5,7 +5,8 @@
 {% import 'frontend/_seo_macros.twig' as Seo %}
 {% import 'frontend/_caption.twig' as Caption %}
 
-{% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
+{# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+{% set lightbox_href = image.lightbox_url|default(image.url|default('')) %}
 {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
 {% set item_layout = layout|default('grid') %}
 {% set item_aspect = aspect_ratio|default('1:1') %}
@@ -66,7 +67,8 @@
       {% set variants_avif = [] %}
       {% set variants_webp = [] %}
       {% set variants_jpg = [] %}
-      {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+      {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+      {% set best_jpg_path = image.fallback_src|default(image.url|default('')) %}
       {% if best_jpg_path starts with '/' %}
         {% set best_jpg_path = base_path ~ best_jpg_path %}
       {% endif %}

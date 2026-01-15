@@ -147,8 +147,9 @@ body {
       {% set album_url = '/album/' ~ image.album_slug %}
       <a href="{% if album_url starts with '/' %}{{ base_path }}{{ album_url }}{% else %}{{ album_url }}{% endif %}" class="card-link">
         <div class="card-image-wrapper">
-          {% set raw_path = image.fallback_src|default(image.original_path) %}
-          {% set img_src = raw_path starts with '/' ? base_path ~ raw_path : raw_path %}
+          {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+          {% set raw_path = image.fallback_src|default('') %}
+          {% set img_src = raw_path != '' and raw_path starts with '/' ? base_path ~ raw_path : raw_path %}
           {% set variants_avif = [] %}
           {% set variants_webp = [] %}
           {% set variants_jpg = [] %}

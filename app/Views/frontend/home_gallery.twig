@@ -236,10 +236,13 @@ html.dark .gallery-wall-item::after {
         {% set isHorizontal = (image.width|default(1600) / image.height|default(1000)) > 1.2 %}
         <div class="gallery-wall-item {{ isHorizontal ? 'horizontal' : 'vertical' }}">
           <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
-            {% set imgSrc = image.fallback_src|default(image.original_path) %}
-            {% set imgUrl = imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
+            {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+            {% set imgSrc = image.fallback_src|default('') %}
+            {% set imgUrl = imgSrc != '' and imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
             {# Images are lazy-loaded; priority handled by browser/IO #}
+            {% if imgUrl != '' %}
             <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy" decoding="async" data-fallback="hide">
+            {% endif %}
             <div class="gallery-wall-overlay">
               <h3>{{ image.album_title|e }}</h3>
               <p>{{ image.category_name|e }}</p>
@@ -258,10 +261,13 @@ html.dark .gallery-wall-item::after {
       {% set isHorizontal = (image.width|default(1600) / image.height|default(1000)) > 1.2 %}
       <div class="gallery-mobile-item {{ isHorizontal and loop.index % 5 == 1 ? 'wide' : '' }}">
         <a href="{{ base_path }}/album/{{ image.album_slug|e('html_attr') }}">
-          {% set imgSrc = image.fallback_src|default(image.original_path) %}
-          {% set imgUrl = imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
+          {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+          {% set imgSrc = image.fallback_src|default('') %}
+          {% set imgUrl = imgSrc != '' and imgSrc starts with '/' ? base_path ~ imgSrc : imgSrc %}
           {# Images are lazy-loaded; priority handled by browser/IO #}
+          {% if imgUrl != '' %}
           <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" loading="lazy" decoding="async" data-fallback="hide">
+          {% endif %}
         </a>
       </div>
       {% endfor %}

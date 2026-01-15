@@ -5,37 +5,72 @@ namespace App\Services;
 
 use App\Support\Database;
 use App\Support\Logger;
-use PDO;
+use App\Support\QueryCache;
 
+/**
+ * Settings management service with multi-level caching.
+ *
+ * Caching strategy:
+ * 1. Static in-memory cache (request-scoped) - avoids repeated array lookups
+ * 2. QueryCache (APCu/file) - persists across requests for 5 minutes
+ *
+ * Performance: Single DB query cached in APCu instead of query per request
+ */
 class SettingsService
 {
+    private const CACHE_KEY = 'all_settings';
+    private const CACHE_TTL = 300; // 5 minutes
+
+    /** @var array|null In-memory cache for current request */
     private static ?array $cache = null;
 
     public function __construct(private Database $db)
     {
     }
 
+    /**
+     * Clear all settings caches (in-memory + APCu).
+     */
     public function clearCache(): void
     {
         self::$cache = null;
+        QueryCache::getInstance()->forget(self::CACHE_KEY);
     }
 
+    /**
+     * Load settings into cache using QueryCache for cross-request persistence.
+     */
     private function loadCache(): void
     {
         if (self::$cache !== null) {
             return;
         }
 
+        // Try APCu/file cache first (cross-request)
+        self::$cache = QueryCache::getInstance()->remember(
+            self::CACHE_KEY,
+            function () {
+                return $this->loadFromDatabase();
+            },
+            self::CACHE_TTL
+        );
+    }
+
+    /**
+     * Load settings directly from database.
+     */
+    private function loadFromDatabase(): array
+    {
         try {
             $stmt = $this->db->query('SELECT `key`, `value` FROM settings');
             $dbSettings = [];
             foreach ($stmt->fetchAll() as $row) {
                 $dbSettings[$row['key']] = $this->decodeValue($row['value'] ?? null);
             }
-            self::$cache = array_merge($this->defaults(), $dbSettings);
+            return array_merge($this->defaults(), $dbSettings);
         } catch (\Throwable $e) {
-            Logger::warning('SettingsService: Failed to load settings cache', ['error' => $e->getMessage()], 'settings');
-            self::$cache = $this->defaults();
+            Logger::warning('SettingsService: Failed to load settings from database', ['error' => $e->getMessage()], 'settings');
+            return $this->defaults();
         }
     }
 
@@ -63,15 +98,18 @@ class SettingsService
 
     public function set(string $key, mixed $value): void
     {
-        // Invalidate cache before writing to ensure fresh data on next get()
-        self::$cache = null;
+        // Invalidate all caches before writing
+        $this->clearCache();
 
         $replace = $this->db->replaceKeyword();
         $now = $this->db->nowExpression();
         $stmt = $this->db->pdo()->prepare("{$replace} INTO settings(`key`,`value`,`type`,`updated_at`) VALUES(:k, :v, :t, {$now})");
         $encodedValue = json_encode($value, JSON_UNESCAPED_SLASHES);
-        $type = is_null($value) ? 'null' : (is_bool($value) ? 'boolean' : (is_numeric($value) ? 'number' : 'string'));
+        $type = $value === null ? 'null' : (\is_bool($value) ? 'boolean' : (\is_numeric($value) ? 'number' : 'string'));
         $stmt->execute([':k' => $key, ':v' => $encodedValue, ':t' => $type]);
+
+        // Invalidate TwigGlobalsCache since settings affect Twig globals
+        TwigGlobalsCache::invalidate();
 
         // Reload cache with fresh data from database
         $this->loadCache();

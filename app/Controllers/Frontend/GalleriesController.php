@@ -611,10 +611,10 @@ class GalleriesController extends BaseController
             $coverPlaceholders = implode(',', array_fill(0, count($coverImageIds), '?'));
             $stmt = $pdo->prepare("
                 SELECT i.*,
-                       COALESCE(iv.path, i.original_path) AS preview_path,
+                       iv.path AS preview_path,
                        blur.path AS blur_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
                 LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
                 WHERE i.id IN ($coverPlaceholders)
             ");
@@ -641,10 +641,10 @@ class GalleriesController extends BaseController
             // Get first image per album using window function or subquery
             $stmt = $pdo->prepare("
                 SELECT i.*,
-                       COALESCE(iv.path, i.original_path) AS preview_path,
+                       iv.path AS preview_path,
                        blur.path AS blur_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
                 LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
                 WHERE i.album_id IN ($fallbackPlaceholders)
                   AND i.id = (
@@ -719,10 +719,10 @@ class GalleriesController extends BaseController
         if (!empty($album['cover_image_id'])) {
             $stmt = $pdo->prepare("
                 SELECT i.*,
-                       COALESCE(iv.path, i.original_path) AS preview_path,
+                       iv.path AS preview_path,
                        blur.path AS blur_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
                 LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
                 WHERE i.id = :id
             ");
@@ -740,10 +740,10 @@ class GalleriesController extends BaseController
         if (empty($album['cover_image'])) {
             $stmt = $pdo->prepare("
                 SELECT i.*,
-                       COALESCE(iv.path, i.original_path) AS preview_path,
+                       iv.path AS preview_path,
                        blur.path AS blur_path
                 FROM images i
-                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm'
+                LEFT JOIN image_variants iv ON iv.image_id = i.id AND iv.variant = 'sm' AND iv.format = 'jpg'
                 LEFT JOIN image_variants blur ON blur.image_id = i.id AND blur.variant = 'blur'
                 WHERE i.album_id = :album_id
                 ORDER BY i.sort_order ASC, i.id ASC

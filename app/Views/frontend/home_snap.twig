@@ -442,9 +442,9 @@ html.dark .snap-indicator:hover {
           {% endif %}
           {% if coverRaw == '' and album.cover_image and album.cover_image.preview_path %}
             {% set coverRaw = album.cover_image.preview_path %}
-          {% elseif coverRaw == '' and album.cover %}
-            {% set coverRaw = album.cover.original_path %}
           {% endif %}
+          {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+          {# Use placeholder if no public variant is available #}
           {% if coverRaw == '' %}
             {% set coverRaw = '/assets/img/placeholder.jpg' %}
           {% endif %}
@@ -477,9 +477,9 @@ html.dark .snap-indicator:hover {
         {% endif %}
         {% if coverRaw == '' and album.cover_image and album.cover_image.preview_path %}
           {% set coverRaw = album.cover_image.preview_path %}
-        {% elseif coverRaw == '' and album.cover %}
-          {% set coverRaw = album.cover.original_path %}
         {% endif %}
+        {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+        {# Use placeholder if no public variant is available #}
         {% if coverRaw == '' %}
           {% set coverRaw = '/assets/img/placeholder.jpg' %}
         {% endif %}

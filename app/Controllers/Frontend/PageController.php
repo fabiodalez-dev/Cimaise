@@ -510,15 +510,35 @@ class PageController extends BaseController
         // Prepare JSON response
         $basePath = $this->basePath;
         $data = array_map(function ($img) use ($basePath) {
-            // Security: never expose non-public storage paths
+            // Security: never expose non-public storage paths (/storage/originals/)
             $fallbackSrc = $img['fallback_src'] ?? '';
             if ($fallbackSrc === '' || str_starts_with((string) $fallbackSrc, '/storage/')) {
                 $fallbackSrc = '';
             }
+
+            // Get best public URL from variants (never use original_path for web display)
+            // original_path points to /storage/originals/ which is not web-accessible
+            $publicUrl = $fallbackSrc;
+            if ($publicUrl === '') {
+                // Try to get any public variant path from sources
+                foreach (['jpg', 'webp', 'avif'] as $format) {
+                    $sources = $img['sources'][$format] ?? [];
+                    if (!empty($sources)) {
+                        // Sources are in format "path widthw" - extract path
+                        $parts = explode(' ', $sources[0]);
+                        $path = $parts[0] ?? '';
+                        if ($path !== '' && !str_starts_with($path, '/storage/')) {
+                            $publicUrl = $path;
+                            break;
+                        }
+                    }
+                }
+            }
+
             return [
                 'id' => (int) $img['id'],
                 'album_id' => (int) $img['album_id'],
-                'url' => str_starts_with($img['original_path'], '/') ? $basePath . $img['original_path'] : $img['original_path'],
+                'url' => $publicUrl !== '' && str_starts_with($publicUrl, '/') ? $basePath . $publicUrl : $publicUrl,
                 'fallback_src' => $fallbackSrc !== '' && str_starts_with($fallbackSrc, '/') ? $basePath . $fallbackSrc : $fallbackSrc,
                 'width' => (int) $img['width'],
                 'height' => (int) $img['height'],
@@ -882,10 +902,10 @@ class PageController extends BaseController
 
         // Enrich images with metadata and build PhotoSwipe-compatible data
         foreach ($images as &$image) {
-            // Choose best public variant for both grid and lightbox (largest available)
-            $bestUrl = $image['original_path'];
-            // Default lightbox URL; replaced below with largest available variant
-            $lightboxUrl = $bestUrl;
+            // Initialize with empty string - will be replaced by variant path if available
+            // Never use original_path (points to /storage/originals/ which is not web-accessible)
+            $bestUrl = '';
+            $lightboxUrl = '';
 
             // PERFORMANCE: Use pre-loaded variants instead of querying per image
             // Grid: prefer largest public variant (format priority avif > webp > jpg)
@@ -1220,9 +1240,8 @@ class PageController extends BaseController
                     break;
                 }
             }
-            if (!$coverPath) {
-                $coverPath = $album['cover']['original_path'] ?? null;
-            }
+            // Never use original_path (points to /storage/originals/ which is not web-accessible)
+            // Keep coverPath as null if no public variant found
         } catch (\Throwable) {
         }
         $seoMeta = $this->buildSeo($request, (string) $album['title'], (string) ($album['excerpt'] ?? ''), $coverPath);
@@ -1587,8 +1606,10 @@ class PageController extends BaseController
 
             $variantOrder = ['lg' => 1, 'md' => 2, 'sm' => 3];
             foreach ($imagesRows as $img) {
-                $bestUrl = $img['original_path'];
-                $lightboxUrl = $img['original_path'];
+                // Initialize with empty string - will be replaced by variant path if available
+                // Never use original_path (points to /storage/originals/ which is not web-accessible)
+                $bestUrl = '';
+                $lightboxUrl = '';
                 $sources = ['avif' => [], 'webp' => [], 'jpg' => []];
 
                 try {
@@ -1642,8 +1663,9 @@ class PageController extends BaseController
                     Logger::warning('PageController: Error fetching image variants', ['image_id' => $img['id'] ?? null, 'error' => $e->getMessage()], 'frontend');
                 }
 
+                // Security: never expose /storage/ paths (not web-accessible)
                 if (str_starts_with((string) $bestUrl, '/storage/')) {
-                    $bestUrl = $img['original_path'];
+                    $bestUrl = '';
                 }
                 if (str_starts_with((string) $lightboxUrl, '/storage/')) {
                     $lightboxUrl = $bestUrl;

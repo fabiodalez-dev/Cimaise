@@ -10,8 +10,9 @@
   {% set hero_url = '' %}
 
   {# 1) cover_image (admin uses img.preview_path in the grid) #}
+  {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
   {% if album.cover_image is defined and album.cover_image %}
-    {% set candidate = album.cover_image.preview_path ?? album.cover_image.original_path ?? album.cover_image.path ?? null %}
+    {% set candidate = album.cover_image.preview_path ?? album.cover_image.path ?? null %}
     {% if candidate %}
       {% if candidate starts with '/' %}
         {% set hero_url = base_path ~ candidate %}
@@ -51,9 +52,10 @@
   {% endif %}
 
   {# 3) last resort: first image in album.images (if injected) or from images collection #}
+  {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
   {% if not hero_url and album.images is defined and album.images|length %}
     {% set firstImg = album.images[0] %}
-    {% set cand3 = firstImg.preview_path ?? firstImg.original_path ?? firstImg.path ?? null %}
+    {% set cand3 = firstImg.preview_path ?? firstImg.path ?? null %}
     {% if cand3 %}
       {% set hero_url = cand3 starts with '/' ? (base_path ~ cand3) : cand3 %}
     {% endif %}

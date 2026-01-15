@@ -463,6 +463,20 @@ CREATE TABLE IF NOT EXISTS `page_cache` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
+-- CACHE TAGS TABLE (Tag-Based Invalidation)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS `cache_tags` (
+  `cache_key` VARCHAR(255) NOT NULL,
+  `tag` VARCHAR(100) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`cache_key`, `tag`),
+  KEY `idx_tag` (`tag`),
+  CONSTRAINT `fk_cache_tags_key` FOREIGN KEY (`cache_key`)
+    REFERENCES `page_cache` (`cache_key`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- ANALYTICS TABLES
 -- ============================================
 

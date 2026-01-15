@@ -40,11 +40,12 @@
         {% endif %}
 
         {# Get the real image URL for when consent is given #}
+        {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
         {% if card_img_url is null %}
-          {% set card_img_url = album.cover.original_path|default(album.cover_image.original_path|default(null)) %}
+          {# Find first non-blur variant from album.cover.variants #}
           {% if album.cover.variants is iterable %}
             {% for variant in album.cover.variants %}
-              {% if card_img_url == album.cover.original_path and (variant.variant is not defined or variant.variant != 'blur') %}
+              {% if card_img_url is null and (variant.variant is not defined or variant.variant != 'blur') %}
                 {% set card_img_url = variant.path %}
               {% endif %}
             {% endfor %}
@@ -102,13 +103,22 @@
             <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1280px) 45vw, (min-width: 1024px) 50vw, (min-width: 768px) 60vw, (min-width: 640px) 95vw, 100vw">
           {% endif %}
 
-          {% set card_img_url = album.cover.original_path %}
+          {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+          {% set card_img_url = null %}
           {% for variant in album.cover.variants %}
-            {% if card_img_url == album.cover.original_path and (variant.variant is not defined or variant.variant != 'blur') %}
+            {% if card_img_url is null and (variant.variant is not defined or variant.variant != 'blur') %}
               {% set card_img_url = variant.path %}
             {% endif %}
           {% endfor %}
-          {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
+          {# Fallback to first jpg variant if none found #}
+          {% if card_img_url is null %}
+            {% for variant in variants_jpg|first|default('')|split(' ') %}
+              {% if card_img_url is null and variant %}
+                {% set card_img_url = variant %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {% set original_url = card_img_url ? (card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url) : '' %}
 
           <img src="{{ original_url }}"
                alt="{{ (album.cover.alt_text ?? album.cover_image.alt_text ?? album.title)|e }}"
@@ -119,7 +129,12 @@
         </picture>
         {% else %}
         {# Fallback for cover_image structure (flat, no variants) #}
-        {% set card_img_url = album.cover_image.preview_path|default(album.cover_image.original_path|default(album.cover.original_path|default(null))) %}
+        {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+        {% set card_img_url = album.cover_image.preview_path|default('') %}
+        {# Only use paths that are in /media/ directory, never /storage/ #}
+        {% if card_img_url and card_img_url starts with '/storage/' %}
+          {% set card_img_url = '' %}
+        {% endif %}
         {% if card_img_url %}
           {% set original_url = card_img_url starts with '/' ? base_path ~ card_img_url : card_img_url %}
           <img src="{{ original_url }}"

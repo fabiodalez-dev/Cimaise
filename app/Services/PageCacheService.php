@@ -446,6 +446,10 @@ class PageCacheService
         }
 
         $cacheKey = $this->getCacheKey($type);
+
+        // Delete associated tags first
+        $this->deleteTags($cacheKey);
+
         return $this->db->execute('DELETE FROM page_cache WHERE cache_key = ?', [$cacheKey]);
     }
 
@@ -453,6 +457,13 @@ class PageCacheService
     {
         if ($this->db === null) {
             return 0;
+        }
+
+        // Delete all tags first
+        try {
+            $this->db->execute('DELETE FROM cache_tags');
+        } catch (\Throwable $e) {
+            // Table might not exist yet - non-critical
         }
 
         return $this->db->execute('DELETE FROM page_cache');
@@ -894,5 +905,193 @@ class PageCacheService
         $this->backend = $originalBackend;
 
         return $stats;
+    }
+
+    // =========================================================================
+    // Tag-Based Invalidation Methods
+    // =========================================================================
+
+    /**
+     * Set cached page data with associated tags.
+     *
+     * Tags enable efficient invalidation of related cache entries.
+     * Example: When an album is updated, invalidate all caches tagged with that album.
+     *
+     * @param string $type Page type: 'home', 'galleries', or 'album:{slug}'
+     * @param array $data Page data to cache
+     * @param array $tags List of tags to associate with this cache entry
+     * @param int|null $ttl Time to live in seconds (null = use default)
+     * @return bool Success
+     */
+    public function setWithTags(string $type, array $data, array $tags, ?int $ttl = null): bool
+    {
+        $success = $this->set($type, $data, $ttl);
+
+        if ($success && !empty($tags) && $this->db !== null) {
+            $cacheKey = $this->getCacheKey($type);
+            $this->saveTags($cacheKey, $tags);
+        }
+
+        return $success;
+    }
+
+    /**
+     * Invalidate all cache entries with a specific tag.
+     *
+     * @param string $tag Tag to invalidate (e.g., CacheTags::HOME)
+     * @return int Number of cache entries deleted
+     */
+    public function invalidateByTag(string $tag): int
+    {
+        if ($this->db === null) {
+            return 0;
+        }
+
+        $deleted = 0;
+
+        try {
+            // Find all cache keys with this tag
+            $stmt = $this->db->query(
+                'SELECT cache_key FROM cache_tags WHERE tag = ?',
+                [$tag]
+            );
+
+            $cacheKeys = [];
+            while ($row = $stmt->fetch()) {
+                $cacheKeys[] = $row['cache_key'];
+            }
+            $stmt->closeCursor();
+
+            // Delete each cache entry
+            foreach ($cacheKeys as $cacheKey) {
+                $deleted += $this->invalidate($cacheKey);
+            }
+
+            // Remove tag entries
+            $this->db->execute('DELETE FROM cache_tags WHERE tag = ?', [$tag]);
+
+        } catch (\Throwable $e) {
+            Logger::warning("PageCacheService: Failed to invalidate by tag {$tag}: " . $e->getMessage());
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Invalidate all cache entries with any of the specified tags.
+     *
+     * @param array $tags List of tags to invalidate
+     * @return int Total number of cache entries deleted
+     */
+    public function invalidateByTags(array $tags): int
+    {
+        $deleted = 0;
+        foreach ($tags as $tag) {
+            $deleted += $this->invalidateByTag($tag);
+        }
+        return $deleted;
+    }
+
+    /**
+     * Save tags for a cache key.
+     */
+    private function saveTags(string $cacheKey, array $tags): void
+    {
+        if ($this->db === null || empty($tags)) {
+            return;
+        }
+
+        try {
+            // First remove existing tags for this cache key
+            $this->db->execute('DELETE FROM cache_tags WHERE cache_key = ?', [$cacheKey]);
+
+            // Insert new tags
+            foreach ($tags as $tag) {
+                if ($this->db->isSqlite()) {
+                    $this->db->execute(
+                        'INSERT OR IGNORE INTO cache_tags (cache_key, tag) VALUES (?, ?)',
+                        [$cacheKey, $tag]
+                    );
+                } else {
+                    $this->db->execute(
+                        'INSERT IGNORE INTO cache_tags (cache_key, tag) VALUES (?, ?)',
+                        [$cacheKey, $tag]
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            // Non-critical - cache still works without tags
+            Logger::warning("PageCacheService: Failed to save tags for {$cacheKey}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete tags for a cache key when cache is invalidated.
+     */
+    private function deleteTags(string $cacheKey): void
+    {
+        if ($this->db === null) {
+            return;
+        }
+
+        try {
+            $this->db->execute('DELETE FROM cache_tags WHERE cache_key = ?', [$cacheKey]);
+        } catch (\Throwable $e) {
+            // Non-critical - orphan tags will be cleaned up later
+        }
+    }
+
+    /**
+     * Get all tags associated with a cache entry.
+     *
+     * @param string $type Page type
+     * @return array List of tags
+     */
+    public function getTags(string $type): array
+    {
+        if ($this->db === null) {
+            return [];
+        }
+
+        $cacheKey = $this->getCacheKey($type);
+
+        try {
+            $stmt = $this->db->query(
+                'SELECT tag FROM cache_tags WHERE cache_key = ?',
+                [$cacheKey]
+            );
+
+            $tags = [];
+            while ($row = $stmt->fetch()) {
+                $tags[] = $row['tag'];
+            }
+            $stmt->closeCursor();
+
+            return $tags;
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Clean up orphan tags (tags without corresponding cache entries).
+     *
+     * @return int Number of orphan tags deleted
+     */
+    public function cleanupOrphanTags(): int
+    {
+        if ($this->db === null) {
+            return 0;
+        }
+
+        try {
+            // Delete tags where cache_key doesn't exist in page_cache
+            return $this->db->execute(
+                'DELETE FROM cache_tags WHERE cache_key NOT IN (SELECT cache_key FROM page_cache)'
+            );
+        } catch (\Throwable $e) {
+            Logger::warning("PageCacheService: Failed to cleanup orphan tags: " . $e->getMessage());
+            return 0;
+        }
     }
 }

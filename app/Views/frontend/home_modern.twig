@@ -381,7 +381,8 @@
                 <div class="inf-work_list w-dyn-items">
                     {% for image in all_images %}
                     {# Get best image URL (prefer md webp, skip blur variants) #}
-                    {% set fallback_path = image.fallback_src ?? image.original_path ?? '' %}
+                    {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+                    {% set fallback_path = image.fallback_src ?? '' %}
                     {% set img_src = fallback_path starts with '/' ? base_path ~ fallback_path : fallback_path %}
                     {% set srcset_avif = [] %}
                     {% set srcset_webp = [] %}

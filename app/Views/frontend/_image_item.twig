@@ -1,7 +1,8 @@
   {% import 'frontend/_seo_macros.twig' as Seo %}
   {% import 'frontend/_image_macros.twig' as ImageMacros %}
-  {# Use lightbox_url for best quality, fallback to url/original_path #}
-  {% set lightbox_href = image.lightbox_url|default(image.url|default(image.original_path)) %}
+  {# Use lightbox_url for best quality, fallback to url #}
+  {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+  {% set lightbox_href = image.lightbox_url|default(image.url|default('')) %}
   {% set seo_title = Seo.seo_title(image, album, site_title)|trim %}
   <a href="{% if lightbox_href starts with '/' %}{{ base_path }}{{ lightbox_href }}{% else %}{{ lightbox_href }}{% endif %}"
      class="pswp-link image-item group block"
@@ -47,7 +48,8 @@
       {% set variants_avif = [] %}
       {% set variants_webp = [] %}
       {% set variants_jpg = [] %}
-      {% set best_jpg_path = image.fallback_src|default(image.url|default(image.original_path)) %}
+      {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
+      {% set best_jpg_path = image.fallback_src|default(image.url|default('')) %}
       {% if best_jpg_path starts with '/' %}
         {% set best_jpg_path = base_path ~ best_jpg_path %}
       {% endif %}

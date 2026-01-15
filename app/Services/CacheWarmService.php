@@ -613,7 +613,8 @@ class CacheWarmService
         }
 
         $image['sources'] = $sources;
-        $image['fallback_src'] = $fallbackSrc ?: ($image['original_path'] ?? '');
+        // Never use original_path (points to /storage/originals/ which is not web-accessible)
+        $image['fallback_src'] = $fallbackSrc ?: '';
         $image['variants'] = $variants;
 
         return $image;
