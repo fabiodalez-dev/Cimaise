@@ -147,15 +147,26 @@ class CacheMiddleware implements MiddlewareInterface
 
             if ($shouldHash) {
                 $stream = $response->getBody();
+                $currentPos = $stream->tell();
+
                 if ($stream->isSeekable()) {
-                    $body = (string) $stream;
+                    // Seekable stream: rewind to start if needed before reading
+                    if ($currentPos > 0) {
+                        $stream->rewind();
+                    }
+                    $body = $stream->getContents();
                     $stream->rewind();
-                } else {
+                } elseif ($currentPos === 0) {
+                    // Non-seekable stream at position 0: safe to read entire content
                     $body = $stream->getContents();
                     $newStream = new \Slim\Psr7\Stream(fopen('php://temp', 'r+'));
                     $newStream->write($body);
                     $newStream->rewind();
                     $response = $response->withBody($newStream);
+                } else {
+                    // Non-seekable stream already partially read: skip ETag generation
+                    // to avoid hashing incomplete content
+                    $body = '';
                 }
 
                 // Double-check size after reading (Content-Length may be missing)
