@@ -247,11 +247,11 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <!-- Galleries Grid -->
     <div id="galleries-grid" class="grid gap-8"
-         style="grid-template-columns: repeat({{ filter_settings.grid_columns_mobile }}, 1fr); gap: {{ filter_settings.grid_gap == 'small' ? '1rem' : (filter_settings.grid_gap == 'large' ? '2rem' : '1.5rem') }};"
-         data-desktop-cols="{{ filter_settings.grid_columns_desktop }}"
-         data-tablet-cols="{{ filter_settings.grid_columns_tablet }}"
-         data-mobile-cols="{{ filter_settings.grid_columns_mobile }}"
-         data-gap="{{ filter_settings.grid_gap }}">
+         style="grid-template-columns: repeat({{ filter_settings.grid_columns_mobile|default(1) }}, 1fr); gap: {{ filter_settings.grid_gap == 'small' ? '1rem' : (filter_settings.grid_gap == 'large' ? '2rem' : '1.5rem') }};"
+         data-desktop-cols="{{ filter_settings.grid_columns_desktop|default(3) }}"
+         data-tablet-cols="{{ filter_settings.grid_columns_tablet|default(2) }}"
+         data-mobile-cols="{{ filter_settings.grid_columns_mobile|default(1) }}"
+         data-gap="{{ filter_settings.grid_gap|default('medium') }}">
       
       {% for album in albums %}
       {% set seo_title = Seo.seo_title({'alt': album.cover_image.alt_text|default('')}, album, site_title)|trim %}
