@@ -4,7 +4,7 @@ Obiettivo: ridurre TTFB e tempo di interazione della home e delle transizioni pa
 
 ## Stato attuale (cosa rallenta)
 - Page cache: `PageCacheService` è usato solo dalla home (`app/Controllers/Frontend/PageController.php:213`), ma i cache warmers generano anche `galleries` e `album:*` che non vengono mai letti. Risultato: `/galleries` e `/album/{slug}` sono sempre “cache cold” e ricomputano tutto.
-- Auto-warm: `app/Controllers/Admin/AlbumsController.php` chiama `CacheWarmService::warmAlbum()`; assicurarsi che il wrapper richiami `buildAlbumCache()` e che le eccezioni non blocchino il warm.
+- Auto-warm: `app/Controllers/Admin/AlbumsController.php` chiama `CacheWarmService::warmAlbum()` che funge da wrapper per `buildAlbumCache()`. ✅ Verificato: il wrapper esiste e funziona correttamente.
 - Query volume home: `HomeImageService::getInitialImages()` e `getMoreImages()` estraggono sempre `MAX_FETCH_LIMIT` (500 righe) anche quando servono 12–20 immagini; per la home masonry `getAllImages()` senza limite carica *tutte* le immagini e tutte le varianti, poi le duplica nel DOM. È il principale motivo di lentezza iniziale.
 - JS costo fisso: `resources/js/smooth-scroll.js` inizializza Lenis su ogni pagina con MutationObserver, recalc ogni 500ms per 10s e RAF permanente; `home-gallery.js` + `home.js` partono subito invece di aspettare idle/visibilità; il carousel (`albums-carousel.js`) gira via `requestAnimationFrame` continuo. Su macchine lente/ mobile il main thread è occupato appena dopo il first paint.
 - Cache HTTP: `CacheMiddleware` genera ETag hashando il body fino a 256KB se manca il digest dal page cache; senza page cache su galleries/album il hashing pesa su ogni richiesta. Statici hanno cache 1y ma senza filename versioning (Vite `manifest:false`, nomi stabili) → rischio hard-refresh necessario dopo deploy.
@@ -18,7 +18,7 @@ Obiettivo: ridurre TTFB e tempo di interazione della home e delle transizioni pa
 
 2) **Fix warm automatico**
    - File: `app/Controllers/Admin/AlbumsController.php`, `app/Services/CacheWarmService.php`.
-   - Azione: sostituire `warmAlbum` con `buildAlbumCache` o aggiungere un wrapper `warmAlbum(string $slug)` che richiama `buildAlbumCache`. Garantire che `cache.auto_warm` richiami anche `buildHomeCache()/buildGalleriesCache()` dopo update.
+   - Azione: ✅ Il wrapper `warmAlbum(string $slug)` esiste e richiama `buildAlbumCache()`. Garantire che `cache.auto_warm` richiami anche `buildHomeCache()/buildGalleriesCache()` dopo update.
    - Risultato: dopo edit/publish gli utenti anonimi ricevono cache calde; meno rigenerazioni on-request.
 
 3) **Ridurre query e payload iniziali home**
