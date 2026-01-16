@@ -1382,5 +1382,5 @@
 
 {% block scripts %}
   {{ parent() }}
-  <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/hero.js"></script>
+  <script nonce="{{ csp_nonce() }}" type="module" src="{{ vite_asset('js/hero.js') }}"></script>
 {% endblock %}

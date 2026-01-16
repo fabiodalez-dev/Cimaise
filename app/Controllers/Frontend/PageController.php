@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers\Frontend;
 use App\Controllers\BaseController;
 use App\Services\AnalyticsService;
+use App\Services\CacheTags;
 use App\Services\ImagesService;
 use App\Services\NavigationService;
 use App\Services\PageCacheService;
@@ -666,9 +667,43 @@ class PageController extends BaseController
             ]);
         }
 
+        // Determine if album is cacheable (public, no password, no NSFW)
+        // Template overrides are cached with separate keys (album_123 vs album_123_t5)
+        $templateIdFromUrl = isset($params['template']) ? (int) $params['template'] : 0;
+        $canUseCache = empty($album['password_hash']) && empty($album['is_nsfw']) && !$isAdmin;
+
+        // Try cache first for public albums
+        if ($canUseCache) {
+            $cacheKey = 'album_' . (int) $album['id'];
+            if ($templateIdFromUrl > 0) {
+                $cacheKey .= '_t' . $templateIdFromUrl;
+            }
+            $cacheService = $this->getPageCacheService();
+            $cached = $cacheService->get($cacheKey);
+
+            if ($cached !== null && isset($cached['template_file'], $cached['data']) && is_array($cached['data'])) {
+                // Fresh cache hit - render with cached data + session-specific vars
+                return $this->view->render($response, $cached['template_file'], array_merge($cached['data'], [
+                    'is_admin' => $isAdmin,
+                    'nsfw_consent' => $nsfwConsent,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+
+            // Lazy regeneration: try stale cache
+            $staleCached = $cacheService->get($cacheKey, allowStale: true);
+            if ($staleCached !== null && isset($staleCached['template_file'], $staleCached['data']) && is_array($staleCached['data'])) {
+                return $this->view->render($response, $staleCached['template_file'], array_merge($staleCached['data'], [
+                    'is_admin' => $isAdmin,
+                    'nsfw_consent' => $nsfwConsent,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+        }
+
         $albumRef = $album['slug'] ?? (string) $album['id'];
 
-        $templateIdFromUrl = (int) ($params['template'] ?? 0);
+        // Note: $templateIdFromUrl already defined above for cache check
         $finalTemplateId = null;
         $template = null;
         $templateSettings = [];
@@ -1285,7 +1320,8 @@ class PageController extends BaseController
             'layout_mode' => (string) ($settingsServiceForPage->get('home.masonry_layout_mode', 'fullwidth') ?? 'fullwidth'),
         ];
 
-        return $this->view->render($response, $twigTemplate, [
+        // Cacheable data (excludes session-specific vars: csrf, is_admin, nsfw_consent)
+        $cacheableData = [
             'album' => $galleryMeta,
             'images' => $images,
             'template_name' => $template['name'] ?? '',
@@ -1294,7 +1330,6 @@ class PageController extends BaseController
             'available_templates' => $availableTemplates,
             'current_template_id' => $templateId,
             'album_ref' => $albumRef,
-            'is_admin' => $isAdmin,
             'categories' => $navCategories,
             'parent_categories' => $this->getNavigationService()->getParentCategoriesForNavigation(),
             'page_title' => $seoMeta['page_title'],
@@ -1307,9 +1342,7 @@ class PageController extends BaseController
             'schema' => $seoMeta['schema'],
             'enabled_socials' => $orderedSocials,
             'available_socials' => $availableSocials,
-            'csrf' => $_SESSION['csrf'] ?? '',
             'current_album' => ['id' => (int) $album['id']],
-            'nsfw_consent' => $this->hasNsfwConsent(),
             'allow_downloads' => !empty($album['allow_downloads']),
             'album_custom_fields' => $albumCustomFields,
             'home_masonry_settings' => $homeMasonry,
@@ -1320,7 +1353,25 @@ class PageController extends BaseController
             'page_custom_template_active' => (bool) $customPageTemplate,
             'page_custom_css' => $pageCustomCss,
             'page_custom_js' => $pageCustomJs,
-        ]);
+        ];
+
+        // Save to cache for future public requests
+        if ($canUseCache) {
+            $cacheKey = 'album_' . (int) $album['id'];
+            if ($templateIdFromUrl > 0) {
+                $cacheKey .= '_t' . $templateIdFromUrl;
+            }
+            $this->getPageCacheService()->setWithTags($cacheKey, [
+                'template_file' => $twigTemplate,
+                'data' => $cacheableData,
+            ], CacheTags::albumRelated((int) $album['id'], (int) $album['category_id']));
+        }
+
+        return $this->view->render($response, $twigTemplate, array_merge($cacheableData, [
+            'is_admin' => $isAdmin,
+            'nsfw_consent' => $this->hasNsfwConsent(),
+            'csrf' => $_SESSION['csrf'] ?? '',
+        ]));
     }
 
     public function unlockAlbum(Request $request, Response $response, array $args): Response

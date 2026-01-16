@@ -39,7 +39,7 @@
 
     <!-- Preload Critical Resources -->
     <link rel="preload" href="{{ base_path }}/fonts/typography.css" as="style">
-    <link rel="preload" href="{{ base_path }}/assets/app.css" as="style">
+    <link rel="preload" href="{{ vite_asset('app.css') }}" as="style">
 
     <!-- Preload Critical Fonts (user-selected) to prevent FOUT -->
     {% if critical_fonts_preload is defined and critical_fonts_preload|length > 0 %}
@@ -175,7 +175,7 @@
     <!-- Fonts: use system stack to comply with CSP -->
 
     <!-- CRITICAL CSS - Render blocking (required for initial paint) -->
-    <link href="{{ base_path }}/assets/app.css" rel="stylesheet">
+    <link href="{{ vite_asset('app.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css">
 
     <!-- NON-CRITICAL CSS - Loaded async to avoid render blocking -->
@@ -3757,7 +3757,7 @@
     </script>
 
     <!-- Smooth Scroll (Lenis) - Deferred (progressive enhancement) -->
-    <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/smooth-scroll.js"></script>
+    <script nonce="{{ csp_nonce() }}" type="module" src="{{ vite_asset('js/smooth-scroll.js') }}"></script>
 
     <!-- Analytics Tracking (Cookieless) - Deferred (not critical for initial render) -->
     <script nonce="{{ csp_nonce() }}" src="{{ base_path }}/assets/js/analytics.js" defer></script>

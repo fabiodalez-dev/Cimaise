@@ -192,5 +192,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/home-masonry.js"></script>
+<script nonce="{{ csp_nonce() }}" type="module" src="{{ vite_asset('js/home-masonry.js') }}"></script>
 {% endblock %}

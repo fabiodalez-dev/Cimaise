@@ -106,9 +106,32 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
     }
   }
 
+  // PERFORMANCE: Defer expensive init until gallery is in/near viewport
+  let hasInitialized = false;
+  function deferredInit() {
+    if (hasInitialized) return;
+    hasInitialized = true;
+    init();
+  }
+
+  // Use IntersectionObserver to defer init until section is near viewport
+  if ('IntersectionObserver' in window) {
+    const initObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        deferredInit();
+        initObserver.disconnect();
+      }
+    }, { rootMargin: '200px' }); // Start init 200px before section enters viewport
+    initObserver.observe(gallerySection);
+  } else {
+    // Fallback for browsers without IntersectionObserver
+    deferredInit();
+  }
+
   // Debounce resize
   let resizeTimeout;
   window.addEventListener('resize', function() {
+    if (!hasInitialized) return; // Don't resize before init
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(function() {
       const wasMobile = isMobile;
@@ -123,7 +146,6 @@ import { createFetchPriorityObserver } from './utils/fetch-priority-observer.js'
     }, 200);
   });
 
-  init();
   setupFetchPriorityObserver();
 
   // Cleanup on page unload (for SPA)
