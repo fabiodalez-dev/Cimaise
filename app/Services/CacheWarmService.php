@@ -807,6 +807,14 @@ class CacheWarmService
     }
 
     /**
+     * Warm a single album cache (wrapper for lazy regeneration).
+     */
+    public function warmAlbum(string $slug): bool
+    {
+        return $this->buildAlbumCache($slug);
+    }
+
+    /**
      * Get PageCacheService instance.
      */
     public function getPageCacheService(): PageCacheService

@@ -10,6 +10,9 @@ if (typeof window !== 'undefined') {
     // CONDITIONAL DISABLE: Skip if 'no-lenis' class is present on html or body
     if (document.documentElement.classList.contains('no-lenis') || (document.body && document.body.classList.contains('no-lenis'))) {
         // console.log('Lenis disabled by class');
+    // PERFORMANCE: Skip if user prefers reduced motion
+    } else if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        // console.log('Lenis disabled: prefers-reduced-motion');
     } else {
         const lenis = new Lenis({
           lerp: 0.1,
@@ -72,11 +75,12 @@ if (typeof window !== 'undefined') {
         window.addEventListener('resize', resizeHandler)
     
         // Recalculate periodically for first few seconds (for lazy-loaded content)
+        // PERFORMANCE: Reduced from 20 ticks (10s) to 3 ticks (1.5s)
         let recalcCount = 0
         recalcInterval = setInterval(() => {
           recalculate()
           recalcCount++
-          if (recalcCount >= 20) clearInterval(recalcInterval) // Stop after 10 seconds
+          if (recalcCount >= 3) clearInterval(recalcInterval) // Stop after ~1.5 seconds
         }, 500)
     
         // Recalculate when images load

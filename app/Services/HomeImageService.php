@@ -23,10 +23,19 @@ class HomeImageService
 
     /**
      * Maximum images to fetch from database per query.
-     * Limits memory usage while still allowing album diversity for most portfolios.
-     * For very large libraries, some albums may not be represented in initial load.
+     * Reduced from 500 to 150 to limit memory usage and improve TTFB.
+     * For very large libraries, use progressive loading API instead.
      */
-    private const MAX_FETCH_LIMIT = 500;
+    private const MAX_FETCH_LIMIT = 150;
+
+    /**
+     * Calculate optimal fetch limit based on requested limit.
+     * Uses min(limit * 3, MAX_FETCH_LIMIT) to balance album diversity with performance.
+     */
+    private function calculateFetchLimit(int $requestedLimit): int
+    {
+        return min($requestedLimit * 3, self::MAX_FETCH_LIMIT);
+    }
 
     public function __construct(private Database $db)
     {
@@ -64,7 +73,7 @@ class HomeImageService
             LIMIT :max_fetch
         ");
         $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
-        $stmt->bindValue(':max_fetch', self::MAX_FETCH_LIMIT, \PDO::PARAM_INT);
+        $stmt->bindValue(':max_fetch', $this->calculateFetchLimit($limit), \PDO::PARAM_INT);
         $stmt->execute();
         $rawImages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -362,7 +371,7 @@ class HomeImageService
             LIMIT :max_fetch
         ");
         $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
-        $stmt->bindValue(':max_fetch', self::MAX_FETCH_LIMIT, \PDO::PARAM_INT);
+        $stmt->bindValue(':max_fetch', $this->calculateFetchLimit($limit), \PDO::PARAM_INT);
         $stmt->execute();
         $allImages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 

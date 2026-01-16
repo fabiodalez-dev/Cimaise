@@ -22,7 +22,30 @@ onReady(() => {
 
   const isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
   const autoPlay = () => { currentTranslate -= 0.6; if (Math.abs(currentTranslate) >= totalWidth) currentTranslate = 0; setSliderPosition(); autoPlayId = requestAnimationFrame(autoPlay); };
-  if (!isMobile) autoPlayId = requestAnimationFrame(autoPlay);
+
+  // PERFORMANCE: Defer autoplay start using requestIdleCallback
+  const startAutoPlay = () => {
+    if (!isMobile && !autoPlayId && !document.hidden) {
+      autoPlayId = requestAnimationFrame(autoPlay);
+    }
+  };
+
+  if (!isMobile) {
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(startAutoPlay, { timeout: 1000 });
+    } else {
+      setTimeout(startAutoPlay, 100);
+    }
+  }
+
+  // PERFORMANCE: Pause autoplay when tab is in background
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (autoPlayId) { cancelAnimationFrame(autoPlayId); autoPlayId = null; }
+    } else if (!isMobile && !isDragging) {
+      startAutoPlay();
+    }
+  });
 
   const dragStart = (e) => {
     // Don't prevent default here - allow clicks to work

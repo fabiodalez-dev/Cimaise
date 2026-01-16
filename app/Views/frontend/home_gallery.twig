@@ -360,7 +360,7 @@ html.dark .gallery-wall-item::after {
 {% endblock %}
 
 {% block scripts %}
-  <script nonce="{{ csp_nonce() }}" type="module" src="{{ base_path }}/assets/js/home-gallery.js"></script>
+  <script nonce="{{ csp_nonce() }}" type="module" src="{{ vite_asset('js/home-gallery.js') }}"></script>
 <script nonce="{{ csp_nonce() }}">
 // Disable header hide on scroll for gallery wall
 document.body.classList.add('gallery-wall-page');

@@ -257,6 +257,7 @@ $twig = Twig::create(__DIR__ . '/../app/Views', $twigOptions);
 $twig->getEnvironment()->addExtension(new \App\Extensions\AnalyticsTwigExtension());
 $twig->getEnvironment()->addExtension(new \App\Extensions\SecurityTwigExtension());
 $twig->getEnvironment()->addExtension(new \App\Extensions\HooksTwigExtension());
+$twig->getEnvironment()->addExtension(new \App\Extensions\ViteTwigExtension($basePath));
 
 // Register plugin Twig namespaces
 $pluginTemplatesDir = __DIR__ . '/../plugins/custom-templates-pro/templates';

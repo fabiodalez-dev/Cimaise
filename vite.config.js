@@ -7,7 +7,7 @@ export default defineConfig({
     outDir: 'public/assets',
     emptyOutDir: false, // don't wipe existing assets already in public/assets
     copyPublicDir: false, // avoid duplicating /public into /public/assets
-    manifest: false,
+    manifest: true, // Generate manifest.json for cache-busting hashed filenames
     // Optimize build for production
     minify: 'terser',
     terserOptions: {
@@ -34,18 +34,11 @@ export default defineConfig({
         'app': path.resolve(__dirname, 'resources/app.css'),
       },
       output: {
-        // keep folder/name stable (no hash) to match Twig includes
-        entryFileNames: (chunk) => {
-          if (chunk.name === 'js/hero') return 'js/hero.js'
-          if (chunk.name === 'js/home') return 'js/home.js'
-          if (chunk.name === 'js/home-masonry') return 'js/home-masonry.js'
-          if (chunk.name === 'js/home-modern') return 'js/home-modern.js'
-          if (chunk.name === 'js/home-gallery') return 'js/home-gallery.js'
-          if (chunk.name === 'js/smooth-scroll') return 'js/smooth-scroll.js'
-          if (chunk.name === 'admin') return 'admin.js'
-          return '[name].js'
-        },
-        assetFileNames: '[name][extname]',
+        // Use content hash in filenames for cache-busting
+        // Manifest.json maps original names to hashed names for template resolution
+        // Note: [name] includes the input key (e.g., 'js/hero'), so no prefix needed
+        entryFileNames: '[name]-[hash].js',
+        assetFileNames: '[name]-[hash][extname]',
         // Put chunks in js/ folder (not default assets/ to avoid /assets/assets/ path)
         chunkFileNames: 'js/[name]-[hash].js',
         // Optimize chunk splitting for better caching

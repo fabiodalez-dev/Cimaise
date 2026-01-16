@@ -147,7 +147,7 @@
     <!-- CRITICAL CSS (render blocking) -->
     <link rel="stylesheet" href="{{ base_path }}/fonts/typography.css">
     <!-- Classic frontend styles (mobile only) -->
-    <link rel="stylesheet" href="{{ base_path }}/assets/app.css" media="(max-width: 767px)">
+    <link rel="stylesheet" href="{{ vite_asset('app.css') }}" media="(max-width: 767px)">
 
     <!-- NON-CRITICAL CSS (async load to avoid render blocking) -->
     <!-- Font Awesome (~100KB - defer loading, icons appear after paint) -->

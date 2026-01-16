@@ -7,6 +7,8 @@ use App\Support\Database;
 use App\Support\Logger;
 use App\Services\SettingsService;
 use App\Services\NavigationService;
+use App\Services\PageCacheService;
+use App\Services\CacheTags;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -23,26 +25,62 @@ class GalleriesController extends BaseController
         $params = $request->getQueryParams();
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
-        
-        // Get filter settings from database
+
+        // Build filter parameters first to check if any are active
         $filterSettings = $this->getFilterSettings();
-        
+        $filters = $this->buildFilters($params, $filterSettings);
+
+        // Check if any filter is active (excluding default sort)
+        $hasActiveFilters = !empty($filters['category']) || !empty($filters['tags']) ||
+            !empty($filters['cameras']) || !empty($filters['lenses']) ||
+            !empty($filters['films']) || !empty($filters['developers']) ||
+            !empty($filters['labs']) || !empty($filters['locations']) ||
+            !empty($filters['year']) || !empty($filters['search']) ||
+            ($filters['sort'] ?? 'published_desc') !== 'published_desc';
+
+        // Cache is only used for unfiltered public view
+        $canUseCache = !$isAdmin && !$nsfwConsent && !$hasActiveFilters;
+
+        // Try cache first for public unfiltered view
+        if ($canUseCache) {
+            $cacheService = $this->getPageCacheService();
+            $cached = $cacheService->get('galleries');
+
+            if ($cached !== null && isset($cached['data']) && is_array($cached['data'])) {
+                // Fresh cache hit - render with cached data + session-specific vars
+                return $this->view->render($response, 'frontend/galleries.twig', array_merge($cached['data'], [
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+
+            // Lazy regeneration: try stale cache
+            $staleCached = $cacheService->get('galleries', allowStale: true);
+            if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
+                // Serve stale, schedule background regeneration could be done here
+                return $this->view->render($response, 'frontend/galleries.twig', array_merge($staleCached['data'], [
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+        }
+
         // Get page texts from settings
         $pageTexts = $this->getPageTexts();
-        
-        // Build filter parameters
-        $filters = $this->buildFilters($params, $filterSettings);
-        
+
         // Get albums with filters applied
         $albums = $this->getFilteredAlbums($filters, $isAdmin, $nsfwConsent);
-        
+
         // Get filter options for dropdowns
         $filterOptions = $this->getFilterOptions();
-        
+
         // Get navigation categories
         $parentCategories = (new NavigationService($this->db))->getParentCategoriesForNavigation();
-        
-        return $this->view->render($response, 'frontend/galleries.twig', [
+
+        // Prepare data for rendering and caching
+        $renderData = [
             'albums' => $albums,
             'filter_settings' => $filterSettings,
             'page_texts' => $pageTexts,
@@ -51,10 +89,33 @@ class GalleriesController extends BaseController
             'parent_categories' => $parentCategories,
             'page_title' => $pageTexts['title'],
             'meta_description' => $pageTexts['description'],
-            'nsfw_consent' => $nsfwConsent,
-            'is_admin' => $isAdmin,
-            'csrf' => $_SESSION['csrf'] ?? ''
-        ]);
+        ];
+
+        // Save to cache for future public requests (unfiltered only)
+        if ($canUseCache) {
+            $this->getPageCacheService()->setWithTags('galleries', [
+                'data' => $renderData,
+            ], [CacheTags::GALLERIES, CacheTags::NAVIGATION]);
+        }
+
+        // Add session-specific vars for rendering
+        $renderData['nsfw_consent'] = $nsfwConsent;
+        $renderData['is_admin'] = $isAdmin;
+        $renderData['csrf'] = $_SESSION['csrf'] ?? '';
+
+        return $this->view->render($response, 'frontend/galleries.twig', $renderData);
+    }
+
+    /**
+     * Get PageCacheService instance (lazy-loaded).
+     */
+    private function getPageCacheService(): PageCacheService
+    {
+        static $service = null;
+        if ($service === null) {
+            $service = new PageCacheService(new SettingsService($this->db), $this->db);
+        }
+        return $service;
     }
 
     public function filter(Request $request, Response $response): Response

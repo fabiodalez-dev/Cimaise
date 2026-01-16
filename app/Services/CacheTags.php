@@ -61,14 +61,23 @@ final class CacheTags
 
     /**
      * Get all tags that should be invalidated when an album changes.
+     *
+     * @param int|string $albumId Album ID
+     * @param int|string|null $categoryId Optional category ID to also tag for category invalidation
      */
-    public static function albumRelated(int|string $albumId): array
+    public static function albumRelated(int|string $albumId, int|string|null $categoryId = null): array
     {
-        return [
+        $tags = [
             self::album($albumId),
             self::HOME,
             self::GALLERIES,
         ];
+
+        if ($categoryId !== null) {
+            $tags[] = self::category($categoryId);
+        }
+
+        return $tags;
     }
 
     /**
