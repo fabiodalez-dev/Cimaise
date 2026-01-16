@@ -726,7 +726,7 @@ function initFilters() {
             safeGsap.to(filtersGrid, {
                 opacity: 0,
                 maxHeight: 0,
-                duration: {{ filter_settings.animation_duration }},
+                duration: {{ filter_settings.animation_duration|default(300) }},
                 ease: 'power2.inOut',
                 onComplete: function() {
                     filtersGrid.removeClass('filters-open');
@@ -734,7 +734,7 @@ function initFilters() {
             });
             safeGsap.to(chevron, {
                 rotation: 0,
-                duration: {{ filter_settings.animation_duration }},
+                duration: {{ filter_settings.animation_duration|default(300) }},
                 ease: 'power2.inOut'
             });
         } else {
@@ -746,12 +746,12 @@ function initFilters() {
             safeGsap.to(filtersGrid, {
                 opacity: 1,
                 maxHeight: targetHeight,
-                duration: {{ filter_settings.animation_duration }},
+                duration: {{ filter_settings.animation_duration|default(300) }},
                 ease: 'power2.inOut'
             });
             safeGsap.to(chevron, {
                 rotation: 180,
-                duration: {{ filter_settings.animation_duration }},
+                duration: {{ filter_settings.animation_duration|default(300) }},
                 ease: 'power2.inOut'
             });
 
@@ -762,7 +762,7 @@ function initFilters() {
                     safeGsap.from('.filter-group', {
                         y: 15,
                         opacity: 0,
-                        duration: {{ filter_settings.animation_duration }},
+                        duration: {{ filter_settings.animation_duration|default(300) }},
                         stagger: 0.05,
                         ease: 'power2.out'
                     });
@@ -906,7 +906,7 @@ function updateGalleries(albums, animate = false) {
     safeGsap.to('#galleries-grid .gallery-card', {
         y: -20,
         opacity: 0,
-        duration: {{ filter_settings.animation_duration }},
+        duration: {{ filter_settings.animation_duration|default(300) }},
         stagger: 0.05,
         ease: 'power3.in',
         onComplete: function() {
@@ -943,7 +943,7 @@ function updateGalleries(albums, animate = false) {
                 safeGsap.from('#galleries-grid .gallery-card', {
                     y: 40,
                     opacity: 0,
-                    duration: {{ filter_settings.animation_duration }},
+                    duration: {{ filter_settings.animation_duration|default(300) }},
                     stagger: 0.1,
                     ease: 'power3.out',
                     onComplete: function() {
