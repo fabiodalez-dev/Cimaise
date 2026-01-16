@@ -29,7 +29,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
         $nonce = self::$nonce ?? '';
 
         // Admin routes: allow unsafe-inline for scripts (needed for SPA navigation)
-        // Frontend routes: strict nonce-based CSP
+        // Frontend routes: strict nonce-based CSP with external image sources for galleries
         if ($isAdminRoute) {
             $csp = "upgrade-insecure-requests; default-src 'self'; "
                  . "img-src 'self' data: blob:; "
@@ -40,8 +40,9 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
                  . "frame-src 'self'; "
                  . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
         } else {
+            // Frontend: allow external images (https:) for PhotoSwipe and galleries
             $csp = "upgrade-insecure-requests; default-src 'self'; "
-                 . "img-src 'self' data: blob:; "
+                 . "img-src 'self' data: blob: https:; "
                  . "script-src 'self' 'nonce-{$nonce}' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; "
                  . "style-src 'self' 'unsafe-inline'; "
                  . "font-src 'self' data:; "
@@ -50,17 +51,26 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
                  . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
         }
 
-        return $response
+        // SECURITY: Only add HSTS if connection is HTTPS (avoid breaking HTTP dev environments)
+        $isHttps = ($_SERVER['HTTPS'] ?? 'off') === 'on' ||
+                   ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? 'http') === 'https';
+
+        $response = $response
             ->withHeader('X-Content-Type-Options','nosniff')
             ->withHeader('X-Frame-Options', 'DENY')
             ->withHeader('X-XSS-Protection', '1; mode=block')
             ->withHeader('Referrer-Policy','strict-origin-when-cross-origin')
             ->withHeader('Permissions-Policy','geolocation=(), microphone=(), camera=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=(), midi=(), fullscreen=(self)')
-            ->withHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
             ->withHeader('Cross-Origin-Opener-Policy', 'same-origin')
             ->withHeader('X-Permitted-Cross-Domain-Policies', 'none')
-            ->withHeader('Expect-CT', 'enforce, max-age=30')
             ->withHeader('Content-Security-Policy', $csp);
+
+        // Add HSTS only on HTTPS connections
+        if ($isHttps) {
+            $response = $response->withHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        }
+
+        return $response;
     }
 
     /**
