@@ -69,40 +69,47 @@ class EarlyHintsMiddleware implements MiddlewareInterface
 
     /**
      * Get critical resources to preload based on request
+     * Only preloads stable paths (fonts, vendor libraries) - not Vite-hashed assets
      */
     private function getCriticalResources(ServerRequestInterface $request): array
     {
         $uri = $request->getUri()->getPath();
 
-        // Common resources for all pages
+        // Skip admin routes - they have different resource needs
+        if (str_contains($uri, '/admin')) {
+            return [];
+        }
+
+        // Common resources for all frontend pages (stable paths only)
         $resources = [
-            [
-                'href' => $this->basePath . '/assets/app.css',
-                'rel' => 'preload',
-                'as' => 'style',
-                'type' => 'text/css'
-            ],
+            // Font stylesheets - stable paths
             [
                 'href' => $this->basePath . '/fonts/typography.css',
                 'rel' => 'preload',
                 'as' => 'style'
             ],
+            [
+                'href' => $this->basePath . '/fonts/font-faces.css',
+                'rel' => 'preload',
+                'as' => 'style'
+            ],
         ];
 
-        // Add page-specific resources
-        if (str_contains($uri, '/album/')) {
-            // Album page - preload gallery scripts
+        // Add page-specific vendor resources (stable paths)
+        if (str_contains($uri, '/album/') || str_contains($uri, '/galleries')) {
+            // Gallery pages - preload PhotoSwipe
             $resources[] = [
-                'href' => $this->basePath . '/assets/js/photoswipe.js',
-                'rel' => 'preload',
-                'as' => 'script'
+                'href' => $this->basePath . '/assets/photoswipe/dist/photoswipe.esm.min.js',
+                'rel' => 'modulepreload'
             ];
-        } elseif ($uri === $this->basePath || $uri === $this->basePath . '/') {
-            // Home page - preload home scripts
             $resources[] = [
-                'href' => $this->basePath . '/assets/js/home.js',
+                'href' => $this->basePath . '/assets/photoswipe/dist/photoswipe-lightbox.esm.min.js',
+                'rel' => 'modulepreload'
+            ];
+            $resources[] = [
+                'href' => $this->basePath . '/assets/photoswipe/dist/photoswipe.css',
                 'rel' => 'preload',
-                'as' => 'script'
+                'as' => 'style'
             ];
         }
 
