@@ -37,6 +37,26 @@ class HomeImageService
         return min($requestedLimit * 3, self::MAX_FETCH_LIMIT);
     }
 
+    /**
+     * Normalize category_slugs for cross-database consistency.
+     * GROUP_CONCAT order is non-deterministic (SQLite vs MySQL), so we sort and dedupe in PHP.
+     * This ensures stable cache keys and ETags regardless of database driver.
+     *
+     * @param array $images Array of image records with category_slugs field
+     * @return array Images with normalized category_slugs
+     */
+    private function normalizeCategorySlugs(array $images): array
+    {
+        foreach ($images as &$image) {
+            if (!empty($image['category_slugs'])) {
+                $slugs = array_unique(explode(',', $image['category_slugs']));
+                sort($slugs);
+                $image['category_slugs'] = implode(',', $slugs);
+            }
+        }
+        return $images;
+    }
+
     public function __construct(private Database $db)
     {
     }
@@ -75,7 +95,7 @@ class HomeImageService
         $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
         $stmt->bindValue(':max_fetch', $this->calculateFetchLimit($limit), \PDO::PARAM_INT);
         $stmt->execute();
-        $rawImages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $rawImages = $this->normalizeCategorySlugs($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         $totalImages = count($rawImages);
 
@@ -192,7 +212,7 @@ class HomeImageService
             $stmt->bindValue(':max_fetch', $limit, \PDO::PARAM_INT);
         }
         $stmt->execute();
-        $images = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $images = $this->normalizeCategorySlugs($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         // Calculate if we need to loop (only if we didn't get enough images)
         if ($limit > 0 && count($images) < $limit) {
@@ -299,7 +319,7 @@ class HomeImageService
         }
         $stmt->bindValue($paramIndex, $limit, \PDO::PARAM_INT);
         $stmt->execute();
-        $images = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $images = $this->normalizeCategorySlugs($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         // 2. Loop logic: If we didn't get enough images, fetch from the start
         // ignoring exclusions (simulating a loop back to the top)
@@ -316,8 +336,8 @@ class HomeImageService
             $loopStmt->bindValue(1, $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
             $loopStmt->bindValue(2, $needed, \PDO::PARAM_INT);
             $loopStmt->execute();
-            $loopImages = $loopStmt->fetchAll(\PDO::FETCH_ASSOC);
-            
+            $loopImages = $this->normalizeCategorySlugs($loopStmt->fetchAll(\PDO::FETCH_ASSOC));
+
             $images = array_merge($images, $loopImages);
             
             // Edge case: If DB has very few images (fewer than needed), we might still be short.
@@ -375,7 +395,7 @@ class HomeImageService
         $stmt->bindValue(':include_nsfw', $includeNsfw ? 1 : 0, \PDO::PARAM_INT);
         $stmt->bindValue(':max_fetch', $this->calculateFetchLimit($limit), \PDO::PARAM_INT);
         $stmt->execute();
-        $allImages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $allImages = $this->normalizeCategorySlugs($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         $excludeImageSet = array_flip(array_map('intval', $excludeImageIds));
         $excludeAlbumSet = array_flip(array_map('intval', $excludeAlbumIds));
