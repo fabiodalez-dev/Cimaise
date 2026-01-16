@@ -75,7 +75,11 @@ function prefetchUrl(url) {
 function handleMouseEnter(e) {
   if (shouldSkipPrefetch()) return;
 
-  const link = e.target.closest('a[href]');
+  // e.target may be a text node or SVG element without closest()
+  const target = e.target;
+  if (!target || typeof target.closest !== 'function') return;
+
+  const link = target.closest('a[href]');
   if (!link) return;
 
   const url = link.href;
@@ -115,7 +119,9 @@ export function initLinkPrefetch(container = document) {
   // Also handle touch: prefetch on touchstart (mobile)
   root.addEventListener('touchstart', (e) => {
     if (shouldSkipPrefetch()) return;
-    const link = e.target.closest('a[href]');
+    const target = e.target;
+    if (!target || typeof target.closest !== 'function') return;
+    const link = target.closest('a[href]');
     if (link && isPrefetchable(link.href)) {
       prefetchUrl(link.href);
     }
