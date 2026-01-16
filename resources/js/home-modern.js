@@ -282,10 +282,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if ($scroller) {
             if (scrollerWheelHandler) {
-                $scroller.removeEventListener('wheel', scrollerWheelHandler);
+                $scroller.removeEventListener('wheel', scrollerWheelHandler, { passive: false });
             }
             scrollerWheelHandler = handleMouseWheel;
-            $scroller.addEventListener('wheel', scrollerWheelHandler);
+            $scroller.addEventListener('wheel', scrollerWheelHandler, { passive: false });
         }
     };
 

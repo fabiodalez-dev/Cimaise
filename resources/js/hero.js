@@ -17,7 +17,7 @@ function initHeroParallax() {
     });
     img.dataset.parallaxInit = '1';
   } catch (e) {
-    // silent
+    console.warn('Hero parallax initialization failed:', e);
   }
 }
 

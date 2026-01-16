@@ -43,7 +43,7 @@ if (!$isInstallerRoute) {
         foreach (explode("\n", $envContent) as $line) {
             if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
                 [$key, $value] = explode('=', $line, 2);
-                $env[trim($key)] = trim($value);
+                $env[trim($key)] = trim($value, " \t\n\r\0\x0B\"'");
             }
         }
 
@@ -417,15 +417,17 @@ if (!$isInstallerRoute && $container['db'] !== null) {
                 $navTags = $_SESSION['nav_tags_cache'];
             } else {
                 try {
-                    $tagsQuery = $container['db']->query('
+                    $tagsQuery = $container['db']->query(<<<'SQL'
                         SELECT t.id, t.name, t.slug, COUNT(at.album_id) as albums_count
                         FROM tags t
                         JOIN album_tag at ON at.tag_id = t.id
                         JOIN albums a ON a.id = at.album_id AND a.is_published = 1
+                            AND a.is_nsfw = 0
+                            AND (a.password_hash IS NULL OR a.password_hash = '')
                         GROUP BY t.id, t.name, t.slug
                         ORDER BY albums_count DESC, t.name ASC
                         LIMIT 20
-                    ');
+                    SQL);
                     $navTags = $tagsQuery->fetchAll(\PDO::FETCH_ASSOC);
                     $_SESSION['nav_tags_cache'] = $navTags;
                     $_SESSION['nav_tags_cache_time'] = time();

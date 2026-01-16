@@ -239,7 +239,7 @@ class HomeImageService
         return [
             'images' => $images,
             'totalImages' => $totalImages,
-            'hasMore' => $limit > 0, // No limit means everything is already loaded
+            'hasMore' => $limit > 0 && $totalImages > 0, // No limit means everything is already loaded
         ];
     }
 
@@ -325,9 +325,11 @@ class HomeImageService
             // For now, returning what we found (partial + wrap-around) is usually sufficient.
         }
 
+        $hasMore = $limit > 0 && count($images) >= $limit;
+
         return [
             'images' => $images,
-            'hasMore' => true, // Infinite loop
+            'hasMore' => $hasMore,
         ];
     }
 
