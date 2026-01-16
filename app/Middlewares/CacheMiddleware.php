@@ -186,14 +186,17 @@ class CacheMiddleware implements MiddlewareInterface
                     ->withStatus(304)
                     ->withBody($emptyBody)
                     ->withHeader('ETag', $etag)
-                    ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate");
+                    ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate")
+                    ->withHeader('Vary', 'Cookie, Accept-Encoding');
             }
         }
 
         // For HTML, use shorter cache with must-revalidate
+        // SECURITY: Vary header prevents cache poisoning by ensuring caches consider these headers
         $result = $response
             ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate")
-            ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT');
+            ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT')
+            ->withHeader('Vary', 'Cookie, Accept-Encoding');
 
         if ($etag) {
             $result = $result->withHeader('ETag', $etag);
