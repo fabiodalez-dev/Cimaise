@@ -10,7 +10,7 @@
       <form action="{{ base_path }}/admin/texts/seed" method="post" class="inline" data-confirm="{{ trans('admin.texts.seed_confirm')|e('html_attr') }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <button type="submit" class="btn-secondary text-sm sm:text-base">
-          <i class="fas fa-seedling mr-2"></i><span class="hidden sm:inline">{{ trans('admin.texts.seed_defaults') }}</span><span class="sm:hidden">Seed</span>
+          <i class="fas fa-seedling mr-2"></i><span class="hidden sm:inline">{{ trans('admin.texts.seed_defaults') }}</span><span class="sm:hidden">{{ trans('admin.texts.seed_short') }}</span>
         </button>
       </form>
       <a href="{{ base_path }}/admin/texts/create" class="btn-primary text-sm sm:text-base">

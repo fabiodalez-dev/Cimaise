@@ -564,6 +564,9 @@ class MediaController extends BaseController
         }
 
         $filesize = filesize($realPath);
+        if ($filesize === false) {
+            return $response->withStatus(500);
+        }
         $etag = $this->generateEtag($realPath, $filesize);
         $clientEtag = $request->getHeaderLine('If-None-Match');
         if ($clientEtag !== '' && $clientEtag === $etag) {

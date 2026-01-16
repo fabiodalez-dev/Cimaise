@@ -966,7 +966,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       // Show loading state
-      const btn = document.getElementById('generate-btn');
       const icon = document.getElementById('generate-icon');
       const text = document.getElementById('generate-text');
       const status = document.getElementById('generate-status');
@@ -1028,10 +1027,17 @@ document.addEventListener('DOMContentLoaded', function() {
         text.textContent = '{{ trans('admin.settings.generate_variants')|e('js') }}';
         status.classList.add('hidden');
 
-        // Show error result
-        result.innerHTML = `<div class="text-xs text-red-600 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i><span></span></div>`;
-        const errSpan = result.querySelector('span');
-        if (errSpan) errSpan.textContent = `{{ trans('admin.settings.generate_error')|e('js') }}: ${error.message}`;
+        // Show error result (using textContent to avoid XSS)
+        result.textContent = '';
+        const errDiv = document.createElement('div');
+        errDiv.className = 'text-xs text-red-600 flex items-center';
+        const errIcon = document.createElement('i');
+        errIcon.className = 'fas fa-exclamation-circle mr-2';
+        const errSpan = document.createElement('span');
+        errSpan.textContent = '{{ trans('admin.settings.generate_error')|e('js') }}: ' + error.message;
+        errDiv.appendChild(errIcon);
+        errDiv.appendChild(errSpan);
+        result.appendChild(errDiv);
         result.classList.remove('hidden');
       });
     });
