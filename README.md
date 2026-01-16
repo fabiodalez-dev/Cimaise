@@ -757,6 +757,25 @@ PWA features are configured from Admin → Settings:
 - **Settings Cache** — Configuration values cached with automatic invalidation
 - **Efficient Pagination** — Server-side pagination for media library and galleries
 
+### JSON Page Caching
+
+Full-page caching for instant responses:
+
+- **Database Storage** — Cache stored in SQLite/MySQL with gzip compression (~70% smaller)
+- **ETag Validation** — Automatic 304 Not Modified responses for unchanged content
+- **Tag-based Invalidation** — Smart cache clearing when specific content changes
+- **Lazy Regeneration** — Stale-while-revalidate pattern serves fast responses while refreshing in background
+- **Auto-Warm on Save** — Optional automatic cache refresh after content updates
+- **Post-Login Warmup** — Pre-warms critical caches after admin login
+
+Cached pages include:
+- Home page (all templates)
+- Galleries listing with filters
+- Individual album pages
+- Navigation and settings
+
+Manage from **Admin → System → Cache Management**: clear all caches, warm specific pages, or enable auto-warm.
+
 ### Query Cache System
 
 Cimaise includes a multi-layer query caching system for expensive database queries:
@@ -810,6 +829,7 @@ A dashboard that doesn't insult your intelligence:
 - **Real-Time Preview** — See exactly how your gallery will look before publishing
 - **Visual Template Selector** — Preview home and gallery templates before applying
 - **Equipment Browser** — Browse by camera, lens, film, or location
+- **Mobile Responsive** — Full admin functionality on tablets and phones
 
 ---
 
