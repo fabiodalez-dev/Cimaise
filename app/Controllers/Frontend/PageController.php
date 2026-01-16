@@ -38,6 +38,27 @@ class PageController extends BaseController
     }
 
     /**
+     * Get valid template IDs from database (cached for performance).
+     * SECURITY: Prevents cache poisoning via arbitrary template IDs in URL.
+     *
+     * @return array<int> Array of valid template IDs
+     */
+    private function getValidTemplateIds(): array
+    {
+        static $cache = null;
+        if ($cache === null) {
+            try {
+                $stmt = $this->db->pdo()->query('SELECT id FROM templates WHERE is_active = 1');
+                $cache = array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+            } catch (\Throwable $e) {
+                Logger::warning('Failed to load valid template IDs: ' . $e->getMessage(), [], 'security');
+                $cache = [];
+            }
+        }
+        return $cache;
+    }
+
+    /**
      * Schedule home page cache regeneration after response is sent.
      * Uses register_shutdown_function for deferred execution.
      */
@@ -670,6 +691,22 @@ class PageController extends BaseController
         // Determine if album is cacheable (public, no password, no NSFW)
         // Template overrides are cached with separate keys (album_123 vs album_123_t5)
         $templateIdFromUrl = isset($params['template']) ? (int) $params['template'] : 0;
+
+        // SECURITY: Validate template ID against database to prevent cache poisoning
+        // Only accept template IDs that actually exist in the database
+        if ($templateIdFromUrl > 0) {
+            $validTemplateIds = $this->getValidTemplateIds();
+            if (!in_array($templateIdFromUrl, $validTemplateIds, true)) {
+                // Invalid template ID - reset to default and log attempt
+                Logger::warning('Invalid template ID in URL', [
+                    'template_id' => $templateIdFromUrl,
+                    'album_id' => $album['id'],
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+                ], 'security');
+                $templateIdFromUrl = 0;
+            }
+        }
+
         $canUseCache = empty($album['password_hash']) && empty($album['is_nsfw']) && !$isAdmin;
 
         // Try cache first for public albums
