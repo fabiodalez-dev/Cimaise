@@ -776,6 +776,18 @@ Cached pages include:
 
 Manage from **Admin → System → Cache Management**: clear all caches, warm specific pages, or enable auto-warm.
 
+**CLI Cache Management:**
+```bash
+# Clear all page caches (database backend)
+sqlite3 database/database.sqlite "DELETE FROM page_cache;"
+
+# Clear file-based cache (if using file backend)
+rm -rf storage/cache/pages/
+
+# Clear filter options cache
+rm -f storage/cache/filter_options.cache
+```
+
 ### Query Cache System
 
 Cimaise includes a multi-layer query caching system for expensive database queries:
