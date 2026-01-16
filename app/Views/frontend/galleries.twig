@@ -609,7 +609,7 @@ $(document).ready(function() {
     
     // Animation settings from backend
     const animationEnabled = {{ filter_settings.animation_enabled ? 'true' : 'false' }};
-    const animationDuration = {{ filter_settings.animation_duration }};
+    const animationDuration = {{ filter_settings.animation_duration|default(300) }};
     
     // Page texts from translations
     window.pageTexts = {
