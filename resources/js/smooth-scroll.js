@@ -1,9 +1,13 @@
 // Global smooth scroll with Lenis
 // This script initializes Lenis smooth scrolling on all pages
 import Lenis from 'lenis'
+import { initLinkPrefetch } from './utils/link-prefetch.js'
 
 if (typeof window !== 'undefined') {
   window.Lenis = Lenis
+
+  // Initialize link hover prefetch for faster navigation
+  initLinkPrefetch()
 
   // Only initialize if not already done
   if (!window.lenisInstance) {
