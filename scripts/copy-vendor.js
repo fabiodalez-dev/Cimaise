@@ -101,6 +101,25 @@ const copies = [
     to: 'swiper',
     files: ['swiper-bundle.min.js', 'swiper-bundle.min.css']
   },
+  // Leaflet (maps)
+  {
+    from: 'leaflet/dist',
+    to: 'leaflet',
+    files: [
+      'leaflet.css',
+      'leaflet.js',
+      'leaflet.js.map',
+      'leaflet-src.js',
+      'leaflet-src.js.map',
+      'leaflet-src.esm.js',
+      'leaflet-src.esm.js.map',
+      'images/marker-icon.png',
+      'images/marker-icon-2x.png',
+      'images/marker-shadow.png',
+      'images/layers.png',
+      'images/layers-2x.png'
+    ]
+  },
   // TinyMCE (full directory needed)
   {
     from: 'tinymce',

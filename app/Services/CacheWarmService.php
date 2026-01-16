@@ -450,6 +450,14 @@ class CacheWarmService
     }
 
     /**
+     * Warm a single album cache (wrapper for admin auto-warm).
+     */
+    public function warmAlbum(string $slug): bool
+    {
+        return $this->buildAlbumCache($slug);
+    }
+
+    /**
      * Enrich albums with cover images and tags.
      */
     private function enrichAlbums(array $albums): array
@@ -580,7 +588,7 @@ class CacheWarmService
         ];
 
         $fallbackSrc = null;
-        $bestWidth = 0;
+        $bestWidth = PHP_INT_MAX;
 
         foreach ($variants as $var) {
             $path = (string) ($var['path'] ?? '');
@@ -606,7 +614,7 @@ class CacheWarmService
             $sources[$format][] = $path . ' ' . $width . 'w';
 
             // Track best fallback (largest jpg)
-            if ($format === 'jpg' && $width > $bestWidth) {
+            if ($format === 'jpg' && $width < $bestWidth) {
                 $bestWidth = $width;
                 $fallbackSrc = $path;
             }

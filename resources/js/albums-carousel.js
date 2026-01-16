@@ -89,7 +89,7 @@ onReady(() => {
     document.body.style.userSelect = '';
     wrap();
     setSliderPosition();
-    if (!isMobile) setTimeout(() => { if (!autoPlayId) autoPlayId = requestAnimationFrame(autoPlay); }, 1200);
+    if (!isMobile) setTimeout(startAutoPlay, 1200);
   };
 
   // Prevent link clicks only if user dragged
@@ -112,7 +112,7 @@ onReady(() => {
 
   if (!isMobile) {
     container.addEventListener('mouseenter', () => { if (autoPlayId) { cancelAnimationFrame(autoPlayId); autoPlayId = null; } });
-    container.addEventListener('mouseleave', () => { if (!autoPlayId && !isDragging) { autoPlayId = requestAnimationFrame(autoPlay); } });
+    container.addEventListener('mouseleave', () => { if (!isDragging) startAutoPlay(); });
   }
 
   const prevBtn = container.parentElement.querySelector('.albums-arrow-left');

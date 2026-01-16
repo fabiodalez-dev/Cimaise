@@ -37,10 +37,13 @@ if (typeof window !== 'undefined') {
         let imageLoadHandler = null
         let mutationObserver = null
         let gsapTickHandler = null
+        let gsapScrollHandler = null
+        let domContentHandler = null
 
         // GSAP integration if available
         if (typeof window.gsap !== 'undefined' && window.gsap.ticker) {
-          lenis.on('scroll', window.gsap.updateRoot)
+          gsapScrollHandler = window.gsap.updateRoot
+          lenis.on('scroll', gsapScrollHandler)
           gsapTickHandler = (time) => { lenis.raf(time * 1000) }
           window.gsap.ticker.add(gsapTickHandler)
           window.gsap.ticker.lagSmoothing(0)
@@ -96,8 +99,17 @@ if (typeof window !== 'undefined') {
           clearTimeout(mutationTimeout)
           mutationTimeout = setTimeout(recalculate, 100)
         })
+        const observeMutations = () => {
+          if (document.body) {
+            mutationObserver.observe(document.body, { childList: true, subtree: true })
+            recalculate()
+          }
+        }
         if (document.body) {
-          mutationObserver.observe(document.body, { childList: true, subtree: true })
+          observeMutations()
+        } else {
+          domContentHandler = () => observeMutations()
+          window.addEventListener('DOMContentLoaded', domContentHandler, { once: true })
         }
     
         // Expose recalculate function globally
@@ -107,11 +119,15 @@ if (typeof window !== 'undefined') {
           if (loadHandler) window.removeEventListener('load', loadHandler)
           if (resizeHandler) window.removeEventListener('resize', resizeHandler)
           if (imageLoadHandler) document.removeEventListener('load', imageLoadHandler, true)
+          if (domContentHandler) window.removeEventListener('DOMContentLoaded', domContentHandler)
           if (mutationObserver) mutationObserver.disconnect()
           clearInterval(recalcInterval)
           clearTimeout(resizeTimeout)
           clearTimeout(mutationTimeout)
           if (rafId) cancelAnimationFrame(rafId)
+          if (gsapScrollHandler && typeof lenis.off === 'function') {
+            lenis.off('scroll', gsapScrollHandler)
+          }
           if (gsapTickHandler && window.gsap && window.gsap.ticker) {
             window.gsap.ticker.remove(gsapTickHandler)
           }
@@ -126,13 +142,13 @@ if (typeof window !== 'undefined') {
 
 // Helpers to pause/resume Lenis (used by lightbox)
 export function pauseLenis() {
-  if (window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
+  if (typeof window !== 'undefined' && window.lenisInstance && typeof window.lenisInstance.stop === 'function') {
     window.lenisInstance.stop()
   }
 }
 
 export function resumeLenis() {
-  if (window.lenisInstance && typeof window.lenisInstance.start === 'function') {
+  if (typeof window !== 'undefined' && window.lenisInstance && typeof window.lenisInstance.start === 'function') {
     window.lenisInstance.start()
   }
 }
