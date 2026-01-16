@@ -13,22 +13,50 @@ onReady(() => {
   const DRAG_THRESHOLD = 8; // Minimum pixels to consider it a drag
 
   const getItemWidth = () => { const item = items[0]; const styles = getComputedStyle(item); return item.offsetWidth + parseFloat(styles.marginLeft) + parseFloat(styles.marginRight); };
-  const itemWidth = getItemWidth(); const totalWidth = itemWidth * items.length;
+  // Calculate totalWidth dynamically to handle resize
+  const getTotalWidth = () => getItemWidth() * items.length;
   const setSliderPosition = () => { carousel.style.transform = `translate3d(${currentTranslate}px, 0, 0)`; };
   const getPosition = (e) => {
     if (e.type.includes('mouse')) return { x: e.clientX, y: e.clientY };
     return { x: e.touches[0].clientX, y: e.touches[0].clientY };
   };
 
-  const isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
-  const autoPlay = () => { currentTranslate -= 0.6; if (Math.abs(currentTranslate) >= totalWidth) currentTranslate = 0; setSliderPosition(); autoPlayId = requestAnimationFrame(autoPlay); };
+  let isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+  const mobileQuery = window.matchMedia('(max-width: 767px)');
+
+  const autoPlay = () => {
+    const totalWidth = getTotalWidth(); // Recalculate on each frame for resize handling
+    currentTranslate -= 0.6;
+    if (Math.abs(currentTranslate) >= totalWidth) currentTranslate = 0;
+    setSliderPosition();
+    autoPlayId = requestAnimationFrame(autoPlay);
+  };
 
   // PERFORMANCE: Defer autoplay start using requestIdleCallback
   const startAutoPlay = () => {
-    if (!isMobile && !autoPlayId && !document.hidden) {
+    // Check isDragging to prevent starting autoplay during a drag
+    if (!isMobile && !autoPlayId && !document.hidden && !isDragging) {
       autoPlayId = requestAnimationFrame(autoPlay);
     }
   };
+
+  // Handle resize and orientation changes
+  const handleResize = () => {
+    const wasIsMobile = isMobile;
+    isMobile = mobileQuery.matches;
+    // If switched to mobile, stop autoplay
+    if (isMobile && autoPlayId) {
+      cancelAnimationFrame(autoPlayId);
+      autoPlayId = null;
+    }
+    // If switched to desktop, start autoplay
+    if (!isMobile && wasIsMobile && !isDragging) {
+      startAutoPlay();
+    }
+  };
+
+  mobileQuery.addEventListener('change', handleResize);
+  window.addEventListener('resize', handleResize);
 
   if (!isMobile) {
     if ('requestIdleCallback' in window) {
@@ -107,6 +135,7 @@ onReady(() => {
   carousel.addEventListener('touchstart', dragStart, { passive: true });
   carousel.addEventListener('touchmove', dragMove, { passive: false });
   carousel.addEventListener('touchend', dragEnd);
+  carousel.addEventListener('touchcancel', dragEnd); // Cleanup when system interrupts touch
   carousel.addEventListener('dragstart', (e) => e.preventDefault());
   carousel.addEventListener('selectstart', (e) => e.preventDefault());
 

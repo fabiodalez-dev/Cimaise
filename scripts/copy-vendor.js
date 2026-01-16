@@ -151,6 +151,11 @@ for (const copy of copies) {
       const srcFile = join(srcDir, file);
       const destFile = join(destDir, file);
       if (existsSync(srcFile)) {
+        // Ensure parent directory exists for nested files (e.g., images/marker-icon.png)
+        const parentDir = dirname(destFile);
+        if (parentDir !== destDir) {
+          mkdirSync(parentDir, { recursive: true });
+        }
         cpSync(srcFile, destFile);
       } else {
         console.warn(`    Warning: ${file} not found in ${copy.from}`);

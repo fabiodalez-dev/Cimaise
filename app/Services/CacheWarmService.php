@@ -613,7 +613,7 @@ class CacheWarmService
             // Use string format "path 800w" like PageController
             $sources[$format][] = $path . ' ' . $width . 'w';
 
-            // Track best fallback (largest jpg)
+            // Track best fallback (smallest jpg for faster initial load)
             if ($format === 'jpg' && $width < $bestWidth) {
                 $bestWidth = $width;
                 $fallbackSrc = $path;
@@ -812,14 +812,6 @@ class CacheWarmService
     public function warmGalleries(): bool
     {
         return $this->buildGalleriesCache();
-    }
-
-    /**
-     * Warm a single album cache (wrapper for lazy regeneration).
-     */
-    public function warmAlbum(string $slug): bool
-    {
-        return $this->buildAlbumCache($slug);
     }
 
     /**
