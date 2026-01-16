@@ -2259,6 +2259,7 @@
     "admin.texts.search_placeholder": "Cerca traduzioni...",
     "admin.texts.seed_confirm": "Verranno aggiunte le traduzioni predefinite. Le traduzioni esistenti non verranno sovrascritte. Continuare?",
     "admin.texts.seed_defaults": "Carica Predefiniti",
+    "admin.texts.seed_short": "Carica",
     "admin.texts.select_language": "Seleziona una lingua",
     "admin.texts.title": "Traduzioni",
     "admin.texts.unknown_error": "Errore sconosciuto",

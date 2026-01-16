@@ -127,7 +127,7 @@ html.dark .preloader-title {
             } else {
                 document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(dismiss, 400);
-                });
+                }, { once: true });
             }
         }
     } catch (e) {

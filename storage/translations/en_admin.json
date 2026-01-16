@@ -2259,6 +2259,7 @@
     "admin.texts.search_placeholder": "Search translations...",
     "admin.texts.seed_confirm": "This will add default translations. Existing translations will not be overwritten. Continue?",
     "admin.texts.seed_defaults": "Seed Defaults",
+    "admin.texts.seed_short": "Seed",
     "admin.texts.select_language": "Select a language",
     "admin.texts.title": "Translations",
     "admin.texts.unknown_error": "Unknown error",
