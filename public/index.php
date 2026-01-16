@@ -10,6 +10,7 @@ use Slim\Factory\AppFactory;
 use Slim\Views\Twig;
 use Slim\Views\TwigMiddleware;
 use App\Middlewares\CsrfMiddleware;
+use App\Middlewares\EarlyHintsMiddleware;
 use App\Middlewares\FlashMiddleware;
 use App\Middlewares\SecurityHeadersMiddleware;
 use Slim\Middleware\ErrorMiddleware;
@@ -229,6 +230,7 @@ if ($container['db'] !== null) {
 $app->add(new CsrfMiddleware());
 $app->add(new FlashMiddleware());
 $app->add(new SecurityHeadersMiddleware());
+$app->add(new EarlyHintsMiddleware($basePath));
 
 $twigCacheDir = __DIR__ . '/../storage/cache/twig';
 $twigCache = false;
