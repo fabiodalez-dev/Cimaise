@@ -64,6 +64,17 @@
       width: 100%;
     }
   }
+  /* LQIP (Low Quality Image Placeholder) - Progressive image loading */
+  .lqip-blur {
+    filter: blur(20px);
+    transform: scale(1.1);
+    transition: filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .lqip-blur.lqip-loaded {
+    filter: blur(0);
+    transform: scale(1);
+  }
 </style>
 {% endblock %}
 
@@ -447,11 +458,12 @@
                                         {% if srcset_jpg %}
                                         <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
-                                        <img src="{{ img_src }}"
+                                        {# PERFORMANCE: LQIP for instant perceived loading (inline base64) #}
+                                        <img {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ img_src }}"{% else %}src="{{ img_src }}"{% endif %}
                                              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                                              alt="{{ ImageMacros.smart_alt(image, null, site_title)|trim|e('html_attr') }}"
                                              title="{{ seo_title|e('html_attr') }}"
-                                             class="img-fill"
+                                             class="img-fill{% if image.lqip_placeholder %} lqip-blur{% endif %}"
                                              {% if loop.index <= 6 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
                                              decoding="async"
                                              data-fallback="hide">
@@ -833,6 +845,52 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+</script>
+<script nonce="{{ csp_nonce() }}">
+// LQIP Progressive Image Loading
+// Replaces tiny blur placeholder with HD image when loaded
+(function() {
+  const lqipImages = document.querySelectorAll('img.lqip-blur[data-src]');
+  if (lqipImages.length === 0) return;
+
+  const loadHDImage = (img) => {
+    const hdSrc = img.getAttribute('data-src');
+    if (!hdSrc) return;
+
+    // Preload HD image
+    const hdImage = new Image();
+
+    hdImage.onload = () => {
+      // Smooth transition from blur to sharp
+      img.src = hdSrc;
+      img.removeAttribute('data-src');
+
+      // Add loaded class for CSS transition
+      requestAnimationFrame(() => {
+        img.classList.add('lqip-loaded');
+      });
+    };
+
+    hdImage.onerror = () => {
+      // Fallback: remove blur even if HD fails to load
+      img.classList.add('lqip-loaded');
+    };
+
+    // Start loading
+    hdImage.src = hdSrc;
+  };
+
+  // Load images progressively
+  lqipImages.forEach((img, index) => {
+    if (img.complete && img.naturalWidth > 0) {
+      // LQIP already loaded, start HD immediately
+      loadHDImage(img);
+    } else {
+      // Wait for LQIP to load first
+      img.addEventListener('load', () => loadHDImage(img), { once: true });
+    }
+  });
+})();
 </script>
   <script nonce="{{ csp_nonce() }}" type="module" src="{{ vite_asset('js/home-modern.js') }}"></script>
 {% endblock %}

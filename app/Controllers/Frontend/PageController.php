@@ -59,6 +59,44 @@ class PageController extends BaseController
     }
 
     /**
+     * Generate inline base64 data URI for LQIP placeholder
+     * PERFORMANCE: Small LQIP images (~1-2KB) are faster inline than HTTP request
+     *
+     * @param string $lqipPath Filesystem path to LQIP file
+     * @return string|null Base64 data URI or null on error
+     */
+    private function generateLQIPDataUri(string $lqipPath): ?string
+    {
+        $root = dirname(__DIR__, 2);
+        $absolutePath = $root . '/public' . $lqipPath;
+
+        if (!file_exists($absolutePath)) {
+            return null;
+        }
+
+        // Only inline if file is small enough (max 5KB to avoid HTML bloat)
+        $size = filesize($absolutePath);
+        if ($size === false || $size > 5120) {
+            return $lqipPath; // Return path for <img src> instead
+        }
+
+        $content = @file_get_contents($absolutePath);
+        if ($content === false) {
+            return null;
+        }
+
+        // Determine MIME type
+        $mimeType = 'image/jpeg';
+        if (str_ends_with($lqipPath, '.webp')) {
+            $mimeType = 'image/webp';
+        } elseif (str_ends_with($lqipPath, '.png')) {
+            $mimeType = 'image/png';
+        }
+
+        return 'data:' . $mimeType . ';base64,' . base64_encode($content);
+    }
+
+    /**
      * Schedule home page cache regeneration after response is sent.
      * Uses register_shutdown_function for deferred execution.
      */
@@ -2675,7 +2713,7 @@ class PageController extends BaseController
         return $speed;
     }
 
-    private function processImageSourcesBatch(array $images): array
+    private function processImageSourcesBatch(array $images, bool $isProtectedAlbum = false): array
     {
         if (empty($images)) {
             return [];
@@ -2756,6 +2794,23 @@ class PageController extends BaseController
                 }
             }
 
+            // PERFORMANCE: Add LQIP placeholder for instant perceived loading
+            // SECURITY: Only for public albums (no password, no NSFW)
+            $lqipPlaceholder = null;
+            if (!$isProtectedAlbum) {
+                foreach ($variants as $variant) {
+                    if (($variant['variant'] ?? '') === 'lqip' && !empty($variant['path'])) {
+                        $lqipPath = $variant['path'];
+                        // Only use LQIP if it's a public path
+                        if (!str_starts_with($lqipPath, '/storage/')) {
+                            // Generate inline base64 data URI for instant rendering
+                            $lqipPlaceholder = $this->generateLQIPDataUri($lqipPath);
+                        }
+                        break;
+                    }
+                }
+            }
+
             $image['sources'] = $sources;
             $image['variants'] = $variants;
             // Security: never expose non-public storage paths in fallback_src
@@ -2763,6 +2818,7 @@ class PageController extends BaseController
                 $fallbackUrl = '';
             }
             $image['fallback_src'] = $fallbackUrl;
+            $image['lqip_placeholder'] = $lqipPlaceholder; // null for protected albums
         }
         unset($image);
 
