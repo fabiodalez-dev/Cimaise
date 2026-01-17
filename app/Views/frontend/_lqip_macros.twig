@@ -21,7 +21,7 @@
 {% macro lqip_image(image, img_src, alt='', title='', sizes='100vw', class='', fetchpriority='', loading='lazy') %}
 <img {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ img_src }}"{% else %}src="{{ img_src }}"{% endif %}
      {% if sizes %}sizes="{{ sizes }}"{% endif %}
-     {% if alt %}alt="{{ alt }}"{% endif %}
+     alt="{{ alt|default('')|e('html_attr') }}"
      {% if title %}title="{{ title }}"{% endif %}
      class="{{ class }}{% if image.lqip_placeholder %} lqip-blur{% endif %}"
      {% if fetchpriority %}fetchpriority="{{ fetchpriority }}"{% endif %}
@@ -59,7 +59,7 @@
   {# LQIP for instant perceived loading #}
   <img {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ img_src }}"{% else %}src="{{ img_src }}"{% endif %}
        {% if sizes %}sizes="{{ sizes }}"{% endif %}
-       {% if alt %}alt="{{ alt }}"{% endif %}
+       alt="{{ alt|default('')|e('html_attr') }}"
        {% if title %}title="{{ title }}"{% endif %}
        class="{{ class }}{% if image.lqip_placeholder %} lqip-blur{% endif %}"
        {% if fetchpriority %}fetchpriority="{{ fetchpriority }}"{% endif %}
