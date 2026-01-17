@@ -1960,7 +1960,7 @@ class PageController extends BaseController
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
 
-        // Get category
+        // Get category first to validate
         $stmt = $pdo->prepare('SELECT * FROM categories WHERE slug = :slug');
         $stmt->execute([':slug' => $slug]);
         $category = $stmt->fetch();
@@ -1969,6 +1969,37 @@ class PageController extends BaseController
             return $response->withStatus(404);
         }
 
+        // Cache is only used for public view (no admin, no NSFW consent)
+        $canUseCache = !$isAdmin && !$nsfwConsent;
+        $cacheKey = 'category_' . $slug;
+
+        // Try cache first for public view
+        if ($canUseCache) {
+            $cacheService = $this->getPageCacheService();
+            $cached = $cacheService->get($cacheKey);
+
+            if ($cached !== null && isset($cached['data']) && is_array($cached['data'])) {
+                // Fresh cache hit - render with cached data + session-specific vars
+                return $this->view->render($response, 'frontend/category.twig', array_merge($cached['data'], [
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+
+            // Lazy regeneration: try stale cache
+            $staleCached = $cacheService->get($cacheKey, allowStale: true);
+            if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
+                // Serve stale, schedule background regeneration
+                return $this->view->render($response, 'frontend/category.twig', array_merge($staleCached['data'], [
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+        }
+
+        // Generate fresh data
         // Get albums in category (supports both legacy category_id and junction table)
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
@@ -1996,7 +2027,8 @@ class PageController extends BaseController
         $categories = $stmt->fetchAll();
 
         $seo = $this->buildSeo($request, (string) $category['name'], 'Photography albums in category: ' . $category['name']);
-        return $this->view->render($response, 'frontend/category.twig', [
+
+        $data = [
             'category' => $category,
             'albums' => $albums,
             'categories' => $categories,
@@ -2010,7 +2042,14 @@ class PageController extends BaseController
             'robots' => $seo['robots'],
             'nsfw_consent' => $nsfwConsent,
             'is_admin' => $isAdmin
-        ]);
+        ];
+
+        // Save to cache if eligible
+        if ($canUseCache) {
+            $cacheService->set($cacheKey, $data, ['category', 'albums']);
+        }
+
+        return $this->view->render($response, 'frontend/category.twig', $data);
     }
 
     public function tag(Request $request, Response $response, array $args): Response
@@ -2020,7 +2059,7 @@ class PageController extends BaseController
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
 
-        // Get tag
+        // Get tag first to validate
         $stmt = $pdo->prepare('SELECT * FROM tags WHERE slug = :slug');
         $stmt->execute([':slug' => $slug]);
         $tag = $stmt->fetch();
@@ -2032,6 +2071,37 @@ class PageController extends BaseController
             ]);
         }
 
+        // Cache is only used for public view (no admin, no NSFW consent)
+        $canUseCache = !$isAdmin && !$nsfwConsent;
+        $cacheKey = 'tag_' . $slug;
+
+        // Try cache first for public view
+        if ($canUseCache) {
+            $cacheService = $this->getPageCacheService();
+            $cached = $cacheService->get($cacheKey);
+
+            if ($cached !== null && isset($cached['data']) && is_array($cached['data'])) {
+                // Fresh cache hit - render with cached data + session-specific vars
+                return $this->view->render($response, 'frontend/tag.twig', array_merge($cached['data'], [
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+
+            // Lazy regeneration: try stale cache
+            $staleCached = $cacheService->get($cacheKey, allowStale: true);
+            if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
+                // Serve stale, schedule background regeneration
+                return $this->view->render($response, 'frontend/tag.twig', array_merge($staleCached['data'], [
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+        }
+
+        // Generate fresh data
         // Get albums with this tag (supports both legacy category_id and junction table)
         $stmt = $pdo->prepare('
             SELECT a.*,
@@ -2062,11 +2132,11 @@ class PageController extends BaseController
         // Get popular tags for navigation
         $stmt = $pdo->prepare('
             SELECT t.*, COUNT(at.album_id) as albums_count
-            FROM tags t 
+            FROM tags t
             JOIN album_tag at ON at.tag_id = t.id
             JOIN albums a ON a.id = at.album_id AND a.is_published = 1
-            GROUP BY t.id 
-            ORDER BY albums_count DESC, t.name ASC 
+            GROUP BY t.id
+            ORDER BY albums_count DESC, t.name ASC
             LIMIT 30
         ');
         $stmt->execute();
@@ -2076,7 +2146,8 @@ class PageController extends BaseController
         $navCategories = $this->getNavigationService()->getNavigationCategories();
 
         $seo = $this->buildSeo($request, '#' . $tag['name'], 'Photography albums tagged with: ' . $tag['name']);
-        return $this->view->render($response, 'frontend/tag.twig', [
+
+        $data = [
             'tag' => $tag,
             'albums' => $albums,
             'tags' => $tags,
@@ -2091,7 +2162,14 @@ class PageController extends BaseController
             'robots' => $seo['robots'],
             'nsfw_consent' => $nsfwConsent,
             'is_admin' => $isAdmin
-        ]);
+        ];
+
+        // Save to cache if eligible
+        if ($canUseCache) {
+            $cacheService->set($cacheKey, $data, ['tag', 'albums']);
+        }
+
+        return $this->view->render($response, 'frontend/tag.twig', $data);
     }
 
     public function about(Request $request, Response $response): Response
