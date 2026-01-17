@@ -101,7 +101,7 @@
   </script>
 #}
 {% macro lqip_script() %}
-// LQIP Progressive Image Loading
+// LQIP Progressive Image Loading with IntersectionObserver
 (function() {
   const lqipImages = document.querySelectorAll('img.lqip-blur[data-src]');
   if (lqipImages.length === 0) return;
@@ -134,12 +134,32 @@
     hdImage.src = hdSrc;
   };
 
-  lqipImages.forEach((img) => {
-    if (img.complete && img.naturalWidth > 0) {
-      loadHDImage(img);
-    } else {
-      img.addEventListener('load', () => loadHDImage(img), { once: true });
-    }
-  });
+  // Use IntersectionObserver to load only visible images
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          loadHDImage(img);
+          observer.unobserve(img);
+        }
+      });
+    }, {
+      rootMargin: '50px' // Start loading 50px before entering viewport
+    });
+
+    lqipImages.forEach((img) => {
+      observer.observe(img);
+    });
+  } else {
+    // Fallback for browsers without IntersectionObserver
+    lqipImages.forEach((img) => {
+      if (img.complete && img.naturalWidth > 0) {
+        loadHDImage(img);
+      } else {
+        img.addEventListener('load', () => loadHDImage(img), { once: true });
+      }
+    });
+  }
 })();
 {% endmacro %}
