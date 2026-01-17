@@ -46,14 +46,15 @@
 #}
 {% macro lqip_picture(image, img_src, alt='', title='', sizes='100vw', class='', fetchpriority='', loading='lazy') %}
 <picture>
+  {# When LQIP exists, defer srcset loading to prevent immediate HD download #}
   {% if image.sources.avif|default([])|length > 0 %}
-  <source type="image/avif" srcset="{{ image.sources.avif|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
+  <source type="image/avif" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ image.sources.avif|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
   {% endif %}
   {% if image.sources.webp|default([])|length > 0 %}
-  <source type="image/webp" srcset="{{ image.sources.webp|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
+  <source type="image/webp" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ image.sources.webp|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
   {% endif %}
   {% if image.sources.jpg|default([])|length > 0 %}
-  <source type="image/jpeg" srcset="{{ image.sources.jpg|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
+  <source type="image/jpeg" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ image.sources.jpg|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
   {% endif %}
   {# LQIP for instant perceived loading #}
   <img {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ img_src }}"{% else %}src="{{ img_src }}"{% endif %}
@@ -108,6 +109,16 @@
   const loadHDImage = (img) => {
     const hdSrc = img.getAttribute('data-src');
     if (!hdSrc) return;
+
+    // Restore picture source srcsets (if any)
+    const picture = img.closest('picture');
+    if (picture) {
+      const sources = picture.querySelectorAll('source[data-srcset]');
+      sources.forEach(source => {
+        source.setAttribute('srcset', source.getAttribute('data-srcset'));
+        source.removeAttribute('data-srcset');
+      });
+    }
 
     const hdImage = new Image();
     hdImage.onload = () => {
