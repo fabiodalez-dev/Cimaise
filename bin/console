@@ -28,6 +28,7 @@ if ($isInstallCommand) {
     $cli->add(new App\Tasks\ImagesGenerateCommand($container['db']));
     $cli->add(new App\Tasks\ImagesGenerateVariantsCommand($container['db']));
     $cli->add(new App\Tasks\BlurGenerateImageCommand($container['db']));
+    $cli->add(new App\Tasks\ImagesGenerateLQIPCommand());
     $cli->add(new App\Tasks\DiagnosticsCommand($container['db']));
     $cli->add(new App\Tasks\SitemapCommand($container['db']));
     $cli->add(new App\Tasks\InitCommand($container['db']));
