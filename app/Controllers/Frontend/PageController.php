@@ -61,26 +61,47 @@ class PageController extends BaseController
     /**
      * Generate inline base64 data URI for LQIP placeholder
      * PERFORMANCE: Small LQIP images (~1-2KB) are faster inline than HTTP request
+     * SECURITY: Validates path to prevent directory traversal attacks
      *
-     * @param string $lqipPath Filesystem path to LQIP file
+     * @param string $lqipPath Filesystem path to LQIP file (must start with /)
      * @return string|null Base64 data URI or null on error
      */
     private function generateLQIPDataUri(string $lqipPath): ?string
     {
-        $root = dirname(__DIR__, 2);
-        $absolutePath = $root . '/public' . $lqipPath;
+        // Security: Validate path format
+        if (!str_starts_with($lqipPath, '/')) {
+            return null;
+        }
 
-        if (!file_exists($absolutePath)) {
+        $root = dirname(__DIR__, 2);
+        $publicDir = $root . '/public';
+        $absolutePath = $publicDir . $lqipPath;
+
+        // Security: Canonicalize path and verify it's within public directory
+        $realPath = realpath($absolutePath);
+        $realPublicDir = realpath($publicDir);
+
+        if ($realPath === false || $realPublicDir === false) {
+            return null;
+        }
+
+        // Security: Prevent directory traversal
+        if (!str_starts_with($realPath, $realPublicDir . DIRECTORY_SEPARATOR)) {
+            Logger::warning('LQIP path traversal attempt blocked', [
+                'lqip_path' => $lqipPath,
+                'real_path' => $realPath,
+                'public_dir' => $realPublicDir
+            ], 'security');
             return null;
         }
 
         // Only inline if file is small enough (max 5KB to avoid HTML bloat)
-        $size = filesize($absolutePath);
+        $size = filesize($realPath);
         if ($size === false || $size > 5120) {
             return $lqipPath; // Return path for <img src> instead
         }
 
-        $content = @file_get_contents($absolutePath);
+        $content = @file_get_contents($realPath);
         if ($content === false) {
             return null;
         }
@@ -2046,7 +2067,10 @@ class PageController extends BaseController
 
         // Save to cache if eligible
         if ($canUseCache) {
-            $cacheService->set($cacheKey, $data, ['category', 'albums']);
+            $cacheService->set($cacheKey, [
+                'template_file' => 'frontend/category.twig',
+                'data' => $data,
+            ]);
         }
 
         return $this->view->render($response, 'frontend/category.twig', $data);
@@ -2166,7 +2190,10 @@ class PageController extends BaseController
 
         // Save to cache if eligible
         if ($canUseCache) {
-            $cacheService->set($cacheKey, $data, ['tag', 'albums']);
+            $cacheService->set($cacheKey, [
+                'template_file' => 'frontend/tag.twig',
+                'data' => $data,
+            ]);
         }
 
         return $this->view->render($response, 'frontend/tag.twig', $data);

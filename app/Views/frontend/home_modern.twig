@@ -449,14 +449,15 @@
                             <div class="work-grid_img-holder">
                                 <div class="work-grid_img-height">
                                     <picture>
+                                        {# Defer srcset when LQIP exists to prevent immediate HD download #}
                                         {% if srcset_avif %}
-                                        <source type="image/avif" srcset="{{ srcset_avif|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                        <source type="image/avif" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ srcset_avif|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
                                         {% if srcset_webp %}
-                                        <source type="image/webp" srcset="{{ srcset_webp|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                        <source type="image/webp" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ srcset_webp|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
                                         {% if srcset_jpg %}
-                                        <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
+                                        <source type="image/jpeg" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw">
                                         {% endif %}
                                         {# PERFORMANCE: LQIP for instant perceived loading (inline base64) #}
                                         <img {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ img_src }}"{% else %}src="{{ img_src }}"{% endif %}
@@ -856,6 +857,16 @@ document.addEventListener('DOMContentLoaded', function() {
   const loadHDImage = (img) => {
     const hdSrc = img.getAttribute('data-src');
     if (!hdSrc) return;
+
+    // Restore picture source srcsets (if any)
+    const picture = img.closest('picture');
+    if (picture) {
+      const sources = picture.querySelectorAll('source[data-srcset]');
+      sources.forEach(source => {
+        source.setAttribute('srcset', source.getAttribute('data-srcset'));
+        source.removeAttribute('data-srcset');
+      });
+    }
 
     // Preload HD image
     const hdImage = new Image();
