@@ -2008,10 +2008,10 @@ class PageController extends BaseController
                 ]));
             }
 
-            // Lazy regeneration: try stale cache
+            // Stale-while-revalidate: try expired cache if fresh not available
             $staleCached = $cacheService->get($cacheKey, allowStale: true);
             if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
-                // Serve stale, schedule background regeneration
+                // Serve stale cache (background regeneration not implemented)
                 return $this->view->render($response, 'frontend/category.twig', array_merge($staleCached['data'], [
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,
@@ -2113,10 +2113,10 @@ class PageController extends BaseController
                 ]));
             }
 
-            // Lazy regeneration: try stale cache
+            // Stale-while-revalidate: try expired cache if fresh not available
             $staleCached = $cacheService->get($cacheKey, allowStale: true);
             if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
-                // Serve stale, schedule background regeneration
+                // Serve stale cache (background regeneration not implemented)
                 return $this->view->render($response, 'frontend/tag.twig', array_merge($staleCached['data'], [
                     'nsfw_consent' => $nsfwConsent,
                     'is_admin' => $isAdmin,

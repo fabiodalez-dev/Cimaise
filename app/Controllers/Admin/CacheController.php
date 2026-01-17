@@ -295,14 +295,15 @@ class CacheController extends BaseController
         }
 
         // Run LQIP generation in background
+        $logFile = sys_get_temp_dir() . '/lqip_generation.log';
         $cmd = 'nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-lqip'
-            . ' > /tmp/lqip_generation.log 2>&1 &';
-        exec($cmd, $output, $exitCode);
+            . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
+        exec($cmd);
 
         $_SESSION['flash'][] = [
             'type' => 'success',
-            'message' => 'LQIP generation started in background. Check logs for progress.',
+            'message' => 'LQIP generation started in background. Log: ' . $logFile,
         ];
 
         return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
@@ -327,14 +328,15 @@ class CacheController extends BaseController
         }
 
         // Run LQIP generation with --force in background
+        $logFile = sys_get_temp_dir() . '/lqip_generation.log';
         $cmd = 'nohup php ' . escapeshellarg($consolePath)
             . ' images:generate-lqip --force'
-            . ' > /tmp/lqip_generation.log 2>&1 &';
-        exec($cmd, $output, $exitCode);
+            . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
+        exec($cmd);
 
         $_SESSION['flash'][] = [
             'type' => 'success',
-            'message' => 'LQIP force regeneration started in background. Check logs for progress.',
+            'message' => 'LQIP force regeneration started in background. Log: ' . $logFile,
         ];
 
         return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
