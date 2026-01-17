@@ -891,16 +891,33 @@ document.addEventListener('DOMContentLoaded', function() {
     hdImage.src = hdSrc;
   };
 
-  // Load images progressively
-  lqipImages.forEach((img, index) => {
-    if (img.complete && img.naturalWidth > 0) {
-      // LQIP already loaded, start HD immediately
-      loadHDImage(img);
-    } else {
-      // Wait for LQIP to load first
-      img.addEventListener('load', () => loadHDImage(img), { once: true });
-    }
-  });
+  // Use IntersectionObserver to load only visible images (respects loading="lazy")
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          loadHDImage(img);
+          observer.unobserve(img);
+        }
+      });
+    }, {
+      rootMargin: '50px' // Start loading 50px before entering viewport
+    });
+
+    lqipImages.forEach((img) => {
+      observer.observe(img);
+    });
+  } else {
+    // Fallback for browsers without IntersectionObserver
+    lqipImages.forEach((img) => {
+      if (img.complete && img.naturalWidth > 0) {
+        loadHDImage(img);
+      } else {
+        img.addEventListener('load', () => loadHDImage(img), { once: true });
+      }
+    });
+  }
 })();
 </script>
   <script nonce="{{ csp_nonce() }}" type="module" src="{{ vite_asset('js/home-modern.js') }}"></script>
