@@ -165,7 +165,7 @@ class ImagesGenerateLQIPCommand
         $params = [];
 
         // Filter: Skip protected albums (security requirement)
-        $sql .= ' AND (a.password_hash IS NULL OR a.password_hash = "")';
+        $sql .= ' AND (a.password_hash IS NULL OR a.password_hash = \'\')';
         $sql .= ' AND (a.is_nsfw IS NULL OR a.is_nsfw = 0)';
 
         // Filter: Specific album
@@ -178,7 +178,7 @@ class ImagesGenerateLQIPCommand
         if (!$this->force) {
             $sql .= ' AND NOT EXISTS (
                 SELECT 1 FROM image_variants
-                WHERE image_id = i.id AND variant = "lqip"
+                WHERE image_id = i.id AND variant = \'lqip\'
             )';
         }
 
@@ -207,9 +207,19 @@ class ImagesGenerateLQIPCommand
             } elseif ($arg === '--dry-run') {
                 $this->dryRun = true;
             } elseif (str_starts_with($arg, '--album=')) {
-                $this->albumId = (int) substr($arg, 8);
+                $value = (int) substr($arg, 8);
+                if ($value > 0) {
+                    $this->albumId = $value;
+                } else {
+                    echo "Warning: --album must be a positive integer. Ignoring.\n";
+                }
             } elseif (str_starts_with($arg, '--limit=')) {
-                $this->limit = (int) substr($arg, 8);
+                $value = (int) substr($arg, 8);
+                if ($value > 0) {
+                    $this->limit = $value;
+                } else {
+                    echo "Warning: --limit must be a positive integer. Ignoring.\n";
+                }
             }
         }
     }

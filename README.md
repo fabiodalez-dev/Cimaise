@@ -751,7 +751,7 @@ PWA features are configured from Admin → Settings:
 - **Deferred Scripts** — Non-critical JavaScript loads after page render
 - **Image Priority** — First image loads with `fetchpriority="high"`
 
-### LQIP (Low Quality Image Placeholder)
+### LQIP (Low-Quality Image Placeholder)
 
 Instant perceived image loading with progressive enhancement:
 
@@ -938,7 +938,7 @@ php bin/console seed                 # Seed default templates and categories
 php bin/console user:create          # Create admin user
 php bin/console images:generate      # Generate all image variants
 php bin/console nsfw:generate-blur   # Generate blur variants for protected albums
-php bin/console images:generate-lqip # Generate LQIP (Low Quality Image Placeholders)
+php bin/console images:generate-lqip # Generate LQIP (Low-Quality Image Placeholders)
 php bin/console maintenance:run      # Run daily maintenance (variants + blur)
 php bin/console sitemap:generate     # Build XML sitemap
 php bin/console analytics:cleanup    # Purge old analytics data
@@ -946,7 +946,7 @@ php bin/console analytics:cleanup    # Purge old analytics data
 
 ### LQIP Generation Options
 
-The `images:generate-lqip` command generates tiny Low Quality Image Placeholders (LQIP) for instant perceived loading. LQIP are 40x30px images (~1-2KB) that load instantly while the full-quality image loads in the background.
+The `images:generate-lqip` command generates tiny Low-Quality Image Placeholders (LQIP) for instant perceived loading. LQIP are 40x30px images (~1-2KB) that load instantly while the full-quality image loads in the background.
 
 **Security Note:** LQIP are only generated for public albums. NSFW and password-protected albums are automatically skipped to prevent bypassing age gates or password protection.
 
