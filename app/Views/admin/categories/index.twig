@@ -38,6 +38,7 @@
 
           .categories-container > .nested-list {
             padding-left: 0;
+            padding-bottom: 60px; /* Drop zone for "move to root level" */
           }
 
           /* Category item wrapper - contains content + nested children */
@@ -104,6 +105,34 @@
           .drag-active .nested-list:empty:hover {
             border-color: #000;
             background: rgba(0, 0, 0, 0.05);
+          }
+
+          /* Root list drop zone - always show during drag */
+          .drag-active > .nested-list#root-list {
+            position: relative;
+          }
+
+          .drag-active > .nested-list#root-list::after {
+            content: '{{ trans('admin.categories.drop_root')|default('Drop here for root level')|e('js') }}';
+            display: block;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.03);
+            border: 2px dashed #9ca3af;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #6b7280;
+          }
+
+          .drag-active > .nested-list#root-list:hover::after {
+            border-color: #000;
+            background: rgba(0, 0, 0, 0.06);
           }
           
           .drag-handle {
@@ -642,6 +671,9 @@
           fallbackOnBody: true,
           swapThreshold: 0.65,
           invertSwap: true,
+          delay: 100,
+          delayOnTouchOnly: true,
+          touchStartThreshold: 5,
           ghostClass: 'sortable-ghost',
           chosenClass: 'sortable-chosen',
           dragClass: 'sortable-drag',
