@@ -73,9 +73,9 @@ class PageController extends BaseController
             return null;
         }
 
-        // Security: Validate path matches expected LQIP format /media/{imageId}_lqip.jpg
+        // Security: Validate path matches expected LQIP format /media/{imageId}_lqip.(jpg|webp|png)
         // This prevents path traversal attempts disguised as valid paths
-        if (!preg_match('#^/media/\d+_lqip\.jpg$#', $lqipPath)) {
+        if (!preg_match('#^/media/\d+_lqip\.(jpg|webp|png)$#', $lqipPath)) {
             Logger::warning('LQIP path format validation failed', [
                 'lqip_path' => $lqipPath
             ], 'security');
