@@ -516,7 +516,12 @@
     
     let csrfToken = {{ csrf|json_encode|raw }};
     
-    // SortableJS drag system
+    // SortableJS with horizontal level tracking
+    const LEVEL_STEP = 30; // pixels per level
+    const MAX_LEVEL = 4;
+    let dragState = null;
+    const levelIndicator = document.getElementById('level-indicator');
+
     function initCategorySortable() {
       const container = document.getElementById('categories-container');
       if (!container) return;
@@ -527,13 +532,79 @@
         return;
       }
 
+      // Track mouse position for horizontal level changes
+      container.addEventListener('pointerdown', (e) => {
+        const item = e.target.closest('.category-item');
+        if (!item || !e.target.closest('.drag-handle')) return;
+
+        dragState = {
+          item: item,
+          startX: e.clientX,
+          startLevel: parseInt(item.dataset.level) || 0
+        };
+      });
+
+      document.addEventListener('pointermove', (e) => {
+        if (!dragState) return;
+
+        const deltaX = e.clientX - dragState.startX;
+        const levelDelta = Math.round(deltaX / LEVEL_STEP);
+        let newLevel = Math.max(0, Math.min(MAX_LEVEL, dragState.startLevel + levelDelta));
+
+        // Can't be level > 0 if no potential parent above
+        const items = Array.from(container.querySelectorAll('.category-item'));
+        const itemIndex = items.indexOf(dragState.item);
+        if (newLevel > 0 && itemIndex > 0) {
+          const prevItem = items[itemIndex - 1];
+          const prevLevel = parseInt(prevItem.dataset.level) || 0;
+          // Can only be 1 level deeper than previous item
+          newLevel = Math.min(newLevel, prevLevel + 1);
+        } else if (itemIndex === 0) {
+          newLevel = 0;
+        }
+
+        // Update visual
+        dragState.item.dataset.level = newLevel;
+        dragState.item.style.marginLeft = (newLevel * LEVEL_STEP) + 'px';
+
+        // Show level indicator
+        if (levelIndicator) {
+          levelIndicator.textContent = '{{ trans('admin.categories.level')|e('js') }} ' + newLevel;
+          levelIndicator.classList.add('show');
+          levelIndicator.classList.toggle('max-level', newLevel >= MAX_LEVEL);
+        }
+      });
+
+      document.addEventListener('pointerup', () => {
+        if (dragState) {
+          dragState = null;
+          if (levelIndicator) {
+            levelIndicator.classList.remove('show', 'max-level');
+          }
+        }
+      });
+
       new Sortable(container, {
         handle: '.drag-handle',
         animation: 150,
         ghostClass: 'sortable-ghost',
         chosenClass: 'sortable-chosen',
         dragClass: 'sortable-drag',
-        onEnd: function() {
+        onStart: function(evt) {
+          const item = evt.item;
+          dragState = {
+            item: item,
+            startX: evt.originalEvent.clientX,
+            startLevel: parseInt(item.dataset.level) || 0
+          };
+        },
+        onEnd: function(evt) {
+          // Reset inline margin (CSS handles via data-level)
+          evt.item.style.marginLeft = '';
+          dragState = null;
+          if (levelIndicator) {
+            levelIndicator.classList.remove('show', 'max-level');
+          }
           saveHierarchy();
         }
       });
