@@ -524,13 +524,13 @@
     // SortableJS-based drag system
     function initCategorySortable() {
       const container = document.getElementById('categories-container');
-      const indicator = document.getElementById('level-indicator');
       if (!container) return;
 
-      let startX = 0;
-      let currentLevel = 0;
-      const maxLevel = 4;
-      const levelStep = 30;
+      // Check if Sortable is available (exposed from admin.js)
+      if (typeof Sortable === 'undefined') {
+        console.error('SortableJS not loaded');
+        return;
+      }
 
       new Sortable(container, {
         handle: '.drag-handle',
@@ -539,32 +539,9 @@
         chosenClass: 'sortable-chosen',
         dragClass: 'sortable-drag',
         fallbackOnBody: true,
-        forceFallback: true,
         swapThreshold: 0.65,
 
-        onStart: function(evt) {
-          startX = evt.originalEvent.clientX || evt.originalEvent.touches?.[0]?.clientX || 0;
-          currentLevel = parseInt(evt.item.dataset.level) || 0;
-          document.body.style.cursor = 'grabbing';
-        },
-
-        onMove: function(evt, originalEvent) {
-          // Horizontal movement for level changes
-          const clientX = originalEvent.clientX || originalEvent.touches?.[0]?.clientX || startX;
-          const deltaX = clientX - startX;
-          const newLevel = Math.max(0, Math.min(maxLevel, currentLevel + Math.floor(deltaX / levelStep)));
-
-          evt.dragged.dataset.level = newLevel;
-          evt.dragged.setAttribute('data-level', newLevel);
-
-          indicator.textContent = `{{ trans('admin.categories.level')|e('js') }} ${newLevel}${newLevel >= maxLevel ? ' ({{ trans('admin.categories.max')|e('js') }})' : ''}`;
-          indicator.classList.add('show');
-          indicator.classList.toggle('max-level', newLevel >= maxLevel);
-        },
-
-        onEnd: function(evt) {
-          document.body.style.cursor = '';
-          indicator.classList.remove('show');
+        onEnd: function() {
           saveHierarchy();
         }
       });
