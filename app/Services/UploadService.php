@@ -903,6 +903,18 @@ class UploadService
         $destPath = $mediaDir . "/{$imageId}_lqip.jpg";
         $destRelUrl = "/media/{$imageId}_lqip.jpg";
 
+        // Ensure media directory exists before creating lock file
+        try {
+            ImagesService::ensureDir($mediaDir);
+        } catch (\Throwable $e) {
+            Logger::error('UploadService: Failed to create media directory for LQIP', [
+                'image_id' => $imageId,
+                'media_dir' => $mediaDir,
+                'error' => $e->getMessage()
+            ], 'upload');
+            return null;
+        }
+
         // PERFORMANCE: Use file locking to prevent race condition when multiple processes
         // try to generate LQIP for the same image simultaneously
         $lockFile = $destPath . '.lock';
@@ -923,8 +935,6 @@ class UploadService
                 if (is_file($destPath) && !$force) {
                     return $destRelUrl;
                 }
-
-                ImagesService::ensureDir($mediaDir);
 
                 // Generate LQIP (tiny with light blur)
                 $ok = false;
@@ -1036,6 +1046,12 @@ class UploadService
         };
 
         if (!$srcImg) {
+            return false;
+        }
+
+        // Validate dimensions (prevent division by zero)
+        if ($w <= 0 || $h <= 0) {
+            imagedestroy($srcImg);
             return false;
         }
 
