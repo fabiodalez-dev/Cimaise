@@ -68,8 +68,17 @@ class PageController extends BaseController
      */
     private function generateLQIPDataUri(string $lqipPath): ?string
     {
-        // Security: Validate path format
+        // Security: Validate path format (must start with /)
         if (!str_starts_with($lqipPath, '/')) {
+            return null;
+        }
+
+        // Security: Validate path matches expected LQIP format /media/{imageId}_lqip.jpg
+        // This prevents path traversal attempts disguised as valid paths
+        if (!preg_match('#^/media/\d+_lqip\.jpg$#', $lqipPath)) {
+            Logger::warning('LQIP path format validation failed', [
+                'lqip_path' => $lqipPath
+            ], 'security');
             return null;
         }
 
