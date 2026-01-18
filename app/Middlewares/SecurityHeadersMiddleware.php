@@ -41,10 +41,11 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
                  . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
         } else {
             // Frontend: allow external images (https:) for PhotoSwipe and galleries
+            // SECURITY: Use nonce for inline styles instead of 'unsafe-inline'
             $csp = "upgrade-insecure-requests; default-src 'self'; "
                  . "img-src 'self' data: blob: https:; "
                  . "script-src 'self' 'nonce-{$nonce}' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; "
-                 . "style-src 'self' 'unsafe-inline'; "
+                 . "style-src 'self' 'nonce-{$nonce}'; "
                  . "font-src 'self' data:; "
                  . "connect-src 'self'; "
                  . "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; "
