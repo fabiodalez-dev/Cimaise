@@ -1,5 +1,52 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.categories.title') }} — Cimaise{% endblock %}
+{% import _self as catmacros %}
+
+{% macro render_category_tree(items, byParent, level, basePath, csrf) %}
+  {% for category in items %}
+    <li class="category-wrapper" data-id="{{ category.id }}" data-level="{{ level }}" data-parent="{{ category.parent_id|default('') }}">
+      <div class="category-item">
+        <div class="drag-handle" aria-label="{{ trans('admin.categories.drag_handle')|default('Drag') }}">
+          <i class="fas fa-grip-vertical"></i>
+        </div>
+
+        <div class="category-icon">
+          {% set img_path = category.image_path|default('') %}
+          {% if img_path %}
+            <img src="{% if img_path starts with '/' %}{{ basePath }}{{ img_path }}{% else %}{{ img_path }}{% endif %}" alt="{{ category.name }}" data-fallback="category-image">
+          {% else %}
+            <div class="placeholder">
+              <i class="fas fa-folder"></i>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="category-name">{{ category.name }}</div>
+
+        <div class="category-actions">
+          <button class="action-btn edit" data-edit="{{ category.id }}" title="{{ trans('admin.categories.quick_edit') }}">
+            <i class="fas fa-edit"></i>
+          </button>
+          {% if category.slug != 'photo' %}
+            <form method="post" action="{{ basePath }}/admin/categories/{{ category.id }}/delete" class="inline" data-confirm="{{ trans('admin.categories.delete_confirm')|e('html_attr') }}">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <button class="action-btn delete" title="{{ trans('admin.categories.delete') }}">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <ul class="nested-list" data-parent="{{ category.id }}">
+        {% if byParent[category.id]|default([]) %}
+          {{ _self.render_category_tree(byParent[category.id], byParent, level + 1, basePath, csrf) }}
+        {% endif %}
+      </ul>
+    </li>
+  {% endfor %}
+{% endmacro %}
+
 {% block content %}
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
     <div class="min-w-0">
@@ -33,7 +80,9 @@
           /* Nested list containers */
           .nested-list {
             min-height: 10px;
-            padding-left: 30px;
+            padding-left: 28px;
+            list-style: none;
+            margin: 0;
           }
 
           .categories-container > .nested-list {
@@ -51,13 +100,13 @@
             background: white;
             border: 1px solid #e5e7eb;
             border-radius: 6px;
-            height: 48px;
+            min-height: 52px;
             display: flex;
             align-items: center;
-            cursor: move;
+            cursor: default;
             transition: box-shadow 0.2s ease, border-color 0.2s ease;
             position: relative;
-            max-width: 600px;
+            max-width: 700px;
           }
 
           .category-item:hover {
@@ -90,7 +139,7 @@
 
           /* During drag, make all nested lists more visible and droppable */
           .drag-active .nested-list {
-            min-height: 40px;
+            min-height: 28px;
             background: rgba(0, 0, 0, 0.02);
             border: 2px dashed transparent;
             border-radius: 4px;
@@ -342,46 +391,10 @@
         </style>
         
         <div class="categories-container" id="categories-container">
-          {% if categories is defined and categories|length > 0 %}
-            {# Root nested list - structure built by JavaScript #}
-            <div class="nested-list" id="root-list">
-              {% for category in categories %}
-                <div class="category-wrapper" data-id="{{ category.id }}" data-level="{{ category.level|default(0) }}" data-parent="{{ category.parent_id|default('') }}">
-                  <div class="category-item">
-                    <div class="drag-handle">
-                      <i class="fas fa-grip-vertical"></i>
-                    </div>
-
-                    <div class="category-icon">
-                      {% if category.image_path and category.image_path != '' %}
-                        <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name }}" data-fallback="category-image">
-                      {% else %}
-                        <div class="placeholder">
-                          <i class="fas fa-folder"></i>
-                        </div>
-                      {% endif %}
-                    </div>
-
-                    <div class="category-name">{{ category.name }}</div>
-
-                    <div class="category-actions">
-                      <button class="action-btn edit" data-edit="{{ category.id }}" title="{{ trans('admin.categories.quick_edit') }}">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      {% if category.slug != 'photo' %}
-                      <form method="post" action="{{ base_path }}/admin/categories/{{ category.id }}/delete" class="inline" data-confirm="{{ trans('admin.categories.delete_confirm')|e('html_attr') }}">
-                        <input type="hidden" name="csrf" value="{{ csrf }}">
-                        <button class="action-btn delete" title="{{ trans('admin.categories.delete') }}">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </form>
-                      {% endif %}
-                    </div>
-                  </div>
-                  <div class="nested-list"></div>
-                </div>
-              {% endfor %}
-            </div>
+          {% if byParent is defined and byParent[0]|default([])|length > 0 %}
+            <ul class="nested-list" id="root-list">
+              {{ catmacros.render_category_tree(byParent[0]|default([]), byParent, 0, base_path, csrf) }}
+            </ul>
           {% else %}
             <div class="empty-state">
               <i class="fas fa-folder-open"></i>
@@ -427,8 +440,14 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.categories.parent') }}</label>
             <select class="form-input" name="parent_id" id="cat-parent">
               <option value="">{{ trans('admin.categories.none_main') }}</option>
-              {% for parent in byParent[0]|default([]) %}
-                <option value="{{ parent.id }}">{{ parent.name }}</option>
+              {% for parent in categories|default([]) %}
+                {% set indent = '' %}
+                {% if parent.level is defined and parent.level > 0 %}
+                  {% for i in 1..parent.level %}
+                    {% set indent = indent ~ '-- ' %}
+                  {% endfor %}
+                {% endif %}
+                <option value="{{ parent.id }}">{{ indent }}{{ parent.name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -545,8 +564,14 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.parent') }}</label>
               <select id="modal-cat-parent" class="form-input" name="parent_id">
                 <option value="">{{ trans('admin.categories.no_parent') }}</option>
-                {% for parent in byParent[0]|default([]) %}
-                  <option value="{{ parent.id }}">{{ parent.name }}</option>
+                {% for parent in categories|default([]) %}
+                  {% set indent = '' %}
+                {% if parent.level is defined and parent.level > 0 %}
+                  {% for i in 1..parent.level %}
+                    {% set indent = indent ~ '-- ' %}
+                  {% endfor %}
+                {% endif %}
+                  <option value="{{ parent.id }}">{{ indent }}{{ parent.name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -587,135 +612,25 @@
 
     let csrfToken = {{ csrf|json_encode|raw }};
 
-    const MAX_LEVEL = 4;
     const levelIndicator = document.getElementById('level-indicator');
     let sortables = [];
+    let saveTimer = null;
 
-    /**
-     * Build nested DOM structure from flat list based on parent_id
-     */
-    function buildNestedStructure() {
-      const rootList = document.getElementById('root-list');
-      if (!rootList) return;
-
-      const wrappers = Array.from(rootList.querySelectorAll('.category-wrapper'));
-      const byId = new Map();
-      const byParent = new Map();
-
-      // Index all wrappers
-      wrappers.forEach(wrapper => {
-        const id = wrapper.dataset.id;
-        const parentId = wrapper.dataset.parent || '';
-        byId.set(id, wrapper);
-
-        if (!byParent.has(parentId)) {
-          byParent.set(parentId, []);
-        }
-        byParent.get(parentId).push(wrapper);
+    function destroySortables() {
+      if (!sortables.length) return;
+      sortables.forEach(s => {
+        try { s.destroy(); } catch (e) {}
       });
-
-      // Move children into their parent's nested-list
-      wrappers.forEach(wrapper => {
-        const id = wrapper.dataset.id;
-        const children = byParent.get(id) || [];
-        const nestedList = wrapper.querySelector(':scope > .nested-list');
-
-        children.forEach(child => {
-          nestedList.appendChild(child);
-        });
-      });
+      sortables = [];
+      window.sortableInstances = sortables;
     }
 
     /**
      * Calculate the depth/level of a wrapper based on its DOM position
      */
     function getWrapperLevel(wrapper) {
-      let level = 0;
-      let el = wrapper.parentElement;
-      while (el && !el.classList.contains('categories-container')) {
-        if (el.classList.contains('nested-list') && el.id !== 'root-list') {
-          level++;
-        }
-        el = el.parentElement;
-      }
-      return level;
-    }
-
-    /**
-     * Initialize SortableJS on all nested lists
-     */
-    function initCategorySortable() {
-      const container = document.getElementById('categories-container');
-      if (!container) return;
-
-      if (typeof Sortable === 'undefined') {
-        console.error('[Categories] SortableJS not available');
-        setTimeout(initCategorySortable, 100);
-        return;
-      }
-
-      // Build nested structure first
-      buildNestedStructure();
-
-      // Destroy existing sortables
-      sortables.forEach(s => s.destroy());
-      sortables = [];
-
-      // Initialize Sortable on all nested-list containers
-      const nestedLists = container.querySelectorAll('.nested-list');
-      nestedLists.forEach(list => {
-        const sortable = new Sortable(list, {
-          group: 'nested',
-          handle: '.drag-handle',
-          animation: 150,
-          fallbackOnBody: true,
-          swapThreshold: 0.65,
-          invertSwap: true,
-          delay: 100,
-          delayOnTouchOnly: true,
-          touchStartThreshold: 5,
-          ghostClass: 'sortable-ghost',
-          chosenClass: 'sortable-chosen',
-          dragClass: 'sortable-drag',
-
-          onStart: function(evt) {
-            container.classList.add('drag-active');
-            updateLevelIndicator(getWrapperLevel(evt.item));
-          },
-
-          onMove: function(evt) {
-            // Check if target would exceed max level
-            const targetList = evt.to;
-            const targetLevel = getListLevel(targetList);
-
-            // Get max depth of dragged item's children
-            const draggedItem = evt.dragged;
-            const maxChildDepth = getMaxChildDepth(draggedItem);
-            const newMaxLevel = targetLevel + maxChildDepth;
-
-            if (newMaxLevel > MAX_LEVEL) {
-              // Prevent drop - would exceed max level
-              updateLevelIndicator(targetLevel, true);
-              return false;
-            }
-
-            updateLevelIndicator(targetLevel);
-            return true;
-          },
-
-          onEnd: function(evt) {
-            container.classList.remove('drag-active');
-            hideLevelIndicator();
-
-            // Update data-level and data-parent attributes
-            updateWrapperAttributes(evt.item);
-
-            // Save hierarchy
-            setTimeout(saveHierarchy, 50);
-          }
-        });
-        sortables.push(sortable);
-      });
+      const parentList = wrapper.closest('.nested-list');
+      return parentList ? getListLevel(parentList) : 0;
     }
 
     /**
@@ -734,51 +649,118 @@
     }
 
     /**
-     * Get the maximum child depth of a wrapper (for preventing too-deep nesting)
+     * Initialize SortableJS on all nested lists
      */
-    function getMaxChildDepth(wrapper) {
-      let maxDepth = 0;
-      const nestedList = wrapper.querySelector(':scope > .nested-list');
-      if (nestedList && nestedList.children.length > 0) {
-        Array.from(nestedList.querySelectorAll('.category-wrapper')).forEach(child => {
-          const childDepth = 1 + getMaxChildDepth(child);
-          maxDepth = Math.max(maxDepth, childDepth);
-        });
-        if (maxDepth === 0) maxDepth = 1;
+    let sortableRetryCount = 0;
+    const MAX_SORTABLE_RETRIES = 50; // ~5s at 100ms interval
+
+    function initCategorySortable() {
+      const container = document.getElementById('categories-container');
+      const rootList = document.getElementById('root-list');
+      if (!container) return;
+      if (!rootList) {
+        window.sortableInstances = ['empty'];
+        return;
       }
-      return maxDepth;
+
+      if (typeof Sortable === 'undefined') {
+        console.error('[Categories] SortableJS not available');
+        if (++sortableRetryCount < MAX_SORTABLE_RETRIES) {
+          setTimeout(initCategorySortable, 120);
+        } else {
+          console.error('[Categories] SortableJS failed to load after max retries');
+          showToast('{{ trans('admin.categories.load_error')|e('js') }}', 'error');
+        }
+        return;
+      }
+      sortableRetryCount = 0; // Reset on success
+
+      destroySortables();
+
+      const nestedLists = container.querySelectorAll('.nested-list');
+      nestedLists.forEach(list => {
+        const sortable = new Sortable(list, {
+          group: { name: 'categories', pull: true, put: true },
+          handle: '.drag-handle',
+          draggable: '.category-wrapper',
+          animation: 200,
+          fallbackOnBody: true,
+          fallbackTolerance: 6,
+          swapThreshold: 0.22,
+          invertSwap: false,
+          emptyInsertThreshold: 18,
+          dragoverBubble: true,
+          scroll: true,
+          scrollSensitivity: 40,
+          scrollSpeed: 12,
+          ghostClass: 'sortable-ghost',
+          chosenClass: 'sortable-chosen',
+          dragClass: 'sortable-drag',
+
+          onStart(evt) {
+            container.classList.add('drag-active');
+            updateLevelIndicator(getWrapperLevel(evt.item));
+          },
+
+          onMove(evt) {
+            updateLevelIndicator(getListLevel(evt.to));
+            return true;
+          },
+
+          onEnd() {
+            container.classList.remove('drag-active');
+            hideLevelIndicator();
+            syncWrapperAttributes();
+            debouncedSaveHierarchy();
+          },
+
+          onAdd() {
+            syncWrapperAttributes();
+            debouncedSaveHierarchy();
+          },
+
+          onUpdate() {
+            syncWrapperAttributes();
+            debouncedSaveHierarchy();
+          }
+        });
+        sortables.push(sortable);
+      });
+
+      window.sortableInstances = sortables;
+      syncWrapperAttributes();
     }
 
     /**
-     * Update wrapper's data attributes after move
+     * Update wrapper attributes for current tree
      */
-    function updateWrapperAttributes(wrapper) {
-      const parentWrapper = wrapper.parentElement?.closest('.category-wrapper');
-      const parentId = parentWrapper ? parentWrapper.dataset.id : '';
-      const level = getWrapperLevel(wrapper);
+    function syncWrapperAttributes() {
+      const rootList = document.getElementById('root-list');
+      if (!rootList) return;
 
-      wrapper.dataset.parent = parentId;
-      wrapper.dataset.level = level;
-
-      // Update children recursively
-      const nestedList = wrapper.querySelector(':scope > .nested-list');
-      if (nestedList) {
-        Array.from(nestedList.children).forEach(child => {
-          if (child.classList.contains('category-wrapper')) {
-            updateWrapperAttributes(child);
+      const apply = (list, parentId, level) => {
+        Array.from(list.children).forEach(node => {
+          if (!node.classList.contains('category-wrapper')) return;
+          node.dataset.parent = parentId ? String(parentId) : '';
+          node.dataset.level = level;
+          const nested = node.querySelector(':scope > .nested-list');
+          if (nested) {
+            apply(nested, node.dataset.id, level + 1);
           }
         });
-      }
+      };
+
+      apply(rootList, '', 0);
     }
 
     /**
      * Show level indicator
      */
-    function updateLevelIndicator(level, isMax = false) {
+    function updateLevelIndicator(level) {
       if (!levelIndicator) return;
       levelIndicator.textContent = '{{ trans('admin.categories.level')|e('js') }} ' + level;
       levelIndicator.classList.add('show');
-      levelIndicator.classList.toggle('max-level', isMax || level >= MAX_LEVEL);
+      levelIndicator.classList.remove('max-level');
     }
 
     /**
@@ -789,42 +771,41 @@
       levelIndicator.classList.remove('show', 'max-level');
     }
 
+    function debouncedSaveHierarchy() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveHierarchy, 250);
+    }
+
     async function saveHierarchy() {
       const rootList = document.getElementById('root-list');
       if (!rootList) return;
 
       const hierarchy = [];
-      const sortCounters = new Map();
 
-      /**
-       * Recursively collect hierarchy from nested structure
-       */
-      function collectFromList(list, parentId, level) {
-        const wrappers = Array.from(list.children).filter(el => el.classList.contains('category-wrapper'));
-
-        wrappers.forEach(wrapper => {
-          const id = parseInt(wrapper.dataset.id);
-
-          const counterKey = parentId || 0;
-          const sortOrder = sortCounters.get(counterKey) ?? 0;
-          sortCounters.set(counterKey, sortOrder + 1);
+      const collectFromList = (list, parentId, level) => {
+        Array.from(list.children).forEach((wrapper, index) => {
+          if (!wrapper.classList.contains('category-wrapper')) return;
+          const id = parseInt(wrapper.dataset.id, 10);
 
           hierarchy.push({
-            id: id,
-            parent_id: parentId,
-            sort_order: sortOrder,
-            level: level
+            id,
+            parent_id: parentId ? parseInt(parentId, 10) : 0,
+            sort_order: index,
+            level
           });
 
-          // Process children
           const nestedList = wrapper.querySelector(':scope > .nested-list');
           if (nestedList && nestedList.children.length > 0) {
             collectFromList(nestedList, id, level + 1);
           }
         });
-      }
+      };
 
-      collectFromList(rootList, null, 0);
+      collectFromList(rootList, 0, 0);
+
+      if (hierarchy.length === 0) {
+        return; // Nothing to save
+      }
 
       try {
         const response = await fetch(window.basePath + '/admin/categories/reorder-wordpress', {
@@ -839,8 +820,8 @@
           throw new Error('Failed to save');
         }
       } catch (error) {
-        showToast('{{ trans('admin.categories.save_error')|e('js') }}', 'error');
         console.error('Save error:', error);
+        showToast('{{ trans('admin.categories.save_error')|e('js') }}', 'error');
       }
     }
 
@@ -1157,7 +1138,12 @@
       document.getElementById('modal-cat-slug').value = data.slug || '';
       document.getElementById('modal-cat-sort').value = data.sort_order || 0;
       const parentSelect = document.getElementById('modal-cat-parent');
-      if (parentSelect) parentSelect.value = data.parent_id || '';
+      if (parentSelect) {
+        Array.from(parentSelect.options).forEach(opt => {
+          opt.disabled = opt.value === String(data.id);
+        });
+        parentSelect.value = data.parent_id || '';
+      }
 
       // Current image
       const currentImageWrap = document.getElementById('modal-current-image');
