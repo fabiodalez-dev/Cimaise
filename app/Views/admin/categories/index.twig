@@ -602,6 +602,8 @@
             } else {
               targetItem.parentNode.insertBefore(this.dragItem, targetItem);
             }
+            // Reset startY after reorder to prevent cumulative delta causing erratic jumps
+            this.startY = y;
           }
         }
         
