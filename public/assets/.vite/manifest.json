@@ -16,7 +16,7 @@
     "name": "lenis"
   },
   "resources/admin.js": {
-    "file": "admin-B1WA03dM.js",
+    "file": "admin-R8nArFSG.js",
     "name": "admin",
     "src": "resources/admin.js",
     "isEntry": true,
@@ -28,7 +28,7 @@
     ]
   },
   "resources/app.css": {
-    "file": "app-CPbz12uH.css",
+    "file": "app-BG_6bH0g.css",
     "src": "resources/app.css",
     "isEntry": true
   },

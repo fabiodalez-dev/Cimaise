@@ -1,6 +1,8 @@
 {% extends "frontend/_layout.twig" %}
+{% import "frontend/_lqip_macros.twig" as lqip %}
 
 {% block styles %}
+{{ lqip.lqip_styles()|raw }}
 <style nonce="{{ csp_nonce() }}">
 /* Reset only for gallery wall */
 .gallery-wall, .gallery-wall * {
@@ -276,7 +278,7 @@ html.dark .gallery-wall-item::after {
               {% if srcset_jpg %}
               <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="100vw">
               {% endif %}
-              <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" width="{{ image.width|default(1600) }}" height="{{ image.height|default(1000) }}" {% if loop.index <= 6 %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async" data-fallback="hide">
+              <img {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ imgUrl|e('html_attr') }}"{% else %}src="{{ imgUrl|e('html_attr') }}"{% endif %} alt="{{ image.title|default(image.album_title)|e('html_attr') }}" class="{% if image.lqip_placeholder %}lqip-blur{% endif %}" width="{{ image.width|default(1600) }}" height="{{ image.height|default(1000) }}" {% if loop.index <= 6 %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async" data-fallback="hide">
             </picture>
             <div class="gallery-wall-overlay">
               <h3>{{ image.album_title|e }}</h3>
@@ -336,7 +338,7 @@ html.dark .gallery-wall-item::after {
             {% if srcset_jpg %}
             <source type="image/jpeg" srcset="{{ srcset_jpg|join(', ')|e('html_attr') }}" sizes="100vw">
             {% endif %}
-            <img src="{{ imgUrl|e('html_attr') }}" alt="{{ image.title|default(image.album_title)|e('html_attr') }}" width="{{ image.width|default(1600) }}" height="{{ image.height|default(1000) }}" {% if loop.index <= 8 %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async" data-fallback="hide">
+            <img {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ imgUrl|e('html_attr') }}"{% else %}src="{{ imgUrl|e('html_attr') }}"{% endif %} alt="{{ image.title|default(image.album_title)|e('html_attr') }}" class="{% if image.lqip_placeholder %}lqip-blur{% endif %}" width="{{ image.width|default(1600) }}" height="{{ image.height|default(1000) }}" {% if loop.index <= 8 %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async" data-fallback="hide">
           </picture>
         </a>
       </div>
@@ -364,5 +366,8 @@ html.dark .gallery-wall-item::after {
 <script nonce="{{ csp_nonce() }}">
 // Disable header hide on scroll for gallery wall
 document.body.classList.add('gallery-wall-page');
+</script>
+<script nonce="{{ csp_nonce() }}">
+{{ lqip.lqip_script()|raw }}
 </script>
 {% endblock %}

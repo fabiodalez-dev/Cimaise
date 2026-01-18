@@ -276,4 +276,70 @@ class CacheController extends BaseController
         return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
     }
 
+    /**
+     * Generate LQIP for all public images (via CLI command).
+     */
+    public function generateLQIP(Request $request, Response $response): Response
+    {
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
+        $consolePath = dirname(__DIR__, 3) . '/bin/console';
+        if (!is_file($consolePath) || !is_readable($consolePath)) {
+            $_SESSION['flash'][] = [
+                'type' => 'error',
+                'message' => 'Console script not available.',
+            ];
+            return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+        }
+
+        // Run LQIP generation in background
+        $logFile = sys_get_temp_dir() . '/lqip_generation.log';
+        $cmd = 'nohup php ' . escapeshellarg($consolePath)
+            . ' images:generate-lqip'
+            . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
+        exec($cmd);
+
+        $_SESSION['flash'][] = [
+            'type' => 'success',
+            'message' => 'LQIP generation started in background. Log: ' . $logFile,
+        ];
+
+        return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+    }
+
+    /**
+     * Force regenerate LQIP for all public images (via CLI command).
+     */
+    public function generateLQIPForce(Request $request, Response $response): Response
+    {
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
+        $consolePath = dirname(__DIR__, 3) . '/bin/console';
+        if (!is_file($consolePath) || !is_readable($consolePath)) {
+            $_SESSION['flash'][] = [
+                'type' => 'error',
+                'message' => 'Console script not available.',
+            ];
+            return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+        }
+
+        // Run LQIP generation with --force in background
+        $logFile = sys_get_temp_dir() . '/lqip_generation.log';
+        $cmd = 'nohup php ' . escapeshellarg($consolePath)
+            . ' images:generate-lqip --force'
+            . ' > ' . escapeshellarg($logFile) . ' 2>&1 &';
+        exec($cmd);
+
+        $_SESSION['flash'][] = [
+            'type' => 'success',
+            'message' => 'LQIP force regeneration started in background. Log: ' . $logFile,
+        ];
+
+        return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+    }
+
 }

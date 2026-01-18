@@ -38,6 +38,95 @@ class PageController extends BaseController
     }
 
     /**
+     * Get valid template IDs from database (cached for performance).
+     * SECURITY: Prevents cache poisoning via arbitrary template IDs in URL.
+     *
+     * @return array<int> Array of valid template IDs
+     */
+    private function getValidTemplateIds(): array
+    {
+        static $cache = null;
+        if ($cache === null) {
+            try {
+                $stmt = $this->db->pdo()->query('SELECT id FROM templates WHERE is_active = 1');
+                $cache = array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+            } catch (\Throwable $e) {
+                Logger::warning('Failed to load valid template IDs: ' . $e->getMessage(), [], 'security');
+                $cache = [];
+            }
+        }
+        return $cache;
+    }
+
+    /**
+     * Generate inline base64 data URI for LQIP placeholder
+     * PERFORMANCE: Small LQIP images (~1-2KB) are faster inline than HTTP request
+     * SECURITY: Validates path to prevent directory traversal attacks
+     *
+     * @param string $lqipPath Filesystem path to LQIP file (must start with /)
+     * @return string|null Base64 data URI or null on error
+     */
+    private function generateLQIPDataUri(string $lqipPath): ?string
+    {
+        // Security: Validate path format (must start with /)
+        if (!str_starts_with($lqipPath, '/')) {
+            return null;
+        }
+
+        // Security: Validate path matches expected LQIP format /media/{imageId}_lqip.(jpg|webp|png)
+        // This prevents path traversal attempts disguised as valid paths
+        if (!preg_match('#^/media/\d+_lqip\.(jpg|webp|png)$#', $lqipPath)) {
+            Logger::warning('LQIP path format validation failed', [
+                'lqip_path' => $lqipPath
+            ], 'security');
+            return null;
+        }
+
+        $root = dirname(__DIR__, 2);
+        $publicDir = $root . '/public';
+        $absolutePath = $publicDir . $lqipPath;
+
+        // Security: Canonicalize path and verify it's within public directory
+        $realPath = realpath($absolutePath);
+        $realPublicDir = realpath($publicDir);
+
+        if ($realPath === false || $realPublicDir === false) {
+            return null;
+        }
+
+        // Security: Prevent directory traversal
+        if (!str_starts_with($realPath, $realPublicDir . DIRECTORY_SEPARATOR)) {
+            Logger::warning('LQIP path traversal attempt blocked', [
+                'lqip_path' => $lqipPath,
+                'real_path' => $realPath,
+                'public_dir' => $realPublicDir
+            ], 'security');
+            return null;
+        }
+
+        // Only inline if file is small enough (max 5KB to avoid HTML bloat)
+        $size = filesize($realPath);
+        if ($size === false || $size > 5120) {
+            return $lqipPath; // Return path for <img src> instead
+        }
+
+        $content = @file_get_contents($realPath);
+        if ($content === false) {
+            return null;
+        }
+
+        // Determine MIME type
+        $mimeType = 'image/jpeg';
+        if (str_ends_with($lqipPath, '.webp')) {
+            $mimeType = 'image/webp';
+        } elseif (str_ends_with($lqipPath, '.png')) {
+            $mimeType = 'image/png';
+        }
+
+        return 'data:' . $mimeType . ';base64,' . base64_encode($content);
+    }
+
+    /**
      * Schedule home page cache regeneration after response is sent.
      * Uses register_shutdown_function for deferred execution.
      */
@@ -670,6 +759,22 @@ class PageController extends BaseController
         // Determine if album is cacheable (public, no password, no NSFW)
         // Template overrides are cached with separate keys (album_123 vs album_123_t5)
         $templateIdFromUrl = isset($params['template']) ? (int) $params['template'] : 0;
+
+        // SECURITY: Validate template ID against database to prevent cache poisoning
+        // Only accept template IDs that actually exist in the database
+        if ($templateIdFromUrl > 0) {
+            $validTemplateIds = $this->getValidTemplateIds();
+            if (!in_array($templateIdFromUrl, $validTemplateIds, true)) {
+                // Invalid template ID - reset to default and log attempt
+                Logger::warning('Invalid template ID in URL', [
+                    'template_id' => $templateIdFromUrl,
+                    'album_id' => $album['id'],
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+                ], 'security');
+                $templateIdFromUrl = 0;
+            }
+        }
+
         $canUseCache = empty($album['password_hash']) && empty($album['is_nsfw']) && !$isAdmin;
 
         // Try cache first for public albums
@@ -1885,7 +1990,7 @@ class PageController extends BaseController
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
 
-        // Get category
+        // Get category first to validate
         $stmt = $pdo->prepare('SELECT * FROM categories WHERE slug = :slug');
         $stmt->execute([':slug' => $slug]);
         $category = $stmt->fetch();
@@ -1894,6 +1999,37 @@ class PageController extends BaseController
             return $response->withStatus(404);
         }
 
+        // Cache is only used for public view (no admin, no NSFW consent)
+        $canUseCache = !$isAdmin && !$nsfwConsent;
+        $cacheKey = 'category_' . $slug;
+
+        // Try cache first for public view
+        if ($canUseCache) {
+            $cacheService = $this->getPageCacheService();
+            $cached = $cacheService->get($cacheKey);
+
+            if ($cached !== null && isset($cached['data']) && is_array($cached['data'])) {
+                // Fresh cache hit - render with cached data + session-specific vars
+                return $this->view->render($response, 'frontend/category.twig', array_merge($cached['data'], [
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+
+            // Stale-while-revalidate: try expired cache if fresh not available
+            $staleCached = $cacheService->get($cacheKey, allowStale: true);
+            if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
+                // Serve stale cache (background regeneration not implemented)
+                return $this->view->render($response, 'frontend/category.twig', array_merge($staleCached['data'], [
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+        }
+
+        // Generate fresh data
         // Get albums in category (supports both legacy category_id and junction table)
         $stmt = $pdo->prepare('
             SELECT a.*, c.name as category_name, c.slug as category_slug
@@ -1921,7 +2057,8 @@ class PageController extends BaseController
         $categories = $stmt->fetchAll();
 
         $seo = $this->buildSeo($request, (string) $category['name'], 'Photography albums in category: ' . $category['name']);
-        return $this->view->render($response, 'frontend/category.twig', [
+
+        $data = [
             'category' => $category,
             'albums' => $albums,
             'categories' => $categories,
@@ -1935,7 +2072,17 @@ class PageController extends BaseController
             'robots' => $seo['robots'],
             'nsfw_consent' => $nsfwConsent,
             'is_admin' => $isAdmin
-        ]);
+        ];
+
+        // Save to cache if eligible
+        if ($canUseCache) {
+            $cacheService->setWithTags($cacheKey, [
+                'template_file' => 'frontend/category.twig',
+                'data' => $data,
+            ], CacheTags::categoryRelated((int) $category['id']));
+        }
+
+        return $this->view->render($response, 'frontend/category.twig', $data);
     }
 
     public function tag(Request $request, Response $response, array $args): Response
@@ -1945,7 +2092,7 @@ class PageController extends BaseController
         $isAdmin = $this->isAdmin();
         $nsfwConsent = $this->hasNsfwConsent();
 
-        // Get tag
+        // Get tag first to validate
         $stmt = $pdo->prepare('SELECT * FROM tags WHERE slug = :slug');
         $stmt->execute([':slug' => $slug]);
         $tag = $stmt->fetch();
@@ -1957,6 +2104,37 @@ class PageController extends BaseController
             ]);
         }
 
+        // Cache is only used for public view (no admin, no NSFW consent)
+        $canUseCache = !$isAdmin && !$nsfwConsent;
+        $cacheKey = 'tag_' . $slug;
+
+        // Try cache first for public view
+        if ($canUseCache) {
+            $cacheService = $this->getPageCacheService();
+            $cached = $cacheService->get($cacheKey);
+
+            if ($cached !== null && isset($cached['data']) && is_array($cached['data'])) {
+                // Fresh cache hit - render with cached data + session-specific vars
+                return $this->view->render($response, 'frontend/tag.twig', array_merge($cached['data'], [
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+
+            // Stale-while-revalidate: try expired cache if fresh not available
+            $staleCached = $cacheService->get($cacheKey, allowStale: true);
+            if ($staleCached !== null && isset($staleCached['data']) && is_array($staleCached['data'])) {
+                // Serve stale cache (background regeneration not implemented)
+                return $this->view->render($response, 'frontend/tag.twig', array_merge($staleCached['data'], [
+                    'nsfw_consent' => $nsfwConsent,
+                    'is_admin' => $isAdmin,
+                    'csrf' => $_SESSION['csrf'] ?? ''
+                ]));
+            }
+        }
+
+        // Generate fresh data
         // Get albums with this tag (supports both legacy category_id and junction table)
         $stmt = $pdo->prepare('
             SELECT a.*,
@@ -1987,11 +2165,11 @@ class PageController extends BaseController
         // Get popular tags for navigation
         $stmt = $pdo->prepare('
             SELECT t.*, COUNT(at.album_id) as albums_count
-            FROM tags t 
+            FROM tags t
             JOIN album_tag at ON at.tag_id = t.id
             JOIN albums a ON a.id = at.album_id AND a.is_published = 1
-            GROUP BY t.id 
-            ORDER BY albums_count DESC, t.name ASC 
+            GROUP BY t.id
+            ORDER BY albums_count DESC, t.name ASC
             LIMIT 30
         ');
         $stmt->execute();
@@ -2001,7 +2179,8 @@ class PageController extends BaseController
         $navCategories = $this->getNavigationService()->getNavigationCategories();
 
         $seo = $this->buildSeo($request, '#' . $tag['name'], 'Photography albums tagged with: ' . $tag['name']);
-        return $this->view->render($response, 'frontend/tag.twig', [
+
+        $data = [
             'tag' => $tag,
             'albums' => $albums,
             'tags' => $tags,
@@ -2016,7 +2195,17 @@ class PageController extends BaseController
             'robots' => $seo['robots'],
             'nsfw_consent' => $nsfwConsent,
             'is_admin' => $isAdmin
-        ]);
+        ];
+
+        // Save to cache if eligible
+        if ($canUseCache) {
+            $cacheService->setWithTags($cacheKey, [
+                'template_file' => 'frontend/tag.twig',
+                'data' => $data,
+            ], [CacheTags::contentTag((int) $tag['id']), CacheTags::GALLERIES]);
+        }
+
+        return $this->view->render($response, 'frontend/tag.twig', $data);
     }
 
     public function about(Request $request, Response $response): Response
@@ -2638,7 +2827,7 @@ class PageController extends BaseController
         return $speed;
     }
 
-    private function processImageSourcesBatch(array $images): array
+    private function processImageSourcesBatch(array $images, bool $isProtectedAlbum = false): array
     {
         if (empty($images)) {
             return [];
@@ -2719,6 +2908,23 @@ class PageController extends BaseController
                 }
             }
 
+            // PERFORMANCE: Add LQIP placeholder for instant perceived loading
+            // SECURITY: Only for public albums (no password, no NSFW)
+            $lqipPlaceholder = null;
+            if (!$isProtectedAlbum) {
+                foreach ($variants as $variant) {
+                    if (($variant['variant'] ?? '') === 'lqip' && !empty($variant['path'])) {
+                        $lqipPath = $variant['path'];
+                        // Only use LQIP if it's a public path
+                        if (!str_starts_with($lqipPath, '/storage/')) {
+                            // Generate inline base64 data URI for instant rendering
+                            $lqipPlaceholder = $this->generateLQIPDataUri($lqipPath);
+                        }
+                        break;
+                    }
+                }
+            }
+
             $image['sources'] = $sources;
             $image['variants'] = $variants;
             // Security: never expose non-public storage paths in fallback_src
@@ -2726,6 +2932,7 @@ class PageController extends BaseController
                 $fallbackUrl = '';
             }
             $image['fallback_src'] = $fallbackUrl;
+            $image['lqip_placeholder'] = $lqipPlaceholder; // null for protected albums
         }
         unset($image);
 

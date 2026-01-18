@@ -816,4 +816,277 @@ class UploadService
 
         return $deleted;
     }
+
+    /**
+     * Generate LQIP (Low Quality Image Placeholder) for instant perceived loading
+     * SECURITY: Only for public albums (no password, no NSFW)
+     * PERFORMANCE: Tiny 40x30px with light blur (1-2KB for inline base64)
+     *
+     * @param int $imageId Image ID
+     * @param bool $force Force regeneration even if exists
+     * @return string|null Relative URL to LQIP or null on failure
+     */
+    public function generateLQIP(int $imageId, bool $force = false): ?string
+    {
+        $pdo = $this->db->pdo();
+
+        // SECURITY: Check if image belongs to protected album
+        $stmt = $pdo->prepare('
+            SELECT a.password_hash, a.is_nsfw
+            FROM images i
+            JOIN albums a ON i.album_id = a.id
+            WHERE i.id = ?
+        ');
+        $stmt->execute([$imageId]);
+        $album = $stmt->fetch();
+
+        if (!$album) {
+            Logger::warning('UploadService: Image not found for LQIP generation', [
+                'image_id' => $imageId
+            ], 'upload');
+            return null;
+        }
+
+        // SECURITY: Skip LQIP for protected albums (password or NSFW)
+        // Protected albums use blur variant for privacy, not LQIP for performance
+        if (!empty($album['password_hash']) || !empty($album['is_nsfw'])) {
+            Logger::debug('UploadService: Skipping LQIP for protected album', [
+                'image_id' => $imageId,
+                'has_password' => !empty($album['password_hash']),
+                'is_nsfw' => !empty($album['is_nsfw'])
+            ], 'upload');
+            return null;
+        }
+
+        // Find source file (prefer md variant for speed, fallback to original)
+        $variantStmt = $pdo->prepare('SELECT path FROM image_variants WHERE image_id = ? AND variant = ? LIMIT 1');
+        $variantStmt->execute([$imageId, 'md']);
+        $mdPath = $variantStmt->fetchColumn();
+
+        $sourcePath = null;
+        $triedPaths = [];
+        $root = dirname(__DIR__, 2);
+
+        if ($mdPath) {
+            $tryPath = $root . '/public/' . ltrim($mdPath, '/');
+            $triedPaths[] = $tryPath;
+            if (is_file($tryPath)) {
+                $sourcePath = $tryPath;
+            }
+        }
+
+        if (!$sourcePath) {
+            $imgStmt = $pdo->prepare('SELECT original_path FROM images WHERE id = ?');
+            $imgStmt->execute([$imageId]);
+            $origPath = $imgStmt->fetchColumn();
+
+            if ($origPath) {
+                if (str_starts_with($origPath, '/storage/originals/')) {
+                    $tryPath = $root . $origPath;
+                    $triedPaths[] = $tryPath;
+                    if (is_file($tryPath)) {
+                        $sourcePath = $tryPath;
+                    }
+                }
+            }
+        }
+
+        if (!$sourcePath) {
+            Logger::warning('UploadService: Source file not found for LQIP generation', [
+                'image_id' => $imageId,
+                'tried_paths' => $triedPaths
+            ], 'upload');
+            return null;
+        }
+
+        $mediaDir = $root . '/public/media';
+        $destPath = $mediaDir . "/{$imageId}_lqip.jpg";
+        $destRelUrl = "/media/{$imageId}_lqip.jpg";
+
+        // Ensure media directory exists before creating lock file
+        try {
+            ImagesService::ensureDir($mediaDir);
+        } catch (\Throwable $e) {
+            Logger::error('UploadService: Failed to create media directory for LQIP', [
+                'image_id' => $imageId,
+                'media_dir' => $mediaDir,
+                'error' => $e->getMessage()
+            ], 'upload');
+            return null;
+        }
+
+        // PERFORMANCE: Use file locking to prevent race condition when multiple processes
+        // try to generate LQIP for the same image simultaneously
+        $lockFile = $destPath . '.lock';
+        $lockHandle = fopen($lockFile, 'c+');
+
+        if (!$lockHandle) {
+            Logger::warning('UploadService: Failed to create lock file for LQIP', [
+                'image_id' => $imageId,
+                'lock_file' => $lockFile
+            ], 'upload');
+            return null;
+        }
+
+        // Try to acquire exclusive lock (non-blocking)
+        if (flock($lockHandle, LOCK_EX | LOCK_NB)) {
+            try {
+                // Check again after acquiring lock (another process may have generated it)
+                if (is_file($destPath) && !$force) {
+                    return $destRelUrl;
+                }
+
+                // Generate LQIP (tiny with light blur)
+                $ok = false;
+                if (class_exists(\Imagick::class)) {
+                    $ok = $this->generateLQIPWithImagick($sourcePath, $destPath);
+                } else {
+                    $ok = $this->generateLQIPWithGd($sourcePath, $destPath);
+                }
+
+                if ($ok && is_file($destPath)) {
+                    [$w, $h] = getimagesize($destPath) ?: [0, 0];
+                    $size = (int)filesize($destPath);
+
+                    // Store as lqip variant
+                    $replaceKeyword = $this->db->replaceKeyword();
+                    $pdo->prepare(sprintf('%s INTO image_variants(image_id, variant, format, path, width, height, size_bytes) VALUES(?,?,?,?,?,?,?)', $replaceKeyword))
+                        ->execute([$imageId, 'lqip', 'jpg', $destRelUrl, $w, $h, $size]);
+
+                    Logger::debug('UploadService: LQIP generated successfully', [
+                        'image_id' => $imageId,
+                        'size_bytes' => $size,
+                        'dimensions' => "{$w}x{$h}"
+                    ], 'upload');
+
+                    return $destRelUrl;
+                }
+
+                Logger::warning('UploadService: LQIP generation failed', [
+                    'image_id' => $imageId
+                ], 'upload');
+
+                return null;
+            } finally {
+                // Always release lock and cleanup
+                flock($lockHandle, LOCK_UN);
+                fclose($lockHandle);
+                @unlink($lockFile);
+            }
+        } else {
+            // Another process is generating LQIP, wait briefly and return existing file
+            fclose($lockHandle);
+            usleep(100000); // Wait 100ms for other process to complete
+
+            if (is_file($destPath)) {
+                Logger::debug('UploadService: LQIP already being generated by another process', [
+                    'image_id' => $imageId
+                ], 'upload');
+                return $destRelUrl;
+            }
+
+            Logger::warning('UploadService: LQIP generation locked by another process', [
+                'image_id' => $imageId
+            ], 'upload');
+            return null;
+        }
+    }
+
+    /**
+     * Generate LQIP using ImageMagick (high quality)
+     * Creates tiny 40x30px with light artistic blur
+     */
+    private function generateLQIPWithImagick(string $src, string $dest): bool
+    {
+        try {
+            $im = new \Imagick($src);
+
+            // Resize to tiny dimensions (40x30px target)
+            $im->thumbnailImage(40, 30, true);
+
+            // Apply light Gaussian blur for artistic effect (sigma=3)
+            $im->gaussianBlurImage(0, 3);
+
+            // High compression for minimum file size (target: 1-2KB)
+            $im->setImageCompressionQuality(75);
+
+            // Strip EXIF/metadata to reduce size
+            if ($this->envFlag('STRIP_EXIF', true)) {
+                $im->stripImage();
+            }
+
+            $im->setImageFormat('jpeg');
+            $ok = $im->writeImage($dest);
+            $im->clear();
+
+            return (bool)$ok;
+        } catch (\Throwable $e) {
+            Logger::warning('UploadService: Imagick LQIP failed', ['error' => $e->getMessage()], 'upload');
+            return false;
+        }
+    }
+
+    /**
+     * Generate LQIP using GD (fallback)
+     * Creates tiny 40x30px with light blur
+     */
+    private function generateLQIPWithGd(string $src, string $dest): bool
+    {
+        $info = @getimagesize($src);
+        if (!$info) {
+            return false;
+        }
+
+        [$w, $h] = $info;
+        $srcImg = match ($info['mime'] ?? '') {
+            'image/jpeg' => @imagecreatefromjpeg($src),
+            'image/png' => @imagecreatefrompng($src),
+            'image/webp' => @imagecreatefromwebp($src),
+            default => null,
+        };
+
+        if (!$srcImg) {
+            return false;
+        }
+
+        // Validate dimensions (prevent division by zero)
+        if ($w <= 0 || $h <= 0) {
+            imagedestroy($srcImg);
+            return false;
+        }
+
+        // Calculate dimensions maintaining aspect ratio (max 40x30)
+        $maxW = 40;
+        $maxH = 30;
+        $ratio = $w / $h;
+
+        if ($ratio > $maxW / $maxH) {
+            // Width is limiting factor
+            $targetW = $maxW;
+            $targetH = (int)round($maxW / $ratio);
+        } else {
+            // Height is limiting factor
+            $targetH = $maxH;
+            $targetW = (int)round($maxH * $ratio);
+        }
+
+        // Create tiny image
+        $tiny = imagecreatetruecolor($targetW, $targetH);
+        imagecopyresampled($tiny, $srcImg, 0, 0, 0, 0, $targetW, $targetH, $w, $h);
+        imagedestroy($srcImg);
+
+        // Apply light Gaussian blur (3 passes for aesthetic effect)
+        for ($i = 0; $i < 3; $i++) {
+            imagefilter($tiny, IMG_FILTER_GAUSSIAN_BLUR);
+        }
+
+        // Light smoothing
+        imagefilter($tiny, IMG_FILTER_SMOOTH, 5);
+
+        // Save with high compression (quality 75 = ~1-2KB)
+        $ok = imagejpeg($tiny, $dest, 75);
+        imagedestroy($tiny);
+
+        return (bool)$ok;
+    }
 }

@@ -1,5 +1,52 @@
 {% extends 'admin/_layout.twig' %}
 {% block title %}{{ trans('admin.categories.title') }} — Cimaise{% endblock %}
+{% import _self as catmacros %}
+
+{% macro render_category_tree(items, byParent, level, basePath, csrf) %}
+  {% for category in items %}
+    <li class="category-wrapper" data-id="{{ category.id }}" data-level="{{ level }}" data-parent="{{ category.parent_id|default('') }}">
+      <div class="category-item">
+        <div class="drag-handle" aria-label="{{ trans('admin.categories.drag_handle')|default('Drag') }}">
+          <i class="fas fa-grip-vertical"></i>
+        </div>
+
+        <div class="category-icon">
+          {% set img_path = category.image_path|default('') %}
+          {% if img_path %}
+            <img src="{% if img_path starts with '/' %}{{ basePath }}{{ img_path }}{% else %}{{ img_path }}{% endif %}" alt="{{ category.name }}" data-fallback="category-image">
+          {% else %}
+            <div class="placeholder">
+              <i class="fas fa-folder"></i>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="category-name">{{ category.name }}</div>
+
+        <div class="category-actions">
+          <button class="action-btn edit" data-edit="{{ category.id }}" title="{{ trans('admin.categories.quick_edit') }}">
+            <i class="fas fa-edit"></i>
+          </button>
+          {% if category.slug != 'photo' %}
+            <form method="post" action="{{ basePath }}/admin/categories/{{ category.id }}/delete" class="inline" data-confirm="{{ trans('admin.categories.delete_confirm')|e('html_attr') }}">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <button class="action-btn delete" title="{{ trans('admin.categories.delete') }}">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <ul class="nested-list" data-parent="{{ category.id }}">
+        {% if byParent[category.id]|default([]) %}
+          {{ _self.render_category_tree(byParent[category.id], byParent, level + 1, basePath, csrf) }}
+        {% endif %}
+      </ul>
+    </li>
+  {% endfor %}
+{% endmacro %}
+
 {% block content %}
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
     <div class="min-w-0">
@@ -23,44 +70,118 @@
         </div>
 
         <style nonce="{{ csp_nonce() }}">
-          /* Clean minimal drag system */
+          /* Nested list drag system */
           .categories-container {
             min-height: 300px;
             padding: 20px;
             background: #fafafa;
           }
-          
+
+          /* Nested list containers */
+          .nested-list {
+            min-height: 10px;
+            padding-left: 28px;
+            list-style: none;
+            margin: 0;
+          }
+
+          .categories-container > .nested-list {
+            padding-left: 0;
+            padding-bottom: 60px; /* Drop zone for "move to root level" */
+          }
+
+          /* Category item wrapper - contains content + nested children */
+          .category-wrapper {
+            margin-bottom: 4px;
+          }
+
+          /* The actual draggable content */
           .category-item {
             background: white;
             border: 1px solid #e5e7eb;
             border-radius: 6px;
-            margin-bottom: 8px;
-            height: 48px;
+            min-height: 52px;
             display: flex;
             align-items: center;
-            cursor: move;
-            transition: all 0.2s ease;
+            cursor: default;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
             position: relative;
-            max-width: 600px;
+            max-width: 700px;
           }
-          
-          /* Clean level indentation - 30px increments */
-          .category-item[data-level="0"] { margin-left: 0; }
-          .category-item[data-level="1"] { margin-left: 30px; }
-          .category-item[data-level="2"] { margin-left: 60px; }
-          .category-item[data-level="3"] { margin-left: 90px; }
-          .category-item[data-level="4"] { margin-left: 120px; }
-          
+
           .category-item:hover {
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transform: translateY(-1px);
           }
-          
-          .category-item.dragging {
-            opacity: 0.8;
-            transform: scale(1.02);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            z-index: 1000;
+
+          /* SortableJS states */
+          .sortable-ghost {
+            opacity: 0.4;
+            background: #f3f4f6;
+          }
+
+          .sortable-ghost .nested-list {
+            display: none;
+          }
+
+          .sortable-chosen > .category-item {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-color: #000;
+          }
+
+          .sortable-drag {
+            opacity: 1;
+          }
+
+          /* Empty nested list - expand during drag to allow dropping */
+          .nested-list:empty {
+            min-height: 8px;
+          }
+
+          /* During drag, make all nested lists more visible and droppable */
+          .drag-active .nested-list {
+            min-height: 28px;
+            background: rgba(0, 0, 0, 0.02);
+            border: 2px dashed transparent;
+            border-radius: 4px;
+            margin: 4px 0;
+            transition: all 0.2s ease;
+          }
+
+          .drag-active .nested-list:empty {
+            border-color: #d1d5db;
+          }
+
+          .drag-active .nested-list:empty:hover {
+            border-color: #000;
+            background: rgba(0, 0, 0, 0.05);
+          }
+
+          /* Root list drop zone - always show during drag */
+          .drag-active > .nested-list#root-list {
+            position: relative;
+          }
+
+          .drag-active > .nested-list#root-list::after {
+            content: '{{ trans('admin.categories.drop_root')|default('Drop here for root level')|e('js') }}';
+            display: block;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.03);
+            border: 2px dashed #9ca3af;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #6b7280;
+          }
+
+          .drag-active > .nested-list#root-list:hover::after {
+            border-color: #000;
+            background: rgba(0, 0, 0, 0.06);
           }
           
           .drag-handle {
@@ -160,17 +281,6 @@
           .action-btn:hover {
             background: #e5e7eb;
             transform: scale(1.1);
-          }
-          
-          /* Drag feedback */
-          .categories-container.drag-active {
-            background: repeating-linear-gradient(
-              90deg,
-              transparent 0px,
-              transparent 28px,
-              rgba(0, 0, 0, 0.05) 28px,
-              rgba(0, 0, 0, 0.05) 32px
-            );
           }
           
           /* Level indicator */
@@ -281,40 +391,10 @@
         </style>
         
         <div class="categories-container" id="categories-container">
-          {% if categories is defined and categories|length > 0 %}
-            {% for category in categories %}
-              <div class="category-item" data-id="{{ category.id }}" data-level="{{ category.level|default(0) }}">
-                <div class="drag-handle">
-                  <i class="fas fa-grip-vertical"></i>
-                </div>
-                
-                <div class="category-icon">
-                  {% if category.image_path and category.image_path != '' %}
-                    <img src="{{ base_path }}{{ category.image_path }}" alt="{{ category.name }}" data-fallback="category-image">
-                  {% else %}
-                    <div class="placeholder">
-                      <i class="fas fa-folder"></i>
-                    </div>
-                  {% endif %}
-                </div>
-                
-                <div class="category-name">{{ category.name }}</div>
-                
-                <div class="category-actions">
-                  <button class="action-btn edit" data-edit="{{ category.id }}" title="{{ trans('admin.categories.quick_edit') }}">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  {% if category.slug != 'photo' %}
-                  <form method="post" action="{{ base_path }}/admin/categories/{{ category.id }}/delete" class="inline" data-confirm="{{ trans('admin.categories.delete_confirm')|e('html_attr') }}">
-                    <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <button class="action-btn delete" title="{{ trans('admin.categories.delete') }}">
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </form>
-                  {% endif %}
-                </div>
-              </div>
-            {% endfor %}
+          {% if byParent is defined and byParent[0]|default([])|length > 0 %}
+            <ul class="nested-list" id="root-list">
+              {{ catmacros.render_category_tree(byParent[0]|default([]), byParent, 0, base_path, csrf) }}
+            </ul>
           {% else %}
             <div class="empty-state">
               <i class="fas fa-folder-open"></i>
@@ -360,8 +440,14 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">{{ trans('admin.categories.parent') }}</label>
             <select class="form-input" name="parent_id" id="cat-parent">
               <option value="">{{ trans('admin.categories.none_main') }}</option>
-              {% for parent in byParent[0]|default([]) %}
-                <option value="{{ parent.id }}">{{ parent.name }}</option>
+              {% for parent in categories|default([]) %}
+                {% set indent = '' %}
+                {% if parent.level is defined and parent.level > 0 %}
+                  {% for i in 1..parent.level %}
+                    {% set indent = indent ~ '-- ' %}
+                  {% endfor %}
+                {% endif %}
+                <option value="{{ parent.id }}">{{ indent }}{{ parent.name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -478,8 +564,14 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">{{ trans('admin.categories.parent') }}</label>
               <select id="modal-cat-parent" class="form-input" name="parent_id">
                 <option value="">{{ trans('admin.categories.no_parent') }}</option>
-                {% for parent in byParent[0]|default([]) %}
-                  <option value="{{ parent.id }}">{{ parent.name }}</option>
+                {% for parent in categories|default([]) %}
+                  {% set indent = '' %}
+                {% if parent.level is defined and parent.level > 0 %}
+                  {% for i in 1..parent.level %}
+                    {% set indent = indent ~ '-- ' %}
+                  {% endfor %}
+                {% endif %}
+                  <option value="{{ parent.id }}">{{ indent }}{{ parent.name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -517,189 +609,227 @@
   <script nonce="{{ csp_nonce() }}">
     // Global base path for API calls
     window.basePath = '{{ base_path }}';
-    
-    let csrfToken = {{ csrf|json_encode|raw }};
-    
-    // Clean drag system
-    class DragSystem {
-      constructor() {
-        this.container = document.getElementById('categories-container');
-        this.indicator = document.getElementById('level-indicator');
-        this.isDragging = false;
-        this.dragItem = null;
-        this.startX = 0;
-        this.startY = 0;
-        this.currentLevel = 0;
-        this.maxLevel = 4;
-        this.levelStep = 30; // 30px steps for level changes
-        
-        this.init();
-      }
-      
-      init() {
-        if (!this.container) return;
-        
-        this.container.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        document.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        document.addEventListener('mouseup', this.handleMouseUp.bind(this));
-      }
-      
-      handleMouseDown(e) {
-        const handle = e.target.closest('.drag-handle');
-        if (!handle) return;
-        
-        e.preventDefault();
-        this.startDrag(e, handle.closest('.category-item'), e.clientX, e.clientY);
-      }
-      
-      startDrag(e, item, x, y) {
-        this.isDragging = true;
-        this.dragItem = item;
-        this.startX = x;
-        this.startY = y;
-        this.currentLevel = parseInt(item.dataset.level) || 0;
-        
-        item.classList.add('dragging');
-        this.container.classList.add('drag-active');
-        document.body.style.userSelect = 'none';
-        document.body.style.cursor = 'grabbing';
-        
-        this.updateIndicator(this.currentLevel);
-      }
-      
-      handleMouseMove(e) {
-        if (!this.isDragging) return;
-        this.updateDrag(e.clientX, e.clientY);
-      }
-      
-      updateDrag(x, y) {
-        if (!this.dragItem) return;
-        
-        // Calculate horizontal movement for level changes
-        const deltaX = x - this.startX;
-        const newLevel = Math.max(0, Math.min(this.maxLevel, 
-          this.currentLevel + Math.floor(deltaX / this.levelStep)
-        ));
-        
-        // Update visual level immediately
-        this.dragItem.dataset.level = newLevel;
-        this.dragItem.setAttribute('data-level', newLevel);
-        
-        // Calculate vertical movement for reordering
-        const deltaY = y - this.startY;
-        const items = Array.from(this.container.querySelectorAll('.category-item'));
-        const dragIndex = items.indexOf(this.dragItem);
-        
-        if (Math.abs(deltaY) > 24) { // 24px threshold for reordering
-          const targetIndex = deltaY > 0 ? 
-            Math.min(items.length - 1, dragIndex + Math.floor(Math.abs(deltaY) / 48)) :
-            Math.max(0, dragIndex - Math.floor(Math.abs(deltaY) / 48));
-          
-          if (targetIndex !== dragIndex) {
-            const targetItem = items[targetIndex];
-            if (deltaY > 0) {
-              targetItem.parentNode.insertBefore(this.dragItem, targetItem.nextSibling);
-            } else {
-              targetItem.parentNode.insertBefore(this.dragItem, targetItem);
-            }
-          }
-        }
-        
-        this.updateIndicator(newLevel);
-      }
-      
-      handleMouseUp(e) {
-        if (!this.isDragging) return;
-        
-        this.isDragging = false;
-        document.body.style.userSelect = '';
-        document.body.style.cursor = '';
-        
-        if (this.dragItem) {
-          this.dragItem.classList.remove('dragging');
-          this.dragItem = null;
-        }
-        
-        this.container.classList.remove('drag-active');
-        this.indicator.classList.remove('show');
-        
-        // Save the new hierarchy
-        setTimeout(() => this.saveHierarchy(), 100);
-      }
-      
-      updateIndicator(level) {
-        this.indicator.textContent = `{{ trans('admin.categories.level')|e('js') }} ${level}${level >= this.maxLevel ? ' ({{ trans('admin.categories.max')|e('js') }})' : ''}`;
-        this.indicator.classList.add('show');
 
-        if (level >= this.maxLevel) {
-          this.indicator.classList.add('max-level');
-        } else {
-          this.indicator.classList.remove('max-level');
+    let csrfToken = {{ csrf|json_encode|raw }};
+
+    const levelIndicator = document.getElementById('level-indicator');
+    let sortables = [];
+    let saveTimer = null;
+
+    function destroySortables() {
+      if (!sortables.length) return;
+      sortables.forEach(s => {
+        try { s.destroy(); } catch (e) {}
+      });
+      sortables = [];
+      window.sortableInstances = sortables;
+    }
+
+    /**
+     * Calculate the depth/level of a wrapper based on its DOM position
+     */
+    function getWrapperLevel(wrapper) {
+      const parentList = wrapper.closest('.nested-list');
+      return parentList ? getListLevel(parentList) : 0;
+    }
+
+    /**
+     * Get the level of a nested-list container
+     */
+    function getListLevel(list) {
+      let level = 0;
+      let el = list;
+      while (el && !el.classList.contains('categories-container')) {
+        if (el.classList.contains('nested-list') && el.id !== 'root-list') {
+          level++;
         }
+        el = el.parentElement;
       }
-      
-      async saveHierarchy() {
-        const items = this.container.querySelectorAll('.category-item');
-        const hierarchy = [];
-        const sortCounters = new Map();
-        
-        items.forEach((item, index) => {
-          const id = parseInt(item.dataset.id);
-          let level = parseInt(item.dataset.level) || 0;
-          let parentId = null;
-          
-          // Find parent by looking at previous items
-          if (level > 0) {
-            for (let i = index - 1; i >= 0; i--) {
-              const prevItem = items[i];
-              const prevLevel = parseInt(prevItem.dataset.level) || 0;
-              
-              if (prevLevel === level - 1) {
-                parentId = parseInt(prevItem.dataset.id);
-                break;
-              }
-            }
+      return level;
+    }
+
+    /**
+     * Initialize SortableJS on all nested lists
+     */
+    let sortableRetryCount = 0;
+    const MAX_SORTABLE_RETRIES = 50; // ~5s at 100ms interval
+
+    function initCategorySortable() {
+      const container = document.getElementById('categories-container');
+      const rootList = document.getElementById('root-list');
+      if (!container) return;
+      if (!rootList) {
+        window.sortableInstances = ['empty'];
+        return;
+      }
+
+      if (typeof Sortable === 'undefined') {
+        console.error('[Categories] SortableJS not available');
+        if (++sortableRetryCount < MAX_SORTABLE_RETRIES) {
+          setTimeout(initCategorySortable, 120);
+        } else {
+          console.error('[Categories] SortableJS failed to load after max retries');
+          showToast('{{ trans('admin.categories.load_error')|e('js') }}', 'error');
+        }
+        return;
+      }
+      sortableRetryCount = 0; // Reset on success
+
+      destroySortables();
+
+      const nestedLists = container.querySelectorAll('.nested-list');
+      nestedLists.forEach(list => {
+        const sortable = new Sortable(list, {
+          group: { name: 'categories', pull: true, put: true },
+          handle: '.drag-handle',
+          draggable: '.category-wrapper',
+          animation: 200,
+          fallbackOnBody: true,
+          fallbackTolerance: 6,
+          swapThreshold: 0.22,
+          invertSwap: false,
+          emptyInsertThreshold: 18,
+          dragoverBubble: true,
+          scroll: true,
+          scrollSensitivity: 40,
+          scrollSpeed: 12,
+          ghostClass: 'sortable-ghost',
+          chosenClass: 'sortable-chosen',
+          dragClass: 'sortable-drag',
+
+          onStart(evt) {
+            container.classList.add('drag-active');
+            updateLevelIndicator(getWrapperLevel(evt.item));
+          },
+
+          onMove(evt) {
+            updateLevelIndicator(getListLevel(evt.to));
+            return true;
+          },
+
+          onEnd() {
+            container.classList.remove('drag-active');
+            hideLevelIndicator();
+            syncWrapperAttributes();
+            debouncedSaveHierarchy();
+          },
+
+          onAdd() {
+            syncWrapperAttributes();
+            debouncedSaveHierarchy();
+          },
+
+          onUpdate() {
+            syncWrapperAttributes();
+            debouncedSaveHierarchy();
           }
-          
-          const counterKey = parentId || 0;
-          const sortOrder = sortCounters.get(counterKey) ?? 0;
-          sortCounters.set(counterKey, sortOrder + 1);
+        });
+        sortables.push(sortable);
+      });
+
+      window.sortableInstances = sortables;
+      syncWrapperAttributes();
+    }
+
+    /**
+     * Update wrapper attributes for current tree
+     */
+    function syncWrapperAttributes() {
+      const rootList = document.getElementById('root-list');
+      if (!rootList) return;
+
+      const apply = (list, parentId, level) => {
+        Array.from(list.children).forEach(node => {
+          if (!node.classList.contains('category-wrapper')) return;
+          node.dataset.parent = parentId ? String(parentId) : '';
+          node.dataset.level = level;
+          const nested = node.querySelector(':scope > .nested-list');
+          if (nested) {
+            apply(nested, node.dataset.id, level + 1);
+          }
+        });
+      };
+
+      apply(rootList, '', 0);
+    }
+
+    /**
+     * Show level indicator
+     */
+    function updateLevelIndicator(level) {
+      if (!levelIndicator) return;
+      levelIndicator.textContent = '{{ trans('admin.categories.level')|e('js') }} ' + level;
+      levelIndicator.classList.add('show');
+      levelIndicator.classList.remove('max-level');
+    }
+
+    /**
+     * Hide level indicator
+     */
+    function hideLevelIndicator() {
+      if (!levelIndicator) return;
+      levelIndicator.classList.remove('show', 'max-level');
+    }
+
+    function debouncedSaveHierarchy() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveHierarchy, 250);
+    }
+
+    async function saveHierarchy() {
+      const rootList = document.getElementById('root-list');
+      if (!rootList) return;
+
+      const hierarchy = [];
+
+      const collectFromList = (list, parentId, level) => {
+        Array.from(list.children).forEach((wrapper, index) => {
+          if (!wrapper.classList.contains('category-wrapper')) return;
+          const id = parseInt(wrapper.dataset.id, 10);
 
           hierarchy.push({
-            id: id,
-            parent_id: parentId,
-            sort_order: sortOrder,
-            level: level
+            id,
+            parent_id: parentId ? parseInt(parentId, 10) : 0,
+            sort_order: index,
+            level
           });
-        });
-        
-        try {
-          const response = await fetch(window.basePath + '/admin/categories/reorder-wordpress', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-Token': csrfToken
-            },
-            body: JSON.stringify({ hierarchy })
-          });
-          
-          if (response.ok) {
-            this.showToast('{{ trans('admin.categories.reorder_success')|e('js') }}');
-          } else {
-            throw new Error('Failed to save');
+
+          const nestedList = wrapper.querySelector(':scope > .nested-list');
+          if (nestedList && nestedList.children.length > 0) {
+            collectFromList(nestedList, id, level + 1);
           }
-        } catch (error) {
-          this.showToast('{{ trans('admin.categories.save_error')|e('js') }}', 'error');
-          console.error('Save error:', error);
-        }
+        });
+      };
+
+      collectFromList(rootList, 0, 0);
+
+      if (hierarchy.length === 0) {
+        return; // Nothing to save
       }
-      
-      showToast(message, type = 'success') {
-        if (window.showToast) {
-          window.showToast(message, type === 'success' ? '' : 'error');
+
+      try {
+        const response = await fetch(window.basePath + '/admin/categories/reorder-wordpress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+          body: JSON.stringify({ hierarchy })
+        });
+
+        if (response.ok) {
+          showToast('{{ trans('admin.categories.reorder_success')|e('js') }}');
         } else {
-          alert(message);
+          throw new Error('Failed to save');
         }
+      } catch (error) {
+        console.error('Save error:', error);
+        showToast('{{ trans('admin.categories.save_error')|e('js') }}', 'error');
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      if (window.showToast) {
+        window.showToast(message, type === 'success' ? '' : 'error');
+      } else {
+        alert(message);
       }
     }
     
@@ -757,9 +887,9 @@
       document.getElementById('cat-name').focus();
     });
     
-    // Initialize the drag system
+    // Initialize drag system
     document.addEventListener('DOMContentLoaded', function() {
-      new DragSystem();
+      initCategorySortable();
       setupImageUpload();
       setupFormValidation();
       setupCategoryModal();
@@ -1008,7 +1138,12 @@
       document.getElementById('modal-cat-slug').value = data.slug || '';
       document.getElementById('modal-cat-sort').value = data.sort_order || 0;
       const parentSelect = document.getElementById('modal-cat-parent');
-      if (parentSelect) parentSelect.value = data.parent_id || '';
+      if (parentSelect) {
+        Array.from(parentSelect.options).forEach(opt => {
+          opt.disabled = opt.value === String(data.id);
+        });
+        parentSelect.value = data.parent_id || '';
+      }
 
       // Current image
       const currentImageWrap = document.getElementById('modal-current-image');

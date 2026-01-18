@@ -485,11 +485,19 @@ class GalleriesController extends BaseController
             if ($cacheData !== false) {
                 // Legacy cache migration ended 2025-12-15: do not accept non-JSON data.
                 $cache = @json_decode($cacheData, true);
-                if (!is_array($cache)) {
+
+                // SECURITY: Comprehensive validation of cache structure
+                if (!$this->validateFilterCacheStructure($cache)) {
+                    Logger::warning('GalleriesController: Invalid filter cache structure detected, rebuilding', [
+                        'cache_file' => $cacheFile
+                    ], 'security');
                     @unlink($cacheFile);
                     $cache = [];
                 }
-                if (is_array($cache) && isset($cache['expires'], $cache['data']) && $cache['expires'] > time()) {
+
+                // Check expiration
+                if (is_array($cache) && isset($cache['expires'], $cache['data']) &&
+                    is_int($cache['expires']) && $cache['expires'] > time()) {
                     return $cache['data'];
                 }
             }
@@ -853,6 +861,64 @@ class GalleriesController extends BaseController
         $path = $stmt->fetchColumn();
 
         return $path !== false ? (string)$path : null;
+    }
+
+    /**
+     * Validate filter cache structure to prevent cache poisoning.
+     * SECURITY: Ensures cached data has expected structure before use.
+     *
+     * @param mixed $cache Decoded cache data
+     * @return bool True if structure is valid
+     */
+    private function validateFilterCacheStructure(mixed $cache): bool
+    {
+        // 1. Must be an array
+        if (!is_array($cache)) {
+            return false;
+        }
+
+        // 2. Must have required top-level keys
+        if (!isset($cache['expires'], $cache['data'])) {
+            return false;
+        }
+
+        // 3. expires must be an integer
+        if (!is_int($cache['expires'])) {
+            return false;
+        }
+
+        // 4. data must be an array
+        if (!is_array($cache['data'])) {
+            return false;
+        }
+
+        // 5. data must contain all expected keys with array values
+        $requiredKeys = ['categories', 'tags', 'cameras', 'lenses', 'films',
+                        'developers', 'labs', 'locations', 'years'];
+
+        foreach ($requiredKeys as $key) {
+            if (!isset($cache['data'][$key]) || !is_array($cache['data'][$key])) {
+                return false;
+            }
+        }
+
+        // 6. Validate structure of array elements (sample check to avoid performance hit)
+        // Check first element of each array if not empty
+        if (!empty($cache['data']['categories'])) {
+            $first = reset($cache['data']['categories']);
+            if (!is_array($first) || !isset($first['id'], $first['name'])) {
+                return false;
+            }
+        }
+
+        if (!empty($cache['data']['tags'])) {
+            $first = reset($cache['data']['tags']);
+            if (!is_array($first) || !isset($first['id'], $first['name'])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

@@ -1,6 +1,8 @@
 {% extends "frontend/_layout.twig" %}
+{% import "frontend/_lqip_macros.twig" as lqip %}
 
 {% block styles %}
+{{ lqip.lqip_styles()|raw }}
 <style nonce="{{ csp_nonce() }}">
 /* Reset only for snap gallery */
 .snap-gallery, .snap-gallery * {
@@ -749,5 +751,8 @@ html.dark .snap-indicator:hover {
     document.documentElement.classList.remove('snap-active');
   });
 })();
+</script>
+<script nonce="{{ csp_nonce() }}">
+{{ lqip.lqip_script()|raw }}
 </script>
 {% endblock %}
