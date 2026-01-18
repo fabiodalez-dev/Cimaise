@@ -1,0 +1,165 @@
+{#
+  LQIP (Low Quality Image Placeholder) Macros
+  Reusable macros for instant perceived image loading
+#}
+
+{#
+  lqip_image - Render image with optional LQIP placeholder
+
+  @param image - Image object with lqip_placeholder field
+  @param img_src - Fallback image source
+  @param alt - Alt text for accessibility
+  @param title - Title attribute
+  @param sizes - Responsive sizes attribute
+  @param class - Additional CSS classes
+  @param fetchpriority - "high" or "low" (optional)
+  @param loading - "lazy" or "eager" (optional)
+
+  Usage:
+  {{ _self.lqip_image(image, img_src, 'Alt text', 'Title', '100vw', 'custom-class', 'high') }}
+#}
+{% macro lqip_image(image, img_src, alt='', title='', sizes='100vw', class='', fetchpriority='', loading='lazy') %}
+<img {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ img_src }}"{% else %}src="{{ img_src }}"{% endif %}
+     {% if sizes %}sizes="{{ sizes }}"{% endif %}
+     alt="{{ alt|default('')|e('html_attr') }}"
+     {% if title %}title="{{ title|e('html_attr') }}"{% endif %}
+     class="{{ class }}{% if image.lqip_placeholder %} lqip-blur{% endif %}"
+     {% if fetchpriority %}fetchpriority="{{ fetchpriority }}"{% endif %}
+     {% if loading %}loading="{{ loading }}"{% endif %}
+     decoding="async">
+{% endmacro %}
+
+{#
+  lqip_picture - Render <picture> element with LQIP support
+
+  @param image - Image object with lqip_placeholder and sources
+  @param img_src - Fallback image source
+  @param alt - Alt text
+  @param title - Title attribute
+  @param sizes - Responsive sizes
+  @param class - CSS classes
+  @param fetchpriority - Priority hint
+  @param loading - Loading strategy
+
+  Usage:
+  {{ _self.lqip_picture(image, img_src, 'Alt', 'Title', '50vw', 'img-fill', 'high', 'lazy') }}
+#}
+{% macro lqip_picture(image, img_src, alt='', title='', sizes='100vw', class='', fetchpriority='', loading='lazy') %}
+<picture>
+  {# When LQIP exists, defer srcset loading to prevent immediate HD download #}
+  {% if image.sources.avif|default([])|length > 0 %}
+  <source type="image/avif" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ image.sources.avif|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
+  {% endif %}
+  {% if image.sources.webp|default([])|length > 0 %}
+  <source type="image/webp" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ image.sources.webp|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
+  {% endif %}
+  {% if image.sources.jpg|default([])|length > 0 %}
+  <source type="image/jpeg" {% if image.lqip_placeholder %}data-srcset{% else %}srcset{% endif %}="{{ image.sources.jpg|join(', ')|e('html_attr') }}" {% if sizes %}sizes="{{ sizes }}"{% endif %}>
+  {% endif %}
+  {# LQIP for instant perceived loading #}
+  <img {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ img_src }}"{% else %}src="{{ img_src }}"{% endif %}
+       {% if sizes %}sizes="{{ sizes }}"{% endif %}
+       alt="{{ alt|default('')|e('html_attr') }}"
+       {% if title %}title="{{ title|e('html_attr') }}"{% endif %}
+       class="{{ class }}{% if image.lqip_placeholder %} lqip-blur{% endif %}"
+       {% if fetchpriority %}fetchpriority="{{ fetchpriority }}"{% endif %}
+       {% if loading %}loading="{{ loading }}"{% endif %}
+       decoding="async">
+</picture>
+{% endmacro %}
+
+{#
+  lqip_styles - CSS for LQIP blur transition
+  Include once per page
+
+  Usage:
+  {{ _self.lqip_styles() }}
+#}
+{% macro lqip_styles() %}
+<style nonce="{{ csp_nonce() }}">
+/* LQIP (Low Quality Image Placeholder) - Progressive image loading */
+.lqip-blur {
+  filter: blur(20px);
+  transform: scale(1.1);
+  transition: filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lqip-blur.lqip-loaded {
+  filter: blur(0);
+  transform: scale(1);
+}
+</style>
+{% endmacro %}
+
+{#
+  lqip_script - JavaScript for progressive loading
+  Include once per page before closing </body>
+
+  Usage:
+  <script nonce="{{ csp_nonce() }}">
+  {{ _self.lqip_script()|raw }}
+  </script>
+#}
+{% macro lqip_script() %}
+// LQIP Progressive Image Loading with IntersectionObserver
+(function() {
+  const lqipImages = document.querySelectorAll('img.lqip-blur[data-src]');
+  if (lqipImages.length === 0) return;
+
+  const loadHDImage = (img) => {
+    const hdSrc = img.getAttribute('data-src');
+    if (!hdSrc) return;
+
+    // Restore picture source srcsets (if any)
+    const picture = img.closest('picture');
+    if (picture) {
+      const sources = picture.querySelectorAll('source[data-srcset]');
+      sources.forEach(source => {
+        source.setAttribute('srcset', source.getAttribute('data-srcset'));
+        source.removeAttribute('data-srcset');
+      });
+    }
+
+    const hdImage = new Image();
+    hdImage.onload = () => {
+      img.src = hdSrc;
+      img.removeAttribute('data-src');
+      requestAnimationFrame(() => {
+        img.classList.add('lqip-loaded');
+      });
+    };
+    hdImage.onerror = () => {
+      img.classList.add('lqip-loaded');
+    };
+    hdImage.src = hdSrc;
+  };
+
+  // Use IntersectionObserver to load only visible images
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          loadHDImage(img);
+          observer.unobserve(img);
+        }
+      });
+    }, {
+      rootMargin: '50px' // Start loading 50px before entering viewport
+    });
+
+    lqipImages.forEach((img) => {
+      observer.observe(img);
+    });
+  } else {
+    // Fallback for browsers without IntersectionObserver
+    lqipImages.forEach((img) => {
+      if (img.complete && img.naturalWidth > 0) {
+        loadHDImage(img);
+      } else {
+        img.addEventListener('load', () => loadHDImage(img), { once: true });
+      }
+    });
+  }
+})();
+{% endmacro %}

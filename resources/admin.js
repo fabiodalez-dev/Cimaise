@@ -5,6 +5,9 @@ import Compressor from '@uppy/compressor'
 import TomSelect from 'tom-select'
 import 'tom-select/dist/css/tom-select.css'
 import Sortable from 'sortablejs'
+
+// Expose Sortable globally for inline scripts (categories page)
+window.Sortable = Sortable;
 import tinymce from 'tinymce/tinymce'
 import 'tinymce/icons/default'
 import 'tinymce/themes/silver'

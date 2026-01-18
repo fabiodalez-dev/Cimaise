@@ -1320,14 +1320,14 @@
                             </button>
 
                             <!-- Mega Menu Panel - fixed positioning to center in viewport -->
-                            {# Dynamic width based on category count: small when few items, larger when many #}
-                            {# Using min() with viewport units ensures proper sizing on small screens #}
+                            {# Dynamic width based on category count: responsive from 1 to 5+ columns #}
+                            {# Column width ~160px + gap 24px = ~184px per column #}
                             {% set cat_count = filtered_parent_categories|length %}
-                            {% set menu_width = cat_count <= 1 ? 'min(90vw, 280px)' : (cat_count == 2 ? 'min(90vw, 520px)' : (cat_count == 3 ? 'min(90vw, 760px)' : 'min(100vw-2rem,1040px)')) %}
+                            {% set menu_width = cat_count <= 1 ? 'min(90vw, 240px)' : (cat_count == 2 ? 'min(90vw, 420px)' : (cat_count == 3 ? 'min(90vw, 600px)' : (cat_count == 4 ? 'min(90vw, 780px)' : 'min(95vw, 960px)'))) %}
                             <div id="categories-mega-menu" class="fixed left-1/2 top-[80px] -translate-x-1/2 bg-white border border-gray-200 shadow-2xl rounded-2xl z-50 overflow-hidden opacity-0 invisible transform translate-y-2 transition-all duration-300 ease-out" style="width: {{ menu_width }};">
-                                <div class="p-8 max-h-[70vh] overflow-y-auto">
-                                    <!-- Parent Categories Grid -->
-                                    <div class="grid gap-8" id="parent-categories-grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 220px)); justify-content: center;">
+                                <div class="p-6 max-h-[70vh] overflow-y-auto">
+                                    <!-- Parent Categories Grid - up to 5 columns on large screens -->
+                                    <div class="grid gap-6" id="parent-categories-grid" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); justify-content: center;">
                                         {% for category in filtered_parent_categories %}
                                         <div class="group cursor-pointer category-parent-item relative" data-category-id="{{ category.id }}" data-category-slug="{{ category.slug }}" data-category-name="{{ category.name|e }}">
                                             <a href="{{ base_path }}/category/{{ category.slug }}" class="block hover:no-underline">

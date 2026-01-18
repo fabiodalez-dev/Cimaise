@@ -182,15 +182,17 @@ class CacheMiddleware implements MiddlewareInterface
             if ($ifNoneMatch && $this->matchesEtag($etag, $ifNoneMatch)) {
                 // Create empty body for 304 response to avoid sending stale content
                 $emptyBody = new \Slim\Psr7\Stream(fopen('php://temp', 'r+'));
-                return $response
+                $notModifiedResponse = $response
                     ->withStatus(304)
                     ->withBody($emptyBody)
                     ->withHeader('ETag', $etag)
                     ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate");
+                return $this->addVaryHeader($notModifiedResponse, 'Cookie, Accept-Encoding');
             }
         }
 
         // For HTML, use shorter cache with must-revalidate
+        // SECURITY: Vary header prevents cache poisoning by ensuring caches consider these headers
         $result = $response
             ->withHeader('Cache-Control', "public, max-age={$maxAge}, must-revalidate")
             ->withHeader('Expires', gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT');
@@ -199,7 +201,7 @@ class CacheMiddleware implements MiddlewareInterface
             $result = $result->withHeader('ETag', $etag);
         }
 
-        return $result;
+        return $this->addVaryHeader($result, 'Cookie, Accept-Encoding');
     }
 
     /**
@@ -308,5 +310,18 @@ class CacheMiddleware implements MiddlewareInterface
             ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->withHeader('Pragma', 'no-cache')
             ->withHeader('Expires', '0');
+    }
+
+    /**
+     * Add Vary header values to existing ones instead of overwriting.
+     * This prevents overwriting Vary headers set by other middleware (e.g., CompressionMiddleware).
+     */
+    private function addVaryHeader(Response $response, string $newVary): Response
+    {
+        $existing = $response->getHeaderLine('Vary');
+        $existingValues = array_filter(array_map('trim', explode(',', $existing)));
+        $newValues = array_filter(array_map('trim', explode(',', $newVary)));
+        $merged = array_unique(array_merge($existingValues, $newValues), SORT_STRING);
+        return $response->withHeader('Vary', implode(', ', $merged));
     }
 }
