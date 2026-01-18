@@ -57,10 +57,19 @@
           }
           
           .category-item.dragging {
-            opacity: 0.8;
-            transform: scale(1.02);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            position: fixed;
+            opacity: 0.9;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.2);
             z-index: 1000;
+            pointer-events: none;
+            width: var(--drag-width);
+            transition: none;
+          }
+
+          .category-item.drag-placeholder {
+            opacity: 0.3;
+            background: #e5e7eb;
+            border: 2px dashed #9ca3af;
           }
           
           .drag-handle {
@@ -520,19 +529,22 @@
     
     let csrfToken = {{ csrf|json_encode|raw }};
     
-    // Clean drag system - position-based for smooth reordering
+    // Clean drag system - element follows cursor
     class DragSystem {
       constructor() {
         this.container = document.getElementById('categories-container');
         this.indicator = document.getElementById('level-indicator');
         this.isDragging = false;
         this.dragItem = null;
+        this.placeholder = null;
         this.startX = 0;
+        this.offsetX = 0;
+        this.offsetY = 0;
         this.currentLevel = 0;
         this.maxLevel = 4;
         this.levelStep = 30;
         this.lastSwapTime = 0;
-        this.swapCooldown = 150; // ms between swaps for smooth feel
+        this.swapCooldown = 100;
 
         this.init();
       }
@@ -551,13 +563,28 @@
 
         e.preventDefault();
         const item = handle.closest('.category-item');
+        const rect = item.getBoundingClientRect();
 
-        this.isDragging = true;
-        this.dragItem = item;
+        // Store offset from mouse to element top-left
+        this.offsetX = e.clientX - rect.left;
+        this.offsetY = e.clientY - rect.top;
         this.startX = e.clientX;
         this.currentLevel = parseInt(item.dataset.level) || 0;
 
+        // Create placeholder
+        this.placeholder = item.cloneNode(true);
+        this.placeholder.classList.remove('dragging');
+        this.placeholder.classList.add('drag-placeholder');
+        item.parentNode.insertBefore(this.placeholder, item);
+
+        // Setup dragged element
+        this.isDragging = true;
+        this.dragItem = item;
+        item.style.setProperty('--drag-width', rect.width + 'px');
+        item.style.left = rect.left + 'px';
+        item.style.top = rect.top + 'px';
         item.classList.add('dragging');
+
         this.container.classList.add('drag-active');
         document.body.style.userSelect = 'none';
         document.body.style.cursor = 'grabbing';
@@ -568,6 +595,10 @@
       handleMouseMove(e) {
         if (!this.isDragging || !this.dragItem) return;
 
+        // Move element with cursor
+        this.dragItem.style.left = (e.clientX - this.offsetX) + 'px';
+        this.dragItem.style.top = (e.clientY - this.offsetY) + 'px';
+
         // Horizontal: level changes
         const deltaX = e.clientX - this.startX;
         const newLevel = Math.max(0, Math.min(this.maxLevel,
@@ -577,38 +608,31 @@
         this.dragItem.setAttribute('data-level', newLevel);
         this.updateIndicator(newLevel);
 
-        // Vertical: position-based reordering
+        // Vertical: reorder placeholder based on mouse position
         const now = Date.now();
         if (now - this.lastSwapTime < this.swapCooldown) return;
 
         const mouseY = e.clientY;
-        const dragRect = this.dragItem.getBoundingClientRect();
-        const dragCenterY = dragRect.top + dragRect.height / 2;
+        const items = Array.from(this.container.querySelectorAll('.category-item:not(.dragging)'));
+        const placeholderIndex = items.indexOf(this.placeholder);
 
-        const items = Array.from(this.container.querySelectorAll('.category-item'));
-        const dragIndex = items.indexOf(this.dragItem);
-
-        // Check item above
-        if (dragIndex > 0) {
-          const prevItem = items[dragIndex - 1];
+        // Check item above placeholder
+        if (placeholderIndex > 0) {
+          const prevItem = items[placeholderIndex - 1];
           const prevRect = prevItem.getBoundingClientRect();
-          const prevCenterY = prevRect.top + prevRect.height / 2;
-
-          if (mouseY < prevCenterY) {
-            this.container.insertBefore(this.dragItem, prevItem);
+          if (mouseY < prevRect.top + prevRect.height / 2) {
+            this.container.insertBefore(this.placeholder, prevItem);
             this.lastSwapTime = now;
             return;
           }
         }
 
-        // Check item below
-        if (dragIndex < items.length - 1) {
-          const nextItem = items[dragIndex + 1];
+        // Check item below placeholder
+        if (placeholderIndex < items.length - 1) {
+          const nextItem = items[placeholderIndex + 1];
           const nextRect = nextItem.getBoundingClientRect();
-          const nextCenterY = nextRect.top + nextRect.height / 2;
-
-          if (mouseY > nextCenterY) {
-            this.container.insertBefore(nextItem, this.dragItem);
+          if (mouseY > nextRect.top + nextRect.height / 2) {
+            this.container.insertBefore(this.placeholder, nextItem.nextSibling);
             this.lastSwapTime = now;
             return;
           }
@@ -622,9 +646,18 @@
         document.body.style.userSelect = '';
         document.body.style.cursor = '';
 
-        if (this.dragItem) {
+        if (this.dragItem && this.placeholder) {
+          // Insert dragged item at placeholder position
+          this.container.insertBefore(this.dragItem, this.placeholder);
+          this.placeholder.remove();
+
+          // Reset styles
           this.dragItem.classList.remove('dragging');
+          this.dragItem.style.left = '';
+          this.dragItem.style.top = '';
+          this.dragItem.style.removeProperty('--drag-width');
           this.dragItem = null;
+          this.placeholder = null;
         }
 
         this.container.classList.remove('drag-active');
