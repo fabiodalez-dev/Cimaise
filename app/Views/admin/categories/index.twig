@@ -56,20 +56,20 @@
             transform: translateY(-1px);
           }
           
-          .category-item.dragging {
-            position: fixed;
-            opacity: 0.9;
-            box-shadow: 0 12px 28px rgba(0,0,0,0.2);
-            z-index: 1000;
-            pointer-events: none;
-            width: var(--drag-width);
-            transition: none;
+          /* SortableJS classes */
+          .category-item.sortable-chosen {
+            background: #f9fafb;
           }
 
-          .category-item.drag-placeholder {
-            opacity: 0.3;
+          .category-item.sortable-ghost {
+            opacity: 0.4;
             background: #e5e7eb;
-            border: 2px dashed #9ca3af;
+          }
+
+          .category-item.sortable-drag {
+            opacity: 1;
+            background: white;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.15);
           }
           
           .drag-handle {
@@ -169,17 +169,6 @@
           .action-btn:hover {
             background: #e5e7eb;
             transform: scale(1.1);
-          }
-          
-          /* Drag feedback */
-          .categories-container.drag-active {
-            background: repeating-linear-gradient(
-              90deg,
-              transparent 0px,
-              transparent 28px,
-              rgba(0, 0, 0, 0.05) 28px,
-              rgba(0, 0, 0, 0.05) 32px
-            );
           }
           
           /* Level indicator */
@@ -529,216 +518,106 @@
     
     let csrfToken = {{ csrf|json_encode|raw }};
     
-    // Clean drag system - element follows cursor
-    class DragSystem {
-      constructor() {
-        this.container = document.getElementById('categories-container');
-        this.indicator = document.getElementById('level-indicator');
-        this.isDragging = false;
-        this.dragItem = null;
-        this.placeholder = null;
-        this.startX = 0;
-        this.offsetX = 0;
-        this.offsetY = 0;
-        this.currentLevel = 0;
-        this.maxLevel = 4;
-        this.levelStep = 30;
-        this.lastSwapTime = 0;
-        this.swapCooldown = 100;
+    // SortableJS-based drag system
+    function initCategorySortable() {
+      const container = document.getElementById('categories-container');
+      const indicator = document.getElementById('level-indicator');
+      if (!container) return;
 
-        this.init();
-      }
+      let startX = 0;
+      let currentLevel = 0;
+      const maxLevel = 4;
+      const levelStep = 30;
 
-      init() {
-        if (!this.container) return;
+      new Sortable(container, {
+        handle: '.drag-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
+        fallbackOnBody: true,
+        swapThreshold: 0.65,
 
-        this.container.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        document.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        document.addEventListener('mouseup', this.handleMouseUp.bind(this));
-      }
+        onStart: function(evt) {
+          startX = evt.originalEvent.clientX || evt.originalEvent.touches?.[0]?.clientX || 0;
+          currentLevel = parseInt(evt.item.dataset.level) || 0;
+          document.body.style.cursor = 'grabbing';
+        },
 
-      handleMouseDown(e) {
-        const handle = e.target.closest('.drag-handle');
-        if (!handle) return;
+        onMove: function(evt, originalEvent) {
+          // Horizontal movement for level changes
+          const clientX = originalEvent.clientX || originalEvent.touches?.[0]?.clientX || startX;
+          const deltaX = clientX - startX;
+          const newLevel = Math.max(0, Math.min(maxLevel, currentLevel + Math.floor(deltaX / levelStep)));
 
-        e.preventDefault();
-        const item = handle.closest('.category-item');
-        const rect = item.getBoundingClientRect();
+          evt.dragged.dataset.level = newLevel;
+          evt.dragged.setAttribute('data-level', newLevel);
 
-        // Store offset from mouse to element top-left
-        this.offsetX = e.clientX - rect.left;
-        this.offsetY = e.clientY - rect.top;
-        this.startX = e.clientX;
-        this.currentLevel = parseInt(item.dataset.level) || 0;
+          indicator.textContent = `{{ trans('admin.categories.level')|e('js') }} ${newLevel}${newLevel >= maxLevel ? ' ({{ trans('admin.categories.max')|e('js') }})' : ''}`;
+          indicator.classList.add('show');
+          indicator.classList.toggle('max-level', newLevel >= maxLevel);
+        },
 
-        // Create placeholder
-        this.placeholder = item.cloneNode(true);
-        this.placeholder.classList.remove('dragging');
-        this.placeholder.classList.add('drag-placeholder');
-        item.parentNode.insertBefore(this.placeholder, item);
-
-        // Setup dragged element
-        this.isDragging = true;
-        this.dragItem = item;
-        item.style.setProperty('--drag-width', rect.width + 'px');
-        item.style.left = rect.left + 'px';
-        item.style.top = rect.top + 'px';
-        item.classList.add('dragging');
-
-        this.container.classList.add('drag-active');
-        document.body.style.userSelect = 'none';
-        document.body.style.cursor = 'grabbing';
-
-        this.updateIndicator(this.currentLevel);
-      }
-
-      handleMouseMove(e) {
-        if (!this.isDragging || !this.dragItem) return;
-
-        // Move element with cursor
-        this.dragItem.style.left = (e.clientX - this.offsetX) + 'px';
-        this.dragItem.style.top = (e.clientY - this.offsetY) + 'px';
-
-        // Horizontal: level changes
-        const deltaX = e.clientX - this.startX;
-        const newLevel = Math.max(0, Math.min(this.maxLevel,
-          this.currentLevel + Math.floor(deltaX / this.levelStep)
-        ));
-        this.dragItem.dataset.level = newLevel;
-        this.dragItem.setAttribute('data-level', newLevel);
-        this.updateIndicator(newLevel);
-
-        // Vertical: reorder placeholder based on mouse position
-        const now = Date.now();
-        if (now - this.lastSwapTime < this.swapCooldown) return;
-
-        const mouseY = e.clientY;
-        const items = Array.from(this.container.querySelectorAll('.category-item:not(.dragging)'));
-        const placeholderIndex = items.indexOf(this.placeholder);
-
-        // Check item above placeholder
-        if (placeholderIndex > 0) {
-          const prevItem = items[placeholderIndex - 1];
-          const prevRect = prevItem.getBoundingClientRect();
-          if (mouseY < prevRect.top + prevRect.height / 2) {
-            this.container.insertBefore(this.placeholder, prevItem);
-            this.lastSwapTime = now;
-            return;
-          }
+        onEnd: function(evt) {
+          document.body.style.cursor = '';
+          indicator.classList.remove('show');
+          saveHierarchy();
         }
+      });
+    }
 
-        // Check item below placeholder
-        if (placeholderIndex < items.length - 1) {
-          const nextItem = items[placeholderIndex + 1];
-          const nextRect = nextItem.getBoundingClientRect();
-          if (mouseY > nextRect.top + nextRect.height / 2) {
-            this.container.insertBefore(this.placeholder, nextItem.nextSibling);
-            this.lastSwapTime = now;
-            return;
-          }
-        }
-      }
+    async function saveHierarchy() {
+      const container = document.getElementById('categories-container');
+      const items = container.querySelectorAll('.category-item');
+      const hierarchy = [];
+      const sortCounters = new Map();
 
-      handleMouseUp(e) {
-        if (!this.isDragging) return;
+      items.forEach((item, index) => {
+        const id = parseInt(item.dataset.id);
+        let level = parseInt(item.dataset.level) || 0;
+        let parentId = null;
 
-        this.isDragging = false;
-        document.body.style.userSelect = '';
-        document.body.style.cursor = '';
-
-        if (this.dragItem && this.placeholder) {
-          // Insert dragged item at placeholder position
-          this.container.insertBefore(this.dragItem, this.placeholder);
-          this.placeholder.remove();
-
-          // Reset styles
-          this.dragItem.classList.remove('dragging');
-          this.dragItem.style.left = '';
-          this.dragItem.style.top = '';
-          this.dragItem.style.removeProperty('--drag-width');
-          this.dragItem = null;
-          this.placeholder = null;
-        }
-
-        this.container.classList.remove('drag-active');
-        this.indicator.classList.remove('show');
-
-        setTimeout(() => this.saveHierarchy(), 100);
-      }
-
-      updateIndicator(level) {
-        this.indicator.textContent = `{{ trans('admin.categories.level')|e('js') }} ${level}${level >= this.maxLevel ? ' ({{ trans('admin.categories.max')|e('js') }})' : ''}`;
-        this.indicator.classList.add('show');
-
-        if (level >= this.maxLevel) {
-          this.indicator.classList.add('max-level');
-        } else {
-          this.indicator.classList.remove('max-level');
-        }
-      }
-      
-      async saveHierarchy() {
-        const items = this.container.querySelectorAll('.category-item');
-        const hierarchy = [];
-        const sortCounters = new Map();
-        
-        items.forEach((item, index) => {
-          const id = parseInt(item.dataset.id);
-          let level = parseInt(item.dataset.level) || 0;
-          let parentId = null;
-          
-          // Find parent by looking at previous items
-          if (level > 0) {
-            for (let i = index - 1; i >= 0; i--) {
-              const prevItem = items[i];
-              const prevLevel = parseInt(prevItem.dataset.level) || 0;
-              
-              if (prevLevel === level - 1) {
-                parentId = parseInt(prevItem.dataset.id);
-                break;
-              }
+        if (level > 0) {
+          for (let i = index - 1; i >= 0; i--) {
+            const prevItem = items[i];
+            const prevLevel = parseInt(prevItem.dataset.level) || 0;
+            if (prevLevel === level - 1) {
+              parentId = parseInt(prevItem.dataset.id);
+              break;
             }
           }
-          
-          const counterKey = parentId || 0;
-          const sortOrder = sortCounters.get(counterKey) ?? 0;
-          sortCounters.set(counterKey, sortOrder + 1);
+        }
 
-          hierarchy.push({
-            id: id,
-            parent_id: parentId,
-            sort_order: sortOrder,
-            level: level
-          });
+        const counterKey = parentId || 0;
+        const sortOrder = sortCounters.get(counterKey) ?? 0;
+        sortCounters.set(counterKey, sortOrder + 1);
+
+        hierarchy.push({ id, parent_id: parentId, sort_order: sortOrder, level });
+      });
+
+      try {
+        const response = await fetch(window.basePath + '/admin/categories/reorder-wordpress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+          body: JSON.stringify({ hierarchy })
         });
-        
-        try {
-          const response = await fetch(window.basePath + '/admin/categories/reorder-wordpress', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-Token': csrfToken
-            },
-            body: JSON.stringify({ hierarchy })
-          });
-          
-          if (response.ok) {
-            this.showToast('{{ trans('admin.categories.reorder_success')|e('js') }}');
-          } else {
-            throw new Error('Failed to save');
-          }
-        } catch (error) {
-          this.showToast('{{ trans('admin.categories.save_error')|e('js') }}', 'error');
-          console.error('Save error:', error);
-        }
-      }
-      
-      showToast(message, type = 'success') {
-        if (window.showToast) {
-          window.showToast(message, type === 'success' ? '' : 'error');
+
+        if (response.ok) {
+          showToast('{{ trans('admin.categories.reorder_success')|e('js') }}');
         } else {
-          alert(message);
+          throw new Error('Failed to save');
         }
+      } catch (error) {
+        showToast('{{ trans('admin.categories.save_error')|e('js') }}', 'error');
+        console.error('Save error:', error);
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      if (window.showToast) {
+        window.showToast(message, type === 'success' ? '' : 'error');
+      } else {
+        alert(message);
       }
     }
     
@@ -796,9 +675,9 @@
       document.getElementById('cat-name').focus();
     });
     
-    // Initialize the drag system
+    // Initialize SortableJS
     document.addEventListener('DOMContentLoaded', function() {
-      new DragSystem();
+      initCategorySortable();
       setupImageUpload();
       setupFormValidation();
       setupCategoryModal();
