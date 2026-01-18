@@ -520,7 +520,7 @@
     
     let csrfToken = {{ csrf|json_encode|raw }};
     
-    // Clean drag system
+    // Clean drag system - position-based for smooth reordering
     class DragSystem {
       constructor() {
         this.container = document.getElementById('categories-container');
@@ -528,107 +528,111 @@
         this.isDragging = false;
         this.dragItem = null;
         this.startX = 0;
-        this.startY = 0;
         this.currentLevel = 0;
         this.maxLevel = 4;
-        this.levelStep = 30; // 30px steps for level changes
-        
+        this.levelStep = 30;
+        this.lastSwapTime = 0;
+        this.swapCooldown = 150; // ms between swaps for smooth feel
+
         this.init();
       }
-      
+
       init() {
         if (!this.container) return;
-        
+
         this.container.addEventListener('mousedown', this.handleMouseDown.bind(this));
         document.addEventListener('mousemove', this.handleMouseMove.bind(this));
         document.addEventListener('mouseup', this.handleMouseUp.bind(this));
       }
-      
+
       handleMouseDown(e) {
         const handle = e.target.closest('.drag-handle');
         if (!handle) return;
-        
+
         e.preventDefault();
-        this.startDrag(e, handle.closest('.category-item'), e.clientX, e.clientY);
-      }
-      
-      startDrag(e, item, x, y) {
+        const item = handle.closest('.category-item');
+
         this.isDragging = true;
         this.dragItem = item;
-        this.startX = x;
-        this.startY = y;
+        this.startX = e.clientX;
         this.currentLevel = parseInt(item.dataset.level) || 0;
-        
+
         item.classList.add('dragging');
         this.container.classList.add('drag-active');
         document.body.style.userSelect = 'none';
         document.body.style.cursor = 'grabbing';
-        
+
         this.updateIndicator(this.currentLevel);
       }
-      
+
       handleMouseMove(e) {
-        if (!this.isDragging) return;
-        this.updateDrag(e.clientX, e.clientY);
-      }
-      
-      updateDrag(x, y) {
-        if (!this.dragItem) return;
-        
-        // Calculate horizontal movement for level changes
-        const deltaX = x - this.startX;
-        const newLevel = Math.max(0, Math.min(this.maxLevel, 
+        if (!this.isDragging || !this.dragItem) return;
+
+        // Horizontal: level changes
+        const deltaX = e.clientX - this.startX;
+        const newLevel = Math.max(0, Math.min(this.maxLevel,
           this.currentLevel + Math.floor(deltaX / this.levelStep)
         ));
-        
-        // Update visual level immediately
         this.dragItem.dataset.level = newLevel;
         this.dragItem.setAttribute('data-level', newLevel);
-        
-        // Calculate vertical movement for reordering
-        const deltaY = y - this.startY;
+        this.updateIndicator(newLevel);
+
+        // Vertical: position-based reordering
+        const now = Date.now();
+        if (now - this.lastSwapTime < this.swapCooldown) return;
+
+        const mouseY = e.clientY;
+        const dragRect = this.dragItem.getBoundingClientRect();
+        const dragCenterY = dragRect.top + dragRect.height / 2;
+
         const items = Array.from(this.container.querySelectorAll('.category-item'));
         const dragIndex = items.indexOf(this.dragItem);
-        
-        if (Math.abs(deltaY) > 24) { // 24px threshold for reordering
-          const targetIndex = deltaY > 0 ? 
-            Math.min(items.length - 1, dragIndex + Math.floor(Math.abs(deltaY) / 48)) :
-            Math.max(0, dragIndex - Math.floor(Math.abs(deltaY) / 48));
-          
-          if (targetIndex !== dragIndex) {
-            const targetItem = items[targetIndex];
-            if (deltaY > 0) {
-              targetItem.parentNode.insertBefore(this.dragItem, targetItem.nextSibling);
-            } else {
-              targetItem.parentNode.insertBefore(this.dragItem, targetItem);
-            }
-            // Reset startY after reorder to prevent cumulative delta causing erratic jumps
-            this.startY = y;
+
+        // Check item above
+        if (dragIndex > 0) {
+          const prevItem = items[dragIndex - 1];
+          const prevRect = prevItem.getBoundingClientRect();
+          const prevCenterY = prevRect.top + prevRect.height / 2;
+
+          if (mouseY < prevCenterY) {
+            this.container.insertBefore(this.dragItem, prevItem);
+            this.lastSwapTime = now;
+            return;
           }
         }
-        
-        this.updateIndicator(newLevel);
+
+        // Check item below
+        if (dragIndex < items.length - 1) {
+          const nextItem = items[dragIndex + 1];
+          const nextRect = nextItem.getBoundingClientRect();
+          const nextCenterY = nextRect.top + nextRect.height / 2;
+
+          if (mouseY > nextCenterY) {
+            this.container.insertBefore(nextItem, this.dragItem);
+            this.lastSwapTime = now;
+            return;
+          }
+        }
       }
-      
+
       handleMouseUp(e) {
         if (!this.isDragging) return;
-        
+
         this.isDragging = false;
         document.body.style.userSelect = '';
         document.body.style.cursor = '';
-        
+
         if (this.dragItem) {
           this.dragItem.classList.remove('dragging');
           this.dragItem = null;
         }
-        
+
         this.container.classList.remove('drag-active');
         this.indicator.classList.remove('show');
-        
-        // Save the new hierarchy
+
         setTimeout(() => this.saveHierarchy(), 100);
       }
-      
+
       updateIndicator(level) {
         this.indicator.textContent = `{{ trans('admin.categories.level')|e('js') }} ${level}${level >= this.maxLevel ? ' ({{ trans('admin.categories.max')|e('js') }})' : ''}`;
         this.indicator.classList.add('show');
