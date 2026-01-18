@@ -53,12 +53,13 @@
           
           .category-item:hover {
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transform: translateY(-1px);
           }
-          
-          /* SortableJS classes */
+
+          /* SortableJS classes - no transforms to avoid offset issues */
           .category-item.sortable-chosen {
-            background: #f9fafb;
+            background: #f9fafb !important;
+            transform: none !important;
+            transition: none !important;
           }
 
           .category-item.sortable-ghost {
@@ -67,9 +68,11 @@
           }
 
           .category-item.sortable-drag {
-            opacity: 1;
-            background: white;
-            box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+            opacity: 1 !important;
+            background: white !important;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.15) !important;
+            transform: none !important;
+            transition: none !important;
           }
           
           .drag-handle {
@@ -536,6 +539,7 @@
         chosenClass: 'sortable-chosen',
         dragClass: 'sortable-drag',
         fallbackOnBody: true,
+        forceFallback: true,
         swapThreshold: 0.65,
 
         onStart: function(evt) {
