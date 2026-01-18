@@ -82,18 +82,28 @@
             opacity: 1;
           }
 
-          /* Empty nested list placeholder */
+          /* Empty nested list - expand during drag to allow dropping */
           .nested-list:empty {
-            min-height: 4px;
-            background: transparent;
+            min-height: 8px;
           }
 
-          .nested-list.sortable-ghost-placeholder {
-            min-height: 30px;
-            background: #f0f9ff;
-            border: 2px dashed #93c5fd;
+          /* During drag, make all nested lists more visible and droppable */
+          .drag-active .nested-list {
+            min-height: 40px;
+            background: rgba(0, 0, 0, 0.02);
+            border: 2px dashed transparent;
             border-radius: 4px;
             margin: 4px 0;
+            transition: all 0.2s ease;
+          }
+
+          .drag-active .nested-list:empty {
+            border-color: #d1d5db;
+          }
+
+          .drag-active .nested-list:empty:hover {
+            border-color: #000;
+            background: rgba(0, 0, 0, 0.05);
           }
           
           .drag-handle {
@@ -631,6 +641,7 @@
           animation: 150,
           fallbackOnBody: true,
           swapThreshold: 0.65,
+          invertSwap: true,
           ghostClass: 'sortable-ghost',
           chosenClass: 'sortable-chosen',
           dragClass: 'sortable-drag',
