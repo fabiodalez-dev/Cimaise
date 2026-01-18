@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Middlewares;
 
+use App\Support\CookieHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface;
@@ -55,8 +56,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
         }
 
         // SECURITY: Only add HSTS if connection is HTTPS (avoid breaking HTTP dev environments)
-        $isHttps = ($_SERVER['HTTPS'] ?? 'off') === 'on' ||
-                   ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? 'http') === 'https';
+        $isHttps = CookieHelper::isHttps();
 
         $response = $response
             ->withHeader('X-Content-Type-Options','nosniff')
