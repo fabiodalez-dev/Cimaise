@@ -2076,10 +2076,10 @@ class PageController extends BaseController
 
         // Save to cache if eligible
         if ($canUseCache) {
-            $cacheService->set($cacheKey, [
+            $cacheService->setWithTags($cacheKey, [
                 'template_file' => 'frontend/category.twig',
                 'data' => $data,
-            ]);
+            ], CacheTags::categoryRelated((int) $category['id']));
         }
 
         return $this->view->render($response, 'frontend/category.twig', $data);
@@ -2199,10 +2199,10 @@ class PageController extends BaseController
 
         // Save to cache if eligible
         if ($canUseCache) {
-            $cacheService->set($cacheKey, [
+            $cacheService->setWithTags($cacheKey, [
                 'template_file' => 'frontend/tag.twig',
                 'data' => $data,
-            ]);
+            ], [CacheTags::contentTag((int) $tag['id']), CacheTags::GALLERIES]);
         }
 
         return $this->view->render($response, 'frontend/tag.twig', $data);
