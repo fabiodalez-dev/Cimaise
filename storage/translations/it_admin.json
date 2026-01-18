@@ -539,6 +539,7 @@
     "admin.categories.drag_system": "Sistema Trascinamento:",
     "admin.categories.drag_vertical": "Trascinamento verticale:",
     "admin.categories.drag_vertical_hint": "Sposta su/giù per riordinare le categorie",
+    "admin.categories.drop_root": "Rilascia qui per categoria principale",
     "admin.categories.edit": "Modifica Categoria",
     "admin.categories.enter_name": "Inserisci il nome della categoria...",
     "admin.categories.image_hint": "Carica in formato JPG, PNG o WebP",

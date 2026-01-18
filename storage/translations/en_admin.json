@@ -539,6 +539,7 @@
     "admin.categories.drag_system": "Drag System:",
     "admin.categories.drag_vertical": "Vertical drag:",
     "admin.categories.drag_vertical_hint": "Move up/down to reorder categories",
+    "admin.categories.drop_root": "Drop here for root level",
     "admin.categories.edit": "Edit Category",
     "admin.categories.enter_name": "Enter category name...",
     "admin.categories.image_hint": "Upload JPG, PNG, or WebP format",
