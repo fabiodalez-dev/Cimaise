@@ -74,6 +74,18 @@
             transform: none !important;
             transition: none !important;
           }
+
+          .category-item.sortable-fallback {
+            opacity: 1 !important;
+            background: white !important;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.15) !important;
+            transition: none !important;
+          }
+
+          /* Disable transitions during any sortable operation */
+          .categories-container.is-dragging .category-item {
+            transition: none !important;
+          }
           
           .drag-handle {
             width: 24px;
@@ -524,13 +536,20 @@
     // SortableJS-based drag system
     function initCategorySortable() {
       const container = document.getElementById('categories-container');
-      if (!container) return;
+      if (!container) {
+        console.log('[Categories] Container not found');
+        return;
+      }
 
       // Check if Sortable is available (exposed from admin.js)
       if (typeof Sortable === 'undefined') {
-        console.error('SortableJS not loaded');
+        console.error('[Categories] SortableJS not loaded - window.Sortable is undefined');
+        // Retry after a short delay in case admin.js hasn't loaded yet
+        setTimeout(initCategorySortable, 100);
         return;
       }
+
+      console.log('[Categories] Initializing SortableJS...');
 
       new Sortable(container, {
         handle: '.drag-handle',
@@ -538,13 +557,22 @@
         ghostClass: 'sortable-ghost',
         chosenClass: 'sortable-chosen',
         dragClass: 'sortable-drag',
-        fallbackOnBody: true,
+        forceFallback: true,
+        fallbackClass: 'sortable-fallback',
+        fallbackOnBody: false,
         swapThreshold: 0.65,
+        direction: 'vertical',
 
+        onStart: function() {
+          container.classList.add('is-dragging');
+        },
         onEnd: function() {
+          container.classList.remove('is-dragging');
           saveHierarchy();
         }
       });
+
+      console.log('[Categories] SortableJS initialized successfully');
     }
 
     async function saveHierarchy() {
