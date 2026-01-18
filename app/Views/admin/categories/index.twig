@@ -55,37 +55,12 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
           }
 
-          /* SortableJS classes - no transforms to avoid offset issues */
-          .category-item.sortable-chosen {
-            background: #f9fafb !important;
-            transform: none !important;
-            transition: none !important;
-          }
-
-          .category-item.sortable-ghost {
-            opacity: 0.4;
-            background: #e5e7eb;
-          }
-
-          .category-item.sortable-drag {
-            opacity: 1 !important;
-            background: white !important;
-            box-shadow: 0 12px 28px rgba(0,0,0,0.15) !important;
-            transform: none !important;
-            transition: none !important;
-          }
-
-          .category-item.sortable-fallback {
-            opacity: 1 !important;
-            background: white !important;
-            box-shadow: 0 12px 28px rgba(0,0,0,0.15) !important;
-            transition: none !important;
-          }
-
-          /* Disable transitions during any sortable operation */
+          /* Disable transitions during drag */
           .categories-container.is-dragging .category-item {
             transition: none !important;
           }
+
+          /* Drag clone styling is inline - nothing needed here */
           
           .drag-handle {
             width: 24px;
@@ -533,46 +508,133 @@
     
     let csrfToken = {{ csrf|json_encode|raw }};
     
-    // SortableJS-based drag system
-    function initCategorySortable() {
+    // Custom pointer-based drag system (NO SortableJS - full control)
+    function initCategoryDrag() {
       const container = document.getElementById('categories-container');
-      if (!container) {
-        console.log('[Categories] Container not found');
-        return;
-      }
+      if (!container) return;
 
-      // Check if Sortable is available (exposed from admin.js)
-      if (typeof Sortable === 'undefined') {
-        console.error('[Categories] SortableJS not loaded - window.Sortable is undefined');
-        // Retry after a short delay in case admin.js hasn't loaded yet
-        setTimeout(initCategorySortable, 100);
-        return;
-      }
+      let draggedItem = null;
+      let dragClone = null;
+      let placeholder = null;
+      let offsetX = 0;
+      let offsetY = 0;
 
-      console.log('[Categories] Initializing SortableJS...');
-
-      new Sortable(container, {
-        handle: '.drag-handle',
-        animation: 150,
-        ghostClass: 'sortable-ghost',
-        chosenClass: 'sortable-chosen',
-        dragClass: 'sortable-drag',
-        forceFallback: true,
-        fallbackClass: 'sortable-fallback',
-        fallbackOnBody: false,
-        swapThreshold: 0.65,
-        direction: 'vertical',
-
-        onStart: function() {
-          container.classList.add('is-dragging');
-        },
-        onEnd: function() {
-          container.classList.remove('is-dragging');
-          saveHierarchy();
-        }
+      // Get all drag handles
+      container.querySelectorAll('.drag-handle').forEach(handle => {
+        handle.addEventListener('pointerdown', startDrag);
       });
 
-      console.log('[Categories] SortableJS initialized successfully');
+      function startDrag(e) {
+        e.preventDefault();
+
+        const item = e.target.closest('.category-item');
+        if (!item) return;
+
+        draggedItem = item;
+        const rect = item.getBoundingClientRect();
+
+        // Calculate offset from pointer to element top-left
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+
+        // Create clone that follows cursor
+        dragClone = item.cloneNode(true);
+        dragClone.classList.add('drag-clone');
+        dragClone.style.cssText = `
+          position: fixed;
+          left: ${rect.left}px;
+          top: ${rect.top}px;
+          width: ${rect.width}px;
+          height: ${rect.height}px;
+          z-index: 10000;
+          pointer-events: none;
+          opacity: 1;
+          background: white;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+          border-radius: 6px;
+          margin: 0;
+        `;
+        document.body.appendChild(dragClone);
+
+        // Create placeholder
+        placeholder = document.createElement('div');
+        placeholder.className = 'drag-placeholder';
+        placeholder.style.cssText = `
+          height: ${rect.height}px;
+          margin-bottom: 8px;
+          margin-left: ${item.style.marginLeft || getComputedStyle(item).marginLeft};
+          max-width: 600px;
+          background: #e5e7eb;
+          border: 2px dashed #9ca3af;
+          border-radius: 6px;
+        `;
+        item.parentNode.insertBefore(placeholder, item);
+
+        // Hide original
+        item.style.display = 'none';
+
+        // Add move and up listeners to document
+        document.addEventListener('pointermove', onDrag);
+        document.addEventListener('pointerup', endDrag);
+
+        container.classList.add('is-dragging');
+      }
+
+      function onDrag(e) {
+        if (!dragClone) return;
+
+        // Move clone to follow cursor exactly
+        dragClone.style.left = (e.clientX - offsetX) + 'px';
+        dragClone.style.top = (e.clientY - offsetY) + 'px';
+
+        // Find insertion point
+        const items = Array.from(container.querySelectorAll('.category-item:not([style*="display: none"])'));
+        let insertBefore = null;
+
+        for (const item of items) {
+          const rect = item.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+
+          if (e.clientY < midY) {
+            insertBefore = item;
+            break;
+          }
+        }
+
+        // Move placeholder
+        if (insertBefore) {
+          container.insertBefore(placeholder, insertBefore);
+        } else {
+          container.appendChild(placeholder);
+        }
+      }
+
+      function endDrag(e) {
+        if (!draggedItem || !dragClone || !placeholder) return;
+
+        // Remove listeners
+        document.removeEventListener('pointermove', onDrag);
+        document.removeEventListener('pointerup', endDrag);
+
+        // Insert original item where placeholder is
+        placeholder.parentNode.insertBefore(draggedItem, placeholder);
+
+        // Show original
+        draggedItem.style.display = '';
+
+        // Cleanup
+        dragClone.remove();
+        placeholder.remove();
+
+        dragClone = null;
+        placeholder = null;
+        draggedItem = null;
+
+        container.classList.remove('is-dragging');
+
+        // Save new order
+        saveHierarchy();
+      }
     }
 
     async function saveHierarchy() {
@@ -684,9 +746,9 @@
       document.getElementById('cat-name').focus();
     });
     
-    // Initialize SortableJS
+    // Initialize drag system
     document.addEventListener('DOMContentLoaded', function() {
-      initCategorySortable();
+      initCategoryDrag();
       setupImageUpload();
       setupFormValidation();
       setupCategoryModal();
