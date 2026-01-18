@@ -868,7 +868,7 @@ class UploadService
         $root = dirname(__DIR__, 2);
 
         if ($mdPath) {
-            $tryPath = $root . '/public' . ltrim($mdPath, '/');
+            $tryPath = $root . '/public/' . ltrim($mdPath, '/');
             $triedPaths[] = $tryPath;
             if (is_file($tryPath)) {
                 $sourcePath = $tryPath;
