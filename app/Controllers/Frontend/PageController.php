@@ -48,7 +48,12 @@ class PageController extends BaseController
         static $cache = null;
         if ($cache === null) {
             try {
-                $stmt = $this->db->pdo()->query('SELECT id FROM templates WHERE is_active = 1');
+                // Core templates (always active) + active custom templates
+                $stmt = $this->db->pdo()->query('
+                    SELECT id FROM templates
+                    UNION
+                    SELECT id FROM custom_templates WHERE type = \'gallery\' AND is_active = 1
+                ');
                 $cache = array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
             } catch (\Throwable $e) {
                 Logger::warning('Failed to load valid template IDs: ' . $e->getMessage(), [], 'security');

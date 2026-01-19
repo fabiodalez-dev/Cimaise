@@ -6,6 +6,11 @@ namespace App\Tasks;
 use App\Services\UploadService;
 use App\Support\Database;
 use App\Support\Logger;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * CLI Command: Generate LQIP (Low Quality Image Placeholders) for existing images
@@ -26,54 +31,62 @@ use App\Support\Logger;
  *   php bin/console images:generate-lqip --limit=100
  *   php bin/console images:generate-lqip --dry-run
  */
-class ImagesGenerateLQIPCommand
+#[AsCommand(name: 'images:generate-lqip')]
+class ImagesGenerateLQIPCommand extends Command
 {
-    private Database $db;
-    private UploadService $uploadService;
-    private bool $force = false;
-    private ?int $albumId = null;
-    private ?int $limit = null;
-    private bool $dryRun = false;
-
-    public function __construct()
+    public function __construct(private Database $db)
     {
-        $this->db = new Database();
-        $this->uploadService = new UploadService($this->db);
+        parent::__construct();
     }
 
-    public function execute(array $args = []): int
+    protected function configure(): void
     {
-        $this->parseArgs($args);
+        $this->setDescription('Generate LQIP (Low Quality Image Placeholders) for instant perceived loading')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Regenerate even if LQIP already exists')
+            ->addOption('album', 'a', InputOption::VALUE_REQUIRED, 'Only process images from specific album ID')
+            ->addOption('limit', 'l', InputOption::VALUE_REQUIRED, 'Limit number of images to process')
+            ->addOption('dry-run', 'd', InputOption::VALUE_NONE, 'Show what would be done without actually generating');
+    }
 
-        echo "\n";
-        echo "╔══════════════════════════════════════════════════════════════════════╗\n";
-        echo "║  LQIP Generator - Low Quality Image Placeholders                    ║\n";
-        echo "╚══════════════════════════════════════════════════════════════════════╝\n";
-        echo "\n";
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $force = (bool) $input->getOption('force');
+        $albumId = $input->getOption('album') ? (int) $input->getOption('album') : null;
+        $limit = $input->getOption('limit') ? (int) $input->getOption('limit') : null;
+        $dryRun = (bool) $input->getOption('dry-run');
 
-        if ($this->dryRun) {
-            echo "🔍 DRY RUN MODE - No files will be generated\n\n";
+        $uploadService = new UploadService($this->db);
+
+        $output->writeln('');
+        $output->writeln('<info>╔══════════════════════════════════════════════════════════════════════╗</info>');
+        $output->writeln('<info>║  LQIP Generator - Low Quality Image Placeholders                    ║</info>');
+        $output->writeln('<info>╚══════════════════════════════════════════════════════════════════════╝</info>');
+        $output->writeln('');
+
+        if ($dryRun) {
+            $output->writeln('<comment>DRY RUN MODE - No files will be generated</comment>');
+            $output->writeln('');
         }
 
         // Get images to process
-        $images = $this->getImagesToProcess();
+        $images = $this->getImagesToProcess($force, $albumId, $limit);
 
         if (empty($images)) {
-            echo "✅ No images found to process.\n\n";
-            return 0;
+            $output->writeln('<info>No images found to process.</info>');
+            $output->writeln('');
+            return Command::SUCCESS;
         }
 
         $total = count($images);
-        $processed = 0;
         $generated = 0;
         $skipped = 0;
         $errors = 0;
 
-        echo "📊 Found {$total} images to process\n";
-        if ($this->force) {
-            echo "⚡ Force mode: Will regenerate existing LQIPs\n";
+        $output->writeln("Found <info>{$total}</info> images to process");
+        if ($force) {
+            $output->writeln('<comment>Force mode: Will regenerate existing LQIPs</comment>');
         }
-        echo "\n";
+        $output->writeln('');
 
         $startTime = microtime(true);
 
@@ -82,35 +95,32 @@ class ImagesGenerateLQIPCommand
             $albumTitle = $image['album_title'] ?? 'Unknown';
             $progress = $index + 1;
 
-            echo sprintf(
+            $output->write(sprintf(
                 "[%d/%d] Processing image #%d (%s)... ",
                 $progress,
                 $total,
                 $imageId,
                 $albumTitle
-            );
+            ));
 
-            if ($this->dryRun) {
-                echo "DRY RUN\n";
-                $processed++;
+            if ($dryRun) {
+                $output->writeln('<comment>DRY RUN</comment>');
                 continue;
             }
 
             try {
-                $result = $this->uploadService->generateLQIP($imageId, $this->force);
+                $result = $uploadService->generateLQIP($imageId, $force);
 
                 if ($result === null) {
                     // Skipped (likely protected album or source not found)
-                    echo "⏭️  SKIPPED\n";
+                    $output->writeln('<comment>SKIPPED</comment>');
                     $skipped++;
                 } else {
-                    echo "✅ GENERATED\n";
+                    $output->writeln('<info>GENERATED</info>');
                     $generated++;
                 }
-
-                $processed++;
             } catch (\Throwable $e) {
-                echo "❌ ERROR: " . $e->getMessage() . "\n";
+                $output->writeln('<error>ERROR: ' . $e->getMessage() . '</error>');
                 Logger::error('LQIP generation failed', [
                     'image_id' => $imageId,
                     'error' => $e->getMessage()
@@ -121,36 +131,37 @@ class ImagesGenerateLQIPCommand
 
         $elapsed = microtime(true) - $startTime;
 
-        echo "\n";
-        echo "╔══════════════════════════════════════════════════════════════════════╗\n";
-        echo "║  Summary                                                             ║\n";
-        echo "╚══════════════════════════════════════════════════════════════════════╝\n";
-        echo "\n";
-        echo "Total images:     {$total}\n";
-        echo "✅ Generated:     {$generated}\n";
-        echo "⏭️  Skipped:       {$skipped}\n";
-        echo "❌ Errors:        {$errors}\n";
-        echo "⏱️  Time elapsed:  " . number_format($elapsed, 2) . "s\n";
+        $output->writeln('');
+        $output->writeln('<info>╔══════════════════════════════════════════════════════════════════════╗</info>');
+        $output->writeln('<info>║  Summary                                                             ║</info>');
+        $output->writeln('<info>╚══════════════════════════════════════════════════════════════════════╝</info>');
+        $output->writeln('');
+        $output->writeln("Total images:     {$total}");
+        $output->writeln("<info>Generated:        {$generated}</info>");
+        $output->writeln("<comment>Skipped:          {$skipped}</comment>");
+        $output->writeln("<error>Errors:           {$errors}</error>");
+        $output->writeln("Time elapsed:     " . number_format($elapsed, 2) . "s");
 
         if ($generated > 0) {
             $avgTime = $elapsed / $generated;
-            echo "⚡ Avg per image:  " . number_format($avgTime, 3) . "s\n";
+            $output->writeln("Avg per image:    " . number_format($avgTime, 3) . "s");
         }
 
-        echo "\n";
+        $output->writeln('');
 
         if ($skipped > 0) {
-            echo "ℹ️  Note: Skipped images are likely from protected albums (password/NSFW)\n";
-            echo "   or source files could not be found.\n\n";
+            $output->writeln('<comment>Note: Skipped images are likely from protected albums (password/NSFW)</comment>');
+            $output->writeln('<comment>or source files could not be found.</comment>');
+            $output->writeln('');
         }
 
-        return $errors > 0 ? 1 : 0;
+        return $errors > 0 ? Command::FAILURE : Command::SUCCESS;
     }
 
     /**
      * Get images to process based on filters
      */
-    private function getImagesToProcess(): array
+    private function getImagesToProcess(bool $force, ?int $albumId, ?int $limit): array
     {
         $pdo = $this->db->pdo();
 
@@ -169,13 +180,13 @@ class ImagesGenerateLQIPCommand
         $sql .= ' AND (a.is_nsfw IS NULL OR a.is_nsfw = 0)';
 
         // Filter: Specific album
-        if ($this->albumId !== null) {
+        if ($albumId !== null) {
             $sql .= ' AND a.id = ?';
-            $params[] = $this->albumId;
+            $params[] = $albumId;
         }
 
         // Filter: Skip if LQIP already exists (unless force mode)
-        if (!$this->force) {
+        if (!$force) {
             $sql .= ' AND NOT EXISTS (
                 SELECT 1 FROM image_variants
                 WHERE image_id = i.id AND variant = \'lqip\'
@@ -185,87 +196,14 @@ class ImagesGenerateLQIPCommand
         $sql .= ' ORDER BY i.id ASC';
 
         // Limit
-        if ($this->limit !== null) {
+        if ($limit !== null) {
             $sql .= ' LIMIT ?';
-            $params[] = $this->limit;
+            $params[] = $limit;
         }
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
         return $stmt->fetchAll();
-    }
-
-    /**
-     * Parse command line arguments
-     */
-    private function parseArgs(array $args): void
-    {
-        foreach ($args as $arg) {
-            if ($arg === '--force') {
-                $this->force = true;
-            } elseif ($arg === '--dry-run') {
-                $this->dryRun = true;
-            } elseif (str_starts_with($arg, '--album=')) {
-                $value = (int) substr($arg, 8);
-                if ($value > 0) {
-                    $this->albumId = $value;
-                } else {
-                    echo "Warning: --album must be a positive integer. Ignoring.\n";
-                }
-            } elseif (str_starts_with($arg, '--limit=')) {
-                $value = (int) substr($arg, 8);
-                if ($value > 0) {
-                    $this->limit = $value;
-                } else {
-                    echo "Warning: --limit must be a positive integer. Ignoring.\n";
-                }
-            }
-        }
-    }
-
-    /**
-     * Show help text
-     */
-    public static function help(): string
-    {
-        return <<<'HELP'
-Generate LQIP (Low Quality Image Placeholders) for instant perceived loading
-
-USAGE:
-  php bin/console images:generate-lqip [OPTIONS]
-
-OPTIONS:
-  --force        Regenerate even if LQIP already exists
-  --album=ID     Only process images from specific album ID
-  --limit=N      Limit number of images to process
-  --dry-run      Show what would be done without actually generating
-
-EXAMPLES:
-  # Generate LQIP for all new images
-  php bin/console images:generate-lqip
-
-  # Force regenerate all LQIPs
-  php bin/console images:generate-lqip --force
-
-  # Generate LQIP for specific album
-  php bin/console images:generate-lqip --album=5
-
-  # Process first 100 images
-  php bin/console images:generate-lqip --limit=100
-
-  # Dry run to see what would happen
-  php bin/console images:generate-lqip --dry-run
-
-SECURITY:
-  LQIP is only generated for public albums (no password, no NSFW).
-  Protected albums continue using blur variants for privacy.
-
-PERFORMANCE:
-  Each LQIP is ~1-2KB (40x30px with light blur).
-  Processing time: ~0.1-0.3s per image.
-  LQIPs are inlined as base64 for instant rendering (zero HTTP requests).
-
-HELP;
     }
 }

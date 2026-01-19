@@ -21,14 +21,13 @@ if ($isInstallCommand) {
     $cli = new Application('Cimaise CLI', '0.1.0');
     
     $cli->add(new App\Tasks\DbTestCommand($container['db']));
-    $cli->add(new App\Tasks\MigrateCommand($container['db'], __DIR__ . '/../database/migrations'));
     $cli->add(new App\Tasks\SeedCommand($container['db'], __DIR__ . '/../database/seeds'));
     $cli->add(new App\Tasks\UserCreateCommand($container['db']));
     $cli->add(new App\Tasks\UserUpdateCommand($container['db']));
     $cli->add(new App\Tasks\ImagesGenerateCommand($container['db']));
     $cli->add(new App\Tasks\ImagesGenerateVariantsCommand($container['db']));
     $cli->add(new App\Tasks\BlurGenerateImageCommand($container['db']));
-    $cli->add(new App\Tasks\ImagesGenerateLQIPCommand());
+    $cli->add(new App\Tasks\ImagesGenerateLQIPCommand($container['db']));
     $cli->add(new App\Tasks\DiagnosticsCommand($container['db']));
     $cli->add(new App\Tasks\SitemapCommand($container['db']));
     $cli->add(new App\Tasks\InitCommand($container['db']));
