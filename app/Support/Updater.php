@@ -1541,6 +1541,29 @@ class Updater
                         throw new Exception(sprintf('Cannot create directory: %s', dirname($relativePath)));
                     }
                 }
+                // If target is an existing directory, remove it first (file replacing dir)
+                if (is_dir($targetPath)) {
+                    $this->debugLog('WARNING', 'Removing directory to replace with file', ['path' => $relativePath]);
+                    $this->deleteDirectory($targetPath);
+                    // Verify directory was actually deleted
+                    if (is_dir($targetPath)) {
+                        $this->debugLog('ERROR', 'Failed to delete directory, attempting force removal', ['path' => $relativePath]);
+                        // Try shell command as fallback
+                        if (PHP_OS_FAMILY !== 'Windows') {
+                            @exec('rm -rf ' . escapeshellarg($targetPath) . ' 2>/dev/null');
+                        }
+                        // Final check
+                        clearstatcache(true, $targetPath);
+                        if (is_dir($targetPath)) {
+                            throw new Exception(sprintf('Cannot remove directory to replace with file: %s', $relativePath));
+                        }
+                    }
+                }
+                // Also handle symlinks pointing to directories
+                if (is_link($targetPath)) {
+                    $this->debugLog('WARNING', 'Removing symlink to replace with file', ['path' => $relativePath]);
+                    @unlink($targetPath);
+                }
                 if (!copy($item->getPathname(), $targetPath)) {
                     throw new Exception(sprintf('Error copying file: %s', $relativePath));
                 }
