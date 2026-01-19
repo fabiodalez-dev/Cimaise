@@ -882,7 +882,8 @@ class Updater
             }
 
             if (!empty($missingFiles)) {
-                $this->debugLog('WARNING', 'Incomplete package', ['missing' => $missingFiles]);
+                $this->debugLog('ERROR', 'Incomplete package - missing required files', ['missing' => $missingFiles]);
+                throw new Exception('Invalid update package: missing ' . implode(', ', $missingFiles));
             }
 
             return [
