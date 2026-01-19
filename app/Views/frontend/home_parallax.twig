@@ -178,11 +178,13 @@ body {
             {% if variants_webp %}
               <source type="image/webp" srcset="{{ variants_webp|join(', ') }}" sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw">
             {% endif %}
+            {# First 9 images (3x3 grid): load immediately without LQIP for instant cache display #}
+            {% set use_lqip = loop.index > 9 and image.lqip_placeholder %}
             <img
-              {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ best_jpg_path|e('html_attr') }}"{% else %}src="{{ best_jpg_path|e('html_attr') }}"{% endif %}
+              {% if use_lqip %}src="{{ image.lqip_placeholder }}" data-src="{{ best_jpg_path|e('html_attr') }}"{% else %}src="{{ best_jpg_path|e('html_attr') }}"{% endif %}
               alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
-              class="{% if image.lqip_placeholder %}lqip-blur{% endif %}"
-              loading="lazy"
+              class="{% if use_lqip %}lqip-blur{% endif %}"
+              {% if loop.index <= 9 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
               decoding="async"
               data-fallback="hide"
               data-parallax-image

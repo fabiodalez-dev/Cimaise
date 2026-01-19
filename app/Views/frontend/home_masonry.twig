@@ -148,14 +148,17 @@
         {% set img_url = img_src starts with '/' ? base_path ~ img_src : img_src %}
         {% set img_width = image.width|default(800) %}
         {% set img_height = image.height|default(600) %}
+        {# First 5 images: load immediately without LQIP (cached images appear instant) #}
+        {# Images 5+: use LQIP for progressive loading #}
+        {% set use_lqip = loop.index0 >= 5 and image.lqip_placeholder %}
         <img
-          {% if image.lqip_placeholder %}src="{{ image.lqip_placeholder }}" data-src="{{ img_url|e('html_attr') }}"{% else %}src="{{ img_url|e('html_attr') }}"{% endif %}
+          {% if use_lqip %}src="{{ image.lqip_placeholder }}" data-src="{{ img_url|e('html_attr') }}"{% else %}src="{{ img_url|e('html_attr') }}"{% endif %}
           alt="{{ image.title|default(image.album_title)|e('html_attr') }}"
           width="{{ img_width }}"
           height="{{ img_height }}"
           style="aspect-ratio: {{ img_width }} / {{ img_height }};"
-          class="{% if image.lqip_placeholder %}lqip-blur{% endif %}"
-          {% if loop.index0 < 5 %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
+          class="{% if use_lqip %}lqip-blur{% endif %}"
+          {% if loop.index0 < 5 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
         >
       </picture>
     </a>

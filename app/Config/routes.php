@@ -700,6 +700,16 @@ return function (App $app, array $container) {
         return $controller->generateLQIPForce($request, $response);
     })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
         return $handler->handle($request); });
+    $app->post('/admin/cache/clear-twig', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\CacheController($container['db'], Twig::fromRequest($request), new \App\Services\SettingsService($container['db']));
+        return $controller->clearTwig($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
+    $app->post('/admin/cache/clear-everything', function (Request $request, Response $response) use ($container) {
+        $controller = new \App\Controllers\Admin\CacheController($container['db'], Twig::fromRequest($request), new \App\Services\SettingsService($container['db']));
+        return $controller->clearEverything($request, $response);
+    })->add($container['db'] ? new AuthMiddleware($container['db']) : function ($request, $handler) {
+        return $handler->handle($request); });
 
     // Commands
     $app->get('/admin/commands', function (Request $request, Response $response) use ($container) {
