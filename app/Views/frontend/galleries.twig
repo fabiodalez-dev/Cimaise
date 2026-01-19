@@ -11,10 +11,10 @@
   <div class="relative bg-white border-b border-gray-200 dark:bg-neutral-900 dark:border-neutral-700">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div class="text-center">
-        <h1 class="text-4xl md:text-5xl font-light text-black dark:text-white mb-6 tracking-tight" data-gsap="title">
+        <h1 class="text-4xl md:text-5xl font-light text-black dark:text-white mb-6 tracking-tight" >
           {{ page_texts.title|default(trans('galleries.title'))|e }}
         </h1>
-        <p class="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed" data-gsap="subtitle">
+        <p class="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed" >
           {{ page_texts.subtitle|default(trans('galleries.subtitle'))|e }}
         </p>
       </div>
@@ -38,13 +38,13 @@
       <!-- Filter Toggle Button -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <button id="toggle-filters" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors duration-150" data-gsap="filter-toggle">
+          <button id="toggle-filters" class="flex items-center gap-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors duration-150" >
             <i class="fas fa-filter"></i>
             <span class="font-medium">{{ trans('filter.filters') }}</span>
             <i class="fas fa-chevron-down transition-transform duration-300" id="filter-chevron"></i>
           </button>
           
-          <div id="active-filters" class="flex items-center gap-2 opacity-0" data-gsap="active-filters">
+          <div id="active-filters" class="flex items-center gap-2 opacity-0" >
             <!-- Active filters will be populated here -->
           </div>
         </div>
@@ -58,7 +58,7 @@
             {% endif %}
           </div>
 
-          <button id="clear-filters" class="text-sm text-gray-500 hover:text-red-600 transition-colors opacity-0 px-3 py-1 rounded hover:bg-gray-100" data-gsap="clear-filters">
+          <button id="clear-filters" class="text-sm text-gray-500 hover:text-red-600 transition-colors opacity-0 px-3 py-1 rounded hover:bg-gray-100" >
             <i class="fas fa-times mr-1"></i>
             {{ trans('filter.clear') }}
           </button>
@@ -66,11 +66,11 @@
       </div>
       
       <!-- Filters Grid with proper spacing -->
-      <div id="filters-grid" class="flex flex-wrap gap-3 opacity-0 max-h-0 overflow-hidden" data-gsap="filters-grid">
+      <div id="filters-grid" class="flex flex-wrap gap-3 opacity-0 max-h-0 overflow-hidden">
         
         <!-- Categories Filter -->
         {% if filter_settings.show_categories and filter_options.categories|length > 0 %}
-        <div class="filter-group" data-gsap="filter-category">
+        <div class="filter-group">
           <label class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-folder-open mr-1 text-gray-600"></i>
             {{ trans('filter.categories') }}
@@ -103,7 +103,7 @@
         
         <!-- Tags Filter -->
         {% if filter_settings.show_tags and filter_options.tags|length > 0 %}
-        <div class="filter-group hidden md:block" data-gsap="filter-tags">
+        <div class="filter-group hidden md:block">
           <label for="filter-tags" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-tags mr-1 text-gray-600"></i>
             {{ trans('filter.tags') }}
@@ -120,7 +120,7 @@
         
         <!-- Cameras Filter -->
         {% if filter_settings.show_cameras and filter_options.cameras|length > 0 %}
-        <div class="filter-group hidden md:block" data-gsap="filter-cameras">
+        <div class="filter-group hidden md:block">
           <label for="filter-cameras" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-camera mr-1 text-gray-600"></i>
             {{ trans('album.camera') }}
@@ -137,7 +137,7 @@
         
         <!-- Lenses Filter -->
         {% if filter_settings.show_lenses and filter_options.lenses|length > 0 %}
-        <div class="filter-group hidden md:block" data-gsap="filter-lenses">
+        <div class="filter-group hidden md:block">
           <label for="filter-lenses" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-eye mr-1 text-gray-600"></i>
             {{ trans('album.lens') }}
@@ -154,7 +154,7 @@
         
         <!-- Films Filter -->
         {% if filter_settings.show_films and filter_options.films|length > 0 %}
-        <div class="filter-group hidden md:block" data-gsap="filter-films">
+        <div class="filter-group hidden md:block">
           <label for="filter-films" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-film mr-1 text-gray-600"></i>
             {{ trans('filter.film') }}
@@ -171,7 +171,7 @@
         
         <!-- Locations Filter -->
         {% if filter_settings.show_locations and filter_options.locations|length > 0 %}
-        <div class="filter-group hidden md:block" data-gsap="filter-locations">
+        <div class="filter-group hidden md:block">
           <label for="filter-locations" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-map-marker-alt mr-1 text-gray-600"></i>
             {{ trans('filter.location') }}
@@ -188,7 +188,7 @@
         
         <!-- Year Filter -->
         {% if filter_settings.show_year and filter_options.years|length > 0 %}
-        <div class="filter-group hidden md:block" data-gsap="filter-year">
+        <div class="filter-group hidden md:block">
           <label for="filter-year" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-calendar mr-1 text-gray-600"></i>
             {{ trans('filter.year') }}
@@ -205,7 +205,7 @@
         {% endif %}
         
         <!-- Search Filter -->
-        <div class="filter-group" data-gsap="filter-search">
+        <div class="filter-group">
           <label for="filter-search" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-search mr-1 text-gray-600"></i>
             {{ trans('filter.search') }}
@@ -217,7 +217,7 @@
         </div>
         
         <!-- Sort Filter -->
-        <div class="filter-group" data-gsap="filter-sort">
+        <div class="filter-group">
           <label for="filter-sort" class="block text-xs font-semibold text-gray-900 mb-2">
             <i class="fas fa-sort mr-1 text-gray-600"></i>
             {{ trans('filter.sort') }}
@@ -256,8 +256,8 @@
       
       {% for album in albums %}
       {% set seo_title = Seo.seo_title({'alt': album.cover_image.alt_text|default('')}, album, site_title)|trim %}
-      <article class="gallery-card group flex flex-col h-full cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out"
-               data-gsap="gallery-card"
+      {% set is_eager = loop.index <= 3 %}
+      <article class="gallery-card group flex flex-col h-full cursor-pointer overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-out{{ not is_eager ? ' lazy-card opacity-0' : '' }}"
                data-album-id="{{ album.id }}"
                data-nsfw="{{ album.is_nsfw and not is_admin ? '1' : '0' }}"
                data-password-protected="{{ album.is_password_protected ? '1' : '0' }}"
@@ -275,11 +275,10 @@
             {% if should_blur_cover %}
               {% set blur_path = album.cover_image.blur_path|default(null) %}
               {% if blur_path %}
-              <img src="{% if blur_path starts with '/' %}{{ base_path }}{{ blur_path }}{% else %}{{ blur_path }}{% endif %}"
+              <img {% if is_eager %}src="{% if blur_path starts with '/' %}{{ base_path }}{{ blur_path }}{% else %}{{ blur_path }}{% endif %}" fetchpriority="high"{% else %}data-src="{% if blur_path starts with '/' %}{{ base_path }}{{ blur_path }}{% else %}{{ blur_path }}{% endif %}"{% endif %}
                    alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
                    title="{{ seo_title|e('html_attr') }}"
                    class="nsfw-blur w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-                   loading="lazy"
                    decoding="async"
                    data-fallback="hide">
               {% else %}
@@ -291,11 +290,10 @@
               {# Security: never use original_path (points to /storage/originals/ which is not web-accessible) #}
               {% if album.cover_image.preview_path %}
                 {% set cover_path = album.cover_image.preview_path %}
-                <img src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"
+                <img {% if is_eager %}src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}" fetchpriority="high"{% else %}data-src="{% if cover_path starts with '/' %}{{ base_path }}{{ cover_path }}{% else %}{{ cover_path }}{% endif %}"{% endif %}
                      alt="{{ album.cover_image.alt_text|default(album.title)|e }}"
                      title="{{ seo_title|e('html_attr') }}"
                      class="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-                     loading="lazy"
                      decoding="async"
                      data-fallback="hide">
               {% else %}
@@ -417,7 +415,7 @@
                                  (active_filters.locations|default([])|length > 0) or
                                  (active_filters.year|default('') != '') or
                                  (active_filters.search|default('') != '') %}
-    <div class="text-center py-24" id="empty-state" data-gsap="empty-state">
+    <div class="text-center py-24" id="empty-state">
       <div class="max-w-md mx-auto">
         <i class="fas {{ has_active_filters ? 'fa-search' : 'fa-images' }} text-6xl text-gray-300 mb-6"></i>
         <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -476,9 +474,7 @@
 </script>
 
 <script nonce="{{ csp_nonce() }}">
-// Galleries Page JavaScript with GSAP Animations
-let galleriesIntroUserScrolled = false;
-let galleriesIntroTimeline = null;
+// Galleries Page JavaScript
 
 const resolveElements = function(target) {
     if (!target) return [];
@@ -552,66 +548,10 @@ const safeGsap = {
     }
 };
 
-window.addEventListener('scroll', function() {
-    galleriesIntroUserScrolled = true;
-    if (document.body.classList.contains('gsap-intro-animating')) {
-        document.body.classList.remove('gsap-intro-animating');
-        const animatedElements = document.querySelectorAll('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"], #galleries-grid .gallery-card');
-        animatedElements.forEach(function(el) {
-            el.style.opacity = '1';
-            el.style.visibility = 'visible';
-            el.style.transform = 'none';
-            el.setAttribute('data-animated', '1');
-        });
-        if (typeof gsap !== 'undefined') {
-            gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
-        }
-        if (galleriesIntroTimeline) {
-            galleriesIntroTimeline.kill();
-            galleriesIntroTimeline = null;
-        }
-    }
-}, { passive: true, once: true });
-
-// Handle bfcache (back-forward cache) restoration
-// When user navigates with back/forward, page is restored from cache
-// but JavaScript re-runs which can cause flickering
-window.addEventListener('pageshow', function(event) {
-    if (event.persisted) {
-        // Page was restored from bfcache - immediately make everything visible
-        document.body.classList.remove('gsap-intro-animating');
-        document.body.dataset.gsapIntroDone = '1';
-
-        // Immediately show all potentially hidden elements
-        const animatedElements = document.querySelectorAll('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"], #galleries-grid .gallery-card');
-        animatedElements.forEach(function(el) {
-            el.style.opacity = '1';
-            el.style.visibility = 'visible';
-            el.style.transform = 'none';
-            el.setAttribute('data-animated', '1');
-        });
-
-        // Clear any GSAP inline styles
-        if (typeof gsap !== 'undefined') {
-            gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
-        }
-
-        // Remove grid animation class
-        const grid = document.getElementById('galleries-grid');
-        if (grid) {
-            grid.classList.remove('gsap-grid-animating');
-        }
-    }
-});
-
 $(document).ready(function() {
     // Global base path for API calls
     window.basePath = '{{ base_path }}';
-    
-    // Animation settings from backend
-    const animationEnabled = {{ filter_settings.animation_enabled ? 'true' : 'false' }};
-    const animationDuration = {{ filter_settings.animation_duration|default(300) }};
-    
+
     // Page texts from translations
     window.pageTexts = {
         resultsText: '{{ trans('nav.galleries')|e('js') }}',
@@ -634,71 +574,15 @@ $(document).ready(function() {
     // Admin status (skip NSFW restrictions for admins)
     window.isAdmin = {{ is_admin ? 'true' : 'false' }};
 
-    // Ensure UI elements are always visible first
-    ensureUIVisibility();
-    
-    // Initialize page animations
-    if (animationEnabled) {
-        initPageAnimations();
-    }
-    
     // Initialize filter functionality
     initFilters();
-    
+
     // Initialize responsive grid
     initResponsiveGrid();
-    
-    // Safety check every 2 seconds (auto-stop when intro is done)
-    let visibilityCheckInterval = setInterval(function() {
-        ensureUIVisibility();
-        if (document.body.dataset.gsapIntroDone === '1'
-            && !document.body.classList.contains('gsap-intro-animating')) {
-            clearInterval(visibilityCheckInterval);
-        }
-    }, 2000);
+
+    // Initialize lazy loading for cards
+    initLazyCards();
 });
-
-function ensureUIVisibility() {
-    const grid = document.getElementById('galleries-grid');
-    const isAnimating = document.body.classList.contains('gsap-intro-animating')
-        || (grid && grid.classList.contains('gsap-grid-animating'));
-    // Ensure critical UI elements are always visible
-    const criticalElements = [
-        '#toggle-filters',
-        '[data-gsap="title"]',
-        '[data-gsap="subtitle"]',
-        '#galleries-grid .gallery-card'
-    ];
-    
-    criticalElements.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-            if (el.style.opacity === '0' && !isAnimating) {
-                el.style.opacity = '1';
-                el.style.visibility = 'visible';
-            }
-        });
-    });
-}
-
-function initPageAnimations() {
-    if (document.body.dataset.gsapIntroDone === '1') {
-        return;
-    }
-    // Keep UI visible and skip intro animations to avoid flicker
-    document.body.dataset.gsapIntroDone = '1';
-    const animatedElements = document.querySelectorAll('[data-gsap="title"], [data-gsap="subtitle"], [data-gsap="filter-toggle"], #galleries-grid .gallery-card');
-    animatedElements.forEach(function(el) {
-        el.style.opacity = '1';
-        el.style.visibility = 'visible';
-        el.style.transform = 'none';
-        el.setAttribute('data-animated', '1');
-    });
-    if (typeof gsap !== 'undefined') {
-        gsap.set(animatedElements, { clearProps: 'all', opacity: 1 });
-    }
-    return;
-}
 
 function initFilters() {
     const debouncedApply = debounce(applyFilters, 60);
@@ -1234,11 +1118,11 @@ function initResponsiveGrid() {
     const tabletCols = grid.data('tablet-cols');
     const mobileCols = grid.data('mobile-cols');
     const gap = grid.data('gap');
-    
+
     function updateGridColumns() {
         const width = $(window).width();
         let cols;
-        
+
         if (width >= 1024) {
             cols = desktopCols;
         } else if (width >= 768) {
@@ -1246,18 +1130,79 @@ function initResponsiveGrid() {
         } else {
             cols = mobileCols;
         }
-        
+
         const gapSize = gap === 'small' ? '1rem' : (gap === 'large' ? '2rem' : '1.5rem');
-        
+
         grid.css({
             'grid-template-columns': `repeat(${cols}, 1fr)`,
             'gap': gapSize
         });
     }
-    
+
     // Update on resize
     $(window).resize(debounce(updateGridColumns, 250));
     updateGridColumns();
+}
+
+// Lazy loading for gallery cards - card appears only when image is ready
+function initLazyCards() {
+    const lazyCards = document.querySelectorAll('.lazy-card');
+    if (lazyCards.length === 0) return;
+
+    const observerOptions = {
+        root: null,
+        rootMargin: '100px 0px', // Start loading a bit before they enter viewport
+        threshold: 0
+    };
+
+    const cardObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const card = entry.target;
+                loadCardImage(card);
+                observer.unobserve(card);
+            }
+        });
+    }, observerOptions);
+
+    lazyCards.forEach(card => cardObserver.observe(card));
+}
+
+// Load image and reveal card when ready
+function loadCardImage(card) {
+    const img = card.querySelector('img[data-src]');
+    if (!img) {
+        // No image to load, just reveal the card
+        revealCard(card);
+        return;
+    }
+
+    const src = img.getAttribute('data-src');
+    if (!src) {
+        revealCard(card);
+        return;
+    }
+
+    // Create a new image to preload
+    const preloadImg = new Image();
+    preloadImg.onload = function() {
+        img.src = src;
+        img.removeAttribute('data-src');
+        revealCard(card);
+    };
+    preloadImg.onerror = function() {
+        // Even on error, reveal the card (fallback handling)
+        img.src = src;
+        img.removeAttribute('data-src');
+        revealCard(card);
+    };
+    preloadImg.src = src;
+}
+
+// Reveal card with smooth transition
+function revealCard(card) {
+    card.classList.remove('opacity-0');
+    card.classList.add('card-revealed');
 }
 
 // Utility function for debouncing
@@ -1427,26 +1372,19 @@ function debounce(func, wait) {
     }
 }
 
-/* CSS Protection for Gallery Cards and UI elements */
-#galleries-grid .gallery-card {
-    opacity: 1 !important;
+/* Lazy card loading transition */
+.lazy-card {
+    transition: opacity 0.4s ease-out;
 }
-[data-gsap="filter-toggle"],
-[data-gsap="title"],
-[data-gsap="subtitle"] {
+
+.lazy-card.card-revealed {
     opacity: 1;
 }
 
-/* Only allow GSAP to control opacity during specific animations */
-#galleries-grid.gsap-grid-animating .gallery-card {
-    opacity: 0;
-}
-
-/* Ensure images in gallery cards are always visible */
-#galleries-grid .gallery-card img {
+/* CSS Protection for Gallery Cards and UI elements - except lazy cards */
+#galleries-grid .gallery-card:not(.lazy-card) {
     opacity: 1 !important;
 }
-
 /* Filter toggle button protection */
 #toggle-filters {
     opacity: 1 !important;

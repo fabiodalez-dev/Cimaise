@@ -21,10 +21,10 @@
                     <i class="fas fa-fire mr-2"></i>{{ trans('admin.cache.warm_all') }}
                 </button>
             </form>
-            <form method="post" action="{{ base_path }}/admin/cache/clear" class="inline">
+            <form method="post" action="{{ base_path }}/admin/cache/clear-everything" class="inline">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
                 <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors text-sm sm:text-base">
-                    <i class="fas fa-trash mr-2"></i>{{ trans('admin.cache.clear_all') }}
+                    <i class="fas fa-trash mr-2"></i>{{ trans('admin.cache.clear_everything') }}
                 </button>
             </form>
         </div>
@@ -166,6 +166,15 @@
                     </div>
                     <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium whitespace-nowrap self-start sm:self-center">{{ trans('admin.cache.clear') }}</button>
                 </form>
+
+                <form method="post" action="{{ base_path }}/admin/cache/clear-twig" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 rounded">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-medium text-gray-900">{{ trans('admin.cache.twig_cache') }}</div>
+                        <div class="text-sm text-gray-600">{{ trans('admin.cache.twig_cache_desc') }}</div>
+                    </div>
+                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium whitespace-nowrap self-start sm:self-center">{{ trans('admin.cache.clear') }}</button>
+                </form>
             </div>
         </div>
 
@@ -183,7 +192,7 @@
                         <div class="font-medium text-gray-900">{{ trans('admin.cache.lqip_generate') }}</div>
                         <div class="text-sm text-gray-600">{{ trans('admin.cache.lqip_generate_desc') }}</div>
                     </div>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-medium whitespace-nowrap self-start sm:self-center">
+                    <button type="submit" class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 text-sm font-medium whitespace-nowrap self-start sm:self-center">
                         <i class="fas fa-image mr-1"></i>{{ trans('admin.cache.lqip_generate_button') }}
                     </button>
                 </form>
@@ -194,18 +203,18 @@
                         <div class="font-medium text-gray-900">{{ trans('admin.cache.lqip_regenerate') }}</div>
                         <div class="text-sm text-gray-600">{{ trans('admin.cache.lqip_regenerate_desc') }}</div>
                     </div>
-                    <button type="submit" class="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 text-sm font-medium whitespace-nowrap self-start sm:self-center">
+                    <button type="submit" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600 text-sm font-medium whitespace-nowrap self-start sm:self-center">
                         <i class="fas fa-sync mr-1"></i>{{ trans('admin.cache.lqip_regenerate_button') }}
                     </button>
                 </form>
             </div>
 
-            <div class="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p class="text-sm text-blue-900">
+            <div class="mt-4 p-3 bg-gray-100 rounded-lg">
+                <p class="text-sm text-gray-900">
                     <i class="fas fa-info-circle mr-1"></i>
-                    <strong>{{ trans('admin.cache.lqip_cli_hint') }}</strong> <code class="bg-blue-100 px-2 py-1 rounded text-xs">php bin/console images:generate-lqip</code>
+                    <strong>{{ trans('admin.cache.lqip_cli_hint') }}</strong> <code class="bg-gray-200 px-2 py-1 rounded text-xs">php bin/console images:generate-lqip</code>
                 </p>
-                <p class="text-xs text-blue-700 mt-1">
+                <p class="text-xs text-gray-700 mt-1">
                     {{ trans('admin.cache.lqip_cli_desc') }}
                 </p>
             </div>

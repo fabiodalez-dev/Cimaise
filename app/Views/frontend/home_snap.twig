@@ -451,8 +451,8 @@ html.dark .snap-indicator:hover {
             {% set coverRaw = '/assets/img/placeholder.jpg' %}
           {% endif %}
           {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
-          {# Images start lazy; IntersectionObserver upgrades up to 3 visible images to high priority #}
-          <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="lazy" decoding="async">
+          {# First visible image loads immediately (reversed order, so loop.first is bottom-most = visible on load) #}
+          <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async">
         </a>
         {% endfor %}
       </div>
@@ -486,8 +486,8 @@ html.dark .snap-indicator:hover {
           {% set coverRaw = '/assets/img/placeholder.jpg' %}
         {% endif %}
         {% set coverSrc = coverRaw starts with '/' ? base_path ~ coverRaw : coverRaw %}
-        {# Images start lazy; IntersectionObserver upgrades up to 3 visible images to high priority #}
-        <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" loading="lazy" decoding="async">
+        {# First image loads immediately for instant display from cache #}
+        <img src="{{ coverSrc|e('html_attr') }}" alt="{{ album.title|e('html_attr') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async">
         <div class="snap-mobile-info">
           <span class="snap-year">{{ album.shoot_date ? album.shoot_date|date('Y') : album.published_at|date('Y') }}</span>
           <h2>{{ album.title|e }}</h2>

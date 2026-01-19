@@ -3,6 +3,15 @@
 {% block styles %}
 <link rel="stylesheet" href="{{ base_path }}/assets/css/home-modern.css">
 <style nonce="{{ csp_nonce() }}">
+  /* Fix mega menu duplicate text - second span should be hidden until hover */
+  .mega-menu_text[aria-hidden="true"] {
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+  .mega-menu_scroll-wrapper {
+    position: relative;
+  }
   .inf-work_list.has-hover .inf-work_item:not(.highlight) {
     opacity: 0.5;
   }

@@ -26,6 +26,73 @@ class CacheWarmService
     }
 
     /**
+     * Generate inline base64 data URI for LQIP placeholder.
+     * PERFORMANCE: Small LQIP images (~1-2KB) are faster inline than HTTP request.
+     * SECURITY: Validates path to prevent directory traversal attacks.
+     *
+     * @param string $lqipPath Filesystem path to LQIP file (must start with /)
+     * @return string|null Base64 data URI or null on error
+     */
+    private function generateLQIPDataUri(string $lqipPath): ?string
+    {
+        // Security: Validate path format (must start with /)
+        if (!str_starts_with($lqipPath, '/')) {
+            return null;
+        }
+
+        // Security: Validate path matches expected LQIP format /media/{imageId}_lqip.(jpg|webp|png)
+        if (!preg_match('#^/media/\d+_lqip\.(jpg|webp|png)$#', $lqipPath)) {
+            Logger::warning('CacheWarmService: LQIP path format validation failed', [
+                'lqip_path' => $lqipPath
+            ], 'security');
+            return null;
+        }
+
+        $root = dirname(__DIR__, 2);
+        $publicDir = $root . '/public';
+        $absolutePath = $publicDir . $lqipPath;
+
+        // Security: Canonicalize path and verify it's within public directory
+        $realPath = realpath($absolutePath);
+        $realPublicDir = realpath($publicDir);
+
+        if ($realPath === false || $realPublicDir === false) {
+            return null;
+        }
+
+        // Security: Prevent directory traversal
+        if (!str_starts_with($realPath, $realPublicDir . DIRECTORY_SEPARATOR)) {
+            Logger::warning('CacheWarmService: LQIP path traversal attempt blocked', [
+                'lqip_path' => $lqipPath,
+                'real_path' => $realPath,
+                'public_dir' => $realPublicDir
+            ], 'security');
+            return null;
+        }
+
+        // Only inline if file is small enough (max 5KB to avoid HTML bloat)
+        $size = filesize($realPath);
+        if ($size === false || $size > 5120) {
+            return $lqipPath; // Return path for <img src> instead
+        }
+
+        $content = @file_get_contents($realPath);
+        if ($content === false) {
+            return null;
+        }
+
+        // Determine MIME type
+        $mimeType = 'image/jpeg';
+        if (str_ends_with($lqipPath, '.webp')) {
+            $mimeType = 'image/webp';
+        } elseif (str_ends_with($lqipPath, '.png')) {
+            $mimeType = 'image/png';
+        }
+
+        return 'data:' . $mimeType . ';base64,' . base64_encode($content);
+    }
+
+    /**
      * Warm all caches.
      *
      * @return array Stats: ['home' => bool, 'galleries' => bool, 'albums' => int, 'errors' => array]
@@ -503,12 +570,12 @@ class CacheWarmService
 
         // Enrich albums
         foreach ($albums as &$album) {
-            $album['cover_image'] = $coverImages[$album['id']] ?? null;
+            $album['cover'] = $coverImages[$album['id']] ?? null;
             $album['tags'] = $albumTags[$album['id']] ?? [];
 
-            // Process cover image sources
-            if ($album['cover_image']) {
-                $album['cover_image'] = $this->processImageSources($album['cover_image']);
+            // Process cover image sources - adds 'variants' array expected by _album_card.twig
+            if ($album['cover']) {
+                $album['cover'] = $this->processImageSources($album['cover']);
             }
 
             // Note: is_locked and is_password_protected flags are not set here because
@@ -589,11 +656,18 @@ class CacheWarmService
 
         $fallbackSrc = null;
         $bestWidth = PHP_INT_MAX;
+        $lqipPath = null;
 
         foreach ($variants as $var) {
             $path = (string) ($var['path'] ?? '');
             $width = (int) ($var['width'] ?? 0);
             $variantType = $var['variant'] ?? '';
+
+            // Extract LQIP variant path for progressive loading
+            if ($variantType === 'lqip' && !empty($path) && !str_starts_with($path, '/storage/')) {
+                $lqipPath = $path;
+                continue;
+            }
 
             // Skip blur variants, storage paths, and invalid entries
             if (!empty($var['is_blur']) || str_contains($path, '_blur') || $variantType === 'blur') {
@@ -624,6 +698,9 @@ class CacheWarmService
         // Never use original_path (points to /storage/originals/ which is not web-accessible)
         $image['fallback_src'] = $fallbackSrc ?: '';
         $image['variants'] = $variants;
+
+        // LQIP placeholder for progressive image loading (base64 data URI or path)
+        $image['lqip_placeholder'] = $lqipPath ? $this->generateLQIPDataUri($lqipPath) : null;
 
         return $image;
     }

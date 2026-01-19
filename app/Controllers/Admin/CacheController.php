@@ -342,4 +342,112 @@ class CacheController extends BaseController
         return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
     }
 
+    /**
+     * Clear Twig template cache.
+     */
+    public function clearTwig(Request $request, Response $response): Response
+    {
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
+        $twigCachePath = dirname(__DIR__, 3) . '/storage/cache/twig';
+        $cleared = 0;
+
+        if (is_dir($twigCachePath)) {
+            $cleared = $this->deleteDirectory($twigCachePath, true);
+        }
+
+        if ($this->isAjaxRequest($request)) {
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'message' => "Twig cache cleared: {$cleared} files deleted",
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        $_SESSION['flash'][] = [
+            'type' => 'success',
+            'message' => "Twig cache cleared successfully. {$cleared} files deleted.",
+        ];
+
+        return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+    }
+
+    /**
+     * Clear absolutely all caches (page, query, Twig).
+     */
+    public function clearEverything(Request $request, Response $response): Response
+    {
+        if (!$this->validateCsrf($request)) {
+            return $this->csrfErrorJson($response);
+        }
+
+        // Clear page cache
+        $pageCleared = $this->pageCacheService->clearAll();
+
+        // Clear query cache
+        QueryCache::getInstance()->flush();
+
+        // Clear Twig cache
+        $twigCachePath = dirname(__DIR__, 3) . '/storage/cache/twig';
+        $twigCleared = 0;
+        if (is_dir($twigCachePath)) {
+            $twigCleared = $this->deleteDirectory($twigCachePath, true);
+        }
+
+        $message = "All caches cleared: {$pageCleared} page entries, query cache, {$twigCleared} Twig files";
+
+        if ($this->isAjaxRequest($request)) {
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'message' => $message,
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        $_SESSION['flash'][] = [
+            'type' => 'success',
+            'message' => $message,
+        ];
+
+        return $response->withHeader('Location', $this->redirect('/admin/cache'))->withStatus(302);
+    }
+
+    /**
+     * Recursively delete directory contents.
+     *
+     * @param string $path Directory path
+     * @param bool $keepRoot Keep the root directory itself
+     * @return int Number of files deleted
+     */
+    private function deleteDirectory(string $path, bool $keepRoot = false): int
+    {
+        if (!is_dir($path)) {
+            return 0;
+        }
+
+        $deleted = 0;
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($items as $item) {
+            if ($item->isDir()) {
+                @rmdir($item->getPathname());
+            } else {
+                if (@unlink($item->getPathname())) {
+                    $deleted++;
+                }
+            }
+        }
+
+        if (!$keepRoot) {
+            @rmdir($path);
+        }
+
+        return $deleted;
+    }
+
 }
