@@ -331,6 +331,38 @@ class Updater
             $responseHeaders = $http_response_header;
         }
 
+        // If SSL verification fails, retry without verification (shared hosting fallback)
+        if ($response === false) {
+            $error = error_get_last();
+            $errorMsg = $error['message'] ?? '';
+
+            if (stripos($errorMsg, 'SSL') !== false || stripos($errorMsg, 'certificate') !== false) {
+                $this->debugLog('WARNING', 'SSL verification failed, retrying without verification', [
+                    'url' => $url,
+                    'original_error' => $errorMsg
+                ]);
+
+                $fallbackContext = stream_context_create([
+                    'http' => [
+                        'method' => 'GET',
+                        'header' => $headers,
+                        'timeout' => 30,
+                        'ignore_errors' => true
+                    ],
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                    ]
+                ]);
+
+                $response = @file_get_contents($url, false, $fallbackContext);
+
+                if (isset($http_response_header)) {
+                    $responseHeaders = $http_response_header;
+                }
+            }
+        }
+
         $this->debugLog('DEBUG', 'HTTP response received', [
             'response_length' => $response !== false ? strlen($response) : 0,
             'response_headers' => $responseHeaders
@@ -459,7 +491,49 @@ class Updater
                 ];
             }
 
-            $this->debugLog('WARNING', 'cURL download failed, trying fallback', [
+            // If SSL verification fails, retry without verification (shared hosting fallback)
+            if ($errno === CURLE_SSL_CERTPROBLEM || $errno === CURLE_SSL_CACERT ||
+                stripos($error, 'SSL') !== false || stripos($error, 'certificate') !== false) {
+                $this->debugLog('WARNING', 'cURL SSL verification failed, retrying without verification', [
+                    'url' => $url,
+                    'original_error' => $error,
+                    'errno' => $errno
+                ]);
+
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TIMEOUT => 300,
+                    CURLOPT_CONNECTTIMEOUT => 30,
+                    CURLOPT_USERAGENT => 'Cimaise-Updater/1.0',
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => 0,
+                    CURLOPT_BUFFERSIZE => 1024 * 1024,
+                    CURLOPT_HTTPHEADER => ['Accept: application/octet-stream'],
+                ]);
+
+                $content = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $error = curl_error($ch);
+                curl_close($ch);
+
+                if ($content !== false && $httpCode >= 200 && $httpCode < 400) {
+                    $this->debugLog('INFO', 'cURL download successful (SSL fallback)', [
+                        'http_code' => $httpCode,
+                        'size_bytes' => strlen($content)
+                    ]);
+                    return [
+                        'success' => true,
+                        'content' => $content,
+                        'error' => null,
+                        'method' => 'curl_ssl_fallback'
+                    ];
+                }
+            }
+
+            $this->debugLog('WARNING', 'cURL download failed, trying file_get_contents fallback', [
                 'http_code' => $httpCode,
                 'error' => $error,
                 'errno' => $errno
@@ -497,6 +571,38 @@ class Updater
 
         $content = @file_get_contents($url, false, $context);
 
+        // If SSL verification fails, retry without verification (shared hosting fallback)
+        if ($content === false) {
+            $error = error_get_last();
+            $errorMsg = $error['message'] ?? '';
+
+            if (stripos($errorMsg, 'SSL') !== false || stripos($errorMsg, 'certificate') !== false) {
+                $this->debugLog('WARNING', 'file_get_contents SSL verification failed, retrying without verification', [
+                    'url' => $url,
+                    'original_error' => $errorMsg
+                ]);
+
+                $fallbackContext = stream_context_create([
+                    'http' => [
+                        'method' => 'GET',
+                        'header' => [
+                            'User-Agent: Cimaise-Updater/1.0',
+                            'Accept: application/octet-stream'
+                        ],
+                        'timeout' => 300,
+                        'follow_location' => true,
+                        'ignore_errors' => true
+                    ],
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                    ]
+                ]);
+
+                $content = @file_get_contents($url, false, $fallbackContext);
+            }
+        }
+
         if ($content === false) {
             $error = error_get_last();
             return [
@@ -529,19 +635,53 @@ class Updater
 
         $this->debugLog('INFO', 'Fetching all releases', ['url' => $url, 'limit' => $limit]);
 
+        $headers = [
+            'User-Agent: Cimaise-Updater/1.0',
+            'Accept: application/vnd.github.v3+json'
+        ];
+
         $context = stream_context_create([
             'http' => [
                 'method' => 'GET',
-                'header' => [
-                    'User-Agent: Cimaise-Updater/1.0',
-                    'Accept: application/vnd.github.v3+json'
-                ],
+                'header' => $headers,
                 'timeout' => 30,
                 'ignore_errors' => true
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
             ]
         ]);
 
         $response = @file_get_contents($url, false, $context);
+
+        // If SSL verification fails, retry without verification (shared hosting fallback)
+        if ($response === false) {
+            $error = error_get_last();
+            $errorMsg = $error['message'] ?? '';
+
+            if (stripos($errorMsg, 'SSL') !== false || stripos($errorMsg, 'certificate') !== false) {
+                $this->debugLog('WARNING', 'SSL verification failed for releases, retrying without verification', [
+                    'url' => $url,
+                    'original_error' => $errorMsg
+                ]);
+
+                $fallbackContext = stream_context_create([
+                    'http' => [
+                        'method' => 'GET',
+                        'header' => $headers,
+                        'timeout' => 30,
+                        'ignore_errors' => true
+                    ],
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                    ]
+                ]);
+
+                $response = @file_get_contents($url, false, $fallbackContext);
+            }
+        }
 
         if ($response === false) {
             $this->debugLog('ERROR', 'Cannot fetch releases', [
