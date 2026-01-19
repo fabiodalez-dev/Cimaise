@@ -2524,7 +2524,7 @@
 	<lens>
         <maker>Viltrox</maker>
         <model>Viltrox 15mm F1.7 E</model>
-        <model lang="en">Viltrox AF 15mm F1.7</model>
+        <model lang="en">Viltrox AF 15mm F1.7 Air</model>
         <mount>Sony E</mount>
         <mount>Fujifilm X</mount>
         <mount>Nikon Z</mount>
@@ -2588,6 +2588,34 @@
             <vignetting model="pa" focal="23" aperture="11" distance="1000" k1="-0.3662" k2="0.0114" k3="0.0063"/>
             <vignetting model="pa" focal="23" aperture="16" distance="10" k1="-0.3815" k2="0.0435" k3="-0.0147"/>
             <vignetting model="pa" focal="23" aperture="16" distance="1000" k1="-0.3815" k2="0.0435" k3="-0.0147"/>
+        </calibration>
+    </lens>
+
+	<lens>
+        <maker>Viltrox</maker>
+        <model>Viltrox AF 9mm f/2.8 Z/E</model>
+        <model lang="en">Viltrox AF 9mm f/2.8 Z/E/XF</model>
+        <mount>Nikon Z</mount>
+        <mount>Sony E</mount>
+        <mount>Fujifilm X</mount>
+        <cropfactor>1.534</cropfactor>
+        <calibration>
+            <distortion model="ptlens" focal="9" a="0.0381805" b="-0.1074494" c="0.0720635"/>
+        </calibration>
+    </lens>
+
+	<lens>
+        <maker>Viltrox</maker>
+        <model>AF 56/1.4 XF</model>
+        <model lang="en">Viltrox AF 56mm f/1.4 XF</model>
+        <mount>Fujifilm X</mount>
+        <mount>Nikon Z</mount>
+        <mount>Sony E</mount>
+        <mount>Canon EF</mount>
+        <cropfactor>1.534</cropfactor>
+        <calibration>
+            <!-- Taken with Fujifilm X-T5 -->
+            <distortion model="ptlens" focal="56" a="0.0012839" b="-0.0028205" c="0.0121475"/>
         </calibration>
     </lens>
 
