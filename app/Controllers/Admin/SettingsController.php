@@ -466,11 +466,13 @@ class SettingsController extends BaseController
 
     /**
      * Download URL content with file_get_contents or cURL fallback.
+     * Tries with SSL verification first, then without if it fails (common on shared hosting).
      */
     private function downloadUrl(string $url): string|false
     {
         // Try file_get_contents first (if allow_url_fopen is enabled)
         if (ini_get('allow_url_fopen')) {
+            // First attempt with SSL verification
             $context = stream_context_create([
                 'http' => [
                     'timeout' => 30,
@@ -482,6 +484,23 @@ class SettingsController extends BaseController
                 ],
             ]);
             $content = @file_get_contents($url, false, $context);
+            if ($content !== false) {
+                return $content;
+            }
+
+            // Retry without SSL verification (fallback for misconfigured servers)
+            Logger::warning('SSL verification failed for file_get_contents, retrying without verification', ['url' => $url], 'app');
+            $contextNoSsl = stream_context_create([
+                'http' => [
+                    'timeout' => 30,
+                    'user_agent' => 'Cimaise/1.0',
+                ],
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                ],
+            ]);
+            $content = @file_get_contents($url, false, $contextNoSsl);
             if ($content !== false) {
                 return $content;
             }
@@ -508,10 +527,41 @@ class SettingsController extends BaseController
                 return $content;
             }
 
+            // Retry cURL without SSL verification
+            if ($error && str_contains(strtolower($error), 'ssl')) {
+                Logger::warning('SSL verification failed for cURL, retrying without verification', ['url' => $url, 'error' => $error], 'app');
+                $ch = curl_init();
+                curl_setopt_array($ch, [
+                    CURLOPT_URL => $url,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 3,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_USERAGENT => 'Cimaise/1.0',
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => 0,
+                ]);
+                $content = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $error = curl_error($ch);
+                curl_close($ch);
+
+                if ($content !== false && $httpCode === 200) {
+                    return $content;
+                }
+            }
+
             if ($error) {
-                Logger::warning('cURL download failed', ['url' => $url, 'error' => $error], 'app');
+                Logger::warning('cURL download failed', ['url' => $url, 'error' => $error, 'http_code' => $httpCode], 'app');
             }
         }
+
+        // Log diagnostic info if all methods failed
+        Logger::error('All download methods failed', [
+            'url' => $url,
+            'allow_url_fopen' => ini_get('allow_url_fopen') ? 'enabled' : 'disabled',
+            'curl_available' => function_exists('curl_init') ? 'yes' : 'no',
+        ], 'app');
 
         return false;
     }
