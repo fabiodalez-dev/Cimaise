@@ -77,6 +77,16 @@ For maximum protection, combine both. Visitors must confirm their age AND enter 
 
 One-click toggle inverts all frontend colors for a dark theme. Near-black backgrounds (#0a0a0a) with near-white text (#fafafa) for optimal contrast. Applies to all home pages, galleries, albums, and login. Smooth 0.3s transitions when switching modes.
 
+### Category & Tag Archives
+
+Dedicated archive pages for each category and tag, with smart filtering and beautiful layouts:
+
+- **Category Archives** — Browse all albums in a category with filter sidebar
+- **Subcategory Support** — Nested categories for complex organization
+- **Tag Archives** — Cross-cutting themes across your portfolio
+- **JSON Caching** — Archive pages are cached for instant loading
+- **SEO Optimized** — Proper structured data for category/tag pages
+
 ### Typography Customization
 
 <img src="screenshot/Typography.jpg" alt="Typography Settings" width="800">
@@ -122,6 +132,26 @@ Customizable About page with bio text and contact form. Portrait placeholder, ri
 ---
 
 ## Admin Panel
+
+### Category Hierarchy Management
+
+Organize your portfolio with nested categories and drag-and-drop reordering:
+
+- **Nested Categories** — Create parent/child category hierarchies for complex portfolios
+- **Drag-and-Drop** — SortableJS-powered reordering with visual nesting
+- **Categories Mega Menu** — Responsive navigation showing subcategories in grid layout
+- **Badge Icons** — Custom icons for category identification
+- **Album Counts** — Each category shows how many albums it contains
+
+### Privacy, Cookie & License Pages
+
+Built-in page management for legal compliance:
+
+- **Privacy Policy** — Full TinyMCE editor for GDPR privacy notices
+- **Cookie Policy** — Explain your cookie usage and consent practices
+- **License Page** — Define image usage rights and licensing terms
+- **Multi-Language** — Separate content per language (EN/IT)
+- **Footer Links** — Automatic links in site footer
 
 ### Album Management
 
@@ -605,6 +635,21 @@ Cimaise focuses on what photographers actually need:
 
 Cimaise includes a plugin system for extending functionality:
 
+### Demo Mode
+
+**Showcase all features with an interactive template switcher.**
+
+Perfect for demo sites and client presentations. Let visitors experience all home page templates without accessing admin.
+
+- **Template Switcher** — Dropdown in header lets visitors switch between all 6 home templates
+- **Live Preview** — Instant template switching without page reload
+- **Demo Banner** — Shows demo credentials in admin panel
+- **Password Protection** — Prevents users from changing admin password
+- **24-Hour Auto-Reset** — Cron script resets demo to clean state daily
+- **Sync Script** — `php bin/sync-demo.php` keeps demo in sync with main codebase
+
+Perfect for: Live demos, client presentations, feature showcases.
+
 ### Maintenance Mode
 
 **Put your site under construction while you build.**
@@ -743,6 +788,24 @@ PWA features are configured from Admin → Settings:
 - Background color
 - App name and short name
 
+### First-Visit Preloader
+
+Elegant loading animation for first-time visitors:
+
+- **Smooth Reveal** — Animated preloader while assets load on first visit
+- **Session Memory** — Preloader only shows once per session
+- **Template-Specific** — Different animations per home template style
+- **Instant Repeat Visits** — Cached assets mean no preloader on return
+
+### SQLite WAL Mode
+
+Optimized database performance with Write-Ahead Logging:
+
+- **Concurrent Reads** — Multiple visitors can read while writes happen
+- **Faster Writes** — Significantly improved write performance
+- **Crash Recovery** — Better durability with automatic checkpointing
+- **Auto-Enabled** — Configured by default for SQLite installations
+
 ### Resource Optimization
 
 - **DNS Prefetch** — Pre-resolves external domains (Google Fonts, analytics)
@@ -806,7 +869,13 @@ Cached pages include:
 - Individual album pages
 - Navigation and settings
 
-Manage from **Admin → System → Cache Management**: clear all caches, warm specific pages, or enable auto-warm.
+Manage from **Admin → System → Cache Management**:
+- **Clear Page Cache** — Remove cached pages for fresh regeneration
+- **Clear Query Cache** — Flush database query cache
+- **Clear Twig Cache** — Clear compiled template cache
+- **Clear ALL Caches** — One-click button to clear everything at once
+- **Warm Caches** — Pre-generate caches for optimal performance
+- **Auto-Warm** — Automatically refresh caches after content updates
 
 **CLI Cache Management:**
 ```bash
