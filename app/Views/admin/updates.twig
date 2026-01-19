@@ -429,7 +429,7 @@ function startUpdate(version) {
     modal.classList.remove('hidden');
 
     const formData = new FormData();
-    formData.append('csrf_token', csrfToken);
+    formData.append('csrf', csrfToken);
     formData.append('version', version);
 
     fetch(basePath + '/admin/updates/perform', {
@@ -484,7 +484,7 @@ function createBackup() {
     if (footerIcon) footerIcon.className = 'fas fa-spinner fa-spin mr-2';
 
     const formData = new FormData();
-    formData.append('csrf_token', csrfToken);
+    formData.append('csrf', csrfToken);
 
     fetch(basePath + '/admin/updates/backup', {
         method: 'POST',
@@ -514,7 +514,7 @@ function deleteBackup(backupName) {
     }
 
     const formData = new FormData();
-    formData.append('csrf_token', csrfToken);
+    formData.append('csrf', csrfToken);
     formData.append('backup', backupName);
 
     fetch(basePath + '/admin/updates/backup/delete', {
@@ -543,7 +543,7 @@ function clearMaintenance() {
     }
 
     const formData = new FormData();
-    formData.append('csrf_token', csrfToken);
+    formData.append('csrf', csrfToken);
 
     fetch(basePath + '/admin/updates/maintenance/clear', {
         method: 'POST',
