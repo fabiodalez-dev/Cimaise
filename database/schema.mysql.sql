@@ -220,7 +220,8 @@ CREATE TABLE IF NOT EXISTS `albums` (
   KEY `idx_albums_published_date` (`is_published`, `published_at`),
   KEY `idx_albums_published_shoot` (`is_published`, `shoot_date`),
   KEY `idx_albums_published_nsfw` (`is_published`, `is_nsfw`),
-  CHECK ((`template_id` IS NULL) OR (`custom_template_id` IS NULL)),
+  -- NOTE: CHECK constraint removed for MySQL 8.0.16+ compatibility
+  -- Business rule "only template_id OR custom_template_id can be set" enforced in application layer
   CONSTRAINT `fk_albums_category` FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_albums_location` FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_albums_template` FOREIGN KEY (`template_id`) REFERENCES `templates`(`id`) ON DELETE SET NULL,
