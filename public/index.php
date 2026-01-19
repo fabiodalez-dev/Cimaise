@@ -15,6 +15,7 @@ use App\Middlewares\FlashMiddleware;
 use App\Middlewares\SecurityHeadersMiddleware;
 use Slim\Middleware\ErrorMiddleware;
 use Slim\Exception\HttpNotFoundException;
+use Slim\Exception\HttpMethodNotAllowedException;
 use App\Support\Hooks;
 use App\Support\CookieHelper;
 use App\Support\PluginManager;
@@ -502,6 +503,43 @@ $errorMiddleware->setErrorHandler(HttpNotFoundException::class, function ($reque
 
     $template = $isAdmin ? 'errors/404_admin.twig' : 'errors/404.twig';
     return $twig->render($response, $template);
+});
+// Handle 405 Method Not Allowed - return proper status and JSON for AJAX
+$errorMiddleware->setErrorHandler(HttpMethodNotAllowedException::class, function ($request, \Throwable $exception, bool $displayErrorDetails) use ($twig, $translationService) {
+    $response = new \Slim\Psr7\Response(405);
+
+    // Add Allow header with permitted methods
+    $allowedMethods = [];
+    if ($exception instanceof HttpMethodNotAllowedException) {
+        $allowedMethods = $exception->getAllowedMethods();
+    }
+    $response = $response->withHeader('Allow', implode(', ', $allowedMethods));
+
+    // For AJAX requests, return JSON
+    $isAjax = $request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest'
+           || str_contains($request->getHeaderLine('Accept'), 'application/json');
+
+    if ($isAjax) {
+        $response->getBody()->write(json_encode([
+            'error' => 'Method not allowed',
+            'allowed_methods' => $allowedMethods,
+            'message' => $displayErrorDetails ? $exception->getMessage() : 'Method not allowed'
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    // For regular requests, render error page
+    $path = $request->getUri()->getPath();
+    $isAdmin = str_contains($path, '/admin');
+
+    if ($translationService !== null) {
+        $translationService->setScope($isAdmin ? 'admin' : 'frontend');
+    }
+
+    $template = $isAdmin ? 'errors/500_admin.twig' : 'errors/500.twig';
+    return $twig->render($response, $template, [
+        'message' => $displayErrorDetails ? $exception->getMessage() : 'Method not allowed. Please use the correct HTTP method.'
+    ]);
 });
 $errorMiddleware->setDefaultErrorHandler(function ($request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($twig, $translationService) {
     $response = new \Slim\Psr7\Response(500);
