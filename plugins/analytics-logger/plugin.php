@@ -66,20 +66,38 @@ class AnalyticsLoggerPlugin
      */
     private function createTables(): void
     {
-        $sql = "
-            CREATE TABLE IF NOT EXISTS plugin_analytics_custom_events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id VARCHAR(64),
-                event_type VARCHAR(50) NOT NULL,
-                event_category VARCHAR(100),
-                event_action VARCHAR(100),
-                event_label VARCHAR(255),
-                event_value INTEGER,
-                user_id INTEGER NULL,
-                metadata TEXT, -- JSON
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ";
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'mysql') {
+            $sql = "
+                CREATE TABLE IF NOT EXISTS plugin_analytics_custom_events (
+                    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    session_id VARCHAR(64),
+                    event_type VARCHAR(50) NOT NULL,
+                    event_category VARCHAR(100),
+                    event_action VARCHAR(100),
+                    event_label VARCHAR(255),
+                    event_value INT,
+                    user_id INT NULL,
+                    metadata JSON NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ";
+        } else {
+            $sql = "
+                CREATE TABLE IF NOT EXISTS plugin_analytics_custom_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id VARCHAR(64),
+                    event_type VARCHAR(50) NOT NULL,
+                    event_category VARCHAR(100),
+                    event_action VARCHAR(100),
+                    event_label VARCHAR(255),
+                    event_value INTEGER,
+                    user_id INTEGER NULL,
+                    metadata TEXT, -- JSON
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            ";
+        }
 
         try {
             $this->db->exec($sql);
@@ -88,9 +106,9 @@ class AnalyticsLoggerPlugin
             Logger::error('Analytics Logger: Error creating tables', ['error' => $e->getMessage()], 'plugin');
         }
 
-        // Create index
-        $this->db->exec("CREATE INDEX IF NOT EXISTS idx_custom_events_session ON plugin_analytics_custom_events(session_id)");
-        $this->db->exec("CREATE INDEX IF NOT EXISTS idx_custom_events_type ON plugin_analytics_custom_events(event_type)");
+        // Create indexes (ignore compatibility errors)
+        try { $this->db->exec("CREATE INDEX idx_custom_events_session ON plugin_analytics_custom_events(session_id)"); } catch (\Throwable) {}
+        try { $this->db->exec("CREATE INDEX idx_custom_events_type ON plugin_analytics_custom_events(event_type)"); } catch (\Throwable) {}
     }
 
     /**
@@ -215,14 +233,26 @@ class AnalyticsLoggerPlugin
     private function renderDashboardWidget(): string
     {
         // Get event counts for last 7 days
-        $sql = "
-            SELECT event_type, COUNT(*) as count
-            FROM plugin_analytics_custom_events
-            WHERE created_at >= datetime('now', '-7 days')
-            GROUP BY event_type
-            ORDER BY count DESC
-            LIMIT 10
-        ";
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'mysql') {
+            $sql = "
+                SELECT event_type, COUNT(*) as count
+                FROM plugin_analytics_custom_events
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                GROUP BY event_type
+                ORDER BY count DESC
+                LIMIT 10
+            ";
+        } else {
+            $sql = "
+                SELECT event_type, COUNT(*) as count
+                FROM plugin_analytics_custom_events
+                WHERE created_at >= datetime('now', '-7 days')
+                GROUP BY event_type
+                ORDER BY count DESC
+                LIMIT 10
+            ";
+        }
 
         $stmt = $this->db->query($sql);
         $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -267,7 +297,7 @@ class AnalyticsLoggerPlugin
                 $data['label'] ?? null,
                 $data['value'] ?? null,
                 $data['user_id'] ?? null,
-                json_encode($data['metadata'] ?? [])
+                json_encode($data['metadata'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
             ]);
 
             Logger::debug('Analytics Logger: Event logged', ['event_type' => $eventType], 'plugin');
