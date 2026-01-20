@@ -358,8 +358,10 @@ function clearOutput() {
 }
 
 // Attach event listeners to buttons (no inline handlers)
-document.addEventListener('DOMContentLoaded', function() {
+function initCommandsPage() {
   document.querySelectorAll('[data-command]').forEach(btn => {
+    if (btn._commandBound) return;
+    btn._commandBound = true;
     btn.addEventListener('click', () => {
       const cmd = btn.getAttribute('data-command');
       const payloadRaw = btn.getAttribute('data-payload');
@@ -377,6 +379,8 @@ document.addEventListener('DOMContentLoaded', function() {
     'clear-output': clearOutput
   };
   document.querySelectorAll('[data-action]').forEach(btn => {
+    if (btn._actionBound) return;
+    btn._actionBound = true;
     const action = btn.getAttribute('data-action');
     const fn = actionMap[action];
     if (fn) {
@@ -386,6 +390,14 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   });
-});
+}
+
+// Initialize immediately, with RAF fallback for SPA timing
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCommandsPage);
+} else {
+  // DOM already loaded - use RAF to ensure content is rendered
+  requestAnimationFrame(initCommandsPage);
+}
 </script>
 {% endblock %}

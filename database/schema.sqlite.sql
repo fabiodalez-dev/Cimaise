@@ -441,6 +441,97 @@ CREATE TABLE IF NOT EXISTS image_location (
 CREATE INDEX IF NOT EXISTS idx_image_location_location ON image_location(location_id);
 
 -- ============================================
+-- SOCIAL NETWORKS TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS social_networks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  icon TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT '#333333',
+  share_url TEXT,
+  is_profile_network INTEGER DEFAULT 0 CHECK(is_profile_network IN (0, 1)),
+  is_active INTEGER DEFAULT 1 CHECK(is_active IN (0, 1)),
+  sort_order INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_social_networks_slug ON social_networks(slug);
+CREATE INDEX IF NOT EXISTS idx_social_networks_active ON social_networks(is_active);
+CREATE INDEX IF NOT EXISTS idx_social_networks_profile ON social_networks(is_profile_network);
+CREATE INDEX IF NOT EXISTS idx_social_networks_sort ON social_networks(sort_order);
+
+-- Default social networks data
+INSERT OR IGNORE INTO social_networks (slug, name, icon, color, share_url, is_profile_network, is_active, sort_order) VALUES
+('500px', '500px', 'fab fa-500px', '#0099e5', NULL, 1, 1, 1),
+('addtofavorites', 'Add to Favorites', 'fa fa-star', '#F9A600', '#', 0, 1, 2),
+('behance', 'Behance', 'fab fa-behance', '#1769ff', 'https://www.behance.net/gallery/share?title={title}&url={url}', 1, 1, 3),
+('bitbucket', 'Bitbucket', 'fab fa-bitbucket', '#205081', NULL, 0, 1, 4),
+('blogger', 'Blogger', 'fab fa-blogger-b', '#FF6501', 'https://www.blogger.com/blog_this.pyra?t&u={url}&n={title}', 0, 1, 5),
+('bluesky', 'Bluesky', 'fab fa-bluesky', '#1083fe', 'https://bsky.app/intent/compose?text={title} {url}', 1, 1, 6),
+('codepen', 'CodePen', 'fab fa-codepen', '#000', NULL, 0, 1, 7),
+('comments', 'Comments', 'fa fa-comments', '#333', NULL, 0, 1, 8),
+('delicious', 'Delicious', 'fab fa-delicious', '#3274D1', 'https://delicious.com/save?url={url}&title={title}', 0, 1, 9),
+('deviantart', 'DeviantArt', 'fab fa-deviantart', '#475c4d', 'https://www.deviantart.com/users/outgoing?{url}', 1, 1, 10),
+('digg', 'Digg', 'fab fa-digg', '#000', 'https://digg.com/submit?url={url}&title={title}', 0, 1, 11),
+('discord', 'Discord', 'fab fa-discord', '#7289da', NULL, 0, 1, 12),
+('dribbble', 'Dribbble', 'fab fa-dribbble', '#ea4c89', NULL, 1, 1, 13),
+('email', 'Email', 'fa fa-envelope', '#000', 'mailto:?subject={title}&body={url}', 0, 1, 14),
+('etsy', 'Etsy', 'fab fa-etsy', '#f1641e', NULL, 0, 1, 15),
+('facebook', 'Facebook', 'fab fa-facebook-f', '#0866ff', 'https://www.facebook.com/sharer/sharer.php?u={url}', 1, 1, 16),
+('fbmessenger', 'Facebook Messenger', 'fab fa-facebook-messenger', '#0866ff', 'https://www.facebook.com/dialog/send?link={url}', 0, 1, 17),
+('flickr', 'Flickr', 'fab fa-flickr', '#1c9be9', NULL, 1, 1, 18),
+('flipboard', 'Flipboard', 'fab fa-flipboard', '#F52828', 'https://share.flipboard.com/bookmarklet/popout?v=2&url={url}&title={title}', 0, 1, 19),
+('github', 'GitHub', 'fab fa-github', '#333', NULL, 0, 1, 20),
+('google', 'Google', 'fab fa-google', '#3A7CEC', NULL, 0, 1, 21),
+('hackernews', 'Hacker News', 'fab fa-hacker-news', '#FF6500', 'https://news.ycombinator.com/submitlink?u={url}&t={title}', 0, 1, 22),
+('houzz', 'Houzz', 'fab fa-houzz', '#4dbc15', NULL, 0, 1, 23),
+('instagram', 'Instagram', 'fab fa-instagram', '#e23367', 'https://www.instagram.com/', 1, 1, 24),
+('line', 'Line', 'fab fa-line', '#00C300', 'https://lineit.line.me/share/ui?url={url}&text={title}', 0, 1, 25),
+('linkedin', 'LinkedIn', 'fab fa-linkedin-in', '#0274B3', 'https://www.linkedin.com/sharing/share-offsite/?url={url}', 1, 1, 26),
+('mastodon', 'Mastodon', 'fab fa-mastodon', '#6364ff', NULL, 0, 1, 27),
+('medium', 'Medium', 'fab fa-medium', '#02b875', 'https://medium.com/new-story?url={url}&title={title}', 0, 1, 28),
+('mix', 'Mix', 'fab fa-mix', '#ff8226', 'https://mix.com/add?url={url}&title={title}', 0, 1, 29),
+('more', 'More', 'fa fa-share-nodes', '#4CAF50', 'javascript:navigator.share({title: "{title}", url: "{url}"})', 0, 1, 30),
+('odnoklassniki', 'Odnoklassniki', 'fab fa-odnoklassniki', '#F2720C', 'https://connect.ok.ru/dk?st.cmd=WidgetSharePreview&st.shareUrl={url}&st.comments={title}', 0, 1, 31),
+('patreon', 'Patreon', 'fab fa-patreon', '#e85b46', NULL, 1, 1, 32),
+('paypal', 'PayPal', 'fab fa-paypal', '#0070ba', NULL, 0, 1, 33),
+('pdf', 'PDF', 'fa fa-file-pdf', '#E61B2E', NULL, 0, 1, 34),
+('phone', 'Phone', 'fa fa-phone', '#1A73E8', NULL, 0, 1, 35),
+('pinterest', 'Pinterest', 'fab fa-pinterest', '#CB2027', 'https://pinterest.com/pin/create/button/?url={url}&description={title}', 1, 1, 36),
+('pocket', 'Pocket', 'fab fa-get-pocket', '#EF4056', 'https://getpocket.com/save?url={url}&title={title}', 0, 1, 37),
+('podcast', 'Podcast', 'fa fa-podcast', '#7224d8', NULL, 0, 1, 38),
+('print', 'Print', 'fa fa-print', '#6D9F00', 'javascript:window.print()', 0, 1, 39),
+('quora', 'Quora', 'fab fa-quora', '#b92b27', 'https://www.quora.com/share?url={url}&title={title}', 0, 1, 40),
+('reddit', 'Reddit', 'fab fa-reddit', '#FF5600', 'https://www.reddit.com/submit?url={url}&title={title}', 0, 1, 41),
+('renren', 'Renren', 'fab fa-renren', '#005EAC', 'https://www.connect.renren.com/share/sharer?url={url}&title={title}', 0, 1, 42),
+('rss', 'RSS', 'fa fa-rss', '#FF7B0A', NULL, 0, 1, 43),
+('shortlink', 'Short Link', 'fa fa-link', '#333', NULL, 0, 1, 44),
+('skype', 'Skype', 'fab fa-skype', '#00AFF0', 'https://web.skype.com/share?url={url}&text={title}', 0, 1, 45),
+('sms', 'SMS', 'fa fa-sms', '#35d54f', 'sms:?body={title} {url}', 0, 1, 46),
+('snapchat', 'Snapchat', 'fab fa-snapchat', '#FFFC00', NULL, 0, 1, 47),
+('soundcloud', 'SoundCloud', 'fab fa-soundcloud', '#f50', NULL, 0, 1, 48),
+('stackoverflow', 'Stack Overflow', 'fab fa-stack-overflow', '#F48024', NULL, 0, 1, 49),
+('telegram', 'Telegram', 'fab fa-telegram-plane', '#179cde', 'https://t.me/share/url?url={url}&text={title}', 0, 1, 50),
+('threads', 'Threads', 'fab fa-threads', '#000', 'https://www.threads.net/intent/post?text={title} {url}', 1, 1, 51),
+('tiktok', 'TikTok', 'fab fa-tiktok', '#010101', NULL, 1, 1, 52),
+('tumblr', 'Tumblr', 'fab fa-tumblr', '#314358', 'https://www.tumblr.com/widgets/share/tool?shareSource=legacy&canonicalUrl={url}&title={title}', 1, 1, 53),
+('twitch', 'Twitch', 'fab fa-twitch', '#4b367c', NULL, 0, 1, 54),
+('twitter', 'Twitter', 'fab fa-twitter', '#1da1f2', 'https://twitter.com/intent/tweet?text={title}&url={url}', 0, 1, 55),
+('viber', 'Viber', 'fab fa-viber', '#574e92', 'viber://forward?text={title} {url}', 0, 1, 56),
+('vimeo', 'Vimeo', 'fab fa-vimeo', '#00ADEF', NULL, 1, 1, 57),
+('vkontakte', 'VKontakte', 'fab fa-vk', '#4C75A3', 'https://vk.com/share.php?url={url}&title={title}', 0, 1, 58),
+('website', 'Website', 'fas fa-globe', '#333', NULL, 1, 1, 59),
+('wechat', 'WeChat', 'fab fa-weixin', '#7BB32E', NULL, 0, 1, 60),
+('weibo', 'Weibo', 'fab fa-weibo', '#E6162D', 'https://service.weibo.com/share/share.php?url={url}&title={title}', 0, 1, 61),
+('whatsapp', 'WhatsApp', 'fab fa-whatsapp', '#25d366', 'https://wa.me/?text={title} {url}', 0, 1, 62),
+('x', 'X (Twitter)', 'fab fa-x-twitter', '#000', 'https://twitter.com/intent/tweet?text={title}&url={url}', 1, 1, 63),
+('xing', 'Xing', 'fab fa-xing', '#006567', 'https://www.xing.com/app/user?op=share;url={url};title={title}', 0, 1, 64),
+('yahoomail', 'Yahoo Mail', 'fab fa-yahoo', '#4A00A1', 'https://compose.mail.yahoo.com/?to=&subject={title}&body={url}', 0, 1, 65),
+('youtube', 'YouTube', 'fab fa-youtube', '#ff0000', NULL, 1, 1, 66);
+
+-- ============================================
 -- SETTINGS TABLES
 -- ============================================
 
@@ -1130,6 +1221,37 @@ INSERT OR IGNORE INTO custom_templates
  '["plugins/custom-templates-pro/uploads/galleries/drift-scape/script.js"]',
  NULL,
  1);
+
+-- ============================================
+-- UPDATE SYSTEM TABLES
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS migrations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  version TEXT NOT NULL UNIQUE,
+  filename TEXT NOT NULL,
+  batch INTEGER NOT NULL DEFAULT 1,
+  executed_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_migrations_version ON migrations(version);
+CREATE INDEX IF NOT EXISTS idx_migrations_batch ON migrations(batch);
+
+CREATE TABLE IF NOT EXISTS update_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_version TEXT NOT NULL,
+  to_version TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'started' CHECK(status IN ('started', 'completed', 'failed', 'rolled_back')),
+  backup_path TEXT,
+  error_message TEXT,
+  started_at TEXT DEFAULT (datetime('now')),
+  completed_at TEXT,
+  executed_by INTEGER,
+  FOREIGN KEY (executed_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_update_logs_status ON update_logs(status);
+CREATE INDEX IF NOT EXISTS idx_update_logs_started_at ON update_logs(started_at);
 
 -- NOTE: Frontend texts are loaded from JSON files in storage/translations/
 -- The frontend_texts table is for user-customized translations only

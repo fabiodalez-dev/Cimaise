@@ -2,7 +2,7 @@
 
 **The photography portfolio CMS that gets out of your way.**
 
-![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
+![License](https://img.shields.io/badge/License-GPLv3-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php&logoColor=white)
 ![Slim](https://img.shields.io/badge/Slim-4.x-74a045.svg?logo=slim&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57.svg?logo=sqlite&logoColor=white)
@@ -1325,7 +1325,7 @@ Contributions are welcome! Whether it's bug fixes, new features, translations, o
 
 ## License
 
-MIT License — Use it however you want, commercially or personally.
+GNU General Public License v3.0 — Use it however you want, commercially or personally, as long as you keep it open source.
 
 ---
 

@@ -955,9 +955,11 @@
 
 <script nonce="{{ csp_nonce() }}">
 // Image generation form handler - attached via addEventListener for CSP compliance
-document.addEventListener('DOMContentLoaded', function() {
+// Use IIFE for immediate execution (SPA navigation doesn't fire DOMContentLoaded again)
+(function initSettingsPage() {
   const btn = document.getElementById('generate-btn');
-  if (btn) {
+  if (btn && !btn._bound) {
+    btn._bound = true;
     btn.addEventListener('click', function() {
 
       const confirmMessage = '{{ trans('admin.settings.confirm_generate')|e('js') }}';
@@ -1122,27 +1124,28 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// Handle page template changes for default template selector
-document.addEventListener('DOMContentLoaded', function() {
-  // Handle page template changes for default template selector
+// Handle page template changes for default template selector (IIFE for SPA navigation)
+(function initPageTemplateHandler() {
   const pageTemplateRadios = document.querySelectorAll('input[name="gallery_page_template"]');
   const defaultTemplateSelect = document.querySelector('select[name="default_template_id"]');
-  
+
   if (pageTemplateRadios.length > 0 && defaultTemplateSelect) {
-    // Add event listeners to all page template radios
+    // Add event listeners to all page template radios (avoid duplicate binding)
     pageTemplateRadios.forEach(radio => {
+      if (radio._templateBound) return;
+      radio._templateBound = true;
       radio.addEventListener('change', function() {
         updateDefaultTemplateSelector(this.value);
       });
     });
-    
+
     // Set initial state based on currently selected radio
     const selectedRadio = document.querySelector('input[name="gallery_page_template"]:checked');
     if (selectedRadio) {
       updateDefaultTemplateSelector(selectedRadio.value);
     }
   }
-});
+})();
 
 function updateDefaultTemplateSelector(selectedValue) {
   const defaultTemplateSelect = document.querySelector('select[name="default_template_id"]');
@@ -1182,14 +1185,16 @@ function updateDefaultTemplateSelector(selectedValue) {
   }
 }
 
-// Logo type toggle handler
-document.addEventListener('DOMContentLoaded', function() {
+// Logo type toggle handler (IIFE for SPA navigation)
+(function initLogoAndPwaHandlers() {
   const logoTypeRadios = document.querySelectorAll('input[name="logo_type"]');
   const imageSection = document.getElementById('logo-image-section');
   const textSection = document.getElementById('logo-text-section');
 
   if (logoTypeRadios.length > 0 && imageSection && textSection) {
     logoTypeRadios.forEach(radio => {
+      if (radio._logoBound) return;
+      radio._logoBound = true;
       radio.addEventListener('change', function() {
         if (this.value === 'image') {
           imageSection.classList.remove('hidden');
@@ -1212,6 +1217,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const picker = document.getElementById(pair.picker);
     const text = document.getElementById(pair.text);
     if (picker && text) {
+      if (picker._colorBound) return;
+      picker._colorBound = true;
       // Sync picker to text
       picker.addEventListener('input', function() {
         text.value = this.value.toUpperCase();
@@ -1236,6 +1243,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   });
-});
+})();
 </script>
 {% endblock %}

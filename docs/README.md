@@ -73,4 +73,4 @@ Hai trovato un errore o vuoi migliorare la documentazione? Le pull request sono 
 
 ## Licenza
 
-Questa documentazione è rilasciata sotto licenza MIT, come il resto del progetto Cimaise.
+Questa documentazione è rilasciata sotto licenza GNU General Public License v3.0, come il resto del progetto Cimaise.
