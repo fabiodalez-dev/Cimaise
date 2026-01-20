@@ -64,8 +64,7 @@ abstract class BaseController
      */
     protected function csrfErrorJson(\Psr\Http\Message\ResponseInterface $response): \Psr\Http\Message\ResponseInterface
     {
-        $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid CSRF token']));
-        return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        return $this->jsonResponse($response, ['ok' => false, 'error' => 'Invalid CSRF token'], 403);
     }
 
     /**
@@ -344,5 +343,32 @@ abstract class BaseController
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    /**
+     * Write a JSON response with proper error handling.
+     * Returns the response with Content-Type header set.
+     *
+     * @param \Psr\Http\Message\ResponseInterface $response
+     * @param mixed $data Data to encode as JSON
+     * @param int $status HTTP status code (default: 200)
+     * @param int $flags JSON encoding flags (default: JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+     * @return \Psr\Http\Message\ResponseInterface
+     */
+    protected function jsonResponse(
+        \Psr\Http\Message\ResponseInterface $response,
+        mixed $data,
+        int $status = 200,
+        int $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+    ): \Psr\Http\Message\ResponseInterface {
+        try {
+            $json = json_encode($data, $flags | JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            Logger::error('JSON encoding failed', ['error' => $e->getMessage()], 'api');
+            $json = json_encode(['ok' => false, 'error' => 'Internal error: failed to encode response']);
+            $status = 500;
+        }
+        $response->getBody()->write($json);
+        return $response->withHeader('Content-Type', 'application/json')->withStatus($status);
     }
 }

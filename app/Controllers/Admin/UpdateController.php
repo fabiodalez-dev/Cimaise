@@ -79,7 +79,7 @@ class UpdateController extends BaseController
 
         // Verify CSRF token
         $data = (array) $request->getParsedBody();
-        $csrfToken = $data['csrf_token'] ?? '';
+        $csrfToken = $data['csrf'] ?? $data['csrf_token'] ?? '';
 
         if (empty($csrfToken) || !hash_equals($_SESSION['csrf'] ?? '', $csrfToken)) {
             return $this->jsonResponse($response, ['error' => 'Invalid CSRF token'], 403);
@@ -132,7 +132,7 @@ class UpdateController extends BaseController
 
         // Verify CSRF token
         $data = (array) $request->getParsedBody();
-        $csrfToken = $data['csrf_token'] ?? '';
+        $csrfToken = $data['csrf'] ?? $data['csrf_token'] ?? '';
 
         if (empty($csrfToken) || !hash_equals($_SESSION['csrf'] ?? '', $csrfToken)) {
             return $this->jsonResponse($response, ['error' => 'Invalid CSRF token'], 403);
@@ -217,7 +217,7 @@ class UpdateController extends BaseController
         }
 
         $data = (array) $request->getParsedBody();
-        $csrfToken = $data['csrf_token'] ?? '';
+        $csrfToken = $data['csrf'] ?? $data['csrf_token'] ?? '';
 
         if (empty($csrfToken) || !hash_equals($_SESSION['csrf'] ?? '', $csrfToken)) {
             return $this->jsonResponse($response, ['error' => 'Invalid CSRF token'], 403);
@@ -289,7 +289,7 @@ class UpdateController extends BaseController
 
         // Verify CSRF token
         $data = (array) $request->getParsedBody();
-        $csrfToken = $data['csrf_token'] ?? '';
+        $csrfToken = $data['csrf'] ?? $data['csrf_token'] ?? '';
 
         if (empty($csrfToken) || !hash_equals($_SESSION['csrf'] ?? '', $csrfToken)) {
             return $this->jsonResponse($response, ['error' => 'Invalid CSRF token'], 403);

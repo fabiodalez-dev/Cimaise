@@ -2,6 +2,7 @@
   "name": "fabiodalez-dev/cimaise",
   "description": "Minimalist photography CMS (PHP 8.2, Slim 4, Twig, MySQL, Vite, Tailwind, GSAP)",
   "type": "project",
+  "license": "GPL-3.0-only",
   "require": {
     "php": "^8.2",
     "symfony/console": "^6.4",

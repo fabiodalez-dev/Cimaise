@@ -79,7 +79,21 @@ class UsersController extends BaseController
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.all_fields_required')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
         }
-        
+
+        // Input length validation (mb_strlen for UTF-8 character count)
+        if (mb_strlen($email, 'UTF-8') > 255) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_too_long')];
+            return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
+        }
+        if (mb_strlen($firstName, 'UTF-8') > 100) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.first_name_too_long')];
+            return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
+        }
+        if (mb_strlen($lastName, 'UTF-8') > 100) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.last_name_too_long')];
+            return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
+        }
+
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_invalid')];
             return $response->withHeader('Location', $this->redirect('/admin/users/create'))->withStatus(302);
@@ -185,6 +199,20 @@ class UsersController extends BaseController
         // Validation
         if (empty($email) || empty($firstName) || empty($lastName)) {
             $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.name_email_required')];
+            return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
+        }
+
+        // Input length validation (mb_strlen for UTF-8 character count)
+        if (mb_strlen($email, 'UTF-8') > 255) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.email_too_long')];
+            return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
+        }
+        if (mb_strlen($firstName, 'UTF-8') > 100) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.first_name_too_long')];
+            return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
+        }
+        if (mb_strlen($lastName, 'UTF-8') > 100) {
+            $_SESSION['flash'][] = ['type' => 'danger', 'message' => trans('admin.flash.last_name_too_long')];
             return $response->withHeader('Location', $this->redirect('/admin/users/' . $id . '/edit'))->withStatus(302);
         }
 

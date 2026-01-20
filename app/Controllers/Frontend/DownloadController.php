@@ -84,7 +84,7 @@ class DownloadController extends BaseController
         finfo_close($finfo);
         
         $allowedMimes = [
-            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
             'image/bmp', 'image/tiff', 'image/svg+xml'
         ];
         

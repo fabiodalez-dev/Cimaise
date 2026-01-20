@@ -5,6 +5,7 @@ namespace App\Services;
 
 use App\Support\Database;
 use Icamys\SitemapGenerator\SitemapGenerator;
+use Icamys\SitemapGenerator\Config;
 
 /**
  * SitemapService
@@ -44,13 +45,14 @@ class SitemapService
     public function generate(): array
     {
         try {
-            $sitemap = new SitemapGenerator($this->baseUrl);
+            // Create config for SitemapGenerator v5.0
+            $config = (new Config())
+                ->setBaseURL($this->baseUrl)
+                ->setSaveDirectory($this->publicPath)
+                ->setSitemapIndexURL($this->baseUrl . '/sitemap.xml');
 
-            // Set the path where sitemap files will be saved
-            $sitemap->setPath($this->publicPath . '/');
-
-            // Set filename
-            $sitemap->setFilename('sitemap');
+            $sitemap = new SitemapGenerator($config);
+            $sitemap->setSitemapFilename('sitemap.xml');
 
             // Add homepage (highest priority)
             $sitemap->addURL('/', new \DateTime(), 'daily', 1.0);
@@ -102,11 +104,9 @@ class SitemapService
                 $sitemap->addURL('/album/' . $album['slug'], $updatedAt, 'monthly', 0.8);
             }
 
-            // Generate the sitemap files
-            $sitemap->createSitemap();
-
-            // Write sitemap index (if multiple sitemap files were created)
-            $sitemap->writeSitemap();
+            // Flush URLs to disk and finalize sitemap files
+            $sitemap->flush();
+            $sitemap->finalize();
 
             // Generate image sitemap separately (Google Image extension)
             $this->generateImageSitemap();

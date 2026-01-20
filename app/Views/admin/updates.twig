@@ -572,6 +572,10 @@ function bindUpdateActions() {
     };
 
     document.querySelectorAll('[data-action]').forEach((el) => {
+        // Prevent duplicate binding on SPA navigation
+        if (el._updatesBound) return;
+        el._updatesBound = true;
+
         const action = el.dataset.action;
         const handler = actionHandlers[action];
         if (handler) {
@@ -583,6 +587,11 @@ function bindUpdateActions() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', bindUpdateActions);
+// Initialize immediately for SPA navigation compatibility
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindUpdateActions);
+} else {
+    requestAnimationFrame(bindUpdateActions);
+}
 </script>
 {% endblock %}

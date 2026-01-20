@@ -122,13 +122,13 @@ class AnalyticsSummarizeCommand extends Command
     {
         // Get basic stats for the date
         $stmt = $pdo->prepare('
-            SELECT 
-                COUNT(DISTINCT session_id) as total_sessions,
+            SELECT
+                COUNT(DISTINCT s.session_id) as total_sessions,
                 COUNT(*) as total_pageviews,
-                COUNT(DISTINCT 
-                    CASE WHEN is_bot = 0 THEN session_id END
+                COUNT(DISTINCT
+                    CASE WHEN s.is_bot = 0 THEN s.session_id END
                 ) as unique_visitors,
-                AVG(duration) as avg_session_duration
+                AVG(s.duration) as avg_session_duration
             FROM analytics_sessions s
             LEFT JOIN analytics_pageviews p ON s.session_id = p.session_id
             WHERE DATE(s.started_at) = ?
@@ -148,11 +148,11 @@ class AnalyticsSummarizeCommand extends Command
         
         // Get top pages
         $stmt = $pdo->prepare('
-            SELECT page_url, page_title, COUNT(*) as views
+            SELECT p.page_url, p.page_title, COUNT(*) as views
             FROM analytics_pageviews p
             JOIN analytics_sessions s ON p.session_id = s.session_id
             WHERE DATE(p.viewed_at) = ? AND s.is_bot = 0
-            GROUP BY page_url
+            GROUP BY p.page_url, p.page_title
             ORDER BY views DESC
             LIMIT 10
         ');
@@ -190,7 +190,7 @@ class AnalyticsSummarizeCommand extends Command
             JOIN analytics_sessions s ON p.session_id = s.session_id
             LEFT JOIN albums a ON p.album_id = a.id
             WHERE DATE(p.viewed_at) = ? AND s.is_bot = 0 AND p.album_id IS NOT NULL
-            GROUP BY p.album_id
+            GROUP BY p.album_id, a.title
             ORDER BY views DESC
             LIMIT 10
         ');
