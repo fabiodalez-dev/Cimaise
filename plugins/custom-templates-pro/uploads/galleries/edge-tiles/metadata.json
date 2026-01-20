@@ -1,0 +1,18 @@
+{
+  "type": "gallery",
+  "name": "Edge Tiles",
+  "slug": "edge-tiles",
+  "description": "Edge-to-edge tiles with clean borders.",
+  "version": "1.0.0",
+  "author": "Cimaise",
+  "settings": {
+    "layout": "grid",
+    "columns": {"desktop": 5, "tablet": 3, "mobile": 1},
+    "gap": {"horizontal": 6, "vertical": 6},
+    "aspect_ratio": "1:1",
+    "style": {"rounded": false, "shadow": false, "hover_scale": false}
+  },
+  "assets": {
+    "css": ["styles.css"]
+  }
+}

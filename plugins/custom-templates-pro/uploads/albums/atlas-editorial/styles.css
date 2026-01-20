@@ -1,0 +1,129 @@
+:root {
+  --atlas-bg: #fff;
+  --atlas-text: #111;
+  --atlas-muted: #666;
+  --atlas-border: #eee;
+  --atlas-panel: #fff;
+}
+html.dark {
+  --atlas-bg: #111;
+  --atlas-text: #f5f5f5;
+  --atlas-muted: #b5b5b5;
+  --atlas-border: #2a2a2a;
+  --atlas-panel: #151515;
+}
+.atlas-page {
+  background: var(--atlas-bg);
+  color: var(--atlas-text);
+}
+.atlas-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+.atlas-header {
+  border-bottom: 1px solid var(--atlas-border);
+  padding-bottom: 28px;
+}
+.atlas-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 12px;
+  color: var(--atlas-muted);
+}
+.atlas-title {
+  font-size: clamp(32px, 4vw, 52px);
+  line-height: 1.08;
+  margin: 10px 0 12px;
+}
+.atlas-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--atlas-muted);
+}
+.atlas-excerpt {
+  font-size: 18px;
+  line-height: 1.65;
+  margin-top: 18px;
+  color: var(--atlas-text);
+}
+.atlas-cover {
+  margin: 28px 0 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.atlas-grid {
+  display: grid;
+  gap: 36px;
+  margin-top: 36px;
+}
+.atlas-body {
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--atlas-text);
+}
+.atlas-equipment {
+  border-left: 2px solid var(--atlas-text);
+  padding-left: 18px;
+  font-size: 14px;
+  color: var(--atlas-text);
+}
+.atlas-equipment h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 11px;
+  margin-bottom: 14px;
+}
+.atlas-eq-block + .atlas-eq-block {
+  margin-top: 14px;
+}
+.atlas-tags {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--atlas-muted);
+}
+.atlas-tag {
+  border: 1px solid var(--atlas-border);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+@media (min-width: 1024px) {
+  .atlas-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+    align-items: start;
+  }
+  .atlas-equipment {
+    position: sticky;
+    top: 120px;
+  }
+}
+
+@media (max-width: 900px) {
+  .atlas-container {
+    padding: 36px 18px;
+  }
+  .atlas-title {
+    font-size: 2rem;
+  }
+  .atlas-excerpt {
+    font-size: 1rem;
+  }
+  .atlas-equipment {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--atlas-border);
+    padding-top: 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .atlas-page .gallery-grid,
+  .atlas-page .gallery-masonry {
+    grid-template-columns: 1fr !important;
+  }
+}

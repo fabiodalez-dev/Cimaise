@@ -1,0 +1,35 @@
+{
+  "type": "gallery",
+  "name": "Drift Scape",
+  "slug": "drift-scape",
+  "description": "Sparse gallery with wide whitespace and horizontal drift.",
+  "version": "1.0.0",
+  "author": "Cimaise Team",
+  "requires": {
+    "cimaise": ">=1.0.0"
+  },
+  "settings": {
+    "layout": "sparse",
+    "columns": {
+      "desktop": 3,
+      "tablet": 2,
+      "mobile": 1
+    },
+    "gap": {
+      "horizontal": 40,
+      "vertical": 48
+    },
+    "style": {
+      "rounded": false,
+      "shadow": false,
+      "hover_scale": true
+    }
+  },
+  "libraries": {
+    "photoswipe": true
+  },
+  "assets": {
+    "css": ["styles.css"],
+    "js": ["script.js"]
+  }
+}
