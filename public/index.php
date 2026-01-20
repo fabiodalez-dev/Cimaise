@@ -318,6 +318,15 @@ $autoDetectedUrl = $protocol . '://' . $host . $autoBasePath;
 $twig->getEnvironment()->addGlobal('app_url', $_ENV['APP_URL'] ?? $autoDetectedUrl);
 $twig->getEnvironment()->addGlobal('base_path', $basePath);
 
+// Load app version from version.json
+$versionFile = __DIR__ . '/../version.json';
+$appVersion = '1.0.0';
+if (file_exists($versionFile)) {
+    $versionData = json_decode(file_get_contents($versionFile), true);
+    $appVersion = $versionData['version'] ?? '1.0.0';
+}
+$twig->getEnvironment()->addGlobal('app_version', $appVersion);
+
 // Load Twig globals from cache (APCu/file) - reduces ~50 settings queries to ~1
 // Cache is invalidated when settings change via TwigGlobalsCache::invalidate()
 if (!$isInstallerRoute && $container['db'] !== null) {
